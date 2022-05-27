@@ -60,11 +60,12 @@ defining IFC_DECL_DECLSORT_START and IFC_DECL_DECLSORT_END.
 #endif /* ifndef IFC_LE_DECL_END */
 
 #ifndef IFC_DECL_DECLSORT_START
-#define IFC_DECL_DECLSORT_START(name) IFC_DECL_START(concat(DeclSort_, name))
+#define IFC_DECL_DECLSORT_START(name) \
+                                    IFC_DECL_START(EDG_CONCAT(DeclSort_, name))
 #endif /* ifndef IFC_DECL_DECLSORT_START */
 
 #ifndef IFC_DECL_DECLSORT_END
-#define IFC_DECL_DECLSORT_END(name) IFC_DECL_END(concat(DeclSort_, name))
+#define IFC_DECL_DECLSORT_END(name) IFC_DECL_END(EDG_CONCAT(DeclSort_, name))
 #endif /* ifndef IFC_DECL_DECLSORT_END */
 
 /* File_Header */

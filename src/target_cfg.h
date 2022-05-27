@@ -28,12 +28,12 @@ variables to a particular set of target-specific values.
 */
 /* Routine name: set_target_config_X (where X is the configuration name). */
 #define TARGET_MAP_ROUTINE_NAME(config) \
-  concat(set_target_config ## _, config)(void)
+  EDG_CONCAT(set_target_config ## _, config)(void)
 /* Assign the target-specific macro value to the associated global variable. */
 /*lint -estring(823,TARGET_MAP_MACRO)*/
 /*lint -emacro(506,TARGET_MAP_MACRO)*/
 #define TARGET_MAP_MACRO(config_macro, global_var, config) \
-  (global_var) = concat(config_macro ## _, config);
+  (global_var) = EDG_CONCAT(config_macro ## _, config);
 END_EDG_NAMESPACE  /* Conditionally close the "edg" namespace. */
 #include "target_map.h"
 BEGIN_EDG_NAMESPACE  /* Conditionally open the "edg" namespace. */
@@ -46,14 +46,14 @@ configuration macros.
 */
 /* Routine name: dump_target_config_X (where X is the configuration name). */
 #define TARGET_MAP_ROUTINE_NAME(config) \
-  concat(dump_target_config ## _, config)(void)
+  EDG_CONCAT(dump_target_config ## _, config)(void)
 #define STRINGIZE_HELPER(X) stringize(X)
 /* Write the target-specific macro and its value to stderr in #define format.*/
 /*lint -estring(823,TARGET_MAP_MACRO)*/
 #define TARGET_MAP_MACRO(config_macro, global_var, config) \
   fprintf(f_error, "#define %s %s\n", \
           #config_macro "_" stringize(config), \
-          STRINGIZE_HELPER(concat(config_macro ## _, config)));
+          STRINGIZE_HELPER(EDG_CONCAT(config_macro ## _, config)));
 END_EDG_NAMESPACE  /* Conditionally close the "edg" namespace. */
 #include "target_map.h"
 BEGIN_EDG_NAMESPACE  /* Conditionally open the "edg" namespace. */

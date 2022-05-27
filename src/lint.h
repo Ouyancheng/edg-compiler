@@ -1192,7 +1192,7 @@ a smaller subset).
 /*lint -esym(759,temp_for_local_constant)*/
 /*lint -esym(765,temp_for_local_constant)*/
 /*lint -esym(714,temp_for_local_constant)*/
-/*lint -esym(755,concat)*/
+/*lint -esym(755,EDG_CONCAT)*/
 /*lint -esym(769,ec_ms_metadata_init_failed)*/
 /*lint -esym(769,a_named_register::anr_fpsr)*/
 /*lint -esym(769,a_named_register::anr_dirflag)*/

@@ -292,9 +292,9 @@ appropriately and including ifc_map.h.  The net result is something like:
 /*lint -estring(823,IFC_LE_DECL_FIELD)*/
 /*lint -estring(823,IFC_LE_DECL_END)*/
 #define IFC_DECL_START(name) \
-  struct concat(an_ifc_, name) {
+  struct EDG_CONCAT(an_ifc_, name) {
 #define IFC_DECL_FIELD(field, type) \
-    concat(ifc_, type)  field;
+    EDG_CONCAT(ifc_, type)  field;
 #define IFC_DECL_END(name) \
   };  /* #name */
 
@@ -3261,8 +3261,8 @@ public:
   inline T *get(T *storage, a_boolean fill_storage = FALSE) = delete;
   /* Generate prefixes for the entity getters. */
   #define IFC_DECL_START(name) \
-  inline concat(an_ifc_, name) * concat(get_, name) ( \
-                                  concat(an_ifc_, name) *ptr, \
+  inline EDG_CONCAT(an_ifc_, name) * EDG_CONCAT(get_, name) ( \
+                                  EDG_CONCAT(an_ifc_, name) *ptr, \
                                   ARG_UNUSED a_boolean  fill_storage = FALSE);
   #define IFC_DECL_FIELD(field, type) /**/
   #define IFC_DECL_END(name) /**/

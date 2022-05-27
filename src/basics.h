@@ -27,11 +27,11 @@ parameters for this version.
 #include "defines.h"
 
 /*
-Define concat and stringize macros that use the preprocessor to concatenate
+Define EDG_CONCAT and stringize macros that use the preprocessor to concatenate
 and turn an argument into a string.
 */
 /* Concatenate two arguments: */
-#define concat(x, y) x ## y
+#define EDG_CONCAT(x, y) x ## y
 /* Quote the argument: */
 #define stringize(X) #X
 

@@ -455,12 +455,12 @@ For example, when "name" is "foo", this routine effectively boils down to:
 */
 #define IFC_GENERIC_GET(name) \
   template<> \
-  inline concat(an_ifc_, name) * an_ifc_module::get< \
-                                  concat(an_ifc_, name) >( \
-                                  concat(an_ifc_, name) *storage, \
-                /* Defaulted: */  a_boolean             fill_storage) \
+  inline EDG_CONCAT(an_ifc_, name) * an_ifc_module::get< \
+                                      EDG_CONCAT(an_ifc_, name) >( \
+                                      EDG_CONCAT(an_ifc_, name) *storage, \
+                    /* Defaulted: */  a_boolean             fill_storage) \
   { \
-    return concat(get_, name)(storage, fill_storage); \
+    return EDG_CONCAT(get_, name)(storage, fill_storage); \
   }
 
 #if USE_MMAP_FOR_MODULES
@@ -499,24 +499,25 @@ For example, when "name" is "foo", this routine effectively boils down to:
   }
 */
 #define IFC_DECL_START(name) \
-  inline concat(an_ifc_, name) * an_ifc_module::concat(get_, name) ( \
-                                  concat(an_ifc_, name) *ptr, \
-                /* Defaulted: */  a_boolean             fill_storage) \
+  inline EDG_CONCAT(an_ifc_, name) * an_ifc_module::EDG_CONCAT(get_, name) ( \
+                                      EDG_CONCAT(an_ifc_, name) *ptr, \
+                    /* Defaulted: */  a_boolean             fill_storage) \
   { \
     if ((a_boolean)(/*lint -e506*/ASSUME_LITTLE_ENDIAN_IFC_MODULES || \
                                     targ_little_endian) \
                                                      == host_little_endian) { \
-      check_assertion(byte_buffer + sizeof(concat(an_ifc_, name)) <= \
+      check_assertion(byte_buffer + sizeof(EDG_CONCAT(an_ifc_, name)) <= \
                                                              (buffer_end+1)); \
       if (fill_storage) { \
-        memcpy((void*)ptr, (void*)byte_buffer, sizeof(concat(an_ifc_, name)));\
+        memcpy((void*)ptr, (void*)byte_buffer, \
+                                          sizeof(EDG_CONCAT(an_ifc_, name))); \
       } else { \
-        ptr = ( concat(an_ifc_, name) *)byte_buffer; \
+        ptr = ( EDG_CONCAT(an_ifc_, name) *)byte_buffer; \
       }  /* if */ \
-      byte_buffer = byte_buffer + sizeof(concat(an_ifc_, name)); \
+      byte_buffer = byte_buffer + sizeof(EDG_CONCAT(an_ifc_, name)); \
     } else {
 #define IFC_DECL_FIELD(field, type) \
-      concat(GET_, type)(ptr->field, /*from_header=*/FALSE);
+      EDG_CONCAT(GET_, type)(ptr->field, /*from_header=*/FALSE);
 #define IFC_DECL_END(name) \
     }  /* if */ \
     return ptr; \
@@ -528,22 +529,23 @@ The variant for when the endianness of the IFC entity is guaranteed to be
 little-endian.
 */
 #define IFC_LE_DECL_START(name) \
-  inline concat(an_ifc_, name) * an_ifc_module::concat(get_, name) ( \
-                                  concat(an_ifc_, name) *ptr, \
+  inline EDG_CONCAT(an_ifc_, name) * an_ifc_module::EDG_CONCAT(get_, name) ( \
+                                  EDG_CONCAT(an_ifc_, name) *ptr, \
                 /* Defaulted: */  a_boolean             fill_storage) \
   { \
     if (host_little_endian) { \
-      check_assertion(byte_buffer + sizeof(concat(an_ifc_, name)) <= \
+      check_assertion(byte_buffer + sizeof(EDG_CONCAT(an_ifc_, name)) <= \
                                                              (buffer_end+1)); \
       if (fill_storage) { \
-        memcpy((void*)ptr, (void*)byte_buffer, sizeof(concat(an_ifc_, name)));\
+        memcpy((void*)ptr, (void*)byte_buffer, \
+                                          sizeof(EDG_CONCAT(an_ifc_, name))); \
       } else { \
-        ptr = ( concat(an_ifc_, name) *)byte_buffer; \
+        ptr = ( EDG_CONCAT(an_ifc_, name) *)byte_buffer; \
       }  /* if */ \
-      byte_buffer = byte_buffer + sizeof(concat(an_ifc_, name)); \
+      byte_buffer = byte_buffer + sizeof(EDG_CONCAT(an_ifc_, name)); \
     } else {
 #define IFC_LE_DECL_FIELD(field, type) \
-      concat(GET_, type)(ptr->field, /*from_header=*/TRUE);
+      EDG_CONCAT(GET_, type)(ptr->field, /*from_header=*/TRUE);
 
 #else /* !USE_MMAP_FOR_MODULES */
 
@@ -567,12 +569,12 @@ two fields, "field1" and "field2", whose types are "field1_type" and
   }
 */
 #define IFC_DECL_START(name) \
-  inline concat(an_ifc_, name) * an_ifc_module::concat(get_, name) ( \
-                                  concat(an_ifc_, name) *ptr, \
+  inline EDG_CONCAT(an_ifc_, name) * an_ifc_module::EDG_CONCAT(get_, name) ( \
+                                  EDG_CONCAT(an_ifc_, name) *ptr, \
                 /* Defaulted: */  ARG_UNUSED a_boolean  fill_storage) \
   {
 #define IFC_DECL_FIELD(field, type) \
-    concat(GET_, type)(ptr->field, /*from_header=*/FALSE);
+    EDG_CONCAT(GET_, type)(ptr->field, /*from_header=*/FALSE);
 #define IFC_DECL_END(name) \
     return ptr; \
   } \
@@ -583,7 +585,7 @@ The variant for when the endianness of the IFC entity is guaranteed to be
 little-endian.
 */
 #define IFC_LE_DECL_FIELD(field, type) \
-    concat(GET_, type)(ptr->field, /*from_header=*/TRUE);
+    EDG_CONCAT(GET_, type)(ptr->field, /*from_header=*/TRUE);
 
 #endif /* USE_MMAP_FOR_MODULES */
 
@@ -1634,9 +1636,9 @@ declaration's index.  Return the associated result.
   ifc_mod->read_prechecked_partition_element(decl_index);
   switch (decl_tag(decl_index)) {
 #define IFC_DECL_DECLSORT_START(name) \
-    case concat(ifc_DeclSort_, name): \
-      { concat(an_ifc_DeclSort_, name) mem, *memp; \
-        memp = ifc_mod->get<concat(an_ifc_DeclSort_, name)>(&mem); \
+    case EDG_CONCAT(ifc_DeclSort_, name): \
+      { EDG_CONCAT(an_ifc_DeclSort_, name) mem, *memp; \
+        memp = ifc_mod->get<EDG_CONCAT(an_ifc_DeclSort_, name)>(&mem); \
         result = getDerived()->visit(memp); \
       } \
       break;
@@ -17681,7 +17683,7 @@ struct an_ifc_module::Element_field_visitor {
     {}
 
 #define IFC_DECL_START(name) \
-  inline void visit_element(concat(an_ifc_, name) *memp);
+  inline void visit_element(EDG_CONCAT(an_ifc_, name) *memp);
 #define IFC_DECL_FIELD(name, type) /* nothing */
 #define IFC_DECL_END(name) /* nothing */
 
@@ -17744,12 +17746,12 @@ protected:
 template<typename a_Derived_T> \
 inline void \
 an_ifc_module::Element_field_visitor<a_Derived_T>::visit_element( \
-                                                 concat(an_ifc_, name) *memp) \
+                                             EDG_CONCAT(an_ifc_, name) *memp) \
 {
 #define IFC_DECL_FIELD(name, type) \
   getDerived()->visit_pre_conversion(memp->name, #name);
 #define IFC_DECL_END(name) \
-}  /* def_visit_members<concat(an_ifc_, name)> */
+}  /* def_visit_members<EDG_CONCAT(an_ifc_, name)> */
 
 /*lint -e451 included more than once. */
 #include "ifc_map.h"
@@ -18121,16 +18123,16 @@ recursing.
 template<> \
 inline void \
 an_ifc_module::Element_validation_state_clearer::def_visit< \
-                        concat(an_ifc_, name)>(an_ifc_partition_position pos) \
+                    EDG_CONCAT(an_ifc_, name)>(an_ifc_partition_position pos) \
 { \
-  concat(an_ifc_, name) mem, *memp; \
+  EDG_CONCAT(an_ifc_, name) mem, *memp; \
   ifc_mod->read_unchecked_partition_element(pos); \
-  memp = ifc_mod->get<concat(an_ifc_, name)>(&mem); \
+  memp = ifc_mod->get<EDG_CONCAT(an_ifc_, name)>(&mem); \
   field_visitor.visit_element(memp);
 #define IFC_DECL_FIELD(field, type) /* nothing */
 /* Generate the end of the function. */
 #define IFC_DECL_END(name) \
-}  /* def_visit<concat(an_ifc_, name)> */
+}  /* def_visit<EDG_CONCAT(an_ifc_, name)> */
 
 /*lint -e451 included more than once. */
 #include "ifc_map.h"
@@ -18532,16 +18534,16 @@ partition position.
 #define IFC_DECL_START(name) \
 template<> \
 inline void an_ifc_module::Element_validator::def_visit< \
-                        concat(an_ifc_, name)>(an_ifc_partition_position pos) \
+                    EDG_CONCAT(an_ifc_, name)>(an_ifc_partition_position pos) \
 { \
-  concat(an_ifc_, name) mem, *memp; \
+  EDG_CONCAT(an_ifc_, name) mem, *memp; \
   ifc_mod->read_unchecked_partition_element(pos); \
-  memp = ifc_mod->get<concat(an_ifc_, name)>(&mem); \
+  memp = ifc_mod->get<EDG_CONCAT(an_ifc_, name)>(&mem); \
   field_visitor.visit_element(memp);
 #define IFC_DECL_FIELD(field, type) /* nothing */
 /* Generate the end of the function. */
 #define IFC_DECL_END(name) \
-}  /* def_visit<concat(an_ifc_, name)> */
+}  /* def_visit<EDG_CONCAT(an_ifc_, name)> */
 
 /*lint -e451 included more than once. */
 #include "ifc_map.h"

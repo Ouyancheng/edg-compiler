@@ -133,13 +133,13 @@ Define a macro to initialize an a_target_configuration entry
 /*lint -esym(750,DEFINE_TARGET_CONFIGURATION)*/
 #define DEFINE_TARGET_CONFIGURATION(name) \
   { stringize(name), \
-    concat(set_target_config_, name), \
-    concat(dump_target_config_, name) \
+    EDG_CONCAT(set_target_config_, name), \
+    EDG_CONCAT(dump_target_config_, name) \
   }
 #else /* !DUMP_CONFIG_ENABLED */
 #define DEFINE_TARGET_CONFIGURATION(name) \
   { stringize(name), \
-    concat(set_target_config_, name) \
+    EDG_CONCAT(set_target_config_, name) \
   }
 #endif /* DUMP_CONFIG_ENABLED */
 

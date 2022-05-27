@@ -527,7 +527,7 @@ Callers must ensure that the appropriate enumerator has been added to the
 a_function_number_tag enumeration (as well as the definition of
 function_pointers in fe_init.c).
 */
-#define fn_for_function(name) ((a_function_number)(concat(fn_,name)))
+#define fn_for_function(name) ((a_function_number)(EDG_CONCAT(fn_,name)))
 
 /*
 A macro to convert a function pointer enumerator (a_function_number_tag)
