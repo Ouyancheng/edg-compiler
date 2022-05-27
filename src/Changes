@@ -49,7 +49,7 @@ Consider in GNU C++14 mode:
 
   typedef long double __attribute((vector_size(16))) VLD;
   auto f(VLD x, VLD y) {
-    return x < y;  // Error in some mode.
+    return x < y;  // Error in some modes.
   }
 
 The result type of "x < y" must be a vector of integer type whose element
