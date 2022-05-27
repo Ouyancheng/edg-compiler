@@ -9501,14 +9501,15 @@ a variable), set *not_a_constant to indicate that the builtin cannot be folded
 here (though it may be folded later in the interpreter when the value of the
 variable is known).
 
-The caller has verified that proper number of arguments are present but
+The caller has verified that the proper number of arguments are present but
 additional error checking is performed here.
 */
 {
   an_expr_node_ptr  pm_arg, arg = expr->variant.builtin_operation.operands;
   a_type_ptr        type1, type2;
   a_boolean         result, err = FALSE;
-  a_builtin_operation_kind op = expr->variant.builtin_operation.kind;
+  a_builtin_operation_kind
+                    op = expr->variant.builtin_operation.kind;
 
   if (op == bok_is_pointer_interconvertible_with_class) {
     check_assertion(arg != NULL && arg->next != NULL &&
@@ -9607,7 +9608,8 @@ additional error checking is performed here.
   a_type_ptr        class1 = error_type(), class2 = error_type();
   a_type_ptr        pm_type1, pm_type2;
   a_boolean         result, err = FALSE;
-  a_builtin_operation_kind op = expr->variant.builtin_operation.kind;
+  a_builtin_operation_kind
+                    op = expr->variant.builtin_operation.kind;
 
   check_assertion(arg != NULL && arg->next != NULL);
   if (op == bok_is_corresponding_member) {

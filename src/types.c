@@ -11022,9 +11022,9 @@ static a_field_ptr next_comon_initial_sequence_field(a_type_ptr       tp,
 /*
 Return the "next" field in class type tp that is applicable to the common
 initial sequence of standard layout types.  When fp is NULL, indicates the
-first field in the base class *bcp, or if NULL, tp should be returned.  Updates
-*bcp (to point to the next base class) when all fields have been exhausted in
-*bcp.
+first field in the base class *bcp, or if *bcp is NULL, in tp should be
+returned.  Updates *bcp (to point to the next base class) when all fields have
+been exhausted in *bcp.
 */
 {
   if (fp == NULL) {

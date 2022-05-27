@@ -19,13 +19,13 @@ still retaining original behavior elsewhere.
 GNU compatibility: Layout-compatibility and pointer-interconvertibility traits
 
 With the release of GCC 12.1.0, new builtins were added to support the
-layout-compatibility and pointer-interconvertibility traits defined in P0466R5.
-The front end had previously provided support for these traits in Microsoft
-mode (see the original Changes for EDGcpfe/22295) and then re-implemented them
-(see the Changes entry for EDGcpfe/23851 et al) and have now implemented them
-(with different names and signatures) in GNU emulation mode (when
-gnu_version >= 120100).  Some additional tweaks were also made to the existing
-implementation to be more standard-conforming.
+layout-compatibility and pointer-interconvertibility traits defined in
+committee paper P0466R5.  The front end had previously provided support for
+these traits in Microsoft mode (see the original Changes for EDGcpfe/22295) and
+then reimplemented them (see the Changes entry for EDGcpfe/23851 et al.) and
+have now implemented them (with different names and signatures) in GNU
+emulation mode (when gnu_version >= 120100).  Some additional tweaks were also
+made to the existing implementation to be more standard-conforming.
 
 
 5/26/22  [EDGcpfe/25370]

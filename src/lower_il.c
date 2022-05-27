@@ -14884,7 +14884,8 @@ Lower a call to __is_corresponding_member or __builtin_is_corresponding_member.
 {
   a_type_ptr       class_type1, class_type2;
   an_expr_node_ptr pm_args, args = expr->variant.builtin_operation.operands;
-  a_builtin_operation_kind op = expr->variant.builtin_operation.kind;
+  a_builtin_operation_kind
+                   op = expr->variant.builtin_operation.kind;
   
   check_assertion(args != NULL && args->next != NULL);
   if (op == bok_is_corresponding_member) {
@@ -14977,7 +14978,8 @@ __builtin_is_pointer_interconvertible_with_class.
 */
 {
   an_expr_node_ptr args = expr->variant.builtin_operation.operands;
-  a_builtin_operation_kind op = expr->variant.builtin_operation.kind;
+  a_builtin_operation_kind
+                   op = expr->variant.builtin_operation.kind;
   a_type_ptr       class_type;
   an_expr_node_ptr pm;
 
