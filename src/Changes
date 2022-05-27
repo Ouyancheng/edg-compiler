@@ -1,5 +1,12 @@
 Version 6.4
 
+5/27/22  [EDGcpfe/25378]
+GCC compatibility: GCC 9.5.0 builtins
+
+The builtin_defs.h file has been updated to reflect the availability of
+these new builtins when gnu_version == 90500.
+
+
 5/26/22  [EDGcpfe/25374]
 Support Windows paths on non-Windows systems
 
