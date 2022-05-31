@@ -487,6 +487,14 @@ typedef struct a_pack_expansion_descr {
 		uses_any_enclosing_packs;
 			/* TRUE if any of the pack references are to packs
 			   from enclosing templates. */
+  a_byte_boolean
+		is_tentative;
+			/* TRUE if this pack expansion was created during a
+			   tentative scan of a function declarator and
+			   should be removed if the scan is to be repeated.
+			   If a repeated scan is not necessary, this flag
+			   will be reset to FALSE.  See
+			   start/end_tentative_pack_expansion_context. */
 } a_pack_expansion_descr;
 
 
@@ -1597,6 +1605,14 @@ typedef struct a_scope_stack_entry {
 			   point within the actual instantiation.  It is
 			   initialized with the first pack expansion for the
 			   template. */
+  a_pack_expansion_descr_ptr
+		saved_last_pack_expansion_used;
+			/* Used to save and potentially restore the value
+			   of last_pack_expansion_used across a tentative
+			   pack expansion context.  See
+			   start_tentative_pack_expansion_context and
+			   end_tentative_pack_expansion_context for
+			   details. */
   a_pack_reference_ptr
 		packs_referenced;
 			/* When a variadic parameter pack is referenced, it
@@ -2464,6 +2480,10 @@ extern void end_pack_deduction_context(
 extern a_pack_expansion_descr_ptr end_potential_pack_expansion_context(
 			a_pack_expansion_stack_entry_ptr	pesep,
 			a_boolean				is_declarator);
+
+extern void start_tentative_pack_expansion_context(void);
+
+extern void end_tentative_pack_expansion_context(a_boolean);
 
 extern void suppress_expansion_with_no_packs_diagnostic(
 			a_pack_expansion_stack_entry_ptr	pesep);

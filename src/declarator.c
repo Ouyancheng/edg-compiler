@@ -8404,6 +8404,7 @@ dps, func_info, templ_state, and decl_pos_block describe the lambda declarator
       begin_caching_fetched_tokens(/*include_curr_token=*/TRUE);
     } else if (generic_lambdas_enabled) {
       begin_potential_abbr_func_templ_caching(dps);
+      start_tentative_pack_expansion_context();
     }  /* if */
   } else if ((scope_is(ssep, sck_template_declaration) &&
               scope_is(ssep-1, sck_class_struct_union)) ||
@@ -8415,6 +8416,7 @@ dps, func_info, templ_state, and decl_pos_block describe the lambda declarator
          We may still encounter additional "auto" parameters, which would
          require re-parsing the declarator. */
       begin_potential_abbr_func_templ_caching(dps);
+      start_tentative_pack_expansion_context();
       already_template = TRUE;
     }  /* if */
     closure_class = (ssep-1)->assoc_type;
@@ -8477,9 +8479,11 @@ reparse_declarator:
       } else {
         free_auto_param_descriptions(dps);
       }  /* if */
+      end_tentative_pack_expansion_context(/*remove_descriptors=*/TRUE);
       goto reparse_declarator;
     } else {
       end_potential_abbr_func_templ_caching(dps);
+      end_tentative_pack_expansion_context(/*remove_descriptors=*/FALSE);
     }  /* if */
   }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS

@@ -10643,6 +10643,40 @@ be NULL, in which case nothing is done.
 }  /* free_list_of_pack_references */
 
 
+/*
+Variable that is TRUE during the initial scan of, e.g., a lambda parameter
+list.  If "auto" parameters are detected, the scan must be repeated as a
+generic lambda.  In that case, pack expansions recorded during the initial
+scan must be discarded.  Pack expansion descriptors are marked with the
+value of this variable to facilitate identification of the descriptors to
+be discarded.  If a second parse is not required, the flag is cleared after
+the initial parse.
+*/
+static a_boolean in_tentative_pack_expansion_context;
+
+
+void start_tentative_pack_expansion_context(void)
+/*
+If we are in a template dependent context, begin marking new pack expansion
+descriptors as tentative, to allow them to be identified for removal if
+necessary, and save the current value of last_pack_expansion_used in each
+instantiation scope for possible restoration.
+*/
+{
+  check_assertion(!in_tentative_pack_expansion_context);
+  if (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH) {
+    a_scope_stack_entry_ptr ssep;
+    for (ssep = &scope_stack[depth_innermost_instantiation_scope];
+         ssep != NULL; ssep = previous_scope_of(ssep)) {
+      if (ssep->kind == sck_template_instantiation) {
+        ssep->saved_last_pack_expansion_used = ssep->last_pack_expansion_used;
+      }  /* if */
+    }  /* for */
+    in_tentative_pack_expansion_context = TRUE;
+  }  /* if */
+}  /* start_tentative_pack_expansion_context */
+
+
 a_pack_expansion_descr_ptr alloc_pack_expansion_descr(void)
 /*
 Allocate a new pack expansion descriptor, initialize it, and return a pointer
@@ -10673,6 +10707,7 @@ to it.
   pedp->is_function_declarator = FALSE;
   pedp->uses_only_enclosing_packs = FALSE;
   pedp->uses_any_enclosing_packs = FALSE;
+  pedp->is_tentative = in_tentative_pack_expansion_context;
   return pedp;
 }  /* alloc_pack_expansion_descr */
 
@@ -10687,6 +10722,64 @@ Return the pack expansion descriptor pedp to the available list.
   pedp->previous = NULL;
   avail_pack_expansion_descrs = pedp;
 }  /* free_pack_expansion_descr */
+
+
+void end_tentative_pack_expansion_context(a_boolean remove_descriptors)
+/*
+If we are in a template dependent context, scan the list of pack expansion
+descriptors in the outermost template dependent context.  For each
+descriptor marked as tentative, either remove the descriptor from the list
+(if remove_descriptors is TRUE) or clear its is_tentative flag.  Also, if
+remove_descriptors is TRUE, restore the value of last_pack_expansion_used
+in the outermost template dependent context.
+*/
+{
+  if (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH) {
+    a_scope_stack_entry_ptr    ssep;
+    a_pack_expansion_descr_ptr pedp;
+    check_assertion(in_tentative_pack_expansion_context);
+    for (ssep = &scope_stack[depth_innermost_instantiation_scope];
+         ssep != NULL; ssep = previous_scope_of(ssep)) {
+      if (ssep->kind == sck_template_instantiation) {
+        pedp = ssep->template_decl_info->pack_expansions;
+        while (pedp != NULL) {
+          if (pedp->is_tentative) {
+            if (remove_descriptors) {
+              /* Remove the descriptor from the list. */
+              a_pack_expansion_descr_ptr old_pedp;
+              if (pedp->previous == NULL) {
+                ssep->template_decl_info->pack_expansions = pedp->next;
+              } else {
+                pedp->previous->next = pedp->next;
+              }  /* if */
+              if (pedp->next == NULL) {
+                ssep->template_decl_info->last_pack_expansion = pedp->previous;
+              } else {
+                pedp->next->previous = pedp->previous;
+              }  /* if */
+              old_pedp = pedp;
+              pedp = pedp->next;
+              free_pack_expansion_descr(old_pedp);
+            } else {
+              /* Just mark the descriptor as no longer tentative. */
+              pedp->is_tentative = FALSE;
+              pedp = pedp->next;
+            }  /* if */
+          } else {
+            pedp = pedp->next;
+          }  /* if */
+        }  /* while */
+        if (remove_descriptors) {
+          /* Restore the value of last_pack_expansion_used to its value
+             before the initial parse. */
+          ssep->last_pack_expansion_used =
+                                          ssep->saved_last_pack_expansion_used;
+        }  /* if */
+      }  /* if */
+    }  /* for */
+    in_tentative_pack_expansion_context = FALSE;
+  }  /* if */
+}  /* end_tentative_pack_expansion_context */
 
 
 static a_pack_instantiation_descr_ptr alloc_pack_instantiation_descr(void)
@@ -13528,6 +13621,7 @@ of the front end.
 #endif /* DEBUG */
 #endif /* DO_IL_LOWERING && MODULE_ID_NEEDED && !STANDALONE_UTILITY_PROGRAM */
   function_body_processing_delayed_on_some_func_in_primary_il = FALSE;
+  in_tentative_pack_expansion_context = FALSE;
 }  /* scope_stk_init */
 
 /* Conditionally close the "edg" namespace. */
