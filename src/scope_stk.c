@@ -10727,11 +10727,11 @@ Return the pack expansion descriptor pedp to the available list.
 void end_tentative_pack_expansion_context(a_boolean remove_descriptors)
 /*
 If we are in a template dependent context, scan the list of pack expansion
-descriptors in the outermost template dependent context.  For each
+descriptors in each instantiation scope on the scope stack.  For each
 descriptor marked as tentative, either remove the descriptor from the list
 (if remove_descriptors is TRUE) or clear its is_tentative flag.  Also, if
 remove_descriptors is TRUE, restore the value of last_pack_expansion_used
-in the outermost template dependent context.
+in each instantiation scope stack entry.
 */
 {
   if (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH) {
