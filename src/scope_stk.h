@@ -465,6 +465,15 @@ typedef struct a_pack_expansion_descr {
 			/* For a template parameter declaration that is a
 			   pack expansion, this is the symbol header of
 			   the parameter. */
+  int		tentative_pack_expansion_depth;
+			/* The number of pending tentative pack expansions
+			   during a tentative scan of a function declarator
+			   at the time this pack expansion descriptor was
+			   recorded.  Used to determine if this descriptor
+			   should be removed in case the scan is to be
+			   repeated.  If a repeated scan is not necessary,
+			   this value will be reset to 0.  See
+			   start/end_tentative_pack_expansion_context. */
   a_byte_boolean
 		ellipsis_seen;
 			/* TRUE if the ellipsis marking a pack expansion
@@ -487,14 +496,6 @@ typedef struct a_pack_expansion_descr {
 		uses_any_enclosing_packs;
 			/* TRUE if any of the pack references are to packs
 			   from enclosing templates. */
-  a_byte_boolean
-		is_tentative;
-			/* TRUE if this pack expansion was created during a
-			   tentative scan of a function declarator and
-			   should be removed if the scan is to be repeated.
-			   If a repeated scan is not necessary, this flag
-			   will be reset to FALSE.  See
-			   start/end_tentative_pack_expansion_context. */
 } a_pack_expansion_descr;
 
 

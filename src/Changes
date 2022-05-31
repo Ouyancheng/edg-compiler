@@ -9,14 +9,14 @@ parameter list) expands a parameter pack from a containing variadic
 template.  For example, with --c++17:
 
   template<typename F, typename ... Args> struct Result {
-     static F &fun;
-     using X = decltype(fun(Args{}...));   // #1
-     using type = int;
+    static F &fun;
+    using X = decltype(fun(Args{}...));   // #1
+    using type = int;
   };
 
   template<typename F, typename ... Args>
   typename Result<F, Args...>::type g(F, Args...) {
-     return 42;
+    return 42;
   }
   template<typename ... Ps>
   int v = g([](Ps..., auto)->int { return 42; }, 42, true);
