@@ -10663,7 +10663,7 @@ necessary, and save the current value of last_pack_expansion_used in each
 instantiation scope for possible restoration.
 */
 {
-  if (is_variadic_template_context()) {
+  if (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH) {
     a_scope_stack_entry_ptr ssep;
     for (ssep = &scope_stack[depth_innermost_instantiation_scope];
          ssep != NULL; ssep = previous_scope_of(ssep)) {
@@ -10734,7 +10734,7 @@ value of last_pack_expansion_used in each affected instantiation scope
 stack entry.
 */
 {
-  if (is_variadic_template_context()) {
+  if (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH) {
     a_scope_stack_entry_ptr    ssep;
     a_pack_expansion_descr_ptr pedp;
     check_assertion(depth_tentative_pack_expansions > 0);
