@@ -3263,7 +3263,8 @@ public:
   #define IFC_DECL_START(name) \
   inline EDG_CONCAT(an_ifc_, name) * EDG_CONCAT(get_, name) ( \
                                   EDG_CONCAT(an_ifc_, name) *ptr, \
-                                  ARG_UNUSED a_boolean  fill_storage = FALSE);
+                                  ARG_UNUSED a_boolean      fill_storage = \
+                                                                        FALSE);
   #define IFC_DECL_FIELD(field, type) /**/
   #define IFC_DECL_END(name) /**/
   #include "ifc_map.h"

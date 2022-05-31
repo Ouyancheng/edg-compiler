@@ -458,7 +458,7 @@ For example, when "name" is "foo", this routine effectively boils down to:
   inline EDG_CONCAT(an_ifc_, name) * an_ifc_module::get< \
                                       EDG_CONCAT(an_ifc_, name) >( \
                                       EDG_CONCAT(an_ifc_, name) *storage, \
-                    /* Defaulted: */  a_boolean             fill_storage) \
+                    /* Defaulted: */  a_boolean                 fill_storage) \
   { \
     return EDG_CONCAT(get_, name)(storage, fill_storage); \
   }
@@ -501,7 +501,7 @@ For example, when "name" is "foo", this routine effectively boils down to:
 #define IFC_DECL_START(name) \
   inline EDG_CONCAT(an_ifc_, name) * an_ifc_module::EDG_CONCAT(get_, name) ( \
                                       EDG_CONCAT(an_ifc_, name) *ptr, \
-                    /* Defaulted: */  a_boolean             fill_storage) \
+                    /* Defaulted: */  a_boolean                 fill_storage) \
   { \
     if ((a_boolean)(/*lint -e506*/ASSUME_LITTLE_ENDIAN_IFC_MODULES || \
                                     targ_little_endian) \
@@ -531,7 +531,7 @@ little-endian.
 #define IFC_LE_DECL_START(name) \
   inline EDG_CONCAT(an_ifc_, name) * an_ifc_module::EDG_CONCAT(get_, name) ( \
                                   EDG_CONCAT(an_ifc_, name) *ptr, \
-                /* Defaulted: */  a_boolean             fill_storage) \
+                /* Defaulted: */  a_boolean                 fill_storage) \
   { \
     if (host_little_endian) { \
       check_assertion(byte_buffer + sizeof(EDG_CONCAT(an_ifc_, name)) <= \
@@ -571,7 +571,7 @@ two fields, "field1" and "field2", whose types are "field1_type" and
 #define IFC_DECL_START(name) \
   inline EDG_CONCAT(an_ifc_, name) * an_ifc_module::EDG_CONCAT(get_, name) ( \
                                   EDG_CONCAT(an_ifc_, name) *ptr, \
-                /* Defaulted: */  ARG_UNUSED a_boolean  fill_storage) \
+                /* Defaulted: */  ARG_UNUSED a_boolean      fill_storage) \
   {
 #define IFC_DECL_FIELD(field, type) \
     EDG_CONCAT(GET_, type)(ptr->field, /*from_header=*/FALSE);
