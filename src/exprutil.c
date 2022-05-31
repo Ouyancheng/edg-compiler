@@ -5817,6 +5817,7 @@ selection.
     if (is_any_reference_type(closure_field->type)) {
       an_operand  sel_opnd;
       make_glvalue_expression_operand(sel_expr, &sel_opnd);
+      copy_operand_position(opnd, &sel_opnd);
       add_reference_indirection(&sel_opnd);
       sel_expr = make_node_from_operand(&sel_opnd);
     }  /* if */

@@ -1,5 +1,26 @@
 Version 6.4
 
+5/31/22  [EDGcpfe/25241]
+Position of eok_ref_indirect for captured-variable rewrite
+
+Consider:
+
+  void f() {
+    int v;
+    auto lm = [&]{
+      v = 0;
+    };
+  }
+
+The changes for EDGcpfe/24716 introduced a regression wrt. the position that is
+recorded for the eok_ref_indirect node that is synthesized during the rewrite
+of the captured variable v in "v = 0".  Prior to the changes of EDGcpfe/24716,
+that position was the position of v itself, but after those changes it was the
+position of the "current token" at the time of the rewrite (which in this case
+is the semicolon following "v = 0").  That is now fixed: The position is now
+again that of v in "v = 0".
+
+
 5/31/22  [EDGcpfe/24312,EDGcpfe/25381]
 Abort after evaluation of lifetime-extended temporary with destructor
 
