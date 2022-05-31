@@ -18922,6 +18922,7 @@ the value representation of the integer value.
                                                  tmp_bytes+prefix_size,
                                                  tmp_bytes+prefix_size,
                                                  &expr->position)) {
+                result = FALSE;
                 break;
               }  /* if */
               ips->extension_state = NULL;
