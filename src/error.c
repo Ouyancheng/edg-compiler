@@ -3886,7 +3886,7 @@ diagnostic should be suppressed.
 {
   a_boolean		result = FALSE;
 
-  if ((int)dp->severity <= (int)es_warning &&
+  if ((int)dp->severity <= (int)es_discretionary_error &&
       error_codes[(int)dp->error_code].once) {
     result = error_codes[(int)dp->error_code].diagnostic_issued;
   }  /* if */

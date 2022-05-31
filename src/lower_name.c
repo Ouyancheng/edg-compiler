@@ -7175,6 +7175,17 @@ is TRUE.
     case enk_lambda:
       mangled_encoding_for_lambda(expr, mctl);
       break;
+    case enk_requires:
+      /* Mangling for requires expressions is not needed for ABI purposes
+         but may be requested in some C++-generating configurations when
+         MANGLE_ALL_NAMES is TRUE.  Issue a discretionary error and add
+         an indication to the mangled name that this is not supported. */
+      pos_diagnostic(es_discretionary_error, ec_mangling_for_requires,
+                     &expr->position);
+      (void)set_severity_for_error_number((int)ec_mangling_for_requires,
+                                          es_once, /*make_default=*/FALSE);
+      add_to_mangled_name('?', mctl);
+      break;
 #if VLA_DEALLOCATIONS_IN_IL
     case enk_vla_dealloc:
 #endif /* VLA_DEALLOCATIONS_IN_IL */
