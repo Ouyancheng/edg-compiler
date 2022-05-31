@@ -10655,7 +10655,7 @@ is reset to 0 after the initial parse.
 static int depth_tentative_pack_expansions;
 
 
-void start_tentative_pack_expansion_context(void)
+void begin_tentative_pack_expansion_context(void)
 /*
 If we are in a template dependent context, begin marking new pack expansion
 descriptors as tentative, to allow them to be identified for removal if
@@ -10663,7 +10663,7 @@ necessary, and save the current value of last_pack_expansion_used in each
 instantiation scope for possible restoration.
 */
 {
-  if (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH) {
+  if (is_variadic_template_context()) {
     a_scope_stack_entry_ptr ssep;
     for (ssep = &scope_stack[depth_innermost_instantiation_scope];
          ssep != NULL; ssep = previous_scope_of(ssep)) {
@@ -10673,7 +10673,7 @@ instantiation scope for possible restoration.
     }  /* for */
     ++depth_tentative_pack_expansions;
   }  /* if */
-}  /* start_tentative_pack_expansion_context */
+}  /* begin_tentative_pack_expansion_context */
 
 
 a_pack_expansion_descr_ptr alloc_pack_expansion_descr(void)
@@ -10734,7 +10734,7 @@ value of last_pack_expansion_used in each affected instantiation scope
 stack entry.
 */
 {
-  if (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH) {
+  if (is_variadic_template_context()) {
     a_scope_stack_entry_ptr    ssep;
     a_pack_expansion_descr_ptr pedp;
     check_assertion(depth_tentative_pack_expansions > 0);

@@ -473,7 +473,7 @@ typedef struct a_pack_expansion_descr {
 			   should be removed in case the scan is to be
 			   repeated.  If a repeated scan is not necessary,
 			   this value will be reset to 0.  See
-			   start/end_tentative_pack_expansion_context. */
+			   begin/end_tentative_pack_expansion_context. */
   a_byte_boolean
 		ellipsis_seen;
 			/* TRUE if the ellipsis marking a pack expansion
@@ -1611,7 +1611,7 @@ typedef struct a_scope_stack_entry {
 			/* Used to save and potentially restore the value
 			   of last_pack_expansion_used across a tentative
 			   pack expansion context.  See
-			   start_tentative_pack_expansion_context and
+			   begin_tentative_pack_expansion_context and
 			   end_tentative_pack_expansion_context for
 			   details. */
   a_pack_reference_ptr
@@ -2482,7 +2482,7 @@ extern a_pack_expansion_descr_ptr end_potential_pack_expansion_context(
 			a_pack_expansion_stack_entry_ptr	pesep,
 			a_boolean				is_declarator);
 
-extern void start_tentative_pack_expansion_context(void);
+extern void begin_tentative_pack_expansion_context(void);
 
 extern void end_tentative_pack_expansion_context(a_boolean);
 
