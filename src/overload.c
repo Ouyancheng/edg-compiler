@@ -28851,6 +28851,11 @@ set to TRUE and FALSE is returned.
       pos_sy_error(ec_explicit_deduction_guide_in_copy_list_init, source_pos,
                    selected_sym);
     }  /* if */
+  } else if (unknown_dependent_ctor) {
+    /* Overload resolution found that the constructor invocation is still
+       dependent. */
+    *still_dependent = TRUE;
+    result = FALSE;
   } else {
     /* Something went wrong with deduction. */
     check_assertion_or_expect_error(scope_stack_top().is_rescan);
