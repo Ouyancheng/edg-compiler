@@ -10658,24 +10658,24 @@ static int depth_tentative_pack_expansions;
 
 void begin_tentative_pack_expansion_context(void)
 /*
-We are in a template dependent context and about to begin the initial scan
-of a function declarator that might add pack expansions that must be
-reverted.  Begin marking new pack expansion descriptors as associated with
-this scan, to allow them to be identified for removal if necessary, and
-save the current value of last_pack_expansion_used in each instantiation
-scope for possible restoration.
+We are about to begin the initial scan of a function declarator that might
+add pack expansions that must be reverted.  If we are in a template
+dependent context, begin marking new pack expansion descriptors as
+associated with this scan, to allow them to be identified for removal if
+necessary, and save the current value of last_pack_expansion_used in each
+instantiation scope for possible restoration.
 */
 {
-  a_scope_stack_entry_ptr ssep;
-
-  check_assertion(is_variadic_template_context());
-  for (ssep = &scope_stack[depth_innermost_instantiation_scope];
-       ssep != NULL; ssep = previous_scope_of(ssep)) {
-    if (ssep->kind == sck_template_instantiation) {
-      ssep->saved_last_pack_expansion_used = ssep->last_pack_expansion_used;
-    }  /* if */
-  }  /* for */
-  ++depth_tentative_pack_expansions;
+  if (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH) {
+    a_scope_stack_entry_ptr ssep;
+    for (ssep = &scope_stack[depth_innermost_instantiation_scope];
+         ssep != NULL; ssep = previous_scope_of(ssep)) {
+      if (ssep->kind == sck_template_instantiation) {
+        ssep->saved_last_pack_expansion_used = ssep->last_pack_expansion_used;
+      }  /* if */
+    }  /* for */
+    ++depth_tentative_pack_expansions;
+  }  /* if */
 }  /* begin_tentative_pack_expansion_context */
 
 
@@ -10728,9 +10728,9 @@ Return the pack expansion descriptor pedp to the available list.
 
 void end_tentative_pack_expansion_context(a_boolean remove_descriptors)
 /*
-We are in a variadic template context and have just finished an initial
-scan of a function declarator that might have added pack expansions that
-must be reverted.  Scan the list of pack expansion descriptors in each
+We have just finished the initial scan of a function declarator that might
+have added pack expansions that must be reverted.  If we are in a template
+dependent context, scan the list of pack expansion descriptors in each
 instantiation scope on the scope stack.  For each descriptor that matches
 the current tentative pack expansion depth, either remove the descriptor
 from the list (if remove_descriptors is TRUE) or reset its depth to 0.
@@ -10738,56 +10738,55 @@ Also, if remove_descriptors is TRUE, restore the value of
 last_pack_expansion_used in each affected instantiation scope stack entry.
 */
 {
-  a_scope_stack_entry_ptr    ssep;
-  a_pack_expansion_descr_ptr pedp;
-
-  check_assertion(is_variadic_template_context() &&
-                  depth_tentative_pack_expansions > 0);
-  for (ssep = &scope_stack[depth_innermost_instantiation_scope];
-       ssep != NULL; ssep = previous_scope_of(ssep)) {
-    if (ssep->kind == sck_template_instantiation) {
-      a_boolean change_made = FALSE;
-      pedp = ssep->template_decl_info->pack_expansions;
-      while (pedp != NULL) {
-        if (pedp->tentative_pack_expansion_depth >=
-                                           depth_tentative_pack_expansions) {
-          check_assertion(pedp->tentative_pack_expansion_depth ==
-                                            depth_tentative_pack_expansions);
-          change_made = TRUE;
-          if (remove_descriptors) {
-            /* Remove the descriptor from the list. */
-            a_pack_expansion_descr_ptr old_pedp;
-            if (pedp->previous == NULL) {
-              ssep->template_decl_info->pack_expansions = pedp->next;
+  if (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH) {
+    a_scope_stack_entry_ptr    ssep;
+    a_pack_expansion_descr_ptr pedp;
+    for (ssep = &scope_stack[depth_innermost_instantiation_scope];
+         ssep != NULL; ssep = previous_scope_of(ssep)) {
+      if (ssep->kind == sck_template_instantiation) {
+        a_boolean change_made = FALSE;
+        pedp = ssep->template_decl_info->pack_expansions;
+        while (pedp != NULL) {
+          if (pedp->tentative_pack_expansion_depth >=
+                                             depth_tentative_pack_expansions) {
+            check_assertion(pedp->tentative_pack_expansion_depth ==
+                                              depth_tentative_pack_expansions);
+            change_made = TRUE;
+            if (remove_descriptors) {
+              /* Remove the descriptor from the list. */
+              a_pack_expansion_descr_ptr old_pedp;
+              if (pedp->previous == NULL) {
+                ssep->template_decl_info->pack_expansions = pedp->next;
+              } else {
+                pedp->previous->next = pedp->next;
+              }  /* if */
+              if (pedp->next == NULL) {
+                ssep->template_decl_info->last_pack_expansion = pedp->previous;
+              } else {
+                pedp->next->previous = pedp->previous;
+              }  /* if */
+              old_pedp = pedp;
+              pedp = pedp->next;
+              free_pack_expansion_descr(old_pedp);
             } else {
-              pedp->previous->next = pedp->next;
+              /* Just mark the descriptor as no longer tentative. */
+              pedp->tentative_pack_expansion_depth = 0;
+              pedp = pedp->next;
             }  /* if */
-            if (pedp->next == NULL) {
-              ssep->template_decl_info->last_pack_expansion = pedp->previous;
-            } else {
-              pedp->next->previous = pedp->previous;
-            }  /* if */
-            old_pedp = pedp;
-            pedp = pedp->next;
-            free_pack_expansion_descr(old_pedp);
           } else {
-            /* Just mark the descriptor as no longer tentative. */
-            pedp->tentative_pack_expansion_depth = 0;
             pedp = pedp->next;
           }  /* if */
-        } else {
-          pedp = pedp->next;
+        }  /* while */
+        if (remove_descriptors && change_made) {
+          /* Restore the value of last_pack_expansion_used to its value
+             before the initial parse. */
+          ssep->last_pack_expansion_used =
+                                          ssep->saved_last_pack_expansion_used;
         }  /* if */
-      }  /* while */
-      if (remove_descriptors && change_made) {
-        /* Restore the value of last_pack_expansion_used to its value
-           before the initial parse. */
-        ssep->last_pack_expansion_used =
-                                        ssep->saved_last_pack_expansion_used;
       }  /* if */
-    }  /* if */
-  }  /* for */
-  --depth_tentative_pack_expansions;
+    }  /* for */
+    --depth_tentative_pack_expansions;
+  }  /* if */
 }  /* end_tentative_pack_expansion_context */
 
 
