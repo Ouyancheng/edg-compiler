@@ -10644,13 +10644,14 @@ be NULL, in which case nothing is done.
 
 
 /*
-Variable that records the number of pending initial scans of, e.g., a
-lambda parameter list.  If "auto" parameters are detected, the scan must be
-repeated as a generic lambda.  In that case, pack expansions recorded
-during that initial scan must be discarded.  Pack expansion descriptors are
-marked with the value of this variable to facilitate identification of the
-descriptors to be discarded.  If a second parse is not required, the value
-is reset to 0 after the initial parse.
+Variable that records the number of initial scans of, e.g., a lambda
+parameter list that have begun but not yet completed.  If "auto" parameters
+are detected, the scan must be repeated as a generic lambda.  In that case,
+pack expansions recorded during that initial scan must be discarded.  Pack
+expansion descriptors are marked with the value of this variable to
+facilitate identification of the descriptors to be discarded.  If a second
+parse is not required, the value in each such descriptor is reset to 0
+after the initial parse.
 */
 static int depth_tentative_pack_expansions;
 
@@ -10659,10 +10660,10 @@ void begin_tentative_pack_expansion_context(void)
 /*
 We are in a template dependent context and about to begin the initial scan
 of a function declarator that might add pack expansions that must be
-reverted.  Begin marking new pack expansion descriptors as tentative, to
-allow them to be identified for removal if necessary, and save the current
-value of last_pack_expansion_used in each instantiation scope for possible
-restoration.
+reverted.  Begin marking new pack expansion descriptors as associated with
+this scan, to allow them to be identified for removal if necessary, and
+save the current value of last_pack_expansion_used in each instantiation
+scope for possible restoration.
 */
 {
   a_scope_stack_entry_ptr ssep;
