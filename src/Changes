@@ -1,5 +1,30 @@
 Version 6.4
 
+5/31/22  [EDGcpfe/25272]
+Internal error in move_sses_out_of_class_if_otherwise_invalid in Clang/GNU mode
+
+In some configurations with TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+set to TRUE, certain cases involving static data members in class templates
+could trigger an internal error in move_sses_out_of_class_if_otherwise_invalid
+in Clang and GNU modes.  For example:
+
+    template <int I> struct A {
+      template <int> struct B {
+        static constexpr unsigned get() { return 80U; }
+      };
+      static constexpr unsigned X = B<I>::get();
+      template <int> struct C {
+        static constexpr unsigned get() { return 40U; }
+      };
+      static constexpr unsigned Y = C<I>::get();
+      static_assert(0 <= X * Y);
+    };
+    template struct A<0>;
+
+During the instantiation of A<0>, this previously triggered the internal error.
+That is now fixed.
+
+
 5/31/22  [EDGcpfe/25241]
 Position of eok_ref_indirect for captured-variable rewrite
 

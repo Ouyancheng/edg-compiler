@@ -4251,6 +4251,12 @@ In C++17 mode, the initializer need not be a constant-expression.
          before the class definition. */
       scope_stack_top().ss_list_instantiation_insert_point =
                              class_type->source_corresp.source_sequence_entry;
+    } else {
+      /* If the class is being defined, insert the instantiations kicked off
+         while parsing the initializer before the static data member for which
+         this is the initializer. */
+      scope_stack_top().ss_list_instantiation_insert_point =
+                                    var->source_corresp.source_sequence_entry;
     }  /* if */
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
