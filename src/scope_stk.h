@@ -466,13 +466,13 @@ typedef struct a_pack_expansion_descr {
 			   pack expansion, this is the symbol header of
 			   the parameter. */
   int		tentative_pack_expansion_depth;
-			/* The number of pending tentative pack expansions
-			   during a tentative scan of a function declarator
-			   at the time this pack expansion descriptor was
-			   recorded.  Used to determine if this descriptor
-			   should be removed in case the scan is to be
-			   repeated.  If a repeated scan is not necessary,
-			   this value will be reset to 0.  See
+			/* The number of nested pending tentative scans of
+			   function declarators at the time this pack
+			   expansion descriptor was recorded.  Used to
+			   determine if this descriptor should be removed
+			   in case the scan is to be repeated.  If a
+			   repeated scan is not necessary, this value will
+			   be reset to 0.  See
 			   begin/end_tentative_pack_expansion_context. */
   a_byte_boolean
 		ellipsis_seen;

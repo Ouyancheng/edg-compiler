@@ -8388,6 +8388,8 @@ dps, func_info, templ_state, and decl_pos_block describe the lambda declarator
   a_boolean                already_template = FALSE,
                            in_prototype_instantiation =
                                   scope_stack_top().in_prototype_instantiation;
+  a_boolean                in_variadic_context =
+                                                is_variadic_template_context();
 
   if (scope_is(ssep, sck_class_struct_union)) {
     /* We haven't determined yet whether this is a generic lambda. */
@@ -8404,7 +8406,9 @@ dps, func_info, templ_state, and decl_pos_block describe the lambda declarator
       begin_caching_fetched_tokens(/*include_curr_token=*/TRUE);
     } else if (generic_lambdas_enabled) {
       begin_potential_abbr_func_templ_caching(dps);
-      begin_tentative_pack_expansion_context();
+      if (in_variadic_context) {
+        begin_tentative_pack_expansion_context();
+      }  /* if */
     }  /* if */
   } else if ((scope_is(ssep, sck_template_declaration) &&
               scope_is(ssep-1, sck_class_struct_union)) ||
@@ -8416,7 +8420,9 @@ dps, func_info, templ_state, and decl_pos_block describe the lambda declarator
          We may still encounter additional "auto" parameters, which would
          require re-parsing the declarator. */
       begin_potential_abbr_func_templ_caching(dps);
-      begin_tentative_pack_expansion_context();
+      if (in_variadic_context) {
+        begin_tentative_pack_expansion_context();
+      }  /* if */
       already_template = TRUE;
     }  /* if */
     closure_class = (ssep-1)->assoc_type;
@@ -8479,11 +8485,15 @@ reparse_declarator:
       } else {
         free_auto_param_descriptions(dps);
       }  /* if */
-      end_tentative_pack_expansion_context(/*remove_descriptors=*/TRUE);
+      if (in_variadic_context) {
+        end_tentative_pack_expansion_context(/*remove_descriptors=*/TRUE);
+      }  /* if */
       goto reparse_declarator;
     } else {
       end_potential_abbr_func_templ_caching(dps);
-      end_tentative_pack_expansion_context(/*remove_descriptors=*/FALSE);
+      if (in_variadic_context) {
+        end_tentative_pack_expansion_context(/*remove_descriptors=*/FALSE);
+      }  /* if */
     }  /* if */
   }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
