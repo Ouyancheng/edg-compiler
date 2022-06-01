@@ -8836,9 +8836,12 @@ Given a declaration, return the name associated with that declaration.
           Opt<an_ifc_Ref<ifc_NameIndex>> opt_name_ref;
 
           opt_name_ref = get_ifc_name(idssp->decl);
-          /* FIXME: This should be a soft failure. */
-          check_assertion(opt_name_ref.has_value());
-          result = string_from_name_ref(*opt_name_ref, /*loc=*/NULL);
+          if (opt_name_ref.has_value()) {
+            result = string_from_name_ref(*opt_name_ref, /*loc=*/NULL);
+          } else {
+            /* FIXME: This should be a soft failure.  See the assertion check
+               on the status of result below. */
+          }  /* if */
         }
       }
       break;
