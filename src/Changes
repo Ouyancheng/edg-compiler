@@ -61,10 +61,10 @@ Consider in GNU C++11 mode:
 
 The front end attempts to constant-evaluate the GNU statement expression, but
 fails to evaluate the initializer for rr in part because the destructor for S
-is not constexpr.  This failure mode, failed to propagate to the enclosing
-evaluation, however, causing the constexpr interpreter to continue evaluation
-even though rr is not actually initialized.  That in turn resulted in memory
-corruption and an abort.  This problem is now fixed.
+is not constexpr.  This failure was not propagated to the enclosing evaluation,
+however, causing the constexpr interpreter to continue evaluation even though
+rr is not actually initialized.  That in turn resulted in memory corruption and
+an abort.  This problem is now fixed.
 
 
 5/31/22  [EDGcpfe/25334]
