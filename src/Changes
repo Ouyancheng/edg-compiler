@@ -1,5 +1,22 @@
 Version 6.4
 
+6/2/22   [EDGcpfe/25073,EDGcpfe/25229,EDGcpfe/25356]
+Spurious incomplete type error on template-dependent rvalue-reference cast
+
+Consider:
+
+  template<typename> struct S {
+    template<typename T> auto f(S p) -> decltype(static_cast<T&&>(p));
+      // Previously an error during the instantiation of S<int>.  Now okay.
+  };
+  template struct S<int>;
+
+Previously, the front end issue an error about p being of incomplete type
+S<int> in the cast static_cast<T&&>(p) even though the cast is to a dependent
+type T&& (which isn't necessarily an rvalue reference type).  That is now
+fixed.
+
+
 6/1/22   [EDGcpfe/24480,EDGcpfe/24528,EDGcpfe/25359]
 Assertion failure in deduce_class_template_args
 
