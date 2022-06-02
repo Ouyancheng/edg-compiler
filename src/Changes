@@ -1,5 +1,20 @@
 Version 6.4
 
+6/2/22   [EDGcpfe/25382]
+C++-generating back end: unbounded recursion with alias template
+
+In some cases similar to those addressed by EDGcpfe/25091,EDGcpfe/25098
+but more complex, the C++ generating back end could overflow the call stack
+with an unbounded recursion when generating code involving alias templates
+and/or typedef members of class templates.  This is now fixed.
+
+The recursion in this particular case involved generation of class
+qualifiers in a qualified name.  To facilitate diagnosis of potential future
+problems of this sort, code has been added to gen_class_qualifier in
+EXPENSIVE_CHECKING configurations to detect such unbounded recursion and
+abort the compilation before stack exhaustion occurs.
+
+
 6/2/22   [EDGcpfe/25073,EDGcpfe/25229,EDGcpfe/25356]
 Spurious incomplete type error on template-dependent rvalue-reference cast
 
