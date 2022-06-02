@@ -1675,8 +1675,10 @@ typedef int a_type_tree_traversal_flag_set;
 			   be considered a deduced context. */
 #define TTT_SCAN_ALIAS_TEMPLATE_ARGS 0x4000
 			/* TRUE if the template arguments of an alias
-			   template or alias template specialization should
-			   be scanned (if requested by the relevant flags),
+			   template or alias template specialization, as
+			   well as the template arguments of the parents of
+			   a member template or template alias, should be
+			   scanned (if requested by the relevant flags),
 			   even if TTT_STOP_AT_TYPEDEFS is TRUE. */
 
 

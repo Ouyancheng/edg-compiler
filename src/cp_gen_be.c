@@ -1662,7 +1662,8 @@ infinite recursion.
        of the alias template instance. */
     ttt_flags = TTT_TEMPLATE_ARGS
               | TTT_STOP_AT_TYPEDEFS
-              | TTT_SCAN_ALIAS_TEMPLATE_ARGS;
+              | TTT_SCAN_ALIAS_TEMPLATE_ARGS
+              | TTT_PARENT_CLASSES;
     has_circularity = traverse_type_tree(type, ttt_check_type_match,
                                          ttt_flags);
   }  /* if */
@@ -4502,6 +4503,22 @@ and return TRUE; otherwise, return FALSE.
   return result;
 }  /* synthesize_decltype_specifier */
 
+#if EXPENSIVE_CHECKING
+/*
+The following defines a structure used to detect the case when a given
+class qualifier is applied to a qualified name that already contains that
+qualifier.  Explicit detection of this case results in a more orderly
+failure than allowing stack exhaustion from unbounded recursion to occur.
+*/
+typedef struct a_qualifier_recursion_check *a_qualifier_recursion_check_ptr;
+struct a_qualifier_recursion_check {
+  a_qualifier_recursion_check_ptr
+		prev;	/* Designates the type from the most recent
+			   previous invocation of gen_class_qualifier. */
+  a_type_ptr	type;	/* The type of the qualifier in the current
+			   invocation of gen_class_qualiier. */
+};
+#endif /* EXPENSIVE_CHECKING */
 
 static a_type_ptr gen_class_qualifier(
                                     a_type_ptr             class_type,
@@ -4515,9 +4532,29 @@ if no qualifier is actually put out).  options gives a set of options for
 gen_name.  See gen_name for the meaning of need_closing_paren.
 */
 {
-  a_type_ptr  actual_type_used;
-  a_boolean   saved_suppress_template_args = octl.suppress_template_args;
+#if EXPENSIVE_CHECKING
+  a_qualifier_recursion_check            this_recursion_check;
+  static a_qualifier_recursion_check_ptr recursion_check_stack_top;
+#endif /* EXPENSIVE_CHECKING */
+  a_type_ptr                             actual_type_used;
+  a_boolean                              saved_suppress_template_args =
+                                                   octl.suppress_template_args;
 
+#if EXPENSIVE_CHECKING
+  /* Ensure that this qualifier hasn't already appeared in the same
+     qualified name, which would lead to unbounded recursion. */
+  for (a_qualifier_recursion_check_ptr p = recursion_check_stack_top;
+       p != NULL; p = p->prev) {
+    if (p->type == class_type) {
+      /* End the compilation now before we overflow the stack. */
+      unexpected_condition_str("Recursive qualifier");
+    }  /* if */
+  }  /* for */
+  /* Push the current qualifier onto the stack. */
+  this_recursion_check.prev = recursion_check_stack_top;
+  this_recursion_check.type = class_type;
+  recursion_check_stack_top = &this_recursion_check;
+#endif /* EXPENSIVE_CHECKING */
   /* The flag octl.suppress_template_args applies to the qualified name itself,
      not the qualifier. */
   octl.suppress_template_args = FALSE;
@@ -4629,6 +4666,9 @@ gen_name.  See gen_name for the meaning of need_closing_paren.
     write_tok_str("::");
   }  /* if */
   octl.suppress_template_args = saved_suppress_template_args;
+#if EXPENSIVE_CHECKING
+  recursion_check_stack_top = recursion_check_stack_top->prev;
+#endif /* EXPENSIVE_CHECKING */
   return actual_type_used;
 }  /* gen_class_qualifier */
 

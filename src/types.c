@@ -15029,8 +15029,7 @@ its parameters?).
         type_ptr->kind == (a_type_kind)tk_typeref &&
         typeref_is_typedef(type_ptr)) {
       force_end_of_traversal = TRUE;
-      if ((flags & TTT_SCAN_ALIAS_TEMPLATE_ARGS) != 0 &&
-          type_ptr->variant.typeref.is_template_alias) {
+      if ((flags & TTT_SCAN_ALIAS_TEMPLATE_ARGS) != 0) {
         scan_alias_template_args = TRUE;
       }  /* if */
     }  /* if */
@@ -15165,6 +15164,11 @@ its parameters?).
           if (tap != NULL) {
             status = traverse_template_args(tap, func, flags);
           }  /* if */
+        }  /* if */
+        if (scan_alias_template_args) {
+          /* Check the template arguments of classes containing the
+             typedef or alias template. */
+          goto check_enclosing_classes;
         }  /* if */
 	break;
       case tk_template_param:
