@@ -1677,7 +1677,7 @@ typedef int a_type_tree_traversal_flag_set;
 			/* TRUE if the template arguments of an alias
 			   template or alias template specialization, as
 			   well as the template arguments of the parents of
-			   a member template or template alias, should be
+			   a member template or alias template, should be
 			   scanned (if requested by the relevant flags),
 			   even if TTT_STOP_AT_TYPEDEFS is TRUE. */
 
