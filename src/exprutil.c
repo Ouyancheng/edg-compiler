@@ -15249,18 +15249,24 @@ e.g., if the source operand is an lvalue.
   /* See whether we know that the operand will be used as an lvalue or
      rvalue. */
   if (is_reference_cast) {
+    a_type_ptr  underlying_tp = type_pointed_to(dest_type);
     if (is_rvalue_reference_type(dest_type)) {
-      is_rvalue_reference_cast = TRUE;
-      rvalue_expected = TRUE;
+      if (is_template_param_type(underlying_tp)) {
+        /* Something like T&& or A<T>::X&& is not guaranteed to be an rvalue
+           reference because of the reference-collapsing rules. */
+      } else {
+        is_rvalue_reference_cast = TRUE;
+        rvalue_expected = TRUE;
+      }  /* if */
     } else {
       lvalue_expected = TRUE;
     }  /* if */
     /* Don't lose a type operator that appears on top of the reference
        type, but otherwise replace the reference type with the referenced
        type. */
-    if (!(dest_type->kind == (a_type_kind)tk_typeref &&
+    if (!(type_is(dest_type, tk_typeref) &&
           typeref_is_type_operator(dest_type))) {
-      dest_type = type_pointed_to(dest_type);
+      dest_type = underlying_tp;
     }  /* if */
   } else if (!curr_expr_kind_is_const() &&
              (is_class_struct_union_type(dest_type) ||

@@ -6531,7 +6531,6 @@ that higher up.
   *template_constant = FALSE;
 start_underlying_expression:
   expr = skip_parens(expr);
-  check_assertion(is_glvalue_node(expr) || is_error_node(expr));
   if (constexpr_enabled && is_glvalue_node(expr) &&
       (is_operation_node(expr) ||
        expr->kind == (an_expr_node_kind)enk_builtin_operation) &&
@@ -6540,6 +6539,8 @@ start_underlying_expression:
     is_constant_addr = fold_glvalue_expr(expr, con);
     goto have_result;
   }  /* if */
+  check_assertion(is_glvalue_node(expr) || is_error_node(expr) ||
+                  is_template_dependent_context());
   switch (expr->kind) {
     case enk_error:
       /* Assume an error expression could have been an lvalue with a
