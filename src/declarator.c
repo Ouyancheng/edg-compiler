@@ -1609,6 +1609,7 @@ declaration that on which the exception specification appears.
     if (scope_is(ssep, sck_func_prototype) &&
         scope_is((ssep-1), sck_class_struct_union) &&
         !(ssep-1)->in_prototype_instantiation &&
+        depth_innermost_instantiation_scope != NO_SCOPE_DEPTH &&
         (dps->dso_flags & DSO_FRIEND) != 0 &&
         dps->sym == NULL) {
       /* A friend function in a class template instantiation. */
