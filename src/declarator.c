@@ -1401,20 +1401,129 @@ given position.
 }  /* scan_eh_spec_type */
 
 
+/*
+Structure recording information to establish the context of a noexcept
+operand.  This is currently used to handle the delayed instantiation of the
+noexcept specifier appearing on a friend function declaration in a class
+template.
+*/
+struct a_noexcept_arg_descr {
+  a_type_ptr	class_type;
+			/* The innermost class type in which the noexcept
+			   specifier appeared. */
+  a_symbol_ptr	prototype_scope_symbols;
+			/* The list of prototype scope symbols that were
+			   active when the noexcept operand tokens were
+			   cached. */
+};
+
+static inline
+a_boolean operator==(a_noexcept_arg_descr  const &nad1,
+                     a_noexcept_arg_descr  const &nad2)
+/*
+Return TRUE if and only if the given descriptors are equivalent.
+*/
+{
+  return nad1.class_type == nad2.class_type &&
+         nad1.prototype_scope_symbols == nad2.prototype_scope_symbols;
+}  /* operator== */
+
+
+static inline
+a_boolean operator!=(a_noexcept_arg_descr  const &nad1,
+                     a_noexcept_arg_descr  const &nad2)
+/*
+Return FALSE if and only if the given descriptors are equivalent.
+*/
+{
+  return nad1.class_type != nad2.class_type ||
+         nad1.prototype_scope_symbols != nad2.prototype_scope_symbols;
+}  /* operator!= */
+
+
+typedef Ptr_map<an_exception_specification_ptr, a_noexcept_arg_descr>
+		a_noexcept_arg_map;
+			/* The type of a hash table mapping exception
+			   specification entries to description of the
+			   context in which they appeared. */
+
+static a_noexcept_arg_map
+		*noexcept_args;
+			/* A pointer to a hash table mapping exception
+			   specification entries to description of the
+			   context in which they appeared. */
+
+
+static void mark_mapped_exc_spec(a_decl_parse_state_ptr  dps)
+/*
+If dps represents the declaration of a function, mark it as having an
+exception specification that is mapped to context information through the
+noexcept_args table.  This function is called through the end-of-parse-actions
+mechanism after the exception specification entry has been mapped (see
+scan_noexcept_arg).
+*/
+{
+  if (dps->sym != NULL && is_simple_function_symbol(dps->sym)) {
+    dps->sym->variant.routine.pending_mapped_exc_spec = TRUE;
+  }  /* if */
+}  /* mark_mapped_exc_spec */
+
+
+void resolve_pending_mapped_exc_spec(a_symbol_ptr                sym,
+                                     an_exception_specification  *esp)
+/*
+Instantiate a noexcept operand whose context is mapped through the
+noexcept_args table.  sym is a symbol for the associated routine and esp is
+the associated noexcept specifier that needs instantiation.
+*/
+{
+  a_noexcept_arg_descr  nad = noexcept_args->get(esp);
+  a_token_cache         *cache = esp->variant.token_cache;
+
+  if (nad.class_type == NULL || cache == NULL) {
+    expect_error();
+  } else {
+    a_routine_ptr  rp = sym->variant.routine.ptr;
+    push_class_and_template_reactivation_scope(
+                                          nad.class_type,
+                                          /*reactivate_template_params=*/TRUE,
+                                          /*extend_namespace=*/FALSE);
+     /* Recreate a function prototype scope equivalent to the original. */
+    (void)push_scope((a_scope_kind)sck_func_prototype, NO_SCOPE_NUMBER,
+                     rp->type, (a_routine_ptr)NULL);
+    scope_stack_top().outside_parameter_list = TRUE;
+    if (nad.prototype_scope_symbols != NULL) {
+      reactivate_prototype_scope_symbols(nad.prototype_scope_symbols);
+    }  /* if */
+    esp->arg_cached = FALSE;
+    esp->variant.token_cache = NULL;
+    sym->variant.routine.pending_mapped_exc_spec = FALSE;
+    delayed_scan_of_exception_spec(rp, cache, esp);
+    free_token_cache(cache);
+    noexcept_args->unmap(esp);
+    /* Pop the reactivated function prototype scope off the stack. */
+    pop_scope();
+    pop_class_reactivation_scope();
+  }  /* if */
+}  /* resolve_pending_mapped_exc_spec */
+
+
 static void scan_noexcept_arg(an_exception_specification  *esp,
-                              a_boolean                   may_cache)
+                              a_boolean                   may_cache,
+                              a_decl_parse_state          *dps,
+                              a_func_info_block           *func_info = NULL)
 /*
 The noexcept token of a noexcept-specification has just been scanned.  Scan a
 noexcept argument if any, and update *esp as appropriate.  If may_cache
 is TRUE, cache the argument tokens if appropriate (i.e., if this is a
-template-dependent context or a member of a class).
+template-dependent context or a member of a class).  dps describes the
+declaration that on which the exception specification appears.
 */
 {
   a_boolean  is_inclass_member_function_decl = FALSE,
              is_local_decl = FALSE;
 
   if (scope_is(&scope_stack_top(), sck_func_prototype)) {
-    a_decl_parse_state  *dps = scope_stack_top().decl_parse_state;
     if (dps != NULL && dps->is_inclass_member_function_decl) {
       is_inclass_member_function_decl = TRUE;
     } else if (is_local_scope_kind(
@@ -1484,33 +1593,58 @@ template-dependent context or a member of a class).
                                       stop_tokens, /*suppress_warning=*/TRUE);
     }  /* if */
   } else {
-    a_memory_region_number  region_to_switch_back_to;
-    a_source_position       constant_pos;
-    a_constant_ptr          noexcept_con = local_constant();
-    a_boolean               saved_in_template_deduction_context = FALSE;
-    a_boolean               saved_in_noexcept_spec;
-    saved_in_noexcept_spec = scope_stack_top().in_noexcept_spec;
-    scope_stack_top().in_noexcept_spec = TRUE;
+    a_memory_region_number   region_to_switch_back_to;
+    a_scope_stack_entry      *ssep = &scope_stack_top();
+    a_boolean                saved_in_template_deduction_context = FALSE;
+    a_boolean                saved_in_noexcept_spec;
+    check_assertion(scope_is(ssep, sck_func_prototype));
+    saved_in_noexcept_spec = ssep->in_noexcept_spec;
+    ssep->in_noexcept_spec = TRUE;
     if (exc_spec_in_func_type) {
       saved_in_template_deduction_context =
-                              scope_stack_top().in_template_deduction_context;
-      scope_stack_top().in_template_deduction_context = TRUE;
+                                          ssep->in_template_deduction_context;
+      ssep->in_template_deduction_context = TRUE;
     }  /* if */
-    constant_pos = pos_curr_token;
     switch_to_file_scope_region(&region_to_switch_back_to);
-    /* Scan the argument for the noexcept-specifier, which must be a
-       constant-expression convertible to bool. */
-    scan_bool_constant_expression(noexcept_con);
-    if (esp != NULL) {
-      if (noexcept_con->kind == (a_constant_repr_kind)ck_template_param ||
-          noexcept_con->kind == (a_constant_repr_kind)ck_error ||
-          is_false_constant(noexcept_con)) {
-        esp->throw_any = TRUE;
-      }  /* if */
-      esp->variant.noexcept_arg = move_local_constant_to_il(&noexcept_con);
-      esp->variant.noexcept_arg->source_corresp.decl_position = constant_pos;
+    if (scope_is(ssep, sck_func_prototype) &&
+        scope_is((ssep-1), sck_class_struct_union) &&
+        !(ssep-1)->in_prototype_instantiation &&
+        (dps->dso_flags & DSO_FRIEND) != 0 &&
+        dps->sym == NULL) {
+      /* A friend function in a class template instantiation. */
+      a_token_set_array     stop_tokens;
+      a_noexcept_arg_descr  nad;
+      check_assertion(func_info != NULL);
+      clear_token_set_array(stop_tokens);
+      incr_token_set_array_element(stop_tokens, tok_rparen);
+      incr_token_set_array_element(stop_tokens, tok_semicolon);
+      esp->arg_cached = TRUE;
+      esp->variant.token_cache = alloc_token_cache();
+      clear_token_cache(esp->variant.token_cache, /*reusable=*/TRUE);
+      cache_token_stream(esp->variant.token_cache, stop_tokens);
+      terminate_token_cache(esp->variant.token_cache);
+      nad.class_type = (ssep-1)->assoc_type;
+      nad.prototype_scope_symbols = func_info->prototype_scope_symbols;
+      noexcept_args->map(esp, nad);
+      add_end_of_parse_action(mark_mapped_exc_spec, dps,
+                              /*secondary_decls=*/TRUE);
     } else {
-      release_local_constant(&noexcept_con);
+      /* Scan the argument for the noexcept-specifier, which must be a
+         constant-expression convertible to bool. */
+      a_source_position        constant_pos = pos_curr_token;
+      a_constant_ptr           noexcept_con = local_constant();
+      scan_bool_constant_expression(noexcept_con);
+      if (esp != NULL) {
+        if (constant_is(noexcept_con, ck_template_param) ||
+            is_error_constant(noexcept_con) ||
+            is_false_constant(noexcept_con)) {
+          esp->throw_any = TRUE;
+        }  /* if */
+        esp->variant.noexcept_arg = move_local_constant_to_il(&noexcept_con);
+        esp->variant.noexcept_arg->source_corresp.decl_position = constant_pos;
+      } else {
+        release_local_constant(&noexcept_con);
+      }  /* if */
     }  /* if */
     switch_back_to_original_region(region_to_switch_back_to);
     if (exc_spec_in_func_type) {
@@ -1522,21 +1656,22 @@ template-dependent context or a member of a class).
 }  /* scan_noexcept_arg */
 
 
-void delayed_scan_of_exception_spec(a_routine_ptr  rp,
-                                    a_token_cache  *tokens)
+void delayed_scan_of_exception_spec(a_routine_ptr               rp,
+                                    a_token_cache               *tokens,
+                  /* Defaulted: */  an_exception_specification  *esp)
 /*
 The given routine has an exception specification with an operand that hasn't
 been parsed yet.  The tokens of the operand are described by the given cache.
-Parse the operand now.
+Parse the operand now.  If esp is non-NULL, use that as the exception
+specification to parse; otherwise, use the specification recorded in rp->type.
 */
 {
-  an_exception_specification_ptr  esp;
-  a_scope_stack_entry_ptr         ssep = &scope_stack_top();
-  a_decl_parse_state              dps;
-  a_symbol_ptr                    lookup_sym = NULL;
-  a_boolean                       saved_is_invisible = FALSE;
+  a_scope_stack_entry_ptr  ssep = &scope_stack_top();
+  a_decl_parse_state       dps;
+  a_symbol_ptr             lookup_sym = NULL;
+  a_boolean                saved_is_invisible = FALSE;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  a_source_position               saved_curr_construct_end_position =
+  a_source_position        saved_curr_construct_end_position =
                                                   curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
@@ -1574,11 +1709,13 @@ Parse the operand now.
   }  /* if */
   ssep->decl_parse_state = &dps;
   ssep->outside_parameter_list = TRUE;
-  esp = rp->type->variant.routine.extra_info->exception_specification;
+  if (esp == NULL) {
+    esp = rout_type_supp(rp->type)->exception_specification;
+  }  /* if */
   rescan_reusable_cache(tokens);
   begin_deferral_of_access_checks();
   if (esp->is_noexcept) {
-    scan_noexcept_arg(esp, /*may_cache=*/FALSE);
+    scan_noexcept_arg(esp, /*may_cache=*/FALSE, &dps);
   } else {
     /* Delayed instantiation of dynamic exception specifications (which are no
        longer part of the language as of C++17) is not implemented.  (So we
@@ -1743,7 +1880,7 @@ actually declares a function, member function, or function template).
            also not the case for pointers to functions and the like. */
         may_cache = TRUE;
       }  /* if */
-      scan_noexcept_arg(esp, may_cache);
+      scan_noexcept_arg(esp, may_cache, dps, func_info);
       goto finish_list;
     } else if (curr_token == tok_rparen) {
       /* Case is "throw ()" -- which means "no exception will be thrown by
@@ -8686,6 +8823,8 @@ initialization for each compilation.
 {
   abbr_lambda_descrs = alloc_fe_of_type(an_abbr_lambda_descr_map);
   construct(abbr_lambda_descrs, /*mask_width=*/10);
+  noexcept_args = alloc_fe_of_type(a_noexcept_arg_map);
+  construct(noexcept_args, /*mask_width=*/10);
 }  /* declarator_init */
 
 /* Conditionally close the "edg" namespace. */

@@ -389,8 +389,13 @@ extern a_boolean check_return_type(a_type_ptr          type,
                                    a_decl_parse_state  *dps,
                                    a_source_position   *diag_pos);
 
-extern void delayed_scan_of_exception_spec(a_routine_ptr  rp,
-                                           a_token_cache  *tokens);
+extern void resolve_pending_mapped_exc_spec(a_symbol_ptr                sym,
+                                            an_exception_specification  *esp);
+
+extern void delayed_scan_of_exception_spec(
+                                     a_routine_ptr               rp,
+                                     a_token_cache               *tokens,
+                                     an_exception_specification  *esp = NULL);
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 extern a_boolean f_check_cli_or_cx_type_pointed_to(

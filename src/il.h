@@ -2567,6 +2567,10 @@ extern void substitute_constant(a_constant_ptr           *p_constant,
                                 a_source_position        *source_pos,
                                 a_boolean                *p_error);
 
+extern void fully_substitute_constant(a_constant_ptr             src_con,
+                                      a_subst_pairs_array const  &subst_pairs,
+                                      a_constant_ptr             dst_con);
+
 extern void increment_template_dependent_enum_constant(a_constant_ptr  con);
 
 extern a_boolean is_operator_returning_bool(an_expr_operator_kind op);

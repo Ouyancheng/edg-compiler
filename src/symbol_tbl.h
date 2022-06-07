@@ -3821,6 +3821,11 @@ typedef struct a_symbol {
 			/* TRUE for constrained ordinary member functions of
 			   class templates when the constraint has not been
 			   substituted yet. */
+      a_bit_field
+		pending_mapped_exc_spec:1;
+			/* TRUE if this function has a pending exception
+			   specification (cached but not parsed) that has
+			   associated information stored in a cache. */
     } routine;
     /* When kind == sk_label: */
     struct {

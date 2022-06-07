@@ -9455,6 +9455,13 @@ for use in generating cross-reference output describing this declaration.
               }  /* if */
             }  /* if */
             /* Do compatibility checking on the throw specification. */
+            if (is_friend_decl && type_is(type_ptr, tk_routine)) {
+              an_exception_specification  *esp;
+              esp = rout_type_supp(type_ptr)->exception_specification;
+              if (esp != NULL && esp->arg_cached) {
+                resolve_pending_mapped_exc_spec(linked_symbol, esp);
+              }  /* if */
+            }  /* if */
             (void)check_exception_specification(type_ptr, linked_symbol,
                                           &func_info->throw_position,
                                           /*is_redecl=*/TRUE);

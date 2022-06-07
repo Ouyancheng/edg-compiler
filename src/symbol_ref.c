@@ -2623,6 +2623,12 @@ check_label_decl_seq:
   if (is_simple_function_symbol(sym_ptr)) {
     (void)check_use_of_deleted_function(sym_ptr, /*elided_ref=*/FALSE,
                                         source_position);
+    if (sym_ptr->variant.routine.pending_mapped_exc_spec) {
+      /* The routine has an exception specification that has not been parsed
+         yet, and the associated context has been recorded in a map (see
+         resolve_pending_mapped_exc_spec). */
+      instantiate_exception_spec_if_needed(sym_ptr);
+    }  /* if */
   }  /* if */
 done:;
 }  /* record_symbol_reference_full */

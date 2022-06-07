@@ -38796,7 +38796,7 @@ done_with_requirements:
       } else {
         make_expression_operand(node, result);
       }  /*if */
-      if (scope_stack[depth_scope_stack].in_prototype_instantiation) {
+      if (scope_stack_top().in_prototype_instantiation) {
         /* Associate with the token sequence number of the "requires" token
            the sequence number of the right brace closing the requires
            expression and with the generic requires-expression node.  The

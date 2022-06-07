@@ -3298,6 +3298,13 @@ specializations.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
   db_enter(3, "deferred_friend_function_fixup");
+  if (symbol_for(rp)->variant.routine.pending_mapped_exc_spec) {
+    /* If a noexcept specifier hasn't been parsed yet, handle that now (before
+       parameter variables are created, since we want the noexcept specifier to
+       use enk_param_ref entries instead of enk_variable entries; the latter
+       would create memory region issues). */
+    instantiate_exception_spec_if_needed(symbol_for(rp));
+  }  /* if */
   /* Reactivate the scope containing the function definition. */
   push_class_and_template_reactivation_scope(rfp->class_type,
 					     /*is_template_based=*/TRUE,

@@ -1,5 +1,31 @@
 Version 6.4
 
+6/6/22   [EDGcpfe/23303,EDGcpfe/23611,EDGcpfe/23668,EDGcpfe/23888,
+          EDGcpfe/23931,EDGcpfe/23961,EDGcpfe/24603,EDGcpfe/24702,
+          EDGcpfe/24722,EDGcpfe/24942,EDGcpfe/25362]
+Friend function of class templates and noexcept specifiers
+
+Consider:
+
+  template<bool B> struct X {};
+  template<bool B> struct S {
+    X<B> x;
+    friend constexpr bool operator==(S const &left, S const &right)
+      noexcept(noexcept(left.x == right.x)) {  // Previously an error.
+      return left.x == right.x;
+    }
+  };
+  S<true> s;
+
+The friend function of S<true> is not invoked.  The front end therefore doesn't
+instantiate the body of that function and hence doesn't issue an error on the
+return expression, even though that expression would produce an error due to
+the lack of an operator== for X.  However, the front end previously did process
+the operand of the noexcept specifier of the friend declaration as part of
+instantiating S<true>, and that then triggered an error.  Now, the noexcept
+specifier is not parsed until the function is used.
+
+
 6/6/22   [EDGcpfe/25387]
 IL display utility: dependent template-ids as qualifiers
 

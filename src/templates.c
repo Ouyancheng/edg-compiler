@@ -16953,6 +16953,8 @@ from template declaration processing, and is NULL otherwise.
       if (rp->source_corresp.is_class_member &&
           !rp->is_prototype_instantiation) {
         early_eh_spec_fixup(rp, esp);
+      } else if (sym->variant.routine.pending_mapped_exc_spec) {
+        resolve_pending_mapped_exc_spec(sym, esp);
       }  /* if */
     } else {
       /* The template function has an exception specification that is still in
