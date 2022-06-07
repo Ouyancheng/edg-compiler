@@ -1,5 +1,26 @@
 Version 6.4
 
+6/6/22   [EDGcpfe/25387]
+IL display utility: dependent template-ids as qualifiers
+
+In some cases, the IL display utility dropped template arguments from a
+dependent template-id used as a qualifier.  This is now fixed.  For
+example, with --c++11 --il_display:
+
+  template<bool, typename T> using A = bool;
+
+  template<typename T> int f(T);
+
+  template <typename T> using B = decltype(f<T>(0));
+
+  template <typename T, A<B<T>::v, bool> = true> void g(T&) { }
+
+In the resulting IL display, references to B<T>::v omitted the "<T>"
+template argument.  This is now fixed, and such references are now put out
+as "B<T#(1,1)>::v", where "#(1,1)" are the template parameter coordinates
+of "T".
+
+
 6/2/22   [EDGcpfe/25382]
 C++-generating back end: unbounded recursion with alias template
 
