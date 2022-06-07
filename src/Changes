@@ -2,7 +2,7 @@ Version 6.4
 
 6/6/22   [EDGcpfe/23303,EDGcpfe/23611,EDGcpfe/23668,EDGcpfe/23888,
           EDGcpfe/23931,EDGcpfe/23961,EDGcpfe/24603,EDGcpfe/24702,
-          EDGcpfe/24722,EDGcpfe/24942,EDGcpfe/25362]
+          EDGcpfe/24722,EDGcpfe/24942,EDGcpfe/25107,EDGcpfe/25362]
 Friend function of class templates and noexcept specifiers
 
 Consider:
