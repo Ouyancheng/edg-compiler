@@ -898,7 +898,7 @@ octl.  Called only for C++.  */
       output_base_name = FALSE;
     }  /* if */
     if (output_base_name) {
-      if (ctsp->proxy_of_type != NULL) {
+      if (ctsp != NULL && ctsp->proxy_of_type != NULL) {
         /* Use the original dependent type and not the nonreal proxy class
            for the display.  This matters in cases where the type has a
            template argument list, which would not appear if the proxy
