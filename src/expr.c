@@ -51066,16 +51066,19 @@ operator op, and return a pointer to it.
 }  /* make_assignment_expr */
 
 
-static an_arg_list_elem_ptr make_declval_arg(a_type_ptr  tp)
+static an_arg_list_elem_ptr make_declval_arg(a_type_ptr  tp,
+                                             a_boolean   make_lvalue = FALSE)
 /*
 Create and return an argument corresponding to "std::declval<T>()" where T is
 the given type and the standard template std::declval is declared as:
   template<class T> typename add_rvalue_reference<T>::type declval() noexcept;
 Return NULL if tp is an incomplete type or a reference to an incomplete type.
+Ordinarily the result is an xvalue unless tp is an lvalue reference or
+Microsoft tracking reference type, but as a special case the caller can
+request an lvalue by passing make_lvalue as TRUE.
 */
 {
   an_arg_list_elem_ptr  result = NULL;
-  a_boolean             make_lvalue = FALSE;
   an_operand            *arg_operand;
 
   complete_type_is_needed(tp);
@@ -51434,7 +51437,7 @@ bok_is_assignable, or bok_is_assignable_no_precondition_check.
     an_arg_list_elem_ptr  dst_op, src_op;
     an_operand            result_op;
     a_boolean             saved_defer_access_checks;
-    dst_op = arg_list = make_declval_arg(dst_type);
+    dst_op = arg_list = make_declval_arg(dst_type, /*make_lvalue=*/TRUE);
     if (dst_op == NULL) {
       /* The value creation expression is ill-formed: Return a "false"
          result. */
