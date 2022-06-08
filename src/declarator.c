@@ -1443,13 +1443,13 @@ Return FALSE if and only if the given descriptors are equivalent.
 typedef Ptr_map<an_exception_specification_ptr, a_noexcept_arg_descr>
 		a_noexcept_arg_map;
 			/* The type of a hash table mapping exception
-			   specification entries to description of the
+			   specification entries to a description of the
 			   context in which they appeared. */
 
 static a_noexcept_arg_map
 		*noexcept_args;
 			/* A pointer to a hash table mapping exception
-			   specification entries to description of the
+			   specification entries to a description of the
 			   context in which they appeared. */
 
 
@@ -1516,7 +1516,7 @@ The noexcept token of a noexcept-specification has just been scanned.  Scan a
 noexcept argument if any, and update *esp as appropriate.  If may_cache
 is TRUE, cache the argument tokens if appropriate (i.e., if this is a
 template-dependent context or a member of a class).  dps describes the
-declaration that on which the exception specification appears.
+declaration on which the exception specification appears.
 */
 {
   a_boolean  is_inclass_member_function_decl = FALSE,

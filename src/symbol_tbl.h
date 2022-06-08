@@ -3825,7 +3825,8 @@ typedef struct a_symbol {
 		pending_mapped_exc_spec:1;
 			/* TRUE if this function has a pending exception
 			   specification (cached but not parsed) that has
-			   associated information stored in a cache. */
+			   associated information stored in a hash table
+			   (noexcept_args in declarator.c). */
     } routine;
     /* When kind == sk_label: */
     struct {
