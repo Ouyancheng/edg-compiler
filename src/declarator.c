@@ -1436,8 +1436,7 @@ a_boolean operator!=(a_noexcept_arg_descr  const &nad1,
 Return FALSE if and only if the given descriptors are equivalent.
 */
 {
-  return nad1.class_type != nad2.class_type ||
-         nad1.prototype_scope_symbols != nad2.prototype_scope_symbols;
+  return !(nad1 == nad2);
 }  /* operator!= */
 
 
