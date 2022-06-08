@@ -763,7 +763,7 @@ the specified module.
     (*p)->global_module = FALSE;
     (*p)->has_definition = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    (*p)->variant.ifc_partition = ifc_none;
+    (*p)->variant.ifc_partition = ifc_pk_none;
 #endif /* MICROSOFT_EXTENSIONS_ALLWED */
   }  /* if */
   return *p;
@@ -1149,8 +1149,8 @@ and process that definition now, and return TRUE.  Otherwise, return FALSE.
 
 
 a_dynamic_init_ptr load_variable_init_from_module(
-                                                ARG_UNUSED a_type_ptr   tp,
-                                                ARG_UNUSED an_ifc_index *index)
+                               ARG_UNUSED a_type_ptr                    tp,
+                               ARG_UNUSED a_lexical_ifc_index_reference *index)
 /*
 Load and process the initializer for a variable or field from an IFC module.
 tp is the type of the variable or field, index is the index associated with the
@@ -1160,8 +1160,12 @@ initializer.
   a_dynamic_init_ptr result = NULL;
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  result = load_variable_init_from_ifc_module(tp, (ifc_ExprIndex)index->index,
-                                              (an_ifc_module*)index->module);
+  {
+    an_ifc_expr_index expr_idx{(an_ifc_module*)index->module,
+                               (an_ifc_expr_sort)index->sort, index->index};
+
+    result = load_variable_init_from_ifc_module(tp, expr_idx);
+  }
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   return result;
 }  /* load_variable_init_from_module */

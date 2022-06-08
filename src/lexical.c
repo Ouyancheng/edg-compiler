@@ -17994,10 +17994,12 @@ the given routine with that pending function body.
   a_cached_token_ptr  ctp = cached_token_rescan_list;
 
   if (ctp != NULL && ctp->token == tok_pending_ifc_func_body) {
-    record_pending_ifc_function_body(
-                           rout_sym->variant.routine.ptr,
-                           (ifc_DeclIndex)ctp->variant.ifc_index.index,
-                           (an_ifc_module*)ctp->variant.ifc_index.module);
+    a_lexical_ifc_index_reference index = ctp->variant.ifc_index;
+    an_ifc_decl_index             decl_idx = {(an_ifc_module*)index.module,
+                                              (an_ifc_decl_sort)index.sort,
+                                              index.index};
+
+    record_pending_ifc_function_body(rout_sym->variant.routine.ptr, decl_idx);
     result = TRUE;
   }  /* if */
   return result;

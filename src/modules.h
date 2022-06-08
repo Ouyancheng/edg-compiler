@@ -258,8 +258,9 @@ extern a_boolean load_routine_definition_from_module(a_routine_ptr  rp);
 
 extern a_boolean load_template_definition_from_module(a_template_ptr  templ);
 
-extern a_dynamic_init_ptr load_variable_init_from_module(a_type_ptr   tp,
-                                                         an_ifc_index *index);
+extern a_dynamic_init_ptr load_variable_init_from_module(
+                                         a_type_ptr                    tp,
+                                         a_lexical_ifc_index_reference *index);
 
 #if DEBUG
 extern void db_module(a_module_ptr mod);

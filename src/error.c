@@ -6082,6 +6082,23 @@ at the indicated position.
 }  /* pos_st_num2_diagnostic */
 
 
+void st_num_add_diag_info(a_diagnostic_ptr primary_dp,
+                          an_error_code    error_code,
+                          a_const_char     *error_string,
+                          int32_t          num)
+/*
+Add the specified diagnostic message (with the indicated fill-in string and
+number) to primary_dp.
+*/
+{
+  a_diagnostic_ptr dp;
+
+  dp = create_sub_message(primary_dp, error_code);
+  add_string_fill_in(dp, error_string);
+  add_number_fill_in(dp, num);
+}  /* st_num_add_diag_info */
+
+
 void st_num3_add_diag_info(a_diagnostic_ptr primary_dp,
                            an_error_code    error_code,
                            a_const_char     *error_string,
@@ -6210,6 +6227,17 @@ Report the indicated remark at the indicated position.
 {
   pos_st_remark(error_code, error_pos, (char *)NULL);
 }  /* pos_remark */
+
+
+void str_remark(an_error_code error_code,
+                a_const_char  *error_string)
+/*
+Report the indicated remark (with the indicated fill-in string) at the
+position indicated by error_position.
+*/
+{
+  pos_st_remark(error_code, &error_position, error_string);
+}  /* str_remark */
 
 
 void pos_ty_remark(an_error_code     error_code,

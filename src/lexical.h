@@ -2066,26 +2066,28 @@ enum a_token_extra_info_kind : a_byte {
   teik_asm_string,	/* Extra information for a Microsoft asm block. */
   teik_insert_string,   /* Extra information for an inserted token string. */
   teik_ud_lit,          /* Extra information for a user-defined literal. */
-  teik_ifc_index        /* Extra information for a pseudo-token referring to
-                           a declaration stored in an IFC module. */
+  teik_ifc_index        /* Extra information for a pseudo-token referring to a
+                           an IFC module node. */
 };
 
 
-typedef struct an_ifc_index {
+typedef struct a_lexical_ifc_index_reference {
   /* Information on an IFC index to be used in conjunction with a_cached_token
      below, saved for later rescanning.  Separated from a_cached_token to allow
      for making this information available upon rescanning (see
      ifc_index_for_curr_token). */
-  uint32_t	index;
-			/* The index in the IFC file of the declaration being
-			   referred to. */
-  const void
-		*module;
+  uint32_t      sort;
+			/* The index sort in the IFC file used to address the
+			   node being referred to. */
+  uint32_t      index;
+			/* The index in the IFC file used to address the node
+			   being referred to. */
+  const void    *module;
 			/* An opaque pointer to the IFC module (an_ifc_module)
 			   containing this declaration. */
-} an_ifc_index;
+} a_lexical_ifc_index_reference;
 
-EXTERN an_ifc_index
+EXTERN a_lexical_ifc_index_reference
 		ifc_index_for_curr_token;
 			/* If the current token is a pseudotoken indicating an
 			   index into an IFC module (i.e., extra_info_kind is
@@ -2196,7 +2198,7 @@ typedef struct a_cached_token {
 			   lookup for a cached token. */
     } ud_lit;
     /* When extra_info_kind == teik_ifc_index: */
-    an_ifc_index
+    a_lexical_ifc_index_reference
 		ifc_index;
 			/* An index into the IFC module containing additional
 			   information. */
