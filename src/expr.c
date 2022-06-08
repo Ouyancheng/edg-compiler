@@ -33019,6 +33019,7 @@ number.
 */
 {
   a_boolean processed = FALSE;
+  a_boolean operand_1_is_dummy = operand_1->is_dummy_lvalue;
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (is_property_ref_operand(operand_1)) {
@@ -33107,6 +33108,12 @@ number.
 #endif /* ASSIGNMENT_TO_THIS_ALLOWED */
       if (check_modifiable_lvalue_operand(operand_1)) {
         modifying_lvalue(operand_1, /*value_used=*/FALSE);
+      } else if (operand_1_is_dummy) {
+        /* This assignment is being done as a trial.  We know that it will
+           not succeed, so skip evaluation of the right-hand side, which
+           could have side effects that produce errors. */
+        make_error_operand(result);
+        goto done;
       }  /* if */
 #if ASSIGNMENT_TO_THIS_ALLOWED
     }  /* if */
@@ -33149,6 +33156,7 @@ number.
       change_assignment_result_to_lvalue(result, operand_1, orig_result_type);
     }  /* if */
   }  /* if */
+done:
   set_operand_position(result, &operand_1->position, &operand_2->end_position,
                        operator_position);
   record_operator_position_in_rescan_info(result,
@@ -51066,19 +51074,16 @@ operator op, and return a pointer to it.
 }  /* make_assignment_expr */
 
 
-static an_arg_list_elem_ptr make_declval_arg(a_type_ptr  tp,
-                                             a_boolean   make_lvalue = FALSE)
+static an_arg_list_elem_ptr make_declval_arg(a_type_ptr  tp)
 /*
 Create and return an argument corresponding to "std::declval<T>()" where T is
 the given type and the standard template std::declval is declared as:
   template<class T> typename add_rvalue_reference<T>::type declval() noexcept;
 Return NULL if tp is an incomplete type or a reference to an incomplete type.
-Ordinarily the result is an xvalue unless tp is an lvalue reference or
-Microsoft tracking reference type, but as a special case the caller can
-request an lvalue by passing make_lvalue as TRUE.
 */
 {
   an_arg_list_elem_ptr  result = NULL;
+  a_boolean             make_lvalue = FALSE; 
   an_operand            *arg_operand;
 
   complete_type_is_needed(tp);
@@ -51437,7 +51442,7 @@ bok_is_assignable, or bok_is_assignable_no_precondition_check.
     an_arg_list_elem_ptr  dst_op, src_op;
     an_operand            result_op;
     a_boolean             saved_defer_access_checks;
-    dst_op = arg_list = make_declval_arg(dst_type, /*make_lvalue=*/TRUE);
+    dst_op = arg_list = make_declval_arg(dst_type);
     if (dst_op == NULL) {
       /* The value creation expression is ill-formed: Return a "false"
          result. */
