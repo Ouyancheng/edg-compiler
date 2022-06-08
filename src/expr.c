@@ -33019,7 +33019,6 @@ number.
 */
 {
   a_boolean processed = FALSE;
-  a_boolean operand_1_is_dummy = operand_1->is_dummy_lvalue;
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (is_property_ref_operand(operand_1)) {
@@ -33108,10 +33107,12 @@ number.
 #endif /* ASSIGNMENT_TO_THIS_ALLOWED */
       if (check_modifiable_lvalue_operand(operand_1)) {
         modifying_lvalue(operand_1, /*value_used=*/FALSE);
-      } else if (operand_1_is_dummy) {
-        /* This assignment is being done as a trial.  We know that it will
-           not succeed, so skip evaluation of the right-hand side, which
-           could have side effects that produce errors. */
+      } else {
+        /* This assignment is erroneous, regardless of what's on the
+           right-hand side, so skip that evaluation since it could have
+           undesirable side effects, given the fact that the left-hand side
+           would now have an error type. */
+        check_assertion_or_expect_error(expr_stack->any_suppressed_error);
         make_error_operand(result);
         goto done;
       }  /* if */
