@@ -33107,11 +33107,12 @@ number.
 #endif /* ASSIGNMENT_TO_THIS_ALLOWED */
       if (check_modifiable_lvalue_operand(operand_1)) {
         modifying_lvalue(operand_1, /*value_used=*/FALSE);
-      } else {
-        /* This assignment is erroneous, regardless of what's on the
-           right-hand side, so skip that evaluation since it could have
-           undesirable side effects, given the fact that the left-hand side
-           would now have an error type. */
+      } else if (expr_stack->suppress_diagnostics) {
+        /* We know now that this assignment is erroneous, regardless of
+           what's on the right-hand side, and that's all we need in SFINAE
+           and other trial contexts.  Skip the evaluation of the right-hand
+           operand since it could have undesirable side effects, given the
+           fact that the left-hand side would now have an error type. */
         check_assertion_or_expect_error(expr_stack->any_suppressed_error);
         make_error_operand(result);
         goto done;
