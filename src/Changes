@@ -1,5 +1,22 @@
 Version 6.4
 
+6/9/22   [EDGcpfe/25390]
+Abort on constrained partial specialization of variadic class template
+
+Consider:
+
+  template<typename...>
+    struct S { };
+  template<typename T, typename U> requires requires { 0; }
+    struct S<T, U> {};
+  S<int> z;  // Previously triggered an abort.  Now okay.
+
+This previously aborted with a null-pointer indirection (in types.c, function
+is_instantiation_dependent_type_or_cli_generic_param) while testing whether the
+constrained partial specialization is a match for S<int>.  Other similar cases
+could result in spurious errors.  That is now fixed.
+
+
 6/7/22   [EDGcpfe/25236]
 __is_assignable with conversion operator template in source type
 

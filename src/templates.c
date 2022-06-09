@@ -3941,17 +3941,17 @@ determine the partial order among matching partial specializations.
   if (matches_template_arg_list(instance_tap, prototype_tap, ps_arg_list,
                                 templ_param_list, MTT_PARTIAL_SPEC) &&
       (!is_at_least_one_error() ||
-       !template_arg_list_involves_error_entity(*ps_arg_list)) &&
-      (for_ordering ||
-       check_template_constraints(template_sym, *ps_arg_list,
-                                  /*diagnose=*/FALSE))) {
+       !template_arg_list_involves_error_entity(*ps_arg_list))) {
     /* We found a match without errors: Check that substituting the resulting
        arguments is valid. */
     a_source_position  saved_error_pos = error_position;
     push_instantiation_scope_for_rescan(template_sym);
     if (wrapup_template_argument_deduction(
                         *ps_arg_list, template_sym, templ_param_list,
-                        CTWS_NO_OPTIONS, /*param_count=*/0)) {
+                        CTWS_NO_OPTIONS, /*param_count=*/0) &&
+        (for_ordering ||
+         check_template_constraints(template_sym, *ps_arg_list,
+                                    /*diagnose=*/FALSE))) {
       a_template_arg_ptr		test_arg_list;
       a_boolean				copy_error = FALSE;
       a_ctws_state			ctws_state;
