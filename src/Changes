@@ -1,5 +1,22 @@
 Version 6.4
 
+6/9/22   [EDGcpfe/25385]
+GNU/Clang compatibility: Mixed signed/unsigned vector operations
+
+GCC and Clang accept mixed signed/unsigned vector operations and the front end
+now emulates that behavior.  The result of such an operation is generally of
+the unsigned vector type.  For compound assignment with such mixed types, the
+left-hand side must be the unsigned vector type.  For example:
+
+  typedef unsigned VU1 __attribute__ ((vector_size(4)));
+  typedef int VS1 __attribute__ ((vector_size(4)));
+  void g(VU1 uv, VS1 sv) {
+    uv = uv + sv;  // Now okay.
+    uv += sv;      // Ditto.
+    sv += uv;      // Still an error.
+  }
+
+
 6/9/22   [EDGcpfe/25390]
 Abort on constrained partial specialization of variadic class template
 

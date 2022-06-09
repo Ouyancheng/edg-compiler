@@ -11947,7 +11947,7 @@ by the caller and not here) may be different than the type of the operation.
   a_type_ptr  op2_type = skip_typerefs(operand_2->type);
   a_boolean   op1_is_vec = is_vector_type(op1_type);
   a_boolean   op2_is_vec = is_vector_type(op2_type);
-  a_boolean   is_vector_operation = TRUE;
+  a_boolean   is_vector_operation = TRUE, mixed_signedness = FALSE;
 
   if (!op1_is_vec && !op2_is_vec) {
     /* Neither operand has a vector type. */
@@ -11960,7 +11960,13 @@ by the caller and not here) may be different than the type of the operation.
       expr_pos_error(ec_vectors_must_have_same_size, err_pos);
       *operation_type = error_type();
       *op = (an_expr_operator_kind)eok_error;
-    } else if (!identical_types(el1_type, el2_type)) {
+    } else if (!identical_types(el1_type, el2_type) &&
+               !(is_integral_type(el1_type) && is_integral_type(el2_type) &&
+                 (mixed_signedness =
+                   integral_types_the_same_except_for_signedness(
+                                                      el1_type, el2_type)))) {
+      /* Either the element types must be identical, or they must be integer
+         types that differ only in signedness. */
       expr_pos_error(ec_vector_element_type_mismatch, err_pos);
       *operation_type = error_type();
       *op = (an_expr_operator_kind)eok_error;
@@ -11985,7 +11991,20 @@ by the caller and not here) may be different than the type of the operation.
           FALLTHROUGH
         default:
           *operation_type = op1_type;
-          *op = which_binary_operator(op_token, *operation_type);
+          *op = which_binary_operator(op_token, op1_type);
+          if (mixed_signedness && is_signed_integral_type(el1_type)) {
+            /* The vector types differ only in the signedness of their
+               (integral) elements.  The result type is the unsigned type,
+               and if the operation is a compound assignment the first
+               operand must be the unsigned operand. */
+            if (is_compound_assignment_operator(*op)) {
+              expr_pos_error(ec_vector_element_type_mismatch, err_pos);
+              *operation_type = error_type();
+              *op = (an_expr_operator_kind)eok_error;
+            } else {
+              *operation_type = op2_type;
+            }  /* if */
+          }  /* if */
       }  /* switch */
     }  /* if */
   } else {

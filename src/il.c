@@ -30150,6 +30150,13 @@ node, and report any failure as an internal error.
           (is_fixed_point_type(op_type_1) ||
            is_fixed_point_type(op_type_2))) &&
 #endif /* FIXED_POINT_ALLOWED */
+#if GNU_VECTOR_TYPES_ALLOWED
+        !(is_integral_type(op_type_1->variant.vector.element_type) &&
+          is_integral_type(op_type_2->variant.vector.element_type) &&
+          integral_types_the_same_except_for_signedness(
+                                   op_type_1->variant.vector.element_type,
+                                   op_type_2->variant.vector.element_type)) &&
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
         /* Disregard template dependent operands. */
         !(is_template_dependent_type(expr->type) ||
           is_template_dependent_type(op_type_1) ||
