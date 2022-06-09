@@ -51084,7 +51084,7 @@ Return NULL if tp is an incomplete type or a reference to an incomplete type.
 */
 {
   an_arg_list_elem_ptr  result = NULL;
-  a_boolean             make_lvalue = FALSE; 
+  a_boolean             make_lvalue = FALSE;
   an_operand            *arg_operand;
 
   complete_type_is_needed(tp);
