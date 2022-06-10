@@ -20946,10 +20946,17 @@ error:
 #endif /* GNU_EXTENSIONS_ALLOWED */
       /* The conversion is not legal. */
       if (expr_error_should_be_issued()) {
-        /* The "opt_ty2" routine puts in the types if the specific error
-           message has fill-ins for them, and otherwise ignores the types. */
-        pos_opt_ty2_error(incompatible_err, err_pos,
-                          source_type, orig_dest_type);
+        if (is_or_contains_error_type(source_type) ||
+            is_or_contains_error_type(orig_dest_type)) {
+          /* Something went wrong with the types involved due to a prior error.
+             Issuing an additional error is unlikely to be helpful. */
+          expect_error();
+        } else {
+          /* The "opt_ty2" routine puts in the types if the specific error
+             message has fill-ins for them, and otherwise ignores the types. */
+          pos_opt_ty2_error(incompatible_err, err_pos,
+                            source_type, orig_dest_type);
+        }  /* if */
       }  /* if */
       conv_to_error_operand(source_operand);
     }  /* if */
