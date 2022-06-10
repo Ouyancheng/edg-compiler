@@ -124,6 +124,11 @@ typedef struct a_char_conversion_state {
 			   multibyte sequences; otherwise, invalid
 			   sequences will be reported as discretionary
 			   errors. */
+  a_byte_boolean
+		force_utf8;
+			/* If TRUE, input is assumed to be encoded as
+			   UTF-8, regardless of the setting of
+			   curr_file_unicode_source_kind. */
   char		translated_char[MAX_MULTIBYTE_CHAR_LENGTH];
 			/* When translating from UTF-8 to multibyte
 			   characters and for universal-character-names,
@@ -141,6 +146,7 @@ typedef struct a_char_conversion_state {
     (state)->translate_utf8_to_mbc = translate_utf8;            \
     (state)->create_surrogate_pairs = FALSE;                    \
     (state)->warn_on_invalid_conversion = FALSE;                \
+    (state)->force_utf8 = FALSE;                                \
   }  /* clear_char_conversion_state */
 
 extern void conv_single_char(a_char_conversion_state_ptr state,
@@ -159,7 +165,7 @@ extern void conv_string_literal(
                          unsigned long                 num_chars,
                          an_error_code                 *err_code,
                          a_const_char                  **err_pos,
-                         a_boolean                     process_escapes = TRUE);
+                         a_boolean                     is_rescan = FALSE);
 
 extern void concat_string_literals(a_token_cache_ptr cache,
                                    a_character_kind  kind,

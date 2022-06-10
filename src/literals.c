@@ -1396,7 +1396,7 @@ defines the size of character.
                    /*narrow_literal=*/FALSE, /*utf8_literal=*/FALSE);
 #else /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
   /* Multibyte character processing may be needed. */
-  if (!multibyte_chars_in_source_enabled ||
+  if ((!multibyte_chars_in_source_enabled && !state->force_utf8) ||
       (process_escapes && **state->next_token_char == '\\') ||
       **state->next_token_char == LE_ESCAPE ||
       state->remaining_char_count > 0 ||
@@ -1410,8 +1410,18 @@ defines the size of character.
     unsigned  long wc;
     int       numch;
     a_boolean err;
+    a_boolean is_native;
+    if (state->force_utf8) {
+      is_native = FALSE;
+    } else {
+#if UNICODE_SOURCE_SUPPORTED
+      is_native = curr_file_unicode_source_kind == usk_none;
+#else /* !UNICODE_SOURCE_SUPPORTED */
+      is_native = FALSE;
+#endif /* UNICODE_SOURCE_SUPPORTED */
+    }  /* if */
     /* Convert a multibyte character sequence to a wide character. */
-    numch = lex_mbc_to_wide_char(*state->next_token_char, &wc, &err);
+    numch = mbc_to_wide_char(*state->next_token_char, &wc, &err, is_native);
     if (err) {
       /* Invalid multibyte character sequence.  Report an error and replace
          the character with '?'. */
@@ -1747,7 +1757,7 @@ void conv_string_literal(a_const_char                  *start_of_string_value,
                          unsigned long                 num_chars,
                          an_error_code                 *err_code,
                          a_const_char                  **err_pos,
-       /* Defaulted: */  a_boolean                     process_escapes)
+       /* Defaulted: */  a_boolean                     is_rescan)
 /*
 Convert a string literal from external form to internal form.
 start_of_string_value and end_of_string_value point to the first character
@@ -1762,9 +1772,14 @@ num_chars indicates the number of characters contained within the quotes
 (after escape processing, and in wide characters if the string is wide).
 If the string is a char16_t string of the form u"...", num_chars may be
 larger (but not smaller) than the number of characters needed to represent
-the string.  process_escapes is TRUE (the default value) if character
-escapes should be recognized and translated.  (Even if passed in as TRUE,
-it will be set to FALSE below if lit_kind indicates a raw string literal.)
+the string.  if is_rescan is TRUE, this call is scanning a
+previously-processed narrow character string value as a different literal
+kind, as when concatenating an unprefixed string literal with one that has
+a prefix.  In this case, escapes will have already been recognized and
+translated, and an escaped backslash should not be considered to introduce
+another escape.  Also, universal character names will have been replaced by
+their UTF-8 encodings, so the rescan as a wider UTF encoding may result in
+fewer characters than the number of bytes in the UTF-8 encoding.
 */
 {
   unsigned long                 i, ch, centity_mask;
@@ -1779,6 +1794,7 @@ it will be set to FALSE below if lit_kind indicates a raw string literal.)
   int                           raw_str_trigraph_delim_chars = 0;
   a_string_or_char_literal_kind prefix_kind =
                                              literal_encoding_prefix(lit_kind);
+  a_boolean                     process_escapes = !is_rescan;
 
   /* The number of array elements is one more than the number of characters,
      to leave space for the terminating null.  (For char16_t strings, this
@@ -1853,6 +1869,7 @@ it will be set to FALSE below if lit_kind indicates a raw string literal.)
                                microsoft_mode));
   conv_state.create_surrogate_pairs = (prefix_kind == SCLK_WIDE_LITERAL ||
                                        prefix_kind == SCLK_CHAR16_T_LITERAL);
+  conv_state.force_utf8 = gnu_mode && is_rescan;
 #if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
   /* Initialize for scanning multibyte characters in the string. */
   mbc_scan_init_if_multibyte_chars_in_source_enabled();
@@ -1911,23 +1928,11 @@ it will be set to FALSE below if lit_kind indicates a raw string literal.)
   switch (character_kind) {
     case chk_char:
     case chk_char8_t:
-      /* Normal string literal. */
+      /* Narrow string literal. */
       *(pstr++) = '\0';
-      /* The actual length of the string may be less than was originally
-         calculated due to translation of universal-character-names into
-         UTF-8 or, if enabled, translation of Unicode characters to
-         multibyte characters. */
-      constant_size = pstr - str_start;
-      num_elems = (a_targ_size_t)constant_size;
       break;
     case chk_char16_t:
     case chk_wchar_t:
-      /* The allocated number of bytes may be too large due to a conservative
-         estimate for encoding length.  Update the size and character count to
-         reflect the actual encoding. */
-      constant_size = (pstr - str_start) + char_size;
-      num_elems = (a_targ_size_t)(constant_size / char_size);
-      FALLTHROUGH
     case chk_char32_t:
       /* L"...", u"...", or U"...": */
       ch = 0;
@@ -1936,11 +1941,12 @@ it will be set to FALSE below if lit_kind indicates a raw string literal.)
     default:
       unexpected_condition();
   }  /* switch */
-#if CHECKING
-  /* Check that the length calculation was correct. */
-  check_assertion_str((sizeof_t)(pstr - str_start) == constant_size,
-                      "conv_string_literal: length miscalculated");
-#endif /* CHECKING */
+  /* Recalculate the actual final size of the converted constant, which can
+     be smaller than the original calculated size because of translation of
+     universal character names into UTF-8, translation of UTF-8 to a wider
+     UTF-encoding or native multibyte characters, etc. */
+  constant_size = pstr - str_start;
+  num_elems = (a_targ_size_t)(constant_size / char_size);
   /* Make the constant entry for the string. */
   clear_constant(&const_for_curr_token, (a_constant_repr_kind)ck_string);
   const_for_curr_token.type = string_literal_type(character_kind, num_elems);
@@ -2074,7 +2080,7 @@ the given character kind, or a mix of the given kind and chk_char.
         check_assertion(con->character_kind == (a_character_kind)chk_char);
         conv_string_literal(old_val, old_val + con->variant.string.length - 1,
                             this_lit_kind, con->variant.string.length - 1,
-                            &err_code, &err_loc, /*process_escapes=*/FALSE);
+                            &err_code, &err_loc, /*is_rescan=*/TRUE);
         con = &const_for_curr_token;
       }  /* if */
       /* Determine the length of this string literal. */
