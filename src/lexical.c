@@ -15089,6 +15089,8 @@ process the "import" or "module" that follows it.
   a_const_char      *saved_curr_char_loc = curr_char_loc, *start_of_args;
   a_boolean         saved_fetch_pp_tokens = fetch_pp_tokens;
   a_boolean         saved_expand_macros = expand_macros;
+  int               saved_logical_char_info_entries_used =
+                                                logical_char_info_entries_used;
   a_source_position start_pos;
 
   macro_line_loc_to_source_pos(start_of_curr_token, start_pos)
@@ -15210,6 +15212,7 @@ check_for_newline:
   in_preprocessing_directive = FALSE;
   fetch_pp_tokens = saved_fetch_pp_tokens;
   expand_macros = saved_expand_macros;
+  logical_char_info_entries_used = saved_logical_char_info_entries_used;
   return token != tok_error;
 }  /* is_module_pp_directive */
 
