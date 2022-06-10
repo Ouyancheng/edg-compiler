@@ -19642,7 +19642,8 @@ error.  conv_context describes the context of the conversion.
           try_as_arg_of_bitwise_cctor = TRUE;
         }  /* if */
       } else if (any_cfront_mode() ||
-                 (mandatory_copy_elision && !microsoft_mode)) {
+                 (mandatory_copy_elision && !microsoft_mode &&
+                  !(conv_context & CCO_CAST))) {
         /* Look for a conversion function that converts to exactly the
            required type.  That makes sense because in that case the copy
            constructor call can be elided and we call just one user-defined

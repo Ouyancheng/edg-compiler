@@ -1,5 +1,27 @@
 Version 6.4
 
+6/10/22  [EDGcpfe/22154,EDGcpfe/22884,EDGcpfe/25383]
+Spurious ambiguity in C++17-mode cast
+
+Consider:
+
+  struct S;
+  struct D {
+    explicit D(S const&);
+  };
+  struct S {
+    operator D() const = delete;
+  };
+  void g(S p) {
+    static_cast<D>((S const)p);  // Previously ambiguous in C++17 mode.
+  }                              // Now okay.
+
+The changes for EDGcpfe/19122 introduced a regression in version 5.1 of the
+front end causing the example above to diagnose a conversion ambiguity between
+the converting constructor of D and the conversion function of S.  That is now
+fixed.
+
+
 6/9/22   [EDGcpfe/25385]
 GNU/Clang compatibility: Mixed signed/unsigned vector operations
 
