@@ -283,6 +283,12 @@ static a_symbol_ptr
 			   macro "__is_identifer", which is used in clang
 			   mode and optionally in all modes. */
 
+static a_symbol_ptr
+		has_warning_symbol;
+			/* Pointer to the symbol entry for the special
+			   macro "__has_warning", which is used in clang
+			   mode. */
+
 static a_boolean
 		use_raw_version_of_arg;
 			/* TRUE if the raw version of a macro argument
@@ -5981,6 +5987,40 @@ make_inert_macro:
           }  /* if */
         }  /* if */
         strcpy(repl_text, is_identifier ? "1" : "0");
+      } else if (macro_symbol == has_warning_symbol) {
+        /* The clang __has_warning macro.  Because the diagnostics of clang
+           and the front end do not have a one-to-one correspondence, we
+           always return a false value. */
+        a_boolean saved_fetch_pp_tokens = fetch_pp_tokens;
+        a_boolean saved_in_preprocessing_directive =
+                                                    in_preprocessing_directive;
+        a_boolean saved_in_pp_if = in_pp_if_expression;
+        a_boolean saved_str_lit_concat = do_string_literal_concatenation;
+        if (get_token() != tok_lparen) {
+          /* Unlike normal function-style macros, clang always treats
+             __has_warning as a macro even when not followed by a left
+             parenthesis, giving it the value "0" and reporting an
+             error. */
+          pos_error(ec_exp_lparen, &pos_curr_token);
+        } else {
+          expand_macros = FALSE;
+          fetch_pp_tokens = FALSE;
+          in_preprocessing_directive = FALSE;
+          in_pp_if_expression = FALSE;
+          do_string_literal_concatenation = TRUE;
+          if (get_token() != tok_string_literal) {
+            pos_error(ec_exp_string_literal, &pos_curr_token);
+            flush_to_closing_paren();
+          } else if (get_token() != tok_rparen) {
+            pos_error(ec_exp_rparen, &pos_curr_token);
+            flush_to_closing_paren();
+          }  /* if */
+          in_preprocessing_directive = saved_in_preprocessing_directive;
+          fetch_pp_tokens = saved_fetch_pp_tokens;
+          in_pp_if_expression = saved_in_pp_if;
+          do_string_literal_concatenation = saved_str_lit_concat;
+        }  /* if */
+        strcpy(repl_text, "0");
       } else {
         unexpected_condition_str(
                          "macro_invocation: unknown special predefined macro");
@@ -11699,6 +11739,14 @@ command line -D options.
        it is defined as object-like. */
     is_identifier_symbol = enter_predef_macro(
                                             (char *)NULL, "__is_identifier",
+                                            /*cannot_be_redefined=*/TRUE,
+                                            /*ref_suppresses_pch_file=*/FALSE);
+  }  /* if */
+  if (clang_mode) {
+    /* __has_warning expects exactly one token, a string literal, so normal
+       macro argument processing is not appropriate and it is defined as
+       object-like. */
+    has_warning_symbol = enter_predef_macro((char *)NULL, "__has_warning",
                                             /*cannot_be_redefined=*/TRUE,
                                             /*ref_suppresses_pch_file=*/FALSE);
   }  /* if */

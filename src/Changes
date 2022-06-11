@@ -1,5 +1,19 @@
 Version 6.4
 
+6/11/22  [EDGcpfe/25314]
+Clang compatibility: __has_warning built-in macro
+
+The front end now supports the clang __has_warning built-in macro, which
+takes a character string literal designating a command-line warning option
+as its argument.  Because there is no one-to-one correspondence between the
+clang and front end diagnostics, the result of the macro is always 0.  For
+example, with --clang:
+
+  #if __has_warning("-Wformat")
+    #error Will never trigger in the front end
+  #endif
+
+
 6/10/22  [EDGcpfe/22154,EDGcpfe/22884,EDGcpfe/25383]
 Spurious ambiguity in C++17-mode cast
 
