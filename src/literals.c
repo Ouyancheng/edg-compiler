@@ -1423,13 +1423,22 @@ defines the size of character.
     /* Convert a multibyte character sequence to a wide character. */
     numch = mbc_to_wide_char(*state->next_token_char, &wc, &err, is_native);
     if (err) {
-      /* Invalid multibyte character sequence.  Report an error and replace
-         the character with '?'. */
-      conv_line_loc_to_source_pos(*state->next_token_char, &error_position);
-      diagnostic(state->warn_on_invalid_conversion ? es_warning
-                                                   : es_discretionary_error,
-                 ec_bad_multibyte_char);
-      wc = L'?';
+      if (state->force_utf8) {
+        /* This is a rescan of a previously-processed string literal, so
+           presumably this character resulted from an octal or hexadecimal
+           escape, not an actual extended  character or universal character
+           name.  Just take the single character. */
+        wc = (unsigned long)*state->next_token_char;
+        numch = 1;
+      } else {
+        /* Invalid multibyte character sequence.  Report an error and
+           replace the character with '?'. */
+        conv_line_loc_to_source_pos(*state->next_token_char, &error_position);
+        diagnostic(state->warn_on_invalid_conversion ? es_warning
+                                                     : es_discretionary_error,
+                   ec_bad_multibyte_char);
+        wc = L'?';
+      }  /* if */
     }  /* if */
     if ((wc & ~centity_mask) != 0 && state->create_surrogate_pairs) {
       /* The character does not fit into a single code unit.  Create a
