@@ -1426,7 +1426,7 @@ defines the size of character.
       if (state->force_utf8) {
         /* This is a rescan of a previously-processed string literal, so
            presumably this character resulted from an octal or hexadecimal
-           escape, not an actual extended  character or universal character
+           escape, not an actual extended character or universal character
            name.  Just take the single character. */
         wc = (unsigned long)*state->next_token_char;
         numch = 1;
