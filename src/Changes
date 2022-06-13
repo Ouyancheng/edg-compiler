@@ -1,5 +1,13 @@
 Version 6.4
 
+6/13/22  [EDGcpfe/25389]
+Spurious error in multi-translation unit mode with abi_tag attributes
+
+In some cases, a spurious error (attribute "abi_tag" is missing in another
+translation unit) had been issued in cases where the abi_tag attribute
+was implicitly added during the mangling process.  Now fixed.
+
+
 6/11/22  [EDGcpfe/25314]
 Clang compatibility: __has_warning built-in macro
 

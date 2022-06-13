@@ -2496,7 +2496,11 @@ entry.
     for (ap1 = attr1; ap1 != NULL; ap1 = ap1->next) {
       an_attr_corresp_flag_set     acflags, match_mode;
       an_attr_corresp_checking_fn  *checking_fn;
-      if (is_unapplicable_attr(ap1)) continue;
+      if (is_unapplicable_attr(ap1) || ap1->is_implicit_abi_tag_attribute) {
+        /* Ignore any attributes that aren't applicable or were added
+           implicitly. */
+        continue;
+      }  /* if */
       get_attr_corresp_checking_info(ap1, entity_kind, &acflags, &checking_fn);
       match_mode = acflags & ACF_MATCH_MASK;
       ap2 = atable2[(int)ap1->kind];
