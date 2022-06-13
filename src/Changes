@@ -1,5 +1,22 @@
 Version 6.4
 
+6/13/22  [EDGcpfe/25395]
+C++-generating back end: injected-class-name in partial specializations
+
+The C++-generating back end previously put out uses of the
+injected-class-name of a class template partial specialization using a
+template-id, i.e., referring to the template with the template parameters
+as a template argument list.  Although correct, some compilers issue
+spurious errors for this usage, so the C++-generating back end has been
+changed to refer to the injected-class-name using an unqualified name in
+such cases.  For example:
+
+  template<typename, typename> struct S;
+  template<typename T> struct S<T, T> {
+    S(S&) = default;  // Parameter previously generated as "::S<T, T>&"
+  };
+
+
 6/13/22  [EDGcpfe/25355]
 GNU C++ compatibility: Compound assignment with pointer to void or function
 

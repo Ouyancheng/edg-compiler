@@ -8238,7 +8238,7 @@ tag, a typedef, or a dependent type.  A reference is not the definition.
       /* A template instance is not declared, per se, but it should never be
          referred to by an elaborated-type-specifier. */
       type->has_been_declared = TRUE;
-      if (type_is_prototype_instantiation(type) &&
+      if (type->variant.class_struct_union.is_prototype_instantiation &&
           class_is_in_name_context_stack(
                                   type, /*include_base_classes=*/TRUE,
                                   /*ignore_field_selection_contexts=*/FALSE)) {
