@@ -2236,17 +2236,18 @@ associated symbols are listed under the same header).
                        sym2 = (a_symbol_ptr)scp2->assoc_info;
   a_symbol_header_ptr  sh1, sh2;
 
-  if (unmangled_name_of(scp1) == unmangled_name_of(scp2)) {
+  if (unmangled_name_of(scp1) != NULL &&
+      unmangled_name_of(scp1) == unmangled_name_of(scp2)) {
     /* Note that in some cases one entity may already have a mangled name,
        while the other does not. */
     match = TRUE;
   } else if (sym1 == NULL || sym2 == NULL ||
              (!sym1->is_class_member && is_unnamed_tag_symbol(sym1)) || 
              (!sym2->is_class_member && is_unnamed_tag_symbol(sym2))) {
-    /* A mismatch in which one of the entities is unnamed.  Unnamed classes
-       and enums are considered to be matching if they are class members
-       since in those cases the ordering of declarations is sufficient to
-       ascertain a correspondence. */
+    /* A mismatch in which one (or both) of the entities is unnamed.  Unnamed
+       classes and enums are considered to be matching if they are class
+       members since in those cases the ordering of declarations is sufficient
+       to ascertain a correspondence. */
     check_assertion(!(sym1 == NULL && sym2 == NULL));
     match = FALSE;
   } else {
