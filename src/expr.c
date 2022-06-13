@@ -33517,7 +33517,7 @@ assignment was a braced-init-list (allowed in C++11 mode),
 #endif /* FIXED_POINT_ALLOWED */
           } else {
             a_boolean  nonobject_pointer =
-                    (gcc_mode &&
+                    ((gcc_mode || gpp_version_is(>=40400)) &&
                      is_pointer_type(operand_1->type) &&
                      (is_void_type(type_pointed_to(operand_1->type)) ||
                       is_function_type(type_pointed_to(operand_1->type))));
@@ -33529,7 +33529,7 @@ assignment was a braced-init-list (allowed in C++11 mode),
               if (check_integral_or_enum_operand(&operand_2)) {
 #if GNU_EXTENSIONS_ALLOWED
                 if (nonobject_pointer) {
-                  /* GNU C accepts arithmetic on void and function pointers.
+                  /* GCC accepts arithmetic on void and function pointers.
                      Issue a warning in any case (unless prefixed with the
                      GNU __extension__ keyword. */
                   if (!expr_stack->marked_as_gnu_extension) {

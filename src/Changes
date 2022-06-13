@@ -1,5 +1,45 @@
 Version 6.4
 
+6/13/22  [EDGcpfe/25355]
+GNU C++ compatibility: Compound assignment with pointer to void or function
+
+Consider, in GNU C++ modes:
+
+  void g(void *v, int (*f)(), int x) {
+    v += x;  // Previously an error.  Now accepted when gnu_version >= 40400.
+    f += x;  // Ditto.
+  }
+
+The front end already permitted ordinary addition and subtraction operations
+on void* and pointer-to-function values in GNU C++ modes with gnu_version >=
+40400 (see the entry for EDGcpfe/11204).  That now also applies to the
+corresponding compound assignment operators.
+
+
+6/13/22  [EDGcpfe/25352]
+Multiple translation units: Spurious error with unnamed enums
+
+When compiling multiple translation units where two different unnamed enums
+were used to instantiate a template in the same TU, the front-end would
+incorrectly attempt to make the two enums correspond to each other, resulting
+in a spurious "had a different meaning" error.  For example, if the primary
+TU contains (with an empty secondary TU):
+
+  struct X {
+    template<typename T> X(T);
+  };
+  void conv_func(X, X);
+  enum { E1 };
+  enum { E2 };
+  template<typename>
+  inline void func() {
+    conv_func(E1, E2); // Triggers spurious "had a different meaning" error
+  }
+  auto fn = func<int>;
+
+This is now fixed.
+
+
 6/13/22  [EDGcpfe/25389]
 Spurious error in multi-translation unit mode with abi_tag attributes
 
