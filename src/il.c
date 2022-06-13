@@ -30151,7 +30151,8 @@ node, and report any failure as an internal error.
            is_fixed_point_type(op_type_2))) &&
 #endif /* FIXED_POINT_ALLOWED */
 #if GNU_VECTOR_TYPES_ALLOWED
-        !(is_integral_type(op_type_1->variant.vector.element_type) &&
+        !(type_is(op_type_1, tk_vector) && type_is(op_type_2, tk_vector) &&
+          is_integral_type(op_type_1->variant.vector.element_type) &&
           is_integral_type(op_type_2->variant.vector.element_type) &&
           integral_types_the_same_except_for_signedness(
                                    op_type_1->variant.vector.element_type,
