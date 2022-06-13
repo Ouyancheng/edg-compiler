@@ -5556,7 +5556,18 @@ principal associated IL entity.
                   { Value_saver<a_boolean> lazy_load_saver(
                                                   &lazy_symbols_may_be_visible,
                                                   /*new_value=*/FALSE);
-                    ns_sym = curr_scope_id_lookup(&loc, IDL_NO_OPTIONS);
+                    if (loc.symbol_header ==
+                                           symbol_for_namespace_std->header &&
+                        scope_is(&scope_stack_top(), sck_module_decl_import) &&
+                        !loc.is_error) {
+                      /* Be sure to use the pre-created namespace std symbol.
+                         It might not be entered in the symbol table yet:
+                         Hence, call enter_symbol_for_namespace_std. */
+                      ns_sym = symbol_for_namespace_std;
+                      enter_symbol_for_namespace_std(&loc);
+                    } else {
+                      ns_sym = curr_scope_id_lookup(&loc, IDL_NO_OPTIONS);
+                    }  /* if */
                   }
                   if (ns_sym != NULL) {
                     if (ns_sym->kind == (a_symbol_kind)sk_namespace &&

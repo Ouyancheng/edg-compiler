@@ -9249,6 +9249,18 @@ Look up name in namespace std and return the symbol found, if any.
   a_symbol_ptr     result_sym = NULL;
 
   if (symbol_for_namespace_std != NULL) {
+    if (!symbol_for_namespace_std_entered) {
+      /* If "std" hasn't been entered into the symbol table, make sure that
+         it is entered now. */
+      a_symbol_locator  loc;
+      (void)find_symbol("std", (sizeof_t)strlen("std"), &loc);
+      enter_symbol_for_namespace_std(&loc);
+      /* Force a lookup of "std" to make sure that any lazily-loaded symbols
+         (from a module file) are primed. */
+      clear_specific_symbol(loc);
+      (void)file_scope_id_lookup(scope_stack[DEPTH_OF_FILE_SCOPE].il_scope,
+                                 &loc, IDL_MUST_BE_NAMESPACE);
+    }  /*if */
     std_nsp = symbol_for_namespace_std->variant.namespace_info.ptr;
     if (std_nsp != NULL) {
       result_sym = look_up_name_string_in_namespace(
