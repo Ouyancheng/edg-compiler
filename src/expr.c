@@ -3670,7 +3670,7 @@ will be equal to init_list_ctor_arg_list->variant.braced.list.
     if (explicit_ctor != NULL) {
       *explicit_ctor = routine->is_explicit_constructor;
     }  /* if */
-    if (routine->is_trivial_default_constructor) {
+    if (routine->is_trivial_default_constructor && eff_arg_list == NULL) {
       /* The constructor selected is a trivial default constructor, which
          does nothing.  The routine is not marked as called. */
       is_trivial_construction = TRUE;
