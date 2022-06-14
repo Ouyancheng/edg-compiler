@@ -2741,9 +2741,9 @@ private:
 		referenced_modules;
 			/* A map from a module reference to the corresponding
 			   import decl. */
-  a_boolean
-		unhandled_node_diag_issued = FALSE;
-			/* Flag to indicate whether an unhandled node
+  an_error_severity
+		unhandled_node_diag_sev = es_none;
+			/* The highest severity with which an unhandled node
 			   diagnostic has already been issued for this
 			   module. */
   a_boolean
@@ -2819,6 +2819,8 @@ public:
                         a_boolean header_bytes);
   inline void issue_unsupported_node_diag(a_const_char      *node,
                                           a_source_position *pos);
+  inline void issue_unsupported_node_error(a_const_char      *node,
+                                           a_source_position *pos);
   void init_string_table_and_header();
   a_boolean initialize_members_from_ifc_module_file(
                                           a_module_import_decl_ptr midp,

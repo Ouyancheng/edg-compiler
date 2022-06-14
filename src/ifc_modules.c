@@ -1857,18 +1857,39 @@ inline void an_ifc_module::issue_unsupported_node_diag(a_const_char      *node,
 /*
 Issue a diagnostic that an unhandled node was encountered.  node is the textual
 representation of the problematic node.  pos is the source position associated
-with the diagnostic.
+with the diagnostic.  Call an_ifc_module::issue_unsupported_node_error is an
+error entry is created as part of failure recovery.
 */
 {
-  if (!unhandled_node_diag_issued) {
+  if ((int)this->unhandled_node_diag_sev <
+                                     (int)file_contains_unhandled_nodes_sev) {
     pos_st_diagnostic(file_contains_unhandled_nodes_sev,
                       ec_module_file_contains_unsupported_constructs,
-                      &null_source_position, assoc_module_info->name);
-    unhandled_node_diag_issued = TRUE;
+                      &null_source_position, this->assoc_module_info->name);
+    this->unhandled_node_diag_sev = file_contains_unhandled_nodes_sev;
   }  /* if */
   pos_st_diagnostic(unhandled_ifc_node_severity, ec_unhandled_ifc_construct,
                     pos, node);
 }  /* issue_unsupported_node_diag */
+
+
+inline void an_ifc_module::issue_unsupported_node_error(
+                                                      a_const_char      *node,
+                                                      a_source_position *pos)
+/*
+Issue an error that an unhandled node was encountered.  node is the textual
+representation of the problematic node.  pos is the source position associated
+with the diagnostic.
+*/
+{
+  if ((int)this->unhandled_node_diag_sev < (int)es_error) {
+    pos_st_error(ec_module_file_contains_unsupported_constructs,
+                 &null_source_position, this->assoc_module_info->name);
+    this->unhandled_node_diag_sev = es_error;
+  }  /* if */
+  pos_st_diagnostic(unhandled_ifc_node_severity, ec_unhandled_ifc_construct,
+                    pos, node);
+}  /* an_ifc_module::issue_unsupported_node_error */
 
 
 static a_const_char *get_string_at_offset(an_ifc_Ref<ifc_TextOffset> offset)
@@ -5363,7 +5384,7 @@ principal associated IL entity.
           get_DeclSort_VendorExtension(&idsve);
           /* FIXME: Need a proper source position for this. */
           error_position = null_source_position;
-          issue_unsupported_node_diag(str_for_decl_tag(tag), &error_position);
+          issue_unsupported_node_error(str_for_decl_tag(tag), &error_position);
           il_entity = (char *)error_type();
           kind = iek_type;
         }
@@ -5732,8 +5753,8 @@ class_struct_union_case:
               } else if (itsfp->basis == ifc_TypeBasis_Namespace) {
                 /* A namespace alias. */
                 /* FIXME: unimplemented. */
-                issue_unsupported_node_diag("DeclSort::Alias namespace",
-                                            &error_position);
+                issue_unsupported_node_error("DeclSort::Alias namespace",
+                                             &error_position);
                 il_entity = (char *)error_type();
                 kind = iek_type;
               } else {
@@ -6145,8 +6166,8 @@ class_struct_union_case:
           switch (idspp->sort) {
             case ifc_ParameterSort_Object:
               /* FIXME: Currently unsupported. */
-              issue_unsupported_node_diag("ParameterSort::Object",
-                                          &error_position);
+              issue_unsupported_node_error("ParameterSort::Object",
+                                           &error_position);
               param = make_nontype_template_param(idspp->level,
                                                   idspp->position,
                                                   /*is_unnamed=*/FALSE,
@@ -6181,8 +6202,8 @@ class_struct_union_case:
               break;
             case ifc_ParameterSort_Template:
               /* FIXME: Currently unsupported. */
-              issue_unsupported_node_diag("ParameterSort::Template",
-                                          &error_position);
+              issue_unsupported_node_error("ParameterSort::Template",
+                                           &error_position);
               param = make_nontype_template_param(idspp->level,
                                                   idspp->position,
                                                   /*is_unnamed=*/FALSE,
@@ -6477,7 +6498,7 @@ class_struct_union_case:
           /* FIXME: Need a proper source position here. */
           error_position = null_source_position;
 unhandled:
-          issue_unsupported_node_diag(str_for_decl_tag(tag), &error_position);
+          issue_unsupported_node_error(str_for_decl_tag(tag), &error_position);
           il_entity = (char *)error_type();
           kind = iek_type;
         }
@@ -7922,7 +7943,7 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
             case ifc_TypeBasis_Enum:
               check_assertion(itsfp->precision == ifc_TypePrecision_Default);
               /* FIXME: Currently unsupported. */
-              issue_unsupported_node_diag("TypeBasis::Enum", &error_position);
+              issue_unsupported_node_error("TypeBasis::Enum", &error_position);
               result = error_type();
               break;
             case ifc_TypeBasis_Typename:
@@ -7931,8 +7952,8 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
               break;
             case ifc_TypeBasis_SegmentType:
               /* FIXME: Currently unsupported. */
-              issue_unsupported_node_diag("TypeBasis::SegmentType",
-                                          &error_position);
+              issue_unsupported_node_error("TypeBasis::SegmentType",
+                                           &error_position);
               result = error_type();
               break;
             case ifc_TypeBasis_Function:
@@ -7952,14 +7973,14 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
               break;
             case ifc_TypeBasis_Concept:
               /* FIXME: Currently unsupported. */
-              issue_unsupported_node_diag("TypeBasis::Concept",
-                                          &error_position);
+              issue_unsupported_node_error("TypeBasis::Concept",
+                                           &error_position);
               result = error_type();
               break;
             case ifc_TypeBasis_Overload:
               /* FIXME: Currently unsupported. */
-              issue_unsupported_node_diag("TypeBasis::Overload",
-                                          &error_position);
+              issue_unsupported_node_error("TypeBasis::Overload",
+                                           &error_position);
               result = error_type();
               break;
             default_is_unexpected_str("Unexpected TypeBasis kind");
@@ -8028,7 +8049,7 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
         { an_ifc_TypeSort_Method itsm;
           get_TypeSort_Method(&itsm);
           /* FIXME: Currently unsupported. */
-          issue_unsupported_node_diag("TypeSort::Method", &error_position);
+          issue_unsupported_node_error("TypeSort::Method", &error_position);
           result = error_type();
         }
         break;
@@ -8158,8 +8179,8 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
         { an_ifc_TypeSort_PointerToMember itsptm;
           get_TypeSort_PointerToMember(&itsptm);
           /* FIXME: Currently unsupported. */
-          issue_unsupported_node_diag("TypeSort::PointerToMember",
-                                      &error_position);
+          issue_unsupported_node_error("TypeSort::PointerToMember",
+                                       &error_position);
           result = error_type();
         }
         break;
@@ -8167,7 +8188,7 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
         { an_ifc_TypeSort_Tuple itst;
           get_TypeSort_Tuple(&itst);
           /* FIXME: Currently unsupported. */
-          issue_unsupported_node_diag("TypeSort::Tuple", &error_position);
+          issue_unsupported_node_error("TypeSort::Tuple", &error_position);
           result = error_type();
         }
         break;
@@ -8175,15 +8196,15 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
         { an_ifc_TypeSort_Forall itsfa;
           get_TypeSort_Forall(&itsfa);
           /* FIXME: Currently unsupported. */
-          issue_unsupported_node_diag("TypeSort::Forall", &error_position);
+          issue_unsupported_node_error("TypeSort::Forall", &error_position);
           result = error_type();
         }
         break;
       case ifc_TypeSort_VendorExtension:
         { an_ifc_TypeSort_VendorExtension itsve;
           get_TypeSort_VendorExtension(&itsve);
-          issue_unsupported_node_diag("TypeSort::VendorExtension",
-                                      &error_position);
+          issue_unsupported_node_error("TypeSort::VendorExtension",
+                                       &error_position);
           result = error_type();
         }
         break;
@@ -8210,7 +8231,7 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
         { an_ifc_TypeSort_Expansion itse;
           get_TypeSort_Expansion(&itse);
           /* FIXME: Currently unsupported. */
-          issue_unsupported_node_diag("TypeSort::Expansion", &error_position);
+          issue_unsupported_node_error("TypeSort::Expansion", &error_position);
           result = error_type();
         }
         break;
@@ -8218,7 +8239,7 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
         { an_ifc_TypeSort_Typename itstn;
           get_TypeSort_Typename(&itstn);
           /* FIXME: Currently unsupported. */
-          issue_unsupported_node_diag("TypeSort::Typename", &error_position);
+          issue_unsupported_node_error("TypeSort::Typename", &error_position);
           result = error_type();
         }
         break;
@@ -8226,7 +8247,7 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
         { an_ifc_TypeSort_Base itsb;
           get_TypeSort_Base(&itsb);
           /* FIXME: Currently unsupported. */
-          issue_unsupported_node_diag("TypeSort::Base", &error_position);
+          issue_unsupported_node_error("TypeSort::Base", &error_position);
           result = error_type();
         }
         break;
@@ -8234,7 +8255,7 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
         { an_ifc_TypeSort_Unaligned itsu;
           get_TypeSort_Unaligned(&itsu);
           /* FIXME: Currently unsupported. */
-          issue_unsupported_node_diag("TypeSort::Unaligned", &error_position);
+          issue_unsupported_node_error("TypeSort::Unaligned", &error_position);
           result = error_type();
         }
         break;
@@ -8242,7 +8263,7 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
         { an_ifc_TypeSort_Decltype itsd;
           get_TypeSort_Decltype(&itsd);
           /* FIXME: Currently unsupported. */
-          issue_unsupported_node_diag("TypeSort::Decltype", &error_position);
+          issue_unsupported_node_error("TypeSort::Decltype", &error_position);
           result = error_type();
         }
         break;
@@ -8250,7 +8271,8 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
         { an_ifc_TypeSort_SyntaxTree itsst;
           get_TypeSort_SyntaxTree(&itsst);
           /* FIXME: Currently unsupported. */
-          issue_unsupported_node_diag("TypeSort::Syntaxtree", &error_position);
+          issue_unsupported_node_error("TypeSort::Syntaxtree",
+                                       &error_position);
           result = error_type();
         }
         break;
@@ -8297,7 +8319,7 @@ argument.
       { an_ifc_ExprSort_UnaryFold iesuf;
         get_ExprSort_UnaryFold(&iesuf);
         /* FIXME: Currently unsupported. */
-        issue_unsupported_node_diag("ExprSort::UnaryFold", &error_position);
+        issue_unsupported_node_error("ExprSort::UnaryFold", &error_position);
         kind = (a_templ_arg_kind)tak_type;
         type = error_type();
       }
@@ -8306,8 +8328,8 @@ argument.
       { an_ifc_ExprSort_PackedTemplateArguments iespta;
         get_ExprSort_PackedTemplateArguments(&iespta);
         /* FIXME: Currently unsupported. */
-        issue_unsupported_node_diag("ExprSort::PackedTemplateArguments",
-                                    &error_position);
+        issue_unsupported_node_error("ExprSort::PackedTemplateArguments",
+                                     &error_position);
         kind = (a_templ_arg_kind)tak_type;
         type = error_type();
       }
@@ -9505,7 +9527,7 @@ FIXME: what other expressions can we get here?
         /* Because we're allocating an error constant, we need to issue an
            error, otherwise this may get to lowering. */
         unhandled_ifc_node_severity = es_discretionary_error;
-        issue_unsupported_node_diag("ExprSort::ArrayValue", &error_position);
+        issue_unsupported_node_error("ExprSort::ArrayValue", &error_position);
         cp = alloc_error_constant();
         expect_error();
         unhandled_ifc_node_severity = saved_sev;
@@ -9732,9 +9754,9 @@ FIXME: what other types of named declarations can we get here?
         /* Since we're creating an error constant this needs to be an error so
            that we do not proceed to lowering. */
         unhandled_ifc_node_severity = es_error;
-        issue_unsupported_node_diag("DeclSort::Function"
-                                    " for ExprSort::NamedDecl",
-                                    &error_position);
+        issue_unsupported_node_error("DeclSort::Function"
+                                     " for ExprSort::NamedDecl",
+                                     &error_position);
         cp = alloc_error_constant();
         unhandled_ifc_node_severity = saved_sev;
       }
