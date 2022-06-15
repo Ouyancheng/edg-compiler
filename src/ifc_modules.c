@@ -1894,8 +1894,7 @@ warning.
                  &null_source_position, this->assoc_module_info->name);
     this->unhandled_node_diag_sev = es_error;
   }  /* if */
-  pos_st_diagnostic(unhandled_ifc_node_severity, ec_unhandled_ifc_construct,
-                    pos, node);
+  pos_st_error(ec_unhandled_ifc_construct, pos, node);
 }  /* an_ifc_module::issue_unsupported_node_error */
 
 
