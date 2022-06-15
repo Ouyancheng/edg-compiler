@@ -10,10 +10,10 @@ Consider:
 
 The ellipsis constructor is technically a trivial default constructor of S, and
 the call to __is_constructible triggers the processing of a call to that
-constructor with synthesized argument list.  The fact that it is a trivial
+constructor with a synthesized argument list.  The fact that it is a trivial
 default constructor previously triggered an internal error due to a spurious
 assertion.  That behavior was a regression introduced in version 6.1 of the
-front end by the changes for EDGcpfe/17387,EDGcpfe/21970,EDGcpfe/22117].  This
+front end by the changes for EDGcpfe/17387,EDGcpfe/21970,EDGcpfe/22117.  This
 is now fixed.
 
 
