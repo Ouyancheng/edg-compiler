@@ -1857,8 +1857,11 @@ inline void an_ifc_module::issue_unsupported_node_diag(a_const_char      *node,
 /*
 Issue a diagnostic that an unhandled node was encountered.  node is the textual
 representation of the problematic node.  pos is the source position associated
-with the diagnostic.  Call an_ifc_module::issue_unsupported_node_error is an
-error entry is created as part of failure recovery.
+with the diagnostic.  The severity of the diagnostic is controlled externally
+(e.g., through a command-line option).  If an error entry is created as part of
+failure recovery call an_ifc_module::issue_unsupported_node_error instead to
+ensure an actual error is emitted (other parts of the front end assert that an
+error is expected when they encounter an error entry).
 */
 {
   if ((int)this->unhandled_node_diag_sev <
@@ -1879,7 +1882,11 @@ inline void an_ifc_module::issue_unsupported_node_error(
 /*
 Issue an error that an unhandled node was encountered.  node is the textual
 representation of the problematic node.  pos is the source position associated
-with the diagnostic.
+with the diagnostic.  Call this function when encountering unsupported IFC
+nodes that are handled by creating error entries (such as produced by
+error_type()): This ensures that an actual error is recorded, whereas the
+similar function an_ifc_module::issue_unsupported_node_diag may just issue a
+warning.
 */
 {
   if ((int)this->unhandled_node_diag_sev < (int)es_error) {
