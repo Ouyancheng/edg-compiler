@@ -2746,6 +2746,7 @@ enum an_attribute_kind : a_byte {
      flags. */
   ak_enable_if,		/* "enable_if" (clang). */
   ak_overloadable,	/* "overloadable" (clang). */
+  ak_unavailable,	/* "unavailable" (clang). */
 
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
   /* Nonstandard attributes available in both GNU and Microsoft

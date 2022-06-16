@@ -103,7 +103,8 @@ standard-attribute syntax).
       ap = *p_from;
       if ((is_gcc_attribute(ap) ||
            ((gnu_mode || ms_extensions) && ap->family == af_alignas)) &&
-          !is_type_transforming_attribute(ap) && ap->kind != ak_enable_if) {
+          !is_type_transforming_attribute(ap) &&
+          ap->kind != ak_enable_if && ap->kind != ak_unavailable) {
         /* GNU attributes following nested array or function declarators elicit
            an error in GCC. */
         if (dps->in_nested_declarator && !error_issued &&
@@ -158,12 +159,12 @@ standard-attribute syntax).
   }  /* if */
   if (dps->pending_prefix_enable_if_attr && !dps->in_nested_declarator &&
       syn_loc == al_post_func) {
-    /* One or more prefix "enable_if" attributes should be handled at this
-       point.  Move them from the "prefix_attributes" list, to the list pointed
-       to by "attributes" (and about to be applied). */
+    /* One or more prefix "enable_if" or "unavailable" attributes should be
+       handled at this point.  Move them from the "prefix_attributes" list, to
+       the list pointed to by "attributes" (and about to be applied). */
     an_attribute_ptr  *p_ap = &dps->prefix_attributes, to_move;
     for (;;) {
-      if ((*p_ap)->kind == ak_enable_if) {
+      if ((*p_ap)->kind == ak_enable_if || (*p_ap)->kind == ak_unavailable) {
         to_move = *p_ap;
         *p_ap = to_move->next;
         to_move->next = attributes;

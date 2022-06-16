@@ -3369,8 +3369,7 @@ a source location of an error (that is typically not on a #pragma line).
 {
   a_pragma_diag_elem *result = NULL;
 
-  if (pragma_diag_list != NULL &&
-      pragma_diag_list->length() != 0) {
+  if (pragma_diag_list != NULL && !pragma_diag_list->is_empty()) {
     /* Eventual result will be stored in pdl_lower_bound. */
     pdl_lower_bound = NULL;
     result = (a_pragma_diag_elem*)bsearch(
@@ -3460,7 +3459,7 @@ in the source.
       }  /* if */
       if (pragma_diag_list == NULL) {
         /* During early error processing, the list may not be allocated. */
-      } else if (pragma_diag_list->length() == 0) {
+      } else if (pragma_diag_list->is_empty()) {
         /* There are no entries on the list. */
       } else if (pragma_diag_list->back_elem().spos.seq < pos->seq ||
                  (pragma_diag_list->back_elem().spos.seq == pos->seq &&
@@ -7145,6 +7144,20 @@ primary_dp.
 }  /* sym_add_diag_info */
 
 
+void pos_add_diag_info(a_diagnostic_ptr      primary_dp,
+                       an_error_code         error_code,
+                       a_source_position_ptr pos)
+/*
+Add the specified diagnostic message with the indicated position to primary_dp.
+*/
+{
+  a_diagnostic_ptr	dp;
+
+  dp = create_sub_message(primary_dp, error_code);
+  add_position_fill_in(dp, pos);
+}  /* pos_sy_add_diag_info */
+
+
 void pos_sy_add_diag_info(a_diagnostic_ptr      primary_dp,
                           an_error_code         error_code,
                           a_source_position_ptr pos,
@@ -7207,7 +7220,7 @@ list is freed and the list passed in is reset.
   free_diag_list_elements(dlp);
   /* Clear the entries in the list passed in. */
   clear_diag_list(dlp);
-}  /* add_more_info_list */
+}  /* discard_more_info_list */
 
 
 void more_info_diagnostic(an_error_code     error_code,
@@ -7448,7 +7461,7 @@ data type is a Dyn_array.  Return a pointer to the element in the array
 {
   a_pragma_diag_elem *result = NULL;
 
-  if (pragma_diag_list->length() == 0) {
+  if (pragma_diag_list->is_empty()) {
     /* Empty list. */
     pragma_diag_list->push_back(elem);
     result = pragma_diag_list->begin();
@@ -7631,7 +7644,7 @@ parsed except during instantiations).
       } else {
         /* Link to associated "push". */
         ptr->is_pop = TRUE;
-        if (pragma_diag_stack->length() > 0) {
+        if (!pragma_diag_stack->is_empty()) {
           ptr->variant.corresponding_push = pragma_diag_stack->back_elem();
           pragma_diag_stack->pop_back();
         } else {

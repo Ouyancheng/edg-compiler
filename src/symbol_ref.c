@@ -2211,8 +2211,20 @@ elided copy constructor.
       if (pos == NULL) {
         err = is_effective_sfinae_error(err_code, sev, &error_position);
       } else {
+        a_diagnostic_ptr  dp;
+        an_attribute_ptr  ap;
         err = is_effective_error(err_code, sev, pos);
-        pos_ty_diagnostic(sev, err_code, pos, parent_class_of(rout));
+        dp = pos_ty_start_diagnostic(sev, err_code, pos,
+                                     parent_class_of(rout));
+        ap = find_attribute(ak_unavailable,
+                            rout->type->source_corresp.attributes);
+        if (ap != NULL) {
+          a_diag_list  diag_list;
+          clear_diag_list(&diag_list);
+          more_info_diagnostic(ec_unavailable_attr, &ap->position, &diag_list);
+          add_more_info_list(dp, &diag_list);
+        }  /* if */
+        end_diagnostic(dp);
       }  /* if */
     } else {
       err_code = elided_ref ? ec_deleted_elided_cctor : ec_deleted_function;
@@ -2221,8 +2233,19 @@ elided copy constructor.
       if (pos == NULL) {
         err = is_effective_sfinae_error(err_code, sev, &error_position);
       } else {
+        a_diagnostic_ptr  dp;
+        an_attribute_ptr  ap;
         err = is_effective_error(err_code, sev, pos);
-        pos_sy_diagnostic(sev, err_code, pos, rout_sym);
+        dp = pos_sy_start_diagnostic(sev, err_code, pos, rout_sym);
+        ap = find_attribute(ak_unavailable,
+                            rout->type->source_corresp.attributes);
+        if (ap != NULL) {
+          a_diag_list  diag_list;
+          clear_diag_list(&diag_list);
+          more_info_diagnostic(ec_unavailable_attr, &ap->position, &diag_list);
+          add_more_info_list(dp, &diag_list);
+        }  /* if */
+        end_diagnostic(dp);
       }  /* if */
     }  /* if */
   }  /* if */

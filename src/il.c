@@ -19519,8 +19519,7 @@ parameters.
 
   expr =  copy_template_param_expr(expr,
                                    template_arg_list, template_param_list,
-                                   /*guide_type=*/(a_type_ptr)NULL,
-                                   &expr->position,
+                                   /*guide_type=*/expr->type, &expr->position,
                                    options, copy_error, ctws_state,
                                    const_result, &alloc_const_result);
   if (*copy_error) {

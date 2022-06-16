@@ -5368,95 +5368,145 @@ done:
 }  /* arg_count_mismatch */
 
 
-static a_boolean enable_if_cond_is_constant(an_attribute_ptr  ap,
-                                            a_boolean         *val)
-/*
-Return TRUE if the given enable_if attribute's condition expression can be
-folded to a constant.  If so, return whether it is a "true" value in *val.
-If applicable, record the folded value in ap.
-*/
-{
-  a_boolean             result = FALSE;
-  an_attribute_arg_ptr  aap = ap->arguments;
-
-  if (aap == NULL || aap->kind != (an_attribute_arg_kind)aak_expression) {
-    /* Something went wrong with scanning the attribute. */
-  } else {
-    an_expr_node_ptr  cond = aap->variant.expr;
-    a_constant_ptr    il_cp = NULL;
-    if (is_constant_node(cond)) {
-      /* A constant value is already recorded. */
-      il_cp = node_constant(cond);
-    } else {
-      a_constant_ptr  cp = local_constant();
-      a_diag_list     diag_list;
-      if (interpret_expr(cond, /*is_constant_evaluated=*/TRUE,
-                         /*force_prvalue=*/TRUE, cp, &diag_list)) {
-        /* The condition expression is unconditionally constant.  Record the
-           constant in the attribute to avoid repeating the interpretation in
-           the future. */
-        a_memory_region_number region_to_switch_back_to;
-        switch_to_file_scope_region(&region_to_switch_back_to);
-        il_cp = move_local_constant_to_il(&cp);
-        aap->variant.expr = alloc_node_for_constant(il_cp);
-        switch_back_to_original_region(region_to_switch_back_to);
-      }  /* if */
-      discard_more_info_list(&diag_list);
-      if (cp != NULL) release_local_constant(&cp);
-    }  /* if */
-    if (il_cp != NULL && constant_bool_value_known_at_compile_time(il_cp)) {
-      result = TRUE;
-      *val = !is_false_constant(il_cp);
-    }  /* if */
-  }  /* if */
-  return result;
-}  /* enable_if_cond_is_constant */
-
-
-static a_boolean enable_if_attribute_fails(
-                            a_routine_ptr                       rp,
-                            ARG_UNUSED an_arg_match_summary_ptr arg_match_list,
-                            ARG_UNUSED an_arg_list_elem_ptr     arg_list,
-                            ARG_UNUSED an_operand               *selector)
+static a_boolean eval_enable_if_attributes(
+                                     a_routine_ptr             rp,
+                                     a_type_ptr                routine_type,
+                                     a_template_arg_ptr        t_args,
+                                     an_arg_match_summary_ptr  arg_match_list,
+                                     an_arg_list_elem_ptr      arg_list,
+                                     ARG_UNUSED an_operand     *selector,
+                                     a_boolean                 *p_result)
 /*
 rp has one or more associated enable_if attributes of the form
 
   __attribute((enable_if(<cond>, "text")))
 
 Attempt to evaluate <cond> for the given argument list (arg_list and selector)
-with the given conversions.  Return TRUE if any such evaluation fails or
-produces a "false" result.
+with the given conversions.  Return FALSE if any of the evaluations fail;
+otherwise, set *p_result to FALSE if the evaluation produces a "false" value.
+
+Note: selector is currently not involved in the evaluation.  If a selector
+is used in the constraint, its evaluation will fail.
 */
 {
-  a_boolean             failed = FALSE;
-  a_type_ptr            rtp = skip_typerefs(rp->type);
-  an_attribute_ptr      ap;
+  a_boolean               failed = FALSE;
+  an_attribute_ptr        ap;
+  an_arg_list_elem_ptr    alep;
+  Dyn_array<a_constant*>  args(10);
 
-  ap = find_attribute(ak_enable_if, rtp->source_corresp.attributes);
+  /* Set up an array of constant values corresponding to the arguments of the
+     call, starting with a constant for the selector.  (The constants are
+     released before this function returns.) */
+  args.push_back(local_constant());
+  for (alep = arg_list; alep != NULL; alep = next_elem(alep)) {
+    args.push_back(local_constant());
+  }  /* if */
+  /* Loop over all the "enable_if" attributes. */
+  /* To find the attribute, use the routine type directly.  routine_type may
+     be the deduced type, which doesn't carry routine attributes. */
+  ap = find_attribute(ak_enable_if,
+                      skip_typerefs(rp->type)->source_corresp.attributes);
   check_assertion(ap != NULL);
   do {
-    a_boolean  cond;
-    if (enable_if_cond_is_constant(ap, &cond)) {
-      if (!cond) {
-        failed = TRUE;
-        break;
-      }  /* if */
-    } else {
-      a_diagnostic_ptr  dp;
-      a_diag_list       diag_list;
-      clear_diag_list(&diag_list);
-      dp = pos_start_error(ec_nonconstant_enable_if_attr, &error_position);
-      more_info_diagnostic(ec_attribute_declared_here, &ap->position,
-                           &diag_list);
-      add_more_info_list(dp, &diag_list);
-      end_diagnostic(dp);
+    /* Extract the condition operand (an expression) from the attribute. */
+    an_attribute_arg_ptr  aap = ap->arguments;
+    an_expr_node_ptr      expr;
+    if (aap == NULL || aap->kind != (an_attribute_arg_kind)aak_expression) {
+      expect_error();
       failed = TRUE;
       break;
     }  /* if */
+    expr = aap->variant.expr;
+    if (t_args != NULL) {
+      /* The expression may depend on template parameters.  Substitute any such
+         parameters with the provided (likely deduced) arguments. */
+      a_ctws_state    ctws_state;
+      a_template_ptr  templ = rp->assoc_template;
+      check_assertion(templ != NULL);
+      init_ctws_state(&ctws_state);
+      expr = copy_expr_with_substitutions(expr, t_args,
+                                          templ_params_of(symbol_for(templ)),
+                                          CTWS_NO_OPTIONS, &failed,
+                                          &ctws_state);
+      if (failed) {
+        /* If substitution failed, the function is discarded as a candidate.
+           No need to try another attribute. */
+        break;
+      }  /* if */
+    }  /* if */
+    /* For every arguments to the call (in arg_list) that is constant, record
+       the constant value in the args array.  For other arguments, record an
+       error constant (which will cause evaluation of expr to fail if it refers
+       to one of the non-constant arguments). */
+    an_arg_match_summary_ptr  arg_match = arg_match_list;
+    a_param_type_ptr          ptp;
+    a_ptrdiff                 k = 1;
+    ptp = rout_type_supp(skip_typerefs(routine_type))->param_type_list;
+    alep = arg_list;
+    while (alep != NULL && arg_match != NULL && ptp != NULL) {
+      an_operand  *opnd = operand_of_arg_list_elem(alep);
+      an_operand  converted_opnd;
+      /* First compute the argument value if it is constant, ignoring any
+         conversions associated with binding to the routine's parameters. */
+      if (is_constant_operand(opnd)) {
+        *args[k] = opnd->variant.constant;
+      } else if (is_expression_operand(opnd) &&
+                 fold_constexpr_expr(opnd->variant.expression, args[k],
+                                     /*is_constant_evaluated=*/TRUE,
+                                     /*force_prvalue=*/FALSE)) {
+        /* Evaluation was successful and args[k] is now updated. */
+      } else {
+        set_error_constant(args[k]);
+        goto next_arg;
+      }  /* if */
+      /* Apply any needed argument->parameter conversions to the resulting
+         constant and try to obtain a constant again.  This does not affect
+         the original arguments (which may be needed to match against other
+         candidate functions). */
+      make_constant_operand(args[k], &converted_opnd);
+      prep_argument(alep, ptp, &arg_match->conversion,
+                    ec_incompatible_param, &converted_opnd);
+      opnd = &converted_opnd;
+      if (is_constant_operand(opnd)) {
+        *args[k] = opnd->variant.constant;
+      } else if (is_expression_operand(opnd) &&
+                 fold_constexpr_expr(opnd->variant.expression, args[k],
+                                     /*is_constant_evaluated=*/TRUE,
+                                     /*force_prvalue=*/FALSE)) {
+        /* Evaluation was successful and args[k] is now updated. */
+      } else {
+        set_error_constant(args[k]);
+        goto next_arg;
+      }  /* if */
+next_arg:
+      alep = next_elem(alep);
+      arg_match = arg_match->next;
+      ptp = ptp->next;
+    }  /* while */
+    /* If there are any arguments left (e.g., because of a variadic function),
+       map those to error constants (they cannot be used in the enable_if
+       condition). */
+    for (; alep != NULL; alep = next_elem(alep)) {
+      set_error_constant(args[++k]);
+    }  /* if */
+    if (!interpret_clang_enable_if_opnd(expr, args, &aap->position,
+                                        p_result)) {
+      failed = TRUE;
+    }  /* if */
+    if (failed) {
+      /* If substitution failed, the function is discarded as a candidate.
+         No need to try another attribute. */
+      break;
+    }  /* if */
+    /* Move to the next "enable_if" attribute, if any. */
     ap = find_attribute(ak_enable_if, ap->next);
   } while (ap != NULL);
-  return failed;
-}  /* enable_if_attribute_fails */
+  while (!args.is_empty()) {
+    release_local_constant(&args.back_elem());
+    args.pop_back();
+  }  /* while */
+  return !failed;
+}  /* eval_enable_if_attributes */
 
 
 static a_boolean conditionally_explicit_confirmed(a_type_ptr  rtp)
@@ -6349,13 +6399,19 @@ next_argument:
       }  /* if */
     }  /* if */
   }  /* if */
-  if (rtsp->has_enable_if_attribute && routine != NULL &&
-      enable_if_attribute_fails(routine, arg_match_list, arg_list,
-                                bound_function_selector)) {
-    /* This function has an associated enable_if attribute whose condition
-       cannot be evaluated to "true" (it either evaluates to "false" or cannot
-       be evaluated at all). */
-    goto reject_function;
+  if (rtsp->has_enable_if_attribute && routine != NULL) {
+    a_boolean  enable_if_success = TRUE;
+    if (!eval_enable_if_attributes(routine, routine_type,
+                                   local_template_arg_list,
+                                   arg_match_list, arg_list,
+                                   bound_function_selector,
+                                   &enable_if_success) ||
+        !enable_if_success) {
+      /* This function has an associated enable_if attribute whose condition
+         cannot be evaluated or whose condition is false: Discard the
+         candidate. */
+      goto reject_function;
+    }  /* if */
   }  /* if */
 accept_function:
   /* The function is a viable candidate.  Add it to the candidates list. */
@@ -9709,10 +9765,12 @@ create_final_list:
          function but its name is ambiguous, so the overload resolution
          is ambiguous. */
       *ambiguous = TRUE;
-    } else if (candidates->is_function_template) {
-      /* A single candidate function template was unambiguously selected.
-         Create the template function instance. */
-      select_best_candidate_instance(candidates, source_pos);
+    } else {
+      if (candidates->is_function_template) {
+        /* A single candidate function template was unambiguously selected.
+           Create the template function instance. */
+        select_best_candidate_instance(candidates, source_pos);
+      }  /* if */
     }  /* if */
   }  /* if */
 #if DEBUG

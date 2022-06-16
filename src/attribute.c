@@ -246,6 +246,7 @@ static an_attr_descr known_attr_table[] = {
   /* Nonstandard attributes. */
   { "enable_if", "(X,sn)", "lx(30500-)", ak_enable_if },
   { "overloadable", "", "lx", ak_overloadable },
+  { "unavailable", "?(sn)", "lx(30500-)", ak_unavailable },
 
 #if GNU_EXTENSIONS_ALLOWED
   /* GNU Attributes. */
@@ -540,6 +541,7 @@ static an_attr_application_fn apply_conditional_explicit;
 
 /* Other attributes. */
 static an_attr_application_fn apply_enable_if_attr;
+static an_attr_application_fn apply_unavailable_attr;
 
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
 /* Application functions for nonstandard attributes available in both GNU and
@@ -674,6 +676,7 @@ static an_attr_appl_descr known_attr_appl_table[(int)ak_last+1] = {
   /* Nonstandard attributes. */
   { ak_enable_if, "t", apply_enable_if_attr },
   { ak_overloadable, "r", NO_APPL_FN },
+  { ak_unavailable, "t", apply_unavailable_attr },
   /* Nonstandard attributes available in both GNU and Microsoft
      configurations. */
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
@@ -5373,7 +5376,6 @@ A check for the "enable_if" attribute has been deferred and can now be
 completed.
 */
 {
-
   if (dps->sym == NULL || !is_function_or_template_symbol(dps->sym)) {
     pos_st_warning(ec_wrong_entity_for_attribute, &dps->start_pos,
                    "enable_if");
@@ -5385,7 +5387,7 @@ static char* apply_enable_if_attr(an_attribute_ptr  ap,
                                   char              *entity,
                                   an_il_entry_kind  entity_kind)
 /*
-The given entity must be a routine type.  Apply the GNU "enable_if" attribute
+The given entity must be a routine type.  Apply the Clang "enable_if" attribute
 to it and return the entity.
 */
 {
@@ -5423,6 +5425,38 @@ to it and return the entity.
   }  /* if */
   return entity;
 }  /* apply_enable_if_attr */
+
+
+static void deferred_check_unavailable_attr(a_decl_parse_state_ptr  dps)
+/*
+A check for the "unavailable" attribute has been deferred and can now be
+completed.
+*/
+{
+  if (dps->sym == NULL || !is_function_or_template_symbol(dps->sym)) {
+    pos_st_warning(ec_wrong_entity_for_attribute, &dps->start_pos,
+                   "enable_if");
+  } else {
+    func_sym_routine(dps->sym)->is_deleted = TRUE;
+  }  /* if */
+}  /* deferred_check_unavailable_attr */
+
+
+static char* apply_unavailable_attr(an_attribute_ptr  ap,
+                                    char              *entity,
+                                    an_il_entry_kind  entity_kind)
+/*
+The given entity must be a routine type.  Apply the Clang "unavailable"
+attribute to it and return the entity.
+*/
+{
+  a_decl_parse_state  *dps = (a_decl_parse_state*)ap->assoc_info;
+
+  check_assertion(entity_kind == iek_type && dps != NULL);
+  add_end_of_parse_action(deferred_check_unavailable_attr, dps,
+                          /*secondary_decls=*/TRUE);
+  return entity;
+}  /* apply_unavailable_attr */
 
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
 #if GNU_NAKED_ATTRIBUTE_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED

@@ -5914,6 +5914,7 @@ Display the indicated attribute entry.
     case ak_no_unique_address:   kind_name = "no_unique_address";   break;
     case ak_enable_if:           kind_name = "enable_if";           break;
     case ak_overloadable:        kind_name = "overloadable";        break;
+    case ak_unavailable:         kind_name = "unavailable";         break;
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
     /* Nonstandard attributes available in both GNU and Microsoft
        configurations. */

@@ -602,6 +602,8 @@ struct Dyn_array: private Allocator<an_Elem> {
     { return this->elems[i]; }
   inline auto operator[](an_index i) const -> const an_elem& 
     { return this->elems[i]; }
+  inline auto is_empty() const -> a_boolean 
+    { return this->n_elems == 0; }
   inline auto length() const -> a_size 
     { return this->n_elems; }
   inline auto capacity() const -> a_size

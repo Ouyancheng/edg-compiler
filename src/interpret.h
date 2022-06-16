@@ -26,6 +26,12 @@ a_subobject_path_ptr get_trailing_subobject_path_entry(
                                                a_boolean       is_offset,
                                                a_boolean       is_base_class);
 
+a_boolean interpret_clang_enable_if_opnd(
+                                       an_expr_node_ptr              expr,
+                                       Dyn_array<a_constant*> const  &params,
+                                       a_source_position             *pos,
+                                       a_boolean                     *p_value);
+
 a_boolean is_core_constant_expr(an_expr_node_ptr  expr,
                                 a_diag_list_ptr   diag_list);
 

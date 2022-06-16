@@ -899,19 +899,29 @@ interpretation of a constexpr function and its callees.
 typedef struct an_interpreter_state {
   a_data_map
 		map;
-			/* A hash table mapping pointers into the IL onto
-			   associated data.  This hash table contains several
-			   categories of key value pairs:
-			   - Variable (including "this" and parameter
-			     variables) ptr to storage bytes ptr.
-			   - Current call frame ptr to this bytes ptr.
-			   - Constant ptr to constant bytes ptr.
-			   - Initializer ptr to constant bytes ptr.
-			   - Initializer expr ptr to constant ptr.
-			   - Reused init ptr to bytes ptr.
-			   - Complete object ptr - NATURALIZABLE_KEY_OFFSET to
-			     argument static_storage indicating the object can
-			     be naturalized. */
+			/* A hash table mapping pointers onto associated data.
+			   Usually, the mapping is from IL pointers to
+                           associated data:
+			   - a_variable pointers (incl. "this" and parameter
+			     variables) to associated interpreter storage
+			   - a_constant pointers to associated interpreter
+			     (static) storage (but also the reverse mapping)
+			   - a_variable::initializer pointers to associated
+			     a_constant pointers created in the interpreter
+			   However, we also map so "ad hoc" address to keep
+			   track of less common data:
+			   - &an_interpreter_state::curr_call_frame may be
+			     mapped to storage for "*this" in contexts where
+			     "*this" exists outside a member function body
+			     (e.g., default member initializers)
+			   - &an_interpreter_state::constants may be mapped
+			     to a table of argument values that should be used
+			     for enk_param nodes in Clang enable_if attribute
+			     conditions.
+			   - If ptr points to a complete interpreter object,
+			     ptr-NATURALIZABLE_KEY_OFFSET might be mapped to
+			     its associated static_storage indicating the
+			     object can be naturalized. */
   a_storage_stack_state
 		storage_stack;
 			/* The current state of the storage stack. */
@@ -921,7 +931,9 @@ typedef struct an_interpreter_state {
 			   still "live". */
   a_call_frame_ptr
 		curr_call_frame;
-			/* The currently active call. */
+			/* The currently active call.  The address of this
+			   field is also used as a key to find the "*this"
+			   storage for certain enk_param_ref entries. */
   a_storage_stack_state
 		*extension_state;
 			/* Pointer to the storage stack state from which a
@@ -931,7 +943,9 @@ typedef struct an_interpreter_state {
 		constants;
 			/* A list of local constants allocated for the
 			   interpreter (to be released when interpretation is
-			   done). */
+			   done).  The address of this field is also used to
+			   find a table of a_constant pointers used in the
+			   evaluation of Clang enable_if attributes. */
   a_diag_list
 		diag_list;
 			/* A representation of pending diagnostics (presumably
@@ -14884,7 +14898,7 @@ the value representation of the integer value.
               a_targ_size_t        length;
               if (opnd1->is_lvalue || opnd1->is_xvalue) {
                 *result_addr = *(a_constexpr_address *)opnd1_value;
-               if (is_runtime_data_address(result_addr)) {
+                if (is_runtime_data_address(result_addr)) {
                   a_constant_ptr  orig_con = result_addr->variant.addr_con;
                   a_constant_ptr  new_con;
                   new_con = make_interpreter_copy_of_constant(ips, orig_con);
@@ -14903,6 +14917,12 @@ the value representation of the integer value.
               }  /* if */
               result_addr->flags |= CA_ARRAY_ELEMENT;
               /* Check that the array length fits in interpreter limits. */
+              if (opnd1_type->variant.array.is_template_dependent_size_array) {
+                info_with_pos(ec_constexpr_dependent_array_size,
+                              &expr->position, ips);
+                do_constexpr_fail(result);
+                break;
+              }  /* if */
               length = opnd1_type->variant.array.variant.number_of_elements;
               if (length <= MAX_ARRAY_LENGTH) {
                 result_addr->length = (unsigned int)length;
@@ -19013,23 +19033,57 @@ the value representation of the integer value.
       result = do_constexpr_typeid(ips, expr, result_storage, complete_object);
       break;
     case enk_param_ref:
-      { a_byte  *this_bytes = NULL;
-        if (expr->variant.param_ref.param_num == 0) {
+      /* A reference to a parameter or "this" outside a function body. */
+      { a_byte  *param_table_bytes = NULL;
+        if (ips->curr_call_frame == NULL) {
+          /* If no call is active, this may be a parameter value for a Clang
+             enable_if attribute operand.  If so, &ips->constants is mapped to
+             a Dyn_array of a_constant entries corresponding to the parameters
+             (including the "this" parameter) of the call whose enable_if
+             attribute is being evaluated. */
+          get_stack_bytes(ips, &ips->constants, param_table_bytes);
+        }  /* if */
+        if (param_table_bytes != NULL) {
+          /* A use of a parameter in a Clang enable_if condition.  Copy the
+             corresponding constant to result_storage (that constant may be an
+             error constant if the corresponding argument is not constant). */
+          a_ptrdiff  param_num = expr->variant.param_ref.param_num;
+          Dyn_array<a_constant*>
+                     *params = (Dyn_array<a_constant*>*)param_table_bytes;
+          if (param_num < params->length()) {
+            result = copy_val_from_constant(ips, (*params)[param_num],
+                                            result_storage, complete_object);
+            if (result_storage == complete_object) {
+              mark_complete_object_initialized(complete_object);
+            } else {
+              mark_subobject_initialized(result_storage, complete_object);
+            }  /* if */
+          } else {
+            do_constexpr_fail(result);
+            info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
+                          &expr->position, ips);
+          }  /* if */
+        } else if (expr->variant.param_ref.param_num == 0) {
           /* An entry representing "this" in a field initializer.  The code
              handling constructor calls (which initializes members based on
              field initializers when needed) associated the address of the
              "this" pointer variable for the constructor with
              &ips->curr_call_frame. */
+          a_byte  *this_bytes = NULL;
           get_stack_bytes(ips, &ips->curr_call_frame, this_bytes);
-        }  /* if */
-        if (this_bytes != NULL) {
-          n_bytes = value_bytes_for_type(ips, tp, &result);
-          (void)memcpy(result_storage, this_bytes, size_t_arg(n_bytes));
-          copy_address_structures(result_storage);
-          if (result_storage == complete_object) {
-            mark_complete_object_initialized(complete_object);
+          if (this_bytes != NULL) {
+            n_bytes = value_bytes_for_type(ips, tp, &result);
+            (void)memcpy(result_storage, this_bytes, size_t_arg(n_bytes));
+            copy_address_structures(result_storage);
+            if (result_storage == complete_object) {
+              mark_complete_object_initialized(complete_object);
+            } else {
+              mark_subobject_initialized(result_storage, complete_object);
+            }  /* if */
           } else {
-            mark_subobject_initialized(result_storage, complete_object);
+            do_constexpr_fail(result);
+            info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
+                          &expr->position, ips);
           }  /* if */
         } else {
           do_constexpr_fail(result);
@@ -19991,6 +20045,62 @@ diagnostic in *ips.
   }  /* switch */
   return result;
 }  /* copy_interpreter_object_to_constant */
+
+
+a_boolean interpret_clang_enable_if_opnd(
+                                       an_expr_node_ptr              expr,
+                                       Dyn_array<a_constant*> const  &params,
+                                       a_source_position             *pos,
+                                       a_boolean                     *p_value)
+/*
+Evaluate the given expression, mapping the enk_param for "this" to params[0]
+and any enk_param entry for the n-th parameter of a function to params[n].
+Return FALSE if the evaluation fails.  Otherwise, set *p_value to FALSE if
+the evaluation produces a "false" value.
+*/
+{
+  a_boolean             result = TRUE;
+  an_interpreter_state  ips;
+  a_byte                *result_storage;
+  a_byte_count          n_bytes;
+  a_type_ptr            val_type = skip_typerefs(expr->type);
+  int                   cmp;
+  
+  if (!is_bool_type(val_type) || expr->is_lvalue || expr->is_xvalue) {
+    /* These conditions should not be true for a normal Clang enable_if
+       operand. */
+    do_constexpr_fail(result);
+    goto done;
+  }  /* if */
+  if (trans_unit_initialization_needed) {
+    initialize_interpreter_data();
+    trans_unit_initialization_needed = FALSE;
+  }  /* if */
+  init_interpreter_state(&ips, /*is_constant_evaluated=*/TRUE);
+  ips.position = expr->position;
+  map_ptr(&ips.map, &ips.constants, (a_byte*)&params);
+  n_bytes = expr_result_size(&ips, expr, val_type, &result); 
+  if (!result) goto done;
+  alloc_complete_object(&ips, n_bytes, val_type, result_storage);
+  if (!do_constexpr_expression(&ips, expr, result_storage, result_storage)) {
+    /* The attribute evaluation failed. */
+    result = FALSE;
+    goto done;
+  }  /* if */
+  /* Evaluation succeeded: For the attribute constraint to succeed, the result
+     must not be a zero constant. */
+  cmp = cmp_integer_values((an_integer_value *)result_storage,
+                           /*op_1_signed=*/FALSE,
+                           (an_integer_value *)&zero_int,
+                           /*op_2_signed=*/FALSE);
+  if (cmp == 0) {
+    *p_value = FALSE;
+  }  /* if */
+  discard_more_info_list(&ips.diag_list);
+  release_interpreter_state(&ips);
+done:
+  return result;
+}  /* interpret_clang_enable_if_opnd */
 
 
 a_boolean is_core_constant_expr(an_expr_node_ptr  expr,

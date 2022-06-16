@@ -9733,7 +9733,7 @@ dps->specifier_attributes list.
         *p_ap = ap->next;
         ap->next = NULL;
         ap->syntactic_location = al_prefix;
-        if (ap->kind == ak_enable_if) {
+        if (ap->kind == ak_enable_if || ap->kind == ak_unavailable) {
           dps->pending_prefix_enable_if_attr = TRUE;
         }  /* if */
         *end_to_prefix = ap;
@@ -9761,7 +9761,7 @@ dps->specifier_attributes list.
         *end_to_specifier = ap;
         end_to_specifier = &ap->next;
       } else {
-        if ((*p_ap)->kind == ak_enable_if) {
+        if ((*p_ap)->kind == ak_enable_if || (*p_ap)->kind == ak_unavailable) {
           dps->pending_prefix_enable_if_attr = TRUE;
         }  /* if */
         /* Proceed to the next attribute. */
