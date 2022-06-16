@@ -2236,7 +2236,8 @@ associated symbols are listed under the same header).
                        sym2 = (a_symbol_ptr)scp2->assoc_info;
   a_symbol_header_ptr  sh1, sh2;
 
-  if (unmangled_name_of(scp1) == unmangled_name_of(scp2)) {
+  if (unmangled_or_fabricated_name_of(scp1) ==
+      unmangled_or_fabricated_name_of(scp2)) {
     /* Note that in some cases one entity may already have a mangled name,
        while the other does not. */
     match = TRUE;
@@ -5309,13 +5310,19 @@ record all the needed correspondence pointers for type_1 and return TRUE.
 Otherwise, return FALSE.
 */
 {
-  a_boolean result;
+  a_boolean    result;
+  a_symbol_ptr sym_1 = (a_symbol_ptr)type_1->source_corresp.assoc_info;
+  a_symbol_ptr sym_2 = (a_symbol_ptr)type_2->source_corresp.assoc_info;
 
   result = (canonical_il_entry_of(type_1) == canonical_il_entry_of(type_2));
   if (result || has_correspondence(type_1)) {
     /* The type is already pointing to a corresponding entry in another
        translation unit.  We only need to check if type_2 is also in the
        set of corresponding entries. */
+  } else if (sym_1 != NULL && sym_2 != NULL &&
+             trans_unit_for_symbol(sym_1) == trans_unit_for_symbol(sym_2)) {
+    /* The two types are in the same translation unit - they cannot be
+       corresponding entries. */
   } else if (!same_name(type_1, type_2)) {
     /* If the type names differ, they can certainly not correspond. */
   } else if (!il_entries_have_known_same_parents(type_1, type_2)) {
