@@ -20066,17 +20066,17 @@ the evaluation produces a "false" value.
   a_type_ptr            val_type = skip_typerefs(expr->type);
   int                   cmp;
   
+  if (trans_unit_initialization_needed) {
+    initialize_interpreter_data();
+    trans_unit_initialization_needed = FALSE;
+  }  /* if */
+  init_interpreter_state(&ips, /*is_constant_evaluated=*/TRUE);
   if (!is_bool_type(val_type) || expr->is_lvalue || expr->is_xvalue) {
     /* These conditions should not be true for a normal Clang enable_if
        operand. */
     do_constexpr_fail(result);
     goto done;
   }  /* if */
-  if (trans_unit_initialization_needed) {
-    initialize_interpreter_data();
-    trans_unit_initialization_needed = FALSE;
-  }  /* if */
-  init_interpreter_state(&ips, /*is_constant_evaluated=*/TRUE);
   ips.position = expr->position;
   map_ptr(&ips.map, &ips.constants, (a_byte*)&params);
   n_bytes = expr_result_size(&ips, expr, val_type, &result); 
@@ -20096,9 +20096,9 @@ the evaluation produces a "false" value.
   if (cmp == 0) {
     *p_value = FALSE;
   }  /* if */
+done:
   discard_more_info_list(&ips.diag_list);
   release_interpreter_state(&ips);
-done:
   return result;
 }  /* interpret_clang_enable_if_opnd */
 
