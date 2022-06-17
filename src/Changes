@@ -1,5 +1,22 @@
 Version 6.4
 
+6/17/22  [EDGcpfe/23647]
+Clang compatibility: Parameter-dependent enable_if attributes
+
+Support for the Clang enable_if attribute has been improved so that most uses
+involving parameter-dependent conditions are now handled as expected.  For
+example:
+
+  struct S {
+    template <int N> S(const char (&rs)[N])
+        __attribute((enable_if(__builtin_strlen(rs) == N-1, "Error!")));
+  };
+  S s("xyz");   // Previously an error because the enable_if condition
+                // could not be constant-evaluated.  Now okay.
+
+See also the entry for EDGcpfe/17738.
+
+
 6/17/22  [EDGcpfe/25414]
 GNU compatibility: "inline" asm-qualifier for asm statements
 
