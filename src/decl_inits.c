@@ -5841,7 +5841,10 @@ returned set to TRUE.
       } else {
         if (dps->init_state.initializer_must_be_constant ||
             is_consteval_init ||
-            (vp->declared_constinit && !dyn_init_is(init_dip, dik_constant))) {
+            (vp->declared_constinit &&
+             !(dyn_init_is(init_dip, dik_constant) ||
+               dyn_init_is(init_dip, dik_zero) ||
+               dyn_init_is(init_dip, dik_none)))) {
           /* A constant was required: Issue a diagnostic. */
           a_diagnostic_ptr  dp;
           dp = pos_start_error(ec_expr_not_constant, &pos_first_token);
@@ -6518,16 +6521,16 @@ object is not known to be of class type).  No initialization is performed (and
 FALSE is returned) for non-class objects.
 */
 {
-  a_boolean                         def_init_performed = FALSE;
+  a_boolean                         def_init_performed = FALSE,
+                                    repeat_done = FALSE;
   a_variable_ptr                    var = NULL;
   a_type_ptr                        var_type, tp;
   a_class_symbol_supplement_ptr     cssp = NULL;
   a_dynamic_init_ptr                init_dip = NULL, orig_init_dip;
   a_routine_ptr                     ctor = NULL, dtor = NULL;
-  a_boolean                         static_lifetime;
   an_object_lifetime_ptr            local_static_lifetime = NULL;
   a_local_static_variable_init_ptr  local_static_var_init = NULL;
-  a_boolean                         is_const;
+  a_boolean                         static_lifetime, is_const;
   a_boolean                         is_nonreal_class = FALSE;
 
   db_enter(3, "def_initializer");
@@ -6738,6 +6741,17 @@ FALSE is returned) for non-class objects.
             init_dip = alloc_ctor_dynamic_init(ctor, /*implied_source=*/FALSE,
                                                /*evaluated=*/TRUE,
                                                consteval_context);
+            if (type_is(var_type, tk_array) && !repeat_done &&
+                !var_type->variant.array.is_template_dependent_size_array) {
+              /* If the variable is an array, we must repeat the initializer
+                 to match the array length. */
+              a_dynamic_init  *orig_dip = init_dip;
+              init_dip = alloc_dynamic_init(
+                              (a_dynamic_init_kind)dik_nonconstant_aggregate);
+              repeat_nonconstant_init(orig_dip, var_type, tp, init_dip,
+                                      array_element_count(var_type, tp));
+              repeat_done = TRUE;
+            }  /* if */
           } else {
             init_dip = alloc_dynamic_init((a_dynamic_init_kind)dik_zero);
           }  /* if */
@@ -6748,20 +6762,29 @@ FALSE is returned) for non-class objects.
              the variable being initialized. */
           init_dip->variable = var;
           clear_diag_list(&diag_list);
-          if (interpret_dynamic_init(init_dip, err_pos, tp,
+          if (interpret_dynamic_init(init_dip, err_pos, var_type,
                                      /*is_constant_evaluated=*/TRUE,
                                      folded_con, &diag_list)) {
             cp = move_local_constant_to_il(&folded_con);
           } else {
-            if (!is_template_dependent_context()) {
+            if (is_template_dependent_context()) {
+              /* Folding is not needed. */
+              cp = NULL;
+            } else if (!var->is_constexpr && var->declared_constinit &&
+                       (dyn_init_is(init_dip, dik_constant) ||
+                        dyn_init_is(init_dip, dik_zero) ||
+                        dyn_init_is(init_dip, dik_none))) {
+              /* For a C++20 const_init variable, it is sufficient that the
+                 initialization itself (i.e., ignoring the associated
+                 destruction) is constant. */
+              cp = NULL;
+            } else {
               /* A constant was required: Issue a diagnostic. */
               a_diagnostic_ptr  dp;
               dp = pos_start_error(ec_initializer_not_constant, err_pos);
               add_more_info_list(dp, &diag_list);
               end_diagnostic(dp);
               cp = alloc_error_constant();
-            } else {
-              cp = NULL;
             }  /* if */
             release_local_constant(&folded_con);
           }  /* if */
@@ -6770,10 +6793,11 @@ FALSE is returned) for non-class objects.
              needed. */
           init_dip->variable = NULL;
           if (cp != NULL) {
-            if (!same_entities(var_type, tp)) {
+            if (!same_entities(var_type, tp) && !repeat_done) {
               /* The object has an array type.  We need to build an aggregate
                  initialization on top of the constant. */
               cp = repeat_constant_for_array_init(cp, var_type);
+              repeat_done = TRUE;
             }  /* if */
             if (static_lifetime &&
                 depth_innermost_function_scope == NO_SCOPE_DEPTH) {
@@ -6823,10 +6847,11 @@ FALSE is returned) for non-class objects.
           if (folded) {
             /* The constructor call can be folded. */
             cp = alloc_unshared_constant(folded_con);
-            if (!same_entities(var_type, tp)) {
+            if (!same_entities(var_type, tp) && !repeat_done) {
               /* The object has an array type.  We need to build an aggregate
                  initialization on top of the constant. */
               cp = repeat_constant_for_array_init(cp, var_type);
+              repeat_done = TRUE;
             }  /* if */
             if (static_lifetime && !has_nontrivial_destructor(cssp)) {
               /* A nonlocal static-lifetime variable initialized with a
@@ -6849,7 +6874,7 @@ FALSE is returned) for non-class objects.
               init_dip->is_partially_initialized =
                                                  cp->is_partially_initialized;
             }  /* if */
-          } else if (!same_entities(var_type, tp)) {
+          } else if (!same_entities(var_type, tp) && !repeat_done) {
             /* The object has an array type.  We need to build an aggregate
                initialization on top of the other dynamic init entry. */
             /* Save a pointer to init_dip, since it will be modified for
@@ -6862,6 +6887,7 @@ FALSE is returned) for non-class objects.
             /* Build the repeat construct. */
             repeat_nonconstant_init(orig_init_dip, var_type, tp, init_dip,
                                     array_element_count(var_type, tp));
+            repeat_done = TRUE;
             if (var_type->variant.array.is_variable_size_array) {
               /* We don't know a priori how many elements need initialization:
                  Mark the initializer as "partial" (the repeat count is
