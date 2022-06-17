@@ -12551,6 +12551,9 @@ typedef struct an_asm_entry {
   a_bit_field	has_volatile_keyword:1;
 			/* asm is marked volatile because the "volatile"
 			   keyword appeared in the source. */
+  a_bit_field	has_inline_keyword:1;
+			/* The "inline" (or "__inline") keyword appeared in the
+			   source. */
   a_bit_field	is_asm_goto:1;
 			/* TRUE if this is an "asm goto". */
   an_asm_operand_ptr

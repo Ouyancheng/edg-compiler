@@ -7567,6 +7567,9 @@ Display the indicated asm entry.
   if (ptr->has_volatile_keyword) {
     disp_boolean("has_volatile_keyword", TRUE);
   }  /* if */
+  if (ptr->has_inline_keyword) {
+    disp_boolean("has_inline_keyword", TRUE);
+  }  /* if */
   if (ptr->is_asm_goto) {
     disp_boolean("is_asm_goto", TRUE);
   }  /* if */

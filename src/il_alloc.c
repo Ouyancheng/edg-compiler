@@ -3289,6 +3289,7 @@ to it.
   ap->gnu_asm_form = FALSE;
   ap->is_volatile = FALSE;
   ap->has_volatile_keyword = FALSE;
+  ap->has_inline_keyword = FALSE;
   ap->is_asm_goto = FALSE;
   ap->operands = NULL;
   ap->clobbers = NULL;

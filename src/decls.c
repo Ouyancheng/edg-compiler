@@ -14403,8 +14403,8 @@ is saved and restored as needed by the token caching mechanism.
 
 In GNU C and C++ modes support is provided for additional syntax:
 
-  asm volatile    goto    ( string-literal : operand-spec )
-              opt     opt
+  asm volatile    inline    goto    ( string-literal : operand-spec )
+              opt       opt     opt
 
 This may appear only at function or block scope.  The operand-spec tells
 the compiler how to map C/C++ variables into and out of the assembly
@@ -14422,6 +14422,7 @@ to NULL.
   a_boolean                 gnu_asm_form = FALSE;
   a_boolean                 is_volatile = FALSE;
   a_boolean                 has_volatile_keyword = FALSE;
+  a_boolean                 has_inline_keyword = FALSE;
   a_boolean                 is_asm_goto = FALSE;
   an_asm_operand_ptr        operands = NULL;
   a_named_register_list_ptr clobbers = NULL;
@@ -14461,34 +14462,59 @@ to NULL.
     /* Skip past the "asm". */
     (void)get_token();
 #if GNU_EXTENSIONS_ALLOWED
-    if (gnu_mode && is_type_qualifier()) {
-      /* Scan a volatile and/or const qualifier.  The const qualifier is
-         ignored with a warning.  Type qualifiers other than volatile and
-         const elicit an error. */
-      a_source_position     cv_pos;
-      a_decl_pos_block      ext_cv_pos;
-      a_type_qualifier_set  qualifiers;
+    if (gnu_mode) {
+      /* Collect "asm-qualifiers" (in any order) and give errors if there are
+         duplicates. */
+      a_boolean         found_asm_qualifier, is_duplicate;
+      a_source_position asm_qual_pos;
+      do {
+        found_asm_qualifier = FALSE;
+        is_duplicate = FALSE;
+        asm_qual_pos = pos_curr_token;
+        if (is_type_qualifier()) {
+          /* Scan a volatile and/or const qualifier.  The const qualifier is
+             ignored with a warning.  Type qualifiers other than volatile and
+             const elicit an error. */
+          a_decl_pos_block      ext_cv_pos;
+          a_type_qualifier_set  qualifiers;
 
-      cv_pos = pos_curr_token;
-      qualifiers = collect_type_qualifiers(&ext_cv_pos,
-                                           (a_upc_block_size *)NULL);
-      if (qualifiers & ~(TQ_CONST | TQ_VOLATILE)) {
-        /* Other qualifiers (e.g., "restrict") should be rejected. */
-        pos_error(ec_invalid_asm_qualifiers, &cv_pos);
-      } else if (qualifiers & TQ_CONST) {
-        pos_warning(ec_const_ignored, &cv_pos);
-      }  /* if */
-      if (qualifiers & TQ_VOLATILE) {
-        report_gnu_extension_if_needed(&cv_pos,
-                                       ec_volatile_asm_is_gnu_extension);
-        is_volatile = TRUE;
-        has_volatile_keyword = TRUE;
-      }  /* if */
-    }  /* if */
-    if (gnu_mode && gnu_version >= 40500 && curr_token == tok_goto) {
-      is_asm_goto = TRUE;
-      /* Bypass the goto. */
-      (void)get_token();
+          qualifiers = collect_type_qualifiers(&ext_cv_pos,
+                                               (a_upc_block_size *)NULL);
+          if (qualifiers & ~(TQ_CONST | TQ_VOLATILE)) {
+            /* Other qualifiers (e.g., "restrict") should be rejected. */
+            pos_error(ec_invalid_asm_qualifiers, &asm_qual_pos);
+          } else if (qualifiers & TQ_CONST) {
+            pos_warning(ec_const_ignored, &asm_qual_pos);
+          }  /* if */
+          if (qualifiers & TQ_VOLATILE) {
+            report_gnu_extension_if_needed(&asm_qual_pos,
+                                           ec_volatile_asm_is_gnu_extension);
+            is_volatile = TRUE;
+            if (has_volatile_keyword) {
+              is_duplicate = TRUE;
+            }  /* if */
+            has_volatile_keyword = TRUE;
+          }  /* if */
+          found_asm_qualifier = TRUE;
+        } else if (gnu_version >= 40500 && curr_token == tok_goto) {
+          if (is_asm_goto) {
+            is_duplicate = TRUE;
+          }  /* if */
+          is_asm_goto = TRUE;
+          found_asm_qualifier = TRUE;
+          (void)get_token();
+        } else if (gnu_version >= 70500 && curr_token == tok_inline) {
+          if (has_inline_keyword) {
+            is_duplicate = TRUE;
+          }  /* if */
+          has_inline_keyword = TRUE;
+          found_asm_qualifier = TRUE;
+          (void)get_token();
+        }  /* if */
+        if (is_duplicate) {
+          pos_error(ec_duplicate_asm_qualifier, &asm_qual_pos);
+        }  /* if */
+      } while (found_asm_qualifier);
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
     /* Check for and skip the opening parenthesis. */
@@ -14570,6 +14596,7 @@ to NULL.
     ap->gnu_asm_form = gnu_asm_form;
     ap->is_volatile = is_volatile;
     ap->has_volatile_keyword = has_volatile_keyword;
+    ap->has_inline_keyword = has_inline_keyword;
     ap->is_asm_goto = is_asm_goto;
     ap->operands = operands;
     ap->clobbers = clobbers;

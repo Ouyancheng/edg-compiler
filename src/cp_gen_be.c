@@ -19896,6 +19896,9 @@ one that yields the value) of a statement expression.
         if (asm_entry->has_volatile_keyword) {
           write_tok_str(" volatile");
         }  /* if */
+        if (asm_entry->has_inline_keyword) {
+          write_tok_str(" inline");
+        }  /* if */
         if (asm_entry->is_asm_goto) {
           write_tok_str(" goto");
         }  /* if */

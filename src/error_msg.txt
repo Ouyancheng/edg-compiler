@@ -3343,6 +3343,7 @@ ec_bad_vector_conditional_size;;"the element type of the vector condition (%t1) 
 ec_bad_vector_float_operand_size;;"the floating-point vector operand type (%t) has no matching integer vector type"
 ec_mangling_for_requires;;"mangling for \"requires\" expressions is not yet implemented"
 ec_unavailable_attr;;"because of an \"unavailable\" attribute"
+ec_duplicate_asm_qualifier;;"duplicate 'asm' qualifier"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
