@@ -8445,11 +8445,12 @@ typedef struct a_class_type_supplement {
  			   in this list.  However, friend functions are
 			   not included.  "variables" gives a linked list of
 			   variable entries representing the static data
-			   members of the class.  "types" gives a linked list
-			   of type entries representing local types defined
-			   within the scope of the class, including nested
-			   classes.  This pointer is NULL when the class
-			   has been declared but not defined. */
+			   members of the class (though these members may be
+			   moved to the file scope during lowering).  "types"
+			   gives a linked list of type entries representing
+			   local types defined within the scope of the class,
+			   including nested classes.  This pointer is NULL when
+			   the class has been declared but not defined. */
   a_template_ptr
 		assoc_template;
 			/* For instantiated entities, this points to the
