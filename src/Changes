@@ -35,7 +35,7 @@ See also the entry for EDGcpfe/17738.
 GNU compatibility: "inline" asm-qualifier for asm statements
 
 Since GCC 7.5.0, the "inline" asm-qualifier has been accepted on asm statements
-and the front end now also allows them.  For example:
+and the front end now also accepts it.  For example:
 
   int main() {
     asm inline ("");
