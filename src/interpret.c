@@ -901,23 +901,23 @@ typedef struct an_interpreter_state {
 		map;
 			/* A hash table mapping pointers onto associated data.
 			   Usually, the mapping is from IL pointers to
-                           associated data:
+			   associated data:
 			   - a_variable pointers (incl. "this" and parameter
 			     variables) to associated interpreter storage
 			   - a_constant pointers to associated interpreter
 			     (static) storage (but also the reverse mapping)
 			   - a_variable::initializer pointers to associated
 			     a_constant pointers created in the interpreter
-			   However, we also map so "ad hoc" address to keep
-			   track of less common data:
+			   However, we also map some "ad hoc" addresses to
+			   keep track of less common data:
 			   - &an_interpreter_state::curr_call_frame may be
 			     mapped to storage for "*this" in contexts where
 			     "*this" exists outside a member function body
 			     (e.g., default member initializers)
 			   - &an_interpreter_state::constants may be mapped
 			     to a table of argument values that should be used
-			     for enk_param nodes in Clang enable_if attribute
-			     conditions.
+			     for enk_param_ref nodes in Clang enable_if
+			     attribute conditions.
 			   - If ptr points to a complete interpreter object,
 			     ptr-NATURALIZABLE_KEY_OFFSET might be mapped to
 			     its associated static_storage indicating the
@@ -4829,8 +4829,9 @@ source address of certain nested lambda captures.
 static void unmap_param_ref_for_this_ptr(an_interpreter_state  *ips,
                                          a_byte                *this_bytes)
 /*
-Remove a binding of enk_param nodes for "this" pointers previously set up by a
-call to set_up_param_ref_for_this_ptr.  Restore any earlier binding if needed.
+Remove a binding of enk_param_ref nodes for "this" pointers previously set up
+by a call to set_up_param_ref_for_this_ptr.  Restore any earlier binding if
+needed.
 */
 {
   a_var_postfix  *postfix;
@@ -20053,10 +20054,10 @@ a_boolean interpret_clang_enable_if_opnd(
                                        a_source_position             *pos,
                                        a_boolean                     *p_value)
 /*
-Evaluate the given expression, mapping the enk_param for "this" to params[0]
-and any enk_param entry for the n-th parameter of a function to params[n].
-Return FALSE if the evaluation fails.  Otherwise, set *p_value to FALSE if
-the evaluation produces a "false" value.
+Evaluate the given expression, mapping the enk_param_ref for "this" to
+params[0] and any enk_param_ref entry for the n-th parameter of a function to
+params[n].  Return FALSE if the evaluation fails.  Otherwise, set *p_value to
+FALSE if the evaluation produces a "false" value.
 */
 {
   a_boolean             result = TRUE;

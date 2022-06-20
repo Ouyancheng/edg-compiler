@@ -15,6 +15,14 @@ That oversight is now fixed.
 
 
 6/17/22  [EDGcpfe/23647]
+Clang compatibility: Attribute "unavailable"
+
+The front end now implement support for the Clang attribute "unavailable" and
+handles functions marked with that attribute a "deleted" functions.  Unlike
+the "= delete" construct, the attribute is also accepted in C mode.
+
+
+6/17/22  [EDGcpfe/23647]
 Clang compatibility: Parameter-dependent enable_if attributes
 
 Support for the Clang enable_if attribute has been improved so that most uses

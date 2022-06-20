@@ -5434,7 +5434,7 @@ is used in the constraint, its evaluation will fail.
         break;
       }  /* if */
     }  /* if */
-    /* For every arguments to the call (in arg_list) that is constant, record
+    /* For every argument to the call (in arg_list) that is constant, record
        the constant value in the args array.  For other arguments, record an
        error constant (which will cause evaluation of expr to fail if it refers
        to one of the non-constant arguments). */
