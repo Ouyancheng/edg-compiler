@@ -23160,11 +23160,16 @@ handle_as_definition:
   if (decl_within_class) {
     gen_member_function_modifiers(rout, &abstract_generated);
   }  /* if */
-  if (rout->is_deleted && !rout->is_defaulted) {
+  if (rout->is_deleted && !rout->is_defaulted &&
+      find_attribute(ak_unavailable,
+                     skip_typerefs(rout->type)->source_corresp.attributes)
+                                                                    == NULL) {
     /* A deleted function definition.  (Note that an explicitly-defaulted
        function might be implicitly defined as deleted for various reasons.
        Such functions will also be marked as "is_deleted", but we want to
-       preserve the original source form as "= default".) */
+       preserve the original source form as "= default".  Similarly, the
+       Clang "unavailable" attribute makes a function deleted, but we do
+       not render it with "= delete" (the attribute is also valid in C).) */
     write_tok_str(" = delete;");
   } else if (rout->is_defaulted &&
              (is_definition || !rout->defined_outside_of_parent) &&
