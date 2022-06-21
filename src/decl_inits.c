@@ -6774,7 +6774,7 @@ FALSE is returned) for non-class objects.
                        (dyn_init_is(init_dip, dik_constant) ||
                         dyn_init_is(init_dip, dik_zero) ||
                         dyn_init_is(init_dip, dik_none))) {
-              /* For a C++20 const_init variable, it is sufficient that the
+              /* For a C++20 constinit variable, it is sufficient that the
                  initialization itself (i.e., ignoring the associated
                  destruction) is constant. */
               cp = NULL;
