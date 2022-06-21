@@ -1,5 +1,29 @@
 Version 6.4
 
+6/21/22  [EDGcpfe/25169]
+Microsoft compatibility: Invalid calls in templates
+
+Consider:
+
+  template<typename T> struct S {
+    void f(S &x) {
+      [x](auto) { x.g<int>(T{}); };
+    }
+    template<typename U, typename = typename U::X>
+    void g(U) {}
+  };
+  void f(S<int> si) {
+    si.f(si);  // Normally an error.  Now okay in Microsoft modes.
+  }
+
+This is normally an error, because the instantiation of S<int>::f(S&) includes
+an invalid call to S<int>::g<int>(int) (because its defaulted second template
+argument is invalid when U = int).  Microsoft compilers, however, do not
+diagnose this when the (nondependent) call is inside a template (a generic
+lambda in this case).  The front end now emulates that behavior in Microsoft
+mode.
+
+
 6/21/22  [EDGcpfe/25340]
 Microsoft compatibility: "for each" statements in C++/CLI and C++/CX modes
 

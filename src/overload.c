@@ -10546,15 +10546,17 @@ This routine is called only in C++ mode.
     } else if ((clang_mode || microsoft_mode) && !stricter_template_checking &&
                !(expr_stack->possible_rescan_context ||
                  expr_stack->template_deduction_context) &&
-               expr_stack->uses_this_operand) {
+               (expr_stack->uses_this_operand ||
+                (microsoft_mode && have_selector && is_template_id))) {
         /* In a template-dependent context Clang appears to defer resolution
            of a call of the form "f(<expr-list>)" where <expr-list> is
            non-dependent but <expr-list> uses "this" (explicitly or
-           implicitly).  We extend this behavior to Microsoft mode since it
-           results in behavior closer to that of the Microsoft compiler when
-           parsing function template definitions (which the Microsoft compiler
-           doesn't do).  (Don't defer in deduction contexts since we may have
-           to rescan the call later on.) */
+           implicitly).  We extend this behavior to Microsoft mode (and even
+           extend the covered cases to calls of the form "x.f<args>(...)")
+           since it results in behavior closer to that of the Microsoft
+           compiler when parsing function template definitions (which the
+           Microsoft compiler doesn't do).  (Don't defer in deduction contexts
+           since we may have to rescan the call later on.) */
       defer_overload_resolution = TRUE;
     }  /* if */
     if (dependent_call || defer_overload_resolution) {
