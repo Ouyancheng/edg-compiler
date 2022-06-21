@@ -11781,7 +11781,9 @@ enable_microsoft_mode:
        enabled. */
     allow_nonconst_ref_anachronism = TRUE;
   }  /* if */
-#if DO_IL_LOWERING && CPPCLI_ENABLING_POSSIBLE
+#if CPPCLI_ENABLING_POSSIBLE
+  if (cli_or_cx_enabled) {
+#if DO_IL_LOWERING
   /* IL lowering cannot handle C++/CLI or C++/CX constructs, so if we are
      accepting those extensions disable lowering.  (This is possible only when
      a special "trust me" macro is set explicitly.) */
@@ -11790,15 +11792,15 @@ enable_microsoft_mode:
    test there. */
  #error -- IL lowering cannot be done when C++/CLI enabling is allowed.
 #endif /* !ALLOW_CPPCLI_AND_CPPCX_WITH_LOWERING */
-  if (cli_or_cx_enabled) {
     suppress_il_lowering = TRUE;
     suppress_back_end = TRUE;
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
     suppress_il_file_write = TRUE;
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
+#endif /* DO_IL_LOWERING */
     for_each_statement_enabled = TRUE;
   }  /* if */
-#endif /* DO_IL_LOWERING && CPPCLI_ENABLING_POSSIBLE */
+#endif /* CPPCLI_ENABLING_POSSIBLE */
 #if DO_IL_LOWERING && ABI_CHANGES_FOR_RTTI
 #if SUPPRESS_TYPEINFO_VARIABLES_WHEN_RTTI_DISABLED
   /* Suppress typeinfo variables when RTTI is disabled. */

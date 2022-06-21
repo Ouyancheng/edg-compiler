@@ -1,5 +1,13 @@
 Version 6.4
 
+6/21/22  [EDGcpfe/25340]
+Microsoft compatibility: "for each" statements in C++/CLI and C++/CX modes
+
+The "for each" statement had been inadvertently disabled in some Microsoft
+emulation modes (e.g., with --no_ms_permissive) and is now unconditionally
+enabled in C++/CLI and C++/CX modes.
+
+
 6/18/22  [EDGcpfe/24657,EDGcpfe/25409]
 Nonconstant destruction and constinit variables
 
