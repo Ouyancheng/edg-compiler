@@ -10672,7 +10672,6 @@ top_of_loop:
         break;
 #if GNU_VECTOR_TYPES_ALLOWED
       case tk_vector:
-        check_assertion(!vector_type_is_template_dependent(type));
 #if IA64_ABI
         /* For the IA-64 ABI, use either the old (i.e., U8__vector) mangling
            or the newer (i.e., "Dv<expression>_<type>") mangling. */

@@ -1,5 +1,19 @@
 Version 6.4
 
+6/22/22  [EDGcpfe/25422]
+Assertion failure in mangled_encoding_for_type_full with vector types
+
+In some C++-generating configurations that have MANGLE_ALL_NAMES set to TRUE,
+mangling of a vector of template types had resulted in an assertion failure
+(in mangled_encoding_for_type_full).  Now fixed.  For example, with --g++:
+
+  template <typename T> struct A {
+    typedef T t __attribute__((vector_size(sizeof(T) * 4)));
+    static A a(t);
+  };
+  A<short> x;
+
+
 6/21/22  [EDGcpfe/25169]
 Microsoft compatibility: Invalid calls in templates
 
