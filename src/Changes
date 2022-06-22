@@ -1,5 +1,22 @@
 Version 6.4
 
+6/22/22  [EDGcpfe/25235]
+C++-generating back end: members of class templates as template arguments
+
+In some configurations, when an instance of a template is first referred to
+in the body of a class template using a member of that class template as a
+template argument, the C++-generating back end could put out subsequent
+references to that template instance using the class template as a
+qualifier.  This is now fixed.  For example, with --c++14:
+
+  template <int> struct A { };
+  template <typename T> struct B {
+    static constexpr int N = 42;
+    auto fun() { return A<N>{}; }
+  };
+  using X = A<42>;  // Previously generated as A<B<T>::N>
+
+
 6/22/22  [EDGcpfe/25422]
 Assertion failure in mangled_encoding_for_type_full with vector types
 

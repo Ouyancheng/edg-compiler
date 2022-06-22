@@ -11151,23 +11151,36 @@ to unusable variables and class members.
       break;
   }  /* switch */
   if (scp != NULL) {
-    if (scp->is_class_member &&
-        !scp_parent_class(scp)->variant.class_struct_union.is_nonreal_class &&
-        ((!scp_parent_class(scp)->has_been_defined &&
-          !class_is_in_name_context_stack(
+    if (scp->is_class_member) {
+      if (!scp_parent_class(scp)->
+                                 variant.class_struct_union.is_nonreal_class &&
+          ((!scp_parent_class(scp)->has_been_defined &&
+            !class_is_in_name_context_stack(
                                   scp_parent_class(scp),
                                   /*include_base_classes=*/FALSE,
                                   /*ignore_field_selection_contexts=*/TRUE)) ||
-         (scp->is_local_to_function && !is_local_lambda_in_scope) ||
-         !entity_name_is_accessible(scp, kind, /*ignore_context=*/FALSE,
-                                    &for_all_scopes))) {
-      /* This node refers to a member of a not-yet-defined or local class,
-         so an explicit specialization for the class in which this
-         expression appears or a type operator containing this expression
-         would be invalid. */
-      tblock->result = TRUE;
-      tblock->terminate = TRUE;
-    } else if (!scp->is_class_member && scp->is_local_to_function) {
+           (scp->is_local_to_function && !is_local_lambda_in_scope) ||
+           !entity_name_is_accessible(scp, kind, /*ignore_context=*/FALSE,
+                                      &for_all_scopes))) {
+        /* This node refers to a member of a not-yet-defined or local class,
+           so an explicit specialization for the class in which this
+           expression appears or a type operator containing this expression
+           would be invalid. */
+        tblock->result = TRUE;
+        tblock->terminate = TRUE;
+      } else if (scp_parent_class(scp)->
+                       variant.class_struct_union.is_prototype_instantiation &&
+                 !class_is_in_name_context_stack(
+                                   scp_parent_class(scp),
+                                   /*include_base_classes=*/FALSE,
+                                   /*ignore_field_selection_contexts=*/TRUE)) {
+        /* This node refers to a member of a prototype instantiation and we
+           are outside that class's definition (which can happen due to
+           persistence of initial template instance arguments). */
+        tblock->result = TRUE;
+        tblock->terminate = TRUE;
+      }  /* if */
+    } else if (scp->is_local_to_function) {
       a_scope_ptr sp = NULL;
       if (scp->parent_scope != NULL &&
           scp->parent_scope->kind == (a_scope_kind)sck_block) {
