@@ -21,9 +21,11 @@ C++-generating back end: members of class templates as template arguments
 
 In some configurations, when an instance of a template is first referred to
 in the body of a class template using a member of that class template as a
-template argument, the C++-generating back end could put out subsequent
-references to that template instance using the class template as a
-qualifier.  This is now fixed.  For example, with --c++14:
+template argument, the C++-generating back end could put out a subsequent
+reference to that template instance in which the argument is represented by
+a qualified name referring to the class template's parameters, even though
+those parameters are no longer in scope.  This is now fixed.  For example,
+with --c++14:
 
   template <int> struct A { };
   template <typename T> struct B {
