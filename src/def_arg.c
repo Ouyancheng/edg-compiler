@@ -135,12 +135,13 @@ default argument in a friend declaration; it must be FALSE when either
 is_function_template or is_template_param are FALSE.
 */
 {
-  a_token_set_array		stop_tokens;
-  a_token_sequence_number	first_tsn;
-  a_token_sequence_number	last_tsn;
-  a_scope_stack_entry_ptr	ssep;
-  a_source_position		start_pos;
-  a_cts_flag_set		cts_options;
+  a_token_set_array        stop_tokens;
+  a_token_sequence_number  first_tsn;
+  a_token_sequence_number  last_tsn;
+  a_scope_stack_entry_ptr  ssep;
+  a_source_position        start_pos;
+  a_cts_flag_set           cts_options;
+  a_decl_parse_state       *dps;
 
   db_enter(3, "prescan_default_argument");
   /* Initialize a local stop token set. */
@@ -205,13 +206,20 @@ is_function_template or is_template_param are FALSE.
      Update the token handles to refer to the copy of the cached token. */
   adjust_token_handles(token_cache);
   ssep = &scope_stack[depth_scope_stack];
+  dps = ssep->decl_parse_state;
   if (!is_template_param &&
       ((ssep->in_prototype_instantiation && !is_friend_decl) ||
        (is_function_template &&
-        depth_innermost_instantiation_scope == NO_SCOPE_DEPTH))) {
+        depth_innermost_instantiation_scope == NO_SCOPE_DEPTH)) &&
+      !(dps != NULL && dps->variant.auto_params != NULL &&
+        !dps->is_abbr_func_template)) {
     /* This is a function default argument within a prototype instantiation
        or in a template declaration.  Save the token numbers associated with
-       this default argument so that it can be removed from the cache later. */
+       this default argument so that it can be removed from the cache later.
+       Do not do this if we just performed the first scan through a function
+       declarator and encountered "auto" parameters: Instead we will allocate
+       the template cache segment on the second parse (when
+       dps->is_abbr_func_template will be TRUE). */
     a_template_cache_segment_ptr	tcsp;
     tcsp = alloc_template_cache_segment(
                    (a_symbol_ptr)NULL, (a_template_symbol_supplement_ptr)NULL);

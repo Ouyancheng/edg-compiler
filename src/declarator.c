@@ -1566,7 +1566,12 @@ declaration on which the exception specification appears.
     clear_token_set_array(stop_tokens);
     incr_token_set_array_element(stop_tokens, tok_rparen);
     incr_token_set_array_element(stop_tokens, tok_semicolon);
-    if (esp != NULL) {
+    if (esp != NULL &&
+        !(dps->variant.auto_params != NULL && !dps->is_abbr_func_template)) {
+      /* Do not bother caching the argument if we are going to re-parse the
+         declarator because abbreviated function template syntax was
+         encountered.  (This avoids having duplicate template cache segment
+         entries associated with the current token.) */
       esp->arg_cached = TRUE;
       esp->variant.token_cache = alloc_token_cache();
       clear_token_cache(esp->variant.token_cache, /*reusable=*/TRUE);

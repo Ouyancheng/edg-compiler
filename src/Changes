@@ -1,5 +1,21 @@
 Version 6.4
 
+6/24/22  [EDGcpfe/25259]
+Assertion failure in map_token_numbers_to_cache_pointers after auto parameters
+
+Consider in C++20 mode:
+
+  template<typename T> struct S {
+    template<typename U> void f(auto x) noexcept(true);
+  };
+
+This previously failed an assertion in map_token_numbers_to_cache_pointers
+(leading to an internal error) because the handling of the noexcept specifier
+in a function template declared both with an ordinary template parameter and
+an "auto" parameter caused the front end to unnecessarily duplicate a data
+structure.  That is now fixed.
+
+
 6/22/22  [EDGcpfe/25233]
 C++-generating back end: assertion failure on pack expansion with member access
 
