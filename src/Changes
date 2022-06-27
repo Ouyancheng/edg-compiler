@@ -1,5 +1,27 @@
 Version 6.4
 
+6/27/22  [EDGcpfe/25299]
+C++-generating back end, GNU C++ compatibility: casting dependent
+pointer-to-member-function to function pointer
+
+The g++ compiler accepts a nonstandard conversion of a
+pointer-to-member-function to an ordinary function pointer.  In
+configurations in which template definitions are generated from the
+prototype instantiation IL, when the source code applies this conversion to
+a dependent member function, the C++-generating back end previously
+generated incorrect code for the operand of the cast.  This is now fixed.
+For example, with --g++:
+
+  template <typename> struct S {
+    int f();
+    bool g() {
+      return ((void*)(this->*(&S::f)) ==
+              (void*)(&S::f));  // Previously generated as
+                                // (void*)((*(0))).*(&S::f)))
+    }
+  };
+
+
 6/27/22  [EDGcpfe/25274]
 GNU compatibility: Deducing "T&" to "this"
 

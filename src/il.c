@@ -20997,10 +20997,14 @@ Make a placeholder lvalue expression whose type is "type".
     a_constant_ptr con;
     make_zero_of_proper_type(integer_type((an_integer_kind)ik_int), zero_con);
     con = alloc_shareable_constant(zero_con);
-    /* Cast is marked as explicit so the C++-generating back end won't
-       elide it. */
     make_template_param_cast_constant(con, zero_con, ptr_type,
                                       /*is_explicit=*/FALSE);
+#if BACK_END_IS_CP_GEN_BE
+    /* Prevent the C++-generating back end from putting out the constant
+       as simply 0. */
+    zero_con->variant.template_param.variant.expr->
+                                             keep_as_cast_for_cp_gen_be = TRUE;
+#endif /* BACK_END_IS_CP_GEN_BE */
   } else {
     /* Normal non-dependent case. */
     make_zero_of_proper_type(ptr_type, zero_con);
