@@ -4284,17 +4284,16 @@ it is always NULL.
          A<T> is an alias for T is permitted. */
       arg_operand = NULL;
       arg_type = make_reference_type(arg_type);
-    } else if (gpp_mode &&
-               arg_operand != NULL &&
-               is_expression_operand(arg_operand) &&
+    } else if (gpp_version_is(<40900) &&
+               arg_operand != NULL && is_expression_operand(arg_operand) &&
                is_variable_node(arg_operand->variant.expression) &&
                node_variable(arg_operand->variant.expression)
                                                          ->is_this_parameter &&
                !is_rvalue_ref &&
                is_template_param_type(param_type) &&
                !is_qualified_type(param_type)) {
-      /* g++ allows "T &" to match "this".  The T is deduced to a const type
-         to allow the binding.  Checked in g++ 3.2 and 4.4. */
+      /* GCC versions prior to 4.9 allow "T &" to match "this".  The T is
+         deduced to a const type to allow the binding. */
       arg_type = make_qualified_type(arg_type, TQ_CONST);
     } else {
       /* Check and adjust the top-level type qualifiers. */
