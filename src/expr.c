@@ -2315,6 +2315,19 @@ constructs, in which case offsetof_case is TRUE.
         }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
         result_type = type_pointed_to(pointer_operand->type);
+      } else if (gpp_version_is(any_version) &&
+                 is_template_dependent_context() &&
+                 !scope_stack_top().is_rescan &&
+                 is_pointer_type(pointer_operand->type) &&
+                 is_incomplete_type(type_pointed_to(pointer_operand->type))) {
+        pos_warning(ec_expr_not_object_pointer, &pointer_operand->position);
+        make_generic_operation_operand((an_opname_kind)onk_subscript,
+                                       /*unary_operator=*/FALSE,
+                                       operand_1, &operand_2,
+                                       result, &operator_position,
+                                       operator_tok_seq_number,
+                                       &closing_bracket_position);
+        goto done;
       } else if (
                  /* One operand must be a pointer to object. */
 #if PTR_TO_INCOMP_ARRAY_ARITHMETIC_ALLOWED
@@ -2350,7 +2363,7 @@ constructs, in which case offsetof_case is TRUE.
       }  /* if */
     }  /* if */
   }  /* if */
-
+done:
   free_arg_list(operand_2_list);
   if (rcblock == NULL) {
 #if EXTRA_SOURCE_POSITIONS_IN_IL

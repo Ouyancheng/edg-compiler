@@ -1,5 +1,24 @@
 Version 6.4
 
+6/28/22  [EDGcpfe/25207]
+GNU C++ compatibility: Incomplete-type operands in templates
+
+Consider:
+
+  struct I;
+  template<typename T> void g(I *p) {
+    p[2].x = 42;  // Now accepted in all GNU C++ modes.
+  }
+
+The expression p[2] is normally an error because p is a pointer to an
+incomplete class type.  However, GCC accepts such expression in templates, and
+that is why the option --defer_parse_function_templates is often enabled by
+default in GNU C++ modes (and indeed why that option was initially introduced).
+A change has now been made to accept this example (and some like it) in GNU C++
+modes even when deferral of prototype instantiations is turned off (e.g., with
+the option --no_defer_parse_function_templates).
+
+
 6/27/22  [EDGcpfe/25299]
 C++-generating back end, GNU C++ compatibility: casting dependent
 pointer-to-member-function to function pointer

@@ -13820,8 +13820,15 @@ If there is an error, change "operand" to an error operand.
     underlying_type = type_pointed_to(operand->type);
     complete_type_is_needed(underlying_type);
     if (!is_complete_object_type(underlying_type)) {
-      error_in_operand(ec_expr_not_object_pointer, operand);
-      okay = FALSE;
+      if (gpp_version_is(any_version) && is_template_dependent_context() &&
+          !scope_stack_top().is_rescan) {
+        pos_warning(ec_expr_not_object_pointer, &operand->position);
+        generic_cast_operand(operand, type_of_unknown_templ_param_nontype,
+                             csf_none, /*is_implicit_cast=*/TRUE);
+      } else {
+        error_in_operand(ec_expr_not_object_pointer, operand);
+        okay = FALSE;
+      }  /* if */
     }  /* if */
   }  /* if */
   return okay;
