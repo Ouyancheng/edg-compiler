@@ -20,7 +20,10 @@ ifc_modules.h -- Declarations relating to ifc_modules.c (having to do with
 
 #if !STANDALONE_UTILITY_PROGRAM
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
 #include "ifc_map.h"
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
 #include "util.h"
 
 /* Conditionally open the "edg" namespace. */
@@ -649,30 +652,47 @@ struct an_ifc_validation_trace {
 
   an_ifc_validation_trace_kind
                 trace_kind;
-
+                        /* The variant describing this trace. */
   const an_ifc_validation_trace
                 *parent;
+                        /* The parent of this trace or NULL if none. */
+
+  /*
+  The data structure used to represent tracing information when trace_kind ==
+  ifc_vtk_field.
+  */
+  struct field_info_trace_data {
+    a_const_char
+                *name;  /* The field name associated with this trace. */
+    size_t      offset; /* The relative offset of the field from the node
+                           start associated with this trace. */
+  };  /* field_info_trace_data */
+
+  /*
+  The data structure used to represent tracing information when trace_kind ==
+  ifc_vtk_field.
+  */
+  struct partition_info_trace_data {
+    an_ifc_module
+                *mod;   /* The module associated with this trace. */
+    an_ifc_partition_kind
+                kind;   /* The kind of partition associated with this trace. */
+    an_ifc_index_type
+                idx;    /* The index into the partition associated with this
+                           trace. */
+  };  /* partition_info_trace_data */
 
   union {
     /* When trace_kind == ifc_vtk_field. */
-    struct {
-      a_const_char
-                *name;
-
-      size_t    offset;
-    } field_info;
-
+    field_info_trace_data
+                field_info;
+                        /* The associated information about the traced
+                           field. */
     /* When trace_kind == ifc_vtk_partition. */
-    struct {
-      an_ifc_module
-                *mod;
-
-      an_ifc_partition_kind
-                kind;
-
-      an_ifc_index_type
-                idx;
-    } partition_info;
+    partition_info_trace_data
+                partition_info;
+                        /* The associated information about the traced
+                           partition element. */
   };
 };  /* an_ifc_validation_trace */
 

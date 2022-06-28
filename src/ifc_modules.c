@@ -16,7 +16,9 @@ ifc_modules.c -- Microsoft-specific IFC module code
 #include "basic_hdrs.h"
 #include "fe_common.h"
 #include "ifc_modules.h"
+#if MICROSOFT_EXTENSIONS_ALLOWED
 #include "ifc_map_functions.h"
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #include "class_decl.h"
 #include "decl_spec.h"
