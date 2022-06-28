@@ -3424,15 +3424,20 @@ template classes.
     }  /* if */
 #endif /* ABI_COMPATIBILITY_VERSION >= 520 */
   } else if (abkind == (an_address_base_kind)abk_routine) {
-    a_boolean     suppress_param_encoding = TRUE;
+    a_boolean     suppress_param_encoding = FALSE;
     a_boolean     suppress_parent_encoding = FALSE;
     a_routine_ptr routine = con->variant.address.variant.routine;
-#if IA64_ABI
-    suppress_param_encoding = FALSE;
+#if IA64_ABI || ABI_COMPATIBILITY_VERSION >= 604
     if (!function_name_mangling_needed(routine, &suppress_param_encoding)) {
       suppress_param_encoding = TRUE;
       suppress_parent_encoding = TRUE;
     }  /* if */
+#else /* !(IA64_ABI || ABI_COMPATIBILITY_VERSION >= 604) */
+    /* Parameters were not encoded in earlier versions of the ABI (though this
+       could lead to mangled names that are not unique). */
+    suppress_param_encoding = TRUE;
+#endif /* IA64_ABI || ABI_COMPATIBILITY_VERSION >= 604 */
+#if IA64_ABI
     if (emulate_gnu_abi_bugs && suppress_param_encoding) {
       /* g++ 3.2 does not include the "_Z" for extern "C" functions. */
     } else {

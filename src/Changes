@@ -1,5 +1,26 @@
 Version 6.4
 
+6/28/22  [EDGcpfe/25437]
+Cfront ABI: mangling of routine constants
+
+A change has been made in configurations that use the Cfront ABI to mangle the
+parameters of routine constants (similar to what is done in the IA-64 ABI) to
+avoid potential mangling collisions as in this case (with --c++17):
+
+  void f(double) { }
+  void f(int) { }
+  template <auto T> void func() { }
+  void g() {
+    constexpr void (*fptr1)(double) = f;
+    constexpr void (*fptr2)(int) = f;
+    func<fptr1>();
+    func<fptr2>();
+  }
+
+The previous behavior can be retained by setting ABI_COMPATIBILITY_VERSION
+to a value less than 604.
+
+
 6/28/22  [EDGcpfe/25207]
 GNU C++ compatibility: Incomplete-type operands in templates
 
