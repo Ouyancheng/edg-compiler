@@ -1237,6 +1237,8 @@ Map an IFC DyadicOperator to an_opname_kind.
   switch (dyadic_op) {
     case ifc_dos_unknown:
     case ifc_dos_msvc:
+    case ifc_dos_msvc_saturated_arithmetic:
+    case ifc_dos_select:
       pos_st_diagnostic(es_discretionary_error,
                         ec_ifc_no_corresponding_operator, &error_position,
                         str_for(dyadic_op));
@@ -1609,6 +1611,8 @@ Return the kind of operator described by op.
   switch (op) {
     case ifc_dos_unknown:
     case ifc_dos_msvc:
+    case ifc_dos_msvc_saturated_arithmetic:
+    case ifc_dos_select:
       unexpected_condition();
       break;
     case ifc_dos_plus:
@@ -3379,6 +3383,8 @@ principal associated IL entity.
     }  /* if */
     switch (decl_idx.sort) {
       case ifc_ds_decl_vendor_extension:
+      case ifc_ds_decl_explicit_instantiation:
+      case ifc_ds_decl_explicit_specialization:
         /* FIXME: Need a proper source position for this. */
         error_position = null_source_position;
         issue_unsupported_node_error(str_for(decl_idx.sort), &error_position);
@@ -6911,8 +6917,9 @@ Given a declaration, return the name associated with that declaration.
 
   switch (decl_idx.sort) {
     case ifc_ds_decl_vendor_extension:
-      issue_unsupported_node_diag("DeclSort::VendorExtension",
-                                  &error_position);
+    case ifc_ds_decl_explicit_instantiation:
+    case ifc_ds_decl_explicit_specialization:
+      issue_unsupported_node_diag(str_for(decl_idx.sort), &error_position);
       break;
     case ifc_ds_decl_enumerator:
       { Opt<an_ifc_decl_enumerator> opt_ide;
@@ -8601,6 +8608,9 @@ locus is the location of the Sentence containing literal.
   source_position_from_locus(&pos, locus);
   switch (literal.sort) {
     case ifc_sls_unknown:
+    case ifc_sls_msvc_cast_target_type:
+    case ifc_sls_msvc_defined_constant:
+    case ifc_sls_msvc_resolved_type:
       unexpected_condition();
       break;
     case ifc_sls_scalar:
@@ -11359,6 +11369,8 @@ the location of the operator.
   source_position_from_locus(&pos, locus);
   switch (op) {
     case ifc_dos_unknown:
+    case ifc_dos_msvc_saturated_arithmetic:
+    case ifc_dos_select:
       unexpected_condition();
       break;
     case ifc_dos_plus:
@@ -12364,7 +12376,6 @@ indexed in the IFC by decl_idx) to cache.
 */
 {
   an_ifc_decl_index      templated_decl_idx = get_ifc_decl(decl);
-  an_ifc_source_location decl_locus = get_ifc_locus(templated_decl_idx);
   a_boolean              is_instantiation =
                                     get_ifc_sort(decl) == ifc_ss_instantiation;
   a_source_position      pos;
@@ -12937,8 +12948,9 @@ Add the tokens corresponding to the given declaration (decl) to cache.
 
   switch (decl.sort) {
     case ifc_ds_decl_vendor_extension:
-      issue_unsupported_node_diag("DeclSort::VendorExtension",
-                                  &error_position);
+    case ifc_ds_decl_explicit_instantiation:
+    case ifc_ds_decl_explicit_specialization:
+      issue_unsupported_node_diag(str_for(decl.sort), &error_position);
       break;
     case ifc_ds_decl_enumerator:
       { Opt<an_ifc_decl_enumerator> opt_ide;
@@ -13204,8 +13216,7 @@ Add the tokens corresponding to the given declaration (decl) to cache.
           }  /* if */
 
           an_ifc_type_forall itf = *opt_itf;
-          an_ifc_type_index  aliasee = get_ifc_aliasee(ida);
-          check_assertion(aliasee.sort == ifc_ts_type_forall);
+          check_assertion(get_ifc_aliasee(ida).sort == ifc_ts_type_forall);
           cache_token(cache, tok_template, &pos);
           cache_chart(cache, get_ifc_chart(itf), locus);
           cache_token(cache, tok_using, &pos);
@@ -13601,8 +13612,9 @@ second operand of an assignment.
 
   switch (expr.sort) {
     case ifc_es_expr_vendor_extension:
-      issue_unsupported_node_diag("ExprSort::VendorExtension",
-                                  &error_position);
+    case ifc_es_expr_delete:
+    case ifc_es_expr_new:
+      issue_unsupported_node_diag(str_for(expr.sort), &error_position);
       break;
     case ifc_es_expr_empty:
       /* Nothing to cache here - literally an empty expression. */
