@@ -21,6 +21,9 @@ Please contact EDG Support if you would be interested in using, or learning
 more about, the tool that generated this file.
 */
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 struct an_ifc_module;
 
 /*
@@ -14299,6 +14302,10 @@ EXTERN an_ifc_partition_map ifc_partition_map[IFC_PARTITION_COUNT]
 }  /* ifc_partition_map */
 #endif /* VAR_INITIALIZERS */
 ;
+
+
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 /******************************************************************************
 *                                                             \  ___  /       *

@@ -22,6 +22,9 @@ Please contact EDG Support if you would be interested in using, or learning
 more about, the tool that generated this file.
 */
 
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
 inline a_boolean is_supported_ifc_version(an_ifc_version major_version,
                                           an_ifc_version minor_version);
 
@@ -196166,6 +196169,10 @@ node's "name" field value.
   }  /* switch */
   return result;
 }  /* get_ifc_name */
+
+
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 /******************************************************************************
 *                                                             \  ___  /       *
