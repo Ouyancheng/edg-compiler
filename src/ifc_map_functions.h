@@ -42158,17 +42158,11 @@ the value represents a valid categorized sort; otherwise, return FALSE.
 {
   a_boolean                          result = TRUE;
   an_ifc_source_identifier_sort_0_33 sort = source_identifier_sort(versioned);
-  uint64_t                           raw_value =
-                                            source_identifier_value(versioned);
 
   if (!validate_sort(sort, parent)) {
     result = FALSE;
     goto done;
   }  /* if */
-  switch (sort) {
-    default:
-      break;
-  }  /* switch */
 done:
   return result;
 }  /* validate_category */
@@ -42932,7 +42926,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
   if (has_ifc_value(mod, universal)) {
     an_ifc_keyword_sort_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace = {"value", /*offset=*/8, parent};
-    an_ifc_keyword_sort      stage_1;
 
     /* Copy the field (KeywordSyntax::value - KeywordSort) into version
        specific storage. */
@@ -42943,7 +42936,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_sort(stage_0);
   }  /* if */
 done:
   return result;
@@ -43585,7 +43577,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
     an_ifc_word_sort_0_33     stage_2;
     uint64_t                  stage_3;
     an_ifc_word_category_0_33 stage_4;
-    an_ifc_word_category      stage_5;
 
     /* Copy the field (NestableWord::index - Index) into version specific
        storage. */
@@ -43616,7 +43607,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_5 = to_universal_category(mod, stage_4);
   }  /* if */
   if (has_ifc_locus(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -43642,7 +43632,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
   if (has_ifc_sort(mod, universal)) {
     an_ifc_word_sort_0_33   stage_0;
     an_ifc_validation_trace stage_0_trace = {"sort", /*offset=*/14, parent};
-    an_ifc_word_sort        stage_1;
 
     /* Copy the field (NestableWord::sort - WordSort) into version specific
        storage. */
@@ -43653,7 +43642,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_sort(stage_0);
   }  /* if */
 done:
   return result;
@@ -44208,7 +44196,6 @@ return FALSE.
   if (has_ifc_sort(mod, universal)) {
     an_ifc_noexcept_sort_0_33 stage_0;
     an_ifc_validation_trace   stage_0_trace = {"sort", /*offset=*/4, parent};
-    an_ifc_noexcept_sort      stage_1;
 
     /* Copy the field (NoexceptSpecification::sort - NoexceptSort) into version
        specific storage. */
@@ -44219,7 +44206,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_sort(stage_0);
   }  /* if */
 done:
   return result;
@@ -44585,7 +44571,6 @@ return FALSE.
     if (is_at_least(mod, 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace = {"decl", /*offset=*/0, parent};
-      an_ifc_decl_index       stage_1;
 
       /* Copy the field (ParameterizedEntity::decl - DeclIndex) into version
          specific storage. */
@@ -44596,11 +44581,9 @@ return FALSE.
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(mod, stage_0);
     } else {
       an_ifc_decl_index_0_33  stage_0;
       an_ifc_validation_trace stage_0_trace = {"decl", /*offset=*/0, parent};
-      an_ifc_decl_index       stage_1;
 
       /* Copy the field (ParameterizedEntity::decl - DeclIndex) into version
          specific storage. */
@@ -44611,7 +44594,6 @@ return FALSE.
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(mod, stage_0);
     }  /* if */
   }  /* if */
 done:
@@ -46085,7 +46067,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
     an_ifc_architecture_sort_0_33 stage_0;
     an_ifc_validation_trace       stage_0_trace =
                                                {"arch", /*offset=*/35, parent};
-    an_ifc_architecture_sort      stage_1;
 
     /* Copy the field (FileHeader::arch - ArchitectureSort) into version
        specific storage. */
@@ -46096,12 +46077,10 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_sort(stage_0);
   }  /* if */
   if (has_ifc_unit(mod, universal)) {
     an_ifc_unit_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"unit", /*offset=*/48, parent};
-    an_ifc_unit_index       stage_1;
 
     /* Copy the field (FileHeader::unit - UnitIndex) into version specific
        storage. */
@@ -46112,7 +46091,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -46156,8 +46134,6 @@ representation with the given indent.
     fprintf(f_debug, "arch: %s\n", str_for(field));
   }  /* if */
   if (has_ifc_checksum(mod, universal)) {
-    an_ifc_sha256 field = get_ifc_checksum(mod, universal);
-
     for (unsigned i = 0; i < indent; ++i) {
       fprintf(f_debug, "  ");
     }  /* for */
@@ -47173,7 +47149,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
     an_ifc_attr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace =
                                            {"arguments", /*offset=*/4, parent};
-    an_ifc_attr_index       stage_1;
 
     /* Copy the field (AttrCalled::arguments - AttrIndex) into version specific
        storage. */
@@ -47184,12 +47159,10 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_function(mod, universal)) {
     an_ifc_attr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"function", /*offset=*/0, parent};
-    an_ifc_attr_index       stage_1;
 
     /* Copy the field (AttrCalled::function - AttrIndex) into version specific
        storage. */
@@ -47200,7 +47173,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -47437,7 +47409,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace =
                                           {"expression", /*offset=*/0, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (AttrElaborated::expression - ExprIndex) into version
        specific storage. */
@@ -47448,7 +47419,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -47664,7 +47634,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
   if (has_ifc_operand(mod, universal)) {
     an_ifc_attr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"operand", /*offset=*/0, parent};
-    an_ifc_attr_index       stage_1;
 
     /* Copy the field (AttrExpanded::operand - AttrIndex) into version specific
        storage. */
@@ -47675,7 +47644,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -47979,7 +47947,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
   if (has_ifc_terms(mod, universal)) {
     an_ifc_attr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"terms", /*offset=*/16, parent};
-    an_ifc_attr_index       stage_1;
 
     /* Copy the field (AttrFactored::terms - AttrIndex) into version specific
        storage. */
@@ -47990,7 +47957,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -48294,7 +48260,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
     an_ifc_attr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace =
                                           {"attribute", /*offset=*/16, parent};
-    an_ifc_attr_index       stage_1;
 
     /* Copy the field (AttrLabeled::attribute - AttrIndex) into version
        specific storage. */
@@ -48305,7 +48270,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_label(mod, universal)) {
     an_ifc_nestable_word_bytes stage_0;
@@ -49619,7 +49583,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace =
                                           {"constraint", /*offset=*/8, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (ChartUnilevel::constraint - ExprIndex) into version
        specific storage. */
@@ -49630,7 +49593,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -49891,8 +49853,6 @@ representation with the given indent.
 */
 {
   if (has_ifc_value(mod, universal)) {
-    an_ifc_ieeele_float field = get_ifc_value(mod, universal);
-
     for (unsigned i = 0; i < indent; ++i) {
       fprintf(f_debug, "  ");
     }  /* for */
@@ -51078,7 +51038,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
   if (has_ifc_access(mod, universal)) {
     an_ifc_access_sort_0_33 stage_0;
     an_ifc_validation_trace stage_0_trace = {"access", /*offset=*/25, parent};
-    an_ifc_access_sort      stage_1;
 
     /* Copy the field (DeclAlias::access - AccessSort) into version specific
        storage. */
@@ -51089,12 +51048,10 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_sort(stage_0);
   }  /* if */
   if (has_ifc_aliasee(mod, universal)) {
     an_ifc_type_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"aliasee", /*offset=*/20, parent};
-    an_ifc_type_index       stage_1;
 
     /* Copy the field (DeclAlias::aliasee - TypeIndex) into version specific
        storage. */
@@ -51105,7 +51062,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_home_scope(mod, universal)) {
     if (is_at_least(mod, 0, 41)) {
@@ -51139,7 +51095,7 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
         an_ifc_decl_specialization stage_3_2;
         an_ifc_decl_index_0_41     stage_3_3;
         an_ifc_validation_trace    stage_3_3_trace =
-                                                {"decl", /*offset=*/4, parent};
+                                      {"decl", /*offset=*/4, &stage_3_0_trace};
         an_ifc_decl_index          stage_3_4;
 
         /* Copy the field (DeclAlias::home_scope - DeclIndex) into version
@@ -51194,7 +51150,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       an_ifc_decl_index_0_33  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                          {"home_scope", /*offset=*/16, parent};
-      an_ifc_decl_index       stage_1;
 
       /* Copy the field (DeclAlias::home_scope - DeclIndex) into version
          specific storage. */
@@ -51205,7 +51160,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(mod, stage_0);
     }  /* if */
   }  /* if */
   if (has_ifc_locus(mod, universal)) {
@@ -51232,7 +51186,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
   if (has_ifc_type(mod, universal)) {
     an_ifc_type_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"type", /*offset=*/12, parent};
-    an_ifc_type_index       stage_1;
 
     /* Copy the field (DeclAlias::type - TypeIndex) into version specific
        storage. */
@@ -51243,7 +51196,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -51328,9 +51280,6 @@ representation with the given indent.
     fprintf(f_debug, "name: %ld\n", (uint64_t)field.value);
   }  /* if */
   if (has_ifc_specifiers(mod, universal)) {
-    an_ifc_basic_specifiers_bitfield field =
-                                            get_ifc_specifiers(mod, universal);
-
     for (unsigned i = 0; i < indent; ++i) {
       fprintf(f_debug, "  ");
     }  /* for */
@@ -52190,7 +52139,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
   if (has_ifc_access(mod, universal)) {
     an_ifc_access_sort_0_33 stage_0;
     an_ifc_validation_trace stage_0_trace = {"access", /*offset=*/30, parent};
-    an_ifc_access_sort      stage_1;
 
     /* Copy the field (DeclBitfield::access - AccessSort) into version specific
        storage. */
@@ -52201,7 +52149,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_sort(stage_0);
   }  /* if */
   if (has_ifc_home_scope(mod, universal)) {
     if (is_at_least(mod, 0, 41)) {
@@ -52235,7 +52182,7 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
         an_ifc_decl_specialization stage_3_2;
         an_ifc_decl_index_0_41     stage_3_3;
         an_ifc_validation_trace    stage_3_3_trace =
-                                                {"decl", /*offset=*/4, parent};
+                                      {"decl", /*offset=*/4, &stage_3_0_trace};
         an_ifc_decl_index          stage_3_4;
 
         /* Copy the field (DeclBitfield::home_scope - DeclIndex) into version
@@ -52290,7 +52237,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       an_ifc_decl_index_0_33  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                          {"home_scope", /*offset=*/16, parent};
-      an_ifc_decl_index       stage_1;
 
       /* Copy the field (DeclBitfield::home_scope - DeclIndex) into version
          specific storage. */
@@ -52301,14 +52247,12 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(mod, stage_0);
     }  /* if */
   }  /* if */
   if (has_ifc_initializer(mod, universal)) {
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace =
                                         {"initializer", /*offset=*/24, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (DeclBitfield::initializer - ExprIndex) into version
        specific storage. */
@@ -52319,7 +52263,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_locus(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -52345,7 +52288,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
   if (has_ifc_type(mod, universal)) {
     an_ifc_type_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"type", /*offset=*/12, parent};
-    an_ifc_type_index       stage_1;
 
     /* Copy the field (DeclBitfield::type - TypeIndex) into version specific
        storage. */
@@ -52356,12 +52298,10 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_width(mod, universal)) {
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"width", /*offset=*/20, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (DeclBitfield::width - ExprIndex) into version specific
        storage. */
@@ -52372,7 +52312,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -52457,26 +52396,18 @@ representation with the given indent.
     fprintf(f_debug, "name: %ld\n", (uint64_t)field.value);
   }  /* if */
   if (has_ifc_properties(mod, universal)) {
-    an_ifc_reachable_properties_bitfield field =
-                                            get_ifc_properties(mod, universal);
-
     for (unsigned i = 0; i < indent; ++i) {
       fprintf(f_debug, "  ");
     }  /* for */
     fprintf(f_debug, "properties: UNIMPLEMENTED\n");
   }  /* if */
   if (has_ifc_specifiers(mod, universal)) {
-    an_ifc_basic_specifiers_bitfield field =
-                                            get_ifc_specifiers(mod, universal);
-
     for (unsigned i = 0; i < indent; ++i) {
       fprintf(f_debug, "  ");
     }  /* for */
     fprintf(f_debug, "specifiers: UNIMPLEMENTED\n");
   }  /* if */
   if (has_ifc_traits(mod, universal)) {
-    an_ifc_object_traits_bitfield field = get_ifc_traits(mod, universal);
-
     for (unsigned i = 0; i < indent; ++i) {
       fprintf(f_debug, "  ");
     }  /* for */
@@ -53424,7 +53355,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
   if (has_ifc_access(mod, universal)) {
     an_ifc_access_sort_0_33 stage_0;
     an_ifc_validation_trace stage_0_trace = {"access", /*offset=*/29, parent};
-    an_ifc_access_sort      stage_1;
 
     /* Copy the field (DeclConcept::access - AccessSort) into version specific
        storage. */
@@ -53435,12 +53365,10 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_sort(stage_0);
   }  /* if */
   if (has_ifc_chart(mod, universal)) {
     an_ifc_chart_index_0_33 stage_0;
     an_ifc_validation_trace stage_0_trace = {"chart", /*offset=*/20, parent};
-    an_ifc_chart_index      stage_1;
 
     /* Copy the field (DeclConcept::chart - ChartIndex) into version specific
        storage. */
@@ -53451,13 +53379,11 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_constraint(mod, universal)) {
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace =
                                          {"constraint", /*offset=*/24, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (DeclConcept::constraint - ExprIndex) into version
        specific storage. */
@@ -53468,7 +53394,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_home_scope(mod, universal)) {
     if (is_at_least(mod, 0, 41)) {
@@ -53502,7 +53427,7 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
         an_ifc_decl_specialization stage_3_2;
         an_ifc_decl_index_0_41     stage_3_3;
         an_ifc_validation_trace    stage_3_3_trace =
-                                                {"decl", /*offset=*/4, parent};
+                                      {"decl", /*offset=*/4, &stage_3_0_trace};
         an_ifc_decl_index          stage_3_4;
 
         /* Copy the field (DeclConcept::home_scope - DeclIndex) into version
@@ -53557,7 +53482,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       an_ifc_decl_index_0_33  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                          {"home_scope", /*offset=*/12, parent};
-      an_ifc_decl_index       stage_1;
 
       /* Copy the field (DeclConcept::home_scope - DeclIndex) into version
          specific storage. */
@@ -53568,7 +53492,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(mod, stage_0);
     }  /* if */
   }  /* if */
   if (has_ifc_locus(mod, universal)) {
@@ -53595,7 +53518,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
   if (has_ifc_type(mod, universal)) {
     an_ifc_type_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"type", /*offset=*/16, parent};
-    an_ifc_type_index       stage_1;
 
     /* Copy the field (DeclConcept::type - TypeIndex) into version specific
        storage. */
@@ -53606,7 +53528,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -53723,9 +53644,6 @@ representation with the given indent.
     fprintf(f_debug, "name: %ld\n", (uint64_t)field.value);
   }  /* if */
   if (has_ifc_specifiers(mod, universal)) {
-    an_ifc_basic_specifiers_bitfield field =
-                                            get_ifc_specifiers(mod, universal);
-
     for (unsigned i = 0; i < indent; ++i) {
       fprintf(f_debug, "  ");
     }  /* for */
@@ -54580,7 +54498,6 @@ return FALSE.
   if (has_ifc_access(mod, universal)) {
     an_ifc_access_sort_0_33 stage_0;
     an_ifc_validation_trace stage_0_trace = {"access", /*offset=*/27, parent};
-    an_ifc_access_sort      stage_1;
 
     /* Copy the field (DeclConstructor::access - AccessSort) into version
        specific storage. */
@@ -54591,12 +54508,10 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_sort(stage_0);
   }  /* if */
   if (has_ifc_chart(mod, universal)) {
     an_ifc_chart_index_0_33 stage_0;
     an_ifc_validation_trace stage_0_trace = {"chart", /*offset=*/20, parent};
-    an_ifc_chart_index      stage_1;
 
     /* Copy the field (DeclConstructor::chart - ChartIndex) into version
        specific storage. */
@@ -54607,7 +54522,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_home_scope(mod, universal)) {
     if (is_at_least(mod, 0, 41)) {
@@ -54641,7 +54555,7 @@ return FALSE.
         an_ifc_decl_specialization stage_3_2;
         an_ifc_decl_index_0_41     stage_3_3;
         an_ifc_validation_trace    stage_3_3_trace =
-                                                {"decl", /*offset=*/4, parent};
+                                      {"decl", /*offset=*/4, &stage_3_0_trace};
         an_ifc_decl_index          stage_3_4;
 
         /* Copy the field (DeclConstructor::home_scope - DeclIndex) into
@@ -54696,7 +54610,6 @@ return FALSE.
       an_ifc_decl_index_0_33  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                          {"home_scope", /*offset=*/16, parent};
-      an_ifc_decl_index       stage_1;
 
       /* Copy the field (DeclConstructor::home_scope - DeclIndex) into version
          specific storage. */
@@ -54707,7 +54620,6 @@ return FALSE.
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(mod, stage_0);
     }  /* if */
   }  /* if */
   if (has_ifc_locus(mod, universal)) {
@@ -54817,7 +54729,6 @@ return FALSE.
   if (has_ifc_type(mod, universal)) {
     an_ifc_type_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"type", /*offset=*/12, parent};
-    an_ifc_type_index       stage_1;
 
     /* Copy the field (DeclConstructor::type - TypeIndex) into version specific
        storage. */
@@ -54828,7 +54739,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -54921,26 +54831,18 @@ textual representation with the given indent.
     fprintf(f_debug, "  value: %ld\n", (uint64_t)field.value);
   }  /* if */
   if (has_ifc_properties(mod, universal)) {
-    an_ifc_reachable_properties_bitfield field =
-                                            get_ifc_properties(mod, universal);
-
     for (unsigned i = 0; i < indent; ++i) {
       fprintf(f_debug, "  ");
     }  /* for */
     fprintf(f_debug, "properties: UNIMPLEMENTED\n");
   }  /* if */
   if (has_ifc_specifiers(mod, universal)) {
-    an_ifc_basic_specifiers_bitfield field =
-                                            get_ifc_specifiers(mod, universal);
-
     for (unsigned i = 0; i < indent; ++i) {
       fprintf(f_debug, "  ");
     }  /* for */
     fprintf(f_debug, "specifiers: UNIMPLEMENTED\n");
   }  /* if */
   if (has_ifc_traits(mod, universal)) {
-    an_ifc_function_traits_bitfield field = get_ifc_traits(mod, universal);
-
     for (unsigned i = 0; i < indent; ++i) {
       fprintf(f_debug, "  ");
     }  /* for */
@@ -55652,7 +55554,7 @@ return FALSE.
         an_ifc_decl_specialization stage_3_2;
         an_ifc_decl_index_0_41     stage_3_3;
         an_ifc_validation_trace    stage_3_3_trace =
-                                                {"decl", /*offset=*/4, parent};
+                                      {"decl", /*offset=*/4, &stage_3_0_trace};
         an_ifc_decl_index          stage_3_4;
 
         /* Copy the field (DeclDeductionGuide::home_scope - DeclIndex) into
@@ -55707,7 +55609,6 @@ return FALSE.
       an_ifc_decl_index_0_33  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                          {"home_scope", /*offset=*/12, parent};
-      an_ifc_decl_index       stage_1;
 
       /* Copy the field (DeclDeductionGuide::home_scope - DeclIndex) into
          version specific storage. */
@@ -55718,7 +55619,6 @@ return FALSE.
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(mod, stage_0);
     }  /* if */
   }  /* if */
   if (has_ifc_locus(mod, universal)) {
@@ -55745,7 +55645,6 @@ return FALSE.
   if (has_ifc_source(mod, universal)) {
     an_ifc_chart_index_0_33 stage_0;
     an_ifc_validation_trace stage_0_trace = {"source", /*offset=*/16, parent};
-    an_ifc_chart_index      stage_1;
 
     /* Copy the field (DeclDeductionGuide::source - ChartIndex) into version
        specific storage. */
@@ -55756,12 +55655,10 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_target(mod, universal)) {
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"target", /*offset=*/20, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (DeclDeductionGuide::target - ExprIndex) into version
        specific storage. */
@@ -55772,7 +55669,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -55849,9 +55745,6 @@ textual representation with the given indent.
     fprintf(f_debug, "  value: %ld\n", (uint64_t)field.value);
   }  /* if */
   if (has_ifc_specifiers(mod, universal)) {
-    an_ifc_basic_specifiers_bitfield field =
-                                            get_ifc_specifiers(mod, universal);
-
     for (unsigned i = 0; i < indent; ++i) {
       fprintf(f_debug, "  ");
     }  /* for */
@@ -56700,7 +56593,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
   if (has_ifc_access(mod, universal)) {
     an_ifc_access_sort_0_33 stage_0;
     an_ifc_validation_trace stage_0_trace = {"access", /*offset=*/27, parent};
-    an_ifc_access_sort      stage_1;
 
     /* Copy the field (DeclDestructor::access - AccessSort) into version
        specific storage. */
@@ -56711,13 +56603,11 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_sort(stage_0);
   }  /* if */
   if (has_ifc_convention(mod, universal)) {
     an_ifc_calling_convention_sort_0_33 stage_0;
     an_ifc_validation_trace             stage_0_trace =
                                          {"convention", /*offset=*/28, parent};
-    an_ifc_calling_convention_sort      stage_1;
 
     /* Copy the field (DeclDestructor::convention - CallingConventionSort) into
        version specific storage. */
@@ -56728,7 +56618,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_sort(stage_0);
   }  /* if */
   if (has_ifc_eh_spec(mod, universal)) {
     an_ifc_noexcept_specification_bytes stage_0;
@@ -56783,7 +56672,7 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
         an_ifc_decl_specialization stage_3_2;
         an_ifc_decl_index_0_41     stage_3_3;
         an_ifc_validation_trace    stage_3_3_trace =
-                                                {"decl", /*offset=*/4, parent};
+                                      {"decl", /*offset=*/4, &stage_3_0_trace};
         an_ifc_decl_index          stage_3_4;
 
         /* Copy the field (DeclDestructor::home_scope - DeclIndex) into version
@@ -56838,7 +56727,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       an_ifc_decl_index_0_33  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                          {"home_scope", /*offset=*/12, parent};
-      an_ifc_decl_index       stage_1;
 
       /* Copy the field (DeclDestructor::home_scope - DeclIndex) into version
          specific storage. */
@@ -56849,7 +56737,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(mod, stage_0);
     }  /* if */
   }  /* if */
   if (has_ifc_locus(mod, universal)) {
@@ -57048,26 +56935,18 @@ textual representation with the given indent.
     fprintf(f_debug, "  value: %ld\n", (uint64_t)field.value);
   }  /* if */
   if (has_ifc_properties(mod, universal)) {
-    an_ifc_reachable_properties_bitfield field =
-                                            get_ifc_properties(mod, universal);
-
     for (unsigned i = 0; i < indent; ++i) {
       fprintf(f_debug, "  ");
     }  /* for */
     fprintf(f_debug, "properties: UNIMPLEMENTED\n");
   }  /* if */
   if (has_ifc_specifiers(mod, universal)) {
-    an_ifc_basic_specifiers_bitfield field =
-                                            get_ifc_specifiers(mod, universal);
-
     for (unsigned i = 0; i < indent; ++i) {
       fprintf(f_debug, "  ");
     }  /* for */
     fprintf(f_debug, "specifiers: UNIMPLEMENTED\n");
   }  /* if */
   if (has_ifc_traits(mod, universal)) {
-    an_ifc_function_traits_bitfield field = get_ifc_traits(mod, universal);
-
     for (unsigned i = 0; i < indent; ++i) {
       fprintf(f_debug, "  ");
     }  /* for */
@@ -57928,7 +57807,6 @@ return FALSE.
   if (has_ifc_access(mod, universal)) {
     an_ifc_access_sort_0_33 stage_0;
     an_ifc_validation_trace stage_0_trace = {"access", /*offset=*/37, parent};
-    an_ifc_access_sort      stage_1;
 
     /* Copy the field (DeclEnumeration::access - AccessSort) into version
        specific storage. */
@@ -57939,13 +57817,11 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_sort(stage_0);
   }  /* if */
   if (has_ifc_alignment(mod, universal)) {
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace =
                                           {"alignment", /*offset=*/32, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (DeclEnumeration::alignment - ExprIndex) into version
        specific storage. */
@@ -57956,12 +57832,10 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_base(mod, universal)) {
     an_ifc_type_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"base", /*offset=*/16, parent};
-    an_ifc_type_index       stage_1;
 
     /* Copy the field (DeclEnumeration::base - TypeIndex) into version specific
        storage. */
@@ -57972,7 +57846,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_home_scope(mod, universal)) {
     if (is_at_least(mod, 0, 41)) {
@@ -58006,7 +57879,7 @@ return FALSE.
         an_ifc_decl_specialization stage_3_2;
         an_ifc_decl_index_0_41     stage_3_3;
         an_ifc_validation_trace    stage_3_3_trace =
-                                                {"decl", /*offset=*/4, parent};
+                                      {"decl", /*offset=*/4, &stage_3_0_trace};
         an_ifc_decl_index          stage_3_4;
 
         /* Copy the field (DeclEnumeration::home_scope - DeclIndex) into
@@ -58061,7 +57934,6 @@ return FALSE.
       an_ifc_decl_index_0_33  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                          {"home_scope", /*offset=*/28, parent};
-      an_ifc_decl_index       stage_1;
 
       /* Copy the field (DeclEnumeration::home_scope - DeclIndex) into version
          specific storage. */
@@ -58072,7 +57944,6 @@ return FALSE.
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(mod, stage_0);
     }  /* if */
   }  /* if */
   if (has_ifc_initializer(mod, universal)) {
@@ -58120,7 +57991,6 @@ return FALSE.
   if (has_ifc_type(mod, universal)) {
     an_ifc_type_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"type", /*offset=*/12, parent};
-    an_ifc_type_index       stage_1;
 
     /* Copy the field (DeclEnumeration::type - TypeIndex) into version specific
        storage. */
@@ -58131,7 +58001,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -58241,18 +58110,12 @@ textual representation with the given indent.
     fprintf(f_debug, "name: %ld\n", (uint64_t)field.value);
   }  /* if */
   if (has_ifc_properties(mod, universal)) {
-    an_ifc_reachable_properties_bitfield field =
-                                            get_ifc_properties(mod, universal);
-
     for (unsigned i = 0; i < indent; ++i) {
       fprintf(f_debug, "  ");
     }  /* for */
     fprintf(f_debug, "properties: UNIMPLEMENTED\n");
   }  /* if */
   if (has_ifc_specifiers(mod, universal)) {
-    an_ifc_basic_specifiers_bitfield field =
-                                            get_ifc_specifiers(mod, universal);
-
     for (unsigned i = 0; i < indent; ++i) {
       fprintf(f_debug, "  ");
     }  /* for */
@@ -58977,7 +58840,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
   if (has_ifc_access(mod, universal)) {
     an_ifc_access_sort_0_33 stage_0;
     an_ifc_validation_trace stage_0_trace = {"access", /*offset=*/21, parent};
-    an_ifc_access_sort      stage_1;
 
     /* Copy the field (DeclEnumerator::access - AccessSort) into version
        specific storage. */
@@ -58988,7 +58850,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_sort(stage_0);
   }  /* if */
   if (has_ifc_home_scope(mod, universal)) {
     if (is_at_least(mod, 0, 41)) {
@@ -58997,7 +58858,8 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       an_ifc_type_index       stage_1;
       an_ifc_type_designated  stage_2;
       an_ifc_decl_index_0_41  stage_3;
-      an_ifc_validation_trace stage_3_trace = {"decl", /*offset=*/0, parent};
+      an_ifc_validation_trace stage_3_trace =
+                                        {"decl", /*offset=*/0, &stage_0_trace};
       an_ifc_decl_index       stage_4;
       a_boolean               stage_5;
       an_ifc_decl_index       stage_6;
@@ -59043,12 +58905,12 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
         an_ifc_type_designated     stage_6_2;
         an_ifc_decl_index_0_41     stage_6_3;
         an_ifc_validation_trace    stage_6_3_trace =
-                                                {"decl", /*offset=*/0, parent};
+                                      {"decl", /*offset=*/0, &stage_6_0_trace};
         an_ifc_decl_index          stage_6_4;
         an_ifc_decl_specialization stage_6_5;
         an_ifc_decl_index_0_41     stage_6_6;
         an_ifc_validation_trace    stage_6_6_trace =
-                                        {"decl", /*offset=*/4, &stage_3_trace};
+                                      {"decl", /*offset=*/4, &stage_6_3_trace};
         an_ifc_decl_index          stage_6_7;
 
         /* Copy the field (DeclEnumerator::type - TypeIndex) into version
@@ -59108,7 +58970,7 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
         an_ifc_type_designated  stage_6_2;
         an_ifc_decl_index_0_41  stage_6_3;
         an_ifc_validation_trace stage_6_3_trace =
-                                                {"decl", /*offset=*/0, parent};
+                                      {"decl", /*offset=*/0, &stage_6_0_trace};
         an_ifc_decl_index       stage_6_4;
 
         /* Copy the field (DeclEnumerator::type - TypeIndex) into version
@@ -59148,8 +59010,8 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       an_ifc_type_index       stage_1;
       an_ifc_type_designated  stage_2;
       an_ifc_decl_index_0_33  stage_3;
-      an_ifc_validation_trace stage_3_trace = {"decl", /*offset=*/0, parent};
-      an_ifc_decl_index       stage_4;
+      an_ifc_validation_trace stage_3_trace =
+                                        {"decl", /*offset=*/0, &stage_0_trace};
 
       /* Copy the field (DeclEnumerator::type - TypeIndex) into version
          specific storage. */
@@ -59178,14 +59040,12 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
         result = FALSE;
         goto done;
       }  /* if */
-      stage_4 = to_universal_index(mod, stage_3);
     }  /* if */
   }  /* if */
   if (has_ifc_initializer(mod, universal)) {
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace =
                                         {"initializer", /*offset=*/16, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (DeclEnumerator::initializer - ExprIndex) into version
        specific storage. */
@@ -59196,7 +59056,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_locus(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -59222,7 +59081,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
   if (has_ifc_type(mod, universal)) {
     an_ifc_type_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"type", /*offset=*/12, parent};
-    an_ifc_type_index       stage_1;
 
     /* Copy the field (DeclEnumerator::type - TypeIndex) into version specific
        storage. */
@@ -59233,7 +59091,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -59318,9 +59175,6 @@ textual representation with the given indent.
     fprintf(f_debug, "name: %ld\n", (uint64_t)field.value);
   }  /* if */
   if (has_ifc_specifiers(mod, universal)) {
-    an_ifc_basic_specifiers_bitfield field =
-                                            get_ifc_specifiers(mod, universal);
-
     for (unsigned i = 0; i < indent; ++i) {
       fprintf(f_debug, "  ");
     }  /* for */
@@ -59632,7 +59486,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                              {"operand", /*offset=*/0, parent};
-      an_ifc_decl_index       stage_1;
 
       /* Copy the field (DeclExpansion::operand - DeclIndex) into version
          specific storage. */
@@ -59643,12 +59496,10 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(mod, stage_0);
     } else {
       an_ifc_decl_index_0_33  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                              {"operand", /*offset=*/0, parent};
-      an_ifc_decl_index       stage_1;
 
       /* Copy the field (DeclExpansion::operand - DeclIndex) into version
          specific storage. */
@@ -59659,7 +59510,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(mod, stage_0);
     }  /* if */
   }  /* if */
 done:
@@ -59969,7 +59819,6 @@ return FALSE.
   if (has_ifc_decl(mod, universal)) {
     an_ifc_decl_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"decl", /*offset=*/4, parent};
-    an_ifc_decl_index       stage_1;
 
     /* Copy the field (DeclExplicitInstantiation::decl - DeclIndex) into
        version specific storage. */
@@ -59980,7 +59829,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -60288,7 +60136,6 @@ return FALSE.
   if (has_ifc_decl(mod, universal)) {
     an_ifc_decl_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"decl", /*offset=*/4, parent};
-    an_ifc_decl_index       stage_1;
 
     /* Copy the field (DeclExplicitSpecialization::decl - DeclIndex) into
        version specific storage. */
@@ -60299,7 +60146,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -61175,7 +61021,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
   if (has_ifc_access(mod, universal)) {
     an_ifc_access_sort_0_33 stage_0;
     an_ifc_validation_trace stage_0_trace = {"access", /*offset=*/30, parent};
-    an_ifc_access_sort      stage_1;
 
     /* Copy the field (DeclField::access - AccessSort) into version specific
        storage. */
@@ -61186,13 +61031,11 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_sort(stage_0);
   }  /* if */
   if (has_ifc_alignment(mod, universal)) {
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace =
                                           {"alignment", /*offset=*/24, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (DeclField::alignment - ExprIndex) into version specific
        storage. */
@@ -61203,7 +61046,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_home_scope(mod, universal)) {
     if (is_at_least(mod, 0, 41)) {
@@ -61237,7 +61079,7 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
         an_ifc_decl_specialization stage_3_2;
         an_ifc_decl_index_0_41     stage_3_3;
         an_ifc_validation_trace    stage_3_3_trace =
-                                                {"decl", /*offset=*/4, parent};
+                                      {"decl", /*offset=*/4, &stage_3_0_trace};
         an_ifc_decl_index          stage_3_4;
 
         /* Copy the field (DeclField::home_scope - DeclIndex) into version
@@ -61292,7 +61134,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       an_ifc_decl_index_0_33  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                          {"home_scope", /*offset=*/16, parent};
-      an_ifc_decl_index       stage_1;
 
       /* Copy the field (DeclField::home_scope - DeclIndex) into version
          specific storage. */
@@ -61303,14 +61144,12 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(mod, stage_0);
     }  /* if */
   }  /* if */
   if (has_ifc_initializer(mod, universal)) {
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace =
                                         {"initializer", /*offset=*/20, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (DeclField::initializer - ExprIndex) into version
        specific storage. */
@@ -61321,7 +61160,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_locus(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -61347,7 +61185,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
   if (has_ifc_type(mod, universal)) {
     an_ifc_type_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"type", /*offset=*/12, parent};
-    an_ifc_type_index       stage_1;
 
     /* Copy the field (DeclField::type - TypeIndex) into version specific
        storage. */
@@ -61358,7 +61195,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -61459,26 +61295,18 @@ representation with the given indent.
     fprintf(f_debug, "name: %ld\n", (uint64_t)field.value);
   }  /* if */
   if (has_ifc_properties(mod, universal)) {
-    an_ifc_reachable_properties_bitfield field =
-                                            get_ifc_properties(mod, universal);
-
     for (unsigned i = 0; i < indent; ++i) {
       fprintf(f_debug, "  ");
     }  /* for */
     fprintf(f_debug, "properties: UNIMPLEMENTED\n");
   }  /* if */
   if (has_ifc_specifiers(mod, universal)) {
-    an_ifc_basic_specifiers_bitfield field =
-                                            get_ifc_specifiers(mod, universal);
-
     for (unsigned i = 0; i < indent; ++i) {
       fprintf(f_debug, "  ");
     }  /* for */
     fprintf(f_debug, "specifiers: UNIMPLEMENTED\n");
   }  /* if */
   if (has_ifc_traits(mod, universal)) {
-    an_ifc_object_traits_bitfield field = get_ifc_traits(mod, universal);
-
     for (unsigned i = 0; i < indent; ++i) {
       fprintf(f_debug, "  ");
     }  /* for */
@@ -61691,7 +61519,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
   if (has_ifc_entity(mod, universal)) {
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"entity", /*offset=*/0, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (DeclFriend::entity - ExprIndex) into version specific
        storage. */
@@ -61702,7 +61529,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -62501,7 +62327,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
   if (has_ifc_access(mod, universal)) {
     an_ifc_access_sort_0_33 stage_0;
     an_ifc_validation_trace stage_0_trace = {"access", /*offset=*/27, parent};
-    an_ifc_access_sort      stage_1;
 
     /* Copy the field (DeclFunction::access - AccessSort) into version specific
        storage. */
@@ -62512,12 +62337,10 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_sort(stage_0);
   }  /* if */
   if (has_ifc_chart(mod, universal)) {
     an_ifc_chart_index_0_33 stage_0;
     an_ifc_validation_trace stage_0_trace = {"chart", /*offset=*/20, parent};
-    an_ifc_chart_index      stage_1;
 
     /* Copy the field (DeclFunction::chart - ChartIndex) into version specific
        storage. */
@@ -62528,7 +62351,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_home_scope(mod, universal)) {
     if (is_at_least(mod, 0, 41)) {
@@ -62562,7 +62384,7 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
         an_ifc_decl_specialization stage_3_2;
         an_ifc_decl_index_0_41     stage_3_3;
         an_ifc_validation_trace    stage_3_3_trace =
-                                                {"decl", /*offset=*/4, parent};
+                                      {"decl", /*offset=*/4, &stage_3_0_trace};
         an_ifc_decl_index          stage_3_4;
 
         /* Copy the field (DeclFunction::home_scope - DeclIndex) into version
@@ -62617,7 +62439,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       an_ifc_decl_index_0_33  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                          {"home_scope", /*offset=*/16, parent};
-      an_ifc_decl_index       stage_1;
 
       /* Copy the field (DeclFunction::home_scope - DeclIndex) into version
          specific storage. */
@@ -62628,7 +62449,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(mod, stage_0);
     }  /* if */
   }  /* if */
   if (has_ifc_locus(mod, universal)) {
@@ -62655,7 +62475,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
   if (has_ifc_name(mod, universal)) {
     an_ifc_name_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"name", /*offset=*/0, parent};
-    an_ifc_name_index       stage_1;
 
     /* Copy the field (DeclFunction::name - NameIndex) into version specific
        storage. */
@@ -62666,12 +62485,10 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_type(mod, universal)) {
     an_ifc_type_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"type", /*offset=*/12, parent};
-    an_ifc_type_index       stage_1;
 
     /* Copy the field (DeclFunction::type - TypeIndex) into version specific
        storage. */
@@ -62682,7 +62499,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -62775,26 +62591,18 @@ representation with the given indent.
     fprintf(f_debug, "  value: %ld\n", (uint64_t)field.value);
   }  /* if */
   if (has_ifc_properties(mod, universal)) {
-    an_ifc_reachable_properties_bitfield field =
-                                            get_ifc_properties(mod, universal);
-
     for (unsigned i = 0; i < indent; ++i) {
       fprintf(f_debug, "  ");
     }  /* for */
     fprintf(f_debug, "properties: UNIMPLEMENTED\n");
   }  /* if */
   if (has_ifc_specifiers(mod, universal)) {
-    an_ifc_basic_specifiers_bitfield field =
-                                            get_ifc_specifiers(mod, universal);
-
     for (unsigned i = 0; i < indent; ++i) {
       fprintf(f_debug, "  ");
     }  /* for */
     fprintf(f_debug, "specifiers: UNIMPLEMENTED\n");
   }  /* if */
   if (has_ifc_traits(mod, universal)) {
-    an_ifc_function_traits_bitfield field = get_ifc_traits(mod, universal);
-
     for (unsigned i = 0; i < indent; ++i) {
       fprintf(f_debug, "  ");
     }  /* for */
@@ -63627,7 +63435,6 @@ return FALSE.
   if (has_ifc_access(mod, universal)) {
     an_ifc_access_sort_0_33 stage_0;
     an_ifc_validation_trace stage_0_trace = {"access", /*offset=*/27, parent};
-    an_ifc_access_sort      stage_1;
 
     /* Copy the field (DeclInheritedConstructor::access - AccessSort) into
        version specific storage. */
@@ -63638,14 +63445,12 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_sort(stage_0);
   }  /* if */
   if (has_ifc_base_ctor(mod, universal)) {
     if (is_at_least(mod, 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                           {"base_ctor", /*offset=*/28, parent};
-      an_ifc_decl_index       stage_1;
 
       /* Copy the field (DeclInheritedConstructor::base_ctor - DeclIndex) into
          version specific storage. */
@@ -63656,12 +63461,10 @@ return FALSE.
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(mod, stage_0);
     } else {
       an_ifc_decl_index_0_33  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                           {"base_ctor", /*offset=*/28, parent};
-      an_ifc_decl_index       stage_1;
 
       /* Copy the field (DeclInheritedConstructor::base_ctor - DeclIndex) into
          version specific storage. */
@@ -63672,13 +63475,11 @@ return FALSE.
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(mod, stage_0);
     }  /* if */
   }  /* if */
   if (has_ifc_chart(mod, universal)) {
     an_ifc_chart_index_0_33 stage_0;
     an_ifc_validation_trace stage_0_trace = {"chart", /*offset=*/20, parent};
-    an_ifc_chart_index      stage_1;
 
     /* Copy the field (DeclInheritedConstructor::chart - ChartIndex) into
        version specific storage. */
@@ -63689,7 +63490,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_home_scope(mod, universal)) {
     if (is_at_least(mod, 0, 41)) {
@@ -63723,7 +63523,7 @@ return FALSE.
         an_ifc_decl_specialization stage_3_2;
         an_ifc_decl_index_0_41     stage_3_3;
         an_ifc_validation_trace    stage_3_3_trace =
-                                                {"decl", /*offset=*/4, parent};
+                                      {"decl", /*offset=*/4, &stage_3_0_trace};
         an_ifc_decl_index          stage_3_4;
 
         /* Copy the field (DeclInheritedConstructor::home_scope - DeclIndex)
@@ -63778,7 +63578,6 @@ return FALSE.
       an_ifc_decl_index_0_33  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                          {"home_scope", /*offset=*/16, parent};
-      an_ifc_decl_index       stage_1;
 
       /* Copy the field (DeclInheritedConstructor::home_scope - DeclIndex) into
          version specific storage. */
@@ -63789,7 +63588,6 @@ return FALSE.
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(mod, stage_0);
     }  /* if */
   }  /* if */
   if (has_ifc_locus(mod, universal)) {
@@ -63816,7 +63614,6 @@ return FALSE.
   if (has_ifc_type(mod, universal)) {
     an_ifc_type_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"type", /*offset=*/12, parent};
-    an_ifc_type_index       stage_1;
 
     /* Copy the field (DeclInheritedConstructor::type - TypeIndex) into version
        specific storage. */
@@ -63827,7 +63624,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -63928,17 +63724,12 @@ diagnostic textual representation with the given indent.
     fprintf(f_debug, "name: %ld\n", (uint64_t)field.value);
   }  /* if */
   if (has_ifc_specifiers(mod, universal)) {
-    an_ifc_basic_specifiers_bitfield field =
-                                            get_ifc_specifiers(mod, universal);
-
     for (unsigned i = 0; i < indent; ++i) {
       fprintf(f_debug, "  ");
     }  /* for */
     fprintf(f_debug, "specifiers: UNIMPLEMENTED\n");
   }  /* if */
   if (has_ifc_traits(mod, universal)) {
-    an_ifc_function_traits_bitfield field = get_ifc_traits(mod, universal);
-
     for (unsigned i = 0; i < indent; ++i) {
       fprintf(f_debug, "  ");
     }  /* for */
@@ -64542,7 +64333,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
   if (has_ifc_access(mod, universal)) {
     an_ifc_access_sort_0_33 stage_0;
     an_ifc_validation_trace stage_0_trace = {"access", /*offset=*/21, parent};
-    an_ifc_access_sort      stage_1;
 
     /* Copy the field (DeclIntrinsic::access - AccessSort) into version
        specific storage. */
@@ -64553,7 +64343,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_sort(stage_0);
   }  /* if */
   if (has_ifc_home_scope(mod, universal)) {
     if (is_at_least(mod, 0, 41)) {
@@ -64587,7 +64376,7 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
         an_ifc_decl_specialization stage_3_2;
         an_ifc_decl_index_0_41     stage_3_3;
         an_ifc_validation_trace    stage_3_3_trace =
-                                                {"decl", /*offset=*/4, parent};
+                                      {"decl", /*offset=*/4, &stage_3_0_trace};
         an_ifc_decl_index          stage_3_4;
 
         /* Copy the field (DeclIntrinsic::home_scope - DeclIndex) into version
@@ -64642,7 +64431,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       an_ifc_decl_index_0_33  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                          {"home_scope", /*offset=*/16, parent};
-      an_ifc_decl_index       stage_1;
 
       /* Copy the field (DeclIntrinsic::home_scope - DeclIndex) into version
          specific storage. */
@@ -64653,7 +64441,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(mod, stage_0);
     }  /* if */
   }  /* if */
   if (has_ifc_locus(mod, universal)) {
@@ -64680,7 +64467,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
   if (has_ifc_type(mod, universal)) {
     an_ifc_type_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"type", /*offset=*/12, parent};
-    an_ifc_type_index       stage_1;
 
     /* Copy the field (DeclIntrinsic::type - TypeIndex) into version specific
        storage. */
@@ -64691,7 +64477,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -64760,9 +64545,6 @@ representation with the given indent.
     fprintf(f_debug, "name: %ld\n", (uint64_t)field.value);
   }  /* if */
   if (has_ifc_specifiers(mod, universal)) {
-    an_ifc_basic_specifiers_bitfield field =
-                                            get_ifc_specifiers(mod, universal);
-
     for (unsigned i = 0; i < indent; ++i) {
       fprintf(f_debug, "  ");
     }  /* for */
@@ -65552,7 +65334,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
   if (has_ifc_access(mod, universal)) {
     an_ifc_access_sort_0_33 stage_0;
     an_ifc_validation_trace stage_0_trace = {"access", /*offset=*/27, parent};
-    an_ifc_access_sort      stage_1;
 
     /* Copy the field (DeclMethod::access - AccessSort) into version specific
        storage. */
@@ -65563,12 +65344,10 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_sort(stage_0);
   }  /* if */
   if (has_ifc_chart(mod, universal)) {
     an_ifc_chart_index_0_33 stage_0;
     an_ifc_validation_trace stage_0_trace = {"chart", /*offset=*/20, parent};
-    an_ifc_chart_index      stage_1;
 
     /* Copy the field (DeclMethod::chart - ChartIndex) into version specific
        storage. */
@@ -65579,7 +65358,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_home_scope(mod, universal)) {
     if (is_at_least(mod, 0, 41)) {
@@ -65613,7 +65391,7 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
         an_ifc_decl_specialization stage_3_2;
         an_ifc_decl_index_0_41     stage_3_3;
         an_ifc_validation_trace    stage_3_3_trace =
-                                                {"decl", /*offset=*/4, parent};
+                                      {"decl", /*offset=*/4, &stage_3_0_trace};
         an_ifc_decl_index          stage_3_4;
 
         /* Copy the field (DeclMethod::home_scope - DeclIndex) into version
@@ -65668,7 +65446,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       an_ifc_decl_index_0_33  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                          {"home_scope", /*offset=*/16, parent};
-      an_ifc_decl_index       stage_1;
 
       /* Copy the field (DeclMethod::home_scope - DeclIndex) into version
          specific storage. */
@@ -65679,7 +65456,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(mod, stage_0);
     }  /* if */
   }  /* if */
   if (has_ifc_locus(mod, universal)) {
@@ -65706,7 +65482,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
   if (has_ifc_name(mod, universal)) {
     an_ifc_name_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"name", /*offset=*/0, parent};
-    an_ifc_name_index       stage_1;
 
     /* Copy the field (DeclMethod::name - NameIndex) into version specific
        storage. */
@@ -65717,12 +65492,10 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_type(mod, universal)) {
     an_ifc_type_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"type", /*offset=*/12, parent};
-    an_ifc_type_index       stage_1;
 
     /* Copy the field (DeclMethod::type - TypeIndex) into version specific
        storage. */
@@ -65733,7 +65506,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -65826,26 +65598,18 @@ representation with the given indent.
     fprintf(f_debug, "  value: %ld\n", (uint64_t)field.value);
   }  /* if */
   if (has_ifc_properties(mod, universal)) {
-    an_ifc_reachable_properties_bitfield field =
-                                            get_ifc_properties(mod, universal);
-
     for (unsigned i = 0; i < indent; ++i) {
       fprintf(f_debug, "  ");
     }  /* for */
     fprintf(f_debug, "properties: UNIMPLEMENTED\n");
   }  /* if */
   if (has_ifc_specifiers(mod, universal)) {
-    an_ifc_basic_specifiers_bitfield field =
-                                            get_ifc_specifiers(mod, universal);
-
     for (unsigned i = 0; i < indent; ++i) {
       fprintf(f_debug, "  ");
     }  /* for */
     fprintf(f_debug, "specifiers: UNIMPLEMENTED\n");
   }  /* if */
   if (has_ifc_traits(mod, universal)) {
-    an_ifc_function_traits_bitfield field = get_ifc_traits(mod, universal);
-
     for (unsigned i = 0; i < indent; ++i) {
       fprintf(f_debug, "  ");
     }  /* for */
@@ -67113,7 +66877,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace =
                                          {"constraint", /*offset=*/16, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (DeclParameter::constraint - ExprIndex) into version
        specific storage. */
@@ -67124,13 +66887,11 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_initializer(mod, universal)) {
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace =
                                         {"initializer", /*offset=*/20, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (DeclParameter::initializer - ExprIndex) into version
        specific storage. */
@@ -67141,7 +66902,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_locus(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -67167,7 +66927,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
   if (has_ifc_sort(mod, universal)) {
     an_ifc_parameter_sort_0_33 stage_0;
     an_ifc_validation_trace    stage_0_trace = {"sort", /*offset=*/32, parent};
-    an_ifc_parameter_sort      stage_1;
 
     /* Copy the field (DeclParameter::sort - ParameterSort) into version
        specific storage. */
@@ -67178,12 +66937,10 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_sort(stage_0);
   }  /* if */
   if (has_ifc_type(mod, universal)) {
     an_ifc_type_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"type", /*offset=*/12, parent};
-    an_ifc_type_index       stage_1;
 
     /* Copy the field (DeclParameter::type - TypeIndex) into version specific
        storage. */
@@ -67194,7 +66951,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -67295,9 +67051,6 @@ representation with the given indent.
     fprintf(f_debug, "position: %ld\n", (uint64_t)field.value);
   }  /* if */
   if (has_ifc_properties(mod, universal)) {
-    an_ifc_reachable_properties_bitfield field =
-                                            get_ifc_properties(mod, universal);
-
     for (unsigned i = 0; i < indent; ++i) {
       fprintf(f_debug, "  ");
     }  /* for */
@@ -68158,7 +67911,6 @@ return FALSE.
   if (has_ifc_access(mod, universal)) {
     an_ifc_access_sort_0_33 stage_0;
     an_ifc_validation_trace stage_0_trace = {"access", /*offset=*/41, parent};
-    an_ifc_access_sort      stage_1;
 
     /* Copy the field (DeclPartialSpecialization::access - AccessSort) into
        version specific storage. */
@@ -68169,12 +67921,10 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_sort(stage_0);
   }  /* if */
   if (has_ifc_chart(mod, universal)) {
     an_ifc_chart_index_0_33 stage_0;
     an_ifc_validation_trace stage_0_trace = {"chart", /*offset=*/16, parent};
-    an_ifc_chart_index      stage_1;
 
     /* Copy the field (DeclPartialSpecialization::chart - ChartIndex) into
        version specific storage. */
@@ -68185,7 +67935,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_entity(mod, universal)) {
     an_ifc_parameterized_entity_bytes stage_0;
@@ -68216,7 +67965,7 @@ return FALSE.
       an_ifc_parameterized_entity       stage_1;
       an_ifc_decl_index_0_41            stage_2;
       an_ifc_validation_trace           stage_2_trace =
-                                                {"decl", /*offset=*/0, parent};
+                                        {"decl", /*offset=*/0, &stage_0_trace};
       an_ifc_decl_index                 stage_3;
       an_ifc_decl_index                 stage_4;
 
@@ -68260,7 +68009,7 @@ return FALSE.
       an_ifc_parameterized_entity       stage_1;
       an_ifc_decl_index_0_33            stage_2;
       an_ifc_validation_trace           stage_2_trace =
-                                                {"decl", /*offset=*/0, parent};
+                                        {"decl", /*offset=*/0, &stage_0_trace};
       an_ifc_decl_index                 stage_3;
       an_ifc_decl_index                 stage_4;
 
@@ -68329,7 +68078,7 @@ return FALSE.
       an_ifc_form_spec            stage_2;
       an_ifc_decl_index_0_41      stage_3;
       an_ifc_validation_trace     stage_3_trace =
-                                    {"primary_template", /*offset=*/0, parent};
+                            {"primary_template", /*offset=*/0, &stage_0_trace};
       an_ifc_decl_index           stage_4;
       an_ifc_name_index           stage_5;
 
@@ -68370,7 +68119,7 @@ return FALSE.
       an_ifc_form_spec            stage_2;
       an_ifc_decl_index_0_33      stage_3;
       an_ifc_validation_trace     stage_3_trace =
-                                    {"primary_template", /*offset=*/0, parent};
+                            {"primary_template", /*offset=*/0, &stage_0_trace};
       an_ifc_decl_index           stage_4;
       an_ifc_name_index           stage_5;
 
@@ -68513,18 +68262,12 @@ diagnostic textual representation with the given indent.
     fprintf(f_debug, "  value: %ld\n", (uint64_t)field.value);
   }  /* if */
   if (has_ifc_properties(mod, universal)) {
-    an_ifc_reachable_properties_bitfield field =
-                                            get_ifc_properties(mod, universal);
-
     for (unsigned i = 0; i < indent; ++i) {
       fprintf(f_debug, "  ");
     }  /* for */
     fprintf(f_debug, "properties: UNIMPLEMENTED\n");
   }  /* if */
   if (has_ifc_specifiers(mod, universal)) {
-    an_ifc_basic_specifiers_bitfield field =
-                                            get_ifc_specifiers(mod, universal);
-
     for (unsigned i = 0; i < indent; ++i) {
       fprintf(f_debug, "  ");
     }  /* for */
@@ -68879,7 +68622,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
     if (is_at_least(mod, 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace = {"member", /*offset=*/0, parent};
-      an_ifc_decl_index       stage_1;
 
       /* Copy the field (DeclProperty::member - DeclIndex) into version
          specific storage. */
@@ -68890,11 +68632,9 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(mod, stage_0);
     } else {
       an_ifc_decl_index_0_33  stage_0;
       an_ifc_validation_trace stage_0_trace = {"member", /*offset=*/0, parent};
-      an_ifc_decl_index       stage_1;
 
       /* Copy the field (DeclProperty::member - DeclIndex) into version
          specific storage. */
@@ -68905,7 +68645,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(mod, stage_0);
     }  /* if */
   }  /* if */
 done:
@@ -69398,8 +69137,6 @@ representation with the given indent.
     fprintf(f_debug, "  value: %ld\n", (uint64_t)field.value);
   }  /* if */
   if (has_ifc_local_index(mod, universal)) {
-    an_ifc_decl_foreign_index field = get_ifc_local_index(mod, universal);
-
     for (unsigned i = 0; i < indent; ++i) {
       fprintf(f_debug, "  ");
     }  /* for */
@@ -70369,7 +70106,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
   if (has_ifc_access(mod, universal)) {
     an_ifc_access_sort_0_33 stage_0;
     an_ifc_validation_trace stage_0_trace = {"access", /*offset=*/36, parent};
-    an_ifc_access_sort      stage_1;
 
     /* Copy the field (DeclScope::access - AccessSort) into version specific
        storage. */
@@ -70380,13 +70116,11 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_sort(stage_0);
   }  /* if */
   if (has_ifc_alignment(mod, universal)) {
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace =
                                           {"alignment", /*offset=*/28, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (DeclScope::alignment - ExprIndex) into version specific
        storage. */
@@ -70397,12 +70131,10 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_base(mod, universal)) {
     an_ifc_type_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"base", /*offset=*/16, parent};
-    an_ifc_type_index       stage_1;
 
     /* Copy the field (DeclScope::base - TypeIndex) into version specific
        storage. */
@@ -70413,7 +70145,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_home_scope(mod, universal)) {
     if (is_at_least(mod, 0, 41)) {
@@ -70447,7 +70178,7 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
         an_ifc_decl_specialization stage_3_2;
         an_ifc_decl_index_0_41     stage_3_3;
         an_ifc_validation_trace    stage_3_3_trace =
-                                                {"decl", /*offset=*/4, parent};
+                                      {"decl", /*offset=*/4, &stage_3_0_trace};
         an_ifc_decl_index          stage_3_4;
 
         /* Copy the field (DeclScope::home_scope - DeclIndex) into version
@@ -70502,7 +70233,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       an_ifc_decl_index_0_33  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                          {"home_scope", /*offset=*/24, parent};
-      an_ifc_decl_index       stage_1;
 
       /* Copy the field (DeclScope::home_scope - DeclIndex) into version
          specific storage. */
@@ -70513,7 +70243,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(mod, stage_0);
     }  /* if */
   }  /* if */
   if (has_ifc_locus(mod, universal)) {
@@ -70540,7 +70269,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
   if (has_ifc_name(mod, universal)) {
     an_ifc_name_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"name", /*offset=*/0, parent};
-    an_ifc_name_index       stage_1;
 
     /* Copy the field (DeclScope::name - NameIndex) into version specific
        storage. */
@@ -70551,12 +70279,10 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_type(mod, universal)) {
     an_ifc_type_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"type", /*offset=*/12, parent};
-    an_ifc_type_index       stage_1;
 
     /* Copy the field (DeclScope::type - TypeIndex) into version specific
        storage. */
@@ -70567,7 +70293,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -70692,26 +70417,18 @@ representation with the given indent.
     fprintf(f_debug, "pack_size: %ld\n", (uint64_t)field.value);
   }  /* if */
   if (has_ifc_properties(mod, universal)) {
-    an_ifc_reachable_properties_bitfield field =
-                                            get_ifc_properties(mod, universal);
-
     for (unsigned i = 0; i < indent; ++i) {
       fprintf(f_debug, "  ");
     }  /* for */
     fprintf(f_debug, "properties: UNIMPLEMENTED\n");
   }  /* if */
   if (has_ifc_specifiers(mod, universal)) {
-    an_ifc_basic_specifiers_bitfield field =
-                                            get_ifc_specifiers(mod, universal);
-
     for (unsigned i = 0; i < indent; ++i) {
       fprintf(f_debug, "  ");
     }  /* for */
     fprintf(f_debug, "specifiers: UNIMPLEMENTED\n");
   }  /* if */
   if (has_ifc_traits(mod, universal)) {
-    an_ifc_scope_traits_bitfield field = get_ifc_traits(mod, universal);
-
     for (unsigned i = 0; i < indent; ++i) {
       fprintf(f_debug, "  ");
     }  /* for */
@@ -71278,7 +70995,6 @@ return FALSE.
   if (has_ifc_decl(mod, universal)) {
     an_ifc_decl_index_0_41  stage_0;
     an_ifc_validation_trace stage_0_trace = {"decl", /*offset=*/4, parent};
-    an_ifc_decl_index       stage_1;
 
     /* Copy the field (DeclSpecialization::decl - DeclIndex) into version
        specific storage. */
@@ -71289,7 +71005,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_home_scope(mod, universal)) {
     an_ifc_decl_index_0_41  stage_0;
@@ -71350,7 +71065,7 @@ return FALSE.
     an_ifc_form_spec            stage_2;
     an_ifc_decl_index_0_41      stage_3;
     an_ifc_validation_trace     stage_3_trace =
-                                    {"primary_template", /*offset=*/0, parent};
+                            {"primary_template", /*offset=*/0, &stage_0_trace};
     an_ifc_decl_index           stage_4;
     an_ifc_name_index           stage_5;
 
@@ -71388,7 +71103,6 @@ return FALSE.
     an_ifc_specialization_sort_0_33 stage_0;
     an_ifc_validation_trace         stage_0_trace =
                                                 {"sort", /*offset=*/8, parent};
-    an_ifc_specialization_sort      stage_1;
 
     /* Copy the field (DeclSpecialization::sort - SpecializationSort) into
        version specific storage. */
@@ -71399,7 +71113,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_sort(stage_0);
   }  /* if */
 done:
   return result;
@@ -72387,7 +72100,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
   if (has_ifc_access(mod, universal)) {
     an_ifc_access_sort_0_33 stage_0;
     an_ifc_validation_trace stage_0_trace = {"access", /*offset=*/41, parent};
-    an_ifc_access_sort      stage_1;
 
     /* Copy the field (DeclTemplate::access - AccessSort) into version specific
        storage. */
@@ -72398,12 +72110,10 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_sort(stage_0);
   }  /* if */
   if (has_ifc_chart(mod, universal)) {
     an_ifc_chart_index_0_33 stage_0;
     an_ifc_validation_trace stage_0_trace = {"chart", /*offset=*/16, parent};
-    an_ifc_chart_index      stage_1;
 
     /* Copy the field (DeclTemplate::chart - ChartIndex) into version specific
        storage. */
@@ -72414,7 +72124,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_entity(mod, universal)) {
     an_ifc_parameterized_entity_bytes stage_0;
@@ -72469,7 +72178,7 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
         an_ifc_decl_specialization stage_3_2;
         an_ifc_decl_index_0_41     stage_3_3;
         an_ifc_validation_trace    stage_3_3_trace =
-                                                {"decl", /*offset=*/4, parent};
+                                      {"decl", /*offset=*/4, &stage_3_0_trace};
         an_ifc_decl_index          stage_3_4;
 
         /* Copy the field (DeclTemplate::home_scope - DeclIndex) into version
@@ -72524,7 +72233,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       an_ifc_decl_index_0_33  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                          {"home_scope", /*offset=*/12, parent};
-      an_ifc_decl_index       stage_1;
 
       /* Copy the field (DeclTemplate::home_scope - DeclIndex) into version
          specific storage. */
@@ -72535,7 +72243,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(mod, stage_0);
     }  /* if */
   }  /* if */
   if (has_ifc_locus(mod, universal)) {
@@ -72567,7 +72274,7 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       an_ifc_parameterized_entity       stage_1;
       an_ifc_decl_index_0_41            stage_2;
       an_ifc_validation_trace           stage_2_trace =
-                                                {"decl", /*offset=*/0, parent};
+                                        {"decl", /*offset=*/0, &stage_0_trace};
       an_ifc_decl_index                 stage_3;
       a_boolean                         stage_4;
       an_ifc_name_index                 stage_5;
@@ -72610,7 +72317,7 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
         an_ifc_parameterized_entity       stage_5_1;
         an_ifc_decl_index_0_41            stage_5_2;
         an_ifc_validation_trace           stage_5_2_trace =
-                                                {"decl", /*offset=*/0, parent};
+                                      {"decl", /*offset=*/0, &stage_5_0_trace};
         an_ifc_decl_index                 stage_5_3;
         an_ifc_name_index                 stage_5_4;
 
@@ -72624,7 +72331,7 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
         copy_ifc_field(&stage_5_0, universal, /*offset=*/20, /*size=*/16);
 #endif /* USE_MMAP_FOR_MODULES */
         stage_5_1 = {mod, stage_5_0};
-        if (!validate(stage_5_1, &stage_0_trace)) {
+        if (!validate(stage_5_1, &stage_5_0_trace)) {
           result = FALSE;
           goto done;
         }  /* if */
@@ -72673,7 +72380,7 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       an_ifc_parameterized_entity       stage_1;
       an_ifc_decl_index_0_33            stage_2;
       an_ifc_validation_trace           stage_2_trace =
-                                                {"decl", /*offset=*/0, parent};
+                                        {"decl", /*offset=*/0, &stage_0_trace};
       an_ifc_decl_index                 stage_3;
       a_boolean                         stage_4;
       an_ifc_name_index                 stage_5;
@@ -72716,7 +72423,7 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
         an_ifc_parameterized_entity       stage_5_1;
         an_ifc_decl_index_0_33            stage_5_2;
         an_ifc_validation_trace           stage_5_2_trace =
-                                                {"decl", /*offset=*/0, parent};
+                                      {"decl", /*offset=*/0, &stage_5_0_trace};
         an_ifc_decl_index                 stage_5_3;
         an_ifc_name_index                 stage_5_4;
 
@@ -72730,7 +72437,7 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
         copy_ifc_field(&stage_5_0, universal, /*offset=*/20, /*size=*/16);
 #endif /* USE_MMAP_FOR_MODULES */
         stage_5_1 = {mod, stage_5_0};
-        if (!validate(stage_5_1, &stage_0_trace)) {
+        if (!validate(stage_5_1, &stage_5_0_trace)) {
           result = FALSE;
           goto done;
         }  /* if */
@@ -72777,7 +72484,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
   if (has_ifc_type(mod, universal)) {
     an_ifc_type_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"type", /*offset=*/36, parent};
-    an_ifc_type_index       stage_1;
 
     /* Copy the field (DeclTemplate::type - TypeIndex) into version specific
        storage. */
@@ -72788,7 +72494,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -72890,18 +72595,12 @@ representation with the given indent.
     fprintf(f_debug, "  value: %ld\n", (uint64_t)field.value);
   }  /* if */
   if (has_ifc_properties(mod, universal)) {
-    an_ifc_reachable_properties_bitfield field =
-                                            get_ifc_properties(mod, universal);
-
     for (unsigned i = 0; i < indent; ++i) {
       fprintf(f_debug, "  ");
     }  /* for */
     fprintf(f_debug, "properties: UNIMPLEMENTED\n");
   }  /* if */
   if (has_ifc_specifiers(mod, universal)) {
-    an_ifc_basic_specifiers_bitfield field =
-                                            get_ifc_specifiers(mod, universal);
-
     for (unsigned i = 0; i < indent; ++i) {
       fprintf(f_debug, "  ");
     }  /* for */
@@ -73257,7 +72956,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
   if (has_ifc_chart(mod, universal)) {
     an_ifc_chart_index_0_33 stage_0;
     an_ifc_validation_trace stage_0_trace = {"chart", /*offset=*/16, parent};
-    an_ifc_chart_index      stage_1;
 
     /* Copy the field (DeclTemploid::chart - ChartIndex) into version specific
        storage. */
@@ -73268,7 +72966,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_entity(mod, universal)) {
     an_ifc_parameterized_entity_bytes stage_0;
@@ -73342,9 +73039,6 @@ representation with the given indent.
     db_node(field.get_module(), field.get_storage(), indent + 1);
   }  /* if */
   if (has_ifc_properties(mod, universal)) {
-    an_ifc_reachable_properties_bitfield field =
-                                            get_ifc_properties(mod, universal);
-
     for (unsigned i = 0; i < indent; ++i) {
       fprintf(f_debug, "  ");
     }  /* for */
@@ -74438,7 +74132,6 @@ return FALSE.
   if (has_ifc_access(mod, universal)) {
     an_ifc_access_sort_0_33 stage_0;
     an_ifc_validation_trace stage_0_trace = {"access", /*offset=*/29, parent};
-    an_ifc_access_sort      stage_1;
 
     /* Copy the field (DeclUsingDeclaration::access - AccessSort) into version
        specific storage. */
@@ -74449,7 +74142,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_sort(stage_0);
   }  /* if */
   if (has_ifc_home_scope(mod, universal)) {
     if (is_at_least(mod, 0, 41)) {
@@ -74483,7 +74175,7 @@ return FALSE.
         an_ifc_decl_specialization stage_3_2;
         an_ifc_decl_index_0_41     stage_3_3;
         an_ifc_validation_trace    stage_3_3_trace =
-                                                {"decl", /*offset=*/4, parent};
+                                      {"decl", /*offset=*/4, &stage_3_0_trace};
         an_ifc_decl_index          stage_3_4;
 
         /* Copy the field (DeclUsingDeclaration::home_scope - DeclIndex) into
@@ -74538,7 +74230,6 @@ return FALSE.
       an_ifc_decl_index_0_33  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                          {"home_scope", /*offset=*/12, parent};
-      an_ifc_decl_index       stage_1;
 
       /* Copy the field (DeclUsingDeclaration::home_scope - DeclIndex) into
          version specific storage. */
@@ -74549,7 +74240,6 @@ return FALSE.
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(mod, stage_0);
     }  /* if */
   }  /* if */
   if (has_ifc_locus(mod, universal)) {
@@ -74576,7 +74266,6 @@ return FALSE.
   if (has_ifc_parent(mod, universal)) {
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"parent", /*offset=*/20, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (DeclUsingDeclaration::parent - ExprIndex) into version
        specific storage. */
@@ -74587,14 +74276,12 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_resolution(mod, universal)) {
     if (is_at_least(mod, 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                          {"resolution", /*offset=*/16, parent};
-      an_ifc_decl_index       stage_1;
 
       /* Copy the field (DeclUsingDeclaration::resolution - DeclIndex) into
          version specific storage. */
@@ -74605,12 +74292,10 @@ return FALSE.
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(mod, stage_0);
     } else {
       an_ifc_decl_index_0_33  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                          {"resolution", /*offset=*/16, parent};
-      an_ifc_decl_index       stage_1;
 
       /* Copy the field (DeclUsingDeclaration::resolution - DeclIndex) into
          version specific storage. */
@@ -74621,7 +74306,6 @@ return FALSE.
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(mod, stage_0);
     }  /* if */
   }  /* if */
 done:
@@ -74739,9 +74423,6 @@ textual representation with the given indent.
     fprintf(f_debug, "  value: %ld\n", (uint64_t)field.value);
   }  /* if */
   if (has_ifc_specifiers(mod, universal)) {
-    an_ifc_basic_specifiers_bitfield field =
-                                            get_ifc_specifiers(mod, universal);
-
     for (unsigned i = 0; i < indent; ++i) {
       fprintf(f_debug, "  ");
     }  /* for */
@@ -75588,7 +75269,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
   if (has_ifc_access(mod, universal)) {
     an_ifc_access_sort_0_33 stage_0;
     an_ifc_validation_trace stage_0_trace = {"access", /*offset=*/30, parent};
-    an_ifc_access_sort      stage_1;
 
     /* Copy the field (DeclVariable::access - AccessSort) into version specific
        storage. */
@@ -75599,13 +75279,11 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_sort(stage_0);
   }  /* if */
   if (has_ifc_alignment(mod, universal)) {
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace =
                                           {"alignment", /*offset=*/24, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (DeclVariable::alignment - ExprIndex) into version
        specific storage. */
@@ -75616,7 +75294,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_home_scope(mod, universal)) {
     if (is_at_least(mod, 0, 41)) {
@@ -75650,7 +75327,7 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
         an_ifc_decl_specialization stage_3_2;
         an_ifc_decl_index_0_41     stage_3_3;
         an_ifc_validation_trace    stage_3_3_trace =
-                                                {"decl", /*offset=*/4, parent};
+                                      {"decl", /*offset=*/4, &stage_3_0_trace};
         an_ifc_decl_index          stage_3_4;
 
         /* Copy the field (DeclVariable::home_scope - DeclIndex) into version
@@ -75705,7 +75382,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       an_ifc_decl_index_0_33  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                          {"home_scope", /*offset=*/16, parent};
-      an_ifc_decl_index       stage_1;
 
       /* Copy the field (DeclVariable::home_scope - DeclIndex) into version
          specific storage. */
@@ -75716,14 +75392,12 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(mod, stage_0);
     }  /* if */
   }  /* if */
   if (has_ifc_initializer(mod, universal)) {
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace =
                                         {"initializer", /*offset=*/20, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (DeclVariable::initializer - ExprIndex) into version
        specific storage. */
@@ -75734,7 +75408,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_locus(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -75760,7 +75433,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
   if (has_ifc_name(mod, universal)) {
     an_ifc_name_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"name", /*offset=*/0, parent};
-    an_ifc_name_index       stage_1;
 
     /* Copy the field (DeclVariable::name - NameIndex) into version specific
        storage. */
@@ -75771,12 +75443,10 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_type(mod, universal)) {
     an_ifc_type_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"type", /*offset=*/12, parent};
-    an_ifc_type_index       stage_1;
 
     /* Copy the field (DeclVariable::type - TypeIndex) into version specific
        storage. */
@@ -75787,7 +75457,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -75896,26 +75565,18 @@ representation with the given indent.
     fprintf(f_debug, "  value: %ld\n", (uint64_t)field.value);
   }  /* if */
   if (has_ifc_properties(mod, universal)) {
-    an_ifc_reachable_properties_bitfield field =
-                                            get_ifc_properties(mod, universal);
-
     for (unsigned i = 0; i < indent; ++i) {
       fprintf(f_debug, "  ");
     }  /* for */
     fprintf(f_debug, "properties: UNIMPLEMENTED\n");
   }  /* if */
   if (has_ifc_specifiers(mod, universal)) {
-    an_ifc_basic_specifiers_bitfield field =
-                                            get_ifc_specifiers(mod, universal);
-
     for (unsigned i = 0; i < indent; ++i) {
       fprintf(f_debug, "  ");
     }  /* for */
     fprintf(f_debug, "specifiers: UNIMPLEMENTED\n");
   }  /* if */
   if (has_ifc_traits(mod, universal)) {
-    an_ifc_object_traits_bitfield field = get_ifc_traits(mod, universal);
-
     for (unsigned i = 0; i < indent; ++i) {
       fprintf(f_debug, "  ");
     }  /* for */
@@ -76282,7 +75943,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace =
                                             {"operand", /*offset=*/12, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (ExprAlignof::operand - SyntaxIndex) into version
        specific storage. */
@@ -76293,12 +75953,10 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_type(mod, universal)) {
     an_ifc_type_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"type", /*offset=*/8, parent};
-    an_ifc_type_index       stage_1;
 
     /* Copy the field (ExprAlignof::type - TypeIndex) into version specific
        storage. */
@@ -76309,7 +75967,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -76755,7 +76412,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
     an_ifc_type_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace =
                                        {"element_type", /*offset=*/16, parent};
-    an_ifc_type_index       stage_1;
 
     /* Copy the field (ExprArrayValue::element_type - TypeIndex) into version
        specific storage. */
@@ -76766,13 +76422,11 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_elements(mod, universal)) {
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace =
                                            {"elements", /*offset=*/12, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (ExprArrayValue::elements - ExprIndex) into version
        specific storage. */
@@ -76783,7 +76437,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_locus(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -76809,7 +76462,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
   if (has_ifc_type(mod, universal)) {
     an_ifc_type_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"type", /*offset=*/8, parent};
-    an_ifc_type_index       stage_1;
 
     /* Copy the field (ExprArrayValue::type - TypeIndex) into version specific
        storage. */
@@ -76820,7 +76472,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -77181,7 +76832,6 @@ return FALSE.
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace =
                                          {"initializer", /*offset=*/8, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (ExprAssignInitializer::initializer - ExprIndex) into
        version specific storage. */
@@ -77192,7 +76842,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -77753,7 +77402,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
   if (has_ifc_left(mod, universal)) {
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"left", /*offset=*/12, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (ExprBinaryFold::left - ExprIndex) into version specific
        storage. */
@@ -77764,7 +77412,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_locus(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -77791,7 +77438,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
     an_ifc_dyadic_operator_sort_0_33 stage_0;
     an_ifc_validation_trace          stage_0_trace =
                                           {"operation", /*offset=*/20, parent};
-    an_ifc_dyadic_operator_sort      stage_1;
 
     /* Copy the field (ExprBinaryFold::operation - DyadicOperatorSort) into
        version specific storage. */
@@ -77802,12 +77448,10 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_sort(stage_0);
   }  /* if */
   if (has_ifc_right(mod, universal)) {
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"right", /*offset=*/16, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (ExprBinaryFold::right - ExprIndex) into version specific
        storage. */
@@ -77818,12 +77462,10 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_type(mod, universal)) {
     an_ifc_type_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"type", /*offset=*/8, parent};
-    an_ifc_type_index       stage_1;
 
     /* Copy the field (ExprBinaryFold::type - TypeIndex) into version specific
        storage. */
@@ -77834,7 +77476,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -78310,7 +77951,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace =
                                           {"arguments", /*offset=*/16, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (ExprCall::arguments - ExprIndex) into version specific
        storage. */
@@ -78321,7 +77961,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_locus(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -78348,7 +77987,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace =
                                           {"operation", /*offset=*/12, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (ExprCall::operation - ExprIndex) into version specific
        storage. */
@@ -78359,12 +77997,10 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_type(mod, universal)) {
     an_ifc_type_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"type", /*offset=*/8, parent};
-    an_ifc_type_index       stage_1;
 
     /* Copy the field (ExprCall::type - TypeIndex) into version specific
        storage. */
@@ -78375,7 +78011,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -78912,7 +78547,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
     an_ifc_dyadic_operator_sort_0_33 stage_0;
     an_ifc_validation_trace          stage_0_trace =
                                                  {"op", /*offset=*/20, parent};
-    an_ifc_dyadic_operator_sort      stage_1;
 
     /* Copy the field (ExprCast::op - DyadicOperatorSort) into version specific
        storage. */
@@ -78923,12 +78557,10 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_sort(stage_0);
   }  /* if */
   if (has_ifc_source(mod, universal)) {
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"source", /*offset=*/12, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (ExprCast::source - ExprIndex) into version specific
        storage. */
@@ -78939,12 +78571,10 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_target(mod, universal)) {
     an_ifc_type_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"target", /*offset=*/16, parent};
-    an_ifc_type_index       stage_1;
 
     /* Copy the field (ExprCast::target - TypeIndex) into version specific
        storage. */
@@ -78955,12 +78585,10 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_type(mod, universal)) {
     an_ifc_type_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"type", /*offset=*/8, parent};
-    an_ifc_type_index       stage_1;
 
     /* Copy the field (ExprCast::type - TypeIndex) into version specific
        storage. */
@@ -78971,7 +78599,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -79469,7 +79096,6 @@ return FALSE.
   if (has_ifc_string(mod, universal)) {
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"string", /*offset=*/16, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (ExprCompoundString::string - ExprIndex) into version
        specific storage. */
@@ -79480,12 +79106,10 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_type(mod, universal)) {
     an_ifc_type_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"type", /*offset=*/8, parent};
-    an_ifc_type_index       stage_1;
 
     /* Copy the field (ExprCompoundString::type - TypeIndex) into version
        specific storage. */
@@ -79496,7 +79120,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -79883,7 +79506,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
   if (has_ifc_expr(mod, universal)) {
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"expr", /*offset=*/12, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (ExprCondition::expr - ExprIndex) into version specific
        storage. */
@@ -79894,7 +79516,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_locus(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -79920,7 +79541,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
   if (has_ifc_type(mod, universal)) {
     an_ifc_type_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"type", /*offset=*/8, parent};
-    an_ifc_type_index       stage_1;
 
     /* Copy the field (ExprCondition::type - TypeIndex) into version specific
        storage. */
@@ -79931,7 +79551,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -80390,7 +80009,6 @@ return FALSE.
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace =
                                         {"initializer", /*offset=*/16, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (ExprDesignatedInitializer::initializer - ExprIndex) into
        version specific storage. */
@@ -80401,7 +80019,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_locus(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -80427,7 +80044,6 @@ return FALSE.
   if (has_ifc_type(mod, universal)) {
     an_ifc_type_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"type", /*offset=*/8, parent};
-    an_ifc_type_index       stage_1;
 
     /* Copy the field (ExprDesignatedInitializer::type - TypeIndex) into
        version specific storage. */
@@ -80438,7 +80054,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -80972,7 +80587,6 @@ return FALSE.
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace =
                                  {"decltype_specifier", /*offset=*/16, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (ExprDestructorCall::decltype_specifier - SyntaxIndex)
        into version specific storage. */
@@ -80983,7 +80597,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_locus(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -81009,7 +80622,6 @@ return FALSE.
   if (has_ifc_name(mod, universal)) {
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"name", /*offset=*/12, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (ExprDestructorCall::name - ExprIndex) into version
        specific storage. */
@@ -81020,12 +80632,10 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_type(mod, universal)) {
     an_ifc_type_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"type", /*offset=*/8, parent};
-    an_ifc_type_index       stage_1;
 
     /* Copy the field (ExprDestructorCall::type - TypeIndex) into version
        specific storage. */
@@ -81036,7 +80646,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -81641,7 +81250,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace =
                                          {"argument_0", /*offset=*/16, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (ExprDyad::argument_0 - ExprIndex) into version specific
        storage. */
@@ -81652,13 +81260,11 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_argument_1(mod, universal)) {
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace =
                                          {"argument_1", /*offset=*/20, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (ExprDyad::argument_1 - ExprIndex) into version specific
        storage. */
@@ -81669,13 +81275,11 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_assoc(mod, universal)) {
     an_ifc_dyadic_operator_sort_0_33 stage_0;
     an_ifc_validation_trace          stage_0_trace =
                                               {"assoc", /*offset=*/24, parent};
-    an_ifc_dyadic_operator_sort      stage_1;
 
     /* Copy the field (ExprDyad::assoc - DyadicOperatorSort) into version
        specific storage. */
@@ -81686,13 +81290,11 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_sort(stage_0);
   }  /* if */
   if (has_ifc_impl(mod, universal)) {
     if (is_at_least(mod, 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace = {"impl", /*offset=*/12, parent};
-      an_ifc_decl_index       stage_1;
 
       /* Copy the field (ExprDyad::impl - DeclIndex) into version specific
          storage. */
@@ -81703,11 +81305,9 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(mod, stage_0);
     } else {
       an_ifc_decl_index_0_33  stage_0;
       an_ifc_validation_trace stage_0_trace = {"impl", /*offset=*/12, parent};
-      an_ifc_decl_index       stage_1;
 
       /* Copy the field (ExprDyad::impl - DeclIndex) into version specific
          storage. */
@@ -81718,7 +81318,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(mod, stage_0);
     }  /* if */
   }  /* if */
   if (has_ifc_locus(mod, universal)) {
@@ -81745,7 +81344,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
   if (has_ifc_type(mod, universal)) {
     an_ifc_type_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"type", /*offset=*/8, parent};
-    an_ifc_type_index       stage_1;
 
     /* Copy the field (ExprDyad::type - TypeIndex) into version specific
        storage. */
@@ -81756,7 +81354,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -82203,7 +81800,6 @@ return FALSE.
   if (has_ifc_pivot(mod, universal)) {
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"pivot", /*offset=*/12, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (ExprDynamicDispatch::pivot - ExprIndex) into version
        specific storage. */
@@ -82214,12 +81810,10 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_type(mod, universal)) {
     an_ifc_type_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"type", /*offset=*/8, parent};
-    an_ifc_type_index       stage_1;
 
     /* Copy the field (ExprDynamicDispatch::type - TypeIndex) into version
        specific storage. */
@@ -82230,7 +81824,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -82565,7 +82158,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
   if (has_ifc_type(mod, universal)) {
     an_ifc_type_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"type", /*offset=*/8, parent};
-    an_ifc_type_index       stage_1;
 
     /* Copy the field (ExprEmpty::type - TypeIndex) into version specific
        storage. */
@@ -82576,7 +82168,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -82955,7 +82546,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
   if (has_ifc_operand(mod, universal)) {
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"operand", /*offset=*/12, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (ExprExpansion::operand - ExprIndex) into version
        specific storage. */
@@ -82966,12 +82556,10 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_type(mod, universal)) {
     an_ifc_type_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"type", /*offset=*/8, parent};
-    an_ifc_type_index       stage_1;
 
     /* Copy the field (ExprExpansion::type - TypeIndex) into version specific
        storage. */
@@ -82982,7 +82570,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -83435,7 +83022,6 @@ return FALSE.
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace =
                                            {"contents", /*offset=*/16, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (ExprExpressionList::contents - ExprIndex) into version
        specific storage. */
@@ -83446,13 +83032,11 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_delimiter(mod, universal)) {
     an_ifc_delimiter_sort_0_33 stage_0;
     an_ifc_validation_trace    stage_0_trace =
                                           {"delimiter", /*offset=*/20, parent};
-    an_ifc_delimiter_sort      stage_1;
 
     /* Copy the field (ExprExpressionList::delimiter - DelimiterSort) into
        version specific storage. */
@@ -83463,7 +83047,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_sort(stage_0);
   }  /* if */
   if (has_ifc_left(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -83920,7 +83503,6 @@ return FALSE.
   if (has_ifc_type(mod, universal)) {
     an_ifc_type_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"type", /*offset=*/8, parent};
-    an_ifc_type_index       stage_1;
 
     /* Copy the field (ExprFunctionString::type - TypeIndex) into version
        specific storage. */
@@ -83931,7 +83513,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -84571,7 +84152,6 @@ return FALSE.
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace =
                                         {"inheritance", /*offset=*/20, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (ExprHierarchyConversion::inheritance - ExprIndex) into
        version specific storage. */
@@ -84582,7 +84162,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_locus(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -84609,7 +84188,6 @@ return FALSE.
     an_ifc_dyadic_operator_sort_0_33 stage_0;
     an_ifc_validation_trace          stage_0_trace =
                                                  {"op", /*offset=*/28, parent};
-    an_ifc_dyadic_operator_sort      stage_1;
 
     /* Copy the field (ExprHierarchyConversion::op - DyadicOperatorSort) into
        version specific storage. */
@@ -84620,13 +84198,11 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_sort(stage_0);
   }  /* if */
   if (has_ifc_override(mod, universal)) {
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace =
                                            {"override", /*offset=*/24, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (ExprHierarchyConversion::override - ExprIndex) into
        version specific storage. */
@@ -84637,12 +84213,10 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_source(mod, universal)) {
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"source", /*offset=*/12, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (ExprHierarchyConversion::source - ExprIndex) into
        version specific storage. */
@@ -84653,12 +84227,10 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_target(mod, universal)) {
     an_ifc_type_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"target", /*offset=*/16, parent};
-    an_ifc_type_index       stage_1;
 
     /* Copy the field (ExprHierarchyConversion::target - TypeIndex) into
        version specific storage. */
@@ -84669,12 +84241,10 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_type(mod, universal)) {
     an_ifc_type_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"type", /*offset=*/8, parent};
-    an_ifc_type_index       stage_1;
 
     /* Copy the field (ExprHierarchyConversion::type - TypeIndex) into version
        specific storage. */
@@ -84685,7 +84255,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -85154,7 +84723,6 @@ return FALSE.
   if (has_ifc_path(mod, universal)) {
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"path", /*offset=*/12, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (ExprInheritancePath::path - ExprIndex) into version
        specific storage. */
@@ -85165,12 +84733,10 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_type(mod, universal)) {
     an_ifc_type_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"type", /*offset=*/8, parent};
-    an_ifc_type_index       stage_1;
 
     /* Copy the field (ExprInheritancePath::type - TypeIndex) into version
        specific storage. */
@@ -85181,7 +84747,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -85623,7 +85188,6 @@ return FALSE.
   if (has_ifc_expr(mod, universal)) {
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"expr", /*offset=*/12, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (ExprInitializer::expr - ExprIndex) into version specific
        storage. */
@@ -85634,7 +85198,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_locus(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -85661,7 +85224,6 @@ return FALSE.
     an_ifc_initializer_sort_0_33 stage_0;
     an_ifc_validation_trace      stage_0_trace =
                                                {"sort", /*offset=*/16, parent};
-    an_ifc_initializer_sort      stage_1;
 
     /* Copy the field (ExprInitializer::sort - InitializerSort) into version
        specific storage. */
@@ -85672,12 +85234,10 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_sort(stage_0);
   }  /* if */
   if (has_ifc_type(mod, universal)) {
     an_ifc_type_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"type", /*offset=*/8, parent};
-    an_ifc_type_index       stage_1;
 
     /* Copy the field (ExprInitializer::type - TypeIndex) into version specific
        storage. */
@@ -85688,7 +85248,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -86083,7 +85642,6 @@ return FALSE.
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace =
                                            {"elements", /*offset=*/12, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (ExprInitializerList::elements - ExprIndex) into version
        specific storage. */
@@ -86094,7 +85652,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_locus(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -86120,7 +85677,6 @@ return FALSE.
   if (has_ifc_type(mod, universal)) {
     an_ifc_type_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"type", /*offset=*/8, parent};
-    an_ifc_type_index       stage_1;
 
     /* Copy the field (ExprInitializerList::type - TypeIndex) into version
        specific storage. */
@@ -86131,7 +85687,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -86639,7 +86194,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
   if (has_ifc_body(mod, universal)) {
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace = {"body", /*offset=*/16, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (ExprLambda::body - SyntaxIndex) into version specific
        storage. */
@@ -86650,13 +86204,11 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_constraint(mod, universal)) {
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace =
                                          {"constraint", /*offset=*/12, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (ExprLambda::constraint - SyntaxIndex) into version
        specific storage. */
@@ -86667,13 +86219,11 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_declarator(mod, universal)) {
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace =
                                           {"declarator", /*offset=*/8, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (ExprLambda::declarator - SyntaxIndex) into version
        specific storage. */
@@ -86684,13 +86234,11 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_introducer(mod, universal)) {
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace =
                                           {"introducer", /*offset=*/0, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (ExprLambda::introducer - SyntaxIndex) into version
        specific storage. */
@@ -86701,13 +86249,11 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_template_parameters(mod, universal)) {
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace =
                                  {"template_parameters", /*offset=*/4, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (ExprLambda::template_parameters - SyntaxIndex) into
        version specific storage. */
@@ -86718,7 +86264,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -87156,7 +86701,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
   if (has_ifc_type(mod, universal)) {
     an_ifc_type_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"type", /*offset=*/8, parent};
-    an_ifc_type_index       stage_1;
 
     /* Copy the field (ExprLiteral::type - TypeIndex) into version specific
        storage. */
@@ -87167,12 +86711,10 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_value(mod, universal)) {
     an_ifc_lit_index_0_33   stage_0;
     an_ifc_validation_trace stage_0_trace = {"value", /*offset=*/12, parent};
-    an_ifc_lit_index        stage_1;
 
     /* Copy the field (ExprLiteral::value - LitIndex) into version specific
        storage. */
@@ -87183,7 +86725,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -87701,7 +87242,6 @@ return FALSE.
     an_ifc_type_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace =
                                           {"enclosing", /*offset=*/16, parent};
-    an_ifc_type_index       stage_1;
 
     /* Copy the field (ExprMemberAccess::enclosing - TypeIndex) into version
        specific storage. */
@@ -87712,7 +87252,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_locus(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -87738,7 +87277,6 @@ return FALSE.
   if (has_ifc_offset(mod, universal)) {
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"offset", /*offset=*/12, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (ExprMemberAccess::offset - ExprIndex) into version
        specific storage. */
@@ -87749,12 +87287,10 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_type(mod, universal)) {
     an_ifc_type_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"type", /*offset=*/8, parent};
-    an_ifc_type_index       stage_1;
 
     /* Copy the field (ExprMemberAccess::type - TypeIndex) into version
        specific storage. */
@@ -87765,7 +87301,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -88321,7 +87856,6 @@ return FALSE.
   if (has_ifc_base(mod, universal)) {
     an_ifc_type_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"base", /*offset=*/16, parent};
-    an_ifc_type_index       stage_1;
 
     /* Copy the field (ExprMemberInitializer::base - TypeIndex) into version
        specific storage. */
@@ -88332,13 +87866,11 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_initializer(mod, universal)) {
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace =
                                         {"initializer", /*offset=*/20, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (ExprMemberInitializer::initializer - ExprIndex) into
        version specific storage. */
@@ -88349,7 +87881,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_locus(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -88377,7 +87908,6 @@ return FALSE.
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                              {"member", /*offset=*/12, parent};
-      an_ifc_decl_index       stage_1;
 
       /* Copy the field (ExprMemberInitializer::member - DeclIndex) into
          version specific storage. */
@@ -88388,12 +87918,10 @@ return FALSE.
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(mod, stage_0);
     } else {
       an_ifc_decl_index_0_33  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                              {"member", /*offset=*/12, parent};
-      an_ifc_decl_index       stage_1;
 
       /* Copy the field (ExprMemberInitializer::member - DeclIndex) into
          version specific storage. */
@@ -88404,13 +87932,11 @@ return FALSE.
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(mod, stage_0);
     }  /* if */
   }  /* if */
   if (has_ifc_type(mod, universal)) {
     an_ifc_type_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"type", /*offset=*/8, parent};
-    an_ifc_type_index       stage_1;
 
     /* Copy the field (ExprMemberInitializer::type - TypeIndex) into version
        specific storage. */
@@ -88421,7 +87947,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -88972,7 +88497,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace =
                                            {"argument", /*offset=*/16, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (ExprMonad::argument - ExprIndex) into version specific
        storage. */
@@ -88983,13 +88507,11 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_assoc(mod, universal)) {
     an_ifc_monadic_operator_sort_0_33 stage_0;
     an_ifc_validation_trace           stage_0_trace =
                                               {"assoc", /*offset=*/20, parent};
-    an_ifc_monadic_operator_sort      stage_1;
 
     /* Copy the field (ExprMonad::assoc - MonadicOperatorSort) into version
        specific storage. */
@@ -89000,13 +88522,11 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_sort(stage_0);
   }  /* if */
   if (has_ifc_impl(mod, universal)) {
     if (is_at_least(mod, 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace = {"impl", /*offset=*/12, parent};
-      an_ifc_decl_index       stage_1;
 
       /* Copy the field (ExprMonad::impl - DeclIndex) into version specific
          storage. */
@@ -89017,11 +88537,9 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(mod, stage_0);
     } else {
       an_ifc_decl_index_0_33  stage_0;
       an_ifc_validation_trace stage_0_trace = {"impl", /*offset=*/12, parent};
-      an_ifc_decl_index       stage_1;
 
       /* Copy the field (ExprMonad::impl - DeclIndex) into version specific
          storage. */
@@ -89032,7 +88550,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(mod, stage_0);
     }  /* if */
   }  /* if */
   if (has_ifc_locus(mod, universal)) {
@@ -89059,7 +88576,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
   if (has_ifc_type(mod, universal)) {
     an_ifc_type_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"type", /*offset=*/8, parent};
-    an_ifc_type_index       stage_1;
 
     /* Copy the field (ExprMonad::type - TypeIndex) into version specific
        storage. */
@@ -89070,7 +88586,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -89510,7 +89025,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                          {"resolution", /*offset=*/12, parent};
-      an_ifc_decl_index       stage_1;
 
       /* Copy the field (ExprNamedDecl::resolution - DeclIndex) into version
          specific storage. */
@@ -89521,12 +89035,10 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(mod, stage_0);
     } else {
       an_ifc_decl_index_0_33  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                          {"resolution", /*offset=*/12, parent};
-      an_ifc_decl_index       stage_1;
 
       /* Copy the field (ExprNamedDecl::resolution - DeclIndex) into version
          specific storage. */
@@ -89537,13 +89049,11 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(mod, stage_0);
     }  /* if */
   }  /* if */
   if (has_ifc_type(mod, universal)) {
     an_ifc_type_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"type", /*offset=*/8, parent};
-    an_ifc_type_index       stage_1;
 
     /* Copy the field (ExprNamedDecl::type - TypeIndex) into version specific
        storage. */
@@ -89554,7 +89064,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -89889,7 +89398,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
   if (has_ifc_type(mod, universal)) {
     an_ifc_type_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"type", /*offset=*/8, parent};
-    an_ifc_type_index       stage_1;
 
     /* Copy the field (ExprNullptr::type - TypeIndex) into version specific
        storage. */
@@ -89900,7 +89408,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -90271,7 +89778,6 @@ return FALSE.
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace =
                                           {"arguments", /*offset=*/12, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (ExprPackedTemplateArguments::arguments - ExprIndex) into
        version specific storage. */
@@ -90282,7 +89788,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_locus(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -90308,7 +89813,6 @@ return FALSE.
   if (has_ifc_type(mod, universal)) {
     an_ifc_type_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"type", /*offset=*/8, parent};
-    an_ifc_type_index       stage_1;
 
     /* Copy the field (ExprPackedTemplateArguments::type - TypeIndex) into
        version specific storage. */
@@ -90319,7 +89823,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -90780,7 +90283,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
   if (has_ifc_member(mod, universal)) {
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"member", /*offset=*/16, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (ExprPath::member - ExprIndex) into version specific
        storage. */
@@ -90791,12 +90293,10 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_scope(mod, universal)) {
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"scope", /*offset=*/12, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (ExprPath::scope - ExprIndex) into version specific
        storage. */
@@ -90807,12 +90307,10 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_type(mod, universal)) {
     an_ifc_type_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"type", /*offset=*/8, parent};
-    an_ifc_type_index       stage_1;
 
     /* Copy the field (ExprPath::type - TypeIndex) into version specific
        storage. */
@@ -90823,7 +90321,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -91175,7 +90672,6 @@ return FALSE.
   if (has_ifc_type(mod, universal)) {
     an_ifc_type_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"type", /*offset=*/8, parent};
-    an_ifc_type_index       stage_1;
 
     /* Copy the field (ExprPlaceholder::type - TypeIndex) into version specific
        storage. */
@@ -91186,7 +90682,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -91919,7 +91414,6 @@ return FALSE.
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace =
                                     {"base_subobjects", /*offset=*/20, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (ExprProductTypeValue::base_subobjects - ExprIndex) into
        version specific storage. */
@@ -91930,13 +91424,11 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_class_decl(mod, universal)) {
     an_ifc_type_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace =
                                          {"class_decl", /*offset=*/12, parent};
-    an_ifc_type_index       stage_1;
 
     /* Copy the field (ExprProductTypeValue::class_decl - TypeIndex) into
        version specific storage. */
@@ -91947,7 +91439,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_locus(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -91973,7 +91464,6 @@ return FALSE.
   if (has_ifc_members(mod, universal)) {
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"members", /*offset=*/16, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (ExprProductTypeValue::members - ExprIndex) into version
        specific storage. */
@@ -91984,12 +91474,10 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_type(mod, universal)) {
     an_ifc_type_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"type", /*offset=*/8, parent};
-    an_ifc_type_index       stage_1;
 
     /* Copy the field (ExprProductTypeValue::type - TypeIndex) into version
        specific storage. */
@@ -92000,7 +91488,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -92548,7 +92035,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace =
                                           {"ctor_call", /*offset=*/12, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (ExprPushState::ctor_call - ExprIndex) into version
        specific storage. */
@@ -92559,13 +92045,11 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_dtor_call(mod, universal)) {
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace =
                                           {"dtor_call", /*offset=*/16, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (ExprPushState::dtor_call - ExprIndex) into version
        specific storage. */
@@ -92576,7 +92060,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_locus(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -92602,7 +92085,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
   if (has_ifc_type(mod, universal)) {
     an_ifc_type_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"type", /*offset=*/8, parent};
-    an_ifc_type_index       stage_1;
 
     /* Copy the field (ExprPushState::type - TypeIndex) into version specific
        storage. */
@@ -92613,7 +92095,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -93096,7 +92577,6 @@ return FALSE.
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace =
                                            {"elements", /*offset=*/12, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (ExprQualifiedName::elements - ExprIndex) into version
        specific storage. */
@@ -93107,7 +92587,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_locus(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -93133,7 +92612,6 @@ return FALSE.
   if (has_ifc_type(mod, universal)) {
     an_ifc_type_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"type", /*offset=*/8, parent};
-    an_ifc_type_index       stage_1;
 
     /* Copy the field (ExprQualifiedName::type - TypeIndex) into version
        specific storage. */
@@ -93144,7 +92622,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_typename_keyword(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -93617,7 +93094,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
   if (has_ifc_address(mod, universal)) {
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"address", /*offset=*/12, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (ExprRead::address - ExprIndex) into version specific
        storage. */
@@ -93628,7 +93104,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_locus(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -93655,7 +93130,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
     an_ifc_read_conversion_sort_0_33 stage_0;
     an_ifc_validation_trace          stage_0_trace =
                                                {"sort", /*offset=*/16, parent};
-    an_ifc_read_conversion_sort      stage_1;
 
     /* Copy the field (ExprRead::sort - ReadConversionSort) into version
        specific storage. */
@@ -93666,12 +93140,10 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_sort(stage_0);
   }  /* if */
   if (has_ifc_type(mod, universal)) {
     an_ifc_type_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"type", /*offset=*/8, parent};
-    an_ifc_type_index       stage_1;
 
     /* Copy the field (ExprRead::type - TypeIndex) into version specific
        storage. */
@@ -93682,7 +93154,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -94129,7 +93600,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
   if (has_ifc_body(mod, universal)) {
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace = {"body", /*offset=*/16, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (ExprRequires::body - SyntaxIndex) into version specific
        storage. */
@@ -94140,7 +93610,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_locus(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -94167,7 +93636,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace =
                                          {"parameters", /*offset=*/12, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (ExprRequires::parameters - SyntaxIndex) into version
        specific storage. */
@@ -94178,12 +93646,10 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_type(mod, universal)) {
     an_ifc_type_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"type", /*offset=*/8, parent};
-    an_ifc_type_index       stage_1;
 
     /* Copy the field (ExprRequires::type - TypeIndex) into version specific
        storage. */
@@ -94194,7 +93660,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -94616,7 +94081,6 @@ return FALSE.
   if (has_ifc_name(mod, universal)) {
     an_ifc_name_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"name", /*offset=*/12, parent};
-    an_ifc_name_index       stage_1;
 
     /* Copy the field (ExprSimpleIdentifier::name - NameIndex) into version
        specific storage. */
@@ -94627,12 +94091,10 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_type(mod, universal)) {
     an_ifc_type_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"type", /*offset=*/8, parent};
-    an_ifc_type_index       stage_1;
 
     /* Copy the field (ExprSimpleIdentifier::type - TypeIndex) into version
        specific storage. */
@@ -94643,7 +94105,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -95044,7 +94505,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
   if (has_ifc_operand(mod, universal)) {
     an_ifc_type_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"operand", /*offset=*/12, parent};
-    an_ifc_type_index       stage_1;
 
     /* Copy the field (ExprSizeofType::operand - TypeIndex) into version
        specific storage. */
@@ -95055,12 +94515,10 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_type(mod, universal)) {
     an_ifc_type_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"type", /*offset=*/8, parent};
-    an_ifc_type_index       stage_1;
 
     /* Copy the field (ExprSizeofType::type - TypeIndex) into version specific
        storage. */
@@ -95071,7 +94529,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -95473,7 +94930,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
     an_ifc_string_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace =
                                        {"string_index", /*offset=*/12, parent};
-    an_ifc_string_index      stage_1;
 
     /* Copy the field (ExprString::string_index - StringIndex) into version
        specific storage. */
@@ -95484,12 +94940,10 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_type(mod, universal)) {
     an_ifc_type_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"type", /*offset=*/8, parent};
-    an_ifc_type_index       stage_1;
 
     /* Copy the field (ExprString::type - TypeIndex) into version specific
        storage. */
@@ -95500,7 +94954,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -95903,7 +95356,6 @@ return FALSE.
   if (has_ifc_strings(mod, universal)) {
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"strings", /*offset=*/12, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (ExprStringSequence::strings - ExprIndex) into version
        specific storage. */
@@ -95914,12 +95366,10 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_type(mod, universal)) {
     an_ifc_type_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"type", /*offset=*/8, parent};
-    an_ifc_type_index       stage_1;
 
     /* Copy the field (ExprStringSequence::type - TypeIndex) into version
        specific storage. */
@@ -95930,7 +95380,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -96181,7 +95630,6 @@ return FALSE.
   if (has_ifc_value(mod, universal)) {
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"value", /*offset=*/0, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (ExprSubobjectValue::value - ExprIndex) into version
        specific storage. */
@@ -96192,7 +95640,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -96716,7 +96163,6 @@ return FALSE.
   if (has_ifc_type(mod, universal)) {
     an_ifc_type_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"type", /*offset=*/8, parent};
-    an_ifc_type_index       stage_1;
 
     /* Copy the field (ExprSumTypeValue::type - TypeIndex) into version
        specific storage. */
@@ -96727,12 +96173,10 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_value(mod, universal)) {
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"value", /*offset=*/20, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (ExprSumTypeValue::value - ExprIndex) into version
        specific storage. */
@@ -96743,14 +96187,12 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_variant(mod, universal)) {
     if (is_at_least(mod, 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                             {"variant", /*offset=*/12, parent};
-      an_ifc_decl_index       stage_1;
 
       /* Copy the field (ExprSumTypeValue::variant - DeclIndex) into version
          specific storage. */
@@ -96761,12 +96203,10 @@ return FALSE.
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(mod, stage_0);
     } else {
       an_ifc_decl_index_0_33  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                             {"variant", /*offset=*/12, parent};
-      an_ifc_decl_index       stage_1;
 
       /* Copy the field (ExprSumTypeValue::variant - DeclIndex) into version
          specific storage. */
@@ -96777,7 +96217,6 @@ return FALSE.
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(mod, stage_0);
     }  /* if */
   }  /* if */
 done:
@@ -97056,7 +96495,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
   if (has_ifc_syntax(mod, universal)) {
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace = {"syntax", /*offset=*/0, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (ExprSyntaxTree::syntax - SyntaxIndex) into version
        specific storage. */
@@ -97067,7 +96505,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -97480,7 +96917,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace =
                                           {"arguments", /*offset=*/16, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (ExprTemplateId::arguments - ExprIndex) into version
        specific storage. */
@@ -97491,7 +96927,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_locus(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -97517,7 +96952,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
   if (has_ifc_primary(mod, universal)) {
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"primary", /*offset=*/12, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (ExprTemplateId::primary - ExprIndex) into version
        specific storage. */
@@ -97528,12 +96962,10 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_type(mod, universal)) {
     an_ifc_type_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"type", /*offset=*/8, parent};
-    an_ifc_type_index       stage_1;
 
     /* Copy the field (ExprTemplateId::type - TypeIndex) into version specific
        storage. */
@@ -97544,7 +96976,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -98150,7 +97581,6 @@ return FALSE.
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace =
                                           {"arguments", /*offset=*/28, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (ExprTemplateReference::arguments - ExprIndex) into
        version specific storage. */
@@ -98161,7 +97591,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_locus(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -98209,7 +97638,6 @@ return FALSE.
     an_ifc_name_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace =
                                         {"member_name", /*offset=*/12, parent};
-    an_ifc_name_index       stage_1;
 
     /* Copy the field (ExprTemplateReference::member_name - NameIndex) into
        version specific storage. */
@@ -98220,12 +97648,10 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_scope(mod, universal)) {
     an_ifc_type_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"scope", /*offset=*/24, parent};
-    an_ifc_type_index       stage_1;
 
     /* Copy the field (ExprTemplateReference::scope - TypeIndex) into version
        specific storage. */
@@ -98236,12 +97662,10 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_type(mod, universal)) {
     an_ifc_type_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"type", /*offset=*/8, parent};
-    an_ifc_type_index       stage_1;
 
     /* Copy the field (ExprTemplateReference::type - TypeIndex) into version
        specific storage. */
@@ -98252,7 +97676,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -98705,7 +98128,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
   if (has_ifc_type(mod, universal)) {
     an_ifc_type_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"type", /*offset=*/8, parent};
-    an_ifc_type_index       stage_1;
 
     /* Copy the field (ExprTemporary::type - TypeIndex) into version specific
        storage. */
@@ -98716,7 +98138,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -99042,7 +98463,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
   if (has_ifc_type(mod, universal)) {
     an_ifc_type_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"type", /*offset=*/8, parent};
-    an_ifc_type_index       stage_1;
 
     /* Copy the field (ExprThis::type - TypeIndex) into version specific
        storage. */
@@ -99053,7 +98473,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -99435,7 +98854,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
   if (has_ifc_type(mod, universal)) {
     an_ifc_type_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"type", /*offset=*/8, parent};
-    an_ifc_type_index       stage_1;
 
     /* Copy the field (ExprTokens::type - TypeIndex) into version specific
        storage. */
@@ -99446,7 +98864,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -100076,7 +99493,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace =
                                          {"argument_0", /*offset=*/16, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (ExprTriad::argument_0 - ExprIndex) into version specific
        storage. */
@@ -100087,13 +99503,11 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_argument_1(mod, universal)) {
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace =
                                          {"argument_1", /*offset=*/20, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (ExprTriad::argument_1 - ExprIndex) into version specific
        storage. */
@@ -100104,13 +99518,11 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_argument_2(mod, universal)) {
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace =
                                          {"argument_2", /*offset=*/24, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (ExprTriad::argument_2 - ExprIndex) into version specific
        storage. */
@@ -100121,13 +99533,11 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_assoc(mod, universal)) {
     an_ifc_triadic_operator_sort_0_33 stage_0;
     an_ifc_validation_trace           stage_0_trace =
                                               {"assoc", /*offset=*/28, parent};
-    an_ifc_triadic_operator_sort      stage_1;
 
     /* Copy the field (ExprTriad::assoc - TriadicOperatorSort) into version
        specific storage. */
@@ -100138,13 +99548,11 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_sort(stage_0);
   }  /* if */
   if (has_ifc_impl(mod, universal)) {
     if (is_at_least(mod, 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace = {"impl", /*offset=*/12, parent};
-      an_ifc_decl_index       stage_1;
 
       /* Copy the field (ExprTriad::impl - DeclIndex) into version specific
          storage. */
@@ -100155,11 +99563,9 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(mod, stage_0);
     } else {
       an_ifc_decl_index_0_33  stage_0;
       an_ifc_validation_trace stage_0_trace = {"impl", /*offset=*/12, parent};
-      an_ifc_decl_index       stage_1;
 
       /* Copy the field (ExprTriad::impl - DeclIndex) into version specific
          storage. */
@@ -100170,7 +99576,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(mod, stage_0);
     }  /* if */
   }  /* if */
   if (has_ifc_locus(mod, universal)) {
@@ -100197,7 +99602,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
   if (has_ifc_type(mod, universal)) {
     an_ifc_type_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"type", /*offset=*/8, parent};
-    an_ifc_type_index       stage_1;
 
     /* Copy the field (ExprTriad::type - TypeIndex) into version specific
        storage. */
@@ -100208,7 +99612,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -100741,7 +100144,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
   if (has_ifc_type(mod, universal)) {
     an_ifc_type_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"type", /*offset=*/8, parent};
-    an_ifc_type_index       stage_1;
 
     /* Copy the field (ExprTuple::type - TypeIndex) into version specific
        storage. */
@@ -100752,7 +100154,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -101128,7 +100529,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
     an_ifc_type_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace =
                                          {"denotation", /*offset=*/12, parent};
-    an_ifc_type_index       stage_1;
 
     /* Copy the field (ExprType::denotation - TypeIndex) into version specific
        storage. */
@@ -101139,7 +100539,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_locus(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -101165,7 +100564,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
   if (has_ifc_type(mod, universal)) {
     an_ifc_type_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"type", /*offset=*/8, parent};
-    an_ifc_type_index       stage_1;
 
     /* Copy the field (ExprType::type - TypeIndex) into version specific
        storage. */
@@ -101176,7 +100574,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -101627,7 +101024,6 @@ return FALSE.
     an_ifc_type_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace =
                                           {"arguments", /*offset=*/12, parent};
-    an_ifc_type_index       stage_1;
 
     /* Copy the field (ExprTypeTraitIntrinsic::arguments - TypeIndex) into
        version specific storage. */
@@ -101638,13 +101034,11 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_intrinsic(mod, universal)) {
     an_ifc_operator_category_0_33 stage_0;
     an_ifc_validation_trace       stage_0_trace =
                                           {"intrinsic", /*offset=*/16, parent};
-    an_ifc_operator_category      stage_1;
 
     /* Copy the field (ExprTypeTraitIntrinsic::intrinsic - OperatorCategory)
        into version specific storage. */
@@ -101655,7 +101049,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_category(mod, stage_0);
   }  /* if */
   if (has_ifc_locus(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -101681,7 +101074,6 @@ return FALSE.
   if (has_ifc_type(mod, universal)) {
     an_ifc_type_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"type", /*offset=*/8, parent};
-    an_ifc_type_index       stage_1;
 
     /* Copy the field (ExprTypeTraitIntrinsic::type - TypeIndex) into version
        specific storage. */
@@ -101692,7 +101084,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -102169,7 +101560,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
   if (has_ifc_operand(mod, universal)) {
     an_ifc_type_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"operand", /*offset=*/12, parent};
-    an_ifc_type_index       stage_1;
 
     /* Copy the field (ExprTypeid::operand - TypeIndex) into version specific
        storage. */
@@ -102180,12 +101570,10 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_type(mod, universal)) {
     an_ifc_type_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"type", /*offset=*/8, parent};
-    an_ifc_type_index       stage_1;
 
     /* Copy the field (ExprTypeid::type - TypeIndex) into version specific
        storage. */
@@ -102196,7 +101584,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -102708,7 +102095,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
   if (has_ifc_expr(mod, universal)) {
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"expr", /*offset=*/12, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (ExprUnaryFold::expr - ExprIndex) into version specific
        storage. */
@@ -102719,7 +102105,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_locus(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -102746,7 +102131,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
     an_ifc_dyadic_operator_sort_0_33 stage_0;
     an_ifc_validation_trace          stage_0_trace =
                                           {"operation", /*offset=*/16, parent};
-    an_ifc_dyadic_operator_sort      stage_1;
 
     /* Copy the field (ExprUnaryFold::operation - DyadicOperatorSort) into
        version specific storage. */
@@ -102757,12 +102141,10 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_sort(stage_0);
   }  /* if */
   if (has_ifc_type(mod, universal)) {
     an_ifc_type_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"type", /*offset=*/8, parent};
-    an_ifc_type_index       stage_1;
 
     /* Copy the field (ExprUnaryFold::type - TypeIndex) into version specific
        storage. */
@@ -102773,7 +102155,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -103334,7 +102715,6 @@ return FALSE.
   if (has_ifc_name(mod, universal)) {
     an_ifc_name_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"name", /*offset=*/12, parent};
-    an_ifc_name_index       stage_1;
 
     /* Copy the field (ExprUnqualifiedId::name - NameIndex) into version
        specific storage. */
@@ -103345,13 +102725,11 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_resolution(mod, universal)) {
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace =
                                          {"resolution", /*offset=*/16, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (ExprUnqualifiedId::resolution - ExprIndex) into version
        specific storage. */
@@ -103362,7 +102740,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_template_keyword(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -103388,7 +102765,6 @@ return FALSE.
   if (has_ifc_type(mod, universal)) {
     an_ifc_type_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"type", /*offset=*/8, parent};
-    an_ifc_type_index       stage_1;
 
     /* Copy the field (ExprUnqualifiedId::type - TypeIndex) into version
        specific storage. */
@@ -103399,7 +102775,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -103834,7 +103209,6 @@ return FALSE.
   if (has_ifc_name(mod, universal)) {
     an_ifc_name_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"name", /*offset=*/12, parent};
-    an_ifc_name_index       stage_1;
 
     /* Copy the field (ExprUnresolvedId::name - NameIndex) into version
        specific storage. */
@@ -103845,12 +103219,10 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_type(mod, universal)) {
     an_ifc_type_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"type", /*offset=*/8, parent};
-    an_ifc_type_index       stage_1;
 
     /* Copy the field (ExprUnresolvedId::type - TypeIndex) into version
        specific storage. */
@@ -103861,7 +103233,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -104265,7 +103636,6 @@ return FALSE.
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                            {"function", /*offset=*/12, parent};
-      an_ifc_decl_index       stage_1;
 
       /* Copy the field (ExprVirtualFunctionConversion::function - DeclIndex)
          into version specific storage. */
@@ -104276,12 +103646,10 @@ return FALSE.
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(mod, stage_0);
     } else {
       an_ifc_decl_index_0_33  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                            {"function", /*offset=*/12, parent};
-      an_ifc_decl_index       stage_1;
 
       /* Copy the field (ExprVirtualFunctionConversion::function - DeclIndex)
          into version specific storage. */
@@ -104292,7 +103660,6 @@ return FALSE.
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(mod, stage_0);
     }  /* if */
   }  /* if */
   if (has_ifc_locus(mod, universal)) {
@@ -104319,7 +103686,6 @@ return FALSE.
   if (has_ifc_type(mod, universal)) {
     an_ifc_type_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"type", /*offset=*/8, parent};
-    an_ifc_type_index       stage_1;
 
     /* Copy the field (ExprVirtualFunctionConversion::type - TypeIndex) into
        version specific storage. */
@@ -104330,7 +103696,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -104709,7 +104074,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
   if (has_ifc_first(mod, universal)) {
     an_ifc_form_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"first", /*offset=*/8, parent};
-    an_ifc_form_index       stage_1;
 
     /* Copy the field (FormCatenate::first - FormIndex) into version specific
        storage. */
@@ -104720,7 +104084,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_locus(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -104746,7 +104109,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
   if (has_ifc_second(mod, universal)) {
     an_ifc_form_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"second", /*offset=*/12, parent};
-    an_ifc_form_index       stage_1;
 
     /* Copy the field (FormCatenate::second - FormIndex) into version specific
        storage. */
@@ -104757,7 +104119,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -107660,7 +107021,6 @@ return FALSE.
   if (has_ifc_operand(mod, universal)) {
     an_ifc_form_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"operand", /*offset=*/8, parent};
-    an_ifc_form_index       stage_1;
 
     /* Copy the field (FormParenthesized::operand - FormIndex) into version
        specific storage. */
@@ -107671,7 +107031,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -107989,7 +107348,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
   if (has_ifc_operand(mod, universal)) {
     an_ifc_form_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"operand", /*offset=*/8, parent};
-    an_ifc_form_index       stage_1;
 
     /* Copy the field (FormPragma::operand - FormIndex) into version specific
        storage. */
@@ -108000,7 +107358,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -108309,7 +107666,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace =
                                            {"arguments", /*offset=*/4, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (FormSpec::arguments - ExprIndex) into version specific
        storage. */
@@ -108320,14 +107676,12 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_primary_template(mod, universal)) {
     if (is_at_least(mod, 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                     {"primary_template", /*offset=*/0, parent};
-      an_ifc_decl_index       stage_1;
 
       /* Copy the field (FormSpec::primary_template - DeclIndex) into version
          specific storage. */
@@ -108338,12 +107692,10 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(mod, stage_0);
     } else {
       an_ifc_decl_index_0_33  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                     {"primary_template", /*offset=*/0, parent};
-      an_ifc_decl_index       stage_1;
 
       /* Copy the field (FormSpec::primary_template - DeclIndex) into version
          specific storage. */
@@ -108354,7 +107706,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(mod, stage_0);
     }  /* if */
   }  /* if */
 done:
@@ -108986,7 +108337,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
   if (has_ifc_operand(mod, universal)) {
     an_ifc_form_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"operand", /*offset=*/8, parent};
-    an_ifc_form_index       stage_1;
 
     /* Copy the field (FormStringize::operand - FormIndex) into version
        specific storage. */
@@ -108997,7 +108347,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -109743,7 +109092,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
   if (has_ifc_value(mod, universal)) {
     an_ifc_attr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"value", /*offset=*/0, parent};
-    an_ifc_attr_index       stage_1;
 
     /* Copy the field (HeapAttr::value - AttrIndex) into version specific
        storage. */
@@ -109754,7 +109102,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -109967,7 +109314,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
   if (has_ifc_value(mod, universal)) {
     an_ifc_chart_index_0_33 stage_0;
     an_ifc_validation_trace stage_0_trace = {"value", /*offset=*/0, parent};
-    an_ifc_chart_index      stage_1;
 
     /* Copy the field (HeapChart::value - ChartIndex) into version specific
        storage. */
@@ -109978,7 +109324,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -110206,7 +109551,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
     if (is_at_least(mod, 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace = {"value", /*offset=*/0, parent};
-      an_ifc_decl_index       stage_1;
 
       /* Copy the field (HeapDecl::value - DeclIndex) into version specific
          storage. */
@@ -110217,11 +109561,9 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(mod, stage_0);
     } else {
       an_ifc_decl_index_0_33  stage_0;
       an_ifc_validation_trace stage_0_trace = {"value", /*offset=*/0, parent};
-      an_ifc_decl_index       stage_1;
 
       /* Copy the field (HeapDecl::value - DeclIndex) into version specific
          storage. */
@@ -110232,7 +109574,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(mod, stage_0);
     }  /* if */
   }  /* if */
 done:
@@ -110446,7 +109787,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
   if (has_ifc_value(mod, universal)) {
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"value", /*offset=*/0, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (HeapExpr::value - ExprIndex) into version specific
        storage. */
@@ -110457,7 +109797,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -110670,7 +110009,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
   if (has_ifc_value(mod, universal)) {
     an_ifc_form_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"value", /*offset=*/0, parent};
-    an_ifc_form_index       stage_1;
 
     /* Copy the field (HeapForm::value - FormIndex) into version specific
        storage. */
@@ -110681,7 +110019,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -110894,7 +110231,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
   if (has_ifc_value(mod, universal)) {
     an_ifc_form_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"value", /*offset=*/0, parent};
-    an_ifc_form_index       stage_1;
 
     /* Copy the field (HeapPPForm::value - FormIndex) into version specific
        storage. */
@@ -110905,7 +110241,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -111121,7 +110456,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
   if (has_ifc_value(mod, universal)) {
     an_ifc_stmt_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"value", /*offset=*/0, parent};
-    an_ifc_stmt_index       stage_1;
 
     /* Copy the field (HeapStmt::value - StmtIndex) into version specific
        storage. */
@@ -111132,7 +110466,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -111345,7 +110678,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
   if (has_ifc_value(mod, universal)) {
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace = {"value", /*offset=*/0, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (HeapSyntax::value - SyntaxIndex) into version specific
        storage. */
@@ -111356,7 +110688,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -111572,7 +110903,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
   if (has_ifc_value(mod, universal)) {
     an_ifc_type_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"value", /*offset=*/0, parent};
-    an_ifc_type_index       stage_1;
 
     /* Copy the field (HeapType::value - TypeIndex) into version specific
        storage. */
@@ -111583,7 +110913,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -112075,7 +111404,6 @@ return FALSE.
   if (has_ifc_body(mod, universal)) {
     an_ifc_form_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"body", /*offset=*/16, parent};
-    an_ifc_form_index       stage_1;
 
     /* Copy the field (MacroFunctionLike::body - FormIndex) into version
        specific storage. */
@@ -112086,7 +111414,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_locus(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -112113,7 +111440,6 @@ return FALSE.
     an_ifc_form_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace =
                                          {"parameters", /*offset=*/12, parent};
-    an_ifc_form_index       stage_1;
 
     /* Copy the field (MacroFunctionLike::parameters - FormIndex) into version
        specific storage. */
@@ -112124,7 +111450,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -112152,8 +111477,6 @@ textual representation with the given indent.
 */
 {
   if (has_ifc_arity_variadic(mod, universal)) {
-    an_ifc_variadic_arity field = get_ifc_arity_variadic(mod, universal);
-
     for (unsigned i = 0; i < indent; ++i) {
       fprintf(f_debug, "  ");
     }  /* for */
@@ -112533,7 +111856,6 @@ return FALSE.
   if (has_ifc_body(mod, universal)) {
     an_ifc_form_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"body", /*offset=*/12, parent};
-    an_ifc_form_index       stage_1;
 
     /* Copy the field (MacroObjectLike::body - FormIndex) into version specific
        storage. */
@@ -112544,7 +111866,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_locus(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -113352,7 +112673,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
   if (has_ifc_target(mod, universal)) {
     an_ifc_type_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"target", /*offset=*/0, parent};
-    an_ifc_type_index       stage_1;
 
     /* Copy the field (NameConversion::target - TypeIndex) into version
        specific storage. */
@@ -113363,7 +112683,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -113608,7 +112927,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                     {"primary_template", /*offset=*/0, parent};
-      an_ifc_decl_index       stage_1;
 
       /* Copy the field (NameGuide::primary_template - DeclIndex) into version
          specific storage. */
@@ -113619,12 +112937,10 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(mod, stage_0);
     } else {
       an_ifc_decl_index_0_33  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                     {"primary_template", /*offset=*/0, parent};
-      an_ifc_decl_index       stage_1;
 
       /* Copy the field (NameGuide::primary_template - DeclIndex) into version
          specific storage. */
@@ -113635,7 +112951,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(mod, stage_0);
     }  /* if */
   }  /* if */
 done:
@@ -114130,7 +113445,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
     an_ifc_operator_category_0_33 stage_0;
     an_ifc_validation_trace       stage_0_trace =
                                             {"operator", /*offset=*/4, parent};
-    an_ifc_operator_category      stage_1;
 
     /* Copy the field (NameOperator::operator - OperatorCategory) into version
        specific storage. */
@@ -114141,7 +113455,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_category(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -114786,7 +114099,6 @@ return FALSE.
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace =
                                            {"arguments", /*offset=*/4, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (NameSpecialization::arguments - ExprIndex) into version
        specific storage. */
@@ -114797,12 +114109,10 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_primary(mod, universal)) {
     an_ifc_name_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"primary", /*offset=*/0, parent};
-    an_ifc_name_index       stage_1;
 
     /* Copy the field (NameSpecialization::primary - NameIndex) into version
        specific storage. */
@@ -114813,7 +114123,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -115048,7 +114357,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
   if (has_ifc_name(mod, universal)) {
     an_ifc_name_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"name", /*offset=*/0, parent};
-    an_ifc_name_index       stage_1;
 
     /* Copy the field (NameTemplate::name - NameIndex) into version specific
        storage. */
@@ -115059,7 +114367,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -115580,7 +114887,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
     if (is_at_least(mod, 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace = {"index", /*offset=*/0, parent};
-      an_ifc_decl_index       stage_1;
 
       /* Copy the field (ScopeMember::index - DeclIndex) into version specific
          storage. */
@@ -115591,11 +114897,9 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(mod, stage_0);
     } else {
       an_ifc_decl_index_0_33  stage_0;
       an_ifc_validation_trace stage_0_trace = {"index", /*offset=*/0, parent};
-      an_ifc_decl_index       stage_1;
 
       /* Copy the field (ScopeMember::index - DeclIndex) into version specific
          storage. */
@@ -115606,7 +114910,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(mod, stage_0);
     }  /* if */
   }  /* if */
 done:
@@ -115891,7 +115194,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
   if (has_ifc_file(mod, universal)) {
     an_ifc_name_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"file", /*offset=*/0, parent};
-    an_ifc_name_index       stage_1;
 
     /* Copy the field (SourceLine::file - NameIndex) into version specific
        storage. */
@@ -115902,7 +115204,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -116807,7 +116108,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
     an_ifc_word_sort_0_33     stage_2;
     uint64_t                  stage_3;
     an_ifc_word_category_0_33 stage_4;
-    an_ifc_word_category      stage_5;
 
     /* Copy the field (SourceWord::index - Index) into version specific
        storage. */
@@ -116838,7 +116138,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_5 = to_universal_category(mod, stage_4);
   }  /* if */
   if (has_ifc_locus(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -116864,7 +116163,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
   if (has_ifc_sort(mod, universal)) {
     an_ifc_word_sort_0_33   stage_0;
     an_ifc_validation_trace stage_0_trace = {"sort", /*offset=*/14, parent};
-    an_ifc_word_sort        stage_1;
 
     /* Copy the field (SourceWord::sort - WordSort) into version specific
        storage. */
@@ -116875,7 +116173,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_sort(stage_0);
   }  /* if */
 done:
   return result;
@@ -118023,7 +117320,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
   if (has_ifc_expr(mod, universal)) {
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"expr", /*offset=*/0, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (StmtCase::expr - ExprIndex) into version specific
        storage. */
@@ -118034,7 +117330,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_locus(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -118876,7 +118171,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
   if (has_ifc_body(mod, universal)) {
     an_ifc_stmt_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"body", /*offset=*/4, parent};
-    an_ifc_stmt_index       stage_1;
 
     /* Copy the field (StmtDoWhile::body - StmtIndex) into version specific
        storage. */
@@ -118887,13 +118181,11 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_condition(mod, universal)) {
     an_ifc_stmt_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace =
                                            {"condition", /*offset=*/0, parent};
-    an_ifc_stmt_index       stage_1;
 
     /* Copy the field (StmtDoWhile::condition - StmtIndex) into version
        specific storage. */
@@ -118904,7 +118196,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_locus(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -119403,7 +118694,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
   if (has_ifc_operand(mod, universal)) {
     an_ifc_stmt_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"operand", /*offset=*/0, parent};
-    an_ifc_stmt_index       stage_1;
 
     /* Copy the field (StmtExpansion::operand - StmtIndex) into version
        specific storage. */
@@ -119414,7 +118704,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -119697,7 +118986,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
   if (has_ifc_expr(mod, universal)) {
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"expr", /*offset=*/0, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (StmtExpression::expr - ExprIndex) into version specific
        storage. */
@@ -119708,7 +118996,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_locus(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -120215,7 +119502,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
   if (has_ifc_body(mod, universal)) {
     an_ifc_stmt_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"body", /*offset=*/12, parent};
-    an_ifc_stmt_index       stage_1;
 
     /* Copy the field (StmtFor::body - StmtIndex) into version specific
        storage. */
@@ -120226,13 +119512,11 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_condition(mod, universal)) {
     an_ifc_stmt_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace =
                                            {"condition", /*offset=*/4, parent};
-    an_ifc_stmt_index       stage_1;
 
     /* Copy the field (StmtFor::condition - StmtIndex) into version specific
        storage. */
@@ -120243,13 +119527,11 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_continuation(mod, universal)) {
     an_ifc_stmt_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace =
                                         {"continuation", /*offset=*/8, parent};
-    an_ifc_stmt_index       stage_1;
 
     /* Copy the field (StmtFor::continuation - StmtIndex) into version specific
        storage. */
@@ -120260,13 +119542,11 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_initialization(mod, universal)) {
     an_ifc_stmt_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace =
                                       {"initialization", /*offset=*/0, parent};
-    an_ifc_stmt_index       stage_1;
 
     /* Copy the field (StmtFor::initialization - StmtIndex) into version
        specific storage. */
@@ -120277,7 +119557,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_locus(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -120834,7 +120113,6 @@ return TRUE if the representation is valid; otherwise, return FALSE.
     an_ifc_stmt_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace =
                                         {"alternative", /*offset=*/12, parent};
-    an_ifc_stmt_index       stage_1;
 
     /* Copy the field (StmtIf::alternative - StmtIndex) into version specific
        storage. */
@@ -120845,13 +120123,11 @@ return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_condition(mod, universal)) {
     an_ifc_stmt_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace =
                                            {"condition", /*offset=*/4, parent};
-    an_ifc_stmt_index       stage_1;
 
     /* Copy the field (StmtIf::condition - StmtIndex) into version specific
        storage. */
@@ -120862,13 +120138,11 @@ return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_consequence(mod, universal)) {
     an_ifc_stmt_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace =
                                          {"consequence", /*offset=*/8, parent};
-    an_ifc_stmt_index       stage_1;
 
     /* Copy the field (StmtIf::consequence - StmtIndex) into version specific
        storage. */
@@ -120879,13 +120153,11 @@ return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_initialization(mod, universal)) {
     an_ifc_stmt_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace =
                                       {"initialization", /*offset=*/0, parent};
-    an_ifc_stmt_index       stage_1;
 
     /* Copy the field (StmtIf::initialization - StmtIndex) into version
        specific storage. */
@@ -120896,7 +120168,6 @@ return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_locus(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -121395,7 +120666,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
   if (has_ifc_expr(mod, universal)) {
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"expr", /*offset=*/0, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (StmtReturn::expr - ExprIndex) into version specific
        storage. */
@@ -121406,13 +120676,11 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_expression_type(mod, universal)) {
     an_ifc_type_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace =
                                      {"expression_type", /*offset=*/8, parent};
-    an_ifc_type_index       stage_1;
 
     /* Copy the field (StmtReturn::expression_type - TypeIndex) into version
        specific storage. */
@@ -121423,13 +120691,11 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_function_type(mod, universal)) {
     an_ifc_type_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace =
                                        {"function_type", /*offset=*/4, parent};
-    an_ifc_type_index       stage_1;
 
     /* Copy the field (StmtReturn::function_type - TypeIndex) into version
        specific storage. */
@@ -121440,7 +120706,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_locus(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -121921,7 +121186,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
   if (has_ifc_body(mod, universal)) {
     an_ifc_stmt_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"body", /*offset=*/8, parent};
-    an_ifc_stmt_index       stage_1;
 
     /* Copy the field (StmtSwitch::body - StmtIndex) into version specific
        storage. */
@@ -121932,13 +121196,11 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_condition(mod, universal)) {
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace =
                                            {"condition", /*offset=*/4, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (StmtSwitch::condition - ExprIndex) into version specific
        storage. */
@@ -121949,13 +121211,11 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_initialization(mod, universal)) {
     an_ifc_stmt_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace =
                                       {"initialization", /*offset=*/0, parent};
-    an_ifc_stmt_index       stage_1;
 
     /* Copy the field (StmtSwitch::initialization - StmtIndex) into version
        specific storage. */
@@ -121966,7 +121226,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_locus(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -122337,7 +121596,6 @@ return FALSE.
     if (is_at_least(mod, 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace = {"decl", /*offset=*/0, parent};
-      an_ifc_decl_index       stage_1;
 
       /* Copy the field (StmtVariableDecl::decl - DeclIndex) into version
          specific storage. */
@@ -122348,11 +121606,9 @@ return FALSE.
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(mod, stage_0);
     } else {
       an_ifc_decl_index_0_33  stage_0;
       an_ifc_validation_trace stage_0_trace = {"decl", /*offset=*/0, parent};
-      an_ifc_decl_index       stage_1;
 
       /* Copy the field (StmtVariableDecl::decl - DeclIndex) into version
          specific storage. */
@@ -122363,7 +121619,6 @@ return FALSE.
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(mod, stage_0);
     }  /* if */
   }  /* if */
   if (has_ifc_locus(mod, universal)) {
@@ -122743,7 +121998,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
   if (has_ifc_body(mod, universal)) {
     an_ifc_stmt_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"body", /*offset=*/4, parent};
-    an_ifc_stmt_index       stage_1;
 
     /* Copy the field (StmtWhile::body - StmtIndex) into version specific
        storage. */
@@ -122754,13 +122008,11 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_condition(mod, universal)) {
     an_ifc_stmt_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace =
                                            {"condition", /*offset=*/0, parent};
-    an_ifc_stmt_index       stage_1;
 
     /* Copy the field (StmtWhile::condition - StmtIndex) into version specific
        storage. */
@@ -122771,7 +122023,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_locus(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -123431,7 +122682,6 @@ return FALSE.
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace =
                                           {"designator", /*offset=*/0, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (SyntaxAccessSpecifier::designator - ExprIndex) into
        version specific storage. */
@@ -123442,7 +122692,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_locus(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -124066,7 +123315,6 @@ return FALSE.
   if (has_ifc_aliasee(mod, universal)) {
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace = {"aliasee", /*offset=*/4, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxAliasDeclaration::aliasee - SyntaxIndex) into
        version specific storage. */
@@ -124077,7 +123325,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_equal(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -124124,7 +123371,6 @@ return FALSE.
   if (has_ifc_name(mod, universal)) {
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"name", /*offset=*/0, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (SyntaxAliasDeclaration::name - ExprIndex) into version
        specific storage. */
@@ -124135,7 +123381,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_semicolon(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -124677,7 +123922,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
   if (has_ifc_operand(mod, universal)) {
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace = {"operand", /*offset=*/0, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxAlignas::operand - SyntaxIndex) into version
        specific storage. */
@@ -124688,7 +123932,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_right_paren(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -125112,7 +124355,6 @@ return FALSE.
   if (has_ifc_bound(mod, universal)) {
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"bound", /*offset=*/0, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (SyntaxArrayDeclarator::bound - ExprIndex) into version
        specific storage. */
@@ -125123,7 +124365,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_left_bracket(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -125619,7 +124860,6 @@ return FALSE.
   if (has_ifc_array(mod, universal)) {
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"array", /*offset=*/0, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (SyntaxArrayIndex::array - ExprIndex) into version
        specific storage. */
@@ -125630,12 +124870,10 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_index(mod, universal)) {
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"index", /*offset=*/4, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (SyntaxArrayIndex::index - ExprIndex) into version
        specific storage. */
@@ -125646,7 +124884,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_left_bracket(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -126022,7 +125259,6 @@ otherwise, return FALSE.
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace =
                                           {"declarator", /*offset=*/0, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxArrayOrFunctionDeclarator::declarator -
        SyntaxIndex) into version specific storage. */
@@ -126033,12 +125269,10 @@ otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_next(mod, universal)) {
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace = {"next", /*offset=*/4, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxArrayOrFunctionDeclarator::next - SyntaxIndex)
        into version specific storage. */
@@ -126049,7 +125283,6 @@ otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -126940,7 +126173,6 @@ return FALSE.
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace =
                                      {"argument_clause", /*offset=*/8, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxAttribute::argument_clause - SyntaxIndex) into
        version specific storage. */
@@ -126951,7 +126183,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_colons(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -127019,7 +126250,6 @@ return FALSE.
   if (has_ifc_name(mod, universal)) {
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"name", /*offset=*/0, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (SyntaxAttribute::name - ExprIndex) into version specific
        storage. */
@@ -127030,12 +126260,10 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_scope(mod, universal)) {
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"scope", /*offset=*/4, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (SyntaxAttribute::scope - ExprIndex) into version
        specific storage. */
@@ -127046,7 +126274,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -128123,7 +127350,6 @@ return FALSE.
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace =
                                           {"attributes", /*offset=*/4, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxAttributeSpecifier::attributes - SyntaxIndex) into
        version specific storage. */
@@ -128134,7 +127360,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_left_paren_1(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -128181,7 +127406,6 @@ return FALSE.
   if (has_ifc_prefix(mod, universal)) {
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace = {"prefix", /*offset=*/0, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxAttributeSpecifier::prefix - SyntaxIndex) into
        version specific storage. */
@@ -128192,7 +127416,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_right_paren_1(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -128529,7 +127752,6 @@ return FALSE.
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace =
                                           {"attributes", /*offset=*/0, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxAttributeSpecifierSeq::attributes - SyntaxIndex)
        into version specific storage. */
@@ -128540,7 +127762,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -129245,7 +128466,6 @@ return FALSE.
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace =
                                          {"attributes", /*offset=*/12, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxAttributedDeclaration::attributes - SyntaxIndex)
        into version specific storage. */
@@ -129256,12 +128476,10 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_decl(mod, universal)) {
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace = {"decl", /*offset=*/8, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxAttributedDeclaration::decl - SyntaxIndex) into
        version specific storage. */
@@ -129272,7 +128490,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_locus(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -129686,7 +128903,6 @@ return FALSE.
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace =
                                           {"attributes", /*offset=*/8, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxAttributedStatement::attributes - SyntaxIndex)
        into version specific storage. */
@@ -129697,12 +128913,10 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_stmt(mod, universal)) {
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace = {"stmt", /*offset=*/4, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxAttributedStatement::stmt - SyntaxIndex) into
        version specific storage. */
@@ -129713,7 +128927,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -130377,7 +129590,6 @@ return FALSE.
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace =
                                      {"base_specifiers", /*offset=*/0, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxBaseSpecifierList::base_specifiers - SyntaxIndex)
        into version specific storage. */
@@ -130388,7 +129600,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_colon(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -131198,7 +130409,6 @@ return FALSE.
     an_ifc_fold_direction_sort_0_33 stage_0;
     an_ifc_validation_trace         stage_0_trace =
                                            {"direction", /*offset=*/0, parent};
-    an_ifc_fold_direction_sort      stage_1;
 
     /* Copy the field (SyntaxBinaryFoldExpression::direction -
        FoldDirectionSort) into version specific storage. */
@@ -131209,13 +130419,11 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_sort(stage_0);
   }  /* if */
   if (has_ifc_dyad(mod, universal)) {
     an_ifc_dyadic_operator_sort_0_33 stage_0;
     an_ifc_validation_trace          stage_0_trace =
                                                {"dyad", /*offset=*/12, parent};
-    an_ifc_dyadic_operator_sort      stage_1;
 
     /* Copy the field (SyntaxBinaryFoldExpression::dyad - DyadicOperatorSort)
        into version specific storage. */
@@ -131226,7 +130434,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_sort(stage_0);
   }  /* if */
   if (has_ifc_ellipsis(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -131316,7 +130523,6 @@ return FALSE.
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace =
                                            {"operand_1", /*offset=*/4, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (SyntaxBinaryFoldExpression::operand_1 - ExprIndex) into
        version specific storage. */
@@ -131327,13 +130533,11 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_operand_2(mod, universal)) {
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace =
                                            {"operand_2", /*offset=*/8, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (SyntaxBinaryFoldExpression::operand_2 - ExprIndex) into
        version specific storage. */
@@ -131344,7 +130548,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_right_paren(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -132780,7 +131983,6 @@ return FALSE.
   if (has_ifc_bases(mod, universal)) {
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace = {"bases", /*offset=*/16, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxClassSpecifier::bases - SyntaxIndex) into version
        specific storage. */
@@ -132791,7 +131993,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_class_key(mod, universal)) {
     an_ifc_keyword_syntax_bytes stage_0;
@@ -132818,7 +132019,6 @@ return FALSE.
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace =
                                          {"left_paren", /*offset=*/24, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxClassSpecifier::left_paren - SyntaxIndex) into
        version specific storage. */
@@ -132829,13 +132029,11 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_members(mod, universal)) {
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace =
                                             {"members", /*offset=*/20, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxClassSpecifier::members - SyntaxIndex) into
        version specific storage. */
@@ -132846,12 +132044,10 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_name(mod, universal)) {
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"name", /*offset=*/0, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (SyntaxClassSpecifier::name - ExprIndex) into version
        specific storage. */
@@ -132862,13 +132058,11 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_right_paren(mod, universal)) {
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace =
                                         {"right_paren", /*offset=*/28, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxClassSpecifier::right_paren - SyntaxIndex) into
        version specific storage. */
@@ -132879,7 +132073,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -133467,7 +132660,6 @@ return FALSE.
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace =
                                            {"condition", /*offset=*/0, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (SyntaxCompoundRequirement::condition - ExprIndex) into
        version specific storage. */
@@ -133478,13 +132670,11 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_constraint(mod, universal)) {
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace =
                                           {"constraint", /*offset=*/4, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (SyntaxCompoundRequirement::constraint - ExprIndex) into
        version specific storage. */
@@ -133495,7 +132685,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_locus(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -134091,7 +133280,6 @@ return FALSE.
   if (has_ifc_stmts(mod, universal)) {
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace = {"stmts", /*offset=*/4, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxCompoundStatement::stmts - SyntaxIndex) into
        version specific storage. */
@@ -134102,7 +133290,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -134821,7 +134008,6 @@ return FALSE.
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace =
                                         {"initializer", /*offset=*/16, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (SyntaxConceptDefinition::initializer - ExprIndex) into
        version specific storage. */
@@ -134832,7 +134018,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_locus(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -134859,7 +134044,6 @@ return FALSE.
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace =
                                           {"parameters", /*offset=*/0, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxConceptDefinition::parameters - SyntaxIndex) into
        version specific storage. */
@@ -134870,7 +134054,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_semicolon(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -135335,7 +134518,6 @@ return FALSE.
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace =
                                       {"decl_specifier", /*offset=*/0, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxConditionDeclaration::decl_specifier -
        SyntaxIndex) into version specific storage. */
@@ -135346,13 +134528,11 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_initializaerion(mod, universal)) {
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace =
                                      {"initializaerion", /*offset=*/4, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxConditionDeclaration::initializaerion -
        SyntaxIndex) into version specific storage. */
@@ -135363,7 +134543,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_locus(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -136072,7 +135251,6 @@ return FALSE.
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace =
                                         {"initializers", /*offset=*/0, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxCtorInitializer::initializers - SyntaxIndex) into
        version specific storage. */
@@ -136083,7 +135261,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -136735,7 +135912,6 @@ return FALSE.
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace =
                                         {"explicit_kw", /*offset=*/24, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxDeclSpecifierSeq::explicit_kw - SyntaxIndex) into
        version specific storage. */
@@ -136746,7 +135922,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_locus(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -136772,7 +135947,6 @@ return FALSE.
   if (has_ifc_type(mod, universal)) {
     an_ifc_type_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"type", /*offset=*/0, parent};
-    an_ifc_type_index       stage_1;
 
     /* Copy the field (SyntaxDeclSpecifierSeq::type - TypeIndex) into version
        specific storage. */
@@ -136783,13 +135957,11 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_type_name(mod, universal)) {
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace =
                                            {"type_name", /*offset=*/4, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxDeclSpecifierSeq::type_name - SyntaxIndex) into
        version specific storage. */
@@ -136800,7 +135972,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -136861,16 +136032,12 @@ diagnostic textual representation with the given indent.
     db_node(field.get_module(), field.get_storage(), indent + 1);
   }  /* if */
   if (has_ifc_qualifiers(mod, universal)) {
-    an_ifc_qualifier_bitfield field = get_ifc_qualifiers(mod, universal);
-
     for (unsigned i = 0; i < indent; ++i) {
       fprintf(f_debug, "  ");
     }  /* for */
     fprintf(f_debug, "qualifiers: UNIMPLEMENTED\n");
   }  /* if */
   if (has_ifc_storage_class(mod, universal)) {
-    an_ifc_storage_class field = get_ifc_storage_class(mod, universal);
-
     for (unsigned i = 0; i < indent; ++i) {
       fprintf(f_debug, "  ");
     }  /* for */
@@ -137173,7 +136340,6 @@ return FALSE.
   if (has_ifc_decl(mod, universal)) {
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace = {"decl", /*offset=*/4, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxDeclarationStatement::decl - SyntaxIndex) into
        version specific storage. */
@@ -137184,7 +136350,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -138095,7 +137260,6 @@ return FALSE.
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace =
                                    {"array_or_function", /*offset=*/8, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxDeclarator::array_or_function - SyntaxIndex) into
        version specific storage. */
@@ -138106,13 +137270,11 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_convention(mod, universal)) {
     an_ifc_calling_convention_sort_0_33 stage_0;
     an_ifc_validation_trace             stage_0_trace =
                                          {"convention", /*offset=*/41, parent};
-    an_ifc_calling_convention_sort      stage_1;
 
     /* Copy the field (SyntaxDeclarator::convention - CallingConventionSort)
        into version specific storage. */
@@ -138123,7 +137285,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_sort(stage_0);
   }  /* if */
   if (has_ifc_ellipsis(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -138170,7 +137331,6 @@ return FALSE.
   if (has_ifc_name(mod, universal)) {
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"name", /*offset=*/20, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (SyntaxDeclarator::name - ExprIndex) into version
        specific storage. */
@@ -138181,13 +137341,11 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_parenthesized(mod, universal)) {
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace =
                                        {"parenthesized", /*offset=*/4, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxDeclarator::parenthesized - SyntaxIndex) into
        version specific storage. */
@@ -138198,12 +137356,10 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_pointer(mod, universal)) {
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace = {"pointer", /*offset=*/0, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxDeclarator::pointer - SyntaxIndex) into version
        specific storage. */
@@ -138214,13 +137370,11 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_trailing_target(mod, universal)) {
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace =
                                     {"trailing_target", /*offset=*/12, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxDeclarator::trailing_target - SyntaxIndex) into
        version specific storage. */
@@ -138231,13 +137385,11 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_virtual_specifiers(mod, universal)) {
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace =
                                  {"virtual_specifiers", /*offset=*/16, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxDeclarator::virtual_specifiers - SyntaxIndex) into
        version specific storage. */
@@ -138248,7 +137400,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -138374,8 +137525,6 @@ textual representation with the given indent.
     fprintf(f_debug, "  value: %ld\n", (uint64_t)field.value);
   }  /* if */
   if (has_ifc_qualifiers(mod, universal)) {
-    an_ifc_qualifier_bitfield field = get_ifc_qualifiers(mod, universal);
-
     for (unsigned i = 0; i < indent; ++i) {
       fprintf(f_debug, "  ");
     }  /* for */
@@ -138848,7 +137997,6 @@ return FALSE.
   if (has_ifc_expr(mod, universal)) {
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"expr", /*offset=*/0, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (SyntaxDecltypeSpecifier::expr - ExprIndex) into version
        specific storage. */
@@ -138859,7 +138007,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_left_paren(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -139506,7 +138653,6 @@ return FALSE.
   if (has_ifc_body(mod, universal)) {
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace = {"body", /*offset=*/8, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxDoWhileStatement::body - SyntaxIndex) into version
        specific storage. */
@@ -139517,13 +138663,11 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_condition(mod, universal)) {
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace =
                                            {"condition", /*offset=*/4, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (SyntaxDoWhileStatement::condition - ExprIndex) into
        version specific storage. */
@@ -139534,7 +138678,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_do(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -140251,7 +139394,6 @@ return FALSE.
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace =
                                            {"type_list", /*offset=*/0, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxDynamicExceptionSpec::type_list - SyntaxIndex)
        into version specific storage. */
@@ -140262,7 +139404,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -141249,7 +140390,6 @@ return FALSE.
   if (has_ifc_base(mod, universal)) {
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace = {"base", /*offset=*/20, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxEnumSpecifier::base - SyntaxIndex) into version
        specific storage. */
@@ -141260,7 +140400,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_class_key(mod, universal)) {
     an_ifc_keyword_syntax_bytes stage_0;
@@ -141308,7 +140447,6 @@ return FALSE.
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace =
                                         {"enumerators", /*offset=*/16, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxEnumSpecifier::enumerators - SyntaxIndex) into
        version specific storage. */
@@ -141319,7 +140457,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_left_brace(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -141366,7 +140503,6 @@ return FALSE.
   if (has_ifc_name(mod, universal)) {
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"name", /*offset=*/0, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (SyntaxEnumSpecifier::name - ExprIndex) into version
        specific storage. */
@@ -141377,7 +140513,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_right_brace(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -142048,7 +141183,6 @@ return FALSE.
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace =
                                          {"initializer", /*offset=*/4, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (SyntaxEnumeratorDefinition::initializer - ExprIndex)
        into version specific storage. */
@@ -142059,7 +141193,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_locus(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -142562,7 +141695,6 @@ return FALSE.
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace =
                                           {"declarator", /*offset=*/4, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxExceptionDeclaration::declarator - SyntaxIndex)
        into version specific storage. */
@@ -142573,7 +141705,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_ellipsis(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -142621,7 +141752,6 @@ return FALSE.
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace =
                                      {"type_specifiers", /*offset=*/0, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxExceptionDeclaration::type_specifiers -
        SyntaxIndex) into version specific storage. */
@@ -142632,7 +141762,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -143110,7 +142239,6 @@ return FALSE.
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace =
                                            {"condition", /*offset=*/0, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (SyntaxExplicitSpecifier::condition - ExprIndex) into
        version specific storage. */
@@ -143121,7 +142249,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_left_paren(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -143445,7 +142572,6 @@ return FALSE.
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace =
                                           {"expression", /*offset=*/0, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (SyntaxExpression::expression - ExprIndex) into version
        specific storage. */
@@ -143456,7 +142582,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -143818,7 +142943,6 @@ return FALSE.
   if (has_ifc_expr(mod, universal)) {
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"expr", /*offset=*/4, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (SyntaxExpressionStatement::expr - ExprIndex) into
        version specific storage. */
@@ -143829,7 +142953,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_semicolon(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -144164,7 +143287,6 @@ return FALSE.
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace =
                                           {"declarator", /*offset=*/4, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxForRangeDeclaration::declarator - SyntaxIndex)
        into version specific storage. */
@@ -144175,13 +143297,11 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_specifiers(mod, universal)) {
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace =
                                           {"specifiers", /*offset=*/0, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxForRangeDeclaration::specifiers - SyntaxIndex)
        into version specific storage. */
@@ -144192,7 +143312,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -144981,7 +144100,6 @@ return FALSE.
   if (has_ifc_body(mod, universal)) {
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace = {"body", /*offset=*/16, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxForStatement::body - SyntaxIndex) into version
        specific storage. */
@@ -144992,13 +144110,11 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_condition(mod, universal)) {
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace =
                                            {"condition", /*offset=*/8, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (SyntaxForStatement::condition - ExprIndex) into version
        specific storage. */
@@ -145009,13 +144125,11 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_continuation(mod, universal)) {
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace =
                                        {"continuation", /*offset=*/12, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (SyntaxForStatement::continuation - ExprIndex) into
        version specific storage. */
@@ -145026,7 +144140,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_for(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -145053,7 +144166,6 @@ return FALSE.
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace =
                                       {"initialization", /*offset=*/4, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxForStatement::initialization - SyntaxIndex) into
        version specific storage. */
@@ -145064,7 +144176,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_left_paren(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -145846,7 +144957,6 @@ return FALSE.
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace =
                                         {"initializers", /*offset=*/8, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxFunctionBody::initializers - SyntaxIndex) into
        version specific storage. */
@@ -145857,7 +144967,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_semicolon(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -145883,7 +144992,6 @@ return FALSE.
   if (has_ifc_stmts(mod, universal)) {
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace = {"stmts", /*offset=*/0, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxFunctionBody::stmts - SyntaxIndex) into version
        specific storage. */
@@ -145894,13 +145002,11 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_try_block(mod, universal)) {
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace =
                                            {"try_block", /*offset=*/4, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxFunctionBody::try_block - SyntaxIndex) into
        version specific storage. */
@@ -145911,7 +145017,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -146416,7 +145521,6 @@ return FALSE.
   if (has_ifc_eh_spec(mod, universal)) {
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace = {"eh_spec", /*offset=*/4, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxFunctionDeclarator::eh_spec - SyntaxIndex) into
        version specific storage. */
@@ -146427,7 +145531,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_left_paren(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -146454,7 +145557,6 @@ return FALSE.
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace =
                                           {"parameters", /*offset=*/0, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxFunctionDeclarator::parameters - SyntaxIndex) into
        version specific storage. */
@@ -146465,7 +145567,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_right_paren(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -147118,7 +146219,6 @@ return FALSE.
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace =
                                         {"initializers", /*offset=*/8, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxFunctionDefinition::initializers - SyntaxIndex)
        into version specific storage. */
@@ -147129,7 +146229,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_semicolon(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -147155,7 +146254,6 @@ return FALSE.
   if (has_ifc_stmts(mod, universal)) {
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace = {"stmts", /*offset=*/0, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxFunctionDefinition::stmts - SyntaxIndex) into
        version specific storage. */
@@ -147166,7 +146264,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_synthesis(mod, universal)) {
     an_ifc_keyword_syntax_bytes stage_0;
@@ -147193,7 +146290,6 @@ return FALSE.
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace =
                                            {"try_block", /*offset=*/4, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxFunctionDefinition::try_block - SyntaxIndex) into
        version specific storage. */
@@ -147204,7 +146300,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -147637,7 +146732,6 @@ return FALSE.
   if (has_ifc_body(mod, universal)) {
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace = {"body", /*offset=*/0, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxFunctionTryBlock::body - SyntaxIndex) into version
        specific storage. */
@@ -147648,13 +146742,11 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_handlers(mod, universal)) {
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace =
                                             {"handlers", /*offset=*/4, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxFunctionTryBlock::handlers - SyntaxIndex) into
        version specific storage. */
@@ -147665,13 +146757,11 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_initializers(mod, universal)) {
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace =
                                         {"initializers", /*offset=*/8, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxFunctionTryBlock::initializers - SyntaxIndex) into
        version specific storage. */
@@ -147682,7 +146772,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -148873,7 +147962,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
   if (has_ifc_body(mod, universal)) {
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace = {"body", /*offset=*/8, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxHandler::body - SyntaxIndex) into version specific
        storage. */
@@ -148884,7 +147972,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_catch(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -148911,7 +147998,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace =
                                            {"exception", /*offset=*/4, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxHandler::exception - SyntaxIndex) into version
        specific storage. */
@@ -148922,7 +148008,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_left_paren(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -149251,7 +148336,6 @@ return FALSE.
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace =
                                             {"handlers", /*offset=*/0, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxHandlerSeq::handlers - SyntaxIndex) into version
        specific storage. */
@@ -149262,7 +148346,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -150032,7 +149115,6 @@ return FALSE.
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace =
                                         {"alternative", /*offset=*/20, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxIfStatement::alternative - SyntaxIndex) into
        version specific storage. */
@@ -150043,13 +149125,11 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_condition_as_expr(mod, universal)) {
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace =
                                   {"condition_as_expr", /*offset=*/12, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (SyntaxIfStatement::condition_as_expr - ExprIndex) into
        version specific storage. */
@@ -150060,13 +149140,11 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_condition_as_syntax(mod, universal)) {
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace =
                                  {"condition_as_syntax", /*offset=*/8, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxIfStatement::condition_as_syntax - SyntaxIndex)
        into version specific storage. */
@@ -150077,13 +149155,11 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_consequence(mod, universal)) {
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace =
                                         {"consequence", /*offset=*/16, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxIfStatement::consequence - SyntaxIndex) into
        version specific storage. */
@@ -150094,7 +149170,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_constexpr(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -150162,7 +149237,6 @@ return FALSE.
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace =
                                       {"initialization", /*offset=*/4, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxIfStatement::initialization - SyntaxIndex) into
        version specific storage. */
@@ -150173,7 +149247,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -150849,7 +149922,6 @@ return FALSE.
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace =
                                          {"initializer", /*offset=*/4, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (SyntaxInitCapture::initializer - ExprIndex) into version
        specific storage. */
@@ -150860,12 +149932,10 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_name(mod, universal)) {
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"name", /*offset=*/0, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (SyntaxInitCapture::name - ExprIndex) into version
        specific storage. */
@@ -150876,7 +149946,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -151378,7 +150447,6 @@ return FALSE.
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace =
                                           {"constraint", /*offset=*/4, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxInitDeclarator::constraint - SyntaxIndex) into
        version specific storage. */
@@ -151389,13 +150457,11 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_declarator(mod, universal)) {
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace =
                                           {"declarator", /*offset=*/0, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxInitDeclarator::declarator - SyntaxIndex) into
        version specific storage. */
@@ -151406,13 +150472,11 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_initializer(mod, universal)) {
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace =
                                          {"initializer", /*offset=*/8, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (SyntaxInitDeclarator::initializer - ExprIndex) into
        version specific storage. */
@@ -151423,7 +150487,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -151763,7 +150826,6 @@ return FALSE.
   if (has_ifc_init(mod, universal)) {
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace = {"init", /*offset=*/4, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxInitStatement::init - SyntaxIndex) into version
        specific storage. */
@@ -151774,7 +150836,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -152270,7 +151331,6 @@ return FALSE.
   if (has_ifc_label(mod, universal)) {
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"label", /*offset=*/4, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (SyntaxLabeledStatement::label - ExprIndex) into version
        specific storage. */
@@ -152281,12 +151341,10 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_locus(mod, universal)) {
     an_ifc_keyword_sort_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace = {"locus", /*offset=*/12, parent};
-    an_ifc_keyword_sort      stage_1;
 
     /* Copy the field (SyntaxLabeledStatement::locus - KeywordSort) into
        version specific storage. */
@@ -152297,12 +151355,10 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_sort(stage_0);
   }  /* if */
   if (has_ifc_sort(mod, universal)) {
     an_ifc_label_sort_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"sort", /*offset=*/16, parent};
-    an_ifc_label_sort       stage_1;
 
     /* Copy the field (SyntaxLabeledStatement::sort - LabelSort) into version
        specific storage. */
@@ -152313,12 +151369,10 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_sort(stage_0);
   }  /* if */
   if (has_ifc_stmt(mod, universal)) {
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace = {"stmt", /*offset=*/8, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxLabeledStatement::stmt - SyntaxIndex) into version
        specific storage. */
@@ -152329,7 +151383,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -153007,7 +152060,6 @@ return FALSE.
   if (has_ifc_eh_spec(mod, universal)) {
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace = {"eh_spec", /*offset=*/4, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxLambdaDeclarator::eh_spec - SyntaxIndex) into
        version specific storage. */
@@ -153018,7 +152070,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_expander(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -153066,7 +152117,6 @@ return FALSE.
     an_ifc_keyword_sort_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace =
                                            {"modifier", /*offset=*/12, parent};
-    an_ifc_keyword_sort      stage_1;
 
     /* Copy the field (SyntaxLambdaDeclarator::modifier - KeywordSort) into
        version specific storage. */
@@ -153077,13 +152127,11 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_sort(stage_0);
   }  /* if */
   if (has_ifc_parameters(mod, universal)) {
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace =
                                           {"parameters", /*offset=*/0, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxLambdaDeclarator::parameters - SyntaxIndex) into
        version specific storage. */
@@ -153094,7 +152142,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_right_paren(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -153121,7 +152168,6 @@ return FALSE.
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace =
                                      {"trailing_target", /*offset=*/8, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxLambdaDeclarator::trailing_target - SyntaxIndex)
        into version specific storage. */
@@ -153132,7 +152178,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -153584,7 +152629,6 @@ return FALSE.
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace =
                                             {"captures", /*offset=*/0, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxLambdaIntroducer::captures - SyntaxIndex) into
        version specific storage. */
@@ -153595,7 +152639,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_left_bracket(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -154130,7 +153173,6 @@ return FALSE.
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace =
                                          {"initializer", /*offset=*/4, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (SyntaxMemInitializer::initializer - ExprIndex) into
        version specific storage. */
@@ -154141,12 +153183,10 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_member(mod, universal)) {
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"member", /*offset=*/0, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (SyntaxMemInitializer::member - ExprIndex) into version
        specific storage. */
@@ -154157,7 +153197,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -154565,7 +153604,6 @@ return FALSE.
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace =
                                      {"decl_specifiers", /*offset=*/0, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxMemberDeclaration::decl_specifiers - SyntaxIndex)
        into version specific storage. */
@@ -154576,13 +153614,11 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_declarations(mod, universal)) {
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace =
                                         {"declarations", /*offset=*/4, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxMemberDeclaration::declarations - SyntaxIndex)
        into version specific storage. */
@@ -154593,7 +153629,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_semicolon(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -155272,7 +154307,6 @@ return FALSE.
   if (has_ifc_bitwidth(mod, universal)) {
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"bitwidth", /*offset=*/8, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (SyntaxMemberDeclarator::bitwidth - ExprIndex) into
        version specific storage. */
@@ -155283,7 +154317,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_colon(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -155331,7 +154364,6 @@ return FALSE.
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace =
                                           {"constraint", /*offset=*/4, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxMemberDeclarator::constraint - SyntaxIndex) into
        version specific storage. */
@@ -155342,13 +154374,11 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_declarator(mod, universal)) {
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace =
                                           {"declarator", /*offset=*/0, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxMemberDeclarator::declarator - SyntaxIndex) into
        version specific storage. */
@@ -155359,13 +154389,11 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_initializer(mod, universal)) {
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace =
                                         {"initializer", /*offset=*/12, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (SyntaxMemberDeclarator::initializer - ExprIndex) into
        version specific storage. */
@@ -155376,7 +154404,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_locus(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -155714,7 +154741,6 @@ otherwise, return FALSE.
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace =
                                           {"definition", /*offset=*/0, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxMemberFunctionDeclaration::definition -
        SyntaxIndex) into version specific storage. */
@@ -155725,7 +154751,6 @@ otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -155955,7 +154980,6 @@ return FALSE.
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace =
                                  {"member_declarations", /*offset=*/0, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxMemberSpecification::member_declarations -
        SyntaxIndex) into version specific storage. */
@@ -155966,7 +154990,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -156489,7 +155512,6 @@ otherwise, return FALSE.
   if (has_ifc_name(mod, universal)) {
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"name", /*offset=*/0, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (SyntaxNamespaceAliasDefinition::name - ExprIndex) into
        version specific storage. */
@@ -156500,7 +155522,6 @@ otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_namespace_kw(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -156547,7 +155568,6 @@ otherwise, return FALSE.
   if (has_ifc_target(mod, universal)) {
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"target", /*offset=*/4, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (SyntaxNamespaceAliasDefinition::target - ExprIndex) into
        version specific storage. */
@@ -156558,7 +155578,6 @@ otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -156910,7 +155929,6 @@ return FALSE.
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace =
                                            {"condition", /*offset=*/0, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (SyntaxNestedRequirement::condition - ExprIndex) into
        version specific storage. */
@@ -156921,7 +155939,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_locus(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -157179,7 +156196,6 @@ return FALSE.
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace =
                                           {"declarator", /*offset=*/0, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxNewDeclarator::declarator - SyntaxIndex) into
        version specific storage. */
@@ -157190,7 +156206,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -157622,7 +156637,6 @@ return FALSE.
   if (has_ifc_expr(mod, universal)) {
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace = {"expr", /*offset=*/0, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxNoexceptSpecification::expr - SyntaxIndex) into
        version specific storage. */
@@ -157633,7 +156647,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_left_paren(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -158100,7 +157113,6 @@ return FALSE.
   if (has_ifc_argument(mod, universal)) {
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"argument", /*offset=*/0, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (SyntaxNonTypeTemplateArgument::argument - ExprIndex)
        into version specific storage. */
@@ -158111,7 +157123,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_comma(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -158675,7 +157686,6 @@ return FALSE.
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace =
                                      {"decl_specifiers", /*offset=*/0, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxParameterDeclarator::decl_specifiers -
        SyntaxIndex) into version specific storage. */
@@ -158686,13 +157696,11 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_declarator(mod, universal)) {
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace =
                                           {"declarator", /*offset=*/4, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxParameterDeclarator::declarator - SyntaxIndex)
        into version specific storage. */
@@ -158703,13 +157711,11 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_default_expr(mod, universal)) {
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace =
                                         {"default_expr", /*offset=*/8, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (SyntaxParameterDeclarator::default_expr - ExprIndex)
        into version specific storage. */
@@ -158720,7 +157726,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_locus(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -158746,7 +157751,6 @@ return FALSE.
   if (has_ifc_sort(mod, universal)) {
     an_ifc_parameter_sort_0_33 stage_0;
     an_ifc_validation_trace    stage_0_trace = {"sort", /*offset=*/20, parent};
-    an_ifc_parameter_sort      stage_1;
 
     /* Copy the field (SyntaxParameterDeclarator::sort - ParameterSort) into
        version specific storage. */
@@ -158757,7 +157761,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_sort(stage_0);
   }  /* if */
 done:
   return result;
@@ -159247,7 +158250,6 @@ otherwise, return FALSE.
     an_ifc_type_basis_sort_0_33 stage_0;
     an_ifc_validation_trace     stage_0_trace =
                                                {"basis", /*offset=*/4, parent};
-    an_ifc_type_basis_sort      stage_1;
 
     /* Copy the field (SyntaxPlaceholderTypeSpecifier::basis - TypeBasisSort)
        into version specific storage. */
@@ -159258,13 +158260,11 @@ otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_sort(stage_0);
   }  /* if */
   if (has_ifc_constraint(mod, universal)) {
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace =
                                           {"constraint", /*offset=*/0, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (SyntaxPlaceholderTypeSpecifier::constraint - ExprIndex)
        into version specific storage. */
@@ -159275,7 +158275,6 @@ otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_keyword(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -159986,7 +158985,6 @@ return FALSE.
     an_ifc_calling_convention_sort_0_33 stage_0;
     an_ifc_validation_trace             stage_0_trace =
                                          {"convention", /*offset=*/18, parent};
-    an_ifc_calling_convention_sort      stage_1;
 
     /* Copy the field (SyntaxPointerDeclarator::convention -
        CallingConventionSort) into version specific storage. */
@@ -159997,7 +158995,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_sort(stage_0);
   }  /* if */
   if (has_ifc_locus(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -160023,7 +159020,6 @@ return FALSE.
   if (has_ifc_next(mod, universal)) {
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace = {"next", /*offset=*/4, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxPointerDeclarator::next - SyntaxIndex) into
        version specific storage. */
@@ -160034,13 +159030,11 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_sort(mod, universal)) {
     an_ifc_pointer_declarator_sort_0_33 stage_0;
     an_ifc_validation_trace             stage_0_trace =
                                                {"sort", /*offset=*/16, parent};
-    an_ifc_pointer_declarator_sort      stage_1;
 
     /* Copy the field (SyntaxPointerDeclarator::sort - PointerDeclaratorSort)
        into version specific storage. */
@@ -160051,12 +159045,10 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_sort(stage_0);
   }  /* if */
   if (has_ifc_whole(mod, universal)) {
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace = {"whole", /*offset=*/0, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxPointerDeclarator::whole - SyntaxIndex) into
        version specific storage. */
@@ -160067,7 +159059,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -160136,8 +159127,6 @@ diagnostic textual representation with the given indent.
     fprintf(f_debug, "  value: %ld\n", (uint64_t)field.value);
   }  /* if */
   if (has_ifc_qualifiers(mod, universal)) {
-    an_ifc_qualifier_bitfield field = get_ifc_qualifiers(mod, universal);
-
     for (unsigned i = 0; i < indent; ++i) {
       fprintf(f_debug, "  ");
     }  /* for */
@@ -160907,7 +159896,6 @@ return FALSE.
   if (has_ifc_body(mod, universal)) {
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace = {"body", /*offset=*/16, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxRangeBasedForStatement::body - SyntaxIndex) into
        version specific storage. */
@@ -160918,7 +159906,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_colon(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -160944,7 +159931,6 @@ return FALSE.
   if (has_ifc_decl(mod, universal)) {
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace = {"decl", /*offset=*/8, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxRangeBasedForStatement::decl - SyntaxIndex) into
        version specific storage. */
@@ -160955,7 +159941,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_for(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -160981,7 +159966,6 @@ return FALSE.
   if (has_ifc_init(mod, universal)) {
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace = {"init", /*offset=*/4, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxRangeBasedForStatement::init - SyntaxIndex) into
        version specific storage. */
@@ -160992,13 +159976,11 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_initializer(mod, universal)) {
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace =
                                         {"initializer", /*offset=*/12, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxRangeBasedForStatement::initializer - SyntaxIndex)
        into version specific storage. */
@@ -161009,7 +159991,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_left_paren(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -161554,7 +160535,6 @@ return FALSE.
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace =
                                         {"requirements", /*offset=*/0, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxRequirementBody::requirements - SyntaxIndex) into
        version specific storage. */
@@ -161565,7 +160545,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_right_curly(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -161904,7 +160883,6 @@ return FALSE.
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace =
                                            {"condition", /*offset=*/0, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (SyntaxRequiresClause::condition - ExprIndex) into
        version specific storage. */
@@ -161915,7 +160893,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_locus(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -162444,7 +161421,6 @@ return FALSE.
   if (has_ifc_expr(mod, universal)) {
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"expr", /*offset=*/4, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (SyntaxReturnStatement::expr - ExprIndex) into version
        specific storage. */
@@ -162455,7 +161431,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_return(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -162502,7 +161477,6 @@ return FALSE.
   if (has_ifc_sort(mod, universal)) {
     an_ifc_return_sort_0_33 stage_0;
     an_ifc_validation_trace stage_0_trace = {"sort", /*offset=*/8, parent};
-    an_ifc_return_sort      stage_1;
 
     /* Copy the field (SyntaxReturnStatement::sort - ReturnSort) into version
        specific storage. */
@@ -162513,7 +161487,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_sort(stage_0);
   }  /* if */
 done:
   return result;
@@ -163051,7 +162024,6 @@ return FALSE.
   if (has_ifc_body(mod, universal)) {
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace = {"body", /*offset=*/4, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxSEHExcept::body - SyntaxIndex) into version
        specific storage. */
@@ -163062,13 +162034,11 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_condition(mod, universal)) {
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace =
                                            {"condition", /*offset=*/0, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (SyntaxSEHExcept::condition - ExprIndex) into version
        specific storage. */
@@ -163079,7 +162049,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_except_kw(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -163487,7 +162456,6 @@ return FALSE.
   if (has_ifc_body(mod, universal)) {
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace = {"body", /*offset=*/0, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxSEHFinally::body - SyntaxIndex) into version
        specific storage. */
@@ -163498,7 +162466,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_finally_kw(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -164215,7 +163182,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
   if (has_ifc_body(mod, universal)) {
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace = {"body", /*offset=*/0, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxSEHTry::body - SyntaxIndex) into version specific
        storage. */
@@ -164226,12 +163192,10 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_handler(mod, universal)) {
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace = {"handler", /*offset=*/4, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxSEHTry::handler - SyntaxIndex) into version
        specific storage. */
@@ -164242,7 +163206,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_try_kw(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -164784,7 +163747,6 @@ return FALSE.
   if (has_ifc_name(mod, universal)) {
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"name", /*offset=*/0, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (SyntaxSimpleCapture::name - ExprIndex) into version
        specific storage. */
@@ -164795,7 +163757,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -165265,7 +164226,6 @@ return FALSE.
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace =
                                      {"decl_specifiers", /*offset=*/0, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxSimpleDeclaration::decl_specifiers - SyntaxIndex)
        into version specific storage. */
@@ -165276,13 +164236,11 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_declarators(mod, universal)) {
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace =
                                          {"declarators", /*offset=*/4, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxSimpleDeclaration::declarators - SyntaxIndex) into
        version specific storage. */
@@ -165293,7 +164251,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_locus(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -165672,7 +164629,6 @@ return FALSE.
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace =
                                            {"condition", /*offset=*/0, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (SyntaxSimpleRequirement::condition - ExprIndex) into
        version specific storage. */
@@ -165683,7 +164639,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_locus(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -166073,7 +165028,6 @@ return FALSE.
   if (has_ifc_expr(mod, universal)) {
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"expr", /*offset=*/4, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (SyntaxSimpleTypeSpecifier::expr - ExprIndex) into
        version specific storage. */
@@ -166084,7 +165038,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_locus(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -166110,7 +165063,6 @@ return FALSE.
   if (has_ifc_type(mod, universal)) {
     an_ifc_type_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"type", /*offset=*/0, parent};
-    an_ifc_type_index       stage_1;
 
     /* Copy the field (SyntaxSimpleTypeSpecifier::type - TypeIndex) into
        version specific storage. */
@@ -166121,7 +165073,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -166373,7 +165324,6 @@ return FALSE.
   if (has_ifc_stmts(mod, universal)) {
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace = {"stmts", /*offset=*/0, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxStatementSeq::stmts - SyntaxIndex) into version
        specific storage. */
@@ -166384,7 +165334,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -167045,7 +165994,6 @@ return FALSE.
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace =
                                            {"condition", /*offset=*/0, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (SyntaxStaticAssertDeclaration::condition - ExprIndex)
        into version specific storage. */
@@ -167056,7 +166004,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_left_paren(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -167103,7 +166050,6 @@ return FALSE.
   if (has_ifc_message(mod, universal)) {
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"message", /*offset=*/4, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (SyntaxStaticAssertDeclaration::message - ExprIndex) into
        version specific storage. */
@@ -167114,7 +166060,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_right_paren(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -167737,7 +166682,6 @@ the representation is valid; otherwise, return FALSE.
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace =
                                         {"initializer", /*offset=*/24, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (SyntaxStructuredBindingDeclaration::initializer -
        ExprIndex) into version specific storage. */
@@ -167748,7 +166692,6 @@ the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_locus(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -167774,7 +166717,6 @@ the representation is valid; otherwise, return FALSE.
   if (has_ifc_names(mod, universal)) {
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace = {"names", /*offset=*/20, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxStructuredBindingDeclaration::names - SyntaxIndex)
        into version specific storage. */
@@ -167785,7 +166727,6 @@ the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_ref(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -167811,7 +166752,6 @@ the representation is valid; otherwise, return FALSE.
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace =
                                          {"specifiers", /*offset=*/16, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxStructuredBindingDeclaration::specifiers -
        SyntaxIndex) into version specific storage. */
@@ -167822,7 +166762,6 @@ the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -168201,7 +167140,6 @@ otherwise, return FALSE.
   if (has_ifc_name(mod, universal)) {
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"name", /*offset=*/0, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (SyntaxStructuredBindingIdentifier::name - ExprIndex)
        into version specific storage. */
@@ -168212,7 +167150,6 @@ otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -168951,7 +167888,6 @@ return FALSE.
   if (has_ifc_body(mod, universal)) {
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace = {"body", /*offset=*/12, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxSwitchStatement::body - SyntaxIndex) into version
        specific storage. */
@@ -168962,13 +167898,11 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_condition(mod, universal)) {
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace =
                                            {"condition", /*offset=*/8, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxSwitchStatement::condition - SyntaxIndex) into
        version specific storage. */
@@ -168979,12 +167913,10 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_init(mod, universal)) {
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace = {"init", /*offset=*/4, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxSwitchStatement::init - SyntaxIndex) into version
        specific storage. */
@@ -168995,7 +167927,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_switch(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -169439,7 +168370,6 @@ return FALSE.
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace =
                                            {"arguments", /*offset=*/0, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxTemplateArgumentList::arguments - SyntaxIndex)
        into version specific storage. */
@@ -169450,7 +168380,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_left_angle(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -169899,7 +168828,6 @@ return FALSE.
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace =
                                           {"parameters", /*offset=*/0, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxTemplateDeclaration::parameters - SyntaxIndex)
        into version specific storage. */
@@ -169910,12 +168838,10 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_subject(mod, universal)) {
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace = {"subject", /*offset=*/4, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxTemplateDeclaration::subject - SyntaxIndex) into
        version specific storage. */
@@ -169926,7 +168852,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -170446,7 +169371,6 @@ return FALSE.
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace =
                                            {"arguments", /*offset=*/8, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxTemplateId::arguments - SyntaxIndex) into version
        specific storage. */
@@ -170457,7 +169381,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_locus(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -170483,7 +169406,6 @@ return FALSE.
   if (has_ifc_name(mod, universal)) {
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace = {"name", /*offset=*/0, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxTemplateId::name - SyntaxIndex) into version
        specific storage. */
@@ -170494,12 +169416,10 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_symbol(mod, universal)) {
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"symbol", /*offset=*/4, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (SyntaxTemplateId::symbol - ExprIndex) into version
        specific storage. */
@@ -170510,7 +169430,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_template_kw(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -171022,7 +169941,6 @@ return FALSE.
   if (has_ifc_clause(mod, universal)) {
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace = {"clause", /*offset=*/4, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxTemplateParameterList::clause - SyntaxIndex) into
        version specific storage. */
@@ -171033,7 +169951,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_left_angle(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -171060,7 +169977,6 @@ return FALSE.
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace =
                                           {"parameters", /*offset=*/0, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxTemplateParameterList::parameters - SyntaxIndex)
        into version specific storage. */
@@ -171071,7 +169987,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_right_angle(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -171780,7 +170695,6 @@ otherwise, return FALSE.
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace =
                                             {"argument", /*offset=*/4, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxTemplateTemplateParameter::argument - SyntaxIndex)
        into version specific storage. */
@@ -171791,7 +170705,6 @@ otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_comma(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -171880,7 +170793,6 @@ otherwise, return FALSE.
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace =
                                           {"parameters", /*offset=*/8, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxTemplateTemplateParameter::parameters -
        SyntaxIndex) into version specific storage. */
@@ -171891,7 +170803,6 @@ otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -172727,7 +171638,6 @@ return FALSE.
   if (has_ifc_target(mod, universal)) {
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace = {"target", /*offset=*/0, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxTrailingReturnType::target - SyntaxIndex) into
        version specific storage. */
@@ -172738,7 +171648,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -173171,7 +172080,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
   if (has_ifc_body(mod, universal)) {
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace = {"body", /*offset=*/4, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxTryBlock::body - SyntaxIndex) into version
        specific storage. */
@@ -173182,13 +172090,11 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_handlers(mod, universal)) {
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace =
                                             {"handlers", /*offset=*/8, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxTryBlock::handlers - SyntaxIndex) into version
        specific storage. */
@@ -173199,7 +172105,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_try(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -173904,7 +172809,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace =
                                  {"abstract_declarator", /*offset=*/4, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxTypeId::abstract_declarator - SyntaxIndex) into
        version specific storage. */
@@ -173915,7 +172819,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_locus(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -173942,7 +172845,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace =
                                       {"type_specifier", /*offset=*/0, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxTypeId::type_specifier - SyntaxIndex) into version
        specific storage. */
@@ -173953,7 +172855,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -174295,7 +173196,6 @@ return FALSE.
   if (has_ifc_type_id(mod, universal)) {
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace = {"type_id", /*offset=*/0, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxTypeIdListElement::type_id - SyntaxIndex) into
        version specific storage. */
@@ -174306,7 +173206,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -174630,7 +173529,6 @@ return FALSE.
   if (has_ifc_type(mod, universal)) {
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"type", /*offset=*/0, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (SyntaxTypeRequirement::type - ExprIndex) into version
        specific storage. */
@@ -174641,7 +173539,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -175175,7 +174072,6 @@ return FALSE.
   if (has_ifc_type(mod, universal)) {
     an_ifc_type_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"type", /*offset=*/4, parent};
-    an_ifc_type_index       stage_1;
 
     /* Copy the field (SyntaxTypeSpecifierSeq::type - TypeIndex) into version
        specific storage. */
@@ -175186,13 +174082,11 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_type_name(mod, universal)) {
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace =
                                            {"type_name", /*offset=*/0, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxTypeSpecifierSeq::type_name - SyntaxIndex) into
        version specific storage. */
@@ -175203,7 +174097,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -175240,8 +174133,6 @@ diagnostic textual representation with the given indent.
     db_node(field.get_module(), field.get_storage(), indent + 1);
   }  /* if */
   if (has_ifc_qualifiers(mod, universal)) {
-    an_ifc_qualifier_bitfield field = get_ifc_qualifiers(mod, universal);
-
     for (unsigned i = 0; i < indent; ++i) {
       fprintf(f_debug, "  ");
     }  /* for */
@@ -175618,7 +174509,6 @@ return FALSE.
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace =
                                             {"argument", /*offset=*/0, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxTypeTemplateArgument::argument - SyntaxIndex) into
        version specific storage. */
@@ -175629,7 +174519,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_comma(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -176200,7 +175089,6 @@ return FALSE.
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace =
                                             {"argument", /*offset=*/8, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxTypeTemplateParameter::argument - SyntaxIndex)
        into version specific storage. */
@@ -176211,13 +175099,11 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_constraint(mod, universal)) {
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace =
                                           {"constraint", /*offset=*/4, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxTypeTemplateParameter::constraint - SyntaxIndex)
        into version specific storage. */
@@ -176228,7 +175114,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_ellipsis(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -176685,7 +175570,6 @@ return FALSE.
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace =
                                            {"arguments", /*offset=*/0, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxTypeTraitIntrinsic::arguments - SyntaxIndex) into
        version specific storage. */
@@ -176696,13 +175580,11 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_intrinsic(mod, universal)) {
     an_ifc_operator_category_0_33 stage_0;
     an_ifc_validation_trace       stage_0_trace =
                                           {"intrinsic", /*offset=*/12, parent};
-    an_ifc_operator_category      stage_1;
 
     /* Copy the field (SyntaxTypeTraitIntrinsic::intrinsic - OperatorCategory)
        into version specific storage. */
@@ -176713,7 +175595,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_category(mod, stage_0);
   }  /* if */
   if (has_ifc_locus(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -177459,7 +176340,6 @@ return FALSE.
     an_ifc_fold_direction_sort_0_33 stage_0;
     an_ifc_validation_trace         stage_0_trace =
                                            {"direction", /*offset=*/0, parent};
-    an_ifc_fold_direction_sort      stage_1;
 
     /* Copy the field (SyntaxUnaryFoldExpression::direction -
        FoldDirectionSort) into version specific storage. */
@@ -177470,13 +176350,11 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_sort(stage_0);
   }  /* if */
   if (has_ifc_dyad(mod, universal)) {
     an_ifc_dyadic_operator_sort_0_33 stage_0;
     an_ifc_validation_trace          stage_0_trace =
                                                 {"dyad", /*offset=*/8, parent};
-    an_ifc_dyadic_operator_sort      stage_1;
 
     /* Copy the field (SyntaxUnaryFoldExpression::dyad - DyadicOperatorSort)
        into version specific storage. */
@@ -177487,7 +176365,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_sort(stage_0);
   }  /* if */
   if (has_ifc_ellipsis(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -177555,7 +176432,6 @@ return FALSE.
   if (has_ifc_operand(mod, universal)) {
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"operand", /*offset=*/4, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (SyntaxUnaryFoldExpression::operand - ExprIndex) into
        version specific storage. */
@@ -177566,7 +176442,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_right_paren(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -178023,7 +176898,6 @@ return FALSE.
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace =
                                          {"declarators", /*offset=*/0, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxUsingDeclaration::declarators - SyntaxIndex) into
        version specific storage. */
@@ -178034,7 +176908,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_keyword(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -178577,7 +177450,6 @@ return FALSE.
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace =
                                       {"qualified_name", /*offset=*/0, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (SyntaxUsingDeclarator::qualified_name - ExprIndex) into
        version specific storage. */
@@ -178588,7 +177460,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_typename_kw(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -179106,7 +177977,6 @@ return FALSE.
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace =
                                       {"qualified_name", /*offset=*/0, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (SyntaxUsingDirective::qualified_name - ExprIndex) into
        version specific storage. */
@@ -179117,7 +177987,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_semicolon(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -179651,7 +178520,6 @@ return FALSE.
   if (has_ifc_name(mod, universal)) {
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"name", /*offset=*/0, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (SyntaxUsingEnumDeclaration::name - ExprIndex) into
        version specific storage. */
@@ -179662,7 +178530,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_semicolon(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -180696,7 +179563,6 @@ return FALSE.
   if (has_ifc_body(mod, universal)) {
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace = {"body", /*offset=*/8, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (SyntaxWhileStatement::body - SyntaxIndex) into version
        specific storage. */
@@ -180707,13 +179573,11 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_condition(mod, universal)) {
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace =
                                            {"condition", /*offset=*/4, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (SyntaxWhileStatement::condition - ExprIndex) into
        version specific storage. */
@@ -180724,7 +179588,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_while(mod, universal)) {
     an_ifc_source_location_bytes stage_0;
@@ -181181,7 +180044,6 @@ return FALSE.
     if (is_at_least(mod, 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace = {"decl", /*offset=*/0, parent};
-      an_ifc_decl_index       stage_1;
 
       /* Copy the field (TraitAliasTemplate::decl - DeclIndex) into version
          specific storage. */
@@ -181192,11 +180054,9 @@ return FALSE.
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(mod, stage_0);
     } else {
       an_ifc_decl_index_0_33  stage_0;
       an_ifc_validation_trace stage_0_trace = {"decl", /*offset=*/0, parent};
-      an_ifc_decl_index       stage_1;
 
       /* Copy the field (TraitAliasTemplate::decl - DeclIndex) into version
          specific storage. */
@@ -181207,13 +180067,11 @@ return FALSE.
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(mod, stage_0);
     }  /* if */
   }  /* if */
   if (has_ifc_trait(mod, universal)) {
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace = {"trait", /*offset=*/4, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (TraitAliasTemplate::trait - SyntaxIndex) into version
        specific storage. */
@@ -181224,7 +180082,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -181638,7 +180495,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
     if (is_at_least(mod, 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace = {"decl", /*offset=*/0, parent};
-      an_ifc_decl_index       stage_1;
 
       /* Copy the field (TraitAttribute::decl - DeclIndex) into version
          specific storage. */
@@ -181649,11 +180505,9 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(mod, stage_0);
     } else {
       an_ifc_decl_index_0_33  stage_0;
       an_ifc_validation_trace stage_0_trace = {"decl", /*offset=*/0, parent};
-      an_ifc_decl_index       stage_1;
 
       /* Copy the field (TraitAttribute::decl - DeclIndex) into version
          specific storage. */
@@ -181664,13 +180518,11 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(mod, stage_0);
     }  /* if */
   }  /* if */
   if (has_ifc_trait(mod, universal)) {
     an_ifc_attr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"trait", /*offset=*/4, parent};
-    an_ifc_attr_index       stage_1;
 
     /* Copy the field (TraitAttribute::trait - AttrIndex) into version specific
        storage. */
@@ -181681,7 +180533,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -182115,7 +180966,6 @@ return FALSE.
     if (is_at_least(mod, 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace = {"decl", /*offset=*/0, parent};
-      an_ifc_decl_index       stage_1;
 
       /* Copy the field (TraitDeductionGuide::decl - DeclIndex) into version
          specific storage. */
@@ -182126,11 +180976,9 @@ return FALSE.
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(mod, stage_0);
     } else {
       an_ifc_decl_index_0_33  stage_0;
       an_ifc_validation_trace stage_0_trace = {"decl", /*offset=*/0, parent};
-      an_ifc_decl_index       stage_1;
 
       /* Copy the field (TraitDeductionGuide::decl - DeclIndex) into version
          specific storage. */
@@ -182141,14 +180989,12 @@ return FALSE.
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(mod, stage_0);
     }  /* if */
   }  /* if */
   if (has_ifc_trait(mod, universal)) {
     if (is_at_least(mod, 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace = {"trait", /*offset=*/4, parent};
-      an_ifc_decl_index       stage_1;
 
       /* Copy the field (TraitDeductionGuide::trait - DeclIndex) into version
          specific storage. */
@@ -182159,11 +181005,9 @@ return FALSE.
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(mod, stage_0);
     } else {
       an_ifc_decl_index_0_33  stage_0;
       an_ifc_validation_trace stage_0_trace = {"trait", /*offset=*/4, parent};
-      an_ifc_decl_index       stage_1;
 
       /* Copy the field (TraitDeductionGuide::trait - DeclIndex) into version
          specific storage. */
@@ -182174,7 +181018,6 @@ return FALSE.
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(mod, stage_0);
     }  /* if */
   }  /* if */
 done:
@@ -182599,7 +181442,6 @@ return FALSE.
     if (is_at_least(mod, 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace = {"decl", /*offset=*/0, parent};
-      an_ifc_decl_index       stage_1;
 
       /* Copy the field (TraitDeprecated::decl - DeclIndex) into version
          specific storage. */
@@ -182610,11 +181452,9 @@ return FALSE.
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(mod, stage_0);
     } else {
       an_ifc_decl_index_0_33  stage_0;
       an_ifc_validation_trace stage_0_trace = {"decl", /*offset=*/0, parent};
-      an_ifc_decl_index       stage_1;
 
       /* Copy the field (TraitDeprecated::decl - DeclIndex) into version
          specific storage. */
@@ -182625,7 +181465,6 @@ return FALSE.
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(mod, stage_0);
     }  /* if */
   }  /* if */
 done:
@@ -183034,7 +181873,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
     if (is_at_least(mod, 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace = {"decl", /*offset=*/0, parent};
-      an_ifc_decl_index       stage_1;
 
       /* Copy the field (TraitFriend::decl - DeclIndex) into version specific
          storage. */
@@ -183045,11 +181883,9 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(mod, stage_0);
     } else {
       an_ifc_decl_index_0_33  stage_0;
       an_ifc_validation_trace stage_0_trace = {"decl", /*offset=*/0, parent};
-      an_ifc_decl_index       stage_1;
 
       /* Copy the field (TraitFriend::decl - DeclIndex) into version specific
          storage. */
@@ -183060,7 +181896,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(mod, stage_0);
     }  /* if */
   }  /* if */
   if (has_ifc_trait(mod, universal)) {
@@ -183632,7 +182467,6 @@ return FALSE.
   if (has_ifc_body(mod, universal)) {
     an_ifc_stmt_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"body", /*offset=*/12, parent};
-    an_ifc_stmt_index       stage_1;
 
     /* Copy the field (TraitFunctionDefinition::body - StmtIndex) into version
        specific storage. */
@@ -183643,13 +182477,11 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_decl(mod, universal)) {
     if (is_at_least(mod, 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace = {"decl", /*offset=*/0, parent};
-      an_ifc_decl_index       stage_1;
 
       /* Copy the field (TraitFunctionDefinition::decl - DeclIndex) into
          version specific storage. */
@@ -183660,11 +182492,9 @@ return FALSE.
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(mod, stage_0);
     } else {
       an_ifc_decl_index_0_33  stage_0;
       an_ifc_validation_trace stage_0_trace = {"decl", /*offset=*/0, parent};
-      an_ifc_decl_index       stage_1;
 
       /* Copy the field (TraitFunctionDefinition::decl - DeclIndex) into
          version specific storage. */
@@ -183675,14 +182505,12 @@ return FALSE.
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(mod, stage_0);
     }  /* if */
   }  /* if */
   if (has_ifc_initializers(mod, universal)) {
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace =
                                         {"initializers", /*offset=*/8, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (TraitFunctionDefinition::initializers - ExprIndex) into
        version specific storage. */
@@ -183693,13 +182521,11 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_parameters(mod, universal)) {
     an_ifc_chart_index_0_33 stage_0;
     an_ifc_validation_trace stage_0_trace =
                                           {"parameters", /*offset=*/4, parent};
-    an_ifc_chart_index      stage_1;
 
     /* Copy the field (TraitFunctionDefinition::parameters - ChartIndex) into
        version specific storage. */
@@ -183710,7 +182536,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -184168,7 +182993,6 @@ return FALSE.
     if (is_at_least(mod, 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace = {"decl", /*offset=*/0, parent};
-      an_ifc_decl_index       stage_1;
 
       /* Copy the field (TraitMsvcDeclAttrs::decl - DeclIndex) into version
          specific storage. */
@@ -184179,11 +183003,9 @@ return FALSE.
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(mod, stage_0);
     } else {
       an_ifc_decl_index_0_33  stage_0;
       an_ifc_validation_trace stage_0_trace = {"decl", /*offset=*/0, parent};
-      an_ifc_decl_index       stage_1;
 
       /* Copy the field (TraitMsvcDeclAttrs::decl - DeclIndex) into version
          specific storage. */
@@ -184194,13 +183016,11 @@ return FALSE.
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(mod, stage_0);
     }  /* if */
   }  /* if */
   if (has_ifc_trait(mod, universal)) {
     an_ifc_attr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"trait", /*offset=*/4, parent};
-    an_ifc_attr_index       stage_1;
 
     /* Copy the field (TraitMsvcDeclAttrs::trait - AttrIndex) into version
        specific storage. */
@@ -184211,7 +183031,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -184633,7 +183452,6 @@ return FALSE.
     if (is_at_least(mod, 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace = {"decl", /*offset=*/0, parent};
-      an_ifc_decl_index       stage_1;
 
       /* Copy the field (TraitMsvcFuncParams::decl - DeclIndex) into version
          specific storage. */
@@ -184644,11 +183462,9 @@ return FALSE.
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(mod, stage_0);
     } else {
       an_ifc_decl_index_0_33  stage_0;
       an_ifc_validation_trace stage_0_trace = {"decl", /*offset=*/0, parent};
-      an_ifc_decl_index       stage_1;
 
       /* Copy the field (TraitMsvcFuncParams::decl - DeclIndex) into version
          specific storage. */
@@ -184659,13 +183475,11 @@ return FALSE.
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(mod, stage_0);
     }  /* if */
   }  /* if */
   if (has_ifc_params(mod, universal)) {
     an_ifc_chart_index_0_33 stage_0;
     an_ifc_validation_trace stage_0_trace = {"params", /*offset=*/4, parent};
-    an_ifc_chart_index      stage_1;
 
     /* Copy the field (TraitMsvcFuncParams::params - ChartIndex) into version
        specific storage. */
@@ -184676,7 +183490,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -185093,7 +183906,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
     if (is_at_least(mod, 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace = {"decl", /*offset=*/0, parent};
-      an_ifc_decl_index       stage_1;
 
       /* Copy the field (TraitMsvcUuid::decl - DeclIndex) into version specific
          storage. */
@@ -185104,11 +183916,9 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(mod, stage_0);
     } else {
       an_ifc_decl_index_0_33  stage_0;
       an_ifc_validation_trace stage_0_trace = {"decl", /*offset=*/0, parent};
-      an_ifc_decl_index       stage_1;
 
       /* Copy the field (TraitMsvcUuid::decl - DeclIndex) into version specific
          storage. */
@@ -185119,7 +183929,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(mod, stage_0);
     }  /* if */
   }  /* if */
 done:
@@ -185172,8 +183981,6 @@ representation with the given indent.
     fprintf(f_debug, "encoded_decl: %ld\n", (uint64_t)field.value);
   }  /* if */
   if (has_ifc_uuid(mod, universal)) {
-    an_ifc_uuid field = get_ifc_uuid(mod, universal);
-
     for (unsigned i = 0; i < indent; ++i) {
       fprintf(f_debug, "  ");
     }  /* for */
@@ -185539,7 +184346,6 @@ return FALSE.
     if (is_at_least(mod, 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace = {"decl", /*offset=*/0, parent};
-      an_ifc_decl_index       stage_1;
 
       /* Copy the field (TraitMsvcVendorTrait::decl - DeclIndex) into version
          specific storage. */
@@ -185550,11 +184356,9 @@ return FALSE.
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(mod, stage_0);
     } else {
       an_ifc_decl_index_0_33  stage_0;
       an_ifc_validation_trace stage_0_trace = {"decl", /*offset=*/0, parent};
-      an_ifc_decl_index       stage_1;
 
       /* Copy the field (TraitMsvcVendorTrait::decl - DeclIndex) into version
          specific storage. */
@@ -185565,7 +184369,6 @@ return FALSE.
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(mod, stage_0);
     }  /* if */
   }  /* if */
 done:
@@ -185618,8 +184421,6 @@ textual representation with the given indent.
     fprintf(f_debug, "encoded_decl: %ld\n", (uint64_t)field.value);
   }  /* if */
   if (has_ifc_trait(mod, universal)) {
-    an_ifc_msvc_traits_bitfield field = get_ifc_trait(mod, universal);
-
     for (unsigned i = 0; i < indent; ++i) {
       fprintf(f_debug, "  ");
     }  /* for */
@@ -185973,7 +184774,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
     if (is_at_least(mod, 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace = {"decl", /*offset=*/0, parent};
-      an_ifc_decl_index       stage_1;
 
       /* Copy the field (TraitRequires::decl - DeclIndex) into version specific
          storage. */
@@ -185984,11 +184784,9 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(mod, stage_0);
     } else {
       an_ifc_decl_index_0_33  stage_0;
       an_ifc_validation_trace stage_0_trace = {"decl", /*offset=*/0, parent};
-      an_ifc_decl_index       stage_1;
 
       /* Copy the field (TraitRequires::decl - DeclIndex) into version specific
          storage. */
@@ -185999,13 +184797,11 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(mod, stage_0);
     }  /* if */
   }  /* if */
   if (has_ifc_trait(mod, universal)) {
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace = {"trait", /*offset=*/4, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (TraitRequires::trait - SyntaxIndex) into version
        specific storage. */
@@ -186016,7 +184812,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -186440,7 +185235,6 @@ return FALSE.
     if (is_at_least(mod, 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace = {"decl", /*offset=*/0, parent};
-      an_ifc_decl_index       stage_1;
 
       /* Copy the field (TraitSpecialization::decl - DeclIndex) into version
          specific storage. */
@@ -186451,11 +185245,9 @@ return FALSE.
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(mod, stage_0);
     } else {
       an_ifc_decl_index_0_33  stage_0;
       an_ifc_validation_trace stage_0_trace = {"decl", /*offset=*/0, parent};
-      an_ifc_decl_index       stage_1;
 
       /* Copy the field (TraitSpecialization::decl - DeclIndex) into version
          specific storage. */
@@ -186466,7 +185258,6 @@ return FALSE.
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(mod, stage_0);
     }  /* if */
   }  /* if */
   if (has_ifc_trait(mod, universal)) {
@@ -186787,7 +185578,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
   if (has_ifc_element(mod, universal)) {
     an_ifc_type_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"element", /*offset=*/0, parent};
-    an_ifc_type_index       stage_1;
 
     /* Copy the field (TypeArray::element - TypeIndex) into version specific
        storage. */
@@ -186798,12 +185588,10 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_extent(mod, universal)) {
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"extent", /*offset=*/4, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (TypeArray::extent - ExprIndex) into version specific
        storage. */
@@ -186814,7 +185602,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -187245,7 +186032,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
   if (has_ifc_access(mod, universal)) {
     an_ifc_access_sort_0_33 stage_0;
     an_ifc_validation_trace stage_0_trace = {"access", /*offset=*/4, parent};
-    an_ifc_access_sort      stage_1;
 
     /* Copy the field (TypeBase::access - AccessSort) into version specific
        storage. */
@@ -187256,12 +186042,10 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_sort(stage_0);
   }  /* if */
   if (has_ifc_type(mod, universal)) {
     an_ifc_type_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"type", /*offset=*/0, parent};
-    an_ifc_type_index       stage_1;
 
     /* Copy the field (TypeBase::type - TypeIndex) into version specific
        storage. */
@@ -187272,7 +186056,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -187515,7 +186298,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
   if (has_ifc_expr(mod, universal)) {
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace = {"expr", /*offset=*/0, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (TypeDecltype::expr - SyntaxIndex) into version specific
        storage. */
@@ -187526,7 +186308,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -187756,7 +186537,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
     if (is_at_least(mod, 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace = {"decl", /*offset=*/0, parent};
-      an_ifc_decl_index       stage_1;
 
       /* Copy the field (TypeDesignated::decl - DeclIndex) into version
          specific storage. */
@@ -187767,11 +186547,9 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(mod, stage_0);
     } else {
       an_ifc_decl_index_0_33  stage_0;
       an_ifc_validation_trace stage_0_trace = {"decl", /*offset=*/0, parent};
-      an_ifc_decl_index       stage_1;
 
       /* Copy the field (TypeDesignated::decl - DeclIndex) into version
          specific storage. */
@@ -187782,7 +186560,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(mod, stage_0);
     }  /* if */
   }  /* if */
 done:
@@ -188063,7 +186840,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
     an_ifc_expansion_mode_sort_0_33 stage_0;
     an_ifc_validation_trace         stage_0_trace =
                                                 {"mode", /*offset=*/4, parent};
-    an_ifc_expansion_mode_sort      stage_1;
 
     /* Copy the field (TypeExpansion::mode - ExpansionModeSort) into version
        specific storage. */
@@ -188074,12 +186850,10 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_sort(stage_0);
   }  /* if */
   if (has_ifc_pack(mod, universal)) {
     an_ifc_type_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"pack", /*offset=*/0, parent};
-    an_ifc_type_index       stage_1;
 
     /* Copy the field (TypeExpansion::pack - TypeIndex) into version specific
        storage. */
@@ -188090,7 +186864,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -188378,7 +187151,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
   if (has_ifc_chart(mod, universal)) {
     an_ifc_chart_index_0_33 stage_0;
     an_ifc_validation_trace stage_0_trace = {"chart", /*offset=*/0, parent};
-    an_ifc_chart_index      stage_1;
 
     /* Copy the field (TypeForall::chart - ChartIndex) into version specific
        storage. */
@@ -188389,12 +187161,10 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_subject(mod, universal)) {
     an_ifc_type_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"subject", /*offset=*/4, parent};
-    an_ifc_type_index       stage_1;
 
     /* Copy the field (TypeForall::subject - TypeIndex) into version specific
        storage. */
@@ -188405,7 +187175,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -188902,7 +187671,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
     an_ifc_calling_convention_sort_0_33 stage_0;
     an_ifc_validation_trace             stage_0_trace =
                                          {"convention", /*offset=*/16, parent};
-    an_ifc_calling_convention_sort      stage_1;
 
     /* Copy the field (TypeFunction::convention - CallingConventionSort) into
        version specific storage. */
@@ -188913,7 +187681,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_sort(stage_0);
   }  /* if */
   if (has_ifc_eh_spec(mod, universal)) {
     an_ifc_noexcept_specification_bytes stage_0;
@@ -188939,7 +187706,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
   if (has_ifc_source(mod, universal)) {
     an_ifc_type_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"source", /*offset=*/4, parent};
-    an_ifc_type_index       stage_1;
 
     /* Copy the field (TypeFunction::source - TypeIndex) into version specific
        storage. */
@@ -188950,12 +187716,10 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_target(mod, universal)) {
     an_ifc_type_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"target", /*offset=*/0, parent};
-    an_ifc_type_index       stage_1;
 
     /* Copy the field (TypeFunction::target - TypeIndex) into version specific
        storage. */
@@ -188966,7 +187730,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -189043,9 +187806,6 @@ representation with the given indent.
     fprintf(f_debug, "  value: %ld\n", (uint64_t)field.value);
   }  /* if */
   if (has_ifc_traits(mod, universal)) {
-    an_ifc_function_type_traits_bitfield field =
-                                                get_ifc_traits(mod, universal);
-
     for (unsigned i = 0; i < indent; ++i) {
       fprintf(f_debug, "  ");
     }  /* for */
@@ -189366,7 +188126,6 @@ return FALSE.
     an_ifc_type_basis_sort_0_33 stage_0;
     an_ifc_validation_trace     stage_0_trace =
                                                {"basis", /*offset=*/0, parent};
-    an_ifc_type_basis_sort      stage_1;
 
     /* Copy the field (TypeFundamental::basis - TypeBasisSort) into version
        specific storage. */
@@ -189377,13 +188136,11 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_sort(stage_0);
   }  /* if */
   if (has_ifc_precision(mod, universal)) {
     an_ifc_type_precision_sort_0_33 stage_0;
     an_ifc_validation_trace         stage_0_trace =
                                            {"precision", /*offset=*/1, parent};
-    an_ifc_type_precision_sort      stage_1;
 
     /* Copy the field (TypeFundamental::precision - TypePrecisionSort) into
        version specific storage. */
@@ -189394,12 +188151,10 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_sort(stage_0);
   }  /* if */
   if (has_ifc_sign(mod, universal)) {
     an_ifc_type_sign_sort_0_33 stage_0;
     an_ifc_validation_trace    stage_0_trace = {"sign", /*offset=*/2, parent};
-    an_ifc_type_sign_sort      stage_1;
 
     /* Copy the field (TypeFundamental::sign - TypeSignSort) into version
        specific storage. */
@@ -189410,7 +188165,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_sort(stage_0);
   }  /* if */
 done:
   return result;
@@ -189642,7 +188396,6 @@ return FALSE.
   if (has_ifc_referee(mod, universal)) {
     an_ifc_type_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"referee", /*offset=*/0, parent};
-    an_ifc_type_index       stage_1;
 
     /* Copy the field (TypeLvalueReference::referee - TypeIndex) into version
        specific storage. */
@@ -189653,7 +188406,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -190195,7 +188947,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
     an_ifc_calling_convention_sort_0_33 stage_0;
     an_ifc_validation_trace             stage_0_trace =
                                          {"convention", /*offset=*/20, parent};
-    an_ifc_calling_convention_sort      stage_1;
 
     /* Copy the field (TypeMethod::convention - CallingConventionSort) into
        version specific storage. */
@@ -190206,7 +188957,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_sort(stage_0);
   }  /* if */
   if (has_ifc_eh_spec(mod, universal)) {
     an_ifc_noexcept_specification_bytes stage_0;
@@ -190232,7 +188982,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
   if (has_ifc_scope(mod, universal)) {
     an_ifc_type_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"scope", /*offset=*/8, parent};
-    an_ifc_type_index       stage_1;
 
     /* Copy the field (TypeMethod::scope - TypeIndex) into version specific
        storage. */
@@ -190243,12 +188992,10 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_source(mod, universal)) {
     an_ifc_type_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"source", /*offset=*/4, parent};
-    an_ifc_type_index       stage_1;
 
     /* Copy the field (TypeMethod::source - TypeIndex) into version specific
        storage. */
@@ -190259,12 +189006,10 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_target(mod, universal)) {
     an_ifc_type_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"target", /*offset=*/0, parent};
-    an_ifc_type_index       stage_1;
 
     /* Copy the field (TypeMethod::target - TypeIndex) into version specific
        storage. */
@@ -190275,7 +189020,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -190368,9 +189112,6 @@ representation with the given indent.
     fprintf(f_debug, "  value: %ld\n", (uint64_t)field.value);
   }  /* if */
   if (has_ifc_traits(mod, universal)) {
-    an_ifc_function_type_traits_bitfield field =
-                                                get_ifc_traits(mod, universal);
-
     for (unsigned i = 0; i < indent; ++i) {
       fprintf(f_debug, "  ");
     }  /* for */
@@ -190695,7 +189436,6 @@ return FALSE.
     an_ifc_type_basis_sort_0_33 stage_0;
     an_ifc_validation_trace     stage_0_trace =
                                                {"basis", /*offset=*/4, parent};
-    an_ifc_type_basis_sort      stage_1;
 
     /* Copy the field (TypePlaceholder::basis - TypeBasisSort) into version
        specific storage. */
@@ -190706,13 +189446,11 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_sort(stage_0);
   }  /* if */
   if (has_ifc_constraint(mod, universal)) {
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace =
                                           {"constraint", /*offset=*/0, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (TypePlaceholder::constraint - ExprIndex) into version
        specific storage. */
@@ -190723,13 +189461,11 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_elaboration(mod, universal)) {
     an_ifc_type_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace =
                                          {"elaboration", /*offset=*/5, parent};
-    an_ifc_type_index       stage_1;
 
     /* Copy the field (TypePlaceholder::elaboration - TypeIndex) into version
        specific storage. */
@@ -190740,7 +189476,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -190984,7 +189719,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
   if (has_ifc_pointee(mod, universal)) {
     an_ifc_type_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"pointee", /*offset=*/0, parent};
-    an_ifc_type_index       stage_1;
 
     /* Copy the field (TypePointer::pointee - TypeIndex) into version specific
        storage. */
@@ -190995,7 +189729,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -191279,7 +190012,6 @@ return FALSE.
   if (has_ifc_member(mod, universal)) {
     an_ifc_type_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"member", /*offset=*/4, parent};
-    an_ifc_type_index       stage_1;
 
     /* Copy the field (TypePointerToMember::member - TypeIndex) into version
        specific storage. */
@@ -191290,12 +190022,10 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
   if (has_ifc_scope(mod, universal)) {
     an_ifc_type_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"scope", /*offset=*/0, parent};
-    an_ifc_type_index       stage_1;
 
     /* Copy the field (TypePointerToMember::scope - TypeIndex) into version
        specific storage. */
@@ -191306,7 +190036,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -191614,7 +190343,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
     an_ifc_type_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace =
                                          {"unqualified", /*offset=*/0, parent};
-    an_ifc_type_index       stage_1;
 
     /* Copy the field (TypeQualified::unqualified - TypeIndex) into version
        specific storage. */
@@ -191625,7 +190353,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -191653,8 +190380,6 @@ representation with the given indent.
 */
 {
   if (has_ifc_qualifiers(mod, universal)) {
-    an_ifc_qualifier_bitfield field = get_ifc_qualifiers(mod, universal);
-
     for (unsigned i = 0; i < indent; ++i) {
       fprintf(f_debug, "  ");
     }  /* for */
@@ -191855,7 +190580,6 @@ return FALSE.
   if (has_ifc_referee(mod, universal)) {
     an_ifc_type_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"referee", /*offset=*/0, parent};
-    an_ifc_type_index       stage_1;
 
     /* Copy the field (TypeRvalueReference::referee - TypeIndex) into version
        specific storage. */
@@ -191866,7 +190590,6 @@ return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -192083,7 +190806,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
   if (has_ifc_expr(mod, universal)) {
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"expr", /*offset=*/0, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (TypeSyntactic::expr - ExprIndex) into version specific
        storage. */
@@ -192094,7 +190816,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -192312,7 +191033,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
   if (has_ifc_syntax(mod, universal)) {
     an_ifc_syntax_index_0_33 stage_0;
     an_ifc_validation_trace  stage_0_trace = {"syntax", /*offset=*/0, parent};
-    an_ifc_syntax_index      stage_1;
 
     /* Copy the field (TypeSyntaxTree::syntax - SyntaxIndex) into version
        specific storage. */
@@ -192323,7 +191043,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -192670,7 +191389,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
     an_ifc_calling_convention_sort_0_33 stage_0;
     an_ifc_validation_trace             stage_0_trace =
                                          {"convention", /*offset=*/12, parent};
-    an_ifc_calling_convention_sort      stage_1;
 
     /* Copy the field (TypeTor::convention - CallingConventionSort) into
        version specific storage. */
@@ -192681,7 +191399,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_sort(stage_0);
   }  /* if */
   if (has_ifc_eh_spec(mod, universal)) {
     an_ifc_noexcept_specification_bytes stage_0;
@@ -192707,7 +191424,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
   if (has_ifc_source(mod, universal)) {
     an_ifc_type_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"source", /*offset=*/0, parent};
-    an_ifc_type_index       stage_1;
 
     /* Copy the field (TypeTor::source - TypeIndex) into version specific
        storage. */
@@ -192718,7 +191434,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -193239,7 +191954,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
   if (has_ifc_path(mod, universal)) {
     an_ifc_expr_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"path", /*offset=*/0, parent};
-    an_ifc_expr_index       stage_1;
 
     /* Copy the field (TypeTypename::path - ExprIndex) into version specific
        storage. */
@@ -193250,7 +191964,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;
@@ -193466,7 +192179,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
   if (has_ifc_type(mod, universal)) {
     an_ifc_type_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace = {"type", /*offset=*/0, parent};
-    an_ifc_type_index       stage_1;
 
     /* Copy the field (TypeUnaligned::type - TypeIndex) into version specific
        storage. */
@@ -193477,7 +192189,6 @@ module, return TRUE if the representation is valid; otherwise, return FALSE.
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(mod, stage_0);
   }  /* if */
 done:
   return result;

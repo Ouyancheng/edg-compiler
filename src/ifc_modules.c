@@ -3365,7 +3365,7 @@ principal associated IL entity.
       (void)fprintf(f_debug, "Processing %s (%d)\n", str_for(decl_idx.sort),
                     decl_idx.value);
     }  /* if */
-#endif DEBUG
+#endif /* DEBUG */
     curr_module_entity = mep;
     if (!defer) {
       mep->imminent = TRUE;
@@ -4670,7 +4670,7 @@ cleanup:
       (void)fprintf(f_debug, "Done with %s (%d)\n", str_for(decl_idx.sort),
                     decl_idx.value);
     }  /* if */
-#endif DEBUG
+#endif /* DEBUG */
     curr_module_entity = saved_mep;
     error_position = saved_error_position;
   }  /* if */
