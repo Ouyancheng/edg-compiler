@@ -1,5 +1,17 @@
 Version 6.4
 
+6/28/22  [EDGcpfe/24147,EDGcpfe/25105,EDGcpfe/25410]
+Trailing requires-clause on abbreviated function template
+
+Consider:
+
+  int f(auto p) requires (sizeof(p)<100);
+
+Previously this triggered a spurious error claiming the requires clause is not
+valid in that context, followed by an internal error in exprutil.c.  That is
+now fixed.
+
+
 6/28/22  [EDGcpfe/25437]
 Cfront ABI: mangling of routine constants
 

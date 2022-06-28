@@ -8802,7 +8802,15 @@ the parameters.
     state->type = error_type();
   }  /* if */
   if (curr_token == tok_requires && !state->is_trailing_return_type) {
-    scan_trailing_requires_clause(state, func_info, locator);
+    if (!is_template_dependent_context() && type_is(state->type, tk_routine) &&
+        state->variant.auto_params != NULL) {
+      /* Presumably this is the first pass scanning an abbreviated template.
+         Ignore the requires-clause this time: It will be reparsed in a
+         template context.  Note that this should be the last "declaration"
+         component before reparsing, and thus we can simply not consume it. */
+    } else {
+      scan_trailing_requires_clause(state, func_info, locator);
+    }  /* if */
   }  /* if */
 }  /* declarator */
 
