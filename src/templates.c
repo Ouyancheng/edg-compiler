@@ -25079,9 +25079,9 @@ friend_template_checks_done:
            be removed from the enclosing template cache.  Don't remove the
            body if the template is declared inside a Microsoft in-class
            specialization. */
-        tssp->cache_segment = alloc_template_cache_segment(sym, tssp);
-        tssp->cache_segment->first_token_number = first_token_number;
-        tssp->cache_segment->last_token_number = last_token_number;
+        tssp->cache_segment = get_template_cache_segment(sym, tssp,
+                                                         first_token_number,
+                                                         last_token_number);
       }  /* if */
     }  /* if */
     /* Update the template cache information with the definition cache
@@ -29317,9 +29317,9 @@ generic lambda call operators since they have no declarator-ids).
            be removed from the enclosing template cache.  Note that this
            is not done for members of Microsoft in-class specializations.
            Deleted definitions are also not removed. */
-        tssp->cache_segment = alloc_template_cache_segment(sym, tssp);
-        tssp->cache_segment->first_token_number = first_token_number;
-        tssp->cache_segment->last_token_number = last_token_number;
+        tssp->cache_segment = get_template_cache_segment(sym, tssp,
+                                                         first_token_number,
+                                                         last_token_number);
       }  /* if */
     }  /* if */
     if (tssp->variant.function.decl_cache.tokens.first_token == NULL) {

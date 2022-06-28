@@ -1579,14 +1579,14 @@ declaration on which the exception specification appears.
       if (is_template_dependent_context()) {
         a_template_cache_segment_ptr  tcsp;
         last_tsn = curr_token_sequence_number - 1;
-        tcsp = alloc_template_cache_segment(
-                  (a_symbol_ptr)NULL, (a_template_symbol_supplement_ptr)NULL);
-        tcsp->is_exception_specification_arg = TRUE;
-        tcsp->first_token_number = first_tsn;
         /* When there is no argument, the computed last token number could be
            less that the first.  In that case, use the first token number as
            the last. */
-        tcsp->last_token_number = last_tsn < first_tsn ? first_tsn : last_tsn;
+        last_tsn = last_tsn < first_tsn ? first_tsn : last_tsn;
+        tcsp = get_template_cache_segment(
+                  (a_symbol_ptr)NULL, (a_template_symbol_supplement_ptr)NULL,
+                  first_tsn, last_tsn);
+        tcsp->is_exception_specification_arg = TRUE;
         /* Check for the case where the cache is empty. */
         tcsp->expression_missing = 
                               (esp->variant.token_cache->first_token == NULL);

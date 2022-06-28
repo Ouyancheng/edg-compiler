@@ -4706,6 +4706,12 @@ a_template_cache_segment_ptr alloc_template_cache_segment(
 
 extern void free_template_cache_segment(a_template_cache_segment_ptr tcsp);
 
+extern a_template_cache_segment_ptr get_template_cache_segment(
+                                a_symbol_ptr                      sym,
+                                a_template_symbol_supplement_ptr  tssp,
+                                a_token_sequence_number           first_tsn,
+                                a_token_sequence_number           last_tsn);
+
 extern an_out_of_class_partial_spec_ptr alloc_out_of_class_partial_spec(void);
 
 extern a_template_decl_info_ptr alloc_template_decl_info(void);

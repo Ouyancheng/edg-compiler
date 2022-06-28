@@ -6273,7 +6273,6 @@ members of managed class types in some Microsoft modes.
 {
   a_token_cache_ptr        token_cache = alloc_token_cache();
   a_token_sequence_number  first_tsn;
-  a_token_sequence_number  last_tsn;
   a_token_sequence_number  last_tsn_for_cache;
   a_token_set_array        stop_tokens;
   a_boolean                saved_in_disambiguation = FALSE;
@@ -6323,9 +6322,8 @@ members of managed class types in some Microsoft modes.
                                           stop_tokens);
   /* The -1 is to exclude the final token from the cache that is created. */
   last_tsn_for_cache = curr_token_sequence_number - 1;
-  last_tsn = curr_token_sequence_number;
   copy_tokens_from_cache(curr_lexical_state_cache(), first_tsn,
-                         last_tsn,
+                         curr_token_sequence_number,
                          /*include_last_token=*/FALSE,
                          token_cache);
   /* Normally tokens are cached directly into a reusable cache or are
@@ -6351,15 +6349,15 @@ members of managed class types in some Microsoft modes.
        from the cache later.  This is done for all C++11-style field
        initializers as well as GNU C++ mode static data member initializers
        (which are instantiated on demand). */
-    a_template_cache_segment_ptr   tcsp;
-    tcsp = alloc_template_cache_segment(
-                                  sym, (a_template_symbol_supplement_ptr)NULL);
-    tcsp->first_token_number = first_tsn;
+    a_template_cache_segment_ptr  tcsp;
+    a_token_sequence_number       last_tsn;
     /* When there is no default, the computed last token number could be
        less than the first.  In that case, use the first token number as
        the last. */
-    tcsp->last_token_number =
-               last_tsn_for_cache < first_tsn ? first_tsn : last_tsn_for_cache;
+    last_tsn = last_tsn_for_cache < first_tsn ? first_tsn : last_tsn_for_cache;
+    tcsp = get_template_cache_segment(
+                                  sym, (a_template_symbol_supplement_ptr)NULL,
+                                  first_tsn, last_tsn);
     /* Check for the case where the cache is empty. */
     tcsp->expression_missing = token_cache->first_token == NULL;
     if (is_field) {

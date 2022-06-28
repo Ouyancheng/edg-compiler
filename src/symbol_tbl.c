@@ -3080,6 +3080,57 @@ explicitly specialized.
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
+
+struct a_token_range {
+  a_token_sequence_number
+		first, last;
+			/* First and last token sequence numbers delimiting
+			   a range. */
+};
+
+
+static inline a_boolean operator==(a_token_range  x,
+                                   a_token_range  y)
+/*
+Return TRUE if the given token ranges are equivalent.
+*/
+{
+  return x.first == y.first && x.last == y.last;
+}  /* operator== */
+
+
+static inline a_boolean operator!=(a_token_range  x,
+                                   a_token_range  y)
+/*
+Return TRUE if the given token ranges are not equivalent.
+*/
+{
+  return !(x == y);
+}  /* operator!= */
+
+
+static inline uintptr_t hash_ptr(a_token_range  tr)
+/*
+Return a hash value for the given token range.
+*/
+{
+  uintptr_t  result = 17*31 + (uintptr_t)tr.first;
+
+  result = result*31 + (uintptr_t)tr.last;
+  return result;
+}  /* hash_ptr */
+
+
+using a_template_cache_segment_table = Ptr_map<a_token_range,
+                                               a_template_cache_segment_ptr>;
+			/* The type of a table that maps token ranges to
+			   template cache segments. */
+
+
+a_template_cache_segment_table
+		*template_cache_segment_table;
+
+
 a_template_cache_segment_ptr alloc_template_cache_segment(
                                 a_symbol_ptr				sym,
                                 a_template_symbol_supplement_ptr	tssp)
@@ -3163,9 +3214,46 @@ void free_template_cache_segment(a_template_cache_segment_ptr tcsp)
 Free a template cache segment entry and return it to the available list.
 */
 {
+  a_template_cache_segment_ptr  match;
+
+  match = template_cache_segment_table->get(
+          a_token_range{ tcsp->first_token_number, tcsp->last_token_number });
+  if (match != NULL) {
+    template_cache_segment_table->unmap(
+          a_token_range{ tcsp->first_token_number, tcsp->last_token_number });
+  }  /* if */
   tcsp->next = avail_template_cache_segments;
   avail_template_cache_segments = tcsp;
 }  /* free_template_cache_segment */
+
+
+a_template_cache_segment_ptr get_template_cache_segment(
+                                a_symbol_ptr                      sym,
+                                a_template_symbol_supplement_ptr  tssp,
+                                a_token_sequence_number           first_tsn,
+                                a_token_sequence_number           last_tsn)
+/*
+Return a template cache segment entry with the given parameters.  If an entry
+with given token range already exists, return it if it matches sym and tssp.
+*/
+{
+  a_template_cache_segment_ptr  result;
+
+  result = template_cache_segment_table->get(
+                                        a_token_range{ first_tsn, last_tsn });
+  if (result == NULL ||
+      result->symbol != sym || result->template_info != tssp) {
+    a_boolean  map_result = result == NULL;
+    result = alloc_template_cache_segment(sym, tssp);
+    result->first_token_number = first_tsn;
+    result->last_token_number = last_tsn;
+    if (map_result) {
+      template_cache_segment_table->map(a_token_range{ first_tsn, last_tsn },
+                                        result);
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* get_template_cache_segment */
 
 
 an_out_of_class_partial_spec_ptr alloc_out_of_class_partial_spec(void)
@@ -18624,6 +18712,9 @@ given translation unit.
 #if NAMED_REGISTERS_ALLOWED
   next_named_register_id = 1;
 #endif /* NAMED_REGISTERS_ALLOWED */
+  template_cache_segment_table = alloc_fe_of_type(
+                                              a_template_cache_segment_table);
+  construct(template_cache_segment_table, /*mask_width=*/10);
 }  /* symbol_tbl_trans_unit_init */
 
 

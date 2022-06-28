@@ -5336,6 +5336,8 @@ is updated to reflect relevant positions of this definition.
                      essp;
   a_boolean          is_enum_template_definition = FALSE;
   a_source_position  lbrace_pos;
+  a_token_sequence_number
+                     first_tsn = NO_TOKEN_SEQUENCE_NUMBER;
 
   explicit_base = integer_type_supp(enum_type)->base_type;
   /* Determine whether this is the definition of a member enum that can be
@@ -5393,10 +5395,7 @@ is updated to reflect relevant positions of this definition.
     /* This is an enumeration declared in a class template that can be
        separately instantiated.  We need to create a cache for the enum
        definition. */
-    a_template_symbol_supplement_ptr	tssp;
-    tssp = tag_sym->variant.enumeration.extra_info->template_info;
-    tcsp = alloc_template_cache_segment(tag_sym, tssp);
-    tcsp->first_token_number = curr_token_sequence_number;
+    first_tsn = curr_token_sequence_number;
     /* Start background caching of the tokens of the definition. */
     begin_caching_fetched_tokens(/*include_curr_token=*/TRUE);
   }  /* if */
@@ -5842,10 +5841,10 @@ is updated to reflect relevant positions of this definition.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   decl_pos_block->specifiers_range.end = pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  /* For an enum in a class template, tcsp will have been set above.
+  /* For an enum in a class template, first_tsn will have been set above.
      Save the ending position of the tokens to be included in the
      definition cache of the template. */
-  if (tcsp != NULL) {
+  if (first_tsn != NO_TOKEN_SEQUENCE_NUMBER) {
     a_template_symbol_supplement_ptr tssp;
     a_template_symbol_supplement_ptr class_tssp;
     a_type_ptr                       parent_class;
@@ -5853,7 +5852,8 @@ is updated to reflect relevant positions of this definition.
     parent_class = tag_sym->parent.class_type;
     class_tssp = symbol_supplement_for_class(parent_class)->template_info;
     tssp = essp->template_info;
-    tcsp->last_token_number = curr_token_sequence_number;
+    tcsp = get_template_cache_segment(tag_sym, tssp, first_tsn,
+                                      curr_token_sequence_number);
     end_caching_fetched_tokens();
     copy_tokens_from_cache(curr_lexical_state_cache(),
                            tcsp->first_token_number,

@@ -220,14 +220,14 @@ is_function_template or is_template_param are FALSE.
        declarator and encountered "auto" parameters: Instead we will allocate
        the template cache segment on the second parse (when
        dps->is_abbr_func_template will be TRUE). */
-    a_template_cache_segment_ptr	tcsp;
-    tcsp = alloc_template_cache_segment(
-                   (a_symbol_ptr)NULL, (a_template_symbol_supplement_ptr)NULL);
-    tcsp->first_token_number = first_tsn;
+    a_template_cache_segment_ptr  tcsp;
     /* When there is no default, the computed last token number could be
        less that the first.  In that case, use the first token number as
        the last. */
-    tcsp->last_token_number = last_tsn < first_tsn ? first_tsn : last_tsn;
+    last_tsn = last_tsn < first_tsn ? first_tsn : last_tsn;
+    tcsp = get_template_cache_segment(
+                   (a_symbol_ptr)NULL, (a_template_symbol_supplement_ptr)NULL,
+                   first_tsn, last_tsn);
     tcsp->is_default_arg = TRUE;
     /* Check for the case where the cache is empty. */
     tcsp->expression_missing = token_cache->first_token == NULL;

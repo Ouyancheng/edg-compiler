@@ -26115,7 +26115,7 @@ of its parent class.
       tssp->variant.class_template.not_standalone_nested_class = TRUE;
     }  /* if */
   }  /* if */
-}  /* check_for_nonreal_nested_class */
+}  /* check_nonreal_nested_class */
 
 
 static a_boolean scan_access_specification(a_class_def_state  *state)
@@ -27055,10 +27055,9 @@ function definition and cache its tokens if appropriate.
            when creating template strings to eliminate the friend function
            body from the template string. */
         a_template_cache_segment_ptr	tcsp;
-        tcsp = alloc_template_cache_segment(
-                         rout_sym, (a_template_symbol_supplement_ptr)NULL);
-        tcsp->first_token_number = first_token_number;
-        tcsp->last_token_number = last_token_number;
+        tcsp = get_template_cache_segment(
+                         rout_sym, (a_template_symbol_supplement_ptr)NULL,
+                         first_token_number, last_token_number);
         tcsp->is_friend = TRUE;
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
       } else if (rout_sym->variant.routine.instance_ptr == NULL) {
@@ -27090,9 +27089,9 @@ function definition and cache its tokens if appropriate.
              an alias template). */
           expect_error();
         }  /* if */
-        tssp->cache_segment = alloc_template_cache_segment(rout_sym, tssp);
-        tssp->cache_segment->first_token_number = first_token_number;
-        tssp->cache_segment->last_token_number = last_token_number;
+        tssp->cache_segment = get_template_cache_segment(rout_sym, tssp,
+                                                         first_token_number,
+                                                         last_token_number);
         /* Save a checksum of this template to be used for cross
            translation unit comparisons. */
         record_cache_checksum(tssp, &body_cache);
