@@ -2320,6 +2320,8 @@ constructs, in which case offsetof_case is TRUE.
                  !scope_stack_top().is_rescan &&
                  is_pointer_type(pointer_operand->type) &&
                  is_incomplete_type(type_pointed_to(pointer_operand->type))) {
+        /* GCC allows subscripting pointers-to-incomplete types in template
+           contexts.  Handle such cases like the template-dependent cases. */
         pos_warning(ec_expr_not_object_pointer, &pointer_operand->position);
         make_generic_operation_operand((an_opname_kind)onk_subscript,
                                        /*unary_operator=*/FALSE,
