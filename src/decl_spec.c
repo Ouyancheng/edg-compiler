@@ -922,7 +922,8 @@ lambda, not the definition of X).
   } else if (!C_mode() && next_tok == tok_colon && !is_ref_within_new_expr) {
     /* Possibly the beginning of a C++ base class type specifier or an
        explicit underlying type for C++11/Microsoft enum type. */
-    if (tag_kind != (a_symbol_kind)sk_enum_tag) {
+    if (tag_kind != (a_symbol_kind)sk_enum_tag ||
+        !scope_is(&scope_stack_top(), sck_class_struct_union)) {
       result = TRUE;
     } else if (explicit_enum_base_enabled) {
       /* An enum type with an explicit base, or a bit field declaration of
@@ -5029,6 +5030,11 @@ and *p_base_type is left unchanged.
           base_type = NULL;
         }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      } else if (is_error_type(base_type)) {
+        /* An error has presumably already been emitted.  Proceed assuming
+           the largest underlying enum integer kind. */
+        expect_error();
+        result = largest_enum_int_kind;
       } else if (!is_integral_type(base_type)) {
         pos_error(ec_enum_base_type_must_be_integral, pos_type);
         base_type = NULL;
@@ -6516,11 +6522,24 @@ template.  dsi_flags is the set of input flags passed to decl_specifiers.
          case this is non-standard for enums.  It is allowed as an extension by
          analogy with classes. */
       an_error_severity severity = es_discretionary_error;
-      /* In C mode this diagnostic is only issued in strict mode.  Use the
-         appropriate strict severity. */
-      if (C_mode()) severity = strict_ansi_discretionary_severity;
-      pos_diagnostic(severity, ec_nonstd_forward_decl_enum,
-                     &locator.source_position);
+      an_error_code     err_code = ec_nonstd_forward_decl_enum;
+      if (C_mode()) {
+        /* In C mode this diagnostic is only issued in strict mode.  Use the
+           appropriate strict severity. */
+        severity = strict_ansi_discretionary_severity;
+      } else if (curr_token == tok_colon && explicit_enum_base_enabled &&
+                 scope_is(&scope_stack_top(), sck_class_struct_union)) {
+        /* Something like:
+             struct S { enum X: Y; };
+           where Y isn't a type name.  This could be intended as a bit field
+           declaration with an incomplete enumeration type (an error) or as a
+           malformed opaque-enum-declaration (also an error).  Provide a
+           message that explains the possibilities. */
+        severity = es_error;
+        err_code = ec_incomplete_enum_bit_field_or_bad_opaque_enum;
+        enum_type->incomplete = FALSE;
+      }  /* if*/
+      pos_diagnostic(severity, err_code, &locator.source_position);
     }  /* if */
     /* set_type_size is called later, once the final type is known. */
     /* Set a default representation of "int", which may be adjusted later. */
