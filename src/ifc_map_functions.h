@@ -30994,13 +30994,13 @@ textual representation with the given indent.
     an_ifc_text_offset field = get_ifc_owner(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "owner: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "owner: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_partition(universal)) {
     an_ifc_text_offset field = get_ifc_partition(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "partition: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "partition: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -31376,7 +31376,7 @@ representation with the given indent.
               { an_ifc_source_unknown_identifier &m_ref = si_ref.variant.msvc;
 
                 db_print_indent(indent);
-                fprintf(f_debug, "msvc: %lld\n",
+                fprintf(f_debug, "msvc: %llu\n",
                         (unsigned long long)m_ref.value);
               }
               break;
@@ -31385,7 +31385,7 @@ representation with the given indent.
                                           si_ref.variant.msvc_builtin_huge_val;
 
                 db_print_indent(indent);
-                fprintf(f_debug, "msvc_builtin_huge_val: %lld\n",
+                fprintf(f_debug, "msvc_builtin_huge_val: %llu\n",
                         (unsigned long long)mbhv_ref.value);
               }
               break;
@@ -31394,7 +31394,7 @@ representation with the given indent.
                                          si_ref.variant.msvc_builtin_huge_valf;
 
                 db_print_indent(indent);
-                fprintf(f_debug, "msvc_builtin_huge_valf: %lld\n",
+                fprintf(f_debug, "msvc_builtin_huge_valf: %llu\n",
                         (unsigned long long)mbhv_ref.value);
               }
               break;
@@ -31403,7 +31403,7 @@ representation with the given indent.
                                                si_ref.variant.msvc_builtin_nan;
 
                 db_print_indent(indent);
-                fprintf(f_debug, "msvc_builtin_nan: %lld\n",
+                fprintf(f_debug, "msvc_builtin_nan: %llu\n",
                         (unsigned long long)mbn_ref.value);
               }
               break;
@@ -31412,7 +31412,7 @@ representation with the given indent.
                                               si_ref.variant.msvc_builtin_nanf;
 
                 db_print_indent(indent);
-                fprintf(f_debug, "msvc_builtin_nanf: %lld\n",
+                fprintf(f_debug, "msvc_builtin_nanf: %llu\n",
                         (unsigned long long)mbn_ref.value);
               }
               break;
@@ -31421,7 +31421,7 @@ representation with the given indent.
                                               si_ref.variant.msvc_builtin_nans;
 
                 db_print_indent(indent);
-                fprintf(f_debug, "msvc_builtin_nans: %lld\n",
+                fprintf(f_debug, "msvc_builtin_nans: %llu\n",
                         (unsigned long long)mbn_ref.value);
               }
               break;
@@ -31430,7 +31430,7 @@ representation with the given indent.
                                              si_ref.variant.msvc_builtin_nansf;
 
                 db_print_indent(indent);
-                fprintf(f_debug, "msvc_builtin_nansf: %lld\n",
+                fprintf(f_debug, "msvc_builtin_nansf: %llu\n",
                         (unsigned long long)mbn_ref.value);
               }
               break;
@@ -31438,7 +31438,7 @@ representation with the given indent.
               { an_ifc_text_offset &p_ref = si_ref.variant.plain;
 
                 db_print_indent(indent);
-                fprintf(f_debug, "plain: %lld\n",
+                fprintf(f_debug, "plain: %llu\n",
                         (unsigned long long)p_ref.value);
               }
               break;
@@ -31472,7 +31472,7 @@ representation with the given indent.
                 db_print_indent(indent);
                 fprintf(f_debug, "  sort: %s\n", str_for(ds_ref.sort));
                 db_print_indent(indent);
-                fprintf(f_debug, "  value: %lld\n",
+                fprintf(f_debug, "  value: %llu\n",
                         (unsigned long long)ds_ref.value);
               }
               break;
@@ -31480,7 +31480,7 @@ representation with the given indent.
               { an_ifc_source_unknown_literal &m_ref = sl_ref.variant.msvc;
 
                 db_print_indent(indent);
-                fprintf(f_debug, "msvc: %lld\n",
+                fprintf(f_debug, "msvc: %llu\n",
                         (unsigned long long)m_ref.value);
               }
               break;
@@ -31492,7 +31492,7 @@ representation with the given indent.
                 db_print_indent(indent);
                 fprintf(f_debug, "  sort: %s\n", str_for(mb_ref.sort));
                 db_print_indent(indent);
-                fprintf(f_debug, "  value: %lld\n",
+                fprintf(f_debug, "  value: %llu\n",
                         (unsigned long long)mb_ref.value);
               }
               break;
@@ -31501,7 +31501,7 @@ representation with the given indent.
                                           sl_ref.variant.msvc_cast_target_type;
 
                 db_print_indent(indent);
-                fprintf(f_debug, "msvc_cast_target_type: %lld\n",
+                fprintf(f_debug, "msvc_cast_target_type: %llu\n",
                         (unsigned long long)mctt_ref.value);
               }
               break;
@@ -31510,7 +31510,7 @@ representation with the given indent.
                                           sl_ref.variant.msvc_defined_constant;
 
                 db_print_indent(indent);
-                fprintf(f_debug, "msvc_defined_constant: %lld\n",
+                fprintf(f_debug, "msvc_defined_constant: %llu\n",
                         (unsigned long long)mdc_ref.value);
               }
               break;
@@ -31519,7 +31519,7 @@ representation with the given indent.
                                        sl_ref.variant.msvc_function_name_macro;
 
                 db_print_indent(indent);
-                fprintf(f_debug, "msvc_function_name_macro: %lld\n",
+                fprintf(f_debug, "msvc_function_name_macro: %llu\n",
                         (unsigned long long)mfnm_ref.value);
               }
               break;
@@ -31528,7 +31528,7 @@ representation with the given indent.
                                              sl_ref.variant.msvc_resolved_type;
 
                 db_print_indent(indent);
-                fprintf(f_debug, "msvc_resolved_type: %lld\n",
+                fprintf(f_debug, "msvc_resolved_type: %llu\n",
                         (unsigned long long)mrt_ref.value);
               }
               break;
@@ -31537,7 +31537,7 @@ representation with the given indent.
                                        sl_ref.variant.msvc_string_prefix_macro;
 
                 db_print_indent(indent);
-                fprintf(f_debug, "msvc_string_prefix_macro: %lld\n",
+                fprintf(f_debug, "msvc_string_prefix_macro: %llu\n",
                         (unsigned long long)mspm_ref.value);
               }
               break;
@@ -31549,7 +31549,7 @@ representation with the given indent.
                 db_print_indent(indent);
                 fprintf(f_debug, "  sort: %s\n", str_for(s_ref.sort));
                 db_print_indent(indent);
-                fprintf(f_debug, "  value: %lld\n",
+                fprintf(f_debug, "  value: %llu\n",
                         (unsigned long long)s_ref.value);
               }
               break;
@@ -31561,7 +31561,7 @@ representation with the given indent.
                 db_print_indent(indent);
                 fprintf(f_debug, "  sort: %s\n", str_for(s_ref.sort));
                 db_print_indent(indent);
-                fprintf(f_debug, "  value: %lld\n",
+                fprintf(f_debug, "  value: %llu\n",
                         (unsigned long long)s_ref.value);
               }
               break;
@@ -31569,7 +31569,7 @@ representation with the given indent.
               { an_ifc_source_unknown_literal &u_ref = sl_ref.variant.unknown;
 
                 db_print_indent(indent);
-                fprintf(f_debug, "unknown: %lld\n",
+                fprintf(f_debug, "unknown: %llu\n",
                         (unsigned long long)u_ref.value);
               }
               break;
@@ -31597,7 +31597,7 @@ representation with the given indent.
         { an_ifc_source_unknown_word &u_ref = field.variant.unknown;
 
           db_print_indent(indent);
-          fprintf(f_debug, "unknown: %lld\n",
+          fprintf(f_debug, "unknown: %llu\n",
                   (unsigned long long)u_ref.value);
         }
         break;
@@ -31609,7 +31609,7 @@ representation with the given indent.
     an_ifc_index field = get_ifc_index(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "index: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "index: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_locus(universal)) {
     an_ifc_source_location field = get_ifc_locus(universal);
@@ -31628,7 +31628,7 @@ representation with the given indent.
     an_ifc_u16 field = get_ifc_value(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -31776,7 +31776,7 @@ textual representation with the given indent.
     an_ifc_sentence_index field = get_ifc_words(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "words: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "words: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -32029,13 +32029,13 @@ textual representation with the given indent.
     an_ifc_sentence_index field = get_ifc_attributes(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "attributes: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "attributes: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_body(universal)) {
     an_ifc_sentence_index field = get_ifc_body(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "body: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "body: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_decl(universal)) {
     an_ifc_decl_index field = get_ifc_decl(universal);
@@ -32045,13 +32045,13 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_head(universal)) {
     an_ifc_sentence_index field = get_ifc_head(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "head: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "head: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -32175,13 +32175,13 @@ representation with the given indent.
     an_ifc_cardinality field = get_ifc_cardinality(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "cardinality: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "cardinality: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_start(universal)) {
     an_ifc_index field = get_ifc_start(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "start: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "start: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -32306,13 +32306,13 @@ textual representation with the given indent.
     an_ifc_column field = get_ifc_column(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "column: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "column: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_line(universal)) {
     an_ifc_line_index field = get_ifc_line(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "line: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "line: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -32962,7 +32962,7 @@ representation with the given indent.
     an_ifc_abi field = get_ifc_abi(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "abi: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "abi: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_arch(universal)) {
     an_ifc_architecture_sort field = get_ifc_arch(universal);
@@ -32978,66 +32978,66 @@ representation with the given indent.
     an_ifc_language_version field = get_ifc_dialect(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "dialect: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "dialect: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_global_scope(universal)) {
     an_ifc_scope_index field = get_ifc_global_scope(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "global_scope: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "global_scope: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_internal(universal)) {
     an_ifc_bool field = get_ifc_internal(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "internal: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "internal: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_major_version(universal)) {
     an_ifc_version field = get_ifc_major_version(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "major_version: %lld\n",
+    fprintf(f_debug, "major_version: %llu\n",
             (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_minor_version(universal)) {
     an_ifc_version field = get_ifc_minor_version(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "minor_version: %lld\n",
+    fprintf(f_debug, "minor_version: %llu\n",
             (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_partition_count(universal)) {
     an_ifc_cardinality field = get_ifc_partition_count(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "partition_count: %lld\n",
+    fprintf(f_debug, "partition_count: %llu\n",
             (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_src_path(universal)) {
     an_ifc_text_offset field = get_ifc_src_path(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "src_path: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "src_path: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_string_table_bytes(universal)) {
     an_ifc_byte_offset field = get_ifc_string_table_bytes(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "string_table_bytes: %lld\n",
+    fprintf(f_debug, "string_table_bytes: %llu\n",
             (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_string_table_size(universal)) {
     an_ifc_cardinality field = get_ifc_string_table_size(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "string_table_size: %lld\n",
+    fprintf(f_debug, "string_table_size: %llu\n",
             (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_toc(universal)) {
     an_ifc_byte_offset field = get_ifc_toc(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "toc: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "toc: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_unit(universal)) {
     an_ifc_unit_index field = get_ifc_unit(universal);
@@ -33047,7 +33047,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -33321,25 +33321,25 @@ representation with the given indent.
     an_ifc_cardinality field = get_ifc_cardinality(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "cardinality: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "cardinality: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_entry_size(universal)) {
     an_ifc_entity_size field = get_ifc_entry_size(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "entry_size: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "entry_size: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_name(universal)) {
     an_ifc_text_offset field = get_ifc_name(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "name: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "name: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_offset(universal)) {
     an_ifc_byte_offset field = get_ifc_offset(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "offset: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "offset: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -33717,7 +33717,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_function(universal)) {
     an_ifc_attr_index field = get_ifc_function(universal);
@@ -33727,7 +33727,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -33888,7 +33888,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -34045,7 +34045,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -34277,7 +34277,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -34512,7 +34512,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_label(universal)) {
     an_ifc_nestable_word field = get_ifc_label(universal);
@@ -34966,13 +34966,13 @@ representation with the given indent.
     an_ifc_cardinality field = get_ifc_cardinality(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "cardinality: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "cardinality: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_start(universal)) {
     an_ifc_index field = get_ifc_start(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "start: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "start: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -35152,13 +35152,13 @@ textual representation with the given indent.
     an_ifc_cardinality field = get_ifc_cardinality(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "cardinality: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "cardinality: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_start(universal)) {
     an_ifc_index field = get_ifc_start(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "start: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "start: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -35396,7 +35396,7 @@ representation with the given indent.
     an_ifc_cardinality field = get_ifc_cardinality(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "cardinality: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "cardinality: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_constraint(universal)) {
     an_ifc_expr_index field = get_ifc_constraint(universal);
@@ -35406,13 +35406,13 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_start(universal)) {
     an_ifc_index field = get_ifc_start(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "start: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "start: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -35690,7 +35690,7 @@ representation with the given indent.
     an_ifc_u64 field = get_ifc_value(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -35906,19 +35906,19 @@ representation with the given indent.
     an_ifc_cardinality field = get_ifc_length(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "length: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "length: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_start(universal)) {
     an_ifc_text_offset field = get_ifc_start(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "start: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "start: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_suffix(universal)) {
     an_ifc_text_offset field = get_ifc_suffix(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "suffix: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "suffix: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -36537,7 +36537,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_home_scope(universal)) {
     an_ifc_decl_index field = get_ifc_home_scope(universal);
@@ -36547,7 +36547,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_locus(universal)) {
     an_ifc_source_location field = get_ifc_locus(universal);
@@ -36560,7 +36560,7 @@ representation with the given indent.
     an_ifc_text_offset field = get_ifc_name(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "name: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "name: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_specifiers(universal)) {
     db_print_indent(indent);
@@ -36574,7 +36574,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -37346,7 +37346,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_initializer(universal)) {
     an_ifc_expr_index field = get_ifc_initializer(universal);
@@ -37356,7 +37356,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_locus(universal)) {
     an_ifc_source_location field = get_ifc_locus(universal);
@@ -37369,7 +37369,7 @@ representation with the given indent.
     an_ifc_text_offset field = get_ifc_name(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "name: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "name: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_properties(universal)) {
     db_print_indent(indent);
@@ -37391,7 +37391,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_width(universal)) {
     an_ifc_expr_index field = get_ifc_width(universal);
@@ -37401,7 +37401,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -38212,7 +38212,7 @@ representation with the given indent.
     an_ifc_sentence_index field = get_ifc_body(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "body: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "body: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_chart(universal)) {
     an_ifc_chart_index field = get_ifc_chart(universal);
@@ -38222,7 +38222,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_constraint(universal)) {
     an_ifc_expr_index field = get_ifc_constraint(universal);
@@ -38232,13 +38232,13 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_head(universal)) {
     an_ifc_sentence_index field = get_ifc_head(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "head: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "head: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_home_scope(universal)) {
     an_ifc_decl_index field = get_ifc_home_scope(universal);
@@ -38248,7 +38248,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_locus(universal)) {
     an_ifc_source_location field = get_ifc_locus(universal);
@@ -38261,7 +38261,7 @@ representation with the given indent.
     an_ifc_text_offset field = get_ifc_name(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "name: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "name: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_specifiers(universal)) {
     db_print_indent(indent);
@@ -38275,13 +38275,13 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_unknown(universal)) {
     an_ifc_u16 field = get_ifc_unknown(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "unknown: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "unknown: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -39129,7 +39129,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_home_scope(universal)) {
     an_ifc_decl_index field = get_ifc_home_scope(universal);
@@ -39139,7 +39139,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_locus(universal)) {
     an_ifc_source_location field = get_ifc_locus(universal);
@@ -39156,7 +39156,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_properties(universal)) {
     db_print_indent(indent);
@@ -39178,7 +39178,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -39802,7 +39802,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_locus(universal)) {
     an_ifc_source_location field = get_ifc_locus(universal);
@@ -39815,7 +39815,7 @@ textual representation with the given indent.
     an_ifc_text_offset field = get_ifc_name(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "name: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "name: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_source(universal)) {
     an_ifc_chart_index field = get_ifc_source(universal);
@@ -39825,7 +39825,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_specifiers(universal)) {
     db_print_indent(indent);
@@ -39839,13 +39839,13 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_traits(universal)) {
     an_ifc_guide_traits_bitfield field = get_ifc_traits(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "traits: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "traits: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -40716,7 +40716,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_locus(universal)) {
     an_ifc_source_location field = get_ifc_locus(universal);
@@ -40733,7 +40733,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_properties(universal)) {
     db_print_indent(indent);
@@ -41552,7 +41552,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_base(universal)) {
     an_ifc_type_index field = get_ifc_base(universal);
@@ -41562,7 +41562,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_home_scope(universal)) {
     an_ifc_decl_index field = get_ifc_home_scope(universal);
@@ -41572,7 +41572,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_initializer(universal)) {
     an_ifc_sequence field = get_ifc_initializer(universal);
@@ -41592,7 +41592,7 @@ textual representation with the given indent.
     an_ifc_text_offset field = get_ifc_name(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "name: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "name: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_properties(universal)) {
     db_print_indent(indent);
@@ -41610,7 +41610,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -42400,7 +42400,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_initializer(universal)) {
     an_ifc_expr_index field = get_ifc_initializer(universal);
@@ -42410,7 +42410,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_locus(universal)) {
     an_ifc_source_location field = get_ifc_locus(universal);
@@ -42423,7 +42423,7 @@ textual representation with the given indent.
     an_ifc_text_offset field = get_ifc_name(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "name: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "name: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_specifiers(universal)) {
     db_print_indent(indent);
@@ -42437,7 +42437,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -42711,7 +42711,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -42921,13 +42921,13 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_form(universal)) {
     an_ifc_form_spec_index field = get_ifc_form(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "form: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "form: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -43136,13 +43136,13 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_form(universal)) {
     an_ifc_form_spec_index field = get_ifc_form(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "form: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "form: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -43903,7 +43903,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_home_scope(universal)) {
     an_ifc_decl_index field = get_ifc_home_scope(universal);
@@ -43913,7 +43913,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_initializer(universal)) {
     an_ifc_expr_index field = get_ifc_initializer(universal);
@@ -43923,7 +43923,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_locus(universal)) {
     an_ifc_source_location field = get_ifc_locus(universal);
@@ -43936,7 +43936,7 @@ representation with the given indent.
     an_ifc_text_offset field = get_ifc_name(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "name: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "name: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_properties(universal)) {
     db_print_indent(indent);
@@ -43958,7 +43958,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -44134,7 +44134,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -44851,7 +44851,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_home_scope(universal)) {
     an_ifc_decl_index field = get_ifc_home_scope(universal);
@@ -44861,7 +44861,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_locus(universal)) {
     an_ifc_source_location field = get_ifc_locus(universal);
@@ -44878,7 +44878,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_properties(universal)) {
     db_print_indent(indent);
@@ -44900,7 +44900,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -45678,7 +45678,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_chart(universal)) {
     an_ifc_chart_index field = get_ifc_chart(universal);
@@ -45688,7 +45688,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_home_scope(universal)) {
     an_ifc_decl_index field = get_ifc_home_scope(universal);
@@ -45698,7 +45698,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_locus(universal)) {
     an_ifc_source_location field = get_ifc_locus(universal);
@@ -45711,7 +45711,7 @@ diagnostic textual representation with the given indent.
     an_ifc_text_offset field = get_ifc_name(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "name: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "name: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_specifiers(universal)) {
     db_print_indent(indent);
@@ -45729,7 +45729,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -46314,7 +46314,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_locus(universal)) {
     an_ifc_source_location field = get_ifc_locus(universal);
@@ -46327,7 +46327,7 @@ representation with the given indent.
     an_ifc_text_offset field = get_ifc_name(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "name: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "name: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_specifiers(universal)) {
     db_print_indent(indent);
@@ -46341,7 +46341,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -47070,7 +47070,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_home_scope(universal)) {
     an_ifc_decl_index field = get_ifc_home_scope(universal);
@@ -47080,7 +47080,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_locus(universal)) {
     an_ifc_source_location field = get_ifc_locus(universal);
@@ -47097,7 +47097,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_properties(universal)) {
     db_print_indent(indent);
@@ -47119,7 +47119,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -47399,25 +47399,25 @@ textual representation with the given indent.
     an_ifc_text_offset field = get_ifc_ID(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "ID: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "ID: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_name(universal)) {
     an_ifc_text_offset field = get_ifc_name(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "name: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "name: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_traits(universal)) {
     an_ifc_segment_traits field = get_ifc_traits(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "traits: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "traits: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_type(universal)) {
     an_ifc_segment_type field = get_ifc_type(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "type: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "type: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -48020,7 +48020,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_initializer(universal)) {
     an_ifc_expr_index field = get_ifc_initializer(universal);
@@ -48030,13 +48030,13 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_level(universal)) {
     an_ifc_parameter_level field = get_ifc_level(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "level: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "level: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_locus(universal)) {
     an_ifc_source_location field = get_ifc_locus(universal);
@@ -48049,19 +48049,19 @@ representation with the given indent.
     an_ifc_text_offset field = get_ifc_name(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "name: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "name: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_pack(universal)) {
     an_ifc_bool field = get_ifc_pack(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "pack: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "pack: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_position(universal)) {
     an_ifc_parameter_position field = get_ifc_position(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "position: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "position: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_properties(universal)) {
     db_print_indent(indent);
@@ -48081,7 +48081,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -48946,7 +48946,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_entity(universal)) {
     an_ifc_parameterized_entity field = get_ifc_entity(universal);
@@ -48959,7 +48959,7 @@ diagnostic textual representation with the given indent.
     an_ifc_form_spec_index field = get_ifc_form(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "form: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "form: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_home_scope(universal)) {
     an_ifc_decl_index field = get_ifc_home_scope(universal);
@@ -48969,7 +48969,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_locus(universal)) {
     an_ifc_source_location field = get_ifc_locus(universal);
@@ -48986,7 +48986,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_properties(universal)) {
     db_print_indent(indent);
@@ -49280,7 +49280,7 @@ representation with the given indent.
     an_ifc_text_offset field = get_ifc_getter(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "getter: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "getter: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_member(universal)) {
     an_ifc_decl_index field = get_ifc_member(universal);
@@ -49290,13 +49290,13 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_setter(universal)) {
     an_ifc_text_offset field = get_ifc_setter(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "setter: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "setter: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -49612,7 +49612,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_local_index(universal)) {
     db_print_indent(indent);
@@ -50478,7 +50478,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_base(universal)) {
     an_ifc_type_index field = get_ifc_base(universal);
@@ -50488,7 +50488,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_home_scope(universal)) {
     an_ifc_decl_index field = get_ifc_home_scope(universal);
@@ -50498,13 +50498,13 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_initializer(universal)) {
     an_ifc_scope_index field = get_ifc_initializer(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "initializer: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "initializer: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_locus(universal)) {
     an_ifc_source_location field = get_ifc_locus(universal);
@@ -50521,13 +50521,13 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_pack_size(universal)) {
     an_ifc_pack_size field = get_ifc_pack_size(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "pack_size: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "pack_size: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_properties(universal)) {
     db_print_indent(indent);
@@ -50549,7 +50549,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -51064,13 +51064,13 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_form(universal)) {
     an_ifc_form_spec_index field = get_ifc_form(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "form: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "form: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_home_scope(universal)) {
     an_ifc_decl_index field = get_ifc_home_scope(universal);
@@ -51080,7 +51080,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_locus(universal)) {
     an_ifc_source_location field = get_ifc_locus(universal);
@@ -51097,7 +51097,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_sort(universal)) {
     an_ifc_specialization_sort field = get_ifc_sort(universal);
@@ -52203,7 +52203,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_entity(universal)) {
     an_ifc_parameterized_entity field = get_ifc_entity(universal);
@@ -52220,7 +52220,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_locus(universal)) {
     an_ifc_source_location field = get_ifc_locus(universal);
@@ -52237,7 +52237,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_properties(universal)) {
     db_print_indent(indent);
@@ -52255,7 +52255,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -52548,7 +52548,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_entity(universal)) {
     an_ifc_parameterized_entity field = get_ifc_entity(universal);
@@ -52748,13 +52748,13 @@ representation with the given indent.
     an_ifc_cardinality field = get_ifc_cardinality(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "cardinality: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "cardinality: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_start(universal)) {
     an_ifc_index field = get_ifc_start(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "start: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "start: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -53489,7 +53489,7 @@ textual representation with the given indent.
     an_ifc_bool field = get_ifc_hidden(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "hidden: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "hidden: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_home_scope(universal)) {
     an_ifc_decl_index field = get_ifc_home_scope(universal);
@@ -53499,7 +53499,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_locus(universal)) {
     an_ifc_source_location field = get_ifc_locus(universal);
@@ -53512,13 +53512,13 @@ textual representation with the given indent.
     an_ifc_text_offset field = get_ifc_name(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "name: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "name: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_name2(universal)) {
     an_ifc_text_offset field = get_ifc_name2(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "name2: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "name2: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_parent(universal)) {
     an_ifc_expr_index field = get_ifc_parent(universal);
@@ -53528,7 +53528,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_resolution(universal)) {
     an_ifc_decl_index field = get_ifc_resolution(universal);
@@ -53538,7 +53538,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_specifiers(universal)) {
     db_print_indent(indent);
@@ -54336,7 +54336,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_home_scope(universal)) {
     an_ifc_decl_index field = get_ifc_home_scope(universal);
@@ -54346,7 +54346,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_initializer(universal)) {
     an_ifc_expr_index field = get_ifc_initializer(universal);
@@ -54356,7 +54356,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_locus(universal)) {
     an_ifc_source_location field = get_ifc_locus(universal);
@@ -54373,7 +54373,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_properties(universal)) {
     db_print_indent(indent);
@@ -54395,7 +54395,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -54702,7 +54702,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_type(universal)) {
     an_ifc_type_index field = get_ifc_type(universal);
@@ -54712,7 +54712,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -55054,7 +55054,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_elements(universal)) {
     an_ifc_expr_index field = get_ifc_elements(universal);
@@ -55064,7 +55064,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_locus(universal)) {
     an_ifc_source_location field = get_ifc_locus(universal);
@@ -55081,7 +55081,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -55323,7 +55323,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -55755,7 +55755,7 @@ textual representation with the given indent.
     an_ifc_associativity field = get_ifc_associativity(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "associativity: %lld\n",
+    fprintf(f_debug, "associativity: %llu\n",
             (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_left(universal)) {
@@ -55766,7 +55766,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_locus(universal)) {
     an_ifc_source_location field = get_ifc_locus(universal);
@@ -55789,7 +55789,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_type(universal)) {
     an_ifc_type_index field = get_ifc_type(universal);
@@ -55799,7 +55799,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -56144,7 +56144,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_locus(universal)) {
     an_ifc_source_location field = get_ifc_locus(universal);
@@ -56161,7 +56161,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_type(universal)) {
     an_ifc_type_index field = get_ifc_type(universal);
@@ -56171,7 +56171,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -56577,7 +56577,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_target(universal)) {
     an_ifc_type_index field = get_ifc_target(universal);
@@ -56587,7 +56587,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_type(universal)) {
     an_ifc_type_index field = get_ifc_type(universal);
@@ -56597,7 +56597,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -56929,7 +56929,7 @@ textual representation with the given indent.
     an_ifc_text_offset field = get_ifc_prefix(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "prefix: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "prefix: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_string(universal)) {
     an_ifc_expr_index field = get_ifc_string(universal);
@@ -56939,7 +56939,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_type(universal)) {
     an_ifc_type_index field = get_ifc_type(universal);
@@ -56949,7 +56949,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -57236,7 +57236,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_locus(universal)) {
     an_ifc_source_location field = get_ifc_locus(universal);
@@ -57253,7 +57253,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -57586,7 +57586,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_locus(universal)) {
     an_ifc_source_location field = get_ifc_locus(universal);
@@ -57599,7 +57599,7 @@ diagnostic textual representation with the given indent.
     an_ifc_text_offset field = get_ifc_member(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "member: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "member: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_type(universal)) {
     an_ifc_type_index field = get_ifc_type(universal);
@@ -57609,7 +57609,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -57993,7 +57993,7 @@ textual representation with the given indent.
     an_ifc_destructor_sort field = get_ifc_cleanup(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "cleanup: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "cleanup: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_decltype_specifier(universal)) {
     an_ifc_syntax_index field = get_ifc_decltype_specifier(universal);
@@ -58003,7 +58003,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_locus(universal)) {
     an_ifc_source_location field = get_ifc_locus(universal);
@@ -58020,7 +58020,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_type(universal)) {
     an_ifc_type_index field = get_ifc_type(universal);
@@ -58030,7 +58030,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -58512,7 +58512,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_argument_1(universal)) {
     an_ifc_expr_index field = get_ifc_argument_1(universal);
@@ -58522,7 +58522,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_assoc(universal)) {
     an_ifc_dyadic_operator_sort field = get_ifc_assoc(universal);
@@ -58538,7 +58538,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_locus(universal)) {
     an_ifc_source_location field = get_ifc_locus(universal);
@@ -58555,7 +58555,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -58852,7 +58852,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_type(universal)) {
     an_ifc_type_index field = get_ifc_type(universal);
@@ -58862,7 +58862,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -59099,7 +59099,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -59388,7 +59388,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_type(universal)) {
     an_ifc_type_index field = get_ifc_type(universal);
@@ -59398,7 +59398,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -59754,7 +59754,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_delimiter(universal)) {
     an_ifc_delimiter_sort field = get_ifc_delimiter(universal);
@@ -60054,7 +60054,7 @@ textual representation with the given indent.
     an_ifc_text_offset field = get_ifc_macro(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "macro: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "macro: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_type(universal)) {
     an_ifc_type_index field = get_ifc_type(universal);
@@ -60064,7 +60064,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -60581,7 +60581,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_locus(universal)) {
     an_ifc_source_location field = get_ifc_locus(universal);
@@ -60604,7 +60604,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_source(universal)) {
     an_ifc_expr_index field = get_ifc_source(universal);
@@ -60614,7 +60614,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_target(universal)) {
     an_ifc_type_index field = get_ifc_target(universal);
@@ -60624,7 +60624,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_type(universal)) {
     an_ifc_type_index field = get_ifc_type(universal);
@@ -60634,7 +60634,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -60936,7 +60936,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_type(universal)) {
     an_ifc_type_index field = get_ifc_type(universal);
@@ -60946,7 +60946,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -61287,7 +61287,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_locus(universal)) {
     an_ifc_source_location field = get_ifc_locus(universal);
@@ -61310,7 +61310,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -61600,7 +61600,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_locus(universal)) {
     an_ifc_source_location field = get_ifc_locus(universal);
@@ -61617,7 +61617,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -62007,7 +62007,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_constraint(universal)) {
     an_ifc_syntax_index field = get_ifc_constraint(universal);
@@ -62017,7 +62017,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_declarator(universal)) {
     an_ifc_syntax_index field = get_ifc_declarator(universal);
@@ -62027,7 +62027,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_introducer(universal)) {
     an_ifc_syntax_index field = get_ifc_introducer(universal);
@@ -62037,7 +62037,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_template_parameters(universal)) {
     an_ifc_syntax_index field = get_ifc_template_parameters(universal);
@@ -62047,7 +62047,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -62340,7 +62340,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_value(universal)) {
     an_ifc_lit_index field = get_ifc_value(universal);
@@ -62350,7 +62350,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -62733,7 +62733,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_locus(universal)) {
     an_ifc_source_location field = get_ifc_locus(universal);
@@ -62746,7 +62746,7 @@ textual representation with the given indent.
     an_ifc_text_offset field = get_ifc_name(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "name: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "name: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_offset(universal)) {
     an_ifc_expr_index field = get_ifc_offset(universal);
@@ -62756,7 +62756,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_type(universal)) {
     an_ifc_type_index field = get_ifc_type(universal);
@@ -62766,7 +62766,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -63200,7 +63200,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_initializer(universal)) {
     an_ifc_expr_index field = get_ifc_initializer(universal);
@@ -63210,7 +63210,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_locus(universal)) {
     an_ifc_source_location field = get_ifc_locus(universal);
@@ -63227,7 +63227,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_type(universal)) {
     an_ifc_type_index field = get_ifc_type(universal);
@@ -63237,7 +63237,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -63664,7 +63664,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_assoc(universal)) {
     an_ifc_monadic_operator_sort field = get_ifc_assoc(universal);
@@ -63680,7 +63680,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_locus(universal)) {
     an_ifc_source_location field = get_ifc_locus(universal);
@@ -63697,7 +63697,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -64022,7 +64022,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_type(universal)) {
     an_ifc_type_index field = get_ifc_type(universal);
@@ -64032,7 +64032,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -64269,7 +64269,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -64559,7 +64559,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_locus(universal)) {
     an_ifc_source_location field = get_ifc_locus(universal);
@@ -64576,7 +64576,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -64921,7 +64921,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_scope(universal)) {
     an_ifc_expr_index field = get_ifc_scope(universal);
@@ -64931,7 +64931,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_type(universal)) {
     an_ifc_type_index field = get_ifc_type(universal);
@@ -64941,7 +64941,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -65178,7 +65178,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -65746,7 +65746,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_class_decl(universal)) {
     an_ifc_type_index field = get_ifc_class_decl(universal);
@@ -65756,7 +65756,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_locus(universal)) {
     an_ifc_source_location field = get_ifc_locus(universal);
@@ -65773,7 +65773,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_type(universal)) {
     an_ifc_type_index field = get_ifc_type(universal);
@@ -65783,7 +65783,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -66170,7 +66170,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_dtor_call(universal)) {
     an_ifc_expr_index field = get_ifc_dtor_call(universal);
@@ -66180,13 +66180,13 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_flags(universal)) {
     an_ifc_eh_flags field = get_ifc_flags(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "flags: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "flags: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_locus(universal)) {
     an_ifc_source_location field = get_ifc_locus(universal);
@@ -66203,7 +66203,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -66563,7 +66563,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_locus(universal)) {
     an_ifc_source_location field = get_ifc_locus(universal);
@@ -66580,7 +66580,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_typename_keyword(universal)) {
     an_ifc_source_location field = get_ifc_typename_keyword(universal);
@@ -66931,7 +66931,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_locus(universal)) {
     an_ifc_source_location field = get_ifc_locus(universal);
@@ -66954,7 +66954,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -67294,7 +67294,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_locus(universal)) {
     an_ifc_source_location field = get_ifc_locus(universal);
@@ -67311,7 +67311,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_type(universal)) {
     an_ifc_type_index field = get_ifc_type(universal);
@@ -67321,7 +67321,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -67616,7 +67616,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_type(universal)) {
     an_ifc_type_index field = get_ifc_type(universal);
@@ -67626,7 +67626,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -67919,7 +67919,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_type(universal)) {
     an_ifc_type_index field = get_ifc_type(universal);
@@ -67929,7 +67929,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -68222,7 +68222,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_type(universal)) {
     an_ifc_type_index field = get_ifc_type(universal);
@@ -68232,7 +68232,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -68525,7 +68525,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_type(universal)) {
     an_ifc_type_index field = get_ifc_type(universal);
@@ -68535,7 +68535,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -68700,7 +68700,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -69104,7 +69104,7 @@ textual representation with the given indent.
     an_ifc_active_member field = get_ifc_discriminant(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "discriminant: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "discriminant: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_locus(universal)) {
     an_ifc_source_location field = get_ifc_locus(universal);
@@ -69121,7 +69121,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_value(universal)) {
     an_ifc_expr_index field = get_ifc_value(universal);
@@ -69131,7 +69131,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_variant(universal)) {
     an_ifc_decl_index field = get_ifc_variant(universal);
@@ -69141,7 +69141,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -69310,7 +69310,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -69645,7 +69645,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_locus(universal)) {
     an_ifc_source_location field = get_ifc_locus(universal);
@@ -69662,7 +69662,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_type(universal)) {
     an_ifc_type_index field = get_ifc_type(universal);
@@ -69672,7 +69672,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -70143,7 +70143,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_locus(universal)) {
     an_ifc_source_location field = get_ifc_locus(universal);
@@ -70167,7 +70167,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_scope(universal)) {
     an_ifc_type_index field = get_ifc_scope(universal);
@@ -70177,7 +70177,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_type(universal)) {
     an_ifc_type_index field = get_ifc_type(universal);
@@ -70187,7 +70187,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -70462,7 +70462,7 @@ representation with the given indent.
     an_ifc_unique_id field = get_ifc_id(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "id: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "id: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_locus(universal)) {
     an_ifc_source_location field = get_ifc_locus(universal);
@@ -70479,7 +70479,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -70715,7 +70715,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -70988,13 +70988,13 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_words(universal)) {
     an_ifc_sentence_index field = get_ifc_words(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "words: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "words: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -71526,7 +71526,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_argument_1(universal)) {
     an_ifc_expr_index field = get_ifc_argument_1(universal);
@@ -71536,7 +71536,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_argument_2(universal)) {
     an_ifc_expr_index field = get_ifc_argument_2(universal);
@@ -71546,7 +71546,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_assoc(universal)) {
     an_ifc_triadic_operator_sort field = get_ifc_assoc(universal);
@@ -71562,7 +71562,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_locus(universal)) {
     an_ifc_source_location field = get_ifc_locus(universal);
@@ -71579,7 +71579,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -71892,7 +71892,7 @@ representation with the given indent.
     an_ifc_cardinality field = get_ifc_cardinality(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "cardinality: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "cardinality: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_locus(universal)) {
     an_ifc_source_location field = get_ifc_locus(universal);
@@ -71905,7 +71905,7 @@ representation with the given indent.
     an_ifc_index field = get_ifc_start(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "start: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "start: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_type(universal)) {
     an_ifc_type_index field = get_ifc_type(universal);
@@ -71915,7 +71915,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -72200,7 +72200,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_locus(universal)) {
     an_ifc_source_location field = get_ifc_locus(universal);
@@ -72217,7 +72217,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -72563,7 +72563,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_intrinsic(universal)) {
     an_ifc_operator_category field = get_ifc_intrinsic(universal);
@@ -72641,7 +72641,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -72935,7 +72935,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_type(universal)) {
     an_ifc_type_index field = get_ifc_type(universal);
@@ -72945,7 +72945,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -73322,7 +73322,7 @@ representation with the given indent.
     an_ifc_associativity field = get_ifc_associativity(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "associativity: %lld\n",
+    fprintf(f_debug, "associativity: %llu\n",
             (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_expr(universal)) {
@@ -73333,7 +73333,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_locus(universal)) {
     an_ifc_source_location field = get_ifc_locus(universal);
@@ -73356,7 +73356,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -73779,7 +73779,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_resolution(universal)) {
     an_ifc_expr_index field = get_ifc_resolution(universal);
@@ -73789,7 +73789,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_template_keyword(universal)) {
     an_ifc_source_location field = get_ifc_template_keyword(universal);
@@ -73806,7 +73806,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -74106,7 +74106,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_type(universal)) {
     an_ifc_type_index field = get_ifc_type(universal);
@@ -74116,7 +74116,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -74438,7 +74438,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_locus(universal)) {
     an_ifc_source_location field = get_ifc_locus(universal);
@@ -74455,7 +74455,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -74740,7 +74740,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_locus(universal)) {
     an_ifc_source_location field = get_ifc_locus(universal);
@@ -74757,7 +74757,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -74977,7 +74977,7 @@ representation with the given indent.
     an_ifc_text_offset field = get_ifc_spelling(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "spelling: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "spelling: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -75194,7 +75194,7 @@ representation with the given indent.
     an_ifc_text_offset field = get_ifc_spelling(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "spelling: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "spelling: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -75412,7 +75412,7 @@ textual representation with the given indent.
     an_ifc_text_offset field = get_ifc_spelling(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "spelling: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "spelling: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -75628,7 +75628,7 @@ representation with the given indent.
     an_ifc_text_offset field = get_ifc_spelling(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "spelling: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "spelling: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -75844,7 +75844,7 @@ representation with the given indent.
     an_ifc_text_offset field = get_ifc_spelling(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "spelling: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "spelling: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -76061,7 +76061,7 @@ representation with the given indent.
     an_ifc_text_offset field = get_ifc_spelling(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "spelling: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "spelling: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -76321,13 +76321,13 @@ representation with the given indent.
     an_ifc_form_operator_sort field = get_ifc_op(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "op: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "op: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_spelling(universal)) {
     an_ifc_text_offset field = get_ifc_spelling(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "spelling: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "spelling: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -76547,7 +76547,7 @@ representation with the given indent.
     an_ifc_text_offset field = get_ifc_spelling(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "spelling: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "spelling: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -76783,7 +76783,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -77019,7 +77019,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -77266,7 +77266,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_primary_template(universal)) {
     an_ifc_decl_index field = get_ifc_primary_template(universal);
@@ -77276,7 +77276,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -77489,7 +77489,7 @@ representation with the given indent.
     an_ifc_text_offset field = get_ifc_spelling(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "spelling: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "spelling: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -77725,7 +77725,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -77908,13 +77908,13 @@ representation with the given indent.
     an_ifc_cardinality field = get_ifc_cardinality(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "cardinality: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "cardinality: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_start(universal)) {
     an_ifc_index field = get_ifc_start(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "start: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "start: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -78241,7 +78241,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -78396,7 +78396,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -78580,7 +78580,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -78735,7 +78735,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -78890,7 +78890,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -79045,7 +79045,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -79202,7 +79202,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -79357,7 +79357,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -79514,7 +79514,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -79886,7 +79886,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_locus(universal)) {
     an_ifc_source_location field = get_ifc_locus(universal);
@@ -79899,7 +79899,7 @@ textual representation with the given indent.
     an_ifc_text_offset field = get_ifc_name(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "name: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "name: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_parameters(universal)) {
     an_ifc_form_index field = get_ifc_parameters(universal);
@@ -79909,7 +79909,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -80186,7 +80186,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_locus(universal)) {
     an_ifc_source_location field = get_ifc_locus(universal);
@@ -80199,7 +80199,7 @@ textual representation with the given indent.
     an_ifc_text_offset field = get_ifc_name(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "name: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "name: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -80742,7 +80742,7 @@ textual representation with the given indent.
     an_ifc_text_offset field = get_ifc_encoded(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "encoded: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "encoded: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_target(universal)) {
     an_ifc_type_index field = get_ifc_target(universal);
@@ -80752,7 +80752,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -80942,7 +80942,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -81079,7 +81079,7 @@ representation with the given indent.
     an_ifc_text_offset field = get_ifc_encoded(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "encoded: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "encoded: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -81275,7 +81275,7 @@ representation with the given indent.
     an_ifc_text_offset field = get_ifc_encoded(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "encoded: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "encoded: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_operator(universal)) {
     an_ifc_operator_category field = get_ifc_operator(universal);
@@ -81518,13 +81518,13 @@ textual representation with the given indent.
     an_ifc_text_offset field = get_ifc_guard(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "guard: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "guard: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_path(universal)) {
     an_ifc_text_offset field = get_ifc_path(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "path: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "path: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -81740,7 +81740,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_primary(universal)) {
     an_ifc_name_index field = get_ifc_primary(universal);
@@ -81750,7 +81750,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -81910,7 +81910,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -82089,13 +82089,13 @@ textual representation with the given indent.
     an_ifc_cardinality field = get_ifc_cardinality(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "cardinality: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "cardinality: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_start(universal)) {
     an_ifc_index field = get_ifc_start(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "start: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "start: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -82282,7 +82282,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -82479,13 +82479,13 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_line(universal)) {
     an_ifc_line_number field = get_ifc_line(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "line: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "line: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -82734,7 +82734,7 @@ textual representation with the given indent.
     an_ifc_cardinality field = get_ifc_cardinality(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "cardinality: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "cardinality: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_locus(universal)) {
     an_ifc_source_location field = get_ifc_locus(universal);
@@ -82747,7 +82747,7 @@ textual representation with the given indent.
     an_ifc_index field = get_ifc_start(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "start: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "start: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -83180,7 +83180,7 @@ representation with the given indent.
               { an_ifc_source_unknown_identifier &m_ref = si_ref.variant.msvc;
 
                 db_print_indent(indent);
-                fprintf(f_debug, "msvc: %lld\n",
+                fprintf(f_debug, "msvc: %llu\n",
                         (unsigned long long)m_ref.value);
               }
               break;
@@ -83189,7 +83189,7 @@ representation with the given indent.
                                           si_ref.variant.msvc_builtin_huge_val;
 
                 db_print_indent(indent);
-                fprintf(f_debug, "msvc_builtin_huge_val: %lld\n",
+                fprintf(f_debug, "msvc_builtin_huge_val: %llu\n",
                         (unsigned long long)mbhv_ref.value);
               }
               break;
@@ -83198,7 +83198,7 @@ representation with the given indent.
                                          si_ref.variant.msvc_builtin_huge_valf;
 
                 db_print_indent(indent);
-                fprintf(f_debug, "msvc_builtin_huge_valf: %lld\n",
+                fprintf(f_debug, "msvc_builtin_huge_valf: %llu\n",
                         (unsigned long long)mbhv_ref.value);
               }
               break;
@@ -83207,7 +83207,7 @@ representation with the given indent.
                                                si_ref.variant.msvc_builtin_nan;
 
                 db_print_indent(indent);
-                fprintf(f_debug, "msvc_builtin_nan: %lld\n",
+                fprintf(f_debug, "msvc_builtin_nan: %llu\n",
                         (unsigned long long)mbn_ref.value);
               }
               break;
@@ -83216,7 +83216,7 @@ representation with the given indent.
                                               si_ref.variant.msvc_builtin_nanf;
 
                 db_print_indent(indent);
-                fprintf(f_debug, "msvc_builtin_nanf: %lld\n",
+                fprintf(f_debug, "msvc_builtin_nanf: %llu\n",
                         (unsigned long long)mbn_ref.value);
               }
               break;
@@ -83225,7 +83225,7 @@ representation with the given indent.
                                               si_ref.variant.msvc_builtin_nans;
 
                 db_print_indent(indent);
-                fprintf(f_debug, "msvc_builtin_nans: %lld\n",
+                fprintf(f_debug, "msvc_builtin_nans: %llu\n",
                         (unsigned long long)mbn_ref.value);
               }
               break;
@@ -83234,7 +83234,7 @@ representation with the given indent.
                                              si_ref.variant.msvc_builtin_nansf;
 
                 db_print_indent(indent);
-                fprintf(f_debug, "msvc_builtin_nansf: %lld\n",
+                fprintf(f_debug, "msvc_builtin_nansf: %llu\n",
                         (unsigned long long)mbn_ref.value);
               }
               break;
@@ -83242,7 +83242,7 @@ representation with the given indent.
               { an_ifc_text_offset &p_ref = si_ref.variant.plain;
 
                 db_print_indent(indent);
-                fprintf(f_debug, "plain: %lld\n",
+                fprintf(f_debug, "plain: %llu\n",
                         (unsigned long long)p_ref.value);
               }
               break;
@@ -83276,7 +83276,7 @@ representation with the given indent.
                 db_print_indent(indent);
                 fprintf(f_debug, "  sort: %s\n", str_for(ds_ref.sort));
                 db_print_indent(indent);
-                fprintf(f_debug, "  value: %lld\n",
+                fprintf(f_debug, "  value: %llu\n",
                         (unsigned long long)ds_ref.value);
               }
               break;
@@ -83284,7 +83284,7 @@ representation with the given indent.
               { an_ifc_source_unknown_literal &m_ref = sl_ref.variant.msvc;
 
                 db_print_indent(indent);
-                fprintf(f_debug, "msvc: %lld\n",
+                fprintf(f_debug, "msvc: %llu\n",
                         (unsigned long long)m_ref.value);
               }
               break;
@@ -83296,7 +83296,7 @@ representation with the given indent.
                 db_print_indent(indent);
                 fprintf(f_debug, "  sort: %s\n", str_for(mb_ref.sort));
                 db_print_indent(indent);
-                fprintf(f_debug, "  value: %lld\n",
+                fprintf(f_debug, "  value: %llu\n",
                         (unsigned long long)mb_ref.value);
               }
               break;
@@ -83305,7 +83305,7 @@ representation with the given indent.
                                           sl_ref.variant.msvc_cast_target_type;
 
                 db_print_indent(indent);
-                fprintf(f_debug, "msvc_cast_target_type: %lld\n",
+                fprintf(f_debug, "msvc_cast_target_type: %llu\n",
                         (unsigned long long)mctt_ref.value);
               }
               break;
@@ -83314,7 +83314,7 @@ representation with the given indent.
                                           sl_ref.variant.msvc_defined_constant;
 
                 db_print_indent(indent);
-                fprintf(f_debug, "msvc_defined_constant: %lld\n",
+                fprintf(f_debug, "msvc_defined_constant: %llu\n",
                         (unsigned long long)mdc_ref.value);
               }
               break;
@@ -83323,7 +83323,7 @@ representation with the given indent.
                                        sl_ref.variant.msvc_function_name_macro;
 
                 db_print_indent(indent);
-                fprintf(f_debug, "msvc_function_name_macro: %lld\n",
+                fprintf(f_debug, "msvc_function_name_macro: %llu\n",
                         (unsigned long long)mfnm_ref.value);
               }
               break;
@@ -83332,7 +83332,7 @@ representation with the given indent.
                                              sl_ref.variant.msvc_resolved_type;
 
                 db_print_indent(indent);
-                fprintf(f_debug, "msvc_resolved_type: %lld\n",
+                fprintf(f_debug, "msvc_resolved_type: %llu\n",
                         (unsigned long long)mrt_ref.value);
               }
               break;
@@ -83341,7 +83341,7 @@ representation with the given indent.
                                        sl_ref.variant.msvc_string_prefix_macro;
 
                 db_print_indent(indent);
-                fprintf(f_debug, "msvc_string_prefix_macro: %lld\n",
+                fprintf(f_debug, "msvc_string_prefix_macro: %llu\n",
                         (unsigned long long)mspm_ref.value);
               }
               break;
@@ -83353,7 +83353,7 @@ representation with the given indent.
                 db_print_indent(indent);
                 fprintf(f_debug, "  sort: %s\n", str_for(s_ref.sort));
                 db_print_indent(indent);
-                fprintf(f_debug, "  value: %lld\n",
+                fprintf(f_debug, "  value: %llu\n",
                         (unsigned long long)s_ref.value);
               }
               break;
@@ -83365,7 +83365,7 @@ representation with the given indent.
                 db_print_indent(indent);
                 fprintf(f_debug, "  sort: %s\n", str_for(s_ref.sort));
                 db_print_indent(indent);
-                fprintf(f_debug, "  value: %lld\n",
+                fprintf(f_debug, "  value: %llu\n",
                         (unsigned long long)s_ref.value);
               }
               break;
@@ -83373,7 +83373,7 @@ representation with the given indent.
               { an_ifc_source_unknown_literal &u_ref = sl_ref.variant.unknown;
 
                 db_print_indent(indent);
-                fprintf(f_debug, "unknown: %lld\n",
+                fprintf(f_debug, "unknown: %llu\n",
                         (unsigned long long)u_ref.value);
               }
               break;
@@ -83401,7 +83401,7 @@ representation with the given indent.
         { an_ifc_source_unknown_word &u_ref = field.variant.unknown;
 
           db_print_indent(indent);
-          fprintf(f_debug, "unknown: %lld\n",
+          fprintf(f_debug, "unknown: %llu\n",
                   (unsigned long long)u_ref.value);
         }
         break;
@@ -83413,7 +83413,7 @@ representation with the given indent.
     an_ifc_index field = get_ifc_index(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "index: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "index: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_locus(universal)) {
     an_ifc_source_location field = get_ifc_locus(universal);
@@ -83432,7 +83432,7 @@ representation with the given indent.
     an_ifc_u16 field = get_ifc_value(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -83619,13 +83619,13 @@ representation with the given indent.
     an_ifc_cardinality field = get_ifc_cardinality(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "cardinality: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "cardinality: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_start(universal)) {
     an_ifc_index field = get_ifc_start(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "start: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "start: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -84016,7 +84016,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_locus(universal)) {
     an_ifc_source_location field = get_ifc_locus(universal);
@@ -84643,7 +84643,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_condition(universal)) {
     an_ifc_stmt_index field = get_ifc_condition(universal);
@@ -84653,7 +84653,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_locus(universal)) {
     an_ifc_source_location field = get_ifc_locus(universal);
@@ -84991,7 +84991,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -85215,7 +85215,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_locus(universal)) {
     an_ifc_source_location field = get_ifc_locus(universal);
@@ -85616,7 +85616,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_condition(universal)) {
     an_ifc_stmt_index field = get_ifc_condition(universal);
@@ -85626,7 +85626,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_continuation(universal)) {
     an_ifc_stmt_index field = get_ifc_continuation(universal);
@@ -85636,7 +85636,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_initialization(universal)) {
     an_ifc_stmt_index field = get_ifc_initialization(universal);
@@ -85646,7 +85646,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_locus(universal)) {
     an_ifc_source_location field = get_ifc_locus(universal);
@@ -86051,7 +86051,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_condition(universal)) {
     an_ifc_stmt_index field = get_ifc_condition(universal);
@@ -86061,7 +86061,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_consequence(universal)) {
     an_ifc_stmt_index field = get_ifc_consequence(universal);
@@ -86071,7 +86071,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_initialization(universal)) {
     an_ifc_stmt_index field = get_ifc_initialization(universal);
@@ -86081,7 +86081,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_locus(universal)) {
     an_ifc_source_location field = get_ifc_locus(universal);
@@ -86433,7 +86433,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_expression_type(universal)) {
     an_ifc_type_index field = get_ifc_expression_type(universal);
@@ -86443,7 +86443,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_function_type(universal)) {
     an_ifc_type_index field = get_ifc_function_type(universal);
@@ -86453,7 +86453,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_locus(universal)) {
     an_ifc_source_location field = get_ifc_locus(universal);
@@ -86804,7 +86804,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_condition(universal)) {
     an_ifc_expr_index field = get_ifc_condition(universal);
@@ -86814,7 +86814,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_initialization(universal)) {
     an_ifc_stmt_index field = get_ifc_initialization(universal);
@@ -86824,7 +86824,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_locus(universal)) {
     an_ifc_source_location field = get_ifc_locus(universal);
@@ -87092,7 +87092,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_locus(universal)) {
     an_ifc_source_location field = get_ifc_locus(universal);
@@ -87382,7 +87382,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_condition(universal)) {
     an_ifc_stmt_index field = get_ifc_condition(universal);
@@ -87392,7 +87392,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_locus(universal)) {
     an_ifc_source_location field = get_ifc_locus(universal);
@@ -87921,7 +87921,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_locus(universal)) {
     an_ifc_source_location field = get_ifc_locus(universal);
@@ -88385,7 +88385,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_equal(universal)) {
     an_ifc_source_location field = get_ifc_equal(universal);
@@ -88409,7 +88409,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_semicolon(universal)) {
     an_ifc_source_location field = get_ifc_semicolon(universal);
@@ -88806,7 +88806,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_right_paren(universal)) {
     an_ifc_source_location field = get_ifc_right_paren(universal);
@@ -89120,7 +89120,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_left_bracket(universal)) {
     an_ifc_source_location field = get_ifc_left_bracket(universal);
@@ -89493,7 +89493,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_index(universal)) {
     an_ifc_expr_index field = get_ifc_index(universal);
@@ -89503,7 +89503,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_left_bracket(universal)) {
     an_ifc_source_location field = get_ifc_left_bracket(universal);
@@ -89746,7 +89746,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_next(universal)) {
     an_ifc_syntax_index field = get_ifc_next(universal);
@@ -89756,7 +89756,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -89973,7 +89973,7 @@ textual representation with the given indent.
     an_ifc_sentence_index field = get_ifc_tokens(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "tokens: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "tokens: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -90451,7 +90451,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_colons(universal)) {
     an_ifc_source_location field = get_ifc_colons(universal);
@@ -90482,7 +90482,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_scope(universal)) {
     an_ifc_expr_index field = get_ifc_scope(universal);
@@ -90492,7 +90492,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -90802,7 +90802,7 @@ diagnostic textual representation with the given indent.
     an_ifc_sentence_index field = get_ifc_tokens(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "tokens: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "tokens: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -91303,7 +91303,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_left_paren_1(universal)) {
     an_ifc_source_location field = get_ifc_left_paren_1(universal);
@@ -91327,7 +91327,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_right_paren_1(universal)) {
     an_ifc_source_location field = get_ifc_right_paren_1(universal);
@@ -91522,7 +91522,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -92061,7 +92061,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_decl(universal)) {
     an_ifc_syntax_index field = get_ifc_decl(universal);
@@ -92071,7 +92071,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_locus(universal)) {
     an_ifc_source_location field = get_ifc_locus(universal);
@@ -92344,13 +92344,13 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_pragma(universal)) {
     an_ifc_sentence_index field = get_ifc_pragma(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "pragma: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "pragma: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_stmt(universal)) {
     an_ifc_syntax_index field = get_ifc_stmt(universal);
@@ -92360,7 +92360,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -92846,7 +92846,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_colon(universal)) {
     an_ifc_source_location field = get_ifc_colon(universal);
@@ -93576,7 +93576,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_operand_2(universal)) {
     an_ifc_expr_index field = get_ifc_operand_2(universal);
@@ -93586,7 +93586,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_right_paren(universal)) {
     an_ifc_source_location field = get_ifc_right_paren(universal);
@@ -94143,7 +94143,7 @@ textual representation with the given indent.
     an_ifc_bool field = get_ifc_by_ref(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "by_ref: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "by_ref: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_comma(universal)) {
     an_ifc_source_location field = get_ifc_comma(universal);
@@ -94619,7 +94619,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_class_key(universal)) {
     an_ifc_keyword_syntax field = get_ifc_class_key(universal);
@@ -94636,7 +94636,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_members(universal)) {
     an_ifc_syntax_index field = get_ifc_members(universal);
@@ -94646,7 +94646,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_name(universal)) {
     an_ifc_expr_index field = get_ifc_name(universal);
@@ -94656,7 +94656,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_right_paren(universal)) {
     an_ifc_syntax_index field = get_ifc_right_paren(universal);
@@ -94666,7 +94666,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -95105,7 +95105,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_constraint(universal)) {
     an_ifc_expr_index field = get_ifc_constraint(universal);
@@ -95115,7 +95115,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_locus(universal)) {
     an_ifc_source_location field = get_ifc_locus(universal);
@@ -95493,7 +95493,7 @@ diagnostic textual representation with the given indent.
     an_ifc_sentence_index field = get_ifc_pragam(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "pragam: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "pragam: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_right_curly(universal)) {
     an_ifc_source_location field = get_ifc_right_curly(universal);
@@ -95510,7 +95510,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -96070,7 +96070,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_locus(universal)) {
     an_ifc_source_location field = get_ifc_locus(universal);
@@ -96083,7 +96083,7 @@ diagnostic textual representation with the given indent.
     an_ifc_text_offset field = get_ifc_name(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "name: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "name: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_parameters(universal)) {
     an_ifc_syntax_index field = get_ifc_parameters(universal);
@@ -96093,7 +96093,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_semicolon(universal)) {
     an_ifc_source_location field = get_ifc_semicolon(universal);
@@ -96407,7 +96407,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_initializaerion(universal)) {
     an_ifc_syntax_index field = get_ifc_initializaerion(universal);
@@ -96417,7 +96417,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_locus(universal)) {
     an_ifc_source_location field = get_ifc_locus(universal);
@@ -96916,7 +96916,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -97391,7 +97391,7 @@ diagnostic textual representation with the given indent.
     an_ifc_sentence_index field = get_ifc_declspec(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "declspec: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "declspec: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_explicit_kw(universal)) {
     an_ifc_syntax_index field = get_ifc_explicit_kw(universal);
@@ -97401,7 +97401,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_locus(universal)) {
     an_ifc_source_location field = get_ifc_locus(universal);
@@ -97426,7 +97426,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_type_name(universal)) {
     an_ifc_syntax_index field = get_ifc_type_name(universal);
@@ -97436,7 +97436,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -97653,13 +97653,13 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_pragma(universal)) {
     an_ifc_sentence_index field = get_ifc_pragma(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "pragma: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "pragma: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -98379,13 +98379,13 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_callable(universal)) {
     an_ifc_bool field = get_ifc_callable(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "callable: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "callable: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_convention(universal)) {
     an_ifc_calling_convention_sort field = get_ifc_convention(universal);
@@ -98415,7 +98415,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_parenthesized(universal)) {
     an_ifc_syntax_index field = get_ifc_parenthesized(universal);
@@ -98425,7 +98425,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_pointer(universal)) {
     an_ifc_syntax_index field = get_ifc_pointer(universal);
@@ -98435,7 +98435,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_qualifiers(universal)) {
     db_print_indent(indent);
@@ -98449,7 +98449,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_virtual_specifiers(universal)) {
     an_ifc_syntax_index field = get_ifc_virtual_specifiers(universal);
@@ -98459,7 +98459,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -98856,7 +98856,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_left_paren(universal)) {
     an_ifc_source_location field = get_ifc_left_paren(universal);
@@ -99347,7 +99347,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_condition(universal)) {
     an_ifc_expr_index field = get_ifc_condition(universal);
@@ -99357,7 +99357,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_do(universal)) {
     an_ifc_source_location field = get_ifc_do(universal);
@@ -99370,7 +99370,7 @@ diagnostic textual representation with the given indent.
     an_ifc_sentence_index field = get_ifc_pragma(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "pragma: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "pragma: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_semicolon(universal)) {
     an_ifc_source_location field = get_ifc_semicolon(universal);
@@ -99866,7 +99866,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -100666,7 +100666,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_class_key(universal)) {
     an_ifc_keyword_syntax field = get_ifc_class_key(universal);
@@ -100690,7 +100690,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_left_brace(universal)) {
     an_ifc_source_location field = get_ifc_left_brace(universal);
@@ -100714,7 +100714,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_right_brace(universal)) {
     an_ifc_source_location field = get_ifc_right_brace(universal);
@@ -101171,7 +101171,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_locus(universal)) {
     an_ifc_source_location field = get_ifc_locus(universal);
@@ -101184,7 +101184,7 @@ diagnostic textual representation with the given indent.
     an_ifc_text_offset field = get_ifc_name(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "name: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "name: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -101554,7 +101554,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_ellipsis(universal)) {
     an_ifc_source_location field = get_ifc_ellipsis(universal);
@@ -101578,7 +101578,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -101956,7 +101956,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_left_paren(universal)) {
     an_ifc_source_location field = get_ifc_left_paren(universal);
@@ -102149,7 +102149,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -102419,13 +102419,13 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_pragma(universal)) {
     an_ifc_sentence_index field = get_ifc_pragma(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "pragma: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "pragma: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_semicolon(universal)) {
     an_ifc_source_location field = get_ifc_semicolon(universal);
@@ -102657,7 +102657,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_specifiers(universal)) {
     an_ifc_syntax_index field = get_ifc_specifiers(universal);
@@ -102667,7 +102667,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -103315,7 +103315,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_condition(universal)) {
     an_ifc_expr_index field = get_ifc_condition(universal);
@@ -103325,7 +103325,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_continuation(universal)) {
     an_ifc_expr_index field = get_ifc_continuation(universal);
@@ -103335,7 +103335,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_for(universal)) {
     an_ifc_source_location field = get_ifc_for(universal);
@@ -103352,7 +103352,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_left_paren(universal)) {
     an_ifc_source_location field = get_ifc_left_paren(universal);
@@ -103365,7 +103365,7 @@ textual representation with the given indent.
     an_ifc_sentence_index field = get_ifc_pragma(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "pragma: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "pragma: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_right_paren(universal)) {
     an_ifc_source_location field = get_ifc_right_paren(universal);
@@ -103895,7 +103895,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_semicolon(universal)) {
     an_ifc_source_location field = get_ifc_semicolon(universal);
@@ -103912,7 +103912,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_try_block(universal)) {
     an_ifc_syntax_index field = get_ifc_try_block(universal);
@@ -103922,7 +103922,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -104295,7 +104295,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_left_paren(universal)) {
     an_ifc_source_location field = get_ifc_left_paren(universal);
@@ -104312,7 +104312,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_right_paren(universal)) {
     an_ifc_source_location field = get_ifc_right_paren(universal);
@@ -104818,7 +104818,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_semicolon(universal)) {
     an_ifc_source_location field = get_ifc_semicolon(universal);
@@ -104835,7 +104835,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_synthesis(universal)) {
     an_ifc_keyword_syntax field = get_ifc_synthesis(universal);
@@ -104852,7 +104852,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -105145,7 +105145,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_handlers(universal)) {
     an_ifc_syntax_index field = get_ifc_handlers(universal);
@@ -105155,7 +105155,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_initializers(universal)) {
     an_ifc_syntax_index field = get_ifc_initializers(universal);
@@ -105165,7 +105165,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -105569,7 +105569,7 @@ textual representation with the given indent.
     an_ifc_sentence_index field = get_ifc_pragma(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "pragma: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "pragma: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_semicolon(universal)) {
     an_ifc_source_location field = get_ifc_semicolon(universal);
@@ -105582,7 +105582,7 @@ textual representation with the given indent.
     an_ifc_text_offset field = get_ifc_target(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "target: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "target: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -106055,7 +106055,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_catch(universal)) {
     an_ifc_source_location field = get_ifc_catch(universal);
@@ -106072,7 +106072,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_left_paren(universal)) {
     an_ifc_source_location field = get_ifc_left_paren(universal);
@@ -106085,7 +106085,7 @@ representation with the given indent.
     an_ifc_sentence_index field = get_ifc_pragma(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "pragma: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "pragma: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_right_paren(universal)) {
     an_ifc_source_location field = get_ifc_right_paren(universal);
@@ -106267,7 +106267,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -106902,7 +106902,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_condition_as_expr(universal)) {
     an_ifc_expr_index field = get_ifc_condition_as_expr(universal);
@@ -106912,7 +106912,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_condition_as_syntax(universal)) {
     an_ifc_syntax_index field = get_ifc_condition_as_syntax(universal);
@@ -106922,7 +106922,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_consequence(universal)) {
     an_ifc_syntax_index field = get_ifc_consequence(universal);
@@ -106932,7 +106932,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_constexpr(universal)) {
     an_ifc_source_location field = get_ifc_constexpr(universal);
@@ -106963,13 +106963,13 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_pragma(universal)) {
     an_ifc_sentence_index field = get_ifc_pragma(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "pragma: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "pragma: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -107431,7 +107431,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_name(universal)) {
     an_ifc_expr_index field = get_ifc_name(universal);
@@ -107441,7 +107441,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -107805,7 +107805,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_declarator(universal)) {
     an_ifc_syntax_index field = get_ifc_declarator(universal);
@@ -107815,7 +107815,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_initializer(universal)) {
     an_ifc_expr_index field = get_ifc_initializer(universal);
@@ -107825,7 +107825,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -108033,13 +108033,13 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_pragma(universal)) {
     an_ifc_sentence_index field = get_ifc_pragma(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "pragma: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "pragma: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -108409,7 +108409,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_locus(universal)) {
     an_ifc_keyword_sort field = get_ifc_locus(universal);
@@ -108421,7 +108421,7 @@ diagnostic textual representation with the given indent.
     an_ifc_sentence_index field = get_ifc_pragma(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "pragma: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "pragma: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_sort(universal)) {
     an_ifc_label_sort field = get_ifc_sort(universal);
@@ -108437,7 +108437,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -108983,7 +108983,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_expander(universal)) {
     an_ifc_source_location field = get_ifc_expander(universal);
@@ -109013,7 +109013,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_right_paren(universal)) {
     an_ifc_source_location field = get_ifc_right_paren(universal);
@@ -109030,7 +109030,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -109346,7 +109346,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_left_bracket(universal)) {
     an_ifc_source_location field = get_ifc_left_bracket(universal);
@@ -109734,7 +109734,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_member(universal)) {
     an_ifc_expr_index field = get_ifc_member(universal);
@@ -109744,7 +109744,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -110041,7 +110041,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_declarations(universal)) {
     an_ifc_syntax_index field = get_ifc_declarations(universal);
@@ -110051,7 +110051,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_semicolon(universal)) {
     an_ifc_source_location field = get_ifc_semicolon(universal);
@@ -110602,7 +110602,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_colon(universal)) {
     an_ifc_source_location field = get_ifc_colon(universal);
@@ -110626,7 +110626,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_declarator(universal)) {
     an_ifc_syntax_index field = get_ifc_declarator(universal);
@@ -110636,7 +110636,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_initializer(universal)) {
     an_ifc_expr_index field = get_ifc_initializer(universal);
@@ -110646,7 +110646,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_locus(universal)) {
     an_ifc_source_location field = get_ifc_locus(universal);
@@ -110834,7 +110834,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -110997,7 +110997,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -111428,7 +111428,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_namespace_kw(universal)) {
     an_ifc_source_location field = get_ifc_namespace_kw(universal);
@@ -111452,7 +111452,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -111696,7 +111696,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_locus(universal)) {
     an_ifc_source_location field = get_ifc_locus(universal);
@@ -111868,7 +111868,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -112236,7 +112236,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_left_paren(universal)) {
     an_ifc_source_location field = get_ifc_left_paren(universal);
@@ -112568,7 +112568,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_comma(universal)) {
     an_ifc_source_location field = get_ifc_comma(universal);
@@ -112991,7 +112991,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_declarator(universal)) {
     an_ifc_syntax_index field = get_ifc_declarator(universal);
@@ -113001,7 +113001,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_default_expr(universal)) {
     an_ifc_expr_index field = get_ifc_default_expr(universal);
@@ -113011,7 +113011,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_locus(universal)) {
     an_ifc_source_location field = get_ifc_locus(universal);
@@ -113397,7 +113397,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_keyword(universal)) {
     an_ifc_source_location field = get_ifc_keyword(universal);
@@ -113901,7 +113901,7 @@ diagnostic textual representation with the given indent.
     an_ifc_bool field = get_ifc_callable(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "callable: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "callable: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_convention(universal)) {
     an_ifc_calling_convention_sort field = get_ifc_convention(universal);
@@ -113924,7 +113924,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_qualifiers(universal)) {
     db_print_indent(indent);
@@ -113944,7 +113944,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -114607,7 +114607,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_colon(universal)) {
     an_ifc_source_location field = get_ifc_colon(universal);
@@ -114624,7 +114624,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_for(universal)) {
     an_ifc_source_location field = get_ifc_for(universal);
@@ -114641,7 +114641,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_initializer(universal)) {
     an_ifc_syntax_index field = get_ifc_initializer(universal);
@@ -114651,7 +114651,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_left_paren(universal)) {
     an_ifc_source_location field = get_ifc_left_paren(universal);
@@ -114664,7 +114664,7 @@ diagnostic textual representation with the given indent.
     an_ifc_sentence_index field = get_ifc_pragma(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "pragma: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "pragma: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_right_paren(universal)) {
     an_ifc_source_location field = get_ifc_right_paren(universal);
@@ -114999,7 +114999,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_right_curly(universal)) {
     an_ifc_source_location field = get_ifc_right_curly(universal);
@@ -115242,7 +115242,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_locus(universal)) {
     an_ifc_source_location field = get_ifc_locus(universal);
@@ -115646,13 +115646,13 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_pragma(universal)) {
     an_ifc_sentence_index field = get_ifc_pragma(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "pragma: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "pragma: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_return(universal)) {
     an_ifc_source_location field = get_ifc_return(universal);
@@ -116102,7 +116102,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_condition(universal)) {
     an_ifc_expr_index field = get_ifc_condition(universal);
@@ -116112,7 +116112,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_except_kw(universal)) {
     an_ifc_source_location field = get_ifc_except_kw(universal);
@@ -116372,7 +116372,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_finally_kw(universal)) {
     an_ifc_source_location field = get_ifc_finally_kw(universal);
@@ -116910,7 +116910,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_handler(universal)) {
     an_ifc_syntax_index field = get_ifc_handler(universal);
@@ -116920,7 +116920,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_try_kw(universal)) {
     an_ifc_source_location field = get_ifc_try_kw(universal);
@@ -117317,7 +117317,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -117685,7 +117685,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_declarators(universal)) {
     an_ifc_syntax_index field = get_ifc_declarators(universal);
@@ -117695,7 +117695,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_locus(universal)) {
     an_ifc_source_location field = get_ifc_locus(universal);
@@ -117949,7 +117949,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_locus(universal)) {
     an_ifc_source_location field = get_ifc_locus(universal);
@@ -118245,7 +118245,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_locus(universal)) {
     an_ifc_source_location field = get_ifc_locus(universal);
@@ -118262,7 +118262,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -118427,7 +118427,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -118997,7 +118997,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_left_paren(universal)) {
     an_ifc_source_location field = get_ifc_left_paren(universal);
@@ -119021,7 +119021,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_right_paren(universal)) {
     an_ifc_source_location field = get_ifc_right_paren(universal);
@@ -119468,7 +119468,7 @@ a diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_locus(universal)) {
     an_ifc_source_location field = get_ifc_locus(universal);
@@ -119485,7 +119485,7 @@ a diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_ref(universal)) {
     an_ifc_source_location field = get_ifc_ref(universal);
@@ -119502,7 +119502,7 @@ a diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -119751,7 +119751,7 @@ a diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -120306,7 +120306,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_condition(universal)) {
     an_ifc_syntax_index field = get_ifc_condition(universal);
@@ -120316,7 +120316,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_init(universal)) {
     an_ifc_syntax_index field = get_ifc_init(universal);
@@ -120326,13 +120326,13 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_pragma(universal)) {
     an_ifc_sentence_index field = get_ifc_pragma(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "pragma: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "pragma: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_switch(universal)) {
     an_ifc_source_location field = get_ifc_switch(universal);
@@ -120649,7 +120649,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_left_angle(universal)) {
     an_ifc_source_location field = get_ifc_left_angle(universal);
@@ -120964,7 +120964,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_subject(universal)) {
     an_ifc_syntax_index field = get_ifc_subject(universal);
@@ -120974,7 +120974,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -121387,7 +121387,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_locus(universal)) {
     an_ifc_source_location field = get_ifc_locus(universal);
@@ -121404,7 +121404,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_symbol(universal)) {
     an_ifc_expr_index field = get_ifc_symbol(universal);
@@ -121414,7 +121414,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_template_kw(universal)) {
     an_ifc_source_location field = get_ifc_template_kw(universal);
@@ -121789,7 +121789,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_left_angle(universal)) {
     an_ifc_source_location field = get_ifc_left_angle(universal);
@@ -121806,7 +121806,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_right_angle(universal)) {
     an_ifc_source_location field = get_ifc_right_angle(universal);
@@ -122360,7 +122360,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_comma(universal)) {
     an_ifc_source_location field = get_ifc_comma(universal);
@@ -122394,7 +122394,7 @@ diagnostic textual representation with the given indent.
     an_ifc_text_offset field = get_ifc_name(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "name: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "name: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_parameters(universal)) {
     an_ifc_syntax_index field = get_ifc_parameters(universal);
@@ -122404,7 +122404,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -122989,7 +122989,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -123317,7 +123317,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_handlers(universal)) {
     an_ifc_syntax_index field = get_ifc_handlers(universal);
@@ -123327,13 +123327,13 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_pragma(universal)) {
     an_ifc_sentence_index field = get_ifc_pragma(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "pragma: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "pragma: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_try(universal)) {
     an_ifc_source_location field = get_ifc_try(universal);
@@ -123527,13 +123527,13 @@ representation with the given indent.
     an_ifc_cardinality field = get_ifc_cardinality(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "cardinality: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "cardinality: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_start(universal)) {
     an_ifc_index field = get_ifc_start(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "start: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "start: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -123819,7 +123819,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_locus(universal)) {
     an_ifc_source_location field = get_ifc_locus(universal);
@@ -123836,7 +123836,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -124077,7 +124077,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -124314,7 +124314,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -124700,7 +124700,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_type_name(universal)) {
     an_ifc_syntax_index field = get_ifc_type_name(universal);
@@ -124710,13 +124710,13 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_unhashed(universal)) {
     an_ifc_bool field = get_ifc_unhashed(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "unhashed: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "unhashed: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -125026,7 +125026,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_comma(universal)) {
     an_ifc_source_location field = get_ifc_comma(universal);
@@ -125448,7 +125448,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_constraint(universal)) {
     an_ifc_syntax_index field = get_ifc_constraint(universal);
@@ -125458,7 +125458,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_ellipsis(universal)) {
     an_ifc_source_location field = get_ifc_ellipsis(universal);
@@ -125478,7 +125478,7 @@ diagnostic textual representation with the given indent.
     an_ifc_text_offset field = get_ifc_name(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "name: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "name: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -125777,7 +125777,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_intrinsic(universal)) {
     an_ifc_operator_category field = get_ifc_intrinsic(universal);
@@ -126435,7 +126435,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_right_paren(universal)) {
     an_ifc_source_location field = get_ifc_right_paren(universal);
@@ -126760,7 +126760,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_keyword(universal)) {
     an_ifc_source_location field = get_ifc_keyword(universal);
@@ -127162,7 +127162,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_typename_kw(universal)) {
     an_ifc_source_location field = get_ifc_typename_kw(universal);
@@ -127555,7 +127555,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_semicolon(universal)) {
     an_ifc_source_location field = get_ifc_semicolon(universal);
@@ -127956,7 +127956,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_semicolon(universal)) {
     an_ifc_source_location field = get_ifc_semicolon(universal);
@@ -128351,7 +128351,7 @@ diagnostic textual representation with the given indent.
     an_ifc_bool field = get_ifc_pure(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "pure: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "pure: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -128688,7 +128688,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_condition(universal)) {
     an_ifc_expr_index field = get_ifc_condition(universal);
@@ -128698,13 +128698,13 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_pragma(universal)) {
     an_ifc_sentence_index field = get_ifc_pragma(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "pragma: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "pragma: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_while(universal)) {
     an_ifc_source_location field = get_ifc_while(universal);
@@ -129026,13 +129026,13 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_encoded_decl(universal)) {
     an_ifc_encoded_decl_index field = get_ifc_encoded_decl(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "encoded_decl: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "encoded_decl: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_trait(universal)) {
     an_ifc_syntax_index field = get_ifc_trait(universal);
@@ -129042,7 +129042,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -129348,13 +129348,13 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_encoded_decl(universal)) {
     an_ifc_encoded_decl_index field = get_ifc_encoded_decl(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "encoded_decl: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "encoded_decl: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_trait(universal)) {
     an_ifc_attr_index field = get_ifc_trait(universal);
@@ -129364,7 +129364,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -129700,13 +129700,13 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_encoded_decl(universal)) {
     an_ifc_encoded_decl_index field = get_ifc_encoded_decl(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "encoded_decl: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "encoded_decl: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_trait(universal)) {
     an_ifc_decl_index field = get_ifc_trait(universal);
@@ -129716,7 +129716,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -130009,19 +130009,19 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_encoded_decl(universal)) {
     an_ifc_encoded_decl_index field = get_ifc_encoded_decl(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "encoded_decl: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "encoded_decl: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_trait(universal)) {
     an_ifc_text_offset field = get_ifc_trait(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "trait: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "trait: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -130336,13 +130336,13 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_encoded_decl(universal)) {
     an_ifc_encoded_decl_index field = get_ifc_encoded_decl(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "encoded_decl: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "encoded_decl: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_trait(universal)) {
     an_ifc_sequence field = get_ifc_trait(universal);
@@ -130776,7 +130776,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_decl(universal)) {
     an_ifc_decl_index field = get_ifc_decl(universal);
@@ -130786,13 +130786,13 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_encoded_decl(universal)) {
     an_ifc_encoded_decl_index field = get_ifc_encoded_decl(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "encoded_decl: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "encoded_decl: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_initializers(universal)) {
     an_ifc_expr_index field = get_ifc_initializers(universal);
@@ -130802,7 +130802,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_parameters(universal)) {
     an_ifc_chart_index field = get_ifc_parameters(universal);
@@ -130812,7 +130812,7 @@ diagnostic textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -131125,13 +131125,13 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_encoded_decl(universal)) {
     an_ifc_encoded_decl_index field = get_ifc_encoded_decl(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "encoded_decl: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "encoded_decl: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_trait(universal)) {
     an_ifc_attr_index field = get_ifc_trait(universal);
@@ -131141,7 +131141,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -131450,13 +131450,13 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_encoded_decl(universal)) {
     an_ifc_encoded_decl_index field = get_ifc_encoded_decl(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "encoded_decl: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "encoded_decl: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_params(universal)) {
     an_ifc_chart_index field = get_ifc_params(universal);
@@ -131466,7 +131466,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -131761,13 +131761,13 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_encoded_decl(universal)) {
     an_ifc_encoded_decl_index field = get_ifc_encoded_decl(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "encoded_decl: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "encoded_decl: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_uuid(universal)) {
     db_print_indent(indent);
@@ -132066,13 +132066,13 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_encoded_decl(universal)) {
     an_ifc_encoded_decl_index field = get_ifc_encoded_decl(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "encoded_decl: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "encoded_decl: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_trait(universal)) {
     db_print_indent(indent);
@@ -132383,13 +132383,13 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_encoded_decl(universal)) {
     an_ifc_encoded_decl_index field = get_ifc_encoded_decl(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "encoded_decl: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "encoded_decl: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_trait(universal)) {
     an_ifc_syntax_index field = get_ifc_trait(universal);
@@ -132399,7 +132399,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -132718,13 +132718,13 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_encoded_decl(universal)) {
     an_ifc_encoded_decl_index field = get_ifc_encoded_decl(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "encoded_decl: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "encoded_decl: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_trait(universal)) {
     an_ifc_sequence field = get_ifc_trait(universal);
@@ -132947,7 +132947,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_extent(universal)) {
     an_ifc_expr_index field = get_ifc_extent(universal);
@@ -132957,7 +132957,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -133250,14 +133250,14 @@ representation with the given indent.
     an_ifc_bool field = get_ifc_pack_expanded(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "pack_expanded: %lld\n",
+    fprintf(f_debug, "pack_expanded: %llu\n",
             (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_shared(universal)) {
     an_ifc_bool field = get_ifc_shared(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "shared: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "shared: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_type(universal)) {
     an_ifc_type_index field = get_ifc_type(universal);
@@ -133267,7 +133267,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -133428,7 +133428,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -133613,7 +133613,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -133832,7 +133832,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -134045,7 +134045,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_subject(universal)) {
     an_ifc_type_index field = get_ifc_subject(universal);
@@ -134055,7 +134055,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -134448,7 +134448,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_target(universal)) {
     an_ifc_type_index field = get_ifc_target(universal);
@@ -134458,7 +134458,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_traits(universal)) {
     db_print_indent(indent);
@@ -134912,7 +134912,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -135359,7 +135359,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_source(universal)) {
     an_ifc_type_index field = get_ifc_source(universal);
@@ -135369,7 +135369,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_target(universal)) {
     an_ifc_type_index field = get_ifc_target(universal);
@@ -135379,7 +135379,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_traits(universal)) {
     db_print_indent(indent);
@@ -135672,7 +135672,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_elaboration(universal)) {
     an_ifc_type_index field = get_ifc_elaboration(universal);
@@ -135682,7 +135682,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -135843,7 +135843,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -136056,7 +136056,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_scope(universal)) {
     an_ifc_type_index field = get_ifc_scope(universal);
@@ -136066,7 +136066,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -136274,7 +136274,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -136434,7 +136434,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -136592,7 +136592,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -136750,7 +136750,7 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -137045,7 +137045,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -137228,13 +137228,13 @@ representation with the given indent.
     an_ifc_cardinality field = get_ifc_cardinality(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "cardinality: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "cardinality: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_start(universal)) {
     an_ifc_index field = get_ifc_start(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "start: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "start: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -137392,7 +137392,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
@@ -137549,7 +137549,7 @@ representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
     db_print_indent(indent);
-    fprintf(f_debug, "  value: %lld\n", (unsigned long long)field.value);
+    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
 }  /* db_node */
 
