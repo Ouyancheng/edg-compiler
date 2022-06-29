@@ -2226,7 +2226,7 @@ enum an_ifc_access_sort_0_33 : uint8_t {
 };  /* an_ifc_access_sort_0_33 */
 
 
-enum an_ifc_access_sort {
+enum an_ifc_access_sort : uint32_t {
   ifc_as_none,
   ifc_as_private,
   ifc_as_protected,
@@ -2244,7 +2244,7 @@ enum an_ifc_architecture_sort_0_33 : uint8_t {
 };  /* an_ifc_architecture_sort_0_33 */
 
 
-enum an_ifc_architecture_sort {
+enum an_ifc_architecture_sort : uint32_t {
   ifc_as_arm32,
   ifc_as_arm64,
   ifc_as_hybrid_x86_arm64,
@@ -2267,7 +2267,7 @@ enum an_ifc_attr_sort_0_33 : uint32_t {
 };  /* an_ifc_attr_sort_0_33 */
 
 
-enum an_ifc_attr_sort {
+enum an_ifc_attr_sort : uint32_t {
   ifc_as_attr_basic,
   ifc_as_attr_called,
   ifc_as_attr_elaborated,
@@ -2291,7 +2291,7 @@ enum an_ifc_calling_convention_sort_0_33 : uint8_t {
 };  /* an_ifc_calling_convention_sort_0_33 */
 
 
-enum an_ifc_calling_convention_sort {
+enum an_ifc_calling_convention_sort : uint32_t {
   ifc_ccs_cdecl,
   ifc_ccs_clr,
   ifc_ccs_eabi,
@@ -2309,7 +2309,7 @@ enum an_ifc_chart_sort_0_33 : uint32_t {
 };  /* an_ifc_chart_sort_0_33 */
 
 
-enum an_ifc_chart_sort {
+enum an_ifc_chart_sort : uint32_t {
   ifc_cs_chart_multilevel,
   ifc_cs_chart_none,
   ifc_cs_chart_unilevel
@@ -2387,7 +2387,7 @@ enum an_ifc_decl_sort_0_41 : uint32_t {
 };  /* an_ifc_decl_sort_0_41 */
 
 
-enum an_ifc_decl_sort {
+enum an_ifc_decl_sort : uint32_t {
   ifc_ds_decl_alias,
   ifc_ds_decl_barren,
   ifc_ds_decl_bitfield,
@@ -2431,7 +2431,7 @@ enum an_ifc_delimiter_sort_0_33 : uint8_t {
 };  /* an_ifc_delimiter_sort_0_33 */
 
 
-enum an_ifc_delimiter_sort {
+enum an_ifc_delimiter_sort : uint32_t {
   ifc_ds_brace,
   ifc_ds_parenthesis,
   ifc_ds_unknown
@@ -2530,7 +2530,7 @@ enum an_ifc_dyadic_operator_sort_0_33 : uint16_t {
 };  /* an_ifc_dyadic_operator_sort_0_33 */
 
 
-enum an_ifc_dyadic_operator_sort {
+enum an_ifc_dyadic_operator_sort : uint32_t {
   ifc_dos_apply,
   ifc_dos_arrow,
   ifc_dos_arrow_star,
@@ -2628,7 +2628,7 @@ enum an_ifc_expansion_mode_sort_0_33 : uint8_t {
 };  /* an_ifc_expansion_mode_sort_0_33 */
 
 
-enum an_ifc_expansion_mode_sort {
+enum an_ifc_expansion_mode_sort : uint32_t {
   ifc_ems_full,
   ifc_ems_partial
 };  /* an_ifc_expansion_mode_sort */
@@ -2699,7 +2699,7 @@ enum an_ifc_expr_sort_0_33 : uint32_t {
 };  /* an_ifc_expr_sort_0_33 */
 
 
-enum an_ifc_expr_sort {
+enum an_ifc_expr_sort : uint32_t {
   ifc_es_expr_alignof,
   ifc_es_expr_array_value,
   ifc_es_expr_assign_initializer,
@@ -2771,7 +2771,7 @@ enum an_ifc_fold_direction_sort_0_33 : uint32_t {
 };  /* an_ifc_fold_direction_sort_0_33 */
 
 
-enum an_ifc_fold_direction_sort {
+enum an_ifc_fold_direction_sort : uint32_t {
   ifc_fds_left,
   ifc_fds_right,
   ifc_fds_unknown
@@ -2797,7 +2797,7 @@ enum an_ifc_form_sort_0_33 : uint32_t {
 };  /* an_ifc_form_sort_0_33 */
 
 
-enum an_ifc_form_sort {
+enum an_ifc_form_sort : uint32_t {
   ifc_fs_form_catenate,
   ifc_fs_form_character,
   ifc_fs_form_header,
@@ -2823,7 +2823,7 @@ enum an_ifc_initializer_sort_0_33 : uint8_t {
 };  /* an_ifc_initializer_sort_0_33 */
 
 
-enum an_ifc_initializer_sort {
+enum an_ifc_initializer_sort : uint32_t {
   ifc_is_copy,
   ifc_is_direct,
   ifc_is_unknown
@@ -2847,7 +2847,7 @@ enum an_ifc_keyword_sort_0_33 : uint32_t {
 };  /* an_ifc_keyword_sort_0_33 */
 
 
-enum an_ifc_keyword_sort {
+enum an_ifc_keyword_sort : uint32_t {
   ifc_ks_class,
   ifc_ks_consteval,
   ifc_ks_constexpr,
@@ -2872,7 +2872,7 @@ enum an_ifc_label_sort_0_33 : uint32_t {
 };  /* an_ifc_label_sort_0_33 */
 
 
-enum an_ifc_label_sort {
+enum an_ifc_label_sort : uint32_t {
   ifc_ls_case,
   ifc_ls_default,
   ifc_ls_label,
@@ -2887,7 +2887,7 @@ enum an_ifc_lit_sort_0_33 : uint32_t {
 };  /* an_ifc_lit_sort_0_33 */
 
 
-enum an_ifc_lit_sort {
+enum an_ifc_lit_sort : uint32_t {
   ifc_ls_floating_point,
   ifc_ls_immediate,
   ifc_ls_integer
@@ -2900,7 +2900,7 @@ enum an_ifc_macro_sort_0_33 : uint32_t {
 };  /* an_ifc_macro_sort_0_33 */
 
 
-enum an_ifc_macro_sort {
+enum an_ifc_macro_sort : uint32_t {
   ifc_ms_macro_function_like,
   ifc_ms_macro_object_like
 };  /* an_ifc_macro_sort */
@@ -2990,7 +2990,7 @@ enum an_ifc_monadic_operator_sort_0_33 : uint16_t {
 };  /* an_ifc_monadic_operator_sort_0_33 */
 
 
-enum an_ifc_monadic_operator_sort {
+enum an_ifc_monadic_operator_sort : uint32_t {
   ifc_mos_address,
   ifc_mos_alignas,
   ifc_mos_alignof,
@@ -3086,7 +3086,7 @@ enum an_ifc_name_sort_0_33 : uint32_t {
 };  /* an_ifc_name_sort_0_33 */
 
 
-enum an_ifc_name_sort {
+enum an_ifc_name_sort : uint32_t {
   ifc_ns_name_conversion,
   ifc_ns_name_guide,
   ifc_ns_name_literal,
@@ -3109,7 +3109,7 @@ enum an_ifc_niladic_operator_sort_0_33 : uint16_t {
 };  /* an_ifc_niladic_operator_sort_0_33 */
 
 
-enum an_ifc_niladic_operator_sort {
+enum an_ifc_niladic_operator_sort : uint32_t {
   ifc_nos_constant,
   ifc_nos_msvc,
   ifc_nos_msvc_constant_object,
@@ -3130,7 +3130,7 @@ enum an_ifc_noexcept_sort_0_33 : uint8_t {
 };  /* an_ifc_noexcept_sort_0_33 */
 
 
-enum an_ifc_noexcept_sort {
+enum an_ifc_noexcept_sort : uint32_t {
   ifc_ns_expression,
   ifc_ns_false,
   ifc_ns_inferred,
@@ -3150,7 +3150,7 @@ enum an_ifc_operator_sort_0_33 : uint16_t {
 };  /* an_ifc_operator_sort_0_33 */
 
 
-enum an_ifc_operator_sort {
+enum an_ifc_operator_sort : uint32_t {
   ifc_os_dyadic_operator,
   ifc_os_monadic_operator,
   ifc_os_niladic_operator,
@@ -3168,7 +3168,7 @@ enum an_ifc_parameter_sort_0_33 : uint8_t {
 };  /* an_ifc_parameter_sort_0_33 */
 
 
-enum an_ifc_parameter_sort {
+enum an_ifc_parameter_sort : uint32_t {
   ifc_ps_non_type,
   ifc_ps_object,
   ifc_ps_template,
@@ -3185,7 +3185,7 @@ enum an_ifc_pointer_declarator_sort_0_33 : uint8_t {
 };  /* an_ifc_pointer_declarator_sort_0_33 */
 
 
-enum an_ifc_pointer_declarator_sort {
+enum an_ifc_pointer_declarator_sort : uint32_t {
   ifc_pds_lvalue_reference,
   ifc_pds_none,
   ifc_pds_pointer,
@@ -3199,7 +3199,7 @@ enum an_ifc_pragma_sort_0_33 : uint32_t {
 };  /* an_ifc_pragma_sort_0_33 */
 
 
-enum an_ifc_pragma_sort {
+enum an_ifc_pragma_sort : uint32_t {
   ifc_ps_vendor_extension
 };  /* an_ifc_pragma_sort */
 
@@ -3213,7 +3213,7 @@ enum an_ifc_read_conversion_sort_0_33 : uint8_t {
 };  /* an_ifc_read_conversion_sort_0_33 */
 
 
-enum an_ifc_read_conversion_sort {
+enum an_ifc_read_conversion_sort : uint32_t {
   ifc_rcs_dereference,
   ifc_rcs_identity,
   ifc_rcs_indirection,
@@ -3228,7 +3228,7 @@ enum an_ifc_return_sort_0_33 : uint8_t {
 };  /* an_ifc_return_sort_0_33 */
 
 
-enum an_ifc_return_sort {
+enum an_ifc_return_sort : uint32_t {
   ifc_rs_co_return,
   ifc_rs_return
 };  /* an_ifc_return_sort */
@@ -3296,7 +3296,7 @@ enum an_ifc_source_directive_sort_0_33 : uint16_t {
 };  /* an_ifc_source_directive_sort_0_33 */
 
 
-enum an_ifc_source_directive_sort {
+enum an_ifc_source_directive_sort : uint32_t {
   ifc_sds_msvc,
   ifc_sds_msvc_directive_end,
   ifc_sds_msvc_directive_start,
@@ -3370,7 +3370,7 @@ enum an_ifc_source_identifier_sort_0_33 : uint16_t {
 };  /* an_ifc_source_identifier_sort_0_33 */
 
 
-enum an_ifc_source_identifier_sort {
+enum an_ifc_source_identifier_sort : uint32_t {
   ifc_sis_msvc,
   ifc_sis_msvc_builtin_huge_val,
   ifc_sis_msvc_builtin_huge_valf,
@@ -3573,7 +3573,7 @@ enum an_ifc_source_keyword_sort_0_33 : uint16_t {
 };  /* an_ifc_source_keyword_sort_0_33 */
 
 
-enum an_ifc_source_keyword_sort {
+enum an_ifc_source_keyword_sort : uint32_t {
   ifc_sks_alignas,
   ifc_sks_alignof,
   ifc_sks_asm,
@@ -3779,7 +3779,7 @@ enum an_ifc_source_literal_sort_0_33 : uint16_t {
 };  /* an_ifc_source_literal_sort_0_33 */
 
 
-enum an_ifc_source_literal_sort {
+enum an_ifc_source_literal_sort : uint32_t {
   ifc_sls_defined_string,
   ifc_sls_msvc,
   ifc_sls_msvc_binding,
@@ -3839,7 +3839,7 @@ enum an_ifc_source_operator_sort_0_33 : uint16_t {
 };  /* an_ifc_source_operator_sort_0_33 */
 
 
-enum an_ifc_source_operator_sort {
+enum an_ifc_source_operator_sort : uint32_t {
   ifc_sos_ampersand,
   ifc_sos_ampersand_ampersand,
   ifc_sos_ampersand_equal,
@@ -3907,7 +3907,7 @@ enum an_ifc_source_punctuator_sort_0_33 : uint16_t {
 };  /* an_ifc_source_punctuator_sort_0_33 */
 
 
-enum an_ifc_source_punctuator_sort {
+enum an_ifc_source_punctuator_sort : uint32_t {
   ifc_sps_colon,
   ifc_sps_colon_colon,
   ifc_sps_left_brace,
@@ -3937,7 +3937,7 @@ enum an_ifc_specialization_sort_0_33 : uint8_t {
 };  /* an_ifc_specialization_sort_0_33 */
 
 
-enum an_ifc_specialization_sort {
+enum an_ifc_specialization_sort : uint32_t {
   ifc_ss_explicit,
   ifc_ss_implicit,
   ifc_ss_instantiation
@@ -3965,7 +3965,7 @@ enum an_ifc_stmt_sort_0_33 : uint32_t {
 };  /* an_ifc_stmt_sort_0_33 */
 
 
-enum an_ifc_stmt_sort {
+enum an_ifc_stmt_sort : uint32_t {
   ifc_ss_stmt_block,
   ifc_ss_stmt_break,
   ifc_ss_stmt_case,
@@ -3996,7 +3996,7 @@ enum an_ifc_storage_instruction_operator_sort_0_33 : uint16_t {
 };  /* an_ifc_storage_instruction_operator_sort_0_33 */
 
 
-enum an_ifc_storage_instruction_operator_sort {
+enum an_ifc_storage_instruction_operator_sort : uint32_t {
   ifc_sios_allocate_array,
   ifc_sios_allocate_single,
   ifc_sios_deallocate_array,
@@ -4015,7 +4015,7 @@ enum an_ifc_string_sort_0_33 : uint32_t {
 };  /* an_ifc_string_sort_0_33 */
 
 
-enum an_ifc_string_sort {
+enum an_ifc_string_sort : uint32_t {
   ifc_ss_char16,
   ifc_ss_char32,
   ifc_ss_ordinary,
@@ -4138,7 +4138,7 @@ enum an_ifc_syntax_sort_0_33 : uint32_t {
 };  /* an_ifc_syntax_sort_0_33 */
 
 
-enum an_ifc_syntax_sort {
+enum an_ifc_syntax_sort : uint32_t {
   ifc_ss_syntax_access_specifier,
   ifc_ss_syntax_alias_declaration,
   ifc_ss_syntax_alignas,
@@ -4261,7 +4261,7 @@ enum an_ifc_triadic_operator_sort_0_33 : uint16_t {
 };  /* an_ifc_triadic_operator_sort_0_33 */
 
 
-enum an_ifc_triadic_operator_sort {
+enum an_ifc_triadic_operator_sort : uint32_t {
   ifc_tos_choice,
   ifc_tos_construct_at,
   ifc_tos_initialize,
@@ -4298,7 +4298,7 @@ enum an_ifc_type_basis_sort_0_33 : uint8_t {
 };  /* an_ifc_type_basis_sort_0_33 */
 
 
-enum an_ifc_type_basis_sort {
+enum an_ifc_type_basis_sort : uint32_t {
   ifc_tbs_auto,
   ifc_tbs_bool,
   ifc_tbs_char,
@@ -4338,7 +4338,7 @@ enum an_ifc_type_precision_sort_0_33 : uint8_t {
 };  /* an_ifc_type_precision_sort_0_33 */
 
 
-enum an_ifc_type_precision_sort {
+enum an_ifc_type_precision_sort : uint32_t {
   ifc_tps_bit128,
   ifc_tps_bit16,
   ifc_tps_bit32,
@@ -4357,7 +4357,7 @@ enum an_ifc_type_sign_sort_0_33 : uint8_t {
 };  /* an_ifc_type_sign_sort_0_33 */
 
 
-enum an_ifc_type_sign_sort {
+enum an_ifc_type_sign_sort : uint32_t {
   ifc_tss_plain,
   ifc_tss_signed,
   ifc_tss_unsigned
@@ -4390,7 +4390,7 @@ enum an_ifc_type_sort_0_33 : uint32_t {
 };  /* an_ifc_type_sort_0_33 */
 
 
-enum an_ifc_type_sort {
+enum an_ifc_type_sort : uint32_t {
   ifc_ts_type_array,
   ifc_ts_type_base,
   ifc_ts_type_decltype,
@@ -4425,7 +4425,7 @@ enum an_ifc_unit_sort_0_33 : uint32_t {
 };  /* an_ifc_unit_sort_0_33 */
 
 
-enum an_ifc_unit_sort {
+enum an_ifc_unit_sort : uint32_t {
   ifc_us_exported_tu,
   ifc_us_header,
   ifc_us_partition,
@@ -4446,7 +4446,7 @@ enum an_ifc_variadic_operator_sort_0_33 : uint16_t {
 };  /* an_ifc_variadic_operator_sort_0_33 */
 
 
-enum an_ifc_variadic_operator_sort {
+enum an_ifc_variadic_operator_sort : uint32_t {
   ifc_vos_collection,
   ifc_vos_msvc,
   ifc_vos_msvc_has_trivial_constructor,
@@ -4469,7 +4469,7 @@ enum an_ifc_word_sort_0_33 : uint8_t {
 };  /* an_ifc_word_sort_0_33 */
 
 
-enum an_ifc_word_sort {
+enum an_ifc_word_sort : uint32_t {
   ifc_ws_source_directive,
   ifc_ws_source_identifier,
   ifc_ws_source_keyword,
@@ -5278,7 +5278,7 @@ struct an_ifc_basic_specifiers_bitfield {
 };  /* an_ifc_basic_specifiers_bitfield */
 
 
-enum an_ifc_basic_specifiers_bitfield_query {
+enum an_ifc_basic_specifiers_bitfield_query : uint32_t {
   ifc_bsb_c                          = 1 << 0,
   ifc_bsb_cxx                        = 1 << 1,
   ifc_bsb_deprecated                 = 1 << 2,
@@ -5325,7 +5325,7 @@ struct an_ifc_function_traits_bitfield {
 };  /* an_ifc_function_traits_bitfield */
 
 
-enum an_ifc_function_traits_bitfield_query {
+enum an_ifc_function_traits_bitfield_query : uint32_t {
   ifc_ftb_constexpr     = 1 << 0,
   ifc_ftb_constrained   = 1 << 1,
   ifc_ftb_defaulted     = 1 << 2,
@@ -5368,7 +5368,7 @@ struct an_ifc_function_type_traits_bitfield {
 };  /* an_ifc_function_type_traits_bitfield */
 
 
-enum an_ifc_function_type_traits_bitfield_query {
+enum an_ifc_function_type_traits_bitfield_query : uint32_t {
   ifc_fttb_const    = 1 << 0,
   ifc_fttb_lvalue   = 1 << 1,
   ifc_fttb_none     = 1 << 2,
@@ -5417,7 +5417,7 @@ struct an_ifc_msvc_traits_bitfield {
 };  /* an_ifc_msvc_traits_bitfield */
 
 
-enum an_ifc_msvc_traits_bitfield_query {
+enum an_ifc_msvc_traits_bitfield_query : uint32_t {
   ifc_mtb_allocate       = 1 << 0,
   ifc_mtb_code_segment   = 1 << 1,
   ifc_mtb_comdat         = 1 << 2,
@@ -5468,7 +5468,7 @@ struct an_ifc_object_traits_bitfield {
 };  /* an_ifc_object_traits_bitfield */
 
 
-enum an_ifc_object_traits_bitfield_query {
+enum an_ifc_object_traits_bitfield_query : uint32_t {
   ifc_otb_constexpr            = 1 << 0,
   ifc_otb_initializer_exported = 1 << 1,
   ifc_otb_inline               = 1 << 2,
@@ -5505,7 +5505,7 @@ struct an_ifc_qualifier_bitfield {
 };  /* an_ifc_qualifier_bitfield */
 
 
-enum an_ifc_qualifier_bitfield_query {
+enum an_ifc_qualifier_bitfield_query : uint32_t {
   ifc_qb_const    = 1 << 0,
   ifc_qb_none     = 1 << 1,
   ifc_qb_restrict = 1 << 2,
@@ -5540,7 +5540,7 @@ struct an_ifc_reachable_properties_bitfield {
 };  /* an_ifc_reachable_properties_bitfield */
 
 
-enum an_ifc_reachable_properties_bitfield_query {
+enum an_ifc_reachable_properties_bitfield_query : uint32_t {
   ifc_rpb_all               = 1 << 0,
   ifc_rpb_attributes        = 1 << 1,
   ifc_rpb_default_arguments = 1 << 2,
@@ -5578,7 +5578,7 @@ struct an_ifc_scope_traits_bitfield {
 };  /* an_ifc_scope_traits_bitfield */
 
 
-enum an_ifc_scope_traits_bitfield_query {
+enum an_ifc_scope_traits_bitfield_query : uint32_t {
   ifc_stb_closure_type         = 1 << 0,
   ifc_stb_final                = 1 << 1,
   ifc_stb_initializer_exported = 1 << 2,

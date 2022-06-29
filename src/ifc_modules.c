@@ -241,7 +241,7 @@ front end was compiled under.
 #if ASSUME_LITTLE_ENDIAN_IFC_MODULES
   result = TRUE;
 #else /* !ASSUME_LITTLE_ENDIAN_IFC_MODULES */
-  switch (get_ifc_arch(mod)) {
+  switch (get_ifc_arch(mod->header)) {
     /* FIXME: In this code ARM is assumed to be a little endian architecture
        for IFC purposes, this may not be correct.  We should get
        clarification. */
