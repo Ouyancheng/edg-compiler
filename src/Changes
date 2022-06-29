@@ -1,5 +1,21 @@
 Version 6.4
 
+6/29/22  [EDGcpfe/24536,EDGcpfe/25430]
+Spurious errors when using dependent constexpr variable as template argument
+
+Consider:
+
+  template<int> int g();
+  template<int N> constexpr int Val = N;
+  template<int N = 0, class = decltype(g<Val<N>>())> int f();
+  int r = f();  // Previously an error.  Now okay.
+
+This example previously resulted in a spurious substitution failure because
+the substitution of Val<N> resulted in a representation that the front end
+failed to match to a nontype template parameter of scalar type (int, in this
+case).  That is now fixed.
+
+
 6/28/22  [EDGcpfe/24147,EDGcpfe/25105,EDGcpfe/25410]
 Trailing requires-clause on abbreviated function template
 

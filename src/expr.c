@@ -47741,11 +47741,18 @@ processing routines.
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/FALSE);
   expr_stack_entry.is_template_arg_expression = TRUE;
-  force_operand_to_constant_if_possible(&arg_operand->operand);
-  /* Don't do anything with references on this operand, since this is only
-     exploratory. */
+  /* Don't modify the arg_operand directly since this is only exploratory. */
   operand = arg_operand->operand;
   operand.ref_entries_list = NULL;
+  if (!is_reference_type(param_type) && is_reference_type(operand.type)) {
+    /* A reference-type operand is possible for constant operands that
+       represent folded glvalue enk_variable nodes.  Such an operand can be
+       used to initialize a non-reference parameter if the underlying value
+       is constant. */
+    add_reference_indirection(&operand);
+  }  /* if */
+  force_operand_to_constant_if_possible_full(&operand,
+                                             /*is_constant_evaluated=*/TRUE);
   compatible = nontype_template_arg_conversion_possible(&operand,
                                                         param_type);
   pop_expr_stack();
@@ -47811,7 +47818,16 @@ type will be obtained from the arg_operand.
     set_error_constant(constant);
   } else {
     copy_nontype_template_arg_operand(arg_operand, &operand);
-    if (param_type == NULL) param_type = operand.type;
+    if (param_type == NULL) {
+      param_type = operand.type;
+    } else if (!is_reference_type(param_type) &&
+               is_reference_type(operand.type)) {
+      /* A reference-type operand is possible for constant operands that
+         represent folded glvalue enk_variable nodes.  Such an operand can be
+         used to initialize a non-reference parameter if the underlying value
+         is constant. */
+      add_reference_indirection(&operand);
+    }  /* if */
     /* Convert the operand to the parameter type and extract a constant. */
     prep_nontype_template_argument_initializer(&operand,
                                                param_type, constant);
