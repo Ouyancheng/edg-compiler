@@ -3234,7 +3234,8 @@ a_template_cache_segment_ptr get_template_cache_segment(
                                 a_token_sequence_number           last_tsn)
 /*
 Return a template cache segment entry with the given parameters.  If an entry
-with given token range already exists, return it if it matches sym and tssp.
+with the given token range already exists, return it if it matches sym and
+tssp.
 */
 {
   a_template_cache_segment_ptr  result;
