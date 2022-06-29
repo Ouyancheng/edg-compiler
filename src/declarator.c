@@ -1524,15 +1524,11 @@ declaration on which the exception specification appears.
              is_local_decl = FALSE;
 
   if (scope_is(&scope_stack_top(), sck_func_prototype)) {
-    a_scope_depth  decl_level = scope_stack_top().decl_scope_level;
-    if (is_local_scope_kind(scope_stack[decl_level].kind) ||
-        ((scope_is(&scope_stack[decl_level], sck_class_struct_union) &&
-          scope_stack[decl_level].assoc_type
-                                    ->source_corresp.is_local_to_function))) {
-      is_local_decl = TRUE;
-    }  /* if */
     if (dps != NULL && dps->is_inclass_member_function_decl) {
       is_inclass_member_function_decl = TRUE;
+    } else if (is_local_scope_kind(
+                       scope_stack[scope_stack_top().decl_scope_level].kind)) {
+      is_local_decl = TRUE;
     }  /* if */
   }  /* if */
   if (curr_token == tok_removed_expr) {
