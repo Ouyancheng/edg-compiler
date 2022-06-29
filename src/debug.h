@@ -153,6 +153,18 @@ extern a_boolean f_db_sym_trace(a_const_char	*flag_name,
 #define db_space_used_total()						\
   db_space_used_other("Total", grand_total, "")
 
+
+inline void db_print_indent(unsigned amount)
+/*
+Print the given amount of double space indent.
+*/
+{
+  for (unsigned i = 0; i < amount; ++i) {
+    fprintf(f_debug, "  ");
+  }  /* for */
+}  /* if */
+
+
 #endif /* DEBUG */
 
 /* Conditionally close the "edg" namespace. */
