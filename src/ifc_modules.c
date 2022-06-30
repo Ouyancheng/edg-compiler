@@ -66,14 +66,6 @@ access to the fields of an IFC file regardless of endianness, padding, or
 alignment issues.
 */
 
-#if DEBUG && EXPENSIVE_CHECKING
-static const an_ifc_partition_metadata
-		*debug_partition;
-			/* Points to information about the partition currently
-			   being read (for debugging purposes only). */
-#endif /* DEBUG && EXPENSIVE_CHECKING */
-
-
 static void cache_identifier(a_token_cache_ptr     cache,
                              a_const_char          *name,
                              a_source_position_ptr pos);
@@ -91,9 +83,9 @@ that returns an unsigned char.
 
 #if USE_MMAP_FOR_MEMORY_REGIONS
 
-static void init_byte_buffer(an_ifc_module     *mod,
-                             size_t            offset,
-                             ARG_UNUSED size_t length)
+void init_byte_buffer(an_ifc_module     *mod,
+                      size_t            offset,
+                      ARG_UNUSED size_t length)
 /*
 Initialize the state information used by "get_bytes", etc.  mod is the module
 owning the byte buffer.  offset is the offset from the start of the memory
@@ -131,9 +123,9 @@ Macro to fetch a single byte from the IFC file.
 
 #else /* !USE_MMAP_FOR_MEMORY_REGIONS */
 
-static void init_byte_buffer(an_ifc_module     *mod,
-                             size_t            offset,
-                             ARG_UNUSED size_t length)
+void init_byte_buffer(an_ifc_module     *mod,
+                      size_t            offset,
+                      ARG_UNUSED size_t length)
 /*
 Initialize the state information used by "get_bytes", etc.  mod is the module
 owning the byte buffer. offset is the offset from the start of the module file
@@ -325,31 +317,10 @@ Utility to print some debug information for every access to an IFC module file.
   }  /* if */
 }  /* f_db_get_byte */
 
+
 #else /* !(DEBUG && EXPENSIVE_CHECKING) */
 #define db_get_byte(value_str, addr, len) /*nothing*/
 #endif /* DEBUG && EXPENSIVE_CHECKING */
-
-namespace {
-
-/*
-An index type representing an index to a partition element for an associated
-module and partition kind.
-*/
-struct an_ifc_partition_kind_index {
-  an_ifc_module
-                *mod;
-                        /* The associated module. */
-  an_ifc_partition_kind
-                partition_kind;
-                        /* The associated DeclSort value for this index. */
-  an_ifc_index_type
-                value;
-                        /* The index value into the associated partition of
-                           "sort" for this index.  Represented as the largest
-                           common underlying type for all partition kinds. */
-};  /* an_ifc_partition_kind_index */
-
-}  /* namespace */
 
 
 static an_ifc_partition_kind_index to_partition_kind_index(
@@ -376,249 +347,7 @@ offset stored on the given module entity pointer.
 }  /* to_partition_kind_index */
 
 
-template<typename an_ifc_Index_type>
-static an_ifc_partition_kind to_partition_kind(an_ifc_Index_type idx)
-/*
-Return the partition kind associated with the given index.
-*/
-{
-  return to_partition_kind(idx.sort);
-}  /* to_partition_kind */
-
-
-template<>
-an_ifc_partition_kind to_partition_kind(an_ifc_partition_kind_index idx)
-/*
-Return the partition kind associated with the given index.
-*/
-{
-  return idx.partition_kind;
-}  /* to_partition_kind */
-
-
-/* FIXME: It probably shouldn't be necessary to have this specialization.  We
-   probably need a role that represents an index into a particular
-   partition. */
-template<>
-an_ifc_partition_kind to_partition_kind(an_ifc_form_spec_index idx)
-/*
-Return the partition kind associated with the given index.
-*/
-{
-  return ifc_pk_form_spec;
-}  /* to_partition_kind */
-
-
-template<typename an_ifc_Index_type>
-static an_ifc_partition_metadata *get_partition_metadata(an_ifc_Index_type idx)
-/*
-Return a pointer to the ifc partition metadata object associated with the given
-index.
-*/
-{
-  return &idx.mod->partitions[to_partition_kind(idx)];
-}  /* get_partition_metadata */
-
-
-template<typename an_ifc_Index_type>
-static size_t get_partition_offset(an_ifc_Index_type idx)
-/*
-Convert a given IFC index type into a file offset into the partition.
-*/
-{
-  an_ifc_partition_metadata *partition_metadata = get_partition_metadata(idx);
-  size_t                    offset = partition_metadata->offset;
-  size_t                    entry_size = partition_metadata->entry_size;
-
-  return offset + (idx.value * entry_size);
-}  /* get_partition_offset */
-
-
-template<typename an_ifc_Index_type>
-static void read_partition_element(an_ifc_Index_type idx)
-/*
-Given an IFC index, initialize the byte buffer to the start of the element at
-the given index.
-*/
-{
-#if EXPENSIVE_CHECKING
-  /* If this fails one of two things has occurred:
-     1. There's an issue with the generated code resulting in an unsafe index.
-     2. This is a manually constructed index, and the caller didn't
-        check its validity. */
-  check_assertion(validate_element_exists(idx.mod, to_partition_kind(idx),
-                                          idx.value, /*trace=*/NULL));
-#endif /* EXPENSIVE_CHECKING */
-  an_ifc_partition_metadata *partition_metadata = get_partition_metadata(idx);
-
-#if DEBUG && EXPENSIVE_CHECKING
-  debug_partition = partition_metadata;
-#endif /* DEBUG && EXPENSIVE_CHECKING */
-  init_byte_buffer(idx.mod, get_partition_offset(idx),
-                   partition_metadata->size);
-}  /* read_partition_element */
-
-
-template<typename an_ifc_Storage_type>
-static an_ifc_Byte_buffer<an_ifc_Storage_type> construct_node_from_module(
-                                                            an_ifc_module *mod)
-/*
-Using the previously initialized and validated module source buffer, initialize
-and return a new IFC node of the given type.
-
-Direct use of this function is discouraged, prefer one of the other construct_
-functions that build upon this call.
-*/
-{
-  an_ifc_Byte_buffer<an_ifc_Storage_type> result;
-  an_ifc_Storage_type                     nts, *ntsp;
-
-  ntsp = get<an_ifc_Storage_type>(mod, &nts, /*fill_storage=*/FALSE);
-  /* When memory mapping is enabled and the endianness of the IFC and the host
-     match, the front end can directly refer to portions of the IFC.
-     Otherwise, the front end must fall back to copying the bytes locally with
-     the correct endianness.
-
-     If the front end is not using memory mapping, the front end must always
-     create a copy of the bytes locally. */
-#if USE_MMAP_FOR_MEMORY_REGIONS
-  if (ntsp != &nts) {
-    /* The storage wasn't used, use the pointer. */
-    result = an_ifc_Byte_buffer<an_ifc_Storage_type>(mod, ntsp);
-  } else {
-#else /* !USE_MMAP_FOR_MEMORY_REGIONS */
-  {
-    check_assertion(ntsp == &nts);
-#endif /* USE_MMAP_FOR_MEMORY_REGIONS */
-    /* The storage was used, copy it. */
-    result = an_ifc_Byte_buffer<an_ifc_Storage_type>(mod, nts);
-  }
-  return result;
-}  /* construct_node_from_module */
-
-
-template<typename an_ifc_Index_type>
-static a_boolean has_been_validated(an_ifc_Index_type idx)
-/*
-Return TRUE if this the element at the given index has already been validated.
-*/
-{
-  /* Setup a bit mask that can be used to check the validated status of a
-     position's element.  Operationally, this creates a 32 bit mask working on
-     the lower 16 bits:
-
-       0000 0000 0000 0000 - 0000 0000 0000 0001
-
-     Shifts the bit into the correct bit positions:
-
-       0000 0000 0000 0000 - 0000 0000 0000 0100
-
-     This then represents the true state for this position's validated bit.
-
-     Then a bit-and operation is used, checking if said validated bit was
-     set. */
-  uint32_t index = idx.value;
-  size_t   block = index / 16;
-  size_t   bit_index = index % 16;
-  unsigned bit_mask = 0x1 << bit_index;
-
-  return get_partition_metadata(idx)->format_validated[block] & bit_mask;
-}  /* has_been_validated */
-
-
-template<typename an_ifc_Index_type>
-inline a_boolean is_marked_invalid(an_ifc_Index_type idx)
-/*
-Return TRUE if the element at the given index was invalid when previously
-validated.  This is only a valid operation if has_been_validated returns TRUE.
-*/
-{
-  check_assertion(has_been_validated(idx));
-  /* Setup a bit mask that can be used to check the invalid status of a
-     position's element.  Operationally, this creates a 32 bit mask working
-     on the higher 16 bits:
-
-       0000 0000 0000 0001 - 0000 0000 0000 0000
-
-     Shifts the bit into the correct bit positions:
-
-       0000 0000 0000 0100 - 0000 0000 0000 0000
-
-     This then represents the true state for this position's invalid bit.
-
-     Then a bit-and operation is used, checking if said invalid bit was
-     set. */
-  uint32_t index = idx.value;
-  size_t   block = index / 16;
-  size_t   bit_index = index % 16;
-  unsigned bit_mask = (0x1 << 16) << bit_index;
-
-  return get_partition_metadata(idx)->format_validated[block] & bit_mask;
- }  /* is_marked_invalid */
-
-
-template<typename an_ifc_Index_type>
-static void mark_validated(an_ifc_Index_type idx)
-/*
-Mark the element at the given index as having been validated.
-*/
-{
-  /* Setup a bit mask that can be used to mark a position's element as
-     validated.  Operationally, this creates a 32 bit mask working on the lower
-     16 bits:
-
-       0000 0000 0000 0000 - 0000 0000 0000 0001
-
-     Shifts the bit into the correct bit positions:
-
-       0000 0000 0000 0000 - 0000 0000 0000 0100
-
-     This then represents the true state for this position's validated bit.
-
-     Then a bit-or assignment operation is used, setting said validated bit
-     while leaving the others untouched. */
-  uint32_t index = idx.value;
-  size_t   block = index / 16;
-  size_t   bit = index % 16;
-  unsigned bit_mask = 0x1 << bit;
-
-  get_partition_metadata(idx)->format_validated[block] |= bit_mask;
-}  /* mark_validated */
-
-
-template<typename an_ifc_Index_type>
-static void mark_invalid(an_ifc_Index_type idx)
-/*
-Mark the element at the given index as having been validated.  This is only
-a valid operation if has_been_validated returns TRUE.
-*/
-{
-  check_assertion(has_been_validated(idx));
-  /* Setup a bit mask that can be used to mark a position's element as
-     invalid.  Operationally, this creates a 32 bit mask working on the
-     higher 16 bits:
-
-       0000 0000 0000 0001 - 0000 0000 0000 0000
-
-     Shifts the bit into the correct bit positions:
-
-       0000 0000 0000 0100 - 0000 0000 0000 0000
-
-     This then represents the true state for this position's invalid bit.
-
-     Then a bit-or assignment operation is used, setting said invalid bit
-     while leaving the others untouched. */
-  uint32_t index = idx.value;
-  size_t   block = index / 16;
-  size_t   bit = index % 16;
-  unsigned bit_mask = (0x1 << 16) << bit;
-
-  get_partition_metadata(idx)->format_validated[block] |= bit_mask;
-}  /* mark_invalid */
-
-
-static a_const_char *get_partition_name_from_kind(
-                                               an_ifc_partition_kind part_kind)
+a_const_char *get_partition_name_from_kind(an_ifc_partition_kind part_kind)
 /*
 Given a partition kind that corresponds to a real partition, return the
 corresponding name.
@@ -634,93 +363,6 @@ corresponding name.
   check_assertion(map_entry->kind == part_kind);
   return map_entry->name;
 }  /* get_partition_name_from_kind */
-
-
-template<typename an_ifc_Storage_type, typename an_ifc_Index_type>
-void construct_node(Opt<an_ifc_Byte_buffer<an_ifc_Storage_type>> *result,
-                    an_ifc_Index_type                            idx)
-/*
-Construct the node at the given index using the byte buffer pointed to by
-result.  The given index is assumed to point to a valid partition element of
-some kind, however, it will be checked for a mismatch between the associated
-partition kind and the node type.  Additionally, the constructed node will be
-checked for validity, and if invalid result will not be updated.  Any validity
-issues with the node will be diagnosed (unless previously diagnosed by a prior
-call).
-*/
-{
-  constexpr an_ifc_partition_kind node_part_kind =
-                                 get_ifc_partition_kind<an_ifc_Storage_type>();
-  an_ifc_partition_kind           idx_part_kind = to_partition_kind(idx);
-
-  if (node_part_kind == idx_part_kind) {
-    an_ifc_Byte_buffer<an_ifc_Storage_type> read_value;
-
-    read_partition_element(idx);
-    read_value = construct_node_from_module<an_ifc_Storage_type>(idx.mod);
-    /* First, check to see if this node has already been validated.  If the
-       node hasn't been validated, validate it, and cache the result
-       appropriately; otherwise, skip re-validation and use the cached result.
-       */
-    if (!has_been_validated(idx)) {
-      an_ifc_validation_trace trace =
-                            {idx.mod, to_partition_kind(idx), idx.value, NULL};
-      a_boolean               is_valid = validate(read_value, &trace);
-
-      mark_validated(idx);
-      if (!is_valid) {
-        mark_invalid(idx);
-      } /* if */
-    }  /* if */
-    /* Then, checking the result, return the read value. */
-    if (!is_marked_invalid(idx)) {
-      *result = read_value;
-    }  /* if */
-  } else {
-    a_const_char *idx_part_name = get_partition_name_from_kind(idx_part_kind);
-    a_const_char *node_part_name =
-                                  get_partition_name_from_kind(node_part_kind);
-
-    /* FIXME: Use a better source position. */
-    pos_st2_error(ec_ifc_partition_mismatch, &null_source_position,
-                  node_part_name, idx_part_name);
-  }  /* if */
-}  /* construct_node */
-
-
-template<typename an_ifc_Storage_type, typename an_ifc_Index_type>
-void construct_node_prechecked(an_ifc_Byte_buffer<an_ifc_Storage_type> *result,
-                               an_ifc_Index_type                       idx)
-/*
-Construct the node at the given index using the byte buffer pointed to by
-result.  The given index is assumed to point to a valid partition element,
-without any mismatches between the index's sort and the node type.  The
-constructed node must have previously been checked for validity.
-*/
-{
-  check_assertion(has_been_validated(idx) && !is_marked_invalid(idx));
-  check_assertion(get_ifc_partition_kind<an_ifc_Storage_type>() ==
-                                                       to_partition_kind(idx));
-  read_partition_element(idx);
-  *result = construct_node_from_module<an_ifc_Storage_type>(idx.mod);
-}  /* construct_node_prechecked */
-
-
-template<typename an_ifc_Storage_type, typename an_ifc_Index_type>
-void construct_node_unchecked(an_ifc_Byte_buffer<an_ifc_Storage_type> *result,
-                              an_ifc_Index_type                       idx)
-/*
-Construct the node at the given index using the byte buffer pointed to by
-result.  The given index is assumed to point to a valid partition element,
-without any mismatches between the index's sort and the node type.  The
-constructed node will not be checked for validity.
-*/
-{
-  check_assertion(get_ifc_partition_kind<an_ifc_Storage_type>() ==
-                                                       to_partition_kind(idx));
-  read_partition_element(idx);
-  *result = construct_node_from_module<an_ifc_Storage_type>(idx.mod);
-}  /* construct_node_unchecked */
 
 
 static a_module_ref_key as_key(const an_ifc_module_reference &ref)
@@ -5498,7 +5140,7 @@ Overload wrapper for "get_ifc_module_entity_ptr" that extracts the type sort
 and index from the provided index.
 */
 {
-  return get_ifc_module_entity_ptr(to_partition_kind(index), index.value);
+  return get_ifc_module_entity_ptr(get_partition_kind(index), index.value);
 }  /* get_ifc_module_entity_ptr */
 
 
@@ -5509,7 +5151,7 @@ Overload wrapper for "get_ifc_module_entity_ptr" that extracts the decl sort
 and index from the provided index.
 */
 {
-  return get_ifc_module_entity_ptr(to_partition_kind(index), index.value);
+  return get_ifc_module_entity_ptr(get_partition_kind(index), index.value);
 }  /* get_ifc_module_entity_ptr */
 
 

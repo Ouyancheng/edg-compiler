@@ -566,6 +566,15 @@ public:
 };  /* an_ifc_module */
 /*lint -restore*/
 
+
+#if DEBUG && EXPENSIVE_CHECKING
+EXTERN const an_ifc_partition_metadata
+                *debug_partition;
+                        /* Points to information about the partition currently
+                           being read (for debugging purposes only). */
+#endif /* DEBUG && EXPENSIVE_CHECKING */
+
+
 extern void get_bytes(an_ifc_module *mod,
                       void          *entity,
                       size_t        length,
@@ -590,16 +599,58 @@ extern a_boolean is_at_least(an_ifc_module          *mod,
 extern a_boolean has_matching_endianness(an_ifc_module *mod);
 
 
+extern void init_byte_buffer(an_ifc_module     *mod,
+                             size_t            offset,
+                             ARG_UNUSED size_t length);
+
+/*
+An index type representing an index to a partition element for an associated
+module and partition kind.
+*/
+struct an_ifc_partition_kind_index {
+  an_ifc_module
+                *mod;
+                        /* The associated module. */
+  an_ifc_partition_kind
+                partition_kind;
+                        /* The associated DeclSort value for this index. */
+  an_ifc_index_type
+                value;
+                        /* The index value into the associated partition of
+                           "sort" for this index.  Represented as the largest
+                           common underlying type for all partition kinds. */
+};  /* an_ifc_partition_kind_index */
+
+
+template<typename an_ifc_Index_type>
+extern an_ifc_partition_kind get_partition_kind(an_ifc_Index_type idx);
+
+template<typename an_ifc_Index_type>
+extern an_ifc_partition_metadata *get_partition_metadata(
+                                                        an_ifc_Index_type idx);
+
+template<typename an_ifc_Index_type>
+extern size_t get_partition_offset(an_ifc_Index_type idx);
+
+extern a_const_char *get_partition_name_from_kind(
+                                              an_ifc_partition_kind part_kind);
+
+template<typename an_ifc_Storage_type>
+extern an_ifc_Byte_buffer<an_ifc_Storage_type> construct_node_from_module(
+                                                           an_ifc_module *mod);
+
 template<typename an_ifc_Storage_type, typename an_ifc_Index_type>
-inline void construct_node(
+extern void construct_node(
                           Opt<an_ifc_Byte_buffer<an_ifc_Storage_type>> *result,
                           an_ifc_Index_type                            idx);
+
 template<typename an_ifc_Storage_type, typename an_ifc_Index_type>
-inline void construct_node_prechecked(
+extern void construct_node_prechecked(
                                an_ifc_Byte_buffer<an_ifc_Storage_type> *result,
                                an_ifc_Index_type                       idx);
+
 template<typename an_ifc_Storage_type, typename an_ifc_Index_type>
-inline void construct_node_unchecked(
+extern void construct_node_unchecked(
                                an_ifc_Byte_buffer<an_ifc_Storage_type> *result,
                                an_ifc_Index_type                       idx);
 
