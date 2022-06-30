@@ -190,7 +190,7 @@ Return TRUE if this the element at the given index has already been validated.
 
 
 template<typename an_ifc_Index_type>
-inline a_boolean is_marked_invalid(an_ifc_Index_type idx)
+static a_boolean is_marked_invalid(an_ifc_Index_type idx)
 /*
 Return TRUE if the element at the given index was invalid when previously
 validated.  This is only a valid operation if has_been_validated returns TRUE.
