@@ -26,7 +26,9 @@ more about, the tool that generated this file.
 #include "basic_hdrs.h"
 #include "fe_common.h"
 #include "ifc_modules.h"
+#if MICROSOFT_EXTENSIONS_ALLOWED
 #include "ifc_map_functions.h"
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED && !STANDALONE_UTILITY_PROGRAM
 
