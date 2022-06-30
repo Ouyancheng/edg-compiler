@@ -5034,31 +5034,14 @@ issue diagnostics if issue_diag is TRUE.
                       "The default value of version_major needs updated.");
   check_assertion_str(has_ifc_minor_version(this->header),
                       "The default value of version_minor needs updated.");
-  if (!is_supported_ifc_version(get_ifc_major_version(header),
-                                get_ifc_minor_version(header))) {
-    an_error_severity sev;
-
-    /* FIXME: Does skipping the module version check still make sense?
-       Perhaps this should require being forced to a specific version? */
-    if (skip_module_version_check) {
-      sev = es_warning;
-    } else {
-      sev = es_catastrophe;
-      result = FALSE;
-    }  /* if */
-    if (issue_diag) {
-      emit_unsupported_ifc_version_diagnostic(midp, /*mod_iface=*/this, sev);
-    }  /* if */
-    if (!result) {
-      goto done;
-    }  /* if */
-  }  /* if */
+  /* FIXME: We should likely check the version here, but for now assume all
+     headers are the same.  Until the version is initialized in
+     initialize_members_from_ifc_module_file this module will be treated as
+     the current minimum supported version. */
   if (!validate(this->header, /*parent=*/NULL)) {
     result = FALSE;
     goto done;
   }
-  this->version_major = get_ifc_major_version(this->header);
-  this->version_minor = get_ifc_minor_version(this->header);
   /* FIXME: The checksum is not yet checked. */
   {
     an_ifc_byte_offset string_table_bytes = get_ifc_string_table_bytes(
@@ -5152,6 +5135,34 @@ issue_diag is TRUE.
     result = FALSE;
     goto done;
   }  /* if */
+  {
+    /* FIXME: Initialize version information now, this should really be done
+       as part of the header initialization, however, that currently results
+       in multiple version mismatch diagnostics. */
+    an_ifc_version version_major_val = get_ifc_major_version(this->header);
+    an_ifc_version version_minor_val = get_ifc_minor_version(this->header);
+
+    if (!is_supported_ifc_version(version_major_val, version_minor_val)) {
+      an_error_severity sev;
+
+      /* FIXME: Does skipping the module version check still make sense?
+         Perhaps this should require being forced to a specific version? */
+      if (skip_module_version_check) {
+        sev = es_warning;
+      } else {
+        sev = es_catastrophe;
+        result = FALSE;
+      }  /* if */
+      if (issue_diag) {
+        emit_unsupported_ifc_version_diagnostic(midp, /*mod_iface=*/this, sev);
+      }  /* if */
+      if (!result) {
+        goto done;
+      }  /* if */
+    }  /* if */
+    this->version_major = version_major_val;
+    this->version_minor = version_minor_val;
+  }
 #if DEBUG
   if (db_flag_is_set("ifc_modules")) {
     db_module(mod);
