@@ -85,6 +85,24 @@ Convert a given IFC index type into a file offset into the partition.
 }  /* get_partition_offset */
 
 
+/* Macro used to explicitly instantiate functions used to support
+   partition kinds. */
+#define INST_PARTITION_KIND(idx_type) \
+  template \
+  an_ifc_partition_kind get_partition_kind<idx_type>(idx_type idx); \
+  template \
+  an_ifc_partition_metadata *get_partition_metadata<idx_type>(idx_type idx); \
+  template \
+  size_t get_partition_offset<idx_type>(idx_type idx);
+
+
+/* Manually defined explicit instantiations of construct_node. */
+/* FIXME: Without these GCC and Clang optimize away important functions. */
+INST_PARTITION_KIND(an_ifc_decl_index)
+INST_PARTITION_KIND(an_ifc_type_index)
+INST_PARTITION_KIND(an_ifc_partition_kind_index)
+
+
 template<typename an_ifc_Index_type>
 static void read_partition_element(an_ifc_Index_type idx)
 /*
