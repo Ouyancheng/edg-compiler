@@ -60,6 +60,16 @@ Return the partition kind associated with the given index.
 }  /* get_partition_kind */
 
 
+/* Macro used to explicitly instantiate get_partition_kind. */
+#define INST_PARTITION_KIND(idx_type) \
+  template \
+  an_ifc_partition_kind get_partition_kind<idx_type>(idx_type idx);
+
+
+/* Manually defined explicit instantiations of get_partition_kind. */
+/* none */
+
+
 template<typename an_ifc_Index_type>
 an_ifc_partition_metadata *get_partition_metadata(an_ifc_Index_type idx)
 /*
@@ -69,6 +79,16 @@ index.
 {
   return &idx.mod->partitions[get_partition_kind(idx)];
 }  /* get_partition_metadata */
+
+
+/* Macro used to explicitly instantiate get_partition_metadata. */
+#define INST_PARTITION_METADATA(idx_type) \
+  template \
+  an_ifc_partition_metadata *get_partition_metadata<idx_type>(idx_type idx);
+
+
+/* Manually defined explicit instantiations of get_partition_metadata. */
+INST_PARTITION_METADATA(an_ifc_partition_kind_index)
 
 
 template<typename an_ifc_Index_type>
@@ -85,22 +105,22 @@ Convert a given IFC index type into a file offset into the partition.
 }  /* get_partition_offset */
 
 
-/* Macro used to explicitly instantiate functions used to support
-   partition kinds. */
-#define INST_PARTITION_KIND(idx_type) \
-  template \
-  an_ifc_partition_kind get_partition_kind<idx_type>(idx_type idx); \
-  template \
-  an_ifc_partition_metadata *get_partition_metadata<idx_type>(idx_type idx); \
+/* Macro used to explicitly instantiate get_partition_offset. */
+#define INST_PARTITION_OFFSET(idx_type) \
   template \
   size_t get_partition_offset<idx_type>(idx_type idx);
 
 
-/* Manually defined explicit instantiations of construct_node. */
-/* FIXME: Without these GCC and Clang optimize away important functions. */
-INST_PARTITION_KIND(an_ifc_decl_index)
-INST_PARTITION_KIND(an_ifc_type_index)
-INST_PARTITION_KIND(an_ifc_partition_kind_index)
+/* Manually defined explicit instantiations of get_partition_offset. */
+INST_PARTITION_OFFSET(an_ifc_partition_kind_index)
+
+
+/* Macro used to explicitly instantiate get_partition_kind,
+   get_partition_metdata, and get_partition_offset. */
+#define INST_PARTITION_ALL(idx_type) \
+  INST_PARTITION_KIND(idx_type) \
+  INST_PARTITION_METADATA(idx_type) \
+  INST_PARTITION_OFFSET(idx_type)
 
 
 template<typename an_ifc_Index_type>
