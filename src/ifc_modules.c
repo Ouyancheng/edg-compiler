@@ -617,50 +617,88 @@ a valid operation if has_been_validated returns TRUE.
 }  /* mark_invalid */
 
 
-template<typename an_ifc_Storage_type, typename an_ifc_Index_type>
-inline void construct_node(
-                          Opt<an_ifc_Byte_buffer<an_ifc_Storage_type>> *result,
-                          an_ifc_Index_type                            idx)
+static a_const_char *get_partition_name_from_kind(
+                                               an_ifc_partition_kind part_kind)
 /*
+Given a partition kind that corresponds to a real partition, return the
+corresponding name.
 */
 {
-  an_ifc_Byte_buffer<an_ifc_Storage_type> read_value;
+  /* Subtract 1 to ignore pk_none. */
+  static_assert(ifc_pk_none == 0,
+                "pk_none does not hold the expected value");
+  check_assertion(part_kind != ifc_pk_none);
 
-  /* FIXME: This should be changed to be a diagnosed failure. */
-  check_assertion(get_ifc_partition_kind<an_ifc_Storage_type>() ==
-                                                       to_partition_kind(idx));
-  read_partition_element(idx);
-  read_value = construct_node_from_module<an_ifc_Storage_type>(idx.mod);
-  /* First, check to see if this node has already been validated.  If the node
-     hasn't been validated, validate it, and cache the result appropriately;
-     otherwise, skip re-validation and use the cached result. */
-  if (!has_been_validated(idx)) {
-    an_ifc_validation_trace trace =
+  an_ifc_partition_map *map_entry = &ifc_partition_map[part_kind - 1];
+  /* Make sure the right map entry is going to be returned. */
+  check_assertion(map_entry->kind == part_kind);
+  return map_entry->name;
+}  /* get_partition_name_from_kind */
+
+
+template<typename an_ifc_Storage_type, typename an_ifc_Index_type>
+void construct_node(Opt<an_ifc_Byte_buffer<an_ifc_Storage_type>> *result,
+                    an_ifc_Index_type                            idx)
+/*
+Construct the node at the given index using the byte buffer pointed to by
+result.  The given index is assumed to point to a valid partition element of
+some kind, however, it will be checked for a mismatch between the associated
+partition kind and the node type.  Additionally, the constructed node will be
+checked for validity, and if invalid result will not be updated.  Any validity
+issues with the node will be diagnosed (unless previously diagnosed by a prior
+call).
+*/
+{
+  constexpr an_ifc_partition_kind node_part_kind =
+                                 get_ifc_partition_kind<an_ifc_Storage_type>();
+  an_ifc_partition_kind           idx_part_kind = to_partition_kind(idx);
+
+  if (node_part_kind == idx_part_kind) {
+    an_ifc_Byte_buffer<an_ifc_Storage_type> read_value;
+
+    read_partition_element(idx);
+    read_value = construct_node_from_module<an_ifc_Storage_type>(idx.mod);
+    /* First, check to see if this node has already been validated.  If the
+       node hasn't been validated, validate it, and cache the result
+       appropriately; otherwise, skip re-validation and use the cached result.
+       */
+    if (!has_been_validated(idx)) {
+      an_ifc_validation_trace trace =
                             {idx.mod, to_partition_kind(idx), idx.value, NULL};
-    a_boolean               is_valid = validate(read_value, &trace);
+      a_boolean               is_valid = validate(read_value, &trace);
 
-    mark_validated(idx);
-    if (!is_valid) {
-      mark_invalid(idx);
-    } /* if */
-  }  /* if */
-  /* Then, checking the result, return the read value. */
-  if (!is_marked_invalid(idx)) {
-    *result = read_value;
+      mark_validated(idx);
+      if (!is_valid) {
+        mark_invalid(idx);
+      } /* if */
+    }  /* if */
+    /* Then, checking the result, return the read value. */
+    if (!is_marked_invalid(idx)) {
+      *result = read_value;
+    }  /* if */
+  } else {
+    a_const_char *idx_part_name = get_partition_name_from_kind(idx_part_kind);
+    a_const_char *node_part_name =
+                                  get_partition_name_from_kind(node_part_kind);
+
+    /* FIXME: Use a better source position. */
+    pos_st2_error(ec_ifc_partition_mismatch, &null_source_position,
+                  node_part_name, idx_part_name);
   }  /* if */
 }  /* construct_node */
 
 
 template<typename an_ifc_Storage_type, typename an_ifc_Index_type>
-inline void construct_node_prechecked(
-                               an_ifc_Byte_buffer<an_ifc_Storage_type> *result,
+void construct_node_prechecked(an_ifc_Byte_buffer<an_ifc_Storage_type> *result,
                                an_ifc_Index_type                       idx)
 /*
+Construct the node at the given index using the byte buffer pointed to by
+result.  The given index is assumed to point to a valid partition element,
+without any mismatches between the index's sort and the node type.  The
+constructed node must have previously been checked for validity.
 */
 {
   check_assertion(has_been_validated(idx) && !is_marked_invalid(idx));
-  /* FIXME: This should (probably? though maybe not given this is a
-     "prechecked") be changed to be a diagnosed failure. */
   check_assertion(get_ifc_partition_kind<an_ifc_Storage_type>() ==
                                                        to_partition_kind(idx));
   read_partition_element(idx);
@@ -669,12 +707,17 @@ inline void construct_node_prechecked(
 
 
 template<typename an_ifc_Storage_type, typename an_ifc_Index_type>
-inline void construct_node_unchecked(
-                               an_ifc_Byte_buffer<an_ifc_Storage_type> *result,
-                               an_ifc_Index_type                       idx)
+void construct_node_unchecked(an_ifc_Byte_buffer<an_ifc_Storage_type> *result,
+                              an_ifc_Index_type                       idx)
 /*
+Construct the node at the given index using the byte buffer pointed to by
+result.  The given index is assumed to point to a valid partition element,
+without any mismatches between the index's sort and the node type.  The
+constructed node will not be checked for validity.
 */
 {
+  check_assertion(get_ifc_partition_kind<an_ifc_Storage_type>() ==
+                                                       to_partition_kind(idx));
   read_partition_element(idx);
   *result = construct_node_from_module<an_ifc_Storage_type>(idx.mod);
 }  /* construct_node_unchecked */
@@ -16193,25 +16236,6 @@ its ifc_AttrIndex.
   }  /* if */
   return result;
 }  /* attr_index_of */
-
-
-static a_const_char *get_partition_name_from_kind(
-                                               an_ifc_partition_kind part_kind)
-/*
-Given a partition kind that corresponds to a real partition, return the
-corresponding name.
-*/
-{
-  /* Subtract 1 to ignore pk_none. */
-  static_assert(ifc_pk_none == 0,
-                "pk_none does not hold the expected value");
-  check_assertion(part_kind != ifc_pk_none);
-
-  an_ifc_partition_map *map_entry = &ifc_partition_map[part_kind - 1];
-  /* Make sure the right map entry is going to be returned. */
-  check_assertion(map_entry->kind == part_kind);
-  return map_entry->name;
-}  /* get_partition_name_from_kind */
 
 
 static void add_backtrace(a_diagnostic_ptr              diag_ptr,

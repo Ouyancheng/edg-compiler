@@ -3345,6 +3345,7 @@ ec_mangling_for_requires;;"mangling for \"requires\" expressions is not yet impl
 ec_unavailable_attr;;"because of an \"unavailable\" attribute"
 ec_duplicate_asm_qualifier;;"duplicate 'asm' qualifier"
 ec_incomplete_enum_bit_field_or_bad_opaque_enum;;"either a bit field with an incomplete enum type or an opaque enumeration with an invalid base type"
+ec_ifc_partition_mismatch;;"attempted to construct an element from IFC partition %sq using an index into IFC partition %sq"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
