@@ -9,7 +9,7 @@
 ******************************************************************************/
 /*
 
-ifc_map_functions.h -- Function declaratins for interacting with IFC types for
+ifc_map_functions.h -- Function declarations for interacting with IFC types for
                        Microsoft modules.
 
 ** NOTICE: This file is produced by an external script. **
@@ -1409,6 +1409,81 @@ extern a_boolean validate_category(an_ifc_module                 *mod,
 extern an_ifc_word_category to_universal_category(
                                           an_ifc_module             *mod,
                                           an_ifc_word_category_0_33 versioned);
+
+
+template<typename a_Desired_type, typename an_ifc_Node_type>
+inline void copy_ifc_field(a_Desired_type         *result,
+                           const an_ifc_Node_type *node_start,
+                           size_t                 offset,
+                           size_t                 size)
+/*
+Given the starting position of a node's storage, the offset into the storage of
+the field, and the field size, copy the field's bytes into result.
+
+node_start should be a pointer to the byte array representing the node's
+storage.  This will be added to the offset to get the start of field value's
+bytes.  This function guarantees even if the byte position is not an aligned
+representation of the desired type (a_Desired_type), so long as the result
+pointer points to aligned storage, the result will be properly aligned.
+
+This function is not a replacement for get_bytes and should NEVER be used with
+byte arrays that do not have the host's endianness.  The byte array pointed to
+by node_start should already have been (if necessary) realigned to match the
+host's endianness before being passed to this function.
+
+It is strongly advised not to directly use this function in the front end, and
+instead to use a get_ifc_X function to get the field you want when working with
+IFC data.  This function exists primarily as an implementation detail for code
+generation to make use of (where code generation also handles additional
+usage/sanity checks).
+*/
+{
+  /* As the resulting pointer to the beginning of the field can be unaligned,
+     casting to the desired type and dereferencing the byte array pointer is
+     not an inherently safe operation.  While this is not (practically)
+     problematic on x86, this can be an issue on some architectures that are
+     more sensitive to pointer alignment.
+
+     Thus, in the interest of portability, copy the bytes manually with memcpy
+     into the aligned storage pointed to by result. */
+  memcpy(result, (void*)((*node_start) + offset), size);
+}  /* copy_ifc_field */
+
+
+template<typename a_Desired_type, typename an_ifc_Node_type>
+inline void copy_ifc_field(a_Desired_type         *result,
+                           const an_ifc_Node_type *node_start,
+                           size_t                 offset)
+/*
+Given the starting position of a node's storage, and the offset into the
+storage of the field, copy the field's bytes into result.
+
+node_start should be a pointer to the byte array representing the node's
+storage.  This will be added to the offset to get the start of field value's
+bytes.  This function guarantees even if the byte position is not an aligned
+representation of the desired type (a_Desired_type), so long as the result
+pointer points to aligned storage, the result will be properly aligned.
+
+This function is not a replacement for get_bytes and should NEVER be used with
+byte arrays that do not have the host's endianness.  The byte array pointed to
+by node_start should already have been (if necessary) realigned to match the
+host's endianness before being passed to this function.
+
+It's additionally important when using this form of copy_ifc_field that the
+result type's byte size corresponds exactly to the byte size of the encoded
+field (otherwise buffer overflow is possible).  In terms of the IFC versioning
+code, this means "versioned" types are the only types that should be used with
+this function, "universal" representations are NOT safe.
+
+It is strongly advised not to directly use this function in the front end, and
+instead to use a get_ifc_X function to get the field you want when working with
+IFC data.  This function exists primarily as an implementation detail for code
+generation to make use of (where code generation also handles additional
+usage/sanity checks).
+*/
+{
+  copy_ifc_field(result, node_start, offset, /*size=*/sizeof(a_Desired_type));
+}  /* copy_ifc_field */
 
 
 template<typename an_ifc_Node_type>
