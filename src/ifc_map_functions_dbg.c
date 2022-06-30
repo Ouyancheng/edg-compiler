@@ -27,6 +27,8 @@ more about, the tool that generated this file.
 #include "ifc_modules.h"
 #include "ifc_map_functions.h"
 
+#if MICROSOFT_EXTENSIONS_ALLOWED && !STANDALONE_UTILITY_PROGRAM
+
 #if DEBUG
 
 /* Conditionally open the "edg" namespace. */
@@ -14770,6 +14772,8 @@ representation.
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE
 #endif /* DEBUG */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED && !STANDALONE_UTILITY_PROGRAM */
 
 /******************************************************************************
 *                                                             \  ___  /       *

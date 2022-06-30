@@ -27,6 +27,8 @@ more about, the tool that generated this file.
 #include "ifc_modules.h"
 #include "ifc_map_functions.h"
 
+#if MICROSOFT_EXTENSIONS_ALLOWED && !STANDALONE_UTILITY_PROGRAM
+
 /* Conditionally open the "edg" namespace. */
 BEGIN_EDG_NAMESPACE
 
@@ -48469,6 +48471,8 @@ representation of the field "type".
 
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED && !STANDALONE_UTILITY_PROGRAM */
 
 /******************************************************************************
 *                                                             \  ___  /       *
