@@ -1961,6 +1961,12 @@ extern void add_implicit_using_directive(a_namespace_ptr nsp,
                                          a_boolean       inline_namespace,
                                          a_boolean       namespace_pushed);
 
+extern
+a_namespace_ptr make_namespace_alias(a_symbol_ptr             ns_sym,
+                                     a_symbol_locator         *locator,
+                                     a_symbol_ptr             aliased_sym,
+                                     a_source_sequence_entry  *namespace_ssep);
+
 extern void decls_one_time_init(void);
 
 extern void decls_trans_unit_init(void);
