@@ -1,5 +1,27 @@
 Version 6.4
 
+6/30/22  [EDGcpfe/25280]
+C++-generating back end: Function type for non-type template parameter via
+alias template
+
+In configurations in which template definitions are generated from the
+prototype instantiation IL, the C++-generating back end previously put out
+incorrect code when the type of a non-type template parameter is specified
+via an alias template denoting a dependent function type.  For example,
+with --c++17:
+
+  template<typename c> using e = c();   // e denotes a function returning c
+  template<auto &> int f;
+  template<typename h, e<h> F> void j() { f<*F>; }
+
+The C++-generating back end previously generated the last line as:
+
+  template<typename h, e<h> *F> void j() { f<F>; }
+
+adding "*" in the template parameter type and omitting it in the template
+argument.  This is now fixed.
+
+
 6/29/22  [EDGcpfe/24536,EDGcpfe/25430]
 Spurious errors when using dependent constexpr variable as template argument
 
