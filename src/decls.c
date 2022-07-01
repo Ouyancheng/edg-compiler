@@ -8444,8 +8444,15 @@ position.
       okay = FALSE;
       if ((rp->is_declared_constexpr || rp->is_consteval) &&
           !rout_is_real_template_instance(rp)) {
-        pos_ty_error(ec_nonliteral_return_type_in_constexpr_function, diag_pos,
-                     rtp->variant.routine.return_type);
+        an_error_severity  sev = es_error;
+        if (rp->defined_in_friend_decl &&
+            scope_is(&scope_stack_top()-1, sck_class_reactivation) &&
+            (&scope_stack_top()-1)->assoc_type->variant.class_struct_union
+                                                       .is_template_class) {
+          sev = strict_ansi_error_severity;
+        }  /* if */
+        pos_ty_diagnostic(sev, ec_nonliteral_return_type_in_constexpr_function,
+                          diag_pos, rtp->variant.routine.return_type);
       }  /* if */
     } else {
       a_param_type_ptr  ptp = rtp->variant.routine.extra_info->param_type_list;

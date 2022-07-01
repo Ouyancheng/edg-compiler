@@ -1,5 +1,24 @@
 Version 6.4
 
+7/1/22   [EDGcpfe/23306,EDGcpfe/24748,EDGcpfe/25063]
+Literal types an constexpr friends of class templates
+
+Consider:
+
+  template<typename T> struct S {
+    friend constexpr T f(T x) { return x; }
+  };
+  struct X: S<X> { X() { } };  // Not a literal type.
+  auto r =  f(X{});  // Previously an error.  Now usually a warning.
+
+The C++ standard makes this invalid because f(X) is declared constexpr but its
+return type X is not a literal type.  The standard makes an exception for
+instances of function templates and for members of class template instances,
+but this is neither of those cases.  It is expected that the committee will
+eventually relax that rule and, in nonstrict modes, the front end now issues
+only a warning on this case.
+
+
 7/1/22   [EDGcpfe/25413,EDGcpfe/25429]
 Loss of type qualifier for folded call
 
