@@ -2621,7 +2621,7 @@ from_auto is TRUE if the type was originally specified using an auto type.
 */
 {
   an_error_code  err_code = ec_no_error;
-  a_type_ptr     type = skip_typerefs(*p_type);
+  a_type_ptr     type = skip_nontemplate_typerefs(*p_type);
 
   switch (type->kind) {
     case tk_void:

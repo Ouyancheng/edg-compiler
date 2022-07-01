@@ -11783,10 +11783,19 @@ error indication in *rcblock).
 #if MICROSOFT_EXTENSIONS_ALLOWED
           (cli_or_cx_enabled && is_handle_type(operand.type)) ||
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+          is_template_dependent_type(operand.type) ||
           check_pointer_operand(&operand, ec_bad_indirection_operand)) {
-        a_type_ptr operand_type = type_pointed_to(operand.type);
+        a_type_ptr operand_type;
         an_expr_node_ptr node;
         /* Make the "*" operator node. */
+        if (is_pointer_type(operand.type)) {
+          operand_type = type_pointed_to(operand.type);
+        } else if (is_template_dependent_type(operand.type)) {
+          operand_type = type_of_unknown_templ_param_nontype;
+        } else {
+          expect_error();
+          operand_type = error_type();
+        }  /* if */
         node = make_lvalue_operator_node((an_expr_operator_kind)eok_indirect,
                                          operand_type,
                                          make_node_from_operand(&operand));
