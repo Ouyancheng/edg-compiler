@@ -15269,10 +15269,7 @@ alias declaration in the source sequence list (if applicable).
   a_namespace_ptr  nsp = alloc_namespace(/*is_alias=*/TRUE);
 
   if (ns_sym == NULL) {
-    /* Create a namespace symbol to represent the alias.  Its
-       creation was delayed till all the error cases had been
-       dispensed with, to avoid creating a symbol with no namespace
-       to bind to. */
+    /* Create a namespace symbol to represent the alias. */
     ns_sym = enter_symbol((a_symbol_kind)sk_namespace, locator,
                           decl_scope_level, /*suppress_redecl_error=*/TRUE);
   }  /* if */
@@ -15659,7 +15656,6 @@ it's a definition and NULL otherwise).
                                         namespace_ssep);
             } else {
               pos_sy_error(ec_already_defined, &locator.source_position,
-
                            ns_sym);
             }  /* if */
           } else {
