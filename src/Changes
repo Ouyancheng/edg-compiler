@@ -1,5 +1,23 @@
 Version 6.4
 
+7/1/22   [EDGcpfe/25413,EDGcpfe/25429]
+Loss of type qualifier for folded call
+
+Consider:
+
+  struct S {
+    void f() = delete;
+    int f() const;
+  };
+  constexpr S const g() { return {}; }
+  auto x = g().f();  // Previously a spurious error.  Now okay.
+
+Previously, the front end accidentally dropped the "const" qualifier on the
+result of calling g() in the process of folding that call.  That in turn
+resulted in an error because it caused the incorrect member S::f() to be
+selected in the initialization of x.  This is now fixed.
+
+
 6/30/22  [EDGcpfe/25280]
 C++-generating back end: Function type for non-type template parameter via
 alias template

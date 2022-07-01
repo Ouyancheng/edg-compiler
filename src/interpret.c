@@ -20393,7 +20393,6 @@ can only be TRUE if the called function is "consteval").
     /* Nothing more to be done. */
   } else {
     alloc_complete_object(&ips, n_bytes, result_type, result_storage);
-    result_con->type = result_type;
     if (!do_constexpr_call(&ips, call_expr, result_storage, result_storage)) {
       if (ips.input_error) {
         /* Interpretation failed due to an error node in the IL.  Continue
@@ -20420,7 +20419,7 @@ can only be TRUE if the called function is "consteval").
       do_constexpr_fail(result);
     } else if (!copy_interpreter_object_to_constant(
                                          &ips, result_storage, result_storage,
-                                         result_type, result_con)) {
+                                         call_expr->type, result_con)) {
       do_constexpr_fail(result);
     } else if (call_expr->next == NULL &&
                (expr_stack == NULL ||
