@@ -15253,6 +15253,45 @@ pushed.
 }  /* add_implicit_using_directive */
 
 
+a_namespace_ptr make_namespace_alias(a_symbol_ptr             ns_sym,
+                                     a_symbol_locator         *locator,
+                                     a_symbol_ptr             aliased_sym,
+                                     a_source_sequence_entry  *namespace_ssep)
+/*
+Allocate a namespace alias entry (whose name is described by locator) aliasing
+the namespace indicated by aliased_sym.  If the alias was already defined,
+ns_sym represent that alias and will be made to point to the newly allocated
+IL entry; otherwise, ns_sym is NULL and a new associated symbol is entered for
+the alias.  If non-NULL, use the given source sequence entry to represent the
+alias declaration in the source sequence list (if applicable).
+*/
+{
+  a_namespace_ptr  nsp = alloc_namespace(/*is_alias=*/TRUE);
+
+  if (ns_sym == NULL) {
+    /* Create a namespace symbol to represent the alias.  Its
+       creation was delayed till all the error cases had been
+       dispensed with, to avoid creating a symbol with no namespace
+       to bind to. */
+    ns_sym = enter_symbol((a_symbol_kind)sk_namespace, locator,
+                          decl_scope_level, /*suppress_redecl_error=*/TRUE);
+  }  /* if */
+  /* Fill out the namespace entry.  It will point to the aliased namespace. */
+  nsp->variant.assoc_namespace = aliased_sym->variant.namespace_info.ptr;
+  set_source_corresp(&nsp->source_corresp, ns_sym);
+  set_namespace_membership(ns_sym, &nsp->source_corresp,
+                           (a_namespace_ptr)NULL);
+  nsp->source_corresp.name_linkage =
+                                  (a_name_linkage_kind)nlk_cplusplus_external;
+  ns_sym->variant.namespace_info.ptr = nsp;
+  add_to_namespaces_list(nsp);
+  record_symbol_declaration(SRK_DECLARATION | SRK_DEFINITION,
+                            ns_sym, &locator->source_position,
+                            namespace_ssep);
+  return nsp;
+}  /* make_namespace_alias */
+
+
 static void namespace_declaration(a_token_kind      *final_token,
                                   a_boolean         in_nested_namespace_decl,
                                   a_boolean         is_inline,
@@ -15620,32 +15659,11 @@ it's a definition and NULL otherwise).
                                         namespace_ssep);
             } else {
               pos_sy_error(ec_already_defined, &locator.source_position,
+
                            ns_sym);
             }  /* if */
           } else {
-            if (ns_sym == NULL) {
-              /* Create a namespace symbol to represent the alias.  Its
-                 creation was delayed till all the error cases had been
-                 dispensed with, to avoid creating a symbol with no namespace
-                 to bind to. */
-              ns_sym = enter_symbol((a_symbol_kind)sk_namespace, &locator,
-                                    depth_scope_stack,
-                                    /*suppress_redecl_error=*/TRUE);
-            }  /* if */
-            /* Now create a namespace entry.  It will point to the namespace
-               entry that was just looked up. */
-            nsp = alloc_namespace(/*is_alias=*/TRUE);
-            nsp->variant.assoc_namespace = sym->variant.namespace_info.ptr;
-            set_source_corresp(&nsp->source_corresp, ns_sym);
-            set_namespace_membership(ns_sym, &nsp->source_corresp,
-                                     (a_namespace_ptr)NULL);
-            nsp->source_corresp.name_linkage =
-                                  (a_name_linkage_kind)nlk_cplusplus_external;
-            ns_sym->variant.namespace_info.ptr = nsp;
-            add_to_namespaces_list(nsp);
-            record_symbol_declaration(SRK_DECLARATION | SRK_DEFINITION,
-                                      ns_sym, &locator.source_position,
-                                      namespace_ssep);
+            nsp = make_namespace_alias(ns_sym, &locator, sym, namespace_ssep);
           }  /* if */
           mark_referenced(sym, &pos_curr_token);
         }  /* if */

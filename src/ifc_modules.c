@@ -4238,11 +4238,12 @@ class_struct_union_case:
             } else {
               /* Non-member using declaration.  Could be file scope or
                  namespace scope. */
-              a_symbol_ptr            null_sym_ptr = NULL;
+              a_symbol_ptr            null_sym_ptr = NULL, aliased_sym;
               a_using_decl_ptr        prev_udp = NULL;
               a_namespace_ptr         nsp = NULL;
               a_source_correspondence *scp =
-                                    (a_source_correspondence*)umep->entity.ptr;
+                                   (a_source_correspondence*)umep->entity.ptr;
+              aliased_sym = (a_symbol_ptr)scp->assoc_info;
               if (scp->parent_scope == NULL) {
                 /* Probably shouldn't happen, but happens now because of other
                    issues. */
@@ -4251,9 +4252,40 @@ class_struct_union_case:
               if (scope_is(scp->parent_scope, sck_namespace)) {
                 nsp = scp_parent_namespace(scp);
               }  /* if */
+              if (symbol_is(aliased_sym, sk_namespace)) {
+                /* A namespace alias. */
+                a_symbol_ptr  ns_sym;
+                if (!init_locator_from_name(get_ifc_name(idud), locus, &loc)) {
+                  goto invalid;
+                }  /* if */
+                /* Check for a conflict with another declaration. */
+                ns_sym = curr_scope_id_lookup(&loc, IDL_NO_OPTIONS);
+                if (ns_sym != NULL) {
+                  /* The alias name is already present in this scope.  That
+                     is okay only if it names an equivalent alias. */
+                  a_boolean  mismatch = FALSE;
+                  if (!symbol_is(ns_sym, sk_namespace)) {
+                    mismatch = TRUE;
+                  } else {
+                    a_namespace_ptr  prev = ns_sym->variant.namespace_info.ptr;
+                    if (!prev->is_namespace_alias) {
+                      mismatch = TRUE;
+                    } else if (skip_namespace_aliases(prev) !=
+                                 skip_namespace_aliases(
+                                    aliased_sym->variant.namespace_info.ptr)) {
+                      mismatch = TRUE;
+                    }  /* if */
+                  }  /* if */
+                  if (mismatch) {
+                    pos_sy_error(ec_already_defined, &error_position, ns_sym);
+                  }  /* if */
+                }  /* if */
+                (void)make_namespace_alias(ns_sym, &loc, aliased_sym,
+                                           (a_source_sequence_entry*)NULL);
+              } else {
               /* FIXME: This will need to be re-worked when handling the
                  ifc_DeclSort_Tuple case (i.e., multiple items). */
-              create_nonmember_using_declaration(
+                create_nonmember_using_declaration(
                                                (a_symbol_ptr)scp->assoc_info,
                                                &null_sym_ptr,
                                                (a_symbol_ptr)NULL,
@@ -4262,6 +4294,7 @@ class_struct_union_case:
                                                &prev_udp,
                                                /*is_list=*/FALSE,
                                                /*suppress_redecl_error=*/TRUE);
+              }  /* if */
             }  /* if */
           }  /* if */
         }
