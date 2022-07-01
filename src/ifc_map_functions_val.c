@@ -3176,7 +3176,6 @@ representation is valid; otherwise, return FALSE.
                                          {"home_scope", /*offset=*/16, parent};
       an_ifc_decl_index       stage_1;
       a_boolean               stage_2;
-      an_ifc_decl_index       stage_3;
 
       /* Copy the field (DeclAlias::home_scope - DeclIndex) into version
          specific storage. */
@@ -3202,7 +3201,6 @@ representation is valid; otherwise, return FALSE.
         an_ifc_decl_index_0_41     stage_3_3;
         an_ifc_validation_trace    stage_3_3_trace =
                                       {"decl", /*offset=*/4, &stage_3_0_trace};
-        an_ifc_decl_index          stage_3_4;
 
         /* Copy the field (DeclAlias::home_scope - DeclIndex) into version
            specific storage. */
@@ -3233,13 +3231,10 @@ representation is valid; otherwise, return FALSE.
           result = FALSE;
           goto done;
         }  /* if */
-        stage_3_4 = to_universal_index(stage_3_2.get_module(), stage_3_3);
-        stage_3 = stage_3_4;
       } else {
         an_ifc_decl_index_0_41  stage_3_0;
         an_ifc_validation_trace stage_3_0_trace =
                                          {"home_scope", /*offset=*/16, parent};
-        an_ifc_decl_index       stage_3_1;
 
         /* Copy the field (DeclAlias::home_scope - DeclIndex) into version
            specific storage. */
@@ -3251,8 +3246,6 @@ representation is valid; otherwise, return FALSE.
           result = FALSE;
           goto done;
         }  /* if */
-        stage_3_1 = to_universal_index(universal.get_module(), stage_3_0);
-        stage_3 = stage_3_1;
       }  /* if */
     } else {
       an_ifc_decl_index_0_33  stage_0;
@@ -3339,7 +3332,6 @@ representation is valid; otherwise, return FALSE.
                                          {"home_scope", /*offset=*/16, parent};
       an_ifc_decl_index       stage_1;
       a_boolean               stage_2;
-      an_ifc_decl_index       stage_3;
 
       /* Copy the field (DeclBitfield::home_scope - DeclIndex) into version
          specific storage. */
@@ -3365,7 +3357,6 @@ representation is valid; otherwise, return FALSE.
         an_ifc_decl_index_0_41     stage_3_3;
         an_ifc_validation_trace    stage_3_3_trace =
                                       {"decl", /*offset=*/4, &stage_3_0_trace};
-        an_ifc_decl_index          stage_3_4;
 
         /* Copy the field (DeclBitfield::home_scope - DeclIndex) into version
            specific storage. */
@@ -3396,13 +3387,10 @@ representation is valid; otherwise, return FALSE.
           result = FALSE;
           goto done;
         }  /* if */
-        stage_3_4 = to_universal_index(stage_3_2.get_module(), stage_3_3);
-        stage_3 = stage_3_4;
       } else {
         an_ifc_decl_index_0_41  stage_3_0;
         an_ifc_validation_trace stage_3_0_trace =
                                          {"home_scope", /*offset=*/16, parent};
-        an_ifc_decl_index       stage_3_1;
 
         /* Copy the field (DeclBitfield::home_scope - DeclIndex) into version
            specific storage. */
@@ -3414,8 +3402,6 @@ representation is valid; otherwise, return FALSE.
           result = FALSE;
           goto done;
         }  /* if */
-        stage_3_1 = to_universal_index(universal.get_module(), stage_3_0);
-        stage_3 = stage_3_1;
       }  /* if */
     } else {
       an_ifc_decl_index_0_33  stage_0;
@@ -3560,7 +3546,6 @@ representation is valid; otherwise, return FALSE.
                                          {"home_scope", /*offset=*/12, parent};
       an_ifc_decl_index       stage_1;
       a_boolean               stage_2;
-      an_ifc_decl_index       stage_3;
 
       /* Copy the field (DeclConcept::home_scope - DeclIndex) into version
          specific storage. */
@@ -3586,7 +3571,6 @@ representation is valid; otherwise, return FALSE.
         an_ifc_decl_index_0_41     stage_3_3;
         an_ifc_validation_trace    stage_3_3_trace =
                                       {"decl", /*offset=*/4, &stage_3_0_trace};
-        an_ifc_decl_index          stage_3_4;
 
         /* Copy the field (DeclConcept::home_scope - DeclIndex) into version
            specific storage. */
@@ -3617,13 +3601,10 @@ representation is valid; otherwise, return FALSE.
           result = FALSE;
           goto done;
         }  /* if */
-        stage_3_4 = to_universal_index(stage_3_2.get_module(), stage_3_3);
-        stage_3 = stage_3_4;
       } else {
         an_ifc_decl_index_0_41  stage_3_0;
         an_ifc_validation_trace stage_3_0_trace =
                                          {"home_scope", /*offset=*/12, parent};
-        an_ifc_decl_index       stage_3_1;
 
         /* Copy the field (DeclConcept::home_scope - DeclIndex) into version
            specific storage. */
@@ -3635,8 +3616,6 @@ representation is valid; otherwise, return FALSE.
           result = FALSE;
           goto done;
         }  /* if */
-        stage_3_1 = to_universal_index(universal.get_module(), stage_3_0);
-        stage_3 = stage_3_1;
       }  /* if */
     } else {
       an_ifc_decl_index_0_33  stage_0;
@@ -3737,7 +3716,6 @@ representation is valid; otherwise, return FALSE.
                                          {"home_scope", /*offset=*/16, parent};
       an_ifc_decl_index       stage_1;
       a_boolean               stage_2;
-      an_ifc_decl_index       stage_3;
 
       /* Copy the field (DeclConstructor::home_scope - DeclIndex) into version
          specific storage. */
@@ -3763,7 +3741,6 @@ representation is valid; otherwise, return FALSE.
         an_ifc_decl_index_0_41     stage_3_3;
         an_ifc_validation_trace    stage_3_3_trace =
                                       {"decl", /*offset=*/4, &stage_3_0_trace};
-        an_ifc_decl_index          stage_3_4;
 
         /* Copy the field (DeclConstructor::home_scope - DeclIndex) into
            version specific storage. */
@@ -3794,13 +3771,10 @@ representation is valid; otherwise, return FALSE.
           result = FALSE;
           goto done;
         }  /* if */
-        stage_3_4 = to_universal_index(stage_3_2.get_module(), stage_3_3);
-        stage_3 = stage_3_4;
       } else {
         an_ifc_decl_index_0_41  stage_3_0;
         an_ifc_validation_trace stage_3_0_trace =
                                          {"home_scope", /*offset=*/16, parent};
-        an_ifc_decl_index       stage_3_1;
 
         /* Copy the field (DeclConstructor::home_scope - DeclIndex) into
            version specific storage. */
@@ -3812,8 +3786,6 @@ representation is valid; otherwise, return FALSE.
           result = FALSE;
           goto done;
         }  /* if */
-        stage_3_1 = to_universal_index(universal.get_module(), stage_3_0);
-        stage_3 = stage_3_1;
       }  /* if */
     } else {
       an_ifc_decl_index_0_33  stage_0;
@@ -3860,7 +3832,6 @@ representation is valid; otherwise, return FALSE.
                                          {"home_scope", /*offset=*/16, parent};
       an_ifc_decl_index       stage_1;
       a_boolean               stage_2;
-      an_ifc_name_index       stage_3;
 
       /* Copy the field (DeclConstructor::home_scope - DeclIndex) into version
          specific storage. */
@@ -3904,7 +3875,6 @@ representation is valid; otherwise, return FALSE.
           goto done;
         }  /* if */
         stage_3_2 = get_ifc_name(stage_3_1);
-        stage_3 = stage_3_2;
       } else {
         an_ifc_decl_index stage_3_0;
         an_ifc_name_index stage_3_1;
@@ -3919,7 +3889,6 @@ representation is valid; otherwise, return FALSE.
           goto done;
         }  /* if */
         stage_3_1 = get_ifc_name(stage_3_0);
-        stage_3 = stage_3_1;
       }  /* if */
     } else {
       an_ifc_decl_index stage_0;
@@ -3970,7 +3939,6 @@ representation is valid; otherwise, return FALSE.
                                          {"home_scope", /*offset=*/12, parent};
       an_ifc_decl_index       stage_1;
       a_boolean               stage_2;
-      an_ifc_decl_index       stage_3;
 
       /* Copy the field (DeclDeductionGuide::home_scope - DeclIndex) into
          version specific storage. */
@@ -3996,7 +3964,6 @@ representation is valid; otherwise, return FALSE.
         an_ifc_decl_index_0_41     stage_3_3;
         an_ifc_validation_trace    stage_3_3_trace =
                                       {"decl", /*offset=*/4, &stage_3_0_trace};
-        an_ifc_decl_index          stage_3_4;
 
         /* Copy the field (DeclDeductionGuide::home_scope - DeclIndex) into
            version specific storage. */
@@ -4027,13 +3994,10 @@ representation is valid; otherwise, return FALSE.
           result = FALSE;
           goto done;
         }  /* if */
-        stage_3_4 = to_universal_index(stage_3_2.get_module(), stage_3_3);
-        stage_3 = stage_3_4;
       } else {
         an_ifc_decl_index_0_41  stage_3_0;
         an_ifc_validation_trace stage_3_0_trace =
                                          {"home_scope", /*offset=*/12, parent};
-        an_ifc_decl_index       stage_3_1;
 
         /* Copy the field (DeclDeductionGuide::home_scope - DeclIndex) into
            version specific storage. */
@@ -4045,8 +4009,6 @@ representation is valid; otherwise, return FALSE.
           result = FALSE;
           goto done;
         }  /* if */
-        stage_3_1 = to_universal_index(universal.get_module(), stage_3_0);
-        stage_3 = stage_3_1;
       }  /* if */
     } else {
       an_ifc_decl_index_0_33  stage_0;
@@ -4185,7 +4147,6 @@ representation is valid; otherwise, return FALSE.
                                          {"home_scope", /*offset=*/12, parent};
       an_ifc_decl_index       stage_1;
       a_boolean               stage_2;
-      an_ifc_decl_index       stage_3;
 
       /* Copy the field (DeclDestructor::home_scope - DeclIndex) into version
          specific storage. */
@@ -4211,7 +4172,6 @@ representation is valid; otherwise, return FALSE.
         an_ifc_decl_index_0_41     stage_3_3;
         an_ifc_validation_trace    stage_3_3_trace =
                                       {"decl", /*offset=*/4, &stage_3_0_trace};
-        an_ifc_decl_index          stage_3_4;
 
         /* Copy the field (DeclDestructor::home_scope - DeclIndex) into version
            specific storage. */
@@ -4242,13 +4202,10 @@ representation is valid; otherwise, return FALSE.
           result = FALSE;
           goto done;
         }  /* if */
-        stage_3_4 = to_universal_index(stage_3_2.get_module(), stage_3_3);
-        stage_3 = stage_3_4;
       } else {
         an_ifc_decl_index_0_41  stage_3_0;
         an_ifc_validation_trace stage_3_0_trace =
                                          {"home_scope", /*offset=*/12, parent};
-        an_ifc_decl_index       stage_3_1;
 
         /* Copy the field (DeclDestructor::home_scope - DeclIndex) into version
            specific storage. */
@@ -4260,8 +4217,6 @@ representation is valid; otherwise, return FALSE.
           result = FALSE;
           goto done;
         }  /* if */
-        stage_3_1 = to_universal_index(universal.get_module(), stage_3_0);
-        stage_3 = stage_3_1;
       }  /* if */
     } else {
       an_ifc_decl_index_0_33  stage_0;
@@ -4308,7 +4263,6 @@ representation is valid; otherwise, return FALSE.
                                          {"home_scope", /*offset=*/12, parent};
       an_ifc_decl_index       stage_1;
       a_boolean               stage_2;
-      an_ifc_name_index       stage_3;
 
       /* Copy the field (DeclDestructor::home_scope - DeclIndex) into version
          specific storage. */
@@ -4352,7 +4306,6 @@ representation is valid; otherwise, return FALSE.
           goto done;
         }  /* if */
         stage_3_2 = get_ifc_name(stage_3_1);
-        stage_3 = stage_3_2;
       } else {
         an_ifc_decl_index stage_3_0;
         an_ifc_name_index stage_3_1;
@@ -4367,7 +4320,6 @@ representation is valid; otherwise, return FALSE.
           goto done;
         }  /* if */
         stage_3_1 = get_ifc_name(stage_3_0);
-        stage_3 = stage_3_1;
       }  /* if */
     } else {
       an_ifc_decl_index stage_0;
@@ -4447,7 +4399,6 @@ representation is valid; otherwise, return FALSE.
                                          {"home_scope", /*offset=*/28, parent};
       an_ifc_decl_index       stage_1;
       a_boolean               stage_2;
-      an_ifc_decl_index       stage_3;
 
       /* Copy the field (DeclEnumeration::home_scope - DeclIndex) into version
          specific storage. */
@@ -4473,7 +4424,6 @@ representation is valid; otherwise, return FALSE.
         an_ifc_decl_index_0_41     stage_3_3;
         an_ifc_validation_trace    stage_3_3_trace =
                                       {"decl", /*offset=*/4, &stage_3_0_trace};
-        an_ifc_decl_index          stage_3_4;
 
         /* Copy the field (DeclEnumeration::home_scope - DeclIndex) into
            version specific storage. */
@@ -4504,13 +4454,10 @@ representation is valid; otherwise, return FALSE.
           result = FALSE;
           goto done;
         }  /* if */
-        stage_3_4 = to_universal_index(stage_3_2.get_module(), stage_3_3);
-        stage_3 = stage_3_4;
       } else {
         an_ifc_decl_index_0_41  stage_3_0;
         an_ifc_validation_trace stage_3_0_trace =
                                          {"home_scope", /*offset=*/28, parent};
-        an_ifc_decl_index       stage_3_1;
 
         /* Copy the field (DeclEnumeration::home_scope - DeclIndex) into
            version specific storage. */
@@ -4522,8 +4469,6 @@ representation is valid; otherwise, return FALSE.
           result = FALSE;
           goto done;
         }  /* if */
-        stage_3_1 = to_universal_index(universal.get_module(), stage_3_0);
-        stage_3 = stage_3_1;
       }  /* if */
     } else {
       an_ifc_decl_index_0_33  stage_0;
@@ -4636,7 +4581,6 @@ representation is valid; otherwise, return FALSE.
                                         {"decl", /*offset=*/0, &stage_0_trace};
       an_ifc_decl_index       stage_4;
       a_boolean               stage_5;
-      an_ifc_decl_index       stage_6;
 
       /* Copy the field (DeclEnumerator::type - TypeIndex) into version
          specific storage. */
@@ -4685,7 +4629,6 @@ representation is valid; otherwise, return FALSE.
         an_ifc_decl_index_0_41     stage_6_6;
         an_ifc_validation_trace    stage_6_6_trace =
                                       {"decl", /*offset=*/4, &stage_6_3_trace};
-        an_ifc_decl_index          stage_6_7;
 
         /* Copy the field (DeclEnumerator::type - TypeIndex) into version
            specific storage. */
@@ -4735,8 +4678,6 @@ representation is valid; otherwise, return FALSE.
           result = FALSE;
           goto done;
         }  /* if */
-        stage_6_7 = to_universal_index(stage_6_5.get_module(), stage_6_6);
-        stage_6 = stage_6_7;
       } else {
         an_ifc_type_index_0_33  stage_6_0;
         an_ifc_validation_trace stage_6_0_trace =
@@ -4746,7 +4687,6 @@ representation is valid; otherwise, return FALSE.
         an_ifc_decl_index_0_41  stage_6_3;
         an_ifc_validation_trace stage_6_3_trace =
                                       {"decl", /*offset=*/0, &stage_6_0_trace};
-        an_ifc_decl_index       stage_6_4;
 
         /* Copy the field (DeclEnumerator::type - TypeIndex) into version
            specific storage. */
@@ -4777,8 +4717,6 @@ representation is valid; otherwise, return FALSE.
           result = FALSE;
           goto done;
         }  /* if */
-        stage_6_4 = to_universal_index(stage_6_2.get_module(), stage_6_3);
-        stage_6 = stage_6_4;
       }  /* if */
     } else {
       an_ifc_type_index_0_33  stage_0;
@@ -5034,7 +4972,6 @@ representation is valid; otherwise, return FALSE.
                                          {"home_scope", /*offset=*/16, parent};
       an_ifc_decl_index       stage_1;
       a_boolean               stage_2;
-      an_ifc_decl_index       stage_3;
 
       /* Copy the field (DeclField::home_scope - DeclIndex) into version
          specific storage. */
@@ -5060,7 +4997,6 @@ representation is valid; otherwise, return FALSE.
         an_ifc_decl_index_0_41     stage_3_3;
         an_ifc_validation_trace    stage_3_3_trace =
                                       {"decl", /*offset=*/4, &stage_3_0_trace};
-        an_ifc_decl_index          stage_3_4;
 
         /* Copy the field (DeclField::home_scope - DeclIndex) into version
            specific storage. */
@@ -5091,13 +5027,10 @@ representation is valid; otherwise, return FALSE.
           result = FALSE;
           goto done;
         }  /* if */
-        stage_3_4 = to_universal_index(stage_3_2.get_module(), stage_3_3);
-        stage_3 = stage_3_4;
       } else {
         an_ifc_decl_index_0_41  stage_3_0;
         an_ifc_validation_trace stage_3_0_trace =
                                          {"home_scope", /*offset=*/16, parent};
-        an_ifc_decl_index       stage_3_1;
 
         /* Copy the field (DeclField::home_scope - DeclIndex) into version
            specific storage. */
@@ -5109,8 +5042,6 @@ representation is valid; otherwise, return FALSE.
           result = FALSE;
           goto done;
         }  /* if */
-        stage_3_1 = to_universal_index(universal.get_module(), stage_3_0);
-        stage_3 = stage_3_1;
       }  /* if */
     } else {
       an_ifc_decl_index_0_33  stage_0;
@@ -5252,7 +5183,6 @@ representation is valid; otherwise, return FALSE.
                                          {"home_scope", /*offset=*/16, parent};
       an_ifc_decl_index       stage_1;
       a_boolean               stage_2;
-      an_ifc_decl_index       stage_3;
 
       /* Copy the field (DeclFunction::home_scope - DeclIndex) into version
          specific storage. */
@@ -5278,7 +5208,6 @@ representation is valid; otherwise, return FALSE.
         an_ifc_decl_index_0_41     stage_3_3;
         an_ifc_validation_trace    stage_3_3_trace =
                                       {"decl", /*offset=*/4, &stage_3_0_trace};
-        an_ifc_decl_index          stage_3_4;
 
         /* Copy the field (DeclFunction::home_scope - DeclIndex) into version
            specific storage. */
@@ -5309,13 +5238,10 @@ representation is valid; otherwise, return FALSE.
           result = FALSE;
           goto done;
         }  /* if */
-        stage_3_4 = to_universal_index(stage_3_2.get_module(), stage_3_3);
-        stage_3 = stage_3_4;
       } else {
         an_ifc_decl_index_0_41  stage_3_0;
         an_ifc_validation_trace stage_3_0_trace =
                                          {"home_scope", /*offset=*/16, parent};
-        an_ifc_decl_index       stage_3_1;
 
         /* Copy the field (DeclFunction::home_scope - DeclIndex) into version
            specific storage. */
@@ -5327,8 +5253,6 @@ representation is valid; otherwise, return FALSE.
           result = FALSE;
           goto done;
         }  /* if */
-        stage_3_1 = to_universal_index(universal.get_module(), stage_3_0);
-        stage_3 = stage_3_1;
       }  /* if */
     } else {
       an_ifc_decl_index_0_33  stage_0;
@@ -5474,7 +5398,6 @@ the representation is valid; otherwise, return FALSE.
                                          {"home_scope", /*offset=*/16, parent};
       an_ifc_decl_index       stage_1;
       a_boolean               stage_2;
-      an_ifc_decl_index       stage_3;
 
       /* Copy the field (DeclInheritedConstructor::home_scope - DeclIndex) into
          version specific storage. */
@@ -5500,7 +5423,6 @@ the representation is valid; otherwise, return FALSE.
         an_ifc_decl_index_0_41     stage_3_3;
         an_ifc_validation_trace    stage_3_3_trace =
                                       {"decl", /*offset=*/4, &stage_3_0_trace};
-        an_ifc_decl_index          stage_3_4;
 
         /* Copy the field (DeclInheritedConstructor::home_scope - DeclIndex)
            into version specific storage. */
@@ -5531,13 +5453,10 @@ the representation is valid; otherwise, return FALSE.
           result = FALSE;
           goto done;
         }  /* if */
-        stage_3_4 = to_universal_index(stage_3_2.get_module(), stage_3_3);
-        stage_3 = stage_3_4;
       } else {
         an_ifc_decl_index_0_41  stage_3_0;
         an_ifc_validation_trace stage_3_0_trace =
                                          {"home_scope", /*offset=*/16, parent};
-        an_ifc_decl_index       stage_3_1;
 
         /* Copy the field (DeclInheritedConstructor::home_scope - DeclIndex)
            into version specific storage. */
@@ -5549,8 +5468,6 @@ the representation is valid; otherwise, return FALSE.
           result = FALSE;
           goto done;
         }  /* if */
-        stage_3_1 = to_universal_index(universal.get_module(), stage_3_0);
-        stage_3 = stage_3_1;
       }  /* if */
     } else {
       an_ifc_decl_index_0_33  stage_0;
@@ -5637,7 +5554,6 @@ representation is valid; otherwise, return FALSE.
                                          {"home_scope", /*offset=*/16, parent};
       an_ifc_decl_index       stage_1;
       a_boolean               stage_2;
-      an_ifc_decl_index       stage_3;
 
       /* Copy the field (DeclIntrinsic::home_scope - DeclIndex) into version
          specific storage. */
@@ -5663,7 +5579,6 @@ representation is valid; otherwise, return FALSE.
         an_ifc_decl_index_0_41     stage_3_3;
         an_ifc_validation_trace    stage_3_3_trace =
                                       {"decl", /*offset=*/4, &stage_3_0_trace};
-        an_ifc_decl_index          stage_3_4;
 
         /* Copy the field (DeclIntrinsic::home_scope - DeclIndex) into version
            specific storage. */
@@ -5694,13 +5609,10 @@ representation is valid; otherwise, return FALSE.
           result = FALSE;
           goto done;
         }  /* if */
-        stage_3_4 = to_universal_index(stage_3_2.get_module(), stage_3_3);
-        stage_3 = stage_3_4;
       } else {
         an_ifc_decl_index_0_41  stage_3_0;
         an_ifc_validation_trace stage_3_0_trace =
                                          {"home_scope", /*offset=*/16, parent};
-        an_ifc_decl_index       stage_3_1;
 
         /* Copy the field (DeclIntrinsic::home_scope - DeclIndex) into version
            specific storage. */
@@ -5712,8 +5624,6 @@ representation is valid; otherwise, return FALSE.
           result = FALSE;
           goto done;
         }  /* if */
-        stage_3_1 = to_universal_index(universal.get_module(), stage_3_0);
-        stage_3 = stage_3_1;
       }  /* if */
     } else {
       an_ifc_decl_index_0_33  stage_0;
@@ -5814,7 +5724,6 @@ representation is valid; otherwise, return FALSE.
                                          {"home_scope", /*offset=*/16, parent};
       an_ifc_decl_index       stage_1;
       a_boolean               stage_2;
-      an_ifc_decl_index       stage_3;
 
       /* Copy the field (DeclMethod::home_scope - DeclIndex) into version
          specific storage. */
@@ -5840,7 +5749,6 @@ representation is valid; otherwise, return FALSE.
         an_ifc_decl_index_0_41     stage_3_3;
         an_ifc_validation_trace    stage_3_3_trace =
                                       {"decl", /*offset=*/4, &stage_3_0_trace};
-        an_ifc_decl_index          stage_3_4;
 
         /* Copy the field (DeclMethod::home_scope - DeclIndex) into version
            specific storage. */
@@ -5871,13 +5779,10 @@ representation is valid; otherwise, return FALSE.
           result = FALSE;
           goto done;
         }  /* if */
-        stage_3_4 = to_universal_index(stage_3_2.get_module(), stage_3_3);
-        stage_3 = stage_3_4;
       } else {
         an_ifc_decl_index_0_41  stage_3_0;
         an_ifc_validation_trace stage_3_0_trace =
                                          {"home_scope", /*offset=*/16, parent};
-        an_ifc_decl_index       stage_3_1;
 
         /* Copy the field (DeclMethod::home_scope - DeclIndex) into version
            specific storage. */
@@ -5889,8 +5794,6 @@ representation is valid; otherwise, return FALSE.
           result = FALSE;
           goto done;
         }  /* if */
-        stage_3_1 = to_universal_index(universal.get_module(), stage_3_0);
-        stage_3 = stage_3_1;
       }  /* if */
     } else {
       an_ifc_decl_index_0_33  stage_0;
@@ -6509,7 +6412,6 @@ representation is valid; otherwise, return FALSE.
                                          {"home_scope", /*offset=*/24, parent};
       an_ifc_decl_index       stage_1;
       a_boolean               stage_2;
-      an_ifc_decl_index       stage_3;
 
       /* Copy the field (DeclScope::home_scope - DeclIndex) into version
          specific storage. */
@@ -6535,7 +6437,6 @@ representation is valid; otherwise, return FALSE.
         an_ifc_decl_index_0_41     stage_3_3;
         an_ifc_validation_trace    stage_3_3_trace =
                                       {"decl", /*offset=*/4, &stage_3_0_trace};
-        an_ifc_decl_index          stage_3_4;
 
         /* Copy the field (DeclScope::home_scope - DeclIndex) into version
            specific storage. */
@@ -6566,13 +6467,10 @@ representation is valid; otherwise, return FALSE.
           result = FALSE;
           goto done;
         }  /* if */
-        stage_3_4 = to_universal_index(stage_3_2.get_module(), stage_3_3);
-        stage_3 = stage_3_4;
       } else {
         an_ifc_decl_index_0_41  stage_3_0;
         an_ifc_validation_trace stage_3_0_trace =
                                          {"home_scope", /*offset=*/24, parent};
-        an_ifc_decl_index       stage_3_1;
 
         /* Copy the field (DeclScope::home_scope - DeclIndex) into version
            specific storage. */
@@ -6584,8 +6482,6 @@ representation is valid; otherwise, return FALSE.
           result = FALSE;
           goto done;
         }  /* if */
-        stage_3_1 = to_universal_index(universal.get_module(), stage_3_0);
-        stage_3 = stage_3_1;
       }  /* if */
     } else {
       an_ifc_decl_index_0_33  stage_0;
@@ -6858,7 +6754,6 @@ representation is valid; otherwise, return FALSE.
                                          {"home_scope", /*offset=*/12, parent};
       an_ifc_decl_index       stage_1;
       a_boolean               stage_2;
-      an_ifc_decl_index       stage_3;
 
       /* Copy the field (DeclTemplate::home_scope - DeclIndex) into version
          specific storage. */
@@ -6884,7 +6779,6 @@ representation is valid; otherwise, return FALSE.
         an_ifc_decl_index_0_41     stage_3_3;
         an_ifc_validation_trace    stage_3_3_trace =
                                       {"decl", /*offset=*/4, &stage_3_0_trace};
-        an_ifc_decl_index          stage_3_4;
 
         /* Copy the field (DeclTemplate::home_scope - DeclIndex) into version
            specific storage. */
@@ -6915,13 +6809,10 @@ representation is valid; otherwise, return FALSE.
           result = FALSE;
           goto done;
         }  /* if */
-        stage_3_4 = to_universal_index(stage_3_2.get_module(), stage_3_3);
-        stage_3 = stage_3_4;
       } else {
         an_ifc_decl_index_0_41  stage_3_0;
         an_ifc_validation_trace stage_3_0_trace =
                                          {"home_scope", /*offset=*/12, parent};
-        an_ifc_decl_index       stage_3_1;
 
         /* Copy the field (DeclTemplate::home_scope - DeclIndex) into version
            specific storage. */
@@ -6933,8 +6824,6 @@ representation is valid; otherwise, return FALSE.
           result = FALSE;
           goto done;
         }  /* if */
-        stage_3_1 = to_universal_index(universal.get_module(), stage_3_0);
-        stage_3 = stage_3_1;
       }  /* if */
     } else {
       an_ifc_decl_index_0_33  stage_0;
@@ -6985,7 +6874,6 @@ representation is valid; otherwise, return FALSE.
                                         {"decl", /*offset=*/0, &stage_0_trace};
       an_ifc_decl_index                 stage_3;
       a_boolean                         stage_4;
-      an_ifc_name_index                 stage_5;
 
 #if USE_MMAP_FOR_MODULES
       /* Update the universal storage pointer to the start of the field
@@ -7067,12 +6955,10 @@ representation is valid; otherwise, return FALSE.
           goto done;
         }  /* if */
         stage_5_4 = get_ifc_name(stage_5_3);
-        stage_5 = stage_5_4;
       } else {
         an_ifc_name_index_0_33  stage_5_0;
         an_ifc_validation_trace stage_5_0_trace =
                                                 {"name", /*offset=*/0, parent};
-        an_ifc_name_index       stage_5_1;
 
         /* Copy the field (DeclTemplate::name - NameIndex) into version
            specific storage. */
@@ -7084,8 +6970,6 @@ representation is valid; otherwise, return FALSE.
           result = FALSE;
           goto done;
         }  /* if */
-        stage_5_1 = to_universal_index(universal.get_module(), stage_5_0);
-        stage_5 = stage_5_1;
       }  /* if */
     } else {
       an_ifc_parameterized_entity_bytes stage_0;
@@ -7097,7 +6981,6 @@ representation is valid; otherwise, return FALSE.
                                         {"decl", /*offset=*/0, &stage_0_trace};
       an_ifc_decl_index                 stage_3;
       a_boolean                         stage_4;
-      an_ifc_name_index                 stage_5;
 
 #if USE_MMAP_FOR_MODULES
       /* Update the universal storage pointer to the start of the field
@@ -7179,12 +7062,10 @@ representation is valid; otherwise, return FALSE.
           goto done;
         }  /* if */
         stage_5_4 = get_ifc_name(stage_5_3);
-        stage_5 = stage_5_4;
       } else {
         an_ifc_name_index_0_33  stage_5_0;
         an_ifc_validation_trace stage_5_0_trace =
                                                 {"name", /*offset=*/0, parent};
-        an_ifc_name_index       stage_5_1;
 
         /* Copy the field (DeclTemplate::name - NameIndex) into version
            specific storage. */
@@ -7196,8 +7077,6 @@ representation is valid; otherwise, return FALSE.
           result = FALSE;
           goto done;
         }  /* if */
-        stage_5_1 = to_universal_index(universal.get_module(), stage_5_0);
-        stage_5 = stage_5_1;
       }  /* if */
     }  /* if */
   }  /* if */
@@ -7308,7 +7187,6 @@ representation is valid; otherwise, return FALSE.
                                          {"home_scope", /*offset=*/12, parent};
       an_ifc_decl_index       stage_1;
       a_boolean               stage_2;
-      an_ifc_decl_index       stage_3;
 
       /* Copy the field (DeclUsingDeclaration::home_scope - DeclIndex) into
          version specific storage. */
@@ -7334,7 +7212,6 @@ representation is valid; otherwise, return FALSE.
         an_ifc_decl_index_0_41     stage_3_3;
         an_ifc_validation_trace    stage_3_3_trace =
                                       {"decl", /*offset=*/4, &stage_3_0_trace};
-        an_ifc_decl_index          stage_3_4;
 
         /* Copy the field (DeclUsingDeclaration::home_scope - DeclIndex) into
            version specific storage. */
@@ -7365,13 +7242,10 @@ representation is valid; otherwise, return FALSE.
           result = FALSE;
           goto done;
         }  /* if */
-        stage_3_4 = to_universal_index(stage_3_2.get_module(), stage_3_3);
-        stage_3 = stage_3_4;
       } else {
         an_ifc_decl_index_0_41  stage_3_0;
         an_ifc_validation_trace stage_3_0_trace =
                                          {"home_scope", /*offset=*/12, parent};
-        an_ifc_decl_index       stage_3_1;
 
         /* Copy the field (DeclUsingDeclaration::home_scope - DeclIndex) into
            version specific storage. */
@@ -7383,8 +7257,6 @@ representation is valid; otherwise, return FALSE.
           result = FALSE;
           goto done;
         }  /* if */
-        stage_3_1 = to_universal_index(universal.get_module(), stage_3_0);
-        stage_3 = stage_3_1;
       }  /* if */
     } else {
       an_ifc_decl_index_0_33  stage_0;
@@ -7517,7 +7389,6 @@ representation is valid; otherwise, return FALSE.
                                          {"home_scope", /*offset=*/16, parent};
       an_ifc_decl_index       stage_1;
       a_boolean               stage_2;
-      an_ifc_decl_index       stage_3;
 
       /* Copy the field (DeclVariable::home_scope - DeclIndex) into version
          specific storage. */
@@ -7543,7 +7414,6 @@ representation is valid; otherwise, return FALSE.
         an_ifc_decl_index_0_41     stage_3_3;
         an_ifc_validation_trace    stage_3_3_trace =
                                       {"decl", /*offset=*/4, &stage_3_0_trace};
-        an_ifc_decl_index          stage_3_4;
 
         /* Copy the field (DeclVariable::home_scope - DeclIndex) into version
            specific storage. */
@@ -7574,13 +7444,10 @@ representation is valid; otherwise, return FALSE.
           result = FALSE;
           goto done;
         }  /* if */
-        stage_3_4 = to_universal_index(stage_3_2.get_module(), stage_3_3);
-        stage_3 = stage_3_4;
       } else {
         an_ifc_decl_index_0_41  stage_3_0;
         an_ifc_validation_trace stage_3_0_trace =
                                          {"home_scope", /*offset=*/16, parent};
-        an_ifc_decl_index       stage_3_1;
 
         /* Copy the field (DeclVariable::home_scope - DeclIndex) into version
            specific storage. */
@@ -7592,8 +7459,6 @@ representation is valid; otherwise, return FALSE.
           result = FALSE;
           goto done;
         }  /* if */
-        stage_3_1 = to_universal_index(universal.get_module(), stage_3_0);
-        stage_3 = stage_3_1;
       }  /* if */
     } else {
       an_ifc_decl_index_0_33  stage_0;
