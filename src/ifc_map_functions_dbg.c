@@ -35,6 +35,8 @@ more about, the tool that generated this file.
 
 /* Conditionally open the "edg" namespace. */
 BEGIN_EDG_NAMESPACE
+
+
 void db_node(const an_ifc_keyword_syntax &universal, unsigned indent)
 /*
 Given the universal representation of KeywordSyntax, print a diagnostic textual
@@ -65,6 +67,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_module_reference &universal, unsigned indent)
 /*
 Given the universal representation of ModuleReference, print a diagnostic
@@ -94,6 +98,8 @@ textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_nestable_word &universal, unsigned indent)
 /*
 Given the universal representation of NestableWord, print a diagnostic textual
@@ -396,6 +402,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_noexcept_specification &universal, unsigned indent)
 /*
 Given the universal representation of NoexceptSpecification, print a diagnostic
@@ -425,6 +433,8 @@ textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_parameterized_entity &universal, unsigned indent)
 /*
 Given the universal representation of ParameterizedEntity, print a diagnostic
@@ -470,6 +480,8 @@ textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_sequence &universal, unsigned indent)
 /*
 Given the universal representation of Sequence, print a diagnostic textual
@@ -499,6 +511,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_source_location &universal, unsigned indent)
 /*
 Given the universal representation of SourceLocation, print a diagnostic
@@ -528,6 +542,8 @@ textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_file_header &universal, unsigned indent)
 /*
 Given the universal representation of FileHeader, print a diagnostic textual
@@ -636,6 +652,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_partition &universal, unsigned indent)
 /*
 Given the universal representation of Partition, print a diagnostic textual
@@ -677,6 +695,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_attr_basic &universal, unsigned indent)
 /*
 Given the universal representation of AttrBasic, print a diagnostic textual
@@ -701,6 +721,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_attr_called &universal, unsigned indent)
 /*
 Given the universal representation of AttrCalled, print a diagnostic textual
@@ -738,6 +760,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_attr_elaborated &universal, unsigned indent)
 /*
 Given the universal representation of AttrElaborated, print a diagnostic
@@ -765,6 +789,8 @@ textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_attr_expanded &universal, unsigned indent)
 /*
 Given the universal representation of AttrExpanded, print a diagnostic textual
@@ -792,6 +818,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_attr_factored &universal, unsigned indent)
 /*
 Given the universal representation of AttrFactored, print a diagnostic textual
@@ -826,6 +854,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_attr_labeled &universal, unsigned indent)
 /*
 Given the universal representation of AttrLabeled, print a diagnostic textual
@@ -860,6 +890,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_attr_scoped &universal, unsigned indent)
 /*
 Given the universal representation of AttrScoped, print a diagnostic textual
@@ -891,6 +923,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_attr_tuple &universal, unsigned indent)
 /*
 Given the universal representation of AttrTuple, print a diagnostic textual
@@ -920,6 +954,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_chart_multilevel &universal, unsigned indent)
 /*
 Given the universal representation of ChartMultilevel, print a diagnostic
@@ -949,6 +985,8 @@ textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_chart_unilevel &universal, unsigned indent)
 /*
 Given the universal representation of ChartUnilevel, print a diagnostic textual
@@ -988,6 +1026,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_const_f64 &universal, unsigned indent)
 /*
 Given the universal representation of ConstF64, print a diagnostic textual
@@ -1009,6 +1049,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_const_i64 &universal, unsigned indent)
 /*
 Given the universal representation of ConstI64, print a diagnostic textual
@@ -1032,6 +1074,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_const_str &universal, unsigned indent)
 /*
 Given the universal representation of ConstStr, print a diagnostic textual
@@ -1067,6 +1111,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_decl_alias &universal, unsigned indent)
 /*
 Given the universal representation of DeclAlias, print a diagnostic textual
@@ -1137,6 +1183,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_decl_bitfield &universal, unsigned indent)
 /*
 Given the universal representation of DeclBitfield, print a diagnostic textual
@@ -1225,6 +1273,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_decl_concept &universal, unsigned indent)
 /*
 Given the universal representation of DeclConcept, print a diagnostic textual
@@ -1323,6 +1373,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_decl_constructor &universal, unsigned indent)
 /*
 Given the universal representation of DeclConstructor, print a diagnostic
@@ -1405,6 +1457,8 @@ textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_decl_deduction_guide &universal, unsigned indent)
 /*
 Given the universal representation of DeclDeductionGuide, print a diagnostic
@@ -1475,6 +1529,8 @@ textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_decl_destructor &universal, unsigned indent)
 /*
 Given the universal representation of DeclDestructor, print a diagnostic
@@ -1550,6 +1606,8 @@ textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_decl_enumeration &universal, unsigned indent)
 /*
 Given the universal representation of DeclEnumeration, print a diagnostic
@@ -1641,6 +1699,8 @@ textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_decl_enumerator &universal, unsigned indent)
 /*
 Given the universal representation of DeclEnumerator, print a diagnostic
@@ -1711,6 +1771,8 @@ textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_decl_expansion &universal, unsigned indent)
 /*
 Given the universal representation of DeclExpansion, print a diagnostic textual
@@ -1745,6 +1807,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_decl_explicit_instantiation &universal,
              unsigned                                 indent)
 /*
@@ -1779,6 +1843,8 @@ diagnostic textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_decl_explicit_specialization &universal,
              unsigned                                  indent)
 /*
@@ -1813,6 +1879,8 @@ diagnostic textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_decl_field &universal, unsigned indent)
 /*
 Given the universal representation of DeclField, print a diagnostic textual
@@ -1901,6 +1969,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_decl_friend &universal, unsigned indent)
 /*
 Given the universal representation of DeclFriend, print a diagnostic textual
@@ -1928,6 +1998,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_decl_function &universal, unsigned indent)
 /*
 Given the universal representation of DeclFunction, print a diagnostic textual
@@ -2010,6 +2082,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_decl_inherited_constructor &universal,
              unsigned                                indent)
 /*
@@ -2095,6 +2169,8 @@ diagnostic textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_decl_intrinsic &universal, unsigned indent)
 /*
 Given the universal representation of DeclIntrinsic, print a diagnostic textual
@@ -2155,6 +2231,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_decl_method &universal, unsigned indent)
 /*
 Given the universal representation of DeclMethod, print a diagnostic textual
@@ -2237,6 +2315,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_decl_output_segment &universal, unsigned indent)
 /*
 Given the universal representation of DeclOutputSegment, print a diagnostic
@@ -2278,6 +2358,8 @@ textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_decl_parameter &universal, unsigned indent)
 /*
 Given the universal representation of DeclParameter, print a diagnostic textual
@@ -2366,6 +2448,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_decl_partial_specialization &universal,
              unsigned                                 indent)
 /*
@@ -2448,6 +2532,8 @@ diagnostic textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_decl_property &universal, unsigned indent)
 /*
 Given the universal representation of DeclProperty, print a diagnostic textual
@@ -2487,6 +2573,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_decl_reference &universal, unsigned indent)
 /*
 Given the universal representation of DeclReference, print a diagnostic textual
@@ -2525,6 +2613,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_decl_scope &universal, unsigned indent)
 /*
 Given the universal representation of DeclScope, print a diagnostic textual
@@ -2629,6 +2719,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_decl_specialization &universal, unsigned indent)
 /*
 Given the universal representation of DeclSpecialization, print a diagnostic
@@ -2695,6 +2787,8 @@ textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_decl_template &universal, unsigned indent)
 /*
 Given the universal representation of DeclTemplate, print a diagnostic textual
@@ -2780,6 +2874,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_decl_temploid &universal, unsigned indent)
 /*
 Given the universal representation of DeclTemploid, print a diagnostic textual
@@ -2818,6 +2914,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_decl_tuple &universal, unsigned indent)
 /*
 Given the universal representation of DeclTuple, print a diagnostic textual
@@ -2847,6 +2945,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_decl_using_declaration &universal, unsigned indent)
 /*
 Given the universal representation of DeclUsingDeclaration, print a diagnostic
@@ -2929,6 +3029,8 @@ textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_decl_variable &universal, unsigned indent)
 /*
 Given the universal representation of DeclVariable, print a diagnostic textual
@@ -3021,6 +3123,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_expr_alignof &universal, unsigned indent)
 /*
 Given the universal representation of ExprAlignof, print a diagnostic textual
@@ -3065,6 +3169,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_expr_array_value &universal, unsigned indent)
 /*
 Given the universal representation of ExprArrayValue, print a diagnostic
@@ -3119,6 +3225,8 @@ textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_expr_assign_initializer &universal, unsigned indent)
 /*
 Given the universal representation of ExprAssignInitializer, print a diagnostic
@@ -3153,6 +3261,8 @@ textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_expr_binary_fold &universal, unsigned indent)
 /*
 Given the universal representation of ExprBinaryFold, print a diagnostic
@@ -3220,6 +3330,8 @@ textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_expr_call &universal, unsigned indent)
 /*
 Given the universal representation of ExprCall, print a diagnostic textual
@@ -3274,6 +3386,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_expr_cast &universal, unsigned indent)
 /*
 Given the universal representation of ExprCast, print a diagnostic textual
@@ -3334,6 +3448,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_expr_compound_string &universal, unsigned indent)
 /*
 Given the universal representation of ExprCompoundString, print a diagnostic
@@ -3384,6 +3500,8 @@ textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_expr_condition &universal, unsigned indent)
 /*
 Given the universal representation of ExprCondition, print a diagnostic textual
@@ -3428,6 +3546,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_expr_designated_initializer &universal,
              unsigned                                 indent)
 /*
@@ -3479,6 +3599,8 @@ diagnostic textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_expr_destructor_call &universal, unsigned indent)
 /*
 Given the universal representation of ExprDestructorCall, print a diagnostic
@@ -3539,6 +3661,8 @@ textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_expr_dyad &universal, unsigned indent)
 /*
 Given the universal representation of ExprDyad, print a diagnostic textual
@@ -3609,6 +3733,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_expr_dynamic_dispatch &universal, unsigned indent)
 /*
 Given the universal representation of ExprDynamicDispatch, print a diagnostic
@@ -3653,6 +3779,8 @@ textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_expr_empty &universal, unsigned indent)
 /*
 Given the universal representation of ExprEmpty, print a diagnostic textual
@@ -3687,6 +3815,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_expr_expansion &universal, unsigned indent)
 /*
 Given the universal representation of ExprExpansion, print a diagnostic textual
@@ -3731,6 +3861,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_expr_expression_list &universal, unsigned indent)
 /*
 Given the universal representation of ExprExpressionList, print a diagnostic
@@ -3778,6 +3910,8 @@ textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_expr_function_string &universal, unsigned indent)
 /*
 Given the universal representation of ExprFunctionString, print a diagnostic
@@ -3818,6 +3952,8 @@ textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_expr_hierarchy_conversion &universal,
              unsigned                               indent)
 /*
@@ -3899,6 +4035,8 @@ diagnostic textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_expr_inheritance_path &universal, unsigned indent)
 /*
 Given the universal representation of ExprInheritancePath, print a diagnostic
@@ -3943,6 +4081,8 @@ textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_expr_initializer &universal, unsigned indent)
 /*
 Given the universal representation of ExprInitializer, print a diagnostic
@@ -3993,6 +4133,8 @@ textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_expr_initializer_list &universal, unsigned indent)
 /*
 Given the universal representation of ExprInitializerList, print a diagnostic
@@ -4037,6 +4179,8 @@ textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_expr_lambda &universal, unsigned indent)
 /*
 Given the universal representation of ExprLambda, print a diagnostic textual
@@ -4104,6 +4248,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_expr_literal &universal, unsigned indent)
 /*
 Given the universal representation of ExprLiteral, print a diagnostic textual
@@ -4148,6 +4294,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_expr_member_access &universal, unsigned indent)
 /*
 Given the universal representation of ExprMemberAccess, print a diagnostic
@@ -4208,6 +4356,8 @@ textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_expr_member_initializer &universal, unsigned indent)
 /*
 Given the universal representation of ExprMemberInitializer, print a diagnostic
@@ -4272,6 +4422,8 @@ textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_expr_monad &universal, unsigned indent)
 /*
 Given the universal representation of ExprMonad, print a diagnostic textual
@@ -4332,6 +4484,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_expr_named_decl &universal, unsigned indent)
 /*
 Given the universal representation of ExprNamedDecl, print a diagnostic textual
@@ -4376,6 +4530,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_expr_nullptr &universal, unsigned indent)
 /*
 Given the universal representation of ExprNullptr, print a diagnostic textual
@@ -4410,6 +4566,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_expr_packed_template_arguments &universal,
              unsigned                                    indent)
 /*
@@ -4455,6 +4613,8 @@ diagnostic textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_expr_path &universal, unsigned indent)
 /*
 Given the universal representation of ExprPath, print a diagnostic textual
@@ -4509,6 +4669,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_expr_placeholder &universal, unsigned indent)
 /*
 Given the universal representation of ExprPlaceholder, print a diagnostic
@@ -4543,6 +4705,8 @@ textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_expr_pointer &universal, unsigned indent)
 /*
 Given the universal representation of ExprPointer, print a diagnostic textual
@@ -4567,6 +4731,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_expr_product_type_value &universal, unsigned indent)
 /*
 Given the universal representation of ExprProductTypeValue, print a diagnostic
@@ -4631,6 +4797,8 @@ textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_expr_push_state &universal, unsigned indent)
 /*
 Given the universal representation of ExprPushState, print a diagnostic textual
@@ -4691,6 +4859,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_expr_qualified_name &universal, unsigned indent)
 /*
 Given the universal representation of ExprQualifiedName, print a diagnostic
@@ -4742,6 +4912,8 @@ textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_expr_read &universal, unsigned indent)
 /*
 Given the universal representation of ExprRead, print a diagnostic textual
@@ -4792,6 +4964,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_expr_requires &universal, unsigned indent)
 /*
 Given the universal representation of ExprRequires, print a diagnostic textual
@@ -4846,6 +5020,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_expr_simple_identifier &universal, unsigned indent)
 /*
 Given the universal representation of ExprSimpleIdentifier, print a diagnostic
@@ -4890,6 +5066,8 @@ textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_expr_sizeof_type &universal, unsigned indent)
 /*
 Given the universal representation of ExprSizeofType, print a diagnostic
@@ -4934,6 +5112,8 @@ textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_expr_string &universal, unsigned indent)
 /*
 Given the universal representation of ExprString, print a diagnostic textual
@@ -4978,6 +5158,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_expr_string_sequence &universal, unsigned indent)
 /*
 Given the universal representation of ExprStringSequence, print a diagnostic
@@ -5022,6 +5204,8 @@ textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_expr_subobject_value &universal, unsigned indent)
 /*
 Given the universal representation of ExprSubobjectValue, print a diagnostic
@@ -5049,6 +5233,8 @@ textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_expr_sum_type_value &universal, unsigned indent)
 /*
 Given the universal representation of ExprSumTypeValue, print a diagnostic
@@ -5109,6 +5295,8 @@ textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_expr_syntax_tree &universal, unsigned indent)
 /*
 Given the universal representation of ExprSyntaxTree, print a diagnostic
@@ -5136,6 +5324,8 @@ textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_expr_template_id &universal, unsigned indent)
 /*
 Given the universal representation of ExprTemplateId, print a diagnostic
@@ -5190,6 +5380,8 @@ textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_expr_template_reference &universal, unsigned indent)
 /*
 Given the universal representation of ExprTemplateReference, print a diagnostic
@@ -5261,6 +5453,8 @@ textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_expr_temporary &universal, unsigned indent)
 /*
 Given the universal representation of ExprTemporary, print a diagnostic textual
@@ -5301,6 +5495,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_expr_this &universal, unsigned indent)
 /*
 Given the universal representation of ExprThis, print a diagnostic textual
@@ -5335,6 +5531,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_expr_tokens &universal, unsigned indent)
 /*
 Given the universal representation of ExprTokens, print a diagnostic textual
@@ -5375,6 +5573,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_expr_triad &universal, unsigned indent)
 /*
 Given the universal representation of ExprTriad, print a diagnostic textual
@@ -5455,6 +5655,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_expr_tuple &universal, unsigned indent)
 /*
 Given the universal representation of ExprTuple, print a diagnostic textual
@@ -5501,6 +5703,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_expr_type &universal, unsigned indent)
 /*
 Given the universal representation of ExprType, print a diagnostic textual
@@ -5545,6 +5749,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_expr_type_trait_intrinsic &universal,
              unsigned                               indent)
 /*
@@ -5651,6 +5857,8 @@ diagnostic textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_expr_typeid &universal, unsigned indent)
 /*
 Given the universal representation of ExprTypeid, print a diagnostic textual
@@ -5695,6 +5903,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_expr_unary_fold &universal, unsigned indent)
 /*
 Given the universal representation of ExprUnaryFold, print a diagnostic textual
@@ -5752,6 +5962,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_expr_unqualified_id &universal, unsigned indent)
 /*
 Given the universal representation of ExprUnqualifiedId, print a diagnostic
@@ -5813,6 +6025,8 @@ textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_expr_unresolved_id &universal, unsigned indent)
 /*
 Given the universal representation of ExprUnresolvedId, print a diagnostic
@@ -5857,6 +6071,8 @@ textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_expr_virtual_function_conversion &universal,
              unsigned                                      indent)
 /*
@@ -5902,6 +6118,8 @@ diagnostic textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_form_catenate &universal, unsigned indent)
 /*
 Given the universal representation of FormCatenate, print a diagnostic textual
@@ -5946,6 +6164,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_form_character &universal, unsigned indent)
 /*
 Given the universal representation of FormCharacter, print a diagnostic textual
@@ -5976,6 +6196,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_form_header &universal, unsigned indent)
 /*
 Given the universal representation of FormHeader, print a diagnostic textual
@@ -6006,6 +6228,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_form_identifier &universal, unsigned indent)
 /*
 Given the universal representation of FormIdentifier, print a diagnostic
@@ -6036,6 +6260,8 @@ textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_form_junk &universal, unsigned indent)
 /*
 Given the universal representation of FormJunk, print a diagnostic textual
@@ -6066,6 +6292,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_form_keyword &universal, unsigned indent)
 /*
 Given the universal representation of FormKeyword, print a diagnostic textual
@@ -6096,6 +6324,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_form_number &universal, unsigned indent)
 /*
 Given the universal representation of FormNumber, print a diagnostic textual
@@ -6126,6 +6356,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_form_operator &universal, unsigned indent)
 /*
 Given the universal representation of FormOperator, print a diagnostic textual
@@ -6162,6 +6394,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_form_parameter &universal, unsigned indent)
 /*
 Given the universal representation of FormParameter, print a diagnostic textual
@@ -6192,6 +6426,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_form_parenthesized &universal, unsigned indent)
 /*
 Given the universal representation of FormParenthesized, print a diagnostic
@@ -6226,6 +6462,8 @@ textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_form_pragma &universal, unsigned indent)
 /*
 Given the universal representation of FormPragma, print a diagnostic textual
@@ -6260,6 +6498,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_form_spec &universal, unsigned indent)
 /*
 Given the universal representation of FormSpec, print a diagnostic textual
@@ -6297,6 +6537,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_form_string &universal, unsigned indent)
 /*
 Given the universal representation of FormString, print a diagnostic textual
@@ -6327,6 +6569,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_form_stringize &universal, unsigned indent)
 /*
 Given the universal representation of FormStringize, print a diagnostic textual
@@ -6361,6 +6605,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_form_tuple &universal, unsigned indent)
 /*
 Given the universal representation of FormTuple, print a diagnostic textual
@@ -6390,6 +6636,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_form_whitespace &universal, unsigned indent)
 /*
 Given the universal representation of FormWhitespace, print a diagnostic
@@ -6414,6 +6662,8 @@ textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_heap_attr &universal, unsigned indent)
 /*
 Given the universal representation of HeapAttr, print a diagnostic textual
@@ -6441,6 +6691,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_heap_chart &universal, unsigned indent)
 /*
 Given the universal representation of HeapChart, print a diagnostic textual
@@ -6468,6 +6720,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_heap_decl &universal, unsigned indent)
 /*
 Given the universal representation of HeapDecl, print a diagnostic textual
@@ -6495,6 +6749,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_heap_expr &universal, unsigned indent)
 /*
 Given the universal representation of HeapExpr, print a diagnostic textual
@@ -6522,6 +6778,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_heap_form &universal, unsigned indent)
 /*
 Given the universal representation of HeapForm, print a diagnostic textual
@@ -6549,6 +6807,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_heap_pp_form &universal, unsigned indent)
 /*
 Given the universal representation of HeapPPForm, print a diagnostic textual
@@ -6576,6 +6836,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_heap_stmt &universal, unsigned indent)
 /*
 Given the universal representation of HeapStmt, print a diagnostic textual
@@ -6603,6 +6865,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_heap_syntax &universal, unsigned indent)
 /*
 Given the universal representation of HeapSyntax, print a diagnostic textual
@@ -6630,6 +6894,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_heap_type &universal, unsigned indent)
 /*
 Given the universal representation of HeapType, print a diagnostic textual
@@ -6657,6 +6923,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_macro_function_like &universal, unsigned indent)
 /*
 Given the universal representation of MacroFunctionLike, print a diagnostic
@@ -6711,6 +6979,8 @@ textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_macro_object_like &universal, unsigned indent)
 /*
 Given the universal representation of MacroObjectLike, print a diagnostic
@@ -6751,6 +7021,8 @@ textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_module_export_reference &universal, unsigned indent)
 /*
 Given the universal representation of ModuleExportReference, print a diagnostic
@@ -6775,6 +7047,8 @@ textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_module_import_reference &universal, unsigned indent)
 /*
 Given the universal representation of ModuleImportReference, print a diagnostic
@@ -6799,6 +7073,8 @@ textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_name_conversion &universal, unsigned indent)
 /*
 Given the universal representation of NameConversion, print a diagnostic
@@ -6832,6 +7108,8 @@ textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_name_guide &universal, unsigned indent)
 /*
 Given the universal representation of NameGuide, print a diagnostic textual
@@ -6859,6 +7137,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_name_literal &universal, unsigned indent)
 /*
 Given the universal representation of NameLiteral, print a diagnostic textual
@@ -6882,6 +7162,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_name_operator &universal, unsigned indent)
 /*
 Given the universal representation of NameOperator, print a diagnostic textual
@@ -6966,6 +7248,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_name_source_file &universal, unsigned indent)
 /*
 Given the universal representation of NameSourceFile, print a diagnostic
@@ -6995,6 +7279,8 @@ textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_name_specialization &universal, unsigned indent)
 /*
 Given the universal representation of NameSpecialization, print a diagnostic
@@ -7032,6 +7318,8 @@ textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_name_template &universal, unsigned indent)
 /*
 Given the universal representation of NameTemplate, print a diagnostic textual
@@ -7059,6 +7347,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_scope_descriptor &universal, unsigned indent)
 /*
 Given the universal representation of ScopeDescriptor, print a diagnostic
@@ -7088,6 +7378,8 @@ textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_scope_member &universal, unsigned indent)
 /*
 Given the universal representation of ScopeMember, print a diagnostic textual
@@ -7115,6 +7407,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_source_line &universal, unsigned indent)
 /*
 Given the universal representation of SourceLine, print a diagnostic textual
@@ -7148,6 +7442,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_source_sentence &universal, unsigned indent)
 /*
 Given the universal representation of SourceSentence, print a diagnostic
@@ -7184,6 +7480,8 @@ textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_source_word &universal, unsigned indent)
 /*
 Given the universal representation of SourceWord, print a diagnostic textual
@@ -7486,6 +7784,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_stmt_block &universal, unsigned indent)
 /*
 Given the universal representation of StmtBlock, print a diagnostic textual
@@ -7515,6 +7815,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_stmt_break &universal, unsigned indent)
 /*
 Given the universal representation of StmtBreak, print a diagnostic textual
@@ -7539,6 +7841,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_stmt_case &universal, unsigned indent)
 /*
 Given the universal representation of StmtCase, print a diagnostic textual
@@ -7573,6 +7877,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_stmt_continue &universal, unsigned indent)
 /*
 Given the universal representation of StmtContinue, print a diagnostic textual
@@ -7597,6 +7903,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_stmt_default &universal, unsigned indent)
 /*
 Given the universal representation of StmtDefault, print a diagnostic textual
@@ -7621,6 +7929,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_stmt_do_while &universal, unsigned indent)
 /*
 Given the universal representation of StmtDoWhile, print a diagnostic textual
@@ -7665,6 +7975,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_stmt_empty &universal, unsigned indent)
 /*
 Given the universal representation of StmtEmpty, print a diagnostic textual
@@ -7689,6 +8001,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_stmt_expansion &universal, unsigned indent)
 /*
 Given the universal representation of StmtExpansion, print a diagnostic textual
@@ -7716,6 +8030,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_stmt_expression &universal, unsigned indent)
 /*
 Given the universal representation of StmtExpression, print a diagnostic
@@ -7750,6 +8066,8 @@ textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_stmt_for &universal, unsigned indent)
 /*
 Given the universal representation of StmtFor, print a diagnostic textual
@@ -7814,6 +8132,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_stmt_if &universal, unsigned indent)
 /*
 Given the universal representation of StmtIf, print a diagnostic textual
@@ -7878,6 +8198,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_stmt_return &universal, unsigned indent)
 /*
 Given the universal representation of StmtReturn, print a diagnostic textual
@@ -7932,6 +8254,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_stmt_switch &universal, unsigned indent)
 /*
 Given the universal representation of StmtSwitch, print a diagnostic textual
@@ -7986,6 +8310,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_stmt_variable_decl &universal, unsigned indent)
 /*
 Given the universal representation of StmtVariableDecl, print a diagnostic
@@ -8020,6 +8346,8 @@ textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_stmt_while &universal, unsigned indent)
 /*
 Given the universal representation of StmtWhile, print a diagnostic textual
@@ -8064,6 +8392,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_syntax_access_specifier &universal, unsigned indent)
 /*
 Given the universal representation of SyntaxAccessSpecifier, print a diagnostic
@@ -8126,6 +8456,8 @@ textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_syntax_alias_declaration &universal, unsigned indent)
 /*
 Given the universal representation of SyntaxAliasDeclaration, print a
@@ -8184,6 +8516,8 @@ diagnostic textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_syntax_alignas &universal, unsigned indent)
 /*
 Given the universal representation of SyntaxAlignas, print a diagnostic textual
@@ -8232,6 +8566,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_syntax_array_declarator &universal, unsigned indent)
 /*
 Given the universal representation of SyntaxArrayDeclarator, print a diagnostic
@@ -8273,6 +8609,8 @@ textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_syntax_array_index &universal, unsigned indent)
 /*
 Given the universal representation of SyntaxArrayIndex, print a diagnostic
@@ -8324,6 +8662,8 @@ textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_syntax_array_or_function_declarator &universal,
              unsigned                                         indent)
 /*
@@ -8362,6 +8702,8 @@ diagnostic textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_syntax_asm_statement &universal, unsigned indent)
 /*
 Given the universal representation of SyntaxAsmStatement, print a diagnostic
@@ -8392,6 +8734,8 @@ textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_syntax_attribute &universal, unsigned indent)
 /*
 Given the universal representation of SyntaxAttribute, print a diagnostic
@@ -8460,6 +8804,8 @@ textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_syntax_attribute_argument_clause &universal,
              unsigned                                      indent)
 /*
@@ -8498,6 +8844,8 @@ diagnostic textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_syntax_attribute_specifier &universal,
              unsigned                                indent)
 /*
@@ -8564,6 +8912,8 @@ diagnostic textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_syntax_attribute_specifier_seq &universal,
              unsigned                                    indent)
 /*
@@ -8592,6 +8942,8 @@ diagnostic textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_syntax_attribute_using_prefix &universal,
              unsigned                                   indent)
 /*
@@ -8624,6 +8976,8 @@ diagnostic textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_syntax_attributed_declaration &universal,
              unsigned                                   indent)
 /*
@@ -8669,6 +9023,8 @@ diagnostic textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_syntax_attributed_statement &universal,
              unsigned                                 indent)
 /*
@@ -8713,6 +9069,8 @@ diagnostic textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_syntax_base_specifier &universal, unsigned indent)
 /*
 Given the universal representation of SyntaxBaseSpecifier, print a diagnostic
@@ -8744,6 +9102,8 @@ textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_syntax_base_specifier_list &universal,
              unsigned                                indent)
 /*
@@ -8779,6 +9139,8 @@ diagnostic textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_syntax_binary_fold_expression &universal,
              unsigned                                   indent)
 /*
@@ -8864,6 +9226,8 @@ diagnostic textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_syntax_break_statement &universal, unsigned indent)
 /*
 Given the universal representation of SyntaxBreakStatement, print a diagnostic
@@ -8895,6 +9259,8 @@ textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_syntax_capture_default &universal, unsigned indent)
 /*
 Given the universal representation of SyntaxCaptureDefault, print a diagnostic
@@ -8932,6 +9298,8 @@ textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_syntax_class_specifier &universal, unsigned indent)
 /*
 Given the universal representation of SyntaxClassSpecifier, print a diagnostic
@@ -9006,6 +9374,8 @@ textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_syntax_compound_requirement &universal,
              unsigned                                 indent)
 /*
@@ -9065,6 +9435,8 @@ diagnostic textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_syntax_compound_statement &universal,
              unsigned                               indent)
 /*
@@ -9113,6 +9485,8 @@ diagnostic textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_syntax_concept_definition &universal,
              unsigned                               indent)
 /*
@@ -9185,6 +9559,8 @@ diagnostic textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_syntax_condition_declaration &universal,
              unsigned                                  indent)
 /*
@@ -9230,6 +9606,8 @@ diagnostic textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_syntax_continue_statement &universal,
              unsigned                               indent)
 /*
@@ -9262,6 +9640,8 @@ diagnostic textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_syntax_ctor_initializer &universal, unsigned indent)
 /*
 Given the universal representation of SyntaxCtorInitializer, print a diagnostic
@@ -9296,6 +9676,8 @@ textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_syntax_decl_specifier_seq &universal,
              unsigned                               indent)
 /*
@@ -9365,6 +9747,8 @@ diagnostic textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_syntax_declaration_statement &universal,
              unsigned                                  indent)
 /*
@@ -9399,6 +9783,8 @@ diagnostic textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_syntax_declarator &universal, unsigned indent)
 /*
 Given the universal representation of SyntaxDeclarator, print a diagnostic
@@ -9506,6 +9892,8 @@ textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_syntax_decltype_specifier &universal,
              unsigned                               indent)
 /*
@@ -9555,6 +9943,8 @@ diagnostic textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_syntax_do_while_statement &universal,
              unsigned                               indent)
 /*
@@ -9620,6 +10010,8 @@ diagnostic textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_syntax_dynamic_exception_spec &universal,
              unsigned                                   indent)
 /*
@@ -9676,6 +10068,8 @@ diagnostic textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_syntax_empty_statement &universal, unsigned indent)
 /*
 Given the universal representation of SyntaxEmptyStatement, print a diagnostic
@@ -9700,6 +10094,8 @@ textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_syntax_enum_specifier &universal, unsigned indent)
 /*
 Given the universal representation of SyntaxEnumSpecifier, print a diagnostic
@@ -9782,6 +10178,8 @@ textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_syntax_enumerator_definition &universal,
              unsigned                                  indent)
 /*
@@ -9837,6 +10235,8 @@ diagnostic textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_syntax_exception_declaration &universal,
              unsigned                                  indent)
 /*
@@ -9889,6 +10289,8 @@ diagnostic textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_syntax_explicit_specifier &universal,
              unsigned                               indent)
 /*
@@ -9938,6 +10340,8 @@ diagnostic textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_syntax_expression &universal, unsigned indent)
 /*
 Given the universal representation of SyntaxExpression, print a diagnostic
@@ -9965,6 +10369,8 @@ textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_syntax_expression_statement &universal,
              unsigned                                 indent)
 /*
@@ -10006,6 +10412,8 @@ diagnostic textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_syntax_for_range_declaration &universal,
              unsigned                                  indent)
 /*
@@ -10044,6 +10452,8 @@ diagnostic textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_syntax_for_statement &universal, unsigned indent)
 /*
 Given the universal representation of SyntaxForStatement, print a diagnostic
@@ -10135,6 +10545,8 @@ textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_syntax_function_body &universal, unsigned indent)
 /*
 Given the universal representation of SyntaxFunctionBody, print a diagnostic
@@ -10203,6 +10615,8 @@ textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_syntax_function_declarator &universal,
              unsigned                                indent)
 /*
@@ -10255,6 +10669,8 @@ diagnostic textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_syntax_function_definition &universal,
              unsigned                                indent)
 /*
@@ -10324,6 +10740,8 @@ diagnostic textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_syntax_function_try_block &universal,
              unsigned                               indent)
 /*
@@ -10372,6 +10790,8 @@ diagnostic textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_syntax_goto_statement &universal, unsigned indent)
 /*
 Given the universal representation of SyntaxGotoStatement, print a diagnostic
@@ -10422,6 +10842,8 @@ textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_syntax_handler &universal, unsigned indent)
 /*
 Given the universal representation of SyntaxHandler, print a diagnostic textual
@@ -10486,6 +10908,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_syntax_handler_seq &universal, unsigned indent)
 /*
 Given the universal representation of SyntaxHandlerSeq, print a diagnostic
@@ -10513,6 +10937,8 @@ textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_syntax_if_statement &universal, unsigned indent)
 /*
 Given the universal representation of SyntaxIfStatement, print a diagnostic
@@ -10529,25 +10955,11 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
-  if (has_ifc_condition_as_expr(universal)) {
-    an_ifc_expr_index field = get_ifc_condition_as_expr(universal);
+  if (has_ifc_condition(universal)) {
+    an_ifc_index field = get_ifc_condition(universal);
 
     db_print_indent(indent);
-    fprintf(f_debug, "condition_as_expr:\n");
-    db_print_indent(indent);
-    fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
-    db_print_indent(indent);
-    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
-  }  /* if */
-  if (has_ifc_condition_as_syntax(universal)) {
-    an_ifc_syntax_index field = get_ifc_condition_as_syntax(universal);
-
-    db_print_indent(indent);
-    fprintf(f_debug, "condition_as_syntax:\n");
-    db_print_indent(indent);
-    fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
-    db_print_indent(indent);
-    fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
+    fprintf(f_debug, "condition: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_consequence(universal)) {
     an_ifc_syntax_index field = get_ifc_consequence(universal);
@@ -10607,6 +11019,8 @@ textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_syntax_init_capture &universal, unsigned indent)
 /*
 Given the universal representation of SyntaxInitCapture, print a diagnostic
@@ -10665,6 +11079,8 @@ textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_syntax_init_declarator &universal, unsigned indent)
 /*
 Given the universal representation of SyntaxInitDeclarator, print a diagnostic
@@ -10719,6 +11135,8 @@ textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_syntax_init_statement &universal, unsigned indent)
 /*
 Given the universal representation of SyntaxInitStatement, print a diagnostic
@@ -10752,6 +11170,8 @@ textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_syntax_labeled_statement &universal, unsigned indent)
 /*
 Given the universal representation of SyntaxLabeledStatement, print a
@@ -10807,6 +11227,8 @@ diagnostic textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_syntax_lambda_declarator &universal, unsigned indent)
 /*
 Given the universal representation of SyntaxLambdaDeclarator, print a
@@ -10881,6 +11303,8 @@ diagnostic textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_syntax_lambda_introducer &universal, unsigned indent)
 /*
 Given the universal representation of SyntaxLambdaIntroducer, print a
@@ -10922,6 +11346,8 @@ diagnostic textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_syntax_mem_initializer &universal, unsigned indent)
 /*
 Given the universal representation of SyntaxMemInitializer, print a diagnostic
@@ -10973,6 +11399,8 @@ textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_syntax_member_declaration &universal,
              unsigned                               indent)
 /*
@@ -11018,6 +11446,8 @@ diagnostic textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_syntax_member_declarator &universal, unsigned indent)
 /*
 Given the universal representation of SyntaxMemberDeclarator, print a
@@ -11096,6 +11526,8 @@ diagnostic textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_syntax_member_function_declaration &universal,
              unsigned                                        indent)
 /*
@@ -11124,6 +11556,8 @@ diagnostic textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_syntax_member_specification &universal,
              unsigned                                 indent)
 /*
@@ -11152,6 +11586,8 @@ diagnostic textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_syntax_namespace_alias_definition &universal,
              unsigned                                       indent)
 /*
@@ -11211,6 +11647,8 @@ diagnostic textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_syntax_nested_requirement &universal,
              unsigned                               indent)
 /*
@@ -11246,6 +11684,8 @@ diagnostic textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_syntax_new_declarator &universal, unsigned indent)
 /*
 Given the universal representation of SyntaxNewDeclarator, print a diagnostic
@@ -11273,6 +11713,8 @@ textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_syntax_noexcept_specification &universal,
              unsigned                                   indent)
 /*
@@ -11322,6 +11764,8 @@ diagnostic textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_syntax_non_type_template_argument &universal,
              unsigned                                       indent)
 /*
@@ -11364,6 +11808,8 @@ diagnostic textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_syntax_parameter_declarator &universal,
              unsigned                                 indent)
 /*
@@ -11425,6 +11871,8 @@ diagnostic textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_syntax_placeholder_type_specifier &universal,
              unsigned                                       indent)
 /*
@@ -11473,6 +11921,8 @@ diagnostic textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_syntax_pointer_declarator &universal,
              unsigned                               indent)
 /*
@@ -11540,6 +11990,8 @@ diagnostic textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_syntax_range_based_for_statement &universal,
              unsigned                                      indent)
 /*
@@ -11632,6 +12084,8 @@ diagnostic textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_syntax_requirement_body &universal, unsigned indent)
 /*
 Given the universal representation of SyntaxRequirementBody, print a diagnostic
@@ -11673,6 +12127,8 @@ textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_syntax_requires_clause &universal, unsigned indent)
 /*
 Given the universal representation of SyntaxRequiresClause, print a diagnostic
@@ -11707,6 +12163,8 @@ textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_syntax_return_statement &universal, unsigned indent)
 /*
 Given the universal representation of SyntaxReturnStatement, print a diagnostic
@@ -11760,6 +12218,8 @@ textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_syntax_seh_except &universal, unsigned indent)
 /*
 Given the universal representation of SyntaxSEHExcept, print a diagnostic
@@ -11818,6 +12278,8 @@ textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_syntax_seh_finally &universal, unsigned indent)
 /*
 Given the universal representation of SyntaxSEHFinally, print a diagnostic
@@ -11852,6 +12314,8 @@ textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_syntax_seh_leave &universal, unsigned indent)
 /*
 Given the universal representation of SyntaxSEHLeave, print a diagnostic
@@ -11883,6 +12347,8 @@ textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_syntax_seh_try &universal, unsigned indent)
 /*
 Given the universal representation of SyntaxSEHTry, print a diagnostic textual
@@ -11927,6 +12393,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_syntax_simple_capture &universal, unsigned indent)
 /*
 Given the universal representation of SyntaxSimpleCapture, print a diagnostic
@@ -11975,6 +12443,8 @@ textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_syntax_simple_declaration &universal,
              unsigned                               indent)
 /*
@@ -12027,6 +12497,8 @@ diagnostic textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_syntax_simple_requirement &universal,
              unsigned                               indent)
 /*
@@ -12062,6 +12534,8 @@ diagnostic textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_syntax_simple_type_specifier &universal,
              unsigned                                  indent)
 /*
@@ -12107,6 +12581,8 @@ diagnostic textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_syntax_statement_seq &universal, unsigned indent)
 /*
 Given the universal representation of SyntaxStatementSeq, print a diagnostic
@@ -12134,6 +12610,8 @@ textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_syntax_static_assert_declaration &universal,
              unsigned                                      indent)
 /*
@@ -12207,6 +12685,8 @@ diagnostic textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_syntax_structured_binding_declaration &universal,
              unsigned                                           indent)
 /*
@@ -12269,6 +12749,8 @@ a diagnostic textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_syntax_structured_binding_identifier &universal,
              unsigned                                          indent)
 /*
@@ -12304,6 +12786,8 @@ a diagnostic textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_syntax_super &universal, unsigned indent)
 /*
 Given the universal representation of SyntaxSuper, print a diagnostic textual
@@ -12328,6 +12812,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_syntax_switch_statement &universal, unsigned indent)
 /*
 Given the universal representation of SyntaxSwitchStatement, print a diagnostic
@@ -12388,6 +12874,8 @@ textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_syntax_template_argument_list &universal,
              unsigned                                   indent)
 /*
@@ -12430,6 +12918,8 @@ diagnostic textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_syntax_template_declaration &universal,
              unsigned                                 indent)
 /*
@@ -12475,6 +12965,8 @@ diagnostic textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_syntax_template_id &universal, unsigned indent)
 /*
 Given the universal representation of SyntaxTemplateId, print a diagnostic
@@ -12536,6 +13028,8 @@ textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_syntax_template_parameter_list &universal,
              unsigned                                    indent)
 /*
@@ -12588,6 +13082,8 @@ diagnostic textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_syntax_template_template_parameter &universal,
              unsigned                                        indent)
 /*
@@ -12660,6 +13156,8 @@ diagnostic textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_syntax_this_capture &universal, unsigned indent)
 /*
 Given the universal representation of SyntaxThisCapture, print a diagnostic
@@ -12698,6 +13196,8 @@ textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_syntax_trailing_return_type &universal,
              unsigned                                 indent)
 /*
@@ -12733,6 +13233,8 @@ diagnostic textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_syntax_try_block &universal, unsigned indent)
 /*
 Given the universal representation of SyntaxTryBlock, print a diagnostic
@@ -12783,6 +13285,8 @@ textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_syntax_tuple &universal, unsigned indent)
 /*
 Given the universal representation of SyntaxTuple, print a diagnostic textual
@@ -12812,6 +13316,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_syntax_type_id &universal, unsigned indent)
 /*
 Given the universal representation of SyntaxTypeId, print a diagnostic textual
@@ -12856,6 +13362,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_syntax_type_id_list_element &universal,
              unsigned                                 indent)
 /*
@@ -12891,6 +13399,8 @@ diagnostic textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_syntax_type_requirement &universal, unsigned indent)
 /*
 Given the universal representation of SyntaxTypeRequirement, print a diagnostic
@@ -12925,6 +13435,8 @@ textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_syntax_type_specifier_seq &universal,
              unsigned                               indent)
 /*
@@ -12980,6 +13492,8 @@ diagnostic textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_syntax_type_template_argument &universal,
              unsigned                                   indent)
 /*
@@ -13022,6 +13536,8 @@ diagnostic textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_syntax_type_template_parameter &universal,
              unsigned                                    indent)
 /*
@@ -13080,6 +13596,8 @@ diagnostic textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_syntax_type_trait_intrinsic &universal,
              unsigned                                 indent)
 /*
@@ -13176,6 +13694,8 @@ diagnostic textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_syntax_unary_fold_expression &universal,
              unsigned                                  indent)
 /*
@@ -13244,6 +13764,8 @@ diagnostic textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_syntax_using_declaration &universal, unsigned indent)
 /*
 Given the universal representation of SyntaxUsingDeclaration, print a
@@ -13285,6 +13807,8 @@ diagnostic textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_syntax_using_declarator &universal, unsigned indent)
 /*
 Given the universal representation of SyntaxUsingDeclarator, print a diagnostic
@@ -13333,6 +13857,8 @@ textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_syntax_using_directive &universal, unsigned indent)
 /*
 Given the universal representation of SyntaxUsingDirective, print a diagnostic
@@ -13381,6 +13907,8 @@ textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_syntax_using_enum_declaration &universal,
              unsigned                                   indent)
 /*
@@ -13430,6 +13958,8 @@ diagnostic textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_syntax_virtual_specifier_seq &universal,
              unsigned                                  indent)
 /*
@@ -13475,6 +14005,8 @@ diagnostic textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_syntax_while_statement &universal, unsigned indent)
 /*
 Given the universal representation of SyntaxWhileStatement, print a diagnostic
@@ -13525,6 +14057,8 @@ textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_trait_alias_template &universal, unsigned indent)
 /*
 Given the universal representation of TraitAliasTemplate, print a diagnostic
@@ -13568,6 +14102,8 @@ textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_trait_attribute &universal, unsigned indent)
 /*
 Given the universal representation of TraitAttribute, print a diagnostic
@@ -13611,6 +14147,8 @@ textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_trait_deduction_guide &universal, unsigned indent)
 /*
 Given the universal representation of TraitDeductionGuide, print a diagnostic
@@ -13654,6 +14192,8 @@ textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_trait_deprecated &universal, unsigned indent)
 /*
 Given the universal representation of TraitDeprecated, print a diagnostic
@@ -13693,6 +14233,8 @@ textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_trait_friend &universal, unsigned indent)
 /*
 Given the universal representation of TraitFriend, print a diagnostic textual
@@ -13733,6 +14275,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_trait_function_definition &universal,
              unsigned                               indent)
 /*
@@ -13797,6 +14341,8 @@ diagnostic textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_trait_msvc_decl_attrs &universal, unsigned indent)
 /*
 Given the universal representation of TraitMsvcDeclAttrs, print a diagnostic
@@ -13840,6 +14386,8 @@ textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_trait_msvc_func_params &universal, unsigned indent)
 /*
 Given the universal representation of TraitMsvcFuncParams, print a diagnostic
@@ -13883,6 +14431,8 @@ textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_trait_msvc_uuid &universal, unsigned indent)
 /*
 Given the universal representation of TraitMsvcUuid, print a diagnostic textual
@@ -13920,6 +14470,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_trait_msvc_vendor_trait &universal, unsigned indent)
 /*
 Given the universal representation of TraitMsvcVendorTrait, print a diagnostic
@@ -13957,6 +14509,8 @@ textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_trait_requires &universal, unsigned indent)
 /*
 Given the universal representation of TraitRequires, print a diagnostic textual
@@ -14000,6 +14554,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_trait_specialization &universal, unsigned indent)
 /*
 Given the universal representation of TraitSpecialization, print a diagnostic
@@ -14040,6 +14596,8 @@ textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_type_array &universal, unsigned indent)
 /*
 Given the universal representation of TypeArray, print a diagnostic textual
@@ -14077,6 +14635,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_type_base &universal, unsigned indent)
 /*
 Given the universal representation of TypeBase, print a diagnostic textual
@@ -14123,6 +14683,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_type_decltype &universal, unsigned indent)
 /*
 Given the universal representation of TypeDecltype, print a diagnostic textual
@@ -14150,6 +14712,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_type_designated &universal, unsigned indent)
 /*
 Given the universal representation of TypeDesignated, print a diagnostic
@@ -14177,6 +14741,8 @@ textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_type_expansion &universal, unsigned indent)
 /*
 Given the universal representation of TypeExpansion, print a diagnostic textual
@@ -14210,6 +14776,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_type_forall &universal, unsigned indent)
 /*
 Given the universal representation of TypeForall, print a diagnostic textual
@@ -14247,6 +14815,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_type_function &universal, unsigned indent)
 /*
 Given the universal representation of TypeFunction, print a diagnostic textual
@@ -14301,6 +14871,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_type_fundamental &universal, unsigned indent)
 /*
 Given the universal representation of TypeFundamental, print a diagnostic
@@ -14336,6 +14908,8 @@ textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_type_lvalue_reference &universal, unsigned indent)
 /*
 Given the universal representation of TypeLvalueReference, print a diagnostic
@@ -14363,6 +14937,8 @@ textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_type_method &universal, unsigned indent)
 /*
 Given the universal representation of TypeMethod, print a diagnostic textual
@@ -14427,6 +15003,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_type_placeholder &universal, unsigned indent)
 /*
 Given the universal representation of TypePlaceholder, print a diagnostic
@@ -14470,6 +15048,8 @@ textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_type_pointer &universal, unsigned indent)
 /*
 Given the universal representation of TypePointer, print a diagnostic textual
@@ -14497,6 +15077,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_type_pointer_to_member &universal, unsigned indent)
 /*
 Given the universal representation of TypePointerToMember, print a diagnostic
@@ -14534,6 +15116,8 @@ textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_type_qualified &universal, unsigned indent)
 /*
 Given the universal representation of TypeQualified, print a diagnostic textual
@@ -14565,6 +15149,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_type_rvalue_reference &universal, unsigned indent)
 /*
 Given the universal representation of TypeRvalueReference, print a diagnostic
@@ -14592,6 +15178,8 @@ textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_type_syntactic &universal, unsigned indent)
 /*
 Given the universal representation of TypeSyntactic, print a diagnostic textual
@@ -14619,6 +15207,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_type_syntax_tree &universal, unsigned indent)
 /*
 Given the universal representation of TypeSyntaxTree, print a diagnostic
@@ -14646,6 +15236,8 @@ textual representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_type_tor &universal, unsigned indent)
 /*
 Given the universal representation of TypeTor, print a diagnostic textual
@@ -14686,6 +15278,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_type_tuple &universal, unsigned indent)
 /*
 Given the universal representation of TypeTuple, print a diagnostic textual
@@ -14715,6 +15309,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_type_typename &universal, unsigned indent)
 /*
 Given the universal representation of TypeTypename, print a diagnostic textual
@@ -14742,6 +15338,8 @@ representation.
 {
   db_node(universal, 0);
 }  /* db_node */
+
+
 void db_node(const an_ifc_type_unaligned &universal, unsigned indent)
 /*
 Given the universal representation of TypeUnaligned, print a diagnostic textual
@@ -14773,6 +15371,7 @@ representation.
 
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE
+
 #endif /* DEBUG */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED && !STANDALONE_UTILITY_PROGRAM */

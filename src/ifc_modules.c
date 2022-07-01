@@ -1675,6 +1675,18 @@ done:
   return result;
 }  /* matches_module */
 
+static size_t calculate_validation_block_byte_count(uint32_t num_elements)
+/*
+For a given number of elements, return the number of bytes required to
+represent the elements validation status.
+*/
+{
+  /* Over count by one integer as this simplifies the logic and is necessary in
+     the vast majority of cases (where num_elements is not evenly divisible by
+     16) anyways. */
+  return (1 + (num_elements / 16)) * sizeof(uint32_t);
+}  /* calculate_validation_block_byte_count */
+
 
 static uint32_t* alloc_validation_bit_array(uint32_t num_elements)
 /*
@@ -1682,15 +1694,23 @@ Allocate an array of bits for validating num_elements elements, with two bits
 for each element.
 */
 {
-  /* Over allocate by one integer as this simplifies the logic and is necessary
-     in the vast majority of cases (where num_elements is not evenly divisible
-     by 16) anyways. */
-  size_t size = (1 + (num_elements / 16)) * sizeof(uint32_t);
+  size_t   size = calculate_validation_block_byte_count(num_elements);
   uint32_t *validation_bits = (uint32_t *)alloc_fe(size);
 
   memzero((char *)validation_bits, size);
   return validation_bits;
 }  /* allocate_validation_bit_array */
+
+
+static void invalidate_all_validation_bits(uint32_t *validation_bits,
+                                           uint32_t num_elements)
+/*
+Mark all elements in the given validation bits array as invalid.
+*/
+{
+  size_t size = calculate_validation_block_byte_count(num_elements);
+  memset((char *)validation_bits, 0xFF, size);
+}  /* invalidate_all_validation_bits */
 
 
 static void emit_unsupported_ifc_version_diagnostic(
@@ -4416,7 +4436,7 @@ cleanup:
   }  /* if */
   /* In some cases we may enter this routine without having a scope, but we
      should not exit it without having one. */
-  check_assertion(mep->scope != NULL);
+  check_assertion(mep->invalid || mep->scope != NULL);
 #if DEBUG
   if (db_flag_is_set("ifc_decl")) {
     (void)fprintf(f_debug, "[<%lu] ", --nested_decls);
@@ -4926,6 +4946,8 @@ issue_diag is TRUE.
         an_ifc_partition_metadata  *pp;
         an_ifc_cardinality         cardinality = get_ifc_cardinality(ip);
         an_ifc_entity_size         entry_size = get_ifc_entry_size(ip);
+        an_ifc_entity_size_storage expected_entry_size =
+                               get_ifc_partition_element_size(this, part_kind);
 
         pp = &partitions[part_kind];
         pp->name = name_str;
@@ -4933,6 +4955,26 @@ issue_diag is TRUE.
         pp->size = cardinality * entry_size;
         pp->entry_size = entry_size;
         pp->format_validated = alloc_validation_bit_array(cardinality);
+        if (entry_size != expected_entry_size) {
+          an_error_severity severity = es_error;
+
+          /* If the entry size has extra bits, just warn, we might be able
+             to recover safely, let the validation logic sort it out.
+             Otherwise, the object is too small to be safely read (from
+             disk or memory). */
+          if (entry_size > expected_entry_size) {
+            severity = es_warning;
+          }  /* if */
+          pos_st_num2_diagnostic(severity, ec_ifc_partition_bad_entry_size,
+                                 &midp->module_name_position,
+                                 name_str, entry_size, expected_entry_size);
+          if (severity == es_error) {
+            /* Invalid all elements of the partition, this stops processing
+               of these partition elements without further diagnostics,
+               and without ending further diagnostics. */
+            invalidate_all_validation_bits(pp->format_validated, cardinality);
+          }  /* if */
+        }  /* if */
       }  /* if */
     }  /* for */
   }

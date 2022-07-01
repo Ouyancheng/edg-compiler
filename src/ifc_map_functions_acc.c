@@ -35,6 +35,11 @@ more about, the tool that generated this file.
 BEGIN_EDG_NAMESPACE
 
 
+/*
+Functions for reading data from IFC KeywordSyntax nodes.
+*/
+
+
 a_boolean has_ifc_locus(const an_ifc_keyword_syntax &universal)
 /*
 Return TRUE if the given universal representation has the field "locus";
@@ -119,6 +124,11 @@ representation of the field "value".
 }  /* get_ifc_value */
 
 
+/*
+Functions for reading data from IFC ModuleReference nodes.
+*/
+
+
 a_boolean has_ifc_owner(const an_ifc_module_reference &universal)
 /*
 Return TRUE if the given universal representation has the field "owner";
@@ -197,6 +207,11 @@ representation of the field "partition".
   result = stage_1;
   return result;
 }  /* get_ifc_partition */
+
+
+/*
+Functions for reading data from IFC NestableWord nodes.
+*/
 
 
 a_boolean has_ifc_category(const an_ifc_nestable_word &universal)
@@ -427,6 +442,11 @@ representation of the field "value".
 }  /* get_ifc_value */
 
 
+/*
+Functions for reading data from IFC NoexceptSpecification nodes.
+*/
+
+
 a_boolean has_ifc_sort(const an_ifc_noexcept_specification &universal)
 /*
 Return TRUE if the given universal representation has the field "sort";
@@ -507,6 +527,11 @@ universal representation of the field "words".
   result = stage_1;
   return result;
 }  /* get_ifc_words */
+
+
+/*
+Functions for reading data from IFC ParameterizedEntity nodes.
+*/
 
 
 a_boolean has_ifc_attributes(const an_ifc_parameterized_entity &universal)
@@ -685,6 +710,11 @@ representation of the field "head".
 }  /* get_ifc_head */
 
 
+/*
+Functions for reading data from IFC Sequence nodes.
+*/
+
+
 a_boolean has_ifc_cardinality(const an_ifc_sequence &universal)
 /*
 Return TRUE if the given universal representation has the field "cardinality";
@@ -762,6 +792,11 @@ representation of the field "start".
   result = stage_1;
   return result;
 }  /* get_ifc_start */
+
+
+/*
+Functions for reading data from IFC SourceLocation nodes.
+*/
 
 
 a_boolean has_ifc_column(const an_ifc_source_location &universal)
@@ -842,6 +877,11 @@ representation of the field "line".
   result = stage_1;
   return result;
 }  /* get_ifc_line */
+
+
+/*
+Functions for reading data from IFC FileHeader nodes.
+*/
 
 
 a_boolean has_ifc_abi(const an_ifc_file_header &universal)
@@ -1412,6 +1452,11 @@ representation of the field "unit".
 }  /* get_ifc_unit */
 
 
+/*
+Functions for reading data from IFC Partition nodes.
+*/
+
+
 a_boolean has_ifc_cardinality(const an_ifc_partition &universal)
 /*
 Return TRUE if the given universal representation has the field "cardinality";
@@ -1572,6 +1617,11 @@ representation of the field "offset".
 }  /* get_ifc_offset */
 
 
+/*
+Functions for reading data from IFC AttrBasic nodes.
+*/
+
+
 a_boolean has_ifc_word(const an_ifc_attr_basic &universal)
 /*
 Return TRUE if the given universal representation has the field "word";
@@ -1614,6 +1664,11 @@ representation of the field "word".
   result = stage_1;
   return result;
 }  /* get_ifc_word */
+
+
+/*
+Functions for reading data from IFC AttrCalled nodes.
+*/
 
 
 a_boolean has_ifc_arguments(const an_ifc_attr_called &universal)
@@ -1696,6 +1751,11 @@ representation of the field "function".
 }  /* get_ifc_function */
 
 
+/*
+Functions for reading data from IFC AttrElaborated nodes.
+*/
+
+
 a_boolean has_ifc_expression(const an_ifc_attr_elaborated &universal)
 /*
 Return TRUE if the given universal representation has the field "expression";
@@ -1736,6 +1796,11 @@ representation of the field "expression".
 }  /* get_ifc_expression */
 
 
+/*
+Functions for reading data from IFC AttrExpanded nodes.
+*/
+
+
 a_boolean has_ifc_operand(const an_ifc_attr_expanded &universal)
 /*
 Return TRUE if the given universal representation has the field "operand";
@@ -1774,6 +1839,11 @@ representation of the field "operand".
   result = stage_1;
   return result;
 }  /* get_ifc_operand */
+
+
+/*
+Functions for reading data from IFC AttrFactored nodes.
+*/
 
 
 a_boolean has_ifc_factor(const an_ifc_attr_factored &universal)
@@ -1861,6 +1931,11 @@ representation of the field "terms".
 }  /* get_ifc_terms */
 
 
+/*
+Functions for reading data from IFC AttrLabeled nodes.
+*/
+
+
 a_boolean has_ifc_attribute(const an_ifc_attr_labeled &universal)
 /*
 Return TRUE if the given universal representation has the field "attribute";
@@ -1944,6 +2019,11 @@ representation of the field "label".
   result = stage_1;
   return result;
 }  /* get_ifc_label */
+
+
+/*
+Functions for reading data from IFC AttrScoped nodes.
+*/
 
 
 a_boolean has_ifc_member(const an_ifc_attr_scoped &universal)
@@ -2036,6 +2116,11 @@ representation of the field "scope".
 }  /* get_ifc_scope */
 
 
+/*
+Functions for reading data from IFC AttrTuple nodes.
+*/
+
+
 a_boolean has_ifc_cardinality(const an_ifc_attr_tuple &universal)
 /*
 Return TRUE if the given universal representation has the field "cardinality";
@@ -2114,6 +2199,11 @@ representation of the field "start".
   result = stage_1;
   return result;
 }  /* get_ifc_start */
+
+
+/*
+Functions for reading data from IFC ChartMultilevel nodes.
+*/
 
 
 a_boolean has_ifc_cardinality(const an_ifc_chart_multilevel &universal)
@@ -2195,6 +2285,11 @@ representation of the field "start".
   result = stage_1;
   return result;
 }  /* get_ifc_start */
+
+
+/*
+Functions for reading data from IFC ChartUnilevel nodes.
+*/
 
 
 a_boolean has_ifc_cardinality(const an_ifc_chart_unilevel &universal)
@@ -2317,6 +2412,11 @@ representation of the field "start".
 }  /* get_ifc_start */
 
 
+/*
+Functions for reading data from IFC ConstF64 nodes.
+*/
+
+
 a_boolean has_ifc_value(const an_ifc_const_f64 &universal)
 /*
 Return TRUE if the given universal representation has the field "value";
@@ -2360,6 +2460,11 @@ representation of the field "value".
 }  /* get_ifc_value */
 
 
+/*
+Functions for reading data from IFC ConstI64 nodes.
+*/
+
+
 a_boolean has_ifc_value(const an_ifc_const_i64 &universal)
 /*
 Return TRUE if the given universal representation has the field "value";
@@ -2397,6 +2502,11 @@ representation of the field "value".
   result = stage_1;
   return result;
 }  /* get_ifc_value */
+
+
+/*
+Functions for reading data from IFC ConstStr nodes.
+*/
 
 
 a_boolean has_ifc_length(const an_ifc_const_str &universal)
@@ -2517,6 +2627,11 @@ representation of the field "suffix".
   result = stage_1;
   return result;
 }  /* get_ifc_suffix */
+
+
+/*
+Functions for reading data from IFC DeclAlias nodes.
+*/
 
 
 a_boolean has_ifc_access(const an_ifc_decl_alias &universal)
@@ -2860,6 +2975,11 @@ representation of the field "type".
   result = stage_1;
   return result;
 }  /* get_ifc_type */
+
+
+/*
+Functions for reading data from IFC DeclBitfield nodes.
+*/
 
 
 a_boolean has_ifc_access(const an_ifc_decl_bitfield &universal)
@@ -3327,6 +3447,11 @@ representation of the field "width".
   result = stage_1;
   return result;
 }  /* get_ifc_width */
+
+
+/*
+Functions for reading data from IFC DeclConcept nodes.
+*/
 
 
 a_boolean has_ifc_access(const an_ifc_decl_concept &universal)
@@ -3832,6 +3957,11 @@ representation of the field "unknown".
 }  /* get_ifc_unknown */
 
 
+/*
+Functions for reading data from IFC DeclConstructor nodes.
+*/
+
+
 a_boolean has_ifc_access(const an_ifc_decl_constructor &universal)
 /*
 Return TRUE if the given universal representation has the field "access";
@@ -4296,6 +4426,11 @@ representation of the field "type".
 }  /* get_ifc_type */
 
 
+/*
+Functions for reading data from IFC DeclDeductionGuide nodes.
+*/
+
+
 a_boolean has_ifc_home_scope(const an_ifc_decl_deduction_guide &universal)
 /*
 Return TRUE if the given universal representation has the field "home_scope";
@@ -4641,6 +4776,11 @@ representation of the field "traits".
   result = stage_1;
   return result;
 }  /* get_ifc_traits */
+
+
+/*
+Functions for reading data from IFC DeclDestructor nodes.
+*/
 
 
 a_boolean has_ifc_access(const an_ifc_decl_destructor &universal)
@@ -5115,6 +5255,11 @@ representation of the field "traits".
 }  /* get_ifc_traits */
 
 
+/*
+Functions for reading data from IFC DeclEnumeration nodes.
+*/
+
+
 a_boolean has_ifc_access(const an_ifc_decl_enumeration &universal)
 /*
 Return TRUE if the given universal representation has the field "access";
@@ -5585,6 +5730,11 @@ representation of the field "type".
 }  /* get_ifc_type */
 
 
+/*
+Functions for reading data from IFC DeclEnumerator nodes.
+*/
+
+
 a_boolean has_ifc_access(const an_ifc_decl_enumerator &universal)
 /*
 Return TRUE if the given universal representation has the field "access";
@@ -5982,6 +6132,11 @@ representation of the field "type".
 }  /* get_ifc_type */
 
 
+/*
+Functions for reading data from IFC DeclExpansion nodes.
+*/
+
+
 a_boolean has_ifc_locus(const an_ifc_decl_expansion &universal)
 /*
 Return TRUE if the given universal representation has the field "locus";
@@ -6079,6 +6234,11 @@ representation of the field "operand".
 }  /* get_ifc_operand */
 
 
+/*
+Functions for reading data from IFC DeclExplicitInstantiation nodes.
+*/
+
+
 a_boolean has_ifc_decl(const an_ifc_decl_explicit_instantiation &universal)
 /*
 Return TRUE if the given universal representation has the field "decl";
@@ -6165,6 +6325,11 @@ universal representation of the field "form".
 }  /* get_ifc_form */
 
 
+/*
+Functions for reading data from IFC DeclExplicitSpecialization nodes.
+*/
+
+
 a_boolean has_ifc_decl(const an_ifc_decl_explicit_specialization &universal)
 /*
 Return TRUE if the given universal representation has the field "decl";
@@ -6249,6 +6414,11 @@ universal representation of the field "form".
   result = stage_1;
   return result;
 }  /* get_ifc_form */
+
+
+/*
+Functions for reading data from IFC DeclField nodes.
+*/
 
 
 a_boolean has_ifc_access(const an_ifc_decl_field &universal)
@@ -6718,6 +6888,11 @@ representation of the field "type".
 }  /* get_ifc_type */
 
 
+/*
+Functions for reading data from IFC DeclFriend nodes.
+*/
+
+
 a_boolean has_ifc_entity(const an_ifc_decl_friend &universal)
 /*
 Return TRUE if the given universal representation has the field "entity";
@@ -6756,6 +6931,11 @@ representation of the field "entity".
   result = stage_1;
   return result;
 }  /* get_ifc_entity */
+
+
+/*
+Functions for reading data from IFC DeclFunction nodes.
+*/
 
 
 a_boolean has_ifc_access(const an_ifc_decl_function &universal)
@@ -7183,6 +7363,11 @@ representation of the field "type".
   result = stage_1;
   return result;
 }  /* get_ifc_type */
+
+
+/*
+Functions for reading data from IFC DeclInheritedConstructor nodes.
+*/
 
 
 a_boolean has_ifc_access(const an_ifc_decl_inherited_constructor &universal)
@@ -7632,6 +7817,11 @@ universal representation of the field "type".
 }  /* get_ifc_type */
 
 
+/*
+Functions for reading data from IFC DeclIntrinsic nodes.
+*/
+
+
 a_boolean has_ifc_access(const an_ifc_decl_intrinsic &universal)
 /*
 Return TRUE if the given universal representation has the field "access";
@@ -7933,6 +8123,11 @@ representation of the field "type".
   result = stage_1;
   return result;
 }  /* get_ifc_type */
+
+
+/*
+Functions for reading data from IFC DeclMethod nodes.
+*/
 
 
 a_boolean has_ifc_access(const an_ifc_decl_method &universal)
@@ -8362,6 +8557,11 @@ representation of the field "type".
 }  /* get_ifc_type */
 
 
+/*
+Functions for reading data from IFC DeclOutputSegment nodes.
+*/
+
+
 a_boolean has_ifc_ID(const an_ifc_decl_output_segment &universal)
 /*
 Return TRUE if the given universal representation has the field "ID";
@@ -8521,6 +8721,11 @@ representation of the field "type".
   result = stage_1;
   return result;
 }  /* get_ifc_type */
+
+
+/*
+Functions for reading data from IFC DeclParameter nodes.
+*/
 
 
 a_boolean has_ifc_constraint(const an_ifc_decl_parameter &universal)
@@ -8929,6 +9134,11 @@ representation of the field "type".
   result = stage_1;
   return result;
 }  /* get_ifc_type */
+
+
+/*
+Functions for reading data from IFC DeclPartialSpecialization nodes.
+*/
 
 
 a_boolean has_ifc_access(const an_ifc_decl_partial_specialization &universal)
@@ -9405,6 +9615,11 @@ universal representation of the field "specifiers".
 }  /* get_ifc_specifiers */
 
 
+/*
+Functions for reading data from IFC DeclProperty nodes.
+*/
+
+
 a_boolean has_ifc_getter(const an_ifc_decl_property &universal)
 /*
 Return TRUE if the given universal representation has the field "getter";
@@ -9536,6 +9751,11 @@ representation of the field "setter".
   result = stage_1;
   return result;
 }  /* get_ifc_setter */
+
+
+/*
+Functions for reading data from IFC DeclReference nodes.
+*/
 
 
 a_boolean has_ifc_index(const an_ifc_decl_reference &universal)
@@ -9678,6 +9898,11 @@ representation of the field "unit".
   result = stage_1;
   return result;
 }  /* get_ifc_unit */
+
+
+/*
+Functions for reading data from IFC DeclScope nodes.
+*/
 
 
 a_boolean has_ifc_access(const an_ifc_decl_scope &universal)
@@ -10226,6 +10451,11 @@ representation of the field "type".
 }  /* get_ifc_type */
 
 
+/*
+Functions for reading data from IFC DeclSpecialization nodes.
+*/
+
+
 a_boolean has_ifc_decl(const an_ifc_decl_specialization &universal)
 /*
 Return TRUE if the given universal representation has the field "decl";
@@ -10487,6 +10717,11 @@ representation of the field "sort".
   result = stage_1;
   return result;
 }  /* get_ifc_sort */
+
+
+/*
+Functions for reading data from IFC DeclTemplate nodes.
+*/
 
 
 a_boolean has_ifc_access(const an_ifc_decl_template &universal)
@@ -11058,6 +11293,11 @@ representation of the field "type".
 }  /* get_ifc_type */
 
 
+/*
+Functions for reading data from IFC DeclTemploid nodes.
+*/
+
+
 a_boolean has_ifc_chart(const an_ifc_decl_temploid &universal)
 /*
 Return TRUE if the given universal representation has the field "chart";
@@ -11187,6 +11427,11 @@ representation of the field "properties".
 }  /* get_ifc_properties */
 
 
+/*
+Functions for reading data from IFC DeclTuple nodes.
+*/
+
+
 a_boolean has_ifc_cardinality(const an_ifc_decl_tuple &universal)
 /*
 Return TRUE if the given universal representation has the field "cardinality";
@@ -11265,6 +11510,11 @@ representation of the field "start".
   result = stage_1;
   return result;
 }  /* get_ifc_start */
+
+
+/*
+Functions for reading data from IFC DeclUsingDeclaration nodes.
+*/
 
 
 a_boolean has_ifc_access(const an_ifc_decl_using_declaration &universal)
@@ -11707,6 +11957,11 @@ universal representation of the field "specifiers".
   result = stage_1;
   return result;
 }  /* get_ifc_specifiers */
+
+
+/*
+Functions for reading data from IFC DeclVariable nodes.
+*/
 
 
 a_boolean has_ifc_access(const an_ifc_decl_variable &universal)
@@ -12176,6 +12431,11 @@ representation of the field "type".
 }  /* get_ifc_type */
 
 
+/*
+Functions for reading data from IFC ExprAlignof nodes.
+*/
+
+
 a_boolean has_ifc_locus(const an_ifc_expr_alignof &universal)
 /*
 Return TRUE if the given universal representation has the field "locus";
@@ -12298,6 +12558,11 @@ representation of the field "type".
   result = stage_1;
   return result;
 }  /* get_ifc_type */
+
+
+/*
+Functions for reading data from IFC ExprArrayValue nodes.
+*/
 
 
 a_boolean has_ifc_element_type(const an_ifc_expr_array_value &universal)
@@ -12465,6 +12730,11 @@ representation of the field "type".
 }  /* get_ifc_type */
 
 
+/*
+Functions for reading data from IFC ExprAssignInitializer nodes.
+*/
+
+
 a_boolean has_ifc_equal(const an_ifc_expr_assign_initializer &universal)
 /*
 Return TRUE if the given universal representation has the field "equal";
@@ -12549,6 +12819,11 @@ universal representation of the field "initializer".
   result = stage_1;
   return result;
 }  /* get_ifc_initializer */
+
+
+/*
+Functions for reading data from IFC ExprBinaryFold nodes.
+*/
 
 
 a_boolean has_ifc_associativity(const an_ifc_expr_binary_fold &universal)
@@ -12797,6 +13072,11 @@ representation of the field "type".
 }  /* get_ifc_type */
 
 
+/*
+Functions for reading data from IFC ExprCall nodes.
+*/
+
+
 a_boolean has_ifc_arguments(const an_ifc_expr_call &universal)
 /*
 Return TRUE if the given universal representation has the field "arguments";
@@ -12959,6 +13239,11 @@ representation of the field "type".
   result = stage_1;
   return result;
 }  /* get_ifc_type */
+
+
+/*
+Functions for reading data from IFC ExprCast nodes.
+*/
 
 
 a_boolean has_ifc_locus(const an_ifc_expr_cast &universal)
@@ -13165,6 +13450,11 @@ representation of the field "type".
 }  /* get_ifc_type */
 
 
+/*
+Functions for reading data from IFC ExprCompoundString nodes.
+*/
+
+
 a_boolean has_ifc_locus(const an_ifc_expr_compound_string &universal)
 /*
 Return TRUE if the given universal representation has the field "locus";
@@ -13330,6 +13620,11 @@ representation of the field "type".
 }  /* get_ifc_type */
 
 
+/*
+Functions for reading data from IFC ExprCondition nodes.
+*/
+
+
 a_boolean has_ifc_expr(const an_ifc_expr_condition &universal)
 /*
 Return TRUE if the given universal representation has the field "expr";
@@ -13452,6 +13747,11 @@ representation of the field "type".
   result = stage_1;
   return result;
 }  /* get_ifc_type */
+
+
+/*
+Functions for reading data from IFC ExprDesignatedInitializer nodes.
+*/
 
 
 a_boolean has_ifc_initializer(
@@ -13621,6 +13921,11 @@ universal representation of the field "type".
   result = stage_1;
   return result;
 }  /* get_ifc_type */
+
+
+/*
+Functions for reading data from IFC ExprDestructorCall nodes.
+*/
 
 
 a_boolean has_ifc_cleanup(const an_ifc_expr_destructor_call &universal)
@@ -13830,6 +14135,11 @@ representation of the field "type".
   result = stage_1;
   return result;
 }  /* get_ifc_type */
+
+
+/*
+Functions for reading data from IFC ExprDyad nodes.
+*/
 
 
 a_boolean has_ifc_argument_0(const an_ifc_expr_dyad &universal)
@@ -14089,6 +14399,11 @@ representation of the field "type".
 }  /* get_ifc_type */
 
 
+/*
+Functions for reading data from IFC ExprDynamicDispatch nodes.
+*/
+
+
 a_boolean has_ifc_locus(const an_ifc_expr_dynamic_dispatch &universal)
 /*
 Return TRUE if the given universal representation has the field "locus";
@@ -14214,6 +14529,11 @@ representation of the field "type".
 }  /* get_ifc_type */
 
 
+/*
+Functions for reading data from IFC ExprEmpty nodes.
+*/
+
+
 a_boolean has_ifc_locus(const an_ifc_expr_empty &universal)
 /*
 Return TRUE if the given universal representation has the field "locus";
@@ -14296,6 +14616,11 @@ representation of the field "type".
   result = stage_1;
   return result;
 }  /* get_ifc_type */
+
+
+/*
+Functions for reading data from IFC ExprExpansion nodes.
+*/
 
 
 a_boolean has_ifc_locus(const an_ifc_expr_expansion &universal)
@@ -14420,6 +14745,11 @@ representation of the field "type".
   result = stage_1;
   return result;
 }  /* get_ifc_type */
+
+
+/*
+Functions for reading data from IFC ExprExpressionList nodes.
+*/
 
 
 a_boolean has_ifc_contents(const an_ifc_expr_expression_list &universal)
@@ -14594,6 +14924,11 @@ representation of the field "right".
 }  /* get_ifc_right */
 
 
+/*
+Functions for reading data from IFC ExprFunctionString nodes.
+*/
+
+
 a_boolean has_ifc_locus(const an_ifc_expr_function_string &universal)
 /*
 Return TRUE if the given universal representation has the field "locus";
@@ -14717,6 +15052,11 @@ representation of the field "type".
   result = stage_1;
   return result;
 }  /* get_ifc_type */
+
+
+/*
+Functions for reading data from IFC ExprHierarchyConversion nodes.
+*/
 
 
 a_boolean has_ifc_inheritance(
@@ -15011,6 +15351,11 @@ universal representation of the field "type".
 }  /* get_ifc_type */
 
 
+/*
+Functions for reading data from IFC ExprInheritancePath nodes.
+*/
+
+
 a_boolean has_ifc_locus(const an_ifc_expr_inheritance_path &universal)
 /*
 Return TRUE if the given universal representation has the field "locus";
@@ -15134,6 +15479,11 @@ representation of the field "type".
   result = stage_1;
   return result;
 }  /* get_ifc_type */
+
+
+/*
+Functions for reading data from IFC ExprInitializer nodes.
+*/
 
 
 a_boolean has_ifc_expr(const an_ifc_expr_initializer &universal)
@@ -15300,6 +15650,11 @@ representation of the field "type".
 }  /* get_ifc_type */
 
 
+/*
+Functions for reading data from IFC ExprInitializerList nodes.
+*/
+
+
 a_boolean has_ifc_elements(const an_ifc_expr_initializer_list &universal)
 /*
 Return TRUE if the given universal representation has the field "elements";
@@ -15424,6 +15779,11 @@ representation of the field "type".
   result = stage_1;
   return result;
 }  /* get_ifc_type */
+
+
+/*
+Functions for reading data from IFC ExprLambda nodes.
+*/
 
 
 a_boolean has_ifc_body(const an_ifc_expr_lambda &universal)
@@ -15628,6 +15988,11 @@ representation of the field "template_parameters".
 }  /* get_ifc_template_parameters */
 
 
+/*
+Functions for reading data from IFC ExprLiteral nodes.
+*/
+
+
 a_boolean has_ifc_locus(const an_ifc_expr_literal &universal)
 /*
 Return TRUE if the given universal representation has the field "locus";
@@ -15750,6 +16115,11 @@ representation of the field "value".
   result = stage_1;
   return result;
 }  /* get_ifc_value */
+
+
+/*
+Functions for reading data from IFC ExprMemberAccess nodes.
+*/
 
 
 a_boolean has_ifc_enclosing(const an_ifc_expr_member_access &universal)
@@ -15955,6 +16325,11 @@ representation of the field "type".
   result = stage_1;
   return result;
 }  /* get_ifc_type */
+
+
+/*
+Functions for reading data from IFC ExprMemberInitializer nodes.
+*/
 
 
 a_boolean has_ifc_base(const an_ifc_expr_member_initializer &universal)
@@ -16177,6 +16552,11 @@ universal representation of the field "type".
 }  /* get_ifc_type */
 
 
+/*
+Functions for reading data from IFC ExprMonad nodes.
+*/
+
+
 a_boolean has_ifc_argument(const an_ifc_expr_monad &universal)
 /*
 Return TRUE if the given universal representation has the field "argument";
@@ -16394,6 +16774,11 @@ representation of the field "type".
 }  /* get_ifc_type */
 
 
+/*
+Functions for reading data from IFC ExprNamedDecl nodes.
+*/
+
+
 a_boolean has_ifc_locus(const an_ifc_expr_named_decl &universal)
 /*
 Return TRUE if the given universal representation has the field "locus";
@@ -16531,6 +16916,11 @@ representation of the field "type".
 }  /* get_ifc_type */
 
 
+/*
+Functions for reading data from IFC ExprNullptr nodes.
+*/
+
+
 a_boolean has_ifc_locus(const an_ifc_expr_nullptr &universal)
 /*
 Return TRUE if the given universal representation has the field "locus";
@@ -16613,6 +17003,11 @@ representation of the field "type".
   result = stage_1;
   return result;
 }  /* get_ifc_type */
+
+
+/*
+Functions for reading data from IFC ExprPackedTemplateArguments nodes.
+*/
 
 
 a_boolean has_ifc_arguments(
@@ -16741,6 +17136,11 @@ universal representation of the field "type".
   result = stage_1;
   return result;
 }  /* get_ifc_type */
+
+
+/*
+Functions for reading data from IFC ExprPath nodes.
+*/
 
 
 a_boolean has_ifc_locus(const an_ifc_expr_path &universal)
@@ -16907,6 +17307,11 @@ representation of the field "type".
 }  /* get_ifc_type */
 
 
+/*
+Functions for reading data from IFC ExprPlaceholder nodes.
+*/
+
+
 a_boolean has_ifc_locus(const an_ifc_expr_placeholder &universal)
 /*
 Return TRUE if the given universal representation has the field "locus";
@@ -16991,6 +17396,11 @@ representation of the field "type".
 }  /* get_ifc_type */
 
 
+/*
+Functions for reading data from IFC ExprPointer nodes.
+*/
+
+
 a_boolean has_ifc_locus(const an_ifc_expr_pointer &universal)
 /*
 Return TRUE if the given universal representation has the field "locus";
@@ -17033,6 +17443,11 @@ representation of the field "locus".
   result = stage_1;
   return result;
 }  /* get_ifc_locus */
+
+
+/*
+Functions for reading data from IFC ExprProductTypeValue nodes.
+*/
 
 
 a_boolean has_ifc_base_subobjects(
@@ -17244,6 +17659,11 @@ universal representation of the field "type".
 }  /* get_ifc_type */
 
 
+/*
+Functions for reading data from IFC ExprPushState nodes.
+*/
+
+
 a_boolean has_ifc_ctor_call(const an_ifc_expr_push_state &universal)
 /*
 Return TRUE if the given universal representation has the field "ctor_call";
@@ -17448,6 +17868,11 @@ representation of the field "type".
 }  /* get_ifc_type */
 
 
+/*
+Functions for reading data from IFC ExprQualifiedName nodes.
+*/
+
+
 a_boolean has_ifc_elements(const an_ifc_expr_qualified_name &universal)
 /*
 Return TRUE if the given universal representation has the field "elements";
@@ -17619,6 +18044,11 @@ representation of the field "typename_keyword".
 }  /* get_ifc_typename_keyword */
 
 
+/*
+Functions for reading data from IFC ExprRead nodes.
+*/
+
+
 a_boolean has_ifc_address(const an_ifc_expr_read &universal)
 /*
 Return TRUE if the given universal representation has the field "address";
@@ -17781,6 +18211,11 @@ representation of the field "type".
   result = stage_1;
   return result;
 }  /* get_ifc_type */
+
+
+/*
+Functions for reading data from IFC ExprRequires nodes.
+*/
 
 
 a_boolean has_ifc_body(const an_ifc_expr_requires &universal)
@@ -17947,6 +18382,11 @@ representation of the field "type".
 }  /* get_ifc_type */
 
 
+/*
+Functions for reading data from IFC ExprSimpleIdentifier nodes.
+*/
+
+
 a_boolean has_ifc_locus(const an_ifc_expr_simple_identifier &universal)
 /*
 Return TRUE if the given universal representation has the field "locus";
@@ -18070,6 +18510,11 @@ universal representation of the field "type".
   result = stage_1;
   return result;
 }  /* get_ifc_type */
+
+
+/*
+Functions for reading data from IFC ExprSizeofType nodes.
+*/
 
 
 a_boolean has_ifc_locus(const an_ifc_expr_sizeof_type &universal)
@@ -18196,6 +18641,11 @@ representation of the field "type".
 }  /* get_ifc_type */
 
 
+/*
+Functions for reading data from IFC ExprString nodes.
+*/
+
+
 a_boolean has_ifc_locus(const an_ifc_expr_string &universal)
 /*
 Return TRUE if the given universal representation has the field "locus";
@@ -18318,6 +18768,11 @@ representation of the field "type".
   result = stage_1;
   return result;
 }  /* get_ifc_type */
+
+
+/*
+Functions for reading data from IFC ExprStringSequence nodes.
+*/
 
 
 a_boolean has_ifc_locus(const an_ifc_expr_string_sequence &universal)
@@ -18445,6 +18900,11 @@ representation of the field "type".
 }  /* get_ifc_type */
 
 
+/*
+Functions for reading data from IFC ExprSubobjectValue nodes.
+*/
+
+
 a_boolean has_ifc_value(const an_ifc_expr_subobject_value &universal)
 /*
 Return TRUE if the given universal representation has the field "value";
@@ -18483,6 +18943,11 @@ representation of the field "value".
   result = stage_1;
   return result;
 }  /* get_ifc_value */
+
+
+/*
+Functions for reading data from IFC ExprSumTypeValue nodes.
+*/
 
 
 a_boolean has_ifc_discriminant(const an_ifc_expr_sum_type_value &universal)
@@ -18704,6 +19169,11 @@ representation of the field "variant".
 }  /* get_ifc_variant */
 
 
+/*
+Functions for reading data from IFC ExprSyntaxTree nodes.
+*/
+
+
 a_boolean has_ifc_syntax(const an_ifc_expr_syntax_tree &universal)
 /*
 Return TRUE if the given universal representation has the field "syntax";
@@ -18742,6 +19212,11 @@ representation of the field "syntax".
   result = stage_1;
   return result;
 }  /* get_ifc_syntax */
+
+
+/*
+Functions for reading data from IFC ExprTemplateId nodes.
+*/
 
 
 a_boolean has_ifc_arguments(const an_ifc_expr_template_id &universal)
@@ -18906,6 +19381,11 @@ representation of the field "type".
   result = stage_1;
   return result;
 }  /* get_ifc_type */
+
+
+/*
+Functions for reading data from IFC ExprTemplateReference nodes.
+*/
 
 
 a_boolean has_ifc_arguments(const an_ifc_expr_template_reference &universal)
@@ -19162,6 +19642,11 @@ universal representation of the field "type".
 }  /* get_ifc_type */
 
 
+/*
+Functions for reading data from IFC ExprTemporary nodes.
+*/
+
+
 a_boolean has_ifc_id(const an_ifc_expr_temporary &universal)
 /*
 Return TRUE if the given universal representation has the field "id";
@@ -19286,6 +19771,11 @@ representation of the field "type".
 }  /* get_ifc_type */
 
 
+/*
+Functions for reading data from IFC ExprThis nodes.
+*/
+
+
 a_boolean has_ifc_locus(const an_ifc_expr_this &universal)
 /*
 Return TRUE if the given universal representation has the field "locus";
@@ -19368,6 +19858,11 @@ representation of the field "type".
   result = stage_1;
   return result;
 }  /* get_ifc_type */
+
+
+/*
+Functions for reading data from IFC ExprTokens nodes.
+*/
 
 
 a_boolean has_ifc_locus(const an_ifc_expr_tokens &universal)
@@ -19492,6 +19987,11 @@ representation of the field "words".
   result = stage_1;
   return result;
 }  /* get_ifc_words */
+
+
+/*
+Functions for reading data from IFC ExprTriad nodes.
+*/
 
 
 a_boolean has_ifc_argument_0(const an_ifc_expr_triad &universal)
@@ -19791,6 +20291,11 @@ representation of the field "type".
 }  /* get_ifc_type */
 
 
+/*
+Functions for reading data from IFC ExprTuple nodes.
+*/
+
+
 a_boolean has_ifc_cardinality(const an_ifc_expr_tuple &universal)
 /*
 Return TRUE if the given universal representation has the field "cardinality";
@@ -19955,6 +20460,11 @@ representation of the field "type".
 }  /* get_ifc_type */
 
 
+/*
+Functions for reading data from IFC ExprType nodes.
+*/
+
+
 a_boolean has_ifc_denotation(const an_ifc_expr_type &universal)
 /*
 Return TRUE if the given universal representation has the field "denotation";
@@ -20077,6 +20587,11 @@ representation of the field "type".
   result = stage_1;
   return result;
 }  /* get_ifc_type */
+
+
+/*
+Functions for reading data from IFC ExprTypeTraitIntrinsic nodes.
+*/
 
 
 a_boolean has_ifc_arguments(const an_ifc_expr_type_trait_intrinsic &universal)
@@ -20247,6 +20762,11 @@ universal representation of the field "type".
 }  /* get_ifc_type */
 
 
+/*
+Functions for reading data from IFC ExprTypeid nodes.
+*/
+
+
 a_boolean has_ifc_locus(const an_ifc_expr_typeid &universal)
 /*
 Return TRUE if the given universal representation has the field "locus";
@@ -20369,6 +20889,11 @@ representation of the field "type".
   result = stage_1;
   return result;
 }  /* get_ifc_type */
+
+
+/*
+Functions for reading data from IFC ExprUnaryFold nodes.
+*/
 
 
 a_boolean has_ifc_associativity(const an_ifc_expr_unary_fold &universal)
@@ -20575,6 +21100,11 @@ representation of the field "type".
   result = stage_1;
   return result;
 }  /* get_ifc_type */
+
+
+/*
+Functions for reading data from IFC ExprUnqualifiedId nodes.
+*/
 
 
 a_boolean has_ifc_locus(const an_ifc_expr_unqualified_id &universal)
@@ -20789,6 +21319,11 @@ representation of the field "type".
 }  /* get_ifc_type */
 
 
+/*
+Functions for reading data from IFC ExprUnresolvedId nodes.
+*/
+
+
 a_boolean has_ifc_locus(const an_ifc_expr_unresolved_id &universal)
 /*
 Return TRUE if the given universal representation has the field "locus";
@@ -20912,6 +21447,11 @@ representation of the field "type".
   result = stage_1;
   return result;
 }  /* get_ifc_type */
+
+
+/*
+Functions for reading data from IFC ExprVirtualFunctionConversion nodes.
+*/
 
 
 a_boolean has_ifc_function(
@@ -21057,6 +21597,11 @@ universal representation of the field "type".
 }  /* get_ifc_type */
 
 
+/*
+Functions for reading data from IFC FormCatenate nodes.
+*/
+
+
 a_boolean has_ifc_first(const an_ifc_form_catenate &universal)
 /*
 Return TRUE if the given universal representation has the field "first";
@@ -21181,6 +21726,11 @@ representation of the field "second".
 }  /* get_ifc_second */
 
 
+/*
+Functions for reading data from IFC FormCharacter nodes.
+*/
+
+
 a_boolean has_ifc_locus(const an_ifc_form_character &universal)
 /*
 Return TRUE if the given universal representation has the field "locus";
@@ -21263,6 +21813,11 @@ representation of the field "spelling".
   result = stage_1;
   return result;
 }  /* get_ifc_spelling */
+
+
+/*
+Functions for reading data from IFC FormHeader nodes.
+*/
 
 
 a_boolean has_ifc_locus(const an_ifc_form_header &universal)
@@ -21349,6 +21904,11 @@ representation of the field "spelling".
 }  /* get_ifc_spelling */
 
 
+/*
+Functions for reading data from IFC FormIdentifier nodes.
+*/
+
+
 a_boolean has_ifc_locus(const an_ifc_form_identifier &universal)
 /*
 Return TRUE if the given universal representation has the field "locus";
@@ -21431,6 +21991,11 @@ representation of the field "spelling".
   result = stage_1;
   return result;
 }  /* get_ifc_spelling */
+
+
+/*
+Functions for reading data from IFC FormJunk nodes.
+*/
 
 
 a_boolean has_ifc_locus(const an_ifc_form_junk &universal)
@@ -21517,6 +22082,11 @@ representation of the field "spelling".
 }  /* get_ifc_spelling */
 
 
+/*
+Functions for reading data from IFC FormKeyword nodes.
+*/
+
+
 a_boolean has_ifc_locus(const an_ifc_form_keyword &universal)
 /*
 Return TRUE if the given universal representation has the field "locus";
@@ -21601,6 +22171,11 @@ representation of the field "spelling".
 }  /* get_ifc_spelling */
 
 
+/*
+Functions for reading data from IFC FormNumber nodes.
+*/
+
+
 a_boolean has_ifc_locus(const an_ifc_form_number &universal)
 /*
 Return TRUE if the given universal representation has the field "locus";
@@ -21683,6 +22258,11 @@ representation of the field "spelling".
   result = stage_1;
   return result;
 }  /* get_ifc_spelling */
+
+
+/*
+Functions for reading data from IFC FormOperator nodes.
+*/
 
 
 a_boolean has_ifc_locus(const an_ifc_form_operator &universal)
@@ -21810,6 +22390,11 @@ representation of the field "spelling".
 }  /* get_ifc_spelling */
 
 
+/*
+Functions for reading data from IFC FormParameter nodes.
+*/
+
+
 a_boolean has_ifc_locus(const an_ifc_form_parameter &universal)
 /*
 Return TRUE if the given universal representation has the field "locus";
@@ -21892,6 +22477,11 @@ representation of the field "spelling".
   result = stage_1;
   return result;
 }  /* get_ifc_spelling */
+
+
+/*
+Functions for reading data from IFC FormParenthesized nodes.
+*/
 
 
 a_boolean has_ifc_locus(const an_ifc_form_parenthesized &universal)
@@ -21979,6 +22569,11 @@ representation of the field "operand".
 }  /* get_ifc_operand */
 
 
+/*
+Functions for reading data from IFC FormPragma nodes.
+*/
+
+
 a_boolean has_ifc_locus(const an_ifc_form_pragma &universal)
 /*
 Return TRUE if the given universal representation has the field "locus";
@@ -22061,6 +22656,11 @@ representation of the field "operand".
   result = stage_1;
   return result;
 }  /* get_ifc_operand */
+
+
+/*
+Functions for reading data from IFC FormSpec nodes.
+*/
 
 
 a_boolean has_ifc_arguments(const an_ifc_form_spec &universal)
@@ -22156,6 +22756,11 @@ representation of the field "primary_template".
 }  /* get_ifc_primary_template */
 
 
+/*
+Functions for reading data from IFC FormString nodes.
+*/
+
+
 a_boolean has_ifc_locus(const an_ifc_form_string &universal)
 /*
 Return TRUE if the given universal representation has the field "locus";
@@ -22238,6 +22843,11 @@ representation of the field "spelling".
   result = stage_1;
   return result;
 }  /* get_ifc_spelling */
+
+
+/*
+Functions for reading data from IFC FormStringize nodes.
+*/
 
 
 a_boolean has_ifc_locus(const an_ifc_form_stringize &universal)
@@ -22324,6 +22934,11 @@ representation of the field "operand".
 }  /* get_ifc_operand */
 
 
+/*
+Functions for reading data from IFC FormTuple nodes.
+*/
+
+
 a_boolean has_ifc_cardinality(const an_ifc_form_tuple &universal)
 /*
 Return TRUE if the given universal representation has the field "cardinality";
@@ -22404,6 +23019,11 @@ representation of the field "start".
 }  /* get_ifc_start */
 
 
+/*
+Functions for reading data from IFC FormWhitespace nodes.
+*/
+
+
 a_boolean has_ifc_locus(const an_ifc_form_whitespace &universal)
 /*
 Return TRUE if the given universal representation has the field "locus";
@@ -22448,6 +23068,11 @@ representation of the field "locus".
 }  /* get_ifc_locus */
 
 
+/*
+Functions for reading data from IFC HeapAttr nodes.
+*/
+
+
 a_boolean has_ifc_value(const an_ifc_heap_attr &universal)
 /*
 Return TRUE if the given universal representation has the field "value";
@@ -22488,6 +23113,11 @@ representation of the field "value".
 }  /* get_ifc_value */
 
 
+/*
+Functions for reading data from IFC HeapChart nodes.
+*/
+
+
 a_boolean has_ifc_value(const an_ifc_heap_chart &universal)
 /*
 Return TRUE if the given universal representation has the field "value";
@@ -22526,6 +23156,11 @@ representation of the field "value".
   result = stage_1;
   return result;
 }  /* get_ifc_value */
+
+
+/*
+Functions for reading data from IFC HeapDecl nodes.
+*/
 
 
 a_boolean has_ifc_value(const an_ifc_heap_decl &universal)
@@ -22581,6 +23216,11 @@ representation of the field "value".
 }  /* get_ifc_value */
 
 
+/*
+Functions for reading data from IFC HeapExpr nodes.
+*/
+
+
 a_boolean has_ifc_value(const an_ifc_heap_expr &universal)
 /*
 Return TRUE if the given universal representation has the field "value";
@@ -22619,6 +23259,11 @@ representation of the field "value".
   result = stage_1;
   return result;
 }  /* get_ifc_value */
+
+
+/*
+Functions for reading data from IFC HeapForm nodes.
+*/
 
 
 a_boolean has_ifc_value(const an_ifc_heap_form &universal)
@@ -22661,6 +23306,11 @@ representation of the field "value".
 }  /* get_ifc_value */
 
 
+/*
+Functions for reading data from IFC HeapPPForm nodes.
+*/
+
+
 a_boolean has_ifc_value(const an_ifc_heap_pp_form &universal)
 /*
 Return TRUE if the given universal representation has the field "value";
@@ -22699,6 +23349,11 @@ representation of the field "value".
   result = stage_1;
   return result;
 }  /* get_ifc_value */
+
+
+/*
+Functions for reading data from IFC HeapStmt nodes.
+*/
 
 
 a_boolean has_ifc_value(const an_ifc_heap_stmt &universal)
@@ -22741,6 +23396,11 @@ representation of the field "value".
 }  /* get_ifc_value */
 
 
+/*
+Functions for reading data from IFC HeapSyntax nodes.
+*/
+
+
 a_boolean has_ifc_value(const an_ifc_heap_syntax &universal)
 /*
 Return TRUE if the given universal representation has the field "value";
@@ -22781,6 +23441,11 @@ representation of the field "value".
 }  /* get_ifc_value */
 
 
+/*
+Functions for reading data from IFC HeapType nodes.
+*/
+
+
 a_boolean has_ifc_value(const an_ifc_heap_type &universal)
 /*
 Return TRUE if the given universal representation has the field "value";
@@ -22819,6 +23484,11 @@ representation of the field "value".
   result = stage_1;
   return result;
 }  /* get_ifc_value */
+
+
+/*
+Functions for reading data from IFC MacroFunctionLike nodes.
+*/
 
 
 a_boolean has_ifc_arity_variadic(const an_ifc_macro_function_like &universal)
@@ -23033,6 +23703,11 @@ representation of the field "parameters".
 }  /* get_ifc_parameters */
 
 
+/*
+Functions for reading data from IFC MacroObjectLike nodes.
+*/
+
+
 a_boolean has_ifc_body(const an_ifc_macro_object_like &universal)
 /*
 Return TRUE if the given universal representation has the field "body";
@@ -23157,6 +23832,11 @@ representation of the field "name".
 }  /* get_ifc_name */
 
 
+/*
+Functions for reading data from IFC ModuleExportReference nodes.
+*/
+
+
 a_boolean has_ifc_reference(const an_ifc_module_export_reference &universal)
 /*
 Return TRUE if the given universal representation has the field "reference";
@@ -23202,6 +23882,11 @@ universal representation of the field "reference".
 }  /* get_ifc_reference */
 
 
+/*
+Functions for reading data from IFC ModuleImportReference nodes.
+*/
+
+
 a_boolean has_ifc_reference(const an_ifc_module_import_reference &universal)
 /*
 Return TRUE if the given universal representation has the field "reference";
@@ -23245,6 +23930,11 @@ universal representation of the field "reference".
   result = stage_1;
   return result;
 }  /* get_ifc_reference */
+
+
+/*
+Functions for reading data from IFC NameConversion nodes.
+*/
 
 
 a_boolean has_ifc_encoded(const an_ifc_name_conversion &universal)
@@ -23327,6 +24017,11 @@ representation of the field "target".
 }  /* get_ifc_target */
 
 
+/*
+Functions for reading data from IFC NameGuide nodes.
+*/
+
+
 a_boolean has_ifc_primary_template(const an_ifc_name_guide &universal)
 /*
 Return TRUE if the given universal representation has the field
@@ -23380,6 +24075,11 @@ representation of the field "primary_template".
 }  /* get_ifc_primary_template */
 
 
+/*
+Functions for reading data from IFC NameLiteral nodes.
+*/
+
+
 a_boolean has_ifc_encoded(const an_ifc_name_literal &universal)
 /*
 Return TRUE if the given universal representation has the field "encoded";
@@ -23418,6 +24118,11 @@ representation of the field "encoded".
   result = stage_1;
   return result;
 }  /* get_ifc_encoded */
+
+
+/*
+Functions for reading data from IFC NameOperator nodes.
+*/
 
 
 a_boolean has_ifc_encoded(const an_ifc_name_operator &universal)
@@ -23501,6 +24206,11 @@ representation of the field "operator".
 }  /* get_ifc_operator */
 
 
+/*
+Functions for reading data from IFC NameSourceFile nodes.
+*/
+
+
 a_boolean has_ifc_guard(const an_ifc_name_source_file &universal)
 /*
 Return TRUE if the given universal representation has the field "guard";
@@ -23579,6 +24289,11 @@ representation of the field "path".
   result = stage_1;
   return result;
 }  /* get_ifc_path */
+
+
+/*
+Functions for reading data from IFC NameSpecialization nodes.
+*/
 
 
 a_boolean has_ifc_arguments(const an_ifc_name_specialization &universal)
@@ -23662,6 +24377,11 @@ representation of the field "primary".
 }  /* get_ifc_primary */
 
 
+/*
+Functions for reading data from IFC NameTemplate nodes.
+*/
+
+
 a_boolean has_ifc_name(const an_ifc_name_template &universal)
 /*
 Return TRUE if the given universal representation has the field "name";
@@ -23700,6 +24420,11 @@ representation of the field "name".
   result = stage_1;
   return result;
 }  /* get_ifc_name */
+
+
+/*
+Functions for reading data from IFC ScopeDescriptor nodes.
+*/
 
 
 a_boolean has_ifc_cardinality(const an_ifc_scope_descriptor &universal)
@@ -23783,6 +24508,11 @@ representation of the field "start".
 }  /* get_ifc_start */
 
 
+/*
+Functions for reading data from IFC ScopeMember nodes.
+*/
+
+
 a_boolean has_ifc_index(const an_ifc_scope_member &universal)
 /*
 Return TRUE if the given universal representation has the field "index";
@@ -23834,6 +24564,11 @@ representation of the field "index".
   }  /* if */
   return result;
 }  /* get_ifc_index */
+
+
+/*
+Functions for reading data from IFC SourceLine nodes.
+*/
 
 
 a_boolean has_ifc_file(const an_ifc_source_line &universal)
@@ -23914,6 +24649,11 @@ representation of the field "line".
   result = stage_1;
   return result;
 }  /* get_ifc_line */
+
+
+/*
+Functions for reading data from IFC SourceSentence nodes.
+*/
 
 
 a_boolean has_ifc_cardinality(const an_ifc_source_sentence &universal)
@@ -24038,6 +24778,11 @@ representation of the field "start".
   result = stage_1;
   return result;
 }  /* get_ifc_start */
+
+
+/*
+Functions for reading data from IFC SourceWord nodes.
+*/
 
 
 a_boolean has_ifc_category(const an_ifc_source_word &universal)
@@ -24266,6 +25011,11 @@ representation of the field "value".
 }  /* get_ifc_value */
 
 
+/*
+Functions for reading data from IFC StmtBlock nodes.
+*/
+
+
 a_boolean has_ifc_cardinality(const an_ifc_stmt_block &universal)
 /*
 Return TRUE if the given universal representation has the field "cardinality";
@@ -24346,6 +25096,11 @@ representation of the field "start".
 }  /* get_ifc_start */
 
 
+/*
+Functions for reading data from IFC StmtBreak nodes.
+*/
+
+
 a_boolean has_ifc_locus(const an_ifc_stmt_break &universal)
 /*
 Return TRUE if the given universal representation has the field "locus";
@@ -24388,6 +25143,11 @@ representation of the field "locus".
   result = stage_1;
   return result;
 }  /* get_ifc_locus */
+
+
+/*
+Functions for reading data from IFC StmtCase nodes.
+*/
 
 
 a_boolean has_ifc_expr(const an_ifc_stmt_case &universal)
@@ -24474,6 +25234,11 @@ representation of the field "locus".
 }  /* get_ifc_locus */
 
 
+/*
+Functions for reading data from IFC StmtContinue nodes.
+*/
+
+
 a_boolean has_ifc_locus(const an_ifc_stmt_continue &universal)
 /*
 Return TRUE if the given universal representation has the field "locus";
@@ -24518,6 +25283,11 @@ representation of the field "locus".
 }  /* get_ifc_locus */
 
 
+/*
+Functions for reading data from IFC StmtDefault nodes.
+*/
+
+
 a_boolean has_ifc_locus(const an_ifc_stmt_default &universal)
 /*
 Return TRUE if the given universal representation has the field "locus";
@@ -24560,6 +25330,11 @@ representation of the field "locus".
   result = stage_1;
   return result;
 }  /* get_ifc_locus */
+
+
+/*
+Functions for reading data from IFC StmtDoWhile nodes.
+*/
 
 
 a_boolean has_ifc_body(const an_ifc_stmt_do_while &universal)
@@ -24686,6 +25461,11 @@ representation of the field "locus".
 }  /* get_ifc_locus */
 
 
+/*
+Functions for reading data from IFC StmtEmpty nodes.
+*/
+
+
 a_boolean has_ifc_locus(const an_ifc_stmt_empty &universal)
 /*
 Return TRUE if the given universal representation has the field "locus";
@@ -24730,6 +25510,11 @@ representation of the field "locus".
 }  /* get_ifc_locus */
 
 
+/*
+Functions for reading data from IFC StmtExpansion nodes.
+*/
+
+
 a_boolean has_ifc_operand(const an_ifc_stmt_expansion &universal)
 /*
 Return TRUE if the given universal representation has the field "operand";
@@ -24768,6 +25553,11 @@ representation of the field "operand".
   result = stage_1;
   return result;
 }  /* get_ifc_operand */
+
+
+/*
+Functions for reading data from IFC StmtExpression nodes.
+*/
 
 
 a_boolean has_ifc_expr(const an_ifc_stmt_expression &universal)
@@ -24852,6 +25642,11 @@ representation of the field "locus".
   result = stage_1;
   return result;
 }  /* get_ifc_locus */
+
+
+/*
+Functions for reading data from IFC StmtFor nodes.
+*/
 
 
 a_boolean has_ifc_body(const an_ifc_stmt_for &universal)
@@ -25059,6 +25854,11 @@ representation of the field "locus".
 }  /* get_ifc_locus */
 
 
+/*
+Functions for reading data from IFC StmtIf nodes.
+*/
+
+
 a_boolean has_ifc_alternative(const an_ifc_stmt_if &universal)
 /*
 Return TRUE if the given universal representation has the field "alternative";
@@ -25263,6 +26063,11 @@ representation of the field "locus".
 }  /* get_ifc_locus */
 
 
+/*
+Functions for reading data from IFC StmtReturn nodes.
+*/
+
+
 a_boolean has_ifc_expr(const an_ifc_stmt_return &universal)
 /*
 Return TRUE if the given universal representation has the field "expr";
@@ -25426,6 +26231,11 @@ representation of the field "locus".
   result = stage_1;
   return result;
 }  /* get_ifc_locus */
+
+
+/*
+Functions for reading data from IFC StmtSwitch nodes.
+*/
 
 
 a_boolean has_ifc_body(const an_ifc_stmt_switch &universal)
@@ -25593,6 +26403,11 @@ representation of the field "locus".
 }  /* get_ifc_locus */
 
 
+/*
+Functions for reading data from IFC StmtVariableDecl nodes.
+*/
+
+
 a_boolean has_ifc_decl(const an_ifc_stmt_variable_decl &universal)
 /*
 Return TRUE if the given universal representation has the field "decl";
@@ -25689,6 +26504,11 @@ representation of the field "locus".
   result = stage_1;
   return result;
 }  /* get_ifc_locus */
+
+
+/*
+Functions for reading data from IFC StmtWhile nodes.
+*/
 
 
 a_boolean has_ifc_body(const an_ifc_stmt_while &universal)
@@ -25813,6 +26633,11 @@ representation of the field "locus".
   result = stage_1;
   return result;
 }  /* get_ifc_locus */
+
+
+/*
+Functions for reading data from IFC SyntaxAccessSpecifier nodes.
+*/
 
 
 a_boolean has_ifc_access(const an_ifc_syntax_access_specifier &universal)
@@ -26086,6 +26911,11 @@ universal representation of the field "virtual_kw2".
 }  /* get_ifc_virtual_kw2 */
 
 
+/*
+Functions for reading data from IFC SyntaxAliasDeclaration nodes.
+*/
+
+
 a_boolean has_ifc_aliasee(const an_ifc_syntax_alias_declaration &universal)
 /*
 Return TRUE if the given universal representation has the field "aliasee";
@@ -26305,6 +27135,11 @@ universal representation of the field "semicolon".
 }  /* get_ifc_semicolon */
 
 
+/*
+Functions for reading data from IFC SyntaxAlignas nodes.
+*/
+
+
 a_boolean has_ifc_left_paren(const an_ifc_syntax_alignas &universal)
 /*
 Return TRUE if the given universal representation has the field "left_paren";
@@ -26481,6 +27316,11 @@ representation of the field "right_paren".
 }  /* get_ifc_right_paren */
 
 
+/*
+Functions for reading data from IFC SyntaxArrayDeclarator nodes.
+*/
+
+
 a_boolean has_ifc_bound(const an_ifc_syntax_array_declarator &universal)
 /*
 Return TRUE if the given universal representation has the field "bound";
@@ -26612,6 +27452,11 @@ universal representation of the field "right_bracket".
   result = stage_1;
   return result;
 }  /* get_ifc_right_bracket */
+
+
+/*
+Functions for reading data from IFC SyntaxArrayIndex nodes.
+*/
 
 
 a_boolean has_ifc_array(const an_ifc_syntax_array_index &universal)
@@ -26785,6 +27630,11 @@ representation of the field "right_bracket".
 }  /* get_ifc_right_bracket */
 
 
+/*
+Functions for reading data from IFC SyntaxArrayOrFunctionDeclarator nodes.
+*/
+
+
 a_boolean has_ifc_declarator(
                    const an_ifc_syntax_array_or_function_declarator &universal)
 /*
@@ -26867,6 +27717,11 @@ the universal representation of the field "next".
   result = stage_1;
   return result;
 }  /* get_ifc_next */
+
+
+/*
+Functions for reading data from IFC SyntaxAsmStatement nodes.
+*/
 
 
 a_boolean has_ifc_locus(const an_ifc_syntax_asm_statement &universal)
@@ -26953,6 +27808,11 @@ representation of the field "tokens".
   result = stage_1;
   return result;
 }  /* get_ifc_tokens */
+
+
+/*
+Functions for reading data from IFC SyntaxAttribute nodes.
+*/
 
 
 a_boolean has_ifc_argument_clause(const an_ifc_syntax_attribute &universal)
@@ -27212,6 +28072,11 @@ representation of the field "scope".
 }  /* get_ifc_scope */
 
 
+/*
+Functions for reading data from IFC SyntaxAttributeArgumentClause nodes.
+*/
+
+
 a_boolean has_ifc_left_paren(
                       const an_ifc_syntax_attribute_argument_clause &universal)
 /*
@@ -27345,6 +28210,11 @@ universal representation of the field "tokens".
   result = stage_1;
   return result;
 }  /* get_ifc_tokens */
+
+
+/*
+Functions for reading data from IFC SyntaxAttributeSpecifier nodes.
+*/
 
 
 a_boolean has_ifc_attributes(
@@ -27617,6 +28487,11 @@ universal representation of the field "right_paren_2".
 }  /* get_ifc_right_paren_2 */
 
 
+/*
+Functions for reading data from IFC SyntaxAttributeSpecifierSeq nodes.
+*/
+
+
 a_boolean has_ifc_attributes(
                         const an_ifc_syntax_attribute_specifier_seq &universal)
 /*
@@ -27657,6 +28532,11 @@ universal representation of the field "attributes".
   result = stage_1;
   return result;
 }  /* get_ifc_attributes */
+
+
+/*
+Functions for reading data from IFC SyntaxAttributeUsingPrefix nodes.
+*/
 
 
 a_boolean has_ifc_locus(const an_ifc_syntax_attribute_using_prefix &universal)
@@ -27747,6 +28627,11 @@ universal representation of the field "scope".
   result = stage_1;
   return result;
 }  /* get_ifc_scope */
+
+
+/*
+Functions for reading data from IFC SyntaxAttributedDeclaration nodes.
+*/
 
 
 a_boolean has_ifc_attributes(
@@ -27877,6 +28762,11 @@ universal representation of the field "locus".
 }  /* get_ifc_locus */
 
 
+/*
+Functions for reading data from IFC SyntaxAttributedStatement nodes.
+*/
+
+
 a_boolean has_ifc_attributes(
                            const an_ifc_syntax_attributed_statement &universal)
 /*
@@ -28001,6 +28891,11 @@ universal representation of the field "stmt".
 }  /* get_ifc_stmt */
 
 
+/*
+Functions for reading data from IFC SyntaxBaseSpecifier nodes.
+*/
+
+
 a_boolean has_ifc_access(const an_ifc_syntax_base_specifier &universal)
 /*
 Return TRUE if the given universal representation has the field "access";
@@ -28093,6 +28988,11 @@ representation of the field "colon".
 }  /* get_ifc_colon */
 
 
+/*
+Functions for reading data from IFC SyntaxBaseSpecifierList nodes.
+*/
+
+
 a_boolean has_ifc_base_specifiers(
                             const an_ifc_syntax_base_specifier_list &universal)
 /*
@@ -28178,6 +29078,11 @@ universal representation of the field "colon".
   result = stage_1;
   return result;
 }  /* get_ifc_colon */
+
+
+/*
+Functions for reading data from IFC SyntaxBinaryFoldExpression nodes.
+*/
 
 
 a_boolean has_ifc_direction(
@@ -28581,6 +29486,11 @@ universal representation of the field "right_paren".
 }  /* get_ifc_right_paren */
 
 
+/*
+Functions for reading data from IFC SyntaxBreakStatement nodes.
+*/
+
+
 a_boolean has_ifc_break(const an_ifc_syntax_break_statement &universal)
 /*
 Return TRUE if the given universal representation has the field "break";
@@ -28669,6 +29579,11 @@ universal representation of the field "semicolon".
   result = stage_1;
   return result;
 }  /* get_ifc_semicolon */
+
+
+/*
+Functions for reading data from IFC SyntaxCaptureDefault nodes.
+*/
 
 
 a_boolean has_ifc_by_ref(const an_ifc_syntax_capture_default &universal)
@@ -28799,6 +29714,11 @@ universal representation of the field "locus".
   result = stage_1;
   return result;
 }  /* get_ifc_locus */
+
+
+/*
+Functions for reading data from IFC SyntaxClassSpecifier nodes.
+*/
 
 
 a_boolean has_ifc_bases(const an_ifc_syntax_class_specifier &universal)
@@ -29051,6 +29971,11 @@ universal representation of the field "right_paren".
 }  /* get_ifc_right_paren */
 
 
+/*
+Functions for reading data from IFC SyntaxCompoundRequirement nodes.
+*/
+
+
 a_boolean has_ifc_condition(
                            const an_ifc_syntax_compound_requirement &universal)
 /*
@@ -29274,6 +30199,11 @@ universal representation of the field "right_curly".
 }  /* get_ifc_right_curly */
 
 
+/*
+Functions for reading data from IFC SyntaxCompoundStatement nodes.
+*/
+
+
 a_boolean has_ifc_left_curly(const an_ifc_syntax_compound_statement &universal)
 /*
 Return TRUE if the given universal representation has the field "left_curly";
@@ -29446,6 +30376,11 @@ universal representation of the field "stmts".
   result = stage_1;
   return result;
 }  /* get_ifc_stmts */
+
+
+/*
+Functions for reading data from IFC SyntaxConceptDefinition nodes.
+*/
 
 
 a_boolean has_ifc_concept_keyword(
@@ -29756,6 +30691,11 @@ universal representation of the field "semicolon".
 }  /* get_ifc_semicolon */
 
 
+/*
+Functions for reading data from IFC SyntaxConditionDeclaration nodes.
+*/
+
+
 a_boolean has_ifc_decl_specifier(
                           const an_ifc_syntax_condition_declaration &universal)
 /*
@@ -29885,6 +30825,11 @@ universal representation of the field "locus".
 }  /* get_ifc_locus */
 
 
+/*
+Functions for reading data from IFC SyntaxContinueStatement nodes.
+*/
+
+
 a_boolean has_ifc_continue(const an_ifc_syntax_continue_statement &universal)
 /*
 Return TRUE if the given universal representation has the field "continue";
@@ -29975,6 +30920,11 @@ universal representation of the field "semicolon".
 }  /* get_ifc_semicolon */
 
 
+/*
+Functions for reading data from IFC SyntaxCtorInitializer nodes.
+*/
+
+
 a_boolean has_ifc_colon(const an_ifc_syntax_ctor_initializer &universal)
 /*
 Return TRUE if the given universal representation has the field "colon";
@@ -30059,6 +31009,11 @@ universal representation of the field "initializers".
   result = stage_1;
   return result;
 }  /* get_ifc_initializers */
+
+
+/*
+Functions for reading data from IFC SyntaxDeclSpecifierSeq nodes.
+*/
 
 
 a_boolean has_ifc_declspec(const an_ifc_syntax_decl_specifier_seq &universal)
@@ -30360,6 +31315,11 @@ universal representation of the field "type_name".
 }  /* get_ifc_type_name */
 
 
+/*
+Functions for reading data from IFC SyntaxDeclarationStatement nodes.
+*/
+
+
 a_boolean has_ifc_decl(const an_ifc_syntax_declaration_statement &universal)
 /*
 Return TRUE if the given universal representation has the field "decl";
@@ -30440,6 +31400,11 @@ universal representation of the field "pragma".
   result = stage_1;
   return result;
 }  /* get_ifc_pragma */
+
+
+/*
+Functions for reading data from IFC SyntaxDeclarator nodes.
+*/
 
 
 a_boolean has_ifc_array_or_function(const an_ifc_syntax_declarator &universal)
@@ -30902,6 +31867,11 @@ representation of the field "virtual_specifiers".
 }  /* get_ifc_virtual_specifiers */
 
 
+/*
+Functions for reading data from IFC SyntaxDecltypeSpecifier nodes.
+*/
+
+
 a_boolean has_ifc_decltype_keyword(
                              const an_ifc_syntax_decltype_specifier &universal)
 /*
@@ -31080,6 +32050,11 @@ universal representation of the field "right_paren".
   result = stage_1;
   return result;
 }  /* get_ifc_right_paren */
+
+
+/*
+Functions for reading data from IFC SyntaxDoWhileStatement nodes.
+*/
 
 
 a_boolean has_ifc_body(const an_ifc_syntax_do_while_statement &universal)
@@ -31343,6 +32318,11 @@ universal representation of the field "while".
 }  /* get_ifc_while */
 
 
+/*
+Functions for reading data from IFC SyntaxDynamicExceptionSpec nodes.
+*/
+
+
 a_boolean has_ifc_expander(
                          const an_ifc_syntax_dynamic_exception_spec &universal)
 /*
@@ -31571,6 +32551,11 @@ universal representation of the field "type_list".
 }  /* get_ifc_type_list */
 
 
+/*
+Functions for reading data from IFC SyntaxEmptyStatement nodes.
+*/
+
+
 a_boolean has_ifc_locus(const an_ifc_syntax_empty_statement &universal)
 /*
 Return TRUE if the given universal representation has the field "locus";
@@ -31614,6 +32599,11 @@ universal representation of the field "locus".
   result = stage_1;
   return result;
 }  /* get_ifc_locus */
+
+
+/*
+Functions for reading data from IFC SyntaxEnumSpecifier nodes.
+*/
 
 
 a_boolean has_ifc_base(const an_ifc_syntax_enum_specifier &universal)
@@ -31967,6 +32957,11 @@ representation of the field "right_brace".
 }  /* get_ifc_right_brace */
 
 
+/*
+Functions for reading data from IFC SyntaxEnumeratorDefinition nodes.
+*/
+
+
 a_boolean has_ifc_comma(const an_ifc_syntax_enumerator_definition &universal)
 /*
 Return TRUE if the given universal representation has the field "comma";
@@ -32187,6 +33182,11 @@ universal representation of the field "name".
 }  /* get_ifc_name */
 
 
+/*
+Functions for reading data from IFC SyntaxExceptionDeclaration nodes.
+*/
+
+
 a_boolean has_ifc_declarator(
                           const an_ifc_syntax_exception_declaration &universal)
 /*
@@ -32361,6 +33361,11 @@ universal representation of the field "type_specifiers".
   result = stage_1;
   return result;
 }  /* get_ifc_type_specifiers */
+
+
+/*
+Functions for reading data from IFC SyntaxExplicitSpecifier nodes.
+*/
 
 
 a_boolean has_ifc_condition(const an_ifc_syntax_explicit_specifier &universal)
@@ -32542,6 +33547,11 @@ universal representation of the field "right_paren".
 }  /* get_ifc_right_paren */
 
 
+/*
+Functions for reading data from IFC SyntaxExpression nodes.
+*/
+
+
 a_boolean has_ifc_expression(const an_ifc_syntax_expression &universal)
 /*
 Return TRUE if the given universal representation has the field "expression";
@@ -32580,6 +33590,11 @@ representation of the field "expression".
   result = stage_1;
   return result;
 }  /* get_ifc_expression */
+
+
+/*
+Functions for reading data from IFC SyntaxExpressionStatement nodes.
+*/
 
 
 a_boolean has_ifc_expr(const an_ifc_syntax_expression_statement &universal)
@@ -32710,6 +33725,11 @@ universal representation of the field "semicolon".
 }  /* get_ifc_semicolon */
 
 
+/*
+Functions for reading data from IFC SyntaxForRangeDeclaration nodes.
+*/
+
+
 a_boolean has_ifc_declarator(
                           const an_ifc_syntax_for_range_declaration &universal)
 /*
@@ -32792,6 +33812,11 @@ universal representation of the field "specifiers".
   result = stage_1;
   return result;
 }  /* get_ifc_specifiers */
+
+
+/*
+Functions for reading data from IFC SyntaxForStatement nodes.
+*/
 
 
 a_boolean has_ifc_body(const an_ifc_syntax_for_statement &universal)
@@ -33182,6 +34207,11 @@ representation of the field "semicolon".
 }  /* get_ifc_semicolon */
 
 
+/*
+Functions for reading data from IFC SyntaxFunctionBody nodes.
+*/
+
+
 a_boolean has_ifc_assign(const an_ifc_syntax_function_body &universal)
 /*
 Return TRUE if the given universal representation has the field "assign";
@@ -33442,6 +34472,11 @@ representation of the field "try_block".
 }  /* get_ifc_try_block */
 
 
+/*
+Functions for reading data from IFC SyntaxFunctionDeclarator nodes.
+*/
+
+
 a_boolean has_ifc_eh_spec(const an_ifc_syntax_function_declarator &universal)
 /*
 Return TRUE if the given universal representation has the field "eh_spec";
@@ -33616,6 +34651,11 @@ universal representation of the field "right_paren".
   result = stage_1;
   return result;
 }  /* get_ifc_right_paren */
+
+
+/*
+Functions for reading data from IFC SyntaxFunctionDefinition nodes.
+*/
 
 
 a_boolean has_ifc_assign(const an_ifc_syntax_function_definition &universal)
@@ -33880,6 +34920,11 @@ universal representation of the field "try_block".
 }  /* get_ifc_try_block */
 
 
+/*
+Functions for reading data from IFC SyntaxFunctionTryBlock nodes.
+*/
+
+
 a_boolean has_ifc_body(const an_ifc_syntax_function_try_block &universal)
 /*
 Return TRUE if the given universal representation has the field "body";
@@ -34002,6 +35047,11 @@ universal representation of the field "initializers".
   result = stage_1;
   return result;
 }  /* get_ifc_initializers */
+
+
+/*
+Functions for reading data from IFC SyntaxGotoStatement nodes.
+*/
 
 
 a_boolean has_ifc_label(const an_ifc_syntax_goto_statement &universal)
@@ -34221,6 +35271,11 @@ representation of the field "target".
   result = stage_1;
   return result;
 }  /* get_ifc_target */
+
+
+/*
+Functions for reading data from IFC SyntaxHandler nodes.
+*/
 
 
 a_boolean has_ifc_body(const an_ifc_syntax_handler &universal)
@@ -34480,6 +35535,11 @@ representation of the field "right_paren".
 }  /* get_ifc_right_paren */
 
 
+/*
+Functions for reading data from IFC SyntaxHandlerSeq nodes.
+*/
+
+
 a_boolean has_ifc_handlers(const an_ifc_syntax_handler_seq &universal)
 /*
 Return TRUE if the given universal representation has the field "handlers";
@@ -34521,6 +35581,11 @@ representation of the field "handlers".
 }  /* get_ifc_handlers */
 
 
+/*
+Functions for reading data from IFC SyntaxIfStatement nodes.
+*/
+
+
 a_boolean has_ifc_alternative(const an_ifc_syntax_if_statement &universal)
 /*
 Return TRUE if the given universal representation has the field "alternative";
@@ -34555,18 +35620,17 @@ representation of the field "alternative".
      specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
+  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
   stage_1 = to_universal_index(universal.get_module(), stage_0);
   result = stage_1;
   return result;
 }  /* get_ifc_alternative */
 
 
-a_boolean has_ifc_condition_as_expr(
-                                   const an_ifc_syntax_if_statement &universal)
+a_boolean has_ifc_condition(const an_ifc_syntax_if_statement &universal)
 /*
-Return TRUE if the given universal representation has the field
-"condition_as_expr"; otherwise, return FALSE.
+Return TRUE if the given universal representation has the field "condition";
+otherwise, return FALSE.
 */
 {
   an_ifc_module *mod = universal.get_module();
@@ -34576,76 +35640,31 @@ Return TRUE if the given universal representation has the field
     result = TRUE;
   }  /* if */
   return result;
-}  /* has_ifc_condition_as_expr */
+}  /* has_ifc_condition */
 
 
-an_ifc_expr_index get_ifc_condition_as_expr(
-                                   const an_ifc_syntax_if_statement &universal)
+an_ifc_index get_ifc_condition(const an_ifc_syntax_if_statement &universal)
 /*
 Given the universal representation of SyntaxIfStatement, return the universal
-representation of the field "condition_as_expr".
+representation of the field "condition".
 */
 {
-  an_ifc_expr_index result;
+  an_ifc_index result;
 
-  /* Ensure the condition_as_expr field exists in the current module
-     version. */
-  check_assertion(has_ifc_condition_as_expr(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  /* Ensure the condition field exists in the current module version. */
+  check_assertion(has_ifc_condition(universal));
+  an_ifc_index_0_33 stage_0;
+  an_ifc_index      stage_1;
 
-  /* Copy the field (SyntaxIfStatement::condition_as_expr - ExprIndex) into
-     version specific storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
-  return result;
-}  /* get_ifc_condition_as_expr */
-
-
-a_boolean has_ifc_condition_as_syntax(
-                                   const an_ifc_syntax_if_statement &universal)
-/*
-Return TRUE if the given universal representation has the field
-"condition_as_syntax"; otherwise, return FALSE.
-*/
-{
-  an_ifc_module *mod = universal.get_module();
-  a_boolean     result = get_fallback_presence_value(mod);
-
-  if (is_at_least(mod, 0, 33)) {
-    result = TRUE;
-  }  /* if */
-  return result;
-}  /* has_ifc_condition_as_syntax */
-
-
-an_ifc_syntax_index get_ifc_condition_as_syntax(
-                                   const an_ifc_syntax_if_statement &universal)
-/*
-Given the universal representation of SyntaxIfStatement, return the universal
-representation of the field "condition_as_syntax".
-*/
-{
-  an_ifc_syntax_index result;
-
-  /* Ensure the condition_as_syntax field exists in the current module
-     version. */
-  check_assertion(has_ifc_condition_as_syntax(universal));
-  an_ifc_syntax_index_0_33 stage_0;
-  an_ifc_syntax_index      stage_1;
-
-  /* Copy the field (SyntaxIfStatement::condition_as_syntax - SyntaxIndex) into
-     version specific storage. */
+  /* Copy the field (SyntaxIfStatement::condition - Index) into version
+     specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
+  stage_1 = {universal.get_module(), (an_ifc_index_storage)stage_0};
   result = stage_1;
   return result;
-}  /* get_ifc_condition_as_syntax */
+}  /* get_ifc_condition */
 
 
 a_boolean has_ifc_consequence(const an_ifc_syntax_if_statement &universal)
@@ -34682,7 +35701,7 @@ representation of the field "consequence".
      specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
   stage_1 = to_universal_index(universal.get_module(), stage_0);
   result = stage_1;
   return result;
@@ -34722,11 +35741,11 @@ representation of the field "constexpr".
 #if USE_MMAP_FOR_MODULES
   /* Update the universal storage pointer to the start of the field
      (SyntaxIfStatement::constexpr - SourceLocation). */
-  stage_0 = (an_ifc_source_location_bytes)((*universal.get_storage()) + 32);
+  stage_0 = (an_ifc_source_location_bytes)((*universal.get_storage()) + 28);
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxIfStatement::constexpr - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/32,
+  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/28,
                  /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_module(), stage_0};
@@ -34768,11 +35787,11 @@ representation of the field "else".
 #if USE_MMAP_FOR_MODULES
   /* Update the universal storage pointer to the start of the field
      (SyntaxIfStatement::else - SourceLocation). */
-  stage_0 = (an_ifc_source_location_bytes)((*universal.get_storage()) + 40);
+  stage_0 = (an_ifc_source_location_bytes)((*universal.get_storage()) + 36);
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxIfStatement::else - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/40,
+  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/36,
                  /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_module(), stage_0};
@@ -34813,11 +35832,11 @@ representation of the field "if".
 #if USE_MMAP_FOR_MODULES
   /* Update the universal storage pointer to the start of the field
      (SyntaxIfStatement::if - SourceLocation). */
-  stage_0 = (an_ifc_source_location_bytes)((*universal.get_storage()) + 24);
+  stage_0 = (an_ifc_source_location_bytes)((*universal.get_storage()) + 20);
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxIfStatement::if - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24,
+  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20,
                  /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_module(), stage_0};
@@ -34906,6 +35925,11 @@ representation of the field "pragma".
   result = stage_1;
   return result;
 }  /* get_ifc_pragma */
+
+
+/*
+Functions for reading data from IFC SyntaxInitCapture nodes.
+*/
 
 
 a_boolean has_ifc_ampersand(const an_ifc_syntax_init_capture &universal)
@@ -35126,6 +36150,11 @@ representation of the field "name".
 }  /* get_ifc_name */
 
 
+/*
+Functions for reading data from IFC SyntaxInitDeclarator nodes.
+*/
+
+
 a_boolean has_ifc_comma(const an_ifc_syntax_init_declarator &universal)
 /*
 Return TRUE if the given universal representation has the field "comma";
@@ -35295,6 +36324,11 @@ universal representation of the field "initializer".
 }  /* get_ifc_initializer */
 
 
+/*
+Functions for reading data from IFC SyntaxInitStatement nodes.
+*/
+
+
 a_boolean has_ifc_init(const an_ifc_syntax_init_statement &universal)
 /*
 Return TRUE if the given universal representation has the field "init";
@@ -35374,6 +36408,11 @@ representation of the field "pragma".
   result = stage_1;
   return result;
 }  /* get_ifc_pragma */
+
+
+/*
+Functions for reading data from IFC SyntaxLabeledStatement nodes.
+*/
 
 
 a_boolean has_ifc_label(const an_ifc_syntax_labeled_statement &universal)
@@ -35579,6 +36618,11 @@ universal representation of the field "stmt".
   result = stage_1;
   return result;
 }  /* get_ifc_stmt */
+
+
+/*
+Functions for reading data from IFC SyntaxLambdaDeclarator nodes.
+*/
 
 
 a_boolean has_ifc_eh_spec(const an_ifc_syntax_lambda_declarator &universal)
@@ -35884,6 +36928,11 @@ universal representation of the field "trailing_target".
 }  /* get_ifc_trailing_target */
 
 
+/*
+Functions for reading data from IFC SyntaxLambdaIntroducer nodes.
+*/
+
+
 a_boolean has_ifc_captures(const an_ifc_syntax_lambda_introducer &universal)
 /*
 Return TRUE if the given universal representation has the field "captures";
@@ -36016,6 +37065,11 @@ universal representation of the field "right_bracket".
   result = stage_1;
   return result;
 }  /* get_ifc_right_bracket */
+
+
+/*
+Functions for reading data from IFC SyntaxMemInitializer nodes.
+*/
 
 
 a_boolean has_ifc_comma(const an_ifc_syntax_mem_initializer &universal)
@@ -36191,6 +37245,11 @@ universal representation of the field "member".
 }  /* get_ifc_member */
 
 
+/*
+Functions for reading data from IFC SyntaxMemberDeclaration nodes.
+*/
+
+
 a_boolean has_ifc_decl_specifiers(
                              const an_ifc_syntax_member_declaration &universal)
 /*
@@ -36318,6 +37377,11 @@ universal representation of the field "semicolon".
   result = stage_1;
   return result;
 }  /* get_ifc_semicolon */
+
+
+/*
+Functions for reading data from IFC SyntaxMemberDeclarator nodes.
+*/
 
 
 a_boolean has_ifc_bitwidth(const an_ifc_syntax_member_declarator &universal)
@@ -36622,6 +37686,11 @@ universal representation of the field "locus".
 }  /* get_ifc_locus */
 
 
+/*
+Functions for reading data from IFC SyntaxMemberFunctionDeclaration nodes.
+*/
+
+
 a_boolean has_ifc_definition(
                     const an_ifc_syntax_member_function_declaration &universal)
 /*
@@ -36662,6 +37731,11 @@ the universal representation of the field "definition".
   result = stage_1;
   return result;
 }  /* get_ifc_definition */
+
+
+/*
+Functions for reading data from IFC SyntaxMemberSpecification nodes.
+*/
 
 
 a_boolean has_ifc_member_declarations(
@@ -36705,6 +37779,11 @@ universal representation of the field "member_declarations".
   result = stage_1;
   return result;
 }  /* get_ifc_member_declarations */
+
+
+/*
+Functions for reading data from IFC SyntaxNamespaceAliasDefinition nodes.
+*/
 
 
 a_boolean has_ifc_assign(
@@ -36931,6 +38010,11 @@ the universal representation of the field "target".
 }  /* get_ifc_target */
 
 
+/*
+Functions for reading data from IFC SyntaxNestedRequirement nodes.
+*/
+
+
 a_boolean has_ifc_condition(const an_ifc_syntax_nested_requirement &universal)
 /*
 Return TRUE if the given universal representation has the field "condition";
@@ -37017,6 +38101,11 @@ universal representation of the field "locus".
 }  /* get_ifc_locus */
 
 
+/*
+Functions for reading data from IFC SyntaxNewDeclarator nodes.
+*/
+
+
 a_boolean has_ifc_declarator(const an_ifc_syntax_new_declarator &universal)
 /*
 Return TRUE if the given universal representation has the field "declarator";
@@ -37056,6 +38145,11 @@ representation of the field "declarator".
   result = stage_1;
   return result;
 }  /* get_ifc_declarator */
+
+
+/*
+Functions for reading data from IFC SyntaxNoexceptSpecification nodes.
+*/
 
 
 a_boolean has_ifc_expr(const an_ifc_syntax_noexcept_specification &universal)
@@ -37238,6 +38332,11 @@ universal representation of the field "right_paren".
 }  /* get_ifc_right_paren */
 
 
+/*
+Functions for reading data from IFC SyntaxNonTypeTemplateArgument nodes.
+*/
+
+
 a_boolean has_ifc_argument(
                      const an_ifc_syntax_non_type_template_argument &universal)
 /*
@@ -37371,6 +38470,11 @@ universal representation of the field "ellipsis".
   result = stage_1;
   return result;
 }  /* get_ifc_ellipsis */
+
+
+/*
+Functions for reading data from IFC SyntaxParameterDeclarator nodes.
+*/
 
 
 a_boolean has_ifc_decl_specifiers(
@@ -37586,6 +38690,11 @@ universal representation of the field "sort".
 }  /* get_ifc_sort */
 
 
+/*
+Functions for reading data from IFC SyntaxPlaceholderTypeSpecifier nodes.
+*/
+
+
 a_boolean has_ifc_basis(
                      const an_ifc_syntax_placeholder_type_specifier &universal)
 /*
@@ -37761,6 +38870,11 @@ the universal representation of the field "locus".
   result = stage_1;
   return result;
 }  /* get_ifc_locus */
+
+
+/*
+Functions for reading data from IFC SyntaxPointerDeclarator nodes.
+*/
 
 
 a_boolean has_ifc_callable(const an_ifc_syntax_pointer_declarator &universal)
@@ -38052,6 +39166,11 @@ universal representation of the field "whole".
   result = stage_1;
   return result;
 }  /* get_ifc_whole */
+
+
+/*
+Functions for reading data from IFC SyntaxRangeBasedForStatement nodes.
+*/
 
 
 a_boolean has_ifc_body(
@@ -38451,6 +39570,11 @@ universal representation of the field "right_paren".
 }  /* get_ifc_right_paren */
 
 
+/*
+Functions for reading data from IFC SyntaxRequirementBody nodes.
+*/
+
+
 a_boolean has_ifc_locus(const an_ifc_syntax_requirement_body &universal)
 /*
 Return TRUE if the given universal representation has the field "locus";
@@ -38583,6 +39707,11 @@ universal representation of the field "right_curly".
 }  /* get_ifc_right_curly */
 
 
+/*
+Functions for reading data from IFC SyntaxRequiresClause nodes.
+*/
+
+
 a_boolean has_ifc_condition(const an_ifc_syntax_requires_clause &universal)
 /*
 Return TRUE if the given universal representation has the field "condition";
@@ -38667,6 +39796,11 @@ universal representation of the field "locus".
   result = stage_1;
   return result;
 }  /* get_ifc_locus */
+
+
+/*
+Functions for reading data from IFC SyntaxReturnStatement nodes.
+*/
 
 
 a_boolean has_ifc_expr(const an_ifc_syntax_return_statement &universal)
@@ -38880,6 +40014,11 @@ universal representation of the field "sort".
   result = stage_1;
   return result;
 }  /* get_ifc_sort */
+
+
+/*
+Functions for reading data from IFC SyntaxSEHExcept nodes.
+*/
 
 
 a_boolean has_ifc_body(const an_ifc_syntax_seh_except &universal)
@@ -39099,6 +40238,11 @@ representation of the field "right_paren".
 }  /* get_ifc_right_paren */
 
 
+/*
+Functions for reading data from IFC SyntaxSEHFinally nodes.
+*/
+
+
 a_boolean has_ifc_body(const an_ifc_syntax_seh_finally &universal)
 /*
 Return TRUE if the given universal representation has the field "body";
@@ -39182,6 +40326,11 @@ representation of the field "finally_kw".
   result = stage_1;
   return result;
 }  /* get_ifc_finally_kw */
+
+
+/*
+Functions for reading data from IFC SyntaxSEHLeave nodes.
+*/
 
 
 a_boolean has_ifc_leave_kw(const an_ifc_syntax_seh_leave &universal)
@@ -39272,6 +40421,11 @@ representation of the field "semicolon".
   result = stage_1;
   return result;
 }  /* get_ifc_semicolon */
+
+
+/*
+Functions for reading data from IFC SyntaxSEHTry nodes.
+*/
 
 
 a_boolean has_ifc_body(const an_ifc_syntax_seh_try &universal)
@@ -39396,6 +40550,11 @@ representation of the field "try_kw".
   result = stage_1;
   return result;
 }  /* get_ifc_try_kw */
+
+
+/*
+Functions for reading data from IFC SyntaxSimpleCapture nodes.
+*/
 
 
 a_boolean has_ifc_ampersand(const an_ifc_syntax_simple_capture &universal)
@@ -39575,6 +40734,11 @@ representation of the field "name".
 }  /* get_ifc_name */
 
 
+/*
+Functions for reading data from IFC SyntaxSimpleDeclaration nodes.
+*/
+
+
 a_boolean has_ifc_decl_specifiers(
                              const an_ifc_syntax_simple_declaration &universal)
 /*
@@ -39750,6 +40914,11 @@ universal representation of the field "semicolon".
 }  /* get_ifc_semicolon */
 
 
+/*
+Functions for reading data from IFC SyntaxSimpleRequirement nodes.
+*/
+
+
 a_boolean has_ifc_condition(const an_ifc_syntax_simple_requirement &universal)
 /*
 Return TRUE if the given universal representation has the field "condition";
@@ -39834,6 +41003,11 @@ universal representation of the field "locus".
   result = stage_1;
   return result;
 }  /* get_ifc_locus */
+
+
+/*
+Functions for reading data from IFC SyntaxSimpleTypeSpecifier nodes.
+*/
 
 
 a_boolean has_ifc_expr(const an_ifc_syntax_simple_type_specifier &universal)
@@ -39963,6 +41137,11 @@ universal representation of the field "type".
 }  /* get_ifc_type */
 
 
+/*
+Functions for reading data from IFC SyntaxStatementSeq nodes.
+*/
+
+
 a_boolean has_ifc_stmts(const an_ifc_syntax_statement_seq &universal)
 /*
 Return TRUE if the given universal representation has the field "stmts";
@@ -40001,6 +41180,11 @@ representation of the field "stmts".
   result = stage_1;
   return result;
 }  /* get_ifc_stmts */
+
+
+/*
+Functions for reading data from IFC SyntaxStaticAssertDeclaration nodes.
+*/
 
 
 a_boolean has_ifc_comma(
@@ -40321,6 +41505,11 @@ universal representation of the field "semicolon".
 }  /* get_ifc_semicolon */
 
 
+/*
+Functions for reading data from IFC SyntaxStructuredBindingDeclaration nodes.
+*/
+
+
 a_boolean has_ifc_initializer(
                  const an_ifc_syntax_structured_binding_declaration &universal)
 /*
@@ -40539,6 +41728,11 @@ return the universal representation of the field "specifiers".
 }  /* get_ifc_specifiers */
 
 
+/*
+Functions for reading data from IFC SyntaxStructuredBindingIdentifier nodes.
+*/
+
+
 a_boolean has_ifc_comma(
                   const an_ifc_syntax_structured_binding_identifier &universal)
 /*
@@ -40627,6 +41821,11 @@ the universal representation of the field "name".
 }  /* get_ifc_name */
 
 
+/*
+Functions for reading data from IFC SyntaxSuper nodes.
+*/
+
+
 a_boolean has_ifc_locus(const an_ifc_syntax_super &universal)
 /*
 Return TRUE if the given universal representation has the field "locus";
@@ -40669,6 +41868,11 @@ representation of the field "locus".
   result = stage_1;
   return result;
 }  /* get_ifc_locus */
+
+
+/*
+Functions for reading data from IFC SyntaxSwitchStatement nodes.
+*/
 
 
 a_boolean has_ifc_body(const an_ifc_syntax_switch_statement &universal)
@@ -40881,6 +42085,11 @@ universal representation of the field "switch".
 }  /* get_ifc_switch */
 
 
+/*
+Functions for reading data from IFC SyntaxTemplateArgumentList nodes.
+*/
+
+
 a_boolean has_ifc_arguments(
                          const an_ifc_syntax_template_argument_list &universal)
 /*
@@ -41016,6 +42225,11 @@ universal representation of the field "right_angle".
 }  /* get_ifc_right_angle */
 
 
+/*
+Functions for reading data from IFC SyntaxTemplateDeclaration nodes.
+*/
+
+
 a_boolean has_ifc_locus(const an_ifc_syntax_template_declaration &universal)
 /*
 Return TRUE if the given universal representation has the field "locus";
@@ -41142,6 +42356,11 @@ universal representation of the field "subject".
   result = stage_1;
   return result;
 }  /* get_ifc_subject */
+
+
+/*
+Functions for reading data from IFC SyntaxTemplateId nodes.
+*/
 
 
 a_boolean has_ifc_arguments(const an_ifc_syntax_template_id &universal)
@@ -41357,6 +42576,11 @@ representation of the field "template_kw".
 }  /* get_ifc_template_kw */
 
 
+/*
+Functions for reading data from IFC SyntaxTemplateParameterList nodes.
+*/
+
+
 a_boolean has_ifc_clause(
                         const an_ifc_syntax_template_parameter_list &universal)
 /*
@@ -41532,6 +42756,11 @@ universal representation of the field "right_angle".
   result = stage_1;
   return result;
 }  /* get_ifc_right_angle */
+
+
+/*
+Functions for reading data from IFC SyntaxTemplateTemplateParameter nodes.
+*/
 
 
 a_boolean has_ifc_argument(
@@ -41848,6 +43077,11 @@ the universal representation of the field "parameters".
 }  /* get_ifc_parameters */
 
 
+/*
+Functions for reading data from IFC SyntaxThisCapture nodes.
+*/
+
+
 a_boolean has_ifc_asterisk(const an_ifc_syntax_this_capture &universal)
 /*
 Return TRUE if the given universal representation has the field "asterisk";
@@ -41984,6 +43218,11 @@ representation of the field "locus".
 }  /* get_ifc_locus */
 
 
+/*
+Functions for reading data from IFC SyntaxTrailingReturnType nodes.
+*/
+
+
 a_boolean has_ifc_arrow(const an_ifc_syntax_trailing_return_type &universal)
 /*
 Return TRUE if the given universal representation has the field "arrow";
@@ -42068,6 +43307,11 @@ universal representation of the field "target".
   result = stage_1;
   return result;
 }  /* get_ifc_target */
+
+
+/*
+Functions for reading data from IFC SyntaxTryBlock nodes.
+*/
 
 
 a_boolean has_ifc_body(const an_ifc_syntax_try_block &universal)
@@ -42235,6 +43479,11 @@ representation of the field "try".
 }  /* get_ifc_try */
 
 
+/*
+Functions for reading data from IFC SyntaxTuple nodes.
+*/
+
+
 a_boolean has_ifc_cardinality(const an_ifc_syntax_tuple &universal)
 /*
 Return TRUE if the given universal representation has the field "cardinality";
@@ -42313,6 +43562,11 @@ representation of the field "start".
   result = stage_1;
   return result;
 }  /* get_ifc_start */
+
+
+/*
+Functions for reading data from IFC SyntaxTypeId nodes.
+*/
 
 
 a_boolean has_ifc_abstract_declarator(const an_ifc_syntax_type_id &universal)
@@ -42442,6 +43696,11 @@ representation of the field "type_specifier".
 }  /* get_ifc_type_specifier */
 
 
+/*
+Functions for reading data from IFC SyntaxTypeIdListElement nodes.
+*/
+
+
 a_boolean has_ifc_ellipsis(const an_ifc_syntax_type_id_list_element &universal)
 /*
 Return TRUE if the given universal representation has the field "ellipsis";
@@ -42528,6 +43787,11 @@ universal representation of the field "type_id".
 }  /* get_ifc_type_id */
 
 
+/*
+Functions for reading data from IFC SyntaxTypeRequirement nodes.
+*/
+
+
 a_boolean has_ifc_locus(const an_ifc_syntax_type_requirement &universal)
 /*
 Return TRUE if the given universal representation has the field "locus";
@@ -42611,6 +43875,11 @@ universal representation of the field "type".
   result = stage_1;
   return result;
 }  /* get_ifc_type */
+
+
+/*
+Functions for reading data from IFC SyntaxTypeSpecifierSeq nodes.
+*/
 
 
 a_boolean has_ifc_locus(const an_ifc_syntax_type_specifier_seq &universal)
@@ -42822,6 +44091,11 @@ universal representation of the field "unhashed".
 }  /* get_ifc_unhashed */
 
 
+/*
+Functions for reading data from IFC SyntaxTypeTemplateArgument nodes.
+*/
+
+
 a_boolean has_ifc_argument(
                          const an_ifc_syntax_type_template_argument &universal)
 /*
@@ -42954,6 +44228,11 @@ universal representation of the field "ellipsis".
   result = stage_1;
   return result;
 }  /* get_ifc_ellipsis */
+
+
+/*
+Functions for reading data from IFC SyntaxTypeTemplateParameter nodes.
+*/
 
 
 a_boolean has_ifc_argument(
@@ -43174,6 +44453,11 @@ universal representation of the field "name".
 }  /* get_ifc_name */
 
 
+/*
+Functions for reading data from IFC SyntaxTypeTraitIntrinsic nodes.
+*/
+
+
 a_boolean has_ifc_arguments(
                            const an_ifc_syntax_type_trait_intrinsic &universal)
 /*
@@ -43301,6 +44585,11 @@ universal representation of the field "locus".
   result = stage_1;
   return result;
 }  /* get_ifc_locus */
+
+
+/*
+Functions for reading data from IFC SyntaxUnaryFoldExpression nodes.
+*/
 
 
 a_boolean has_ifc_direction(
@@ -43614,6 +44903,11 @@ universal representation of the field "right_paren".
 }  /* get_ifc_right_paren */
 
 
+/*
+Functions for reading data from IFC SyntaxUsingDeclaration nodes.
+*/
+
+
 a_boolean has_ifc_declarators(const an_ifc_syntax_using_declaration &universal)
 /*
 Return TRUE if the given universal representation has the field "declarators";
@@ -43744,6 +45038,11 @@ universal representation of the field "semicolon".
   result = stage_1;
   return result;
 }  /* get_ifc_semicolon */
+
+
+/*
+Functions for reading data from IFC SyntaxUsingDeclarator nodes.
+*/
 
 
 a_boolean has_ifc_comma(const an_ifc_syntax_using_declarator &universal)
@@ -43925,6 +45224,11 @@ universal representation of the field "typename_kw".
 }  /* get_ifc_typename_kw */
 
 
+/*
+Functions for reading data from IFC SyntaxUsingDirective nodes.
+*/
+
+
 a_boolean has_ifc_namespace_kw(const an_ifc_syntax_using_directive &universal)
 /*
 Return TRUE if the given universal representation has the field "namespace_kw";
@@ -44102,6 +45406,11 @@ universal representation of the field "using_kw".
   result = stage_1;
   return result;
 }  /* get_ifc_using_kw */
+
+
+/*
+Functions for reading data from IFC SyntaxUsingEnumDeclaration nodes.
+*/
 
 
 a_boolean has_ifc_enum_kw(
@@ -44285,6 +45594,11 @@ universal representation of the field "using_kw".
 }  /* get_ifc_using_kw */
 
 
+/*
+Functions for reading data from IFC SyntaxVirtualSpecifierSeq nodes.
+*/
+
+
 a_boolean has_ifc_final_kw(
                           const an_ifc_syntax_virtual_specifier_seq &universal)
 /*
@@ -44463,6 +45777,11 @@ universal representation of the field "pure".
 }  /* get_ifc_pure */
 
 
+/*
+Functions for reading data from IFC SyntaxWhileStatement nodes.
+*/
+
+
 a_boolean has_ifc_body(const an_ifc_syntax_while_statement &universal)
 /*
 Return TRUE if the given universal representation has the field "body";
@@ -44632,6 +45951,11 @@ universal representation of the field "while".
 }  /* get_ifc_while */
 
 
+/*
+Functions for reading data from IFC TraitAliasTemplate nodes.
+*/
+
+
 a_boolean has_ifc_decl(const an_ifc_trait_alias_template &universal)
 /*
 Return TRUE if the given universal representation has the field "decl";
@@ -44789,6 +46113,11 @@ representation of the field "trait".
 }  /* get_ifc_trait */
 
 
+/*
+Functions for reading data from IFC TraitAttribute nodes.
+*/
+
+
 a_boolean has_ifc_decl(const an_ifc_trait_attribute &universal)
 /*
 Return TRUE if the given universal representation has the field "decl";
@@ -44944,6 +46273,11 @@ representation of the field "trait".
   result = stage_1;
   return result;
 }  /* get_ifc_trait */
+
+
+/*
+Functions for reading data from IFC TraitDeductionGuide nodes.
+*/
 
 
 a_boolean has_ifc_decl(const an_ifc_trait_deduction_guide &universal)
@@ -45116,6 +46450,11 @@ representation of the field "trait".
 }  /* get_ifc_trait */
 
 
+/*
+Functions for reading data from IFC TraitDeprecated nodes.
+*/
+
+
 a_boolean has_ifc_decl(const an_ifc_trait_deprecated &universal)
 /*
 Return TRUE if the given universal representation has the field "decl";
@@ -45271,6 +46610,11 @@ representation of the field "trait".
   result = stage_1;
   return result;
 }  /* get_ifc_trait */
+
+
+/*
+Functions for reading data from IFC TraitFriend nodes.
+*/
 
 
 a_boolean has_ifc_decl(const an_ifc_trait_friend &universal)
@@ -45431,6 +46775,11 @@ representation of the field "trait".
   result = stage_1;
   return result;
 }  /* get_ifc_trait */
+
+
+/*
+Functions for reading data from IFC TraitFunctionDefinition nodes.
+*/
 
 
 a_boolean has_ifc_body(const an_ifc_trait_function_definition &universal)
@@ -45676,6 +47025,11 @@ universal representation of the field "parameters".
 }  /* get_ifc_parameters */
 
 
+/*
+Functions for reading data from IFC TraitMsvcDeclAttrs nodes.
+*/
+
+
 a_boolean has_ifc_decl(const an_ifc_trait_msvc_decl_attrs &universal)
 /*
 Return TRUE if the given universal representation has the field "decl";
@@ -45831,6 +47185,11 @@ representation of the field "trait".
   result = stage_1;
   return result;
 }  /* get_ifc_trait */
+
+
+/*
+Functions for reading data from IFC TraitMsvcFuncParams nodes.
+*/
 
 
 a_boolean has_ifc_decl(const an_ifc_trait_msvc_func_params &universal)
@@ -45989,6 +47348,11 @@ representation of the field "params".
   result = stage_1;
   return result;
 }  /* get_ifc_params */
+
+
+/*
+Functions for reading data from IFC TraitMsvcUuid nodes.
+*/
 
 
 a_boolean has_ifc_decl(const an_ifc_trait_msvc_uuid &universal)
@@ -46151,6 +47515,11 @@ representation of the field "uuid".
 }  /* get_ifc_uuid */
 
 
+/*
+Functions for reading data from IFC TraitMsvcVendorTrait nodes.
+*/
+
+
 a_boolean has_ifc_decl(const an_ifc_trait_msvc_vendor_trait &universal)
 /*
 Return TRUE if the given universal representation has the field "decl";
@@ -46310,6 +47679,11 @@ universal representation of the field "trait".
 }  /* get_ifc_trait */
 
 
+/*
+Functions for reading data from IFC TraitRequires nodes.
+*/
+
+
 a_boolean has_ifc_decl(const an_ifc_trait_requires &universal)
 /*
 Return TRUE if the given universal representation has the field "decl";
@@ -46465,6 +47839,11 @@ representation of the field "trait".
   result = stage_1;
   return result;
 }  /* get_ifc_trait */
+
+
+/*
+Functions for reading data from IFC TraitSpecialization nodes.
+*/
 
 
 a_boolean has_ifc_decl(const an_ifc_trait_specialization &universal)
@@ -46628,6 +48007,11 @@ representation of the field "trait".
 }  /* get_ifc_trait */
 
 
+/*
+Functions for reading data from IFC TypeArray nodes.
+*/
+
+
 a_boolean has_ifc_element(const an_ifc_type_array &universal)
 /*
 Return TRUE if the given universal representation has the field "element";
@@ -46706,6 +48090,11 @@ representation of the field "extent".
   result = stage_1;
   return result;
 }  /* get_ifc_extent */
+
+
+/*
+Functions for reading data from IFC TypeBase nodes.
+*/
 
 
 a_boolean has_ifc_access(const an_ifc_type_base &universal)
@@ -46867,6 +48256,11 @@ representation of the field "type".
 }  /* get_ifc_type */
 
 
+/*
+Functions for reading data from IFC TypeDecltype nodes.
+*/
+
+
 a_boolean has_ifc_expr(const an_ifc_type_decltype &universal)
 /*
 Return TRUE if the given universal representation has the field "expr";
@@ -46905,6 +48299,11 @@ representation of the field "expr".
   result = stage_1;
   return result;
 }  /* get_ifc_expr */
+
+
+/*
+Functions for reading data from IFC TypeDesignated nodes.
+*/
 
 
 a_boolean has_ifc_decl(const an_ifc_type_designated &universal)
@@ -46958,6 +48357,11 @@ representation of the field "decl".
   }  /* if */
   return result;
 }  /* get_ifc_decl */
+
+
+/*
+Functions for reading data from IFC TypeExpansion nodes.
+*/
 
 
 a_boolean has_ifc_mode(const an_ifc_type_expansion &universal)
@@ -47040,6 +48444,11 @@ representation of the field "pack".
 }  /* get_ifc_pack */
 
 
+/*
+Functions for reading data from IFC TypeForall nodes.
+*/
+
+
 a_boolean has_ifc_chart(const an_ifc_type_forall &universal)
 /*
 Return TRUE if the given universal representation has the field "chart";
@@ -47118,6 +48527,11 @@ representation of the field "subject".
   result = stage_1;
   return result;
 }  /* get_ifc_subject */
+
+
+/*
+Functions for reading data from IFC TypeFunction nodes.
+*/
 
 
 a_boolean has_ifc_convention(const an_ifc_type_function &universal)
@@ -47329,6 +48743,11 @@ representation of the field "traits".
 }  /* get_ifc_traits */
 
 
+/*
+Functions for reading data from IFC TypeFundamental nodes.
+*/
+
+
 a_boolean has_ifc_basis(const an_ifc_type_fundamental &universal)
 /*
 Return TRUE if the given universal representation has the field "basis";
@@ -47450,6 +48869,11 @@ representation of the field "sign".
 }  /* get_ifc_sign */
 
 
+/*
+Functions for reading data from IFC TypeLvalueReference nodes.
+*/
+
+
 a_boolean has_ifc_referee(const an_ifc_type_lvalue_reference &universal)
 /*
 Return TRUE if the given universal representation has the field "referee";
@@ -47489,6 +48913,11 @@ representation of the field "referee".
   result = stage_1;
   return result;
 }  /* get_ifc_referee */
+
+
+/*
+Functions for reading data from IFC TypeMethod nodes.
+*/
 
 
 a_boolean has_ifc_convention(const an_ifc_type_method &universal)
@@ -47741,6 +49170,11 @@ representation of the field "traits".
 }  /* get_ifc_traits */
 
 
+/*
+Functions for reading data from IFC TypePlaceholder nodes.
+*/
+
+
 a_boolean has_ifc_basis(const an_ifc_type_placeholder &universal)
 /*
 Return TRUE if the given universal representation has the field "basis";
@@ -47861,6 +49295,11 @@ representation of the field "elaboration".
 }  /* get_ifc_elaboration */
 
 
+/*
+Functions for reading data from IFC TypePointer nodes.
+*/
+
+
 a_boolean has_ifc_pointee(const an_ifc_type_pointer &universal)
 /*
 Return TRUE if the given universal representation has the field "pointee";
@@ -47899,6 +49338,11 @@ representation of the field "pointee".
   result = stage_1;
   return result;
 }  /* get_ifc_pointee */
+
+
+/*
+Functions for reading data from IFC TypePointerToMember nodes.
+*/
 
 
 a_boolean has_ifc_member(const an_ifc_type_pointer_to_member &universal)
@@ -47980,6 +49424,11 @@ representation of the field "scope".
   result = stage_1;
   return result;
 }  /* get_ifc_scope */
+
+
+/*
+Functions for reading data from IFC TypeQualified nodes.
+*/
 
 
 a_boolean has_ifc_qualifiers(const an_ifc_type_qualified &universal)
@@ -48064,6 +49513,11 @@ representation of the field "unqualified".
 }  /* get_ifc_unqualified */
 
 
+/*
+Functions for reading data from IFC TypeRvalueReference nodes.
+*/
+
+
 a_boolean has_ifc_referee(const an_ifc_type_rvalue_reference &universal)
 /*
 Return TRUE if the given universal representation has the field "referee";
@@ -48103,6 +49557,11 @@ representation of the field "referee".
   result = stage_1;
   return result;
 }  /* get_ifc_referee */
+
+
+/*
+Functions for reading data from IFC TypeSyntactic nodes.
+*/
 
 
 a_boolean has_ifc_expr(const an_ifc_type_syntactic &universal)
@@ -48145,6 +49604,11 @@ representation of the field "expr".
 }  /* get_ifc_expr */
 
 
+/*
+Functions for reading data from IFC TypeSyntaxTree nodes.
+*/
+
+
 a_boolean has_ifc_syntax(const an_ifc_type_syntax_tree &universal)
 /*
 Return TRUE if the given universal representation has the field "syntax";
@@ -48183,6 +49647,11 @@ representation of the field "syntax".
   result = stage_1;
   return result;
 }  /* get_ifc_syntax */
+
+
+/*
+Functions for reading data from IFC TypeTor nodes.
+*/
 
 
 a_boolean has_ifc_convention(const an_ifc_type_tor &universal)
@@ -48311,6 +49780,11 @@ representation of the field "source".
 }  /* get_ifc_source */
 
 
+/*
+Functions for reading data from IFC TypeTuple nodes.
+*/
+
+
 a_boolean has_ifc_cardinality(const an_ifc_type_tuple &universal)
 /*
 Return TRUE if the given universal representation has the field "cardinality";
@@ -48391,6 +49865,11 @@ representation of the field "start".
 }  /* get_ifc_start */
 
 
+/*
+Functions for reading data from IFC TypeTypename nodes.
+*/
+
+
 a_boolean has_ifc_path(const an_ifc_type_typename &universal)
 /*
 Return TRUE if the given universal representation has the field "path";
@@ -48429,6 +49908,11 @@ representation of the field "path".
   result = stage_1;
   return result;
 }  /* get_ifc_path */
+
+
+/*
+Functions for reading data from IFC TypeUnaligned nodes.
+*/
 
 
 a_boolean has_ifc_type(const an_ifc_type_unaligned &universal)

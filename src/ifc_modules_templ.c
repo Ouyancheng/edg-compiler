@@ -290,8 +290,8 @@ Mark the element at the given index as having been validated.
 template<typename an_ifc_Index_type>
 static void mark_invalid(an_ifc_Index_type idx)
 /*
-Mark the element at the given index as having been validated.  This is only
-a valid operation if has_been_validated returns TRUE.
+Mark the element at the given index as invalid.  This is only a valid operation
+if has_been_validated returns TRUE.
 */
 {
   check_assertion(has_been_validated(idx));

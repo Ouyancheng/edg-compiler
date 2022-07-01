@@ -128,8 +128,6 @@ return a reencoded sort value.
 }  /* to_encoded */
 
 
-
-
 an_ifc_access_sort to_universal_sort(an_ifc_access_sort_0_33 versioned)
 /*
 Given the versioned representation of AccessSort, return the corresponding
@@ -234,8 +232,6 @@ module, return a reencoded sort value.
   }  /* switch */
   return an_ifc_encoded_architecture_sort{mod, result};
 }  /* to_encoded */
-
-
 
 
 an_ifc_architecture_sort to_universal_sort(
@@ -369,8 +365,6 @@ return a reencoded sort value.
 }  /* to_encoded */
 
 
-
-
 an_ifc_attr_sort to_universal_sort(an_ifc_attr_sort_0_33 versioned)
 /*
 Given the versioned representation of AttrSort, return the corresponding
@@ -499,8 +493,6 @@ module, return a reencoded sort value.
 }  /* to_encoded */
 
 
-
-
 an_ifc_calling_convention_sort to_universal_sort(
                                  an_ifc_calling_convention_sort_0_33 versioned)
 /*
@@ -597,8 +589,6 @@ return a reencoded sort value.
   }  /* switch */
   return an_ifc_encoded_chart_sort{mod, result};
 }  /* to_encoded */
-
-
 
 
 an_ifc_chart_sort to_universal_sort(an_ifc_chart_sort_0_33 versioned)
@@ -964,8 +954,6 @@ return a reencoded sort value.
 }  /* to_encoded */
 
 
-
-
 an_ifc_decl_sort to_universal_sort(an_ifc_decl_sort_0_33 versioned)
 /*
 Given the versioned representation of DeclSort, return the corresponding
@@ -1077,8 +1065,6 @@ universal representation.
   }  /* switch */
   return result;
 }  /* to_universal_sort */
-
-
 
 
 an_ifc_decl_sort to_universal_sort(an_ifc_decl_sort_0_41 versioned)
@@ -1248,8 +1234,6 @@ return a reencoded sort value.
   }  /* switch */
   return an_ifc_encoded_delimiter_sort{mod, result};
 }  /* to_encoded */
-
-
 
 
 an_ifc_delimiter_sort to_universal_sort(an_ifc_delimiter_sort_0_33 versioned)
@@ -1852,8 +1836,6 @@ module, return a reencoded sort value.
 }  /* to_encoded */
 
 
-
-
 an_ifc_dyadic_operator_sort to_universal_sort(
                                     an_ifc_dyadic_operator_sort_0_33 versioned)
 /*
@@ -2188,8 +2170,6 @@ module, return a reencoded sort value.
   }  /* switch */
   return an_ifc_encoded_expansion_mode_sort{mod, result};
 }  /* to_encoded */
-
-
 
 
 an_ifc_expansion_mode_sort to_universal_sort(
@@ -2623,8 +2603,6 @@ return a reencoded sort value.
 }  /* to_encoded */
 
 
-
-
 an_ifc_expr_sort to_universal_sort(an_ifc_expr_sort_0_33 versioned)
 /*
 Given the versioned representation of ExprSort, return the corresponding
@@ -2885,8 +2863,6 @@ module, return a reencoded sort value.
 }  /* to_encoded */
 
 
-
-
 an_ifc_fold_direction_sort to_universal_sort(
                                      an_ifc_fold_direction_sort_0_33 versioned)
 /*
@@ -3045,8 +3021,6 @@ return a reencoded sort value.
 }  /* to_encoded */
 
 
-
-
 an_ifc_form_sort to_universal_sort(an_ifc_form_sort_0_33 versioned)
 /*
 Given the versioned representation of FormSort, return the corresponding
@@ -3166,8 +3140,6 @@ module, return a reencoded sort value.
   }  /* switch */
   return an_ifc_encoded_initializer_sort{mod, result};
 }  /* to_encoded */
-
-
 
 
 an_ifc_initializer_sort to_universal_sort(
@@ -3316,8 +3288,6 @@ return a reencoded sort value.
 }  /* to_encoded */
 
 
-
-
 an_ifc_keyword_sort to_universal_sort(an_ifc_keyword_sort_0_33 versioned)
 /*
 Given the versioned representation of KeywordSort, return the corresponding
@@ -3439,8 +3409,6 @@ return a reencoded sort value.
 }  /* to_encoded */
 
 
-
-
 an_ifc_label_sort to_universal_sort(an_ifc_label_sort_0_33 versioned)
 /*
 Given the versioned representation of LabelSort, return the corresponding
@@ -3529,8 +3497,6 @@ return a reencoded sort value.
 }  /* to_encoded */
 
 
-
-
 an_ifc_lit_sort to_universal_sort(an_ifc_lit_sort_0_33 versioned)
 /*
 Given the versioned representation of LitSort, return the corresponding
@@ -3608,8 +3574,6 @@ return a reencoded sort value.
   }  /* switch */
   return an_ifc_encoded_macro_sort{mod, result};
 }  /* to_encoded */
-
-
 
 
 an_ifc_macro_sort to_universal_sort(an_ifc_macro_sort_0_33 versioned)
@@ -4157,8 +4121,6 @@ module, return a reencoded sort value.
 }  /* to_encoded */
 
 
-
-
 an_ifc_monadic_operator_sort to_universal_sort(
                                    an_ifc_monadic_operator_sort_0_33 versioned)
 /*
@@ -4506,8 +4468,6 @@ return a reencoded sort value.
 }  /* to_encoded */
 
 
-
-
 an_ifc_name_sort to_universal_sort(an_ifc_name_sort_0_33 versioned)
 /*
 Given the versioned representation of NameSort, return the corresponding
@@ -4633,8 +4593,6 @@ module, return a reencoded sort value.
 }  /* to_encoded */
 
 
-
-
 an_ifc_niladic_operator_sort to_universal_sort(
                                    an_ifc_niladic_operator_sort_0_33 versioned)
 /*
@@ -4751,8 +4709,6 @@ return a reencoded sort value.
 }  /* to_encoded */
 
 
-
-
 an_ifc_noexcept_sort to_universal_sort(an_ifc_noexcept_sort_0_33 versioned)
 /*
 Given the versioned representation of NoexceptSort, return the corresponding
@@ -4865,8 +4821,6 @@ return a reencoded sort value.
 }  /* to_encoded */
 
 
-
-
 an_ifc_operator_sort to_universal_sort(an_ifc_operator_sort_0_33 versioned)
 /*
 Given the versioned representation of OperatorSort, return the corresponding
@@ -4965,8 +4919,6 @@ return a reencoded sort value.
   }  /* switch */
   return an_ifc_encoded_parameter_sort{mod, result};
 }  /* to_encoded */
-
-
 
 
 an_ifc_parameter_sort to_universal_sort(an_ifc_parameter_sort_0_33 versioned)
@@ -5070,8 +5022,6 @@ module, return a reencoded sort value.
 }  /* to_encoded */
 
 
-
-
 an_ifc_pointer_declarator_sort to_universal_sort(
                                  an_ifc_pointer_declarator_sort_0_33 versioned)
 /*
@@ -5150,8 +5100,6 @@ return a reencoded sort value.
   }  /* switch */
   return an_ifc_encoded_pragma_sort{mod, result};
 }  /* to_encoded */
-
-
 
 
 an_ifc_pragma_sort to_universal_sort(an_ifc_pragma_sort_0_33 versioned)
@@ -5246,8 +5194,6 @@ module, return a reencoded sort value.
 }  /* to_encoded */
 
 
-
-
 an_ifc_read_conversion_sort to_universal_sort(
                                     an_ifc_read_conversion_sort_0_33 versioned)
 /*
@@ -5332,8 +5278,6 @@ return a reencoded sort value.
   }  /* switch */
   return an_ifc_encoded_return_sort{mod, result};
 }  /* to_encoded */
-
-
 
 
 an_ifc_return_sort to_universal_sort(an_ifc_return_sort_0_33 versioned)
@@ -5749,8 +5693,6 @@ module, return a reencoded sort value.
 }  /* to_encoded */
 
 
-
-
 an_ifc_source_directive_sort to_universal_sort(
                                    an_ifc_source_directive_sort_0_33 versioned)
 /*
@@ -6031,8 +5973,6 @@ module, return a reencoded sort value.
   }  /* switch */
   return an_ifc_encoded_source_identifier_sort{mod, result};
 }  /* to_encoded */
-
-
 
 
 an_ifc_source_identifier_sort to_universal_sort(
@@ -7244,8 +7184,6 @@ module, return a reencoded sort value.
 }  /* to_encoded */
 
 
-
-
 an_ifc_source_keyword_sort to_universal_sort(
                                      an_ifc_source_keyword_sort_0_33 versioned)
 /*
@@ -7933,8 +7871,6 @@ module, return a reencoded sort value.
 }  /* to_encoded */
 
 
-
-
 an_ifc_source_literal_sort to_universal_sort(
                                      an_ifc_source_literal_sort_0_33 versioned)
 /*
@@ -8274,8 +8210,6 @@ module, return a reencoded sort value.
 }  /* to_encoded */
 
 
-
-
 an_ifc_source_operator_sort to_universal_sort(
                                     an_ifc_source_operator_sort_0_33 versioned)
 /*
@@ -8573,8 +8507,6 @@ module, return a reencoded sort value.
 }  /* to_encoded */
 
 
-
-
 an_ifc_source_punctuator_sort to_universal_sort(
                                   an_ifc_source_punctuator_sort_0_33 versioned)
 /*
@@ -8708,8 +8640,6 @@ module, return a reencoded sort value.
   }  /* switch */
   return an_ifc_encoded_specialization_sort{mod, result};
 }  /* to_encoded */
-
-
 
 
 an_ifc_specialization_sort to_universal_sort(
@@ -8882,8 +8812,6 @@ return a reencoded sort value.
 }  /* to_encoded */
 
 
-
-
 an_ifc_stmt_sort to_universal_sort(an_ifc_stmt_sort_0_33 versioned)
 /*
 Given the versioned representation of StmtSort, return the corresponding
@@ -9032,8 +8960,6 @@ destination module, return a reencoded sort value.
 }  /* to_encoded */
 
 
-
-
 an_ifc_storage_instruction_operator_sort to_universal_sort(
                        an_ifc_storage_instruction_operator_sort_0_33 versioned)
 /*
@@ -9140,8 +9066,6 @@ return a reencoded sort value.
   }  /* switch */
   return an_ifc_encoded_string_sort{mod, result};
 }  /* to_encoded */
-
-
 
 
 an_ifc_string_sort to_universal_sort(an_ifc_string_sort_0_33 versioned)
@@ -9877,8 +9801,6 @@ return a reencoded sort value.
 }  /* to_encoded */
 
 
-
-
 an_ifc_syntax_sort to_universal_sort(an_ifc_syntax_sort_0_33 versioned)
 /*
 Given the versioned representation of SyntaxSort, return the corresponding
@@ -10298,8 +10220,6 @@ module, return a reencoded sort value.
 }  /* to_encoded */
 
 
-
-
 an_ifc_triadic_operator_sort to_universal_sort(
                                    an_ifc_triadic_operator_sort_0_33 versioned)
 /*
@@ -10518,8 +10438,6 @@ return a reencoded sort value.
 }  /* to_encoded */
 
 
-
-
 an_ifc_type_basis_sort to_universal_sort(an_ifc_type_basis_sort_0_33 versioned)
 /*
 Given the versioned representation of TypeBasisSort, return the corresponding
@@ -10699,8 +10617,6 @@ module, return a reencoded sort value.
 }  /* to_encoded */
 
 
-
-
 an_ifc_type_precision_sort to_universal_sort(
                                      an_ifc_type_precision_sort_0_33 versioned)
 /*
@@ -10800,8 +10716,6 @@ return a reencoded sort value.
   }  /* switch */
   return an_ifc_encoded_type_sign_sort{mod, result};
 }  /* to_encoded */
-
-
 
 
 an_ifc_type_sign_sort to_universal_sort(an_ifc_type_sign_sort_0_33 versioned)
@@ -11003,8 +10917,6 @@ return a reencoded sort value.
 }  /* to_encoded */
 
 
-
-
 an_ifc_type_sort to_universal_sort(an_ifc_type_sort_0_33 versioned)
 /*
 Given the versioned representation of TypeSort, return the corresponding
@@ -11159,8 +11071,6 @@ return a reencoded sort value.
 }  /* to_encoded */
 
 
-
-
 an_ifc_unit_sort to_universal_sort(an_ifc_unit_sort_0_33 versioned)
 /*
 Given the versioned representation of UnitSort, return the corresponding
@@ -11281,8 +11191,6 @@ module, return a reencoded sort value.
   }  /* switch */
   return an_ifc_encoded_variadic_operator_sort{mod, result};
 }  /* to_encoded */
-
-
 
 
 an_ifc_variadic_operator_sort to_universal_sort(
@@ -11410,8 +11318,6 @@ return a reencoded sort value.
 }  /* to_encoded */
 
 
-
-
 an_ifc_word_sort to_universal_sort(an_ifc_word_sort_0_33 versioned)
 /*
 Given the versioned representation of WordSort, return the corresponding
@@ -11473,8 +11379,6 @@ Given the versioned representation of AttrIndex, return the extracted value.
 {
   return versioned >> 4;
 }  /* attr_value */
-
-
 
 
 an_ifc_attr_index to_universal_index(an_ifc_module          *mod,
@@ -11550,8 +11454,6 @@ Given the versioned representation of ChartIndex, return the extracted value.
 }  /* chart_value */
 
 
-
-
 an_ifc_chart_index to_universal_index(an_ifc_module           *mod,
                                       an_ifc_chart_index_0_33 versioned)
 /*
@@ -11625,8 +11527,6 @@ Given the versioned representation of DeclIndex, return the extracted value.
 }  /* decl_value */
 
 
-
-
 an_ifc_decl_index to_universal_index(an_ifc_module          *mod,
                                      an_ifc_decl_index_0_33 versioned)
 /*
@@ -11659,8 +11559,6 @@ Given the versioned representation of DeclIndex, return the extracted value.
 {
   return versioned >> 5;
 }  /* decl_value */
-
-
 
 
 an_ifc_decl_index to_universal_index(an_ifc_module          *mod,
@@ -11736,8 +11634,6 @@ Given the versioned representation of ExprIndex, return the extracted value.
 }  /* expr_value */
 
 
-
-
 an_ifc_expr_index to_universal_index(an_ifc_module          *mod,
                                      an_ifc_expr_index_0_33 versioned)
 /*
@@ -11809,8 +11705,6 @@ Given the versioned representation of FormIndex, return the extracted value.
 {
   return versioned >> 4;
 }  /* form_value */
-
-
 
 
 an_ifc_form_index to_universal_index(an_ifc_module          *mod,
@@ -11886,8 +11780,6 @@ Given the versioned representation of LitIndex, return the extracted value.
 }  /* lit_value */
 
 
-
-
 an_ifc_lit_index to_universal_index(an_ifc_module         *mod,
                                     an_ifc_lit_index_0_33 versioned)
 /*
@@ -11959,8 +11851,6 @@ Given the versioned representation of MacroIndex, return the extracted value.
 {
   return versioned >> 1;
 }  /* macro_value */
-
-
 
 
 an_ifc_macro_index to_universal_index(an_ifc_module           *mod,
@@ -12036,8 +11926,6 @@ Given the versioned representation of NameIndex, return the extracted value.
 }  /* name_value */
 
 
-
-
 an_ifc_name_index to_universal_index(an_ifc_module          *mod,
                                      an_ifc_name_index_0_33 versioned)
 /*
@@ -12109,8 +11997,6 @@ Given the versioned representation of PragmaIndex, return the extracted value.
 {
   return versioned >> 1;
 }  /* pragma_value */
-
-
 
 
 an_ifc_pragma_index to_universal_index(an_ifc_module            *mod,
@@ -12186,8 +12072,6 @@ Given the versioned representation of StmtIndex, return the extracted value.
 }  /* stmt_value */
 
 
-
-
 an_ifc_stmt_index to_universal_index(an_ifc_module          *mod,
                                      an_ifc_stmt_index_0_33 versioned)
 /*
@@ -12259,8 +12143,6 @@ Given the versioned representation of StringIndex, return the extracted value.
 {
   return versioned >> 3;
 }  /* string_value */
-
-
 
 
 an_ifc_string_index to_universal_index(an_ifc_module            *mod,
@@ -12336,8 +12218,6 @@ Given the versioned representation of SyntaxIndex, return the extracted value.
 }  /* syntax_value */
 
 
-
-
 an_ifc_syntax_index to_universal_index(an_ifc_module            *mod,
                                        an_ifc_syntax_index_0_33 versioned)
 /*
@@ -12409,8 +12289,6 @@ Given the versioned representation of TypeIndex, return the extracted value.
 {
   return versioned >> 5;
 }  /* type_value */
-
-
 
 
 an_ifc_type_index to_universal_index(an_ifc_module          *mod,
@@ -12486,8 +12364,6 @@ Given the versioned representation of UnitIndex, return the extracted value.
 }  /* unit_value */
 
 
-
-
 an_ifc_unit_index to_universal_index(an_ifc_module          *mod,
                                      an_ifc_unit_index_0_33 versioned)
 /*
@@ -12541,8 +12417,6 @@ Functions for interacting with IFC DeclForeignIndex indexes.
 */
 
 
-
-
 an_ifc_decl_index to_universal_index(an_ifc_module                  *mod,
                                      an_ifc_decl_foreign_index_0_33 versioned)
 /*
@@ -12565,29 +12439,6 @@ return the corresponding universal representation.
 }  /* to_universal_index */
 
 
-
-
-an_ifc_decl_index to_universal_index(
-                                an_ifc_module                     *mod,
-                                an_ifc_decl_foreign_index_storage universal,
-                                an_ifc_module                     *foreign_mod)
-/*
-Given the foreign representation of DeclForeignIndex and the associated module
-along with the foreign module (which owns the interpretation of the foreign
-representation), return the corresponding universal representation of the
-index.
-*/
-{
-  an_ifc_decl_index result;
-
-  an_ifc_decl_foreign_index_0_33 versioned_index =
-                                     (an_ifc_decl_foreign_index_0_33)universal;
-
-  result = to_universal_index(foreign_mod, versioned_index);
-  return result;
-}  /* to_universal_index */
-
-
 an_ifc_decl_index to_universal_index(an_ifc_module             *foreign_mod,
                                      an_ifc_decl_foreign_index universal)
 /*
@@ -12596,7 +12447,13 @@ module (which owns the interpretation of the foreign representation), return
 the corresponding universal representation of the index.
 */
 {
-return to_universal_index(universal.mod, universal.value, foreign_mod);
+  an_ifc_decl_index result;
+
+  an_ifc_decl_foreign_index_0_33 versioned_index =
+                               (an_ifc_decl_foreign_index_0_33)universal.value;
+
+  result = to_universal_index(foreign_mod, versioned_index);
+  return result;
 }  /* to_universal_index */
 
 
@@ -13100,8 +12957,6 @@ value.
 }  /* operator_value */
 
 
-
-
 an_ifc_operator_category to_universal_category(
                                        an_ifc_module                 *mod,
                                        an_ifc_operator_category_0_33 versioned)
@@ -13202,8 +13057,6 @@ extracted value.
 {
   return versioned >> 16;
 }  /* source_identifier_value */
-
-
 
 
 an_ifc_source_identifier_category to_universal_category(
@@ -13332,8 +13185,6 @@ extracted value.
 {
   return versioned >> 16;
 }  /* source_literal_value */
-
-
 
 
 an_ifc_source_literal_category to_universal_category(
@@ -13486,8 +13337,6 @@ Given the versioned representation of WordCategory, return the extracted value.
 }  /* word_value */
 
 
-
-
 an_ifc_word_category to_universal_category(an_ifc_module             *mod,
                                            an_ifc_word_category_0_33 versioned)
 /*
@@ -13571,78 +13420,6 @@ universal representation.
 }  /* to_universal_category */
 
 
-/*
-Functions for interacting with IFC KeywordSyntax nodes.
-*/
-
-
-
-
-
-
-/*
-Functions for interacting with IFC ModuleReference nodes.
-*/
-
-
-
-
-
-
-/*
-Functions for interacting with IFC NestableWord nodes.
-*/
-
-
-
-
-
-
-/*
-Functions for interacting with IFC NoexceptSpecification nodes.
-*/
-
-
-
-
-
-
-/*
-Functions for interacting with IFC ParameterizedEntity nodes.
-*/
-
-
-
-
-
-
-/*
-Functions for interacting with IFC Sequence nodes.
-*/
-
-
-
-
-
-
-/*
-Functions for interacting with IFC SourceLocation nodes.
-*/
-
-
-
-
-
-
-/*
-Functions for interacting with IFC FileHeader nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_file_header_storage* get<an_ifc_file_header_storage>(
                                        an_ifc_module              *mod,
@@ -13711,15 +13488,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_file_header_storage> */
 
 
-/*
-Functions for interacting with IFC Partition nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_partition_storage* get<an_ifc_partition_storage>(
                                          an_ifc_module            *mod,
@@ -13765,15 +13533,6 @@ the storage specified by the storage argument).
   }  /* if */
   return storage;
 }  /* get<an_ifc_partition_storage> */
-
-
-/*
-Functions for interacting with IFC AttrBasic nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -13825,17 +13584,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_attr_basic_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC AttrCalled nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_attr_called_storage* get<an_ifc_attr_called_storage>(
                                        an_ifc_module              *mod,
@@ -13880,17 +13628,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_attr_called_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC AttrElaborated nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_attr_elaborated_storage* get<an_ifc_attr_elaborated_storage>(
                                    an_ifc_module                  *mod,
@@ -13933,17 +13670,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_attr_elaborated_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC AttrExpanded nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_attr_expanded_storage* get<an_ifc_attr_expanded_storage>(
                                      an_ifc_module                *mod,
@@ -13984,17 +13710,6 @@ the storage specified by the storage argument).
   }  /* if */
   return storage;
 }  /* get<an_ifc_attr_expanded_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC AttrFactored nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -14049,17 +13764,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_attr_factored_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC AttrLabeled nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_attr_labeled_storage* get<an_ifc_attr_labeled_storage>(
                                       an_ifc_module               *mod,
@@ -14110,17 +13814,6 @@ the storage specified by the storage argument).
   }  /* if */
   return storage;
 }  /* get<an_ifc_attr_labeled_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC AttrScoped nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -14183,17 +13876,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_attr_scoped_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC AttrTuple nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_attr_tuple_storage* get<an_ifc_attr_tuple_storage>(
                                         an_ifc_module             *mod,
@@ -14235,17 +13917,6 @@ the storage specified by the storage argument).
   }  /* if */
   return storage;
 }  /* get<an_ifc_attr_tuple_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC ChartMultilevel nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -14290,17 +13961,6 @@ the storage specified by the storage argument).
   }  /* if */
   return storage;
 }  /* get<an_ifc_chart_multilevel_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC ChartUnilevel nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -14349,17 +14009,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_chart_unilevel_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC ConstF64 nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_const_f64_storage* get<an_ifc_const_f64_storage>(
                                          an_ifc_module            *mod,
@@ -14401,17 +14050,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_const_f64_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC ConstI64 nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_const_i64_storage* get<an_ifc_const_i64_storage>(
                                          an_ifc_module            *mod,
@@ -14451,17 +14089,6 @@ the storage specified by the storage argument).
   }  /* if */
   return storage;
 }  /* get<an_ifc_const_i64_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC ConstStr nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -14509,17 +14136,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_const_str_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC DeclAlias nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_decl_alias_storage* get<an_ifc_decl_alias_storage>(
                                         an_ifc_module             *mod,
@@ -14546,7 +14162,7 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_decl_alias_storage;
   if (has_matching_endianness(mod)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/26);
+      memcpy(*storage, mod->byte_buffer, /*size=*/28);
     } else {
       storage = (storage_type*)(mod->byte_buffer);
     }  /* if */
@@ -14569,21 +14185,10 @@ the storage specified by the storage argument).
     /* specifiers */
     get_bytes(mod, (*storage) + 24, /*num_bytes=*/1, /*from_header=*/FALSE);
     /* access */
-    get_bytes(mod, (*storage) + 25, /*num_bytes=*/1, /*from_header=*/FALSE);
+    get_bytes(mod, (*storage) + 25, /*num_bytes=*/3, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_decl_alias_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC DeclBitfield nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -14646,17 +14251,6 @@ the storage specified by the storage argument).
   }  /* if */
   return storage;
 }  /* get<an_ifc_decl_bitfield_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC DeclConcept nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -14723,17 +14317,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_decl_concept_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC DeclConstructor nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_decl_constructor_storage* get<an_ifc_decl_constructor_storage>(
                                   an_ifc_module                   *mod,
@@ -14761,7 +14344,7 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_decl_constructor_storage;
   if (has_matching_endianness(mod)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/29);
+      memcpy(*storage, mod->byte_buffer, /*size=*/32);
     } else {
       storage = (storage_type*)(mod->byte_buffer);
     }  /* if */
@@ -14788,21 +14371,10 @@ the storage specified by the storage argument).
     /* access */
     get_bytes(mod, (*storage) + 27, /*num_bytes=*/1, /*from_header=*/FALSE);
     /* properties */
-    get_bytes(mod, (*storage) + 28, /*num_bytes=*/1, /*from_header=*/FALSE);
+    get_bytes(mod, (*storage) + 28, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_decl_constructor_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC DeclDeductionGuide nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -14832,7 +14404,7 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_decl_deduction_guide_storage;
   if (has_matching_endianness(mod)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/26);
+      memcpy(*storage, mod->byte_buffer, /*size=*/28);
     } else {
       storage = (storage_type*)(mod->byte_buffer);
     }  /* if */
@@ -14855,21 +14427,10 @@ the storage specified by the storage argument).
     /* traits */
     get_bytes(mod, (*storage) + 24, /*num_bytes=*/1, /*from_header=*/FALSE);
     /* specifiers */
-    get_bytes(mod, (*storage) + 25, /*num_bytes=*/1, /*from_header=*/FALSE);
+    get_bytes(mod, (*storage) + 25, /*num_bytes=*/3, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_decl_deduction_guide_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC DeclDestructor nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -14899,7 +14460,7 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_decl_destructor_storage;
   if (has_matching_endianness(mod)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/30);
+      memcpy(*storage, mod->byte_buffer, /*size=*/32);
     } else {
       storage = (storage_type*)(mod->byte_buffer);
     }  /* if */
@@ -14928,21 +14489,10 @@ the storage specified by the storage argument).
     /* convention */
     get_bytes(mod, (*storage) + 28, /*num_bytes=*/1, /*from_header=*/FALSE);
     /* properties */
-    get_bytes(mod, (*storage) + 29, /*num_bytes=*/1, /*from_header=*/FALSE);
+    get_bytes(mod, (*storage) + 29, /*num_bytes=*/3, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_decl_destructor_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC DeclEnumeration nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -14972,7 +14522,7 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_decl_enumeration_storage;
   if (has_matching_endianness(mod)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/39);
+      memcpy(*storage, mod->byte_buffer, /*size=*/40);
     } else {
       storage = (storage_type*)(mod->byte_buffer);
     }  /* if */
@@ -15003,21 +14553,10 @@ the storage specified by the storage argument).
     /* access */
     get_bytes(mod, (*storage) + 37, /*num_bytes=*/1, /*from_header=*/FALSE);
     /* properties */
-    get_bytes(mod, (*storage) + 38, /*num_bytes=*/1, /*from_header=*/FALSE);
+    get_bytes(mod, (*storage) + 38, /*num_bytes=*/2, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_decl_enumeration_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC DeclEnumerator nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -15047,7 +14586,7 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_decl_enumerator_storage;
   if (has_matching_endianness(mod)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/22);
+      memcpy(*storage, mod->byte_buffer, /*size=*/24);
     } else {
       storage = (storage_type*)(mod->byte_buffer);
     }  /* if */
@@ -15068,21 +14607,10 @@ the storage specified by the storage argument).
     /* specifiers */
     get_bytes(mod, (*storage) + 20, /*num_bytes=*/1, /*from_header=*/FALSE);
     /* access */
-    get_bytes(mod, (*storage) + 21, /*num_bytes=*/1, /*from_header=*/FALSE);
+    get_bytes(mod, (*storage) + 21, /*num_bytes=*/3, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_decl_enumerator_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC DeclExpansion nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -15131,17 +14659,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_decl_expansion_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC DeclExplicitInstantiation nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_decl_explicit_instantiation_storage*
 get<an_ifc_decl_explicit_instantiation_storage>(
@@ -15187,17 +14704,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_decl_explicit_instantiation_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC DeclExplicitSpecialization nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_decl_explicit_specialization_storage*
 get<an_ifc_decl_explicit_specialization_storage>(
@@ -15241,17 +14747,6 @@ the storage specified by the storage argument).
   }  /* if */
   return storage;
 }  /* get<an_ifc_decl_explicit_specialization_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC DeclField nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -15315,17 +14810,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_decl_field_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC DeclFriend nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_decl_friend_storage* get<an_ifc_decl_friend_storage>(
                                        an_ifc_module              *mod,
@@ -15368,17 +14852,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_decl_friend_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC DeclFunction nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_decl_function_storage* get<an_ifc_decl_function_storage>(
                                      an_ifc_module                *mod,
@@ -15406,7 +14879,7 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_decl_function_storage;
   if (has_matching_endianness(mod)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/29);
+      memcpy(*storage, mod->byte_buffer, /*size=*/32);
     } else {
       storage = (storage_type*)(mod->byte_buffer);
     }  /* if */
@@ -15433,21 +14906,10 @@ the storage specified by the storage argument).
     /* access */
     get_bytes(mod, (*storage) + 27, /*num_bytes=*/1, /*from_header=*/FALSE);
     /* properties */
-    get_bytes(mod, (*storage) + 28, /*num_bytes=*/1, /*from_header=*/FALSE);
+    get_bytes(mod, (*storage) + 28, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_decl_function_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC DeclInheritedConstructor nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -15511,17 +14973,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_decl_inherited_constructor_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC DeclIntrinsic nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_decl_intrinsic_storage* get<an_ifc_decl_intrinsic_storage>(
                                     an_ifc_module                 *mod,
@@ -15549,7 +15000,7 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_decl_intrinsic_storage;
   if (has_matching_endianness(mod)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/22);
+      memcpy(*storage, mod->byte_buffer, /*size=*/24);
     } else {
       storage = (storage_type*)(mod->byte_buffer);
     }  /* if */
@@ -15570,21 +15021,10 @@ the storage specified by the storage argument).
     /* specifiers */
     get_bytes(mod, (*storage) + 20, /*num_bytes=*/1, /*from_header=*/FALSE);
     /* access */
-    get_bytes(mod, (*storage) + 21, /*num_bytes=*/1, /*from_header=*/FALSE);
+    get_bytes(mod, (*storage) + 21, /*num_bytes=*/3, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_decl_intrinsic_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC DeclMethod nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -15614,7 +15054,7 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_decl_method_storage;
   if (has_matching_endianness(mod)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/29);
+      memcpy(*storage, mod->byte_buffer, /*size=*/32);
     } else {
       storage = (storage_type*)(mod->byte_buffer);
     }  /* if */
@@ -15641,21 +15081,10 @@ the storage specified by the storage argument).
     /* access */
     get_bytes(mod, (*storage) + 27, /*num_bytes=*/1, /*from_header=*/FALSE);
     /* properties */
-    get_bytes(mod, (*storage) + 28, /*num_bytes=*/1, /*from_header=*/FALSE);
+    get_bytes(mod, (*storage) + 28, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_decl_method_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC DeclOutputSegment nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -15706,17 +15135,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_decl_output_segment_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC DeclParameter nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_decl_parameter_storage* get<an_ifc_decl_parameter_storage>(
                                     an_ifc_module                 *mod,
@@ -15744,7 +15162,7 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_decl_parameter_storage;
   if (has_matching_endianness(mod)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/35);
+      memcpy(*storage, mod->byte_buffer, /*size=*/36);
     } else {
       storage = (storage_type*)(mod->byte_buffer);
     }  /* if */
@@ -15773,21 +15191,10 @@ the storage specified by the storage argument).
     /* properties */
     get_bytes(mod, (*storage) + 33, /*num_bytes=*/1, /*from_header=*/FALSE);
     /* pack */
-    get_bytes(mod, (*storage) + 34, /*num_bytes=*/1, /*from_header=*/FALSE);
+    get_bytes(mod, (*storage) + 34, /*num_bytes=*/2, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_decl_parameter_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC DeclPartialSpecialization nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -15818,7 +15225,7 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_decl_partial_specialization_storage;
   if (has_matching_endianness(mod)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/43);
+      memcpy(*storage, mod->byte_buffer, /*size=*/44);
     } else {
       storage = (storage_type*)(mod->byte_buffer);
     }  /* if */
@@ -15851,21 +15258,10 @@ the storage specified by the storage argument).
     /* access */
     get_bytes(mod, (*storage) + 41, /*num_bytes=*/1, /*from_header=*/FALSE);
     /* properties */
-    get_bytes(mod, (*storage) + 42, /*num_bytes=*/1, /*from_header=*/FALSE);
+    get_bytes(mod, (*storage) + 42, /*num_bytes=*/2, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_decl_partial_specialization_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC DeclProperty nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -15914,17 +15310,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_decl_property_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC DeclReference nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_decl_reference_storage* get<an_ifc_decl_reference_storage>(
                                     an_ifc_module                 *mod,
@@ -15971,17 +15356,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_decl_reference_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC DeclScope nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_decl_scope_storage* get<an_ifc_decl_scope_storage>(
                                         an_ifc_module             *mod,
@@ -16008,7 +15382,7 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_decl_scope_storage;
   if (has_matching_endianness(mod)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/38);
+      memcpy(*storage, mod->byte_buffer, /*size=*/40);
     } else {
       storage = (storage_type*)(mod->byte_buffer);
     }  /* if */
@@ -16041,21 +15415,10 @@ the storage specified by the storage argument).
     /* access */
     get_bytes(mod, (*storage) + 36, /*num_bytes=*/1, /*from_header=*/FALSE);
     /* properties */
-    get_bytes(mod, (*storage) + 37, /*num_bytes=*/1, /*from_header=*/FALSE);
+    get_bytes(mod, (*storage) + 37, /*num_bytes=*/3, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_decl_scope_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC DeclSpecialization nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -16085,7 +15448,7 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_decl_specialization_storage;
   if (has_matching_endianness(mod)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/9);
+      memcpy(*storage, mod->byte_buffer, /*size=*/12);
     } else {
       storage = (storage_type*)(mod->byte_buffer);
     }  /* if */
@@ -16098,21 +15461,10 @@ the storage specified by the storage argument).
     /* decl */
     get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* sort */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/1, /*from_header=*/FALSE);
+    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_decl_specialization_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC DeclTemplate nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -16142,7 +15494,7 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_decl_template_storage;
   if (has_matching_endianness(mod)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/43);
+      memcpy(*storage, mod->byte_buffer, /*size=*/44);
     } else {
       storage = (storage_type*)(mod->byte_buffer);
     }  /* if */
@@ -16175,21 +15527,10 @@ the storage specified by the storage argument).
     /* access */
     get_bytes(mod, (*storage) + 41, /*num_bytes=*/1, /*from_header=*/FALSE);
     /* properties */
-    get_bytes(mod, (*storage) + 42, /*num_bytes=*/1, /*from_header=*/FALSE);
+    get_bytes(mod, (*storage) + 42, /*num_bytes=*/2, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_decl_template_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC DeclTemploid nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -16219,7 +15560,7 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_decl_temploid_storage;
   if (has_matching_endianness(mod)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/21);
+      memcpy(*storage, mod->byte_buffer, /*size=*/24);
     } else {
       storage = (storage_type*)(mod->byte_buffer);
     }  /* if */
@@ -16238,21 +15579,10 @@ the storage specified by the storage argument).
     /* chart */
     get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* properties */
-    get_bytes(mod, (*storage) + 20, /*num_bytes=*/1, /*from_header=*/FALSE);
+    get_bytes(mod, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_decl_temploid_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC DeclTuple nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -16298,17 +15628,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_decl_tuple_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC DeclUsingDeclaration nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_decl_using_declaration_storage*
 get<an_ifc_decl_using_declaration_storage>(
@@ -16337,7 +15656,7 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_decl_using_declaration_storage;
   if (has_matching_endianness(mod)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/31);
+      memcpy(*storage, mod->byte_buffer, /*size=*/32);
     } else {
       storage = (storage_type*)(mod->byte_buffer);
     }  /* if */
@@ -16364,21 +15683,10 @@ the storage specified by the storage argument).
     /* access */
     get_bytes(mod, (*storage) + 29, /*num_bytes=*/1, /*from_header=*/FALSE);
     /* hidden */
-    get_bytes(mod, (*storage) + 30, /*num_bytes=*/1, /*from_header=*/FALSE);
+    get_bytes(mod, (*storage) + 30, /*num_bytes=*/2, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_decl_using_declaration_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC DeclVariable nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -16443,17 +15751,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_decl_variable_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC ExprAlignof nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_expr_alignof_storage* get<an_ifc_expr_alignof_storage>(
                                       an_ifc_module               *mod,
@@ -16500,17 +15797,6 @@ the storage specified by the storage argument).
   }  /* if */
   return storage;
 }  /* get<an_ifc_expr_alignof_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC ExprArrayValue nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -16563,17 +15849,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_expr_array_value_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC ExprAssignInitializer nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_expr_assign_initializer_storage*
 get<an_ifc_expr_assign_initializer_storage>(
@@ -16619,17 +15894,6 @@ the storage specified by the storage argument).
   }  /* if */
   return storage;
 }  /* get<an_ifc_expr_assign_initializer_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC ExprBinaryFold nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -16686,17 +15950,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_expr_binary_fold_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC ExprCall nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_expr_call_storage* get<an_ifc_expr_call_storage>(
                                          an_ifc_module            *mod,
@@ -16746,17 +15999,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_expr_call_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC ExprCast nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_expr_cast_storage* get<an_ifc_expr_cast_storage>(
                                          an_ifc_module            *mod,
@@ -16783,7 +16025,7 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_expr_cast_storage;
   if (has_matching_endianness(mod)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/22);
+      memcpy(*storage, mod->byte_buffer, /*size=*/24);
     } else {
       storage = (storage_type*)(mod->byte_buffer);
     }  /* if */
@@ -16802,21 +16044,10 @@ the storage specified by the storage argument).
     /* target */
     get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* op */
-    get_bytes(mod, (*storage) + 20, /*num_bytes=*/2, /*from_header=*/FALSE);
+    get_bytes(mod, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_expr_cast_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC ExprCompoundString nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -16869,17 +16100,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_expr_compound_string_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC ExprCondition nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_expr_condition_storage* get<an_ifc_expr_condition_storage>(
                                     an_ifc_module                 *mod,
@@ -16926,17 +16146,6 @@ the storage specified by the storage argument).
   }  /* if */
   return storage;
 }  /* get<an_ifc_expr_condition_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC ExprDesignatedInitializer nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -16988,17 +16197,6 @@ the storage specified by the storage argument).
   }  /* if */
   return storage;
 }  /* get<an_ifc_expr_designated_initializer_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC ExprDestructorCall nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -17053,17 +16251,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_expr_destructor_call_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC ExprDyad nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_expr_dyad_storage* get<an_ifc_expr_dyad_storage>(
                                          an_ifc_module            *mod,
@@ -17090,7 +16277,7 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_expr_dyad_storage;
   if (has_matching_endianness(mod)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/26);
+      memcpy(*storage, mod->byte_buffer, /*size=*/28);
     } else {
       storage = (storage_type*)(mod->byte_buffer);
     }  /* if */
@@ -17111,21 +16298,10 @@ the storage specified by the storage argument).
     /* argument_1 */
     get_bytes(mod, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* assoc */
-    get_bytes(mod, (*storage) + 24, /*num_bytes=*/2, /*from_header=*/FALSE);
+    get_bytes(mod, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_expr_dyad_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC ExprDynamicDispatch nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -17177,17 +16353,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_expr_dynamic_dispatch_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC ExprEmpty nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_expr_empty_storage* get<an_ifc_expr_empty_storage>(
                                         an_ifc_module             *mod,
@@ -17231,17 +16396,6 @@ the storage specified by the storage argument).
   }  /* if */
   return storage;
 }  /* get<an_ifc_expr_empty_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC ExprExpansion nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -17292,17 +16446,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_expr_expansion_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC ExprExpressionList nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_expr_expression_list_storage* get<an_ifc_expr_expression_list_storage>(
                               an_ifc_module                       *mod,
@@ -17330,7 +16473,7 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_expr_expression_list_storage;
   if (has_matching_endianness(mod)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/21);
+      memcpy(*storage, mod->byte_buffer, /*size=*/24);
     } else {
       storage = (storage_type*)(mod->byte_buffer);
     }  /* if */
@@ -17349,21 +16492,10 @@ the storage specified by the storage argument).
     /* contents */
     get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* delimiter */
-    get_bytes(mod, (*storage) + 20, /*num_bytes=*/1, /*from_header=*/FALSE);
+    get_bytes(mod, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_expr_expression_list_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC ExprFunctionString nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -17414,17 +16546,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_expr_function_string_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC ExprHierarchyConversion nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_expr_hierarchy_conversion_storage*
 get<an_ifc_expr_hierarchy_conversion_storage>(
@@ -17453,7 +16574,7 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_expr_hierarchy_conversion_storage;
   if (has_matching_endianness(mod)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/30);
+      memcpy(*storage, mod->byte_buffer, /*size=*/32);
     } else {
       storage = (storage_type*)(mod->byte_buffer);
     }  /* if */
@@ -17476,21 +16597,10 @@ the storage specified by the storage argument).
     /* override */
     get_bytes(mod, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* op */
-    get_bytes(mod, (*storage) + 28, /*num_bytes=*/2, /*from_header=*/FALSE);
+    get_bytes(mod, (*storage) + 28, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_expr_hierarchy_conversion_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC ExprInheritancePath nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -17540,17 +16650,6 @@ the storage specified by the storage argument).
   }  /* if */
   return storage;
 }  /* get<an_ifc_expr_inheritance_path_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC ExprInitializer nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -17603,17 +16702,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_expr_initializer_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC ExprInitializerList nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_expr_initializer_list_storage*
 get<an_ifc_expr_initializer_list_storage>(
@@ -17661,17 +16749,6 @@ the storage specified by the storage argument).
   }  /* if */
   return storage;
 }  /* get<an_ifc_expr_initializer_list_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC ExprLambda nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -17724,17 +16801,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_expr_lambda_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC ExprLiteral nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_expr_literal_storage* get<an_ifc_expr_literal_storage>(
                                       an_ifc_module               *mod,
@@ -17781,17 +16847,6 @@ the storage specified by the storage argument).
   }  /* if */
   return storage;
 }  /* get<an_ifc_expr_literal_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC ExprMemberAccess nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -17844,17 +16899,6 @@ the storage specified by the storage argument).
   }  /* if */
   return storage;
 }  /* get<an_ifc_expr_member_access_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC ExprMemberInitializer nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -17910,17 +16954,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_expr_member_initializer_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC ExprMonad nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_expr_monad_storage* get<an_ifc_expr_monad_storage>(
                                         an_ifc_module             *mod,
@@ -17947,7 +16980,7 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_expr_monad_storage;
   if (has_matching_endianness(mod)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/22);
+      memcpy(*storage, mod->byte_buffer, /*size=*/24);
     } else {
       storage = (storage_type*)(mod->byte_buffer);
     }  /* if */
@@ -17966,21 +16999,10 @@ the storage specified by the storage argument).
     /* argument */
     get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* assoc */
-    get_bytes(mod, (*storage) + 20, /*num_bytes=*/2, /*from_header=*/FALSE);
+    get_bytes(mod, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_expr_monad_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC ExprNamedDecl nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -18031,17 +17053,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_expr_named_decl_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC ExprNullptr nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_expr_nullptr_storage* get<an_ifc_expr_nullptr_storage>(
                                       an_ifc_module               *mod,
@@ -18086,17 +17097,6 @@ the storage specified by the storage argument).
   }  /* if */
   return storage;
 }  /* get<an_ifc_expr_nullptr_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC ExprPackedTemplateArguments nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -18148,17 +17148,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_expr_packed_template_arguments_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC ExprPath nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_expr_path_storage* get<an_ifc_expr_path_storage>(
                                          an_ifc_module            *mod,
@@ -18208,17 +17197,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_expr_path_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC ExprPlaceholder nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_expr_placeholder_storage* get<an_ifc_expr_placeholder_storage>(
                                   an_ifc_module                   *mod,
@@ -18265,17 +17243,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_expr_placeholder_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC ExprPointer nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_expr_pointer_storage* get<an_ifc_expr_pointer_storage>(
                                       an_ifc_module               *mod,
@@ -18318,17 +17285,6 @@ the storage specified by the storage argument).
   }  /* if */
   return storage;
 }  /* get<an_ifc_expr_pointer_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC ExprProductTypeValue nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -18384,17 +17340,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_expr_product_type_value_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC ExprPushState nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_expr_push_state_storage* get<an_ifc_expr_push_state_storage>(
                                    an_ifc_module                  *mod,
@@ -18445,17 +17390,6 @@ the storage specified by the storage argument).
   }  /* if */
   return storage;
 }  /* get<an_ifc_expr_push_state_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC ExprQualifiedName nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -18510,17 +17444,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_expr_qualified_name_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC ExprRead nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_expr_read_storage* get<an_ifc_expr_read_storage>(
                                          an_ifc_module            *mod,
@@ -18547,7 +17470,7 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_expr_read_storage;
   if (has_matching_endianness(mod)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/17);
+      memcpy(*storage, mod->byte_buffer, /*size=*/20);
     } else {
       storage = (storage_type*)(mod->byte_buffer);
     }  /* if */
@@ -18564,21 +17487,10 @@ the storage specified by the storage argument).
     /* address */
     get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* sort */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/1, /*from_header=*/FALSE);
+    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_expr_read_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC ExprRequires nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -18631,17 +17543,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_expr_requires_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC ExprSimpleIdentifier nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_expr_simple_identifier_storage*
 get<an_ifc_expr_simple_identifier_storage>(
@@ -18689,17 +17590,6 @@ the storage specified by the storage argument).
   }  /* if */
   return storage;
 }  /* get<an_ifc_expr_simple_identifier_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC ExprSizeofType nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -18750,17 +17640,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_expr_sizeof_type_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC ExprString nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_expr_string_storage* get<an_ifc_expr_string_storage>(
                                        an_ifc_module              *mod,
@@ -18807,17 +17686,6 @@ the storage specified by the storage argument).
   }  /* if */
   return storage;
 }  /* get<an_ifc_expr_string_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC ExprStringSequence nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -18868,17 +17736,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_expr_string_sequence_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC ExprSubobjectValue nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_expr_subobject_value_storage* get<an_ifc_expr_subobject_value_storage>(
                               an_ifc_module                       *mod,
@@ -18919,17 +17776,6 @@ the storage specified by the storage argument).
   }  /* if */
   return storage;
 }  /* get<an_ifc_expr_subobject_value_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC ExprSumTypeValue nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -18984,17 +17830,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_expr_sum_type_value_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC ExprSyntaxTree nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_expr_syntax_tree_storage* get<an_ifc_expr_syntax_tree_storage>(
                                   an_ifc_module                   *mod,
@@ -19035,17 +17870,6 @@ the storage specified by the storage argument).
   }  /* if */
   return storage;
 }  /* get<an_ifc_expr_syntax_tree_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC ExprTemplateId nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -19096,17 +17920,6 @@ the storage specified by the storage argument).
   }  /* if */
   return storage;
 }  /* get<an_ifc_expr_template_id_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC ExprTemplateReference nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -19166,17 +17979,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_expr_template_reference_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC ExprTemporary nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_expr_temporary_storage* get<an_ifc_expr_temporary_storage>(
                                     an_ifc_module                 *mod,
@@ -19225,17 +18027,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_expr_temporary_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC ExprThis nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_expr_this_storage* get<an_ifc_expr_this_storage>(
                                          an_ifc_module            *mod,
@@ -19279,17 +18070,6 @@ the storage specified by the storage argument).
   }  /* if */
   return storage;
 }  /* get<an_ifc_expr_this_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC ExprTokens nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -19340,17 +18120,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_expr_tokens_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC ExprTriad nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_expr_triad_storage* get<an_ifc_expr_triad_storage>(
                                         an_ifc_module             *mod,
@@ -19377,7 +18146,7 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_expr_triad_storage;
   if (has_matching_endianness(mod)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/30);
+      memcpy(*storage, mod->byte_buffer, /*size=*/32);
     } else {
       storage = (storage_type*)(mod->byte_buffer);
     }  /* if */
@@ -19400,21 +18169,10 @@ the storage specified by the storage argument).
     /* argument_2 */
     get_bytes(mod, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* assoc */
-    get_bytes(mod, (*storage) + 28, /*num_bytes=*/2, /*from_header=*/FALSE);
+    get_bytes(mod, (*storage) + 28, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_expr_triad_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC ExprTuple nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -19466,17 +18224,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_expr_tuple_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC ExprType nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_expr_type_storage* get<an_ifc_expr_type_storage>(
                                          an_ifc_module            *mod,
@@ -19524,17 +18271,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_expr_type_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC ExprTypeTraitIntrinsic nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_expr_type_trait_intrinsic_storage*
 get<an_ifc_expr_type_trait_intrinsic_storage>(
@@ -19563,7 +18299,7 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_expr_type_trait_intrinsic_storage;
   if (has_matching_endianness(mod)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/18);
+      memcpy(*storage, mod->byte_buffer, /*size=*/20);
     } else {
       storage = (storage_type*)(mod->byte_buffer);
     }  /* if */
@@ -19580,21 +18316,10 @@ the storage specified by the storage argument).
     /* arguments */
     get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* intrinsic */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/2, /*from_header=*/FALSE);
+    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_expr_type_trait_intrinsic_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC ExprTypeid nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -19645,17 +18370,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_expr_typeid_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC ExprUnaryFold nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_expr_unary_fold_storage* get<an_ifc_expr_unary_fold_storage>(
                                    an_ifc_module                  *mod,
@@ -19683,7 +18397,7 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_expr_unary_fold_storage;
   if (has_matching_endianness(mod)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/19);
+      memcpy(*storage, mod->byte_buffer, /*size=*/20);
     } else {
       storage = (storage_type*)(mod->byte_buffer);
     }  /* if */
@@ -19702,21 +18416,10 @@ the storage specified by the storage argument).
     /* operation */
     get_bytes(mod, (*storage) + 16, /*num_bytes=*/2, /*from_header=*/FALSE);
     /* associativity */
-    get_bytes(mod, (*storage) + 18, /*num_bytes=*/1, /*from_header=*/FALSE);
+    get_bytes(mod, (*storage) + 18, /*num_bytes=*/2, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_expr_unary_fold_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC ExprUnqualifiedId nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -19773,17 +18476,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_expr_unqualified_id_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC ExprUnresolvedId nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_expr_unresolved_id_storage* get<an_ifc_expr_unresolved_id_storage>(
                                 an_ifc_module                     *mod,
@@ -19830,17 +18522,6 @@ the storage specified by the storage argument).
   }  /* if */
   return storage;
 }  /* get<an_ifc_expr_unresolved_id_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC ExprVirtualFunctionConversion nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -19892,17 +18573,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_expr_virtual_function_conversion_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC FormCatenate nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_form_catenate_storage* get<an_ifc_form_catenate_storage>(
                                      an_ifc_module                *mod,
@@ -19951,17 +18621,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_form_catenate_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC FormCharacter nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_form_character_storage* get<an_ifc_form_character_storage>(
                                     an_ifc_module                 *mod,
@@ -20006,17 +18665,6 @@ the storage specified by the storage argument).
   }  /* if */
   return storage;
 }  /* get<an_ifc_form_character_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC FormHeader nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -20065,17 +18713,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_form_header_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC FormIdentifier nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_form_identifier_storage* get<an_ifc_form_identifier_storage>(
                                    an_ifc_module                  *mod,
@@ -20122,17 +18759,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_form_identifier_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC FormJunk nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_form_junk_storage* get<an_ifc_form_junk_storage>(
                                          an_ifc_module            *mod,
@@ -20176,17 +18802,6 @@ the storage specified by the storage argument).
   }  /* if */
   return storage;
 }  /* get<an_ifc_form_junk_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC FormKeyword nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -20235,17 +18850,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_form_keyword_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC FormNumber nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_form_number_storage* get<an_ifc_form_number_storage>(
                                        an_ifc_module              *mod,
@@ -20292,17 +18896,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_form_number_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC FormOperator nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_form_operator_storage* get<an_ifc_form_operator_storage>(
                                      an_ifc_module                *mod,
@@ -20330,7 +18923,7 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_form_operator_storage;
   if (has_matching_endianness(mod)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/14);
+      memcpy(*storage, mod->byte_buffer, /*size=*/16);
     } else {
       storage = (storage_type*)(mod->byte_buffer);
     }  /* if */
@@ -20345,21 +18938,10 @@ the storage specified by the storage argument).
     /* spelling */
     get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* op */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/2, /*from_header=*/FALSE);
+    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_form_operator_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC FormParameter nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -20408,17 +18990,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_form_parameter_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC FormParenthesized nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_form_parenthesized_storage* get<an_ifc_form_parenthesized_storage>(
                                 an_ifc_module                     *mod,
@@ -20463,17 +19034,6 @@ the storage specified by the storage argument).
   }  /* if */
   return storage;
 }  /* get<an_ifc_form_parenthesized_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC FormPragma nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -20522,17 +19082,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_form_pragma_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC FormSpec nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_form_spec_storage* get<an_ifc_form_spec_storage>(
                                          an_ifc_module            *mod,
@@ -20574,17 +19123,6 @@ the storage specified by the storage argument).
   }  /* if */
   return storage;
 }  /* get<an_ifc_form_spec_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC FormString nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -20633,17 +19171,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_form_string_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC FormStringize nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_form_stringize_storage* get<an_ifc_form_stringize_storage>(
                                     an_ifc_module                 *mod,
@@ -20690,17 +19217,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_form_stringize_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC FormTuple nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_form_tuple_storage* get<an_ifc_form_tuple_storage>(
                                         an_ifc_module             *mod,
@@ -20742,17 +19258,6 @@ the storage specified by the storage argument).
   }  /* if */
   return storage;
 }  /* get<an_ifc_form_tuple_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC FormWhitespace nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -20799,17 +19304,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_form_whitespace_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC HeapAttr nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_heap_attr_storage* get<an_ifc_heap_attr_storage>(
                                          an_ifc_module            *mod,
@@ -20849,17 +19343,6 @@ the storage specified by the storage argument).
   }  /* if */
   return storage;
 }  /* get<an_ifc_heap_attr_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC HeapChart nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -20903,17 +19386,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_heap_chart_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC HeapDecl nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_heap_decl_storage* get<an_ifc_heap_decl_storage>(
                                          an_ifc_module            *mod,
@@ -20953,17 +19425,6 @@ the storage specified by the storage argument).
   }  /* if */
   return storage;
 }  /* get<an_ifc_heap_decl_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC HeapExpr nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -21007,17 +19468,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_heap_expr_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC HeapForm nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_heap_form_storage* get<an_ifc_heap_form_storage>(
                                          an_ifc_module            *mod,
@@ -21057,17 +19507,6 @@ the storage specified by the storage argument).
   }  /* if */
   return storage;
 }  /* get<an_ifc_heap_form_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC HeapPPForm nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -21112,17 +19551,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_heap_pp_form_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC HeapStmt nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_heap_stmt_storage* get<an_ifc_heap_stmt_storage>(
                                          an_ifc_module            *mod,
@@ -21162,17 +19590,6 @@ the storage specified by the storage argument).
   }  /* if */
   return storage;
 }  /* get<an_ifc_heap_stmt_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC HeapSyntax nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -21217,17 +19634,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_heap_syntax_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC HeapType nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_heap_type_storage* get<an_ifc_heap_type_storage>(
                                          an_ifc_module            *mod,
@@ -21267,17 +19673,6 @@ the storage specified by the storage argument).
   }  /* if */
   return storage;
 }  /* get<an_ifc_heap_type_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC MacroFunctionLike nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -21332,17 +19727,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_macro_function_like_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC MacroObjectLike nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_macro_object_like_storage* get<an_ifc_macro_object_like_storage>(
                                  an_ifc_module                    *mod,
@@ -21391,17 +19775,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_macro_object_like_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC ModuleExportReference nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_module_export_reference_storage*
 get<an_ifc_module_export_reference_storage>(
@@ -21445,17 +19818,6 @@ the storage specified by the storage argument).
   }  /* if */
   return storage;
 }  /* get<an_ifc_module_export_reference_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC ModuleImportReference nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -21503,17 +19865,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_module_import_reference_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC NameConversion nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_name_conversion_storage* get<an_ifc_name_conversion_storage>(
                                    an_ifc_module                  *mod,
@@ -21558,17 +19909,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_name_conversion_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC NameGuide nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_name_guide_storage* get<an_ifc_name_guide_storage>(
                                         an_ifc_module             *mod,
@@ -21608,17 +19948,6 @@ the storage specified by the storage argument).
   }  /* if */
   return storage;
 }  /* get<an_ifc_name_guide_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC NameLiteral nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -21663,17 +19992,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_name_literal_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC NameOperator nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_name_operator_storage* get<an_ifc_name_operator_storage>(
                                      an_ifc_module                *mod,
@@ -21701,7 +20019,7 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_name_operator_storage;
   if (has_matching_endianness(mod)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/6);
+      memcpy(*storage, mod->byte_buffer, /*size=*/8);
     } else {
       storage = (storage_type*)(mod->byte_buffer);
     }  /* if */
@@ -21712,21 +20030,10 @@ the storage specified by the storage argument).
     /* encoded */
     get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* operator */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/2, /*from_header=*/FALSE);
+    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_name_operator_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC NameSourceFile nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -21773,17 +20080,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_name_source_file_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC NameSpecialization nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_name_specialization_storage* get<an_ifc_name_specialization_storage>(
                                an_ifc_module                      *mod,
@@ -21828,17 +20124,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_name_specialization_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC NameTemplate nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_name_template_storage* get<an_ifc_name_template_storage>(
                                      an_ifc_module                *mod,
@@ -21879,17 +20164,6 @@ the storage specified by the storage argument).
   }  /* if */
   return storage;
 }  /* get<an_ifc_name_template_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC ScopeDescriptor nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -21936,17 +20210,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_scope_descriptor_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC ScopeMember nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_scope_member_storage* get<an_ifc_scope_member_storage>(
                                       an_ifc_module               *mod,
@@ -21987,17 +20250,6 @@ the storage specified by the storage argument).
   }  /* if */
   return storage;
 }  /* get<an_ifc_scope_member_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC SourceLine nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -22042,17 +20294,6 @@ the storage specified by the storage argument).
   }  /* if */
   return storage;
 }  /* get<an_ifc_source_line_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC SourceSentence nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -22103,17 +20344,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_source_sentence_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC SourceWord nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_source_word_storage* get<an_ifc_source_word_storage>(
                                        an_ifc_module              *mod,
@@ -22141,7 +20371,7 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_source_word_storage;
   if (has_matching_endianness(mod)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/23);
+      memcpy(*storage, mod->byte_buffer, /*size=*/16);
     } else {
       storage = (storage_type*)(mod->byte_buffer);
     }  /* if */
@@ -22158,21 +20388,10 @@ the storage specified by the storage argument).
     /* value */
     get_bytes(mod, (*storage) + 12, /*num_bytes=*/2, /*from_header=*/FALSE);
     /* sort */
-    get_bytes(mod, (*storage) + 14, /*num_bytes=*/9, /*from_header=*/FALSE);
+    get_bytes(mod, (*storage) + 14, /*num_bytes=*/2, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_source_word_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC StmtBlock nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -22218,17 +20437,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_stmt_block_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC StmtBreak nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_stmt_break_storage* get<an_ifc_stmt_break_storage>(
                                         an_ifc_module             *mod,
@@ -22270,17 +20478,6 @@ the storage specified by the storage argument).
   }  /* if */
   return storage;
 }  /* get<an_ifc_stmt_break_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC StmtCase nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -22328,17 +20525,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_stmt_case_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC StmtContinue nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_stmt_continue_storage* get<an_ifc_stmt_continue_storage>(
                                      an_ifc_module                *mod,
@@ -22383,17 +20569,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_stmt_continue_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC StmtDefault nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_stmt_default_storage* get<an_ifc_stmt_default_storage>(
                                       an_ifc_module               *mod,
@@ -22436,17 +20611,6 @@ the storage specified by the storage argument).
   }  /* if */
   return storage;
 }  /* get<an_ifc_stmt_default_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC StmtDoWhile nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -22497,17 +20661,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_stmt_do_while_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC StmtEmpty nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_stmt_empty_storage* get<an_ifc_stmt_empty_storage>(
                                         an_ifc_module             *mod,
@@ -22551,17 +20704,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_stmt_empty_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC StmtExpansion nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_stmt_expansion_storage* get<an_ifc_stmt_expansion_storage>(
                                     an_ifc_module                 *mod,
@@ -22602,17 +20744,6 @@ the storage specified by the storage argument).
   }  /* if */
   return storage;
 }  /* get<an_ifc_stmt_expansion_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC StmtExpression nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -22659,17 +20790,6 @@ the storage specified by the storage argument).
   }  /* if */
   return storage;
 }  /* get<an_ifc_stmt_expression_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC StmtFor nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -22723,17 +20843,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_stmt_for_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC StmtIf nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_stmt_if_storage* get<an_ifc_stmt_if_storage>(
                                            an_ifc_module          *mod,
@@ -22783,17 +20892,6 @@ the storage specified by the storage argument).
   }  /* if */
   return storage;
 }  /* get<an_ifc_stmt_if_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC StmtReturn nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -22846,17 +20944,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_stmt_return_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC StmtSwitch nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_stmt_switch_storage* get<an_ifc_stmt_switch_storage>(
                                        an_ifc_module              *mod,
@@ -22907,17 +20994,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_stmt_switch_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC StmtVariableDecl nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_stmt_variable_decl_storage* get<an_ifc_stmt_variable_decl_storage>(
                                 an_ifc_module                     *mod,
@@ -22962,17 +21038,6 @@ the storage specified by the storage argument).
   }  /* if */
   return storage;
 }  /* get<an_ifc_stmt_variable_decl_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC StmtWhile nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -23020,17 +21085,6 @@ the storage specified by the storage argument).
   }  /* if */
   return storage;
 }  /* get<an_ifc_stmt_while_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC SyntaxAccessSpecifier nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -23098,17 +21152,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_syntax_access_specifier_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC SyntaxAliasDeclaration nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_syntax_alias_declaration_storage*
 get<an_ifc_syntax_alias_declaration_storage>(
@@ -23166,17 +21209,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_syntax_alias_declaration_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC SyntaxAlignas nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_syntax_alignas_storage* get<an_ifc_syntax_alignas_storage>(
                                     an_ifc_module                 *mod,
@@ -23231,17 +21263,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_syntax_alignas_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC SyntaxArrayDeclarator nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_syntax_array_declarator_storage*
 get<an_ifc_syntax_array_declarator_storage>(
@@ -23291,17 +21312,6 @@ the storage specified by the storage argument).
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_array_declarator_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC SyntaxArrayIndex nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -23356,17 +21366,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_syntax_array_index_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC SyntaxArrayOrFunctionDeclarator nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_syntax_array_or_function_declarator_storage*
 get<an_ifc_syntax_array_or_function_declarator_storage>(
@@ -23410,17 +21409,6 @@ the storage specified by the storage argument).
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_array_or_function_declarator_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC SyntaxAsmStatement nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -23467,17 +21455,6 @@ the storage specified by the storage argument).
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_asm_statement_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC SyntaxAttribute nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -23538,17 +21515,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_syntax_attribute_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC SyntaxAttributeArgumentClause nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_syntax_attribute_argument_clause_storage*
 get<an_ifc_syntax_attribute_argument_clause_storage>(
@@ -23598,17 +21564,6 @@ the storage specified by the storage argument).
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_attribute_argument_clause_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC SyntaxAttributeSpecifier nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -23672,17 +21627,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_syntax_attribute_specifier_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC SyntaxAttributeSpecifierSeq nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_syntax_attribute_specifier_seq_storage*
 get<an_ifc_syntax_attribute_specifier_seq_storage>(
@@ -23724,17 +21668,6 @@ the storage specified by the storage argument).
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_attribute_specifier_seq_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC SyntaxAttributeUsingPrefix nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -23786,17 +21719,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_syntax_attribute_using_prefix_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC SyntaxAttributedDeclaration nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_syntax_attributed_declaration_storage*
 get<an_ifc_syntax_attributed_declaration_storage>(
@@ -23846,17 +21768,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_syntax_attributed_declaration_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC SyntaxAttributedStatement nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_syntax_attributed_statement_storage*
 get<an_ifc_syntax_attributed_statement_storage>(
@@ -23902,17 +21813,6 @@ the storage specified by the storage argument).
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_attributed_statement_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC SyntaxBaseSpecifier nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -23966,17 +21866,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_syntax_base_specifier_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC SyntaxBaseSpecifierList nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_syntax_base_specifier_list_storage*
 get<an_ifc_syntax_base_specifier_list_storage>(
@@ -24022,17 +21911,6 @@ the storage specified by the storage argument).
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_base_specifier_list_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC SyntaxBinaryFoldExpression nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -24104,17 +21982,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_syntax_binary_fold_expression_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC SyntaxBreakStatement nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_syntax_break_statement_storage*
 get<an_ifc_syntax_break_statement_storage>(
@@ -24162,17 +22029,6 @@ the storage specified by the storage argument).
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_break_statement_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC SyntaxCaptureDefault nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -24224,17 +22080,6 @@ the storage specified by the storage argument).
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_capture_default_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC SyntaxClassSpecifier nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -24294,17 +22139,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_syntax_class_specifier_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC SyntaxCompoundRequirement nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_syntax_compound_requirement_storage*
 get<an_ifc_syntax_compound_requirement_storage>(
@@ -24362,17 +22196,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_syntax_compound_requirement_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC SyntaxCompoundStatement nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_syntax_compound_statement_storage*
 get<an_ifc_syntax_compound_statement_storage>(
@@ -24424,17 +22247,6 @@ the storage specified by the storage argument).
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_compound_statement_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC SyntaxConceptDefinition nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -24500,17 +22312,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_syntax_concept_definition_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC SyntaxConditionDeclaration nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_syntax_condition_declaration_storage*
 get<an_ifc_syntax_condition_declaration_storage>(
@@ -24558,17 +22359,6 @@ the storage specified by the storage argument).
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_condition_declaration_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC SyntaxContinueStatement nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -24620,17 +22410,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_syntax_continue_statement_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC SyntaxCtorInitializer nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_syntax_ctor_initializer_storage*
 get<an_ifc_syntax_ctor_initializer_storage>(
@@ -24678,17 +22457,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_syntax_ctor_initializer_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC SyntaxDeclSpecifierSeq nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_syntax_decl_specifier_seq_storage*
 get<an_ifc_syntax_decl_specifier_seq_storage>(
@@ -24717,7 +22485,7 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_decl_specifier_seq_storage;
   if (has_matching_endianness(mod)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/29);
+      memcpy(*storage, mod->byte_buffer, /*size=*/32);
     } else {
       storage = (storage_type*)(mod->byte_buffer);
     }  /* if */
@@ -24740,21 +22508,10 @@ the storage specified by the storage argument).
     /* explicit_kw */
     get_bytes(mod, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* qualifiers */
-    get_bytes(mod, (*storage) + 28, /*num_bytes=*/1, /*from_header=*/FALSE);
+    get_bytes(mod, (*storage) + 28, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_decl_specifier_seq_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC SyntaxDeclarationStatement nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -24802,17 +22559,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_syntax_declaration_statement_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC SyntaxDeclarator nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_syntax_declarator_storage* get<an_ifc_syntax_declarator_storage>(
                                  an_ifc_module                    *mod,
@@ -24840,7 +22586,7 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_declarator_storage;
   if (has_matching_endianness(mod)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/43);
+      memcpy(*storage, mod->byte_buffer, /*size=*/44);
     } else {
       storage = (storage_type*)(mod->byte_buffer);
     }  /* if */
@@ -24873,21 +22619,10 @@ the storage specified by the storage argument).
     /* convention */
     get_bytes(mod, (*storage) + 41, /*num_bytes=*/1, /*from_header=*/FALSE);
     /* callable */
-    get_bytes(mod, (*storage) + 42, /*num_bytes=*/1, /*from_header=*/FALSE);
+    get_bytes(mod, (*storage) + 42, /*num_bytes=*/2, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_declarator_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC SyntaxDecltypeSpecifier nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -24943,17 +22678,6 @@ the storage specified by the storage argument).
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_decltype_specifier_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC SyntaxDoWhileStatement nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -25015,17 +22739,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_syntax_do_while_statement_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC SyntaxDynamicExceptionSpec nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_syntax_dynamic_exception_spec_storage*
 get<an_ifc_syntax_dynamic_exception_spec_storage>(
@@ -25085,17 +22798,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_syntax_dynamic_exception_spec_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC SyntaxEmptyStatement nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_syntax_empty_statement_storage*
 get<an_ifc_syntax_empty_statement_storage>(
@@ -25139,17 +22841,6 @@ the storage specified by the storage argument).
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_empty_statement_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC SyntaxEnumSpecifier nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -25221,17 +22912,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_syntax_enum_specifier_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC SyntaxEnumeratorDefinition nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_syntax_enumerator_definition_storage*
 get<an_ifc_syntax_enumerator_definition_storage>(
@@ -25289,17 +22969,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_syntax_enumerator_definition_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC SyntaxExceptionDeclaration nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_syntax_exception_declaration_storage*
 get<an_ifc_syntax_exception_declaration_storage>(
@@ -25351,17 +23020,6 @@ the storage specified by the storage argument).
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_exception_declaration_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC SyntaxExplicitSpecifier nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -25419,17 +23077,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_syntax_explicit_specifier_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC SyntaxExpression nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_syntax_expression_storage* get<an_ifc_syntax_expression_storage>(
                                  an_ifc_module                    *mod,
@@ -25470,17 +23117,6 @@ the storage specified by the storage argument).
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_expression_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC SyntaxExpressionStatement nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -25532,17 +23168,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_syntax_expression_statement_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC SyntaxForRangeDeclaration nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_syntax_for_range_declaration_storage*
 get<an_ifc_syntax_for_range_declaration_storage>(
@@ -25586,17 +23211,6 @@ the storage specified by the storage argument).
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_for_range_declaration_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC SyntaxForStatement nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -25665,17 +23279,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_syntax_for_statement_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC SyntaxFunctionBody nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_syntax_function_body_storage* get<an_ifc_syntax_function_body_storage>(
                               an_ifc_module                       *mod,
@@ -25736,17 +23339,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_syntax_function_body_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC SyntaxFunctionDeclarator nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_syntax_function_declarator_storage*
 get<an_ifc_syntax_function_declarator_storage>(
@@ -25798,17 +23390,6 @@ the storage specified by the storage argument).
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_function_declarator_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC SyntaxFunctionDefinition nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -25872,17 +23453,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_syntax_function_definition_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC SyntaxFunctionTryBlock nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_syntax_function_try_block_storage*
 get<an_ifc_syntax_function_try_block_storage>(
@@ -25928,17 +23498,6 @@ the storage specified by the storage argument).
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_function_try_block_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC SyntaxGotoStatement nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -25996,17 +23555,6 @@ the storage specified by the storage argument).
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_goto_statement_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC SyntaxHandler nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -26067,17 +23615,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_syntax_handler_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC SyntaxHandlerSeq nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_syntax_handler_seq_storage* get<an_ifc_syntax_handler_seq_storage>(
                                 an_ifc_module                     *mod,
@@ -26120,17 +23657,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_syntax_handler_seq_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC SyntaxIfStatement nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_syntax_if_statement_storage* get<an_ifc_syntax_if_statement_storage>(
                                an_ifc_module                      *mod,
@@ -26158,7 +23684,7 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_if_statement_storage;
   if (has_matching_endianness(mod)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/48);
+      memcpy(*storage, mod->byte_buffer, /*size=*/44);
     } else {
       storage = (storage_type*)(mod->byte_buffer);
     }  /* if */
@@ -26170,40 +23696,27 @@ the storage specified by the storage argument).
     get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* initialization */
     get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
-    /* condition_as_syntax */
+    /* condition */
     get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
-    /* condition_as_expr */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* consequence */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* alternative */
-    get_bytes(mod, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* if.line */
-    get_bytes(mod, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(mod, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* if.column */
-    get_bytes(mod, (*storage) + 28, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(mod, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* constexpr.line */
-    get_bytes(mod, (*storage) + 32, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(mod, (*storage) + 28, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* constexpr.column */
-    get_bytes(mod, (*storage) + 36, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(mod, (*storage) + 32, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* else.line */
-    get_bytes(mod, (*storage) + 40, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(mod, (*storage) + 36, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* else.column */
-    get_bytes(mod, (*storage) + 44, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(mod, (*storage) + 40, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_if_statement_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC SyntaxInitCapture nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -26262,17 +23775,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_syntax_init_capture_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC SyntaxInitDeclarator nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_syntax_init_declarator_storage*
 get<an_ifc_syntax_init_declarator_storage>(
@@ -26324,17 +23826,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_syntax_init_declarator_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC SyntaxInitStatement nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_syntax_init_statement_storage*
 get<an_ifc_syntax_init_statement_storage>(
@@ -26378,17 +23869,6 @@ the storage specified by the storage argument).
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_init_statement_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC SyntaxLabeledStatement nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -26442,17 +23922,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_syntax_labeled_statement_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC SyntaxLambdaDeclarator nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_syntax_lambda_declarator_storage*
 get<an_ifc_syntax_lambda_declarator_storage>(
@@ -26481,7 +23950,7 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_lambda_declarator_storage;
   if (has_matching_endianness(mod)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/40);
+      memcpy(*storage, mod->byte_buffer, /*size=*/48);
     } else {
       storage = (storage_type*)(mod->byte_buffer);
     }  /* if */
@@ -26512,17 +23981,6 @@ the storage specified by the storage argument).
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_lambda_declarator_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC SyntaxLambdaIntroducer nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -26574,17 +24032,6 @@ the storage specified by the storage argument).
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_lambda_introducer_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC SyntaxMemInitializer nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -26640,17 +24087,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_syntax_mem_initializer_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC SyntaxMemberDeclaration nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_syntax_member_declaration_storage*
 get<an_ifc_syntax_member_declaration_storage>(
@@ -26698,17 +24134,6 @@ the storage specified by the storage argument).
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_member_declaration_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC SyntaxMemberDeclarator nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -26772,17 +24197,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_syntax_member_declarator_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC SyntaxMemberFunctionDeclaration nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_syntax_member_function_declaration_storage*
 get<an_ifc_syntax_member_function_declaration_storage>(
@@ -26826,17 +24240,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_syntax_member_function_declaration_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC SyntaxMemberSpecification nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_syntax_member_specification_storage*
 get<an_ifc_syntax_member_specification_storage>(
@@ -26878,17 +24281,6 @@ the storage specified by the storage argument).
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_member_specification_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC SyntaxNamespaceAliasDefinition nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -26948,17 +24340,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_syntax_namespace_alias_definition_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC SyntaxNestedRequirement nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_syntax_nested_requirement_storage*
 get<an_ifc_syntax_nested_requirement_storage>(
@@ -27006,17 +24387,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_syntax_nested_requirement_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC SyntaxNewDeclarator nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_syntax_new_declarator_storage*
 get<an_ifc_syntax_new_declarator_storage>(
@@ -27058,17 +24428,6 @@ the storage specified by the storage argument).
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_new_declarator_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC SyntaxNoexceptSpecification nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -27126,17 +24485,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_syntax_noexcept_specification_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC SyntaxNonTypeTemplateArgument nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_syntax_non_type_template_argument_storage*
 get<an_ifc_syntax_non_type_template_argument_storage>(
@@ -27188,17 +24536,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_syntax_non_type_template_argument_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC SyntaxParameterDeclarator nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_syntax_parameter_declarator_storage*
 get<an_ifc_syntax_parameter_declarator_storage>(
@@ -27227,7 +24564,7 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_parameter_declarator_storage;
   if (has_matching_endianness(mod)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/21);
+      memcpy(*storage, mod->byte_buffer, /*size=*/24);
     } else {
       storage = (storage_type*)(mod->byte_buffer);
     }  /* if */
@@ -27246,21 +24583,10 @@ the storage specified by the storage argument).
     /* locus.column */
     get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* sort */
-    get_bytes(mod, (*storage) + 20, /*num_bytes=*/1, /*from_header=*/FALSE);
+    get_bytes(mod, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_parameter_declarator_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC SyntaxPlaceholderTypeSpecifier nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -27314,17 +24640,6 @@ the storage specified by the storage argument).
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_placeholder_type_specifier_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC SyntaxPointerDeclarator nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -27382,17 +24697,6 @@ the storage specified by the storage argument).
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_pointer_declarator_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC SyntaxRangeBasedForStatement nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -27462,17 +24766,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_syntax_range_based_for_statement_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC SyntaxRequirementBody nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_syntax_requirement_body_storage*
 get<an_ifc_syntax_requirement_body_storage>(
@@ -27524,17 +24817,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_syntax_requirement_body_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC SyntaxRequiresClause nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_syntax_requires_clause_storage*
 get<an_ifc_syntax_requires_clause_storage>(
@@ -27582,17 +24864,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_syntax_requires_clause_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC SyntaxReturnStatement nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_syntax_return_statement_storage*
 get<an_ifc_syntax_return_statement_storage>(
@@ -27621,7 +24892,7 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_return_statement_storage;
   if (has_matching_endianness(mod)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/25);
+      memcpy(*storage, mod->byte_buffer, /*size=*/28);
     } else {
       storage = (storage_type*)(mod->byte_buffer);
     }  /* if */
@@ -27646,17 +24917,6 @@ the storage specified by the storage argument).
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_return_statement_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC SyntaxSEHExcept nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -27715,17 +24975,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_syntax_seh_except_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC SyntaxSEHFinally nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_syntax_seh_finally_storage* get<an_ifc_syntax_seh_finally_storage>(
                                 an_ifc_module                     *mod,
@@ -27770,17 +25019,6 @@ the storage specified by the storage argument).
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_seh_finally_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC SyntaxSEHLeave nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -27831,17 +25069,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_syntax_seh_leave_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC SyntaxSEHTry nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_syntax_seh_try_storage* get<an_ifc_syntax_seh_try_storage>(
                                     an_ifc_module                 *mod,
@@ -27888,17 +25115,6 @@ the storage specified by the storage argument).
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_seh_try_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC SyntaxSimpleCapture nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -27956,17 +25172,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_syntax_simple_capture_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC SyntaxSimpleDeclaration nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_syntax_simple_declaration_storage*
 get<an_ifc_syntax_simple_declaration_storage>(
@@ -28020,17 +25225,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_syntax_simple_declaration_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC SyntaxSimpleRequirement nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_syntax_simple_requirement_storage*
 get<an_ifc_syntax_simple_requirement_storage>(
@@ -28076,17 +25270,6 @@ the storage specified by the storage argument).
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_simple_requirement_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC SyntaxSimpleTypeSpecifier nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -28138,17 +25321,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_syntax_simple_type_specifier_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC SyntaxStatementSeq nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_syntax_statement_seq_storage* get<an_ifc_syntax_statement_seq_storage>(
                               an_ifc_module                       *mod,
@@ -28189,17 +25361,6 @@ the storage specified by the storage argument).
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_statement_seq_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC SyntaxStaticAssertDeclaration nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -28267,17 +25428,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_syntax_static_assert_declaration_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC SyntaxStructuredBindingDeclaration nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_syntax_structured_binding_declaration_storage*
 get<an_ifc_syntax_structured_binding_declaration_storage>(
@@ -28333,17 +25483,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_syntax_structured_binding_declaration_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC SyntaxStructuredBindingIdentifier nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_syntax_structured_binding_identifier_storage*
 get<an_ifc_syntax_structured_binding_identifier_storage>(
@@ -28391,17 +25530,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_syntax_structured_binding_identifier_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC SyntaxSuper nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_syntax_super_storage* get<an_ifc_syntax_super_storage>(
                                       an_ifc_module               *mod,
@@ -28444,17 +25572,6 @@ the storage specified by the storage argument).
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_super_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC SyntaxSwitchStatement nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -28510,17 +25627,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_syntax_switch_statement_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC SyntaxTemplateArgumentList nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_syntax_template_argument_list_storage*
 get<an_ifc_syntax_template_argument_list_storage>(
@@ -28572,17 +25678,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_syntax_template_argument_list_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC SyntaxTemplateDeclaration nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_syntax_template_declaration_storage*
 get<an_ifc_syntax_template_declaration_storage>(
@@ -28630,17 +25725,6 @@ the storage specified by the storage argument).
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_template_declaration_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC SyntaxTemplateId nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -28697,17 +25781,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_syntax_template_id_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC SyntaxTemplateParameterList nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_syntax_template_parameter_list_storage*
 get<an_ifc_syntax_template_parameter_list_storage>(
@@ -28759,17 +25832,6 @@ the storage specified by the storage argument).
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_template_parameter_list_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC SyntaxTemplateTemplateParameter nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -28837,17 +25899,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_syntax_template_template_parameter_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC SyntaxThisCapture nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_syntax_this_capture_storage* get<an_ifc_syntax_this_capture_storage>(
                                an_ifc_module                      *mod,
@@ -28900,17 +25951,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_syntax_this_capture_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC SyntaxTrailingReturnType nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_syntax_trailing_return_type_storage*
 get<an_ifc_syntax_trailing_return_type_storage>(
@@ -28956,17 +25996,6 @@ the storage specified by the storage argument).
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_trailing_return_type_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC SyntaxTryBlock nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -29019,17 +26048,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_syntax_try_block_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC SyntaxTuple nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_syntax_tuple_storage* get<an_ifc_syntax_tuple_storage>(
                                       an_ifc_module               *mod,
@@ -29072,17 +26090,6 @@ the storage specified by the storage argument).
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_tuple_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC SyntaxTypeId nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -29133,17 +26140,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_syntax_type_id_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC SyntaxTypeIdListElement nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_syntax_type_id_list_element_storage*
 get<an_ifc_syntax_type_id_list_element_storage>(
@@ -29189,17 +26185,6 @@ the storage specified by the storage argument).
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_type_id_list_element_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC SyntaxTypeRequirement nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -29249,17 +26234,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_syntax_type_requirement_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC SyntaxTypeSpecifierSeq nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_syntax_type_specifier_seq_storage*
 get<an_ifc_syntax_type_specifier_seq_storage>(
@@ -29288,7 +26262,7 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_type_specifier_seq_storage;
   if (has_matching_endianness(mod)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/18);
+      memcpy(*storage, mod->byte_buffer, /*size=*/20);
     } else {
       storage = (storage_type*)(mod->byte_buffer);
     }  /* if */
@@ -29307,21 +26281,10 @@ the storage specified by the storage argument).
     /* qualifiers */
     get_bytes(mod, (*storage) + 16, /*num_bytes=*/1, /*from_header=*/FALSE);
     /* unhashed */
-    get_bytes(mod, (*storage) + 17, /*num_bytes=*/1, /*from_header=*/FALSE);
+    get_bytes(mod, (*storage) + 17, /*num_bytes=*/3, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_type_specifier_seq_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC SyntaxTypeTemplateArgument nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -29373,17 +26336,6 @@ the storage specified by the storage argument).
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_type_template_argument_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC SyntaxTypeTemplateParameter nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -29441,17 +26393,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_syntax_type_template_parameter_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC SyntaxTypeTraitIntrinsic nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_syntax_type_trait_intrinsic_storage*
 get<an_ifc_syntax_type_trait_intrinsic_storage>(
@@ -29480,7 +26421,7 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_type_trait_intrinsic_storage;
   if (has_matching_endianness(mod)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/14);
+      memcpy(*storage, mod->byte_buffer, /*size=*/16);
     } else {
       storage = (storage_type*)(mod->byte_buffer);
     }  /* if */
@@ -29495,21 +26436,10 @@ the storage specified by the storage argument).
     /* locus.column */
     get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* intrinsic */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/2, /*from_header=*/FALSE);
+    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_type_trait_intrinsic_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC SyntaxUnaryFoldExpression nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -29540,7 +26470,7 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_unary_fold_expression_storage;
   if (has_matching_endianness(mod)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/42);
+      memcpy(*storage, mod->byte_buffer, /*size=*/44);
     } else {
       storage = (storage_type*)(mod->byte_buffer);
     }  /* if */
@@ -29573,17 +26503,6 @@ the storage specified by the storage argument).
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_unary_fold_expression_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC SyntaxUsingDeclaration nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -29635,17 +26554,6 @@ the storage specified by the storage argument).
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_using_declaration_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC SyntaxUsingDeclarator nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -29703,17 +26611,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_syntax_using_declarator_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC SyntaxUsingDirective nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_syntax_using_directive_storage*
 get<an_ifc_syntax_using_directive_storage>(
@@ -29767,17 +26664,6 @@ the storage specified by the storage argument).
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_using_directive_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC SyntaxUsingEnumDeclaration nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -29835,17 +26721,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_syntax_using_enum_declaration_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC SyntaxVirtualSpecifierSeq nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_syntax_virtual_specifier_seq_storage*
 get<an_ifc_syntax_virtual_specifier_seq_storage>(
@@ -29901,17 +26776,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_syntax_virtual_specifier_seq_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC SyntaxWhileStatement nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_syntax_while_statement_storage*
 get<an_ifc_syntax_while_statement_storage>(
@@ -29963,17 +26827,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_syntax_while_statement_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC TraitAliasTemplate nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_trait_alias_template_storage* get<an_ifc_trait_alias_template_storage>(
                               an_ifc_module                       *mod,
@@ -30018,17 +26871,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_trait_alias_template_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC TraitAttribute nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_trait_attribute_storage* get<an_ifc_trait_attribute_storage>(
                                    an_ifc_module                  *mod,
@@ -30071,17 +26913,6 @@ the storage specified by the storage argument).
   }  /* if */
   return storage;
 }  /* get<an_ifc_trait_attribute_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC TraitDeductionGuide nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -30129,17 +26960,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_trait_deduction_guide_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC TraitDeprecated nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_trait_deprecated_storage* get<an_ifc_trait_deprecated_storage>(
                                   an_ifc_module                   *mod,
@@ -30182,17 +27002,6 @@ the storage specified by the storage argument).
   }  /* if */
   return storage;
 }  /* get<an_ifc_trait_deprecated_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC TraitFriend nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -30239,17 +27048,6 @@ the storage specified by the storage argument).
   }  /* if */
   return storage;
 }  /* get<an_ifc_trait_friend_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC TraitFunctionDefinition nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -30301,17 +27099,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_trait_function_definition_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC TraitMsvcDeclAttrs nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_trait_msvc_decl_attrs_storage*
 get<an_ifc_trait_msvc_decl_attrs_storage>(
@@ -30355,17 +27142,6 @@ the storage specified by the storage argument).
   }  /* if */
   return storage;
 }  /* get<an_ifc_trait_msvc_decl_attrs_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC TraitMsvcFuncParams nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -30413,17 +27189,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_trait_msvc_func_params_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC TraitMsvcUuid nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_trait_msvc_uuid_storage* get<an_ifc_trait_msvc_uuid_storage>(
                                    an_ifc_module                  *mod,
@@ -30451,7 +27216,7 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_trait_msvc_uuid_storage;
   if (has_matching_endianness(mod)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/6);
+      memcpy(*storage, mod->byte_buffer, /*size=*/8);
     } else {
       storage = (storage_type*)(mod->byte_buffer);
     }  /* if */
@@ -30462,21 +27227,10 @@ the storage specified by the storage argument).
     /* decl */
     get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* uuid */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/2, /*from_header=*/FALSE);
+    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_trait_msvc_uuid_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC TraitMsvcVendorTrait nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -30524,17 +27278,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_trait_msvc_vendor_trait_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC TraitRequires nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_trait_requires_storage* get<an_ifc_trait_requires_storage>(
                                     an_ifc_module                 *mod,
@@ -30577,17 +27320,6 @@ the storage specified by the storage argument).
   }  /* if */
   return storage;
 }  /* get<an_ifc_trait_requires_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC TraitSpecialization nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -30636,17 +27368,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_trait_specialization_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC TypeArray nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_type_array_storage* get<an_ifc_type_array_storage>(
                                         an_ifc_module             *mod,
@@ -30690,17 +27411,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_type_array_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC TypeBase nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_type_base_storage* get<an_ifc_type_base_storage>(
                                          an_ifc_module            *mod,
@@ -30727,7 +27437,7 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_type_base_storage;
   if (has_matching_endianness(mod)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/7);
+      memcpy(*storage, mod->byte_buffer, /*size=*/8);
     } else {
       storage = (storage_type*)(mod->byte_buffer);
     }  /* if */
@@ -30742,21 +27452,10 @@ the storage specified by the storage argument).
     /* shared */
     get_bytes(mod, (*storage) + 5, /*num_bytes=*/1, /*from_header=*/FALSE);
     /* pack_expanded */
-    get_bytes(mod, (*storage) + 6, /*num_bytes=*/1, /*from_header=*/FALSE);
+    get_bytes(mod, (*storage) + 6, /*num_bytes=*/2, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_type_base_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC TypeDecltype nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -30801,17 +27500,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_type_decltype_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC TypeDesignated nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_type_designated_storage* get<an_ifc_type_designated_storage>(
                                    an_ifc_module                  *mod,
@@ -30854,17 +27542,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_type_designated_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC TypeExpansion nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_type_expansion_storage* get<an_ifc_type_expansion_storage>(
                                     an_ifc_module                 *mod,
@@ -30892,7 +27569,7 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_type_expansion_storage;
   if (has_matching_endianness(mod)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/5);
+      memcpy(*storage, mod->byte_buffer, /*size=*/8);
     } else {
       storage = (storage_type*)(mod->byte_buffer);
     }  /* if */
@@ -30903,21 +27580,10 @@ the storage specified by the storage argument).
     /* pack */
     get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* mode */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/1, /*from_header=*/FALSE);
+    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_type_expansion_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC TypeForall nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -30964,17 +27630,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_type_forall_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC TypeFunction nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_type_function_storage* get<an_ifc_type_function_storage>(
                                      an_ifc_module                *mod,
@@ -31002,7 +27657,7 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_type_function_storage;
   if (has_matching_endianness(mod)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/18);
+      memcpy(*storage, mod->byte_buffer, /*size=*/20);
     } else {
       storage = (storage_type*)(mod->byte_buffer);
     }  /* if */
@@ -31021,21 +27676,10 @@ the storage specified by the storage argument).
     /* convention */
     get_bytes(mod, (*storage) + 16, /*num_bytes=*/1, /*from_header=*/FALSE);
     /* traits */
-    get_bytes(mod, (*storage) + 17, /*num_bytes=*/1, /*from_header=*/FALSE);
+    get_bytes(mod, (*storage) + 17, /*num_bytes=*/3, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_type_function_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC TypeFundamental nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -31084,17 +27728,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_type_fundamental_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC TypeLvalueReference nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_type_lvalue_reference_storage*
 get<an_ifc_type_lvalue_reference_storage>(
@@ -31138,17 +27771,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_type_lvalue_reference_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC TypeMethod nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_type_method_storage* get<an_ifc_type_method_storage>(
                                        an_ifc_module              *mod,
@@ -31176,7 +27798,7 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_type_method_storage;
   if (has_matching_endianness(mod)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/22);
+      memcpy(*storage, mod->byte_buffer, /*size=*/24);
     } else {
       storage = (storage_type*)(mod->byte_buffer);
     }  /* if */
@@ -31197,21 +27819,10 @@ the storage specified by the storage argument).
     /* convention */
     get_bytes(mod, (*storage) + 20, /*num_bytes=*/1, /*from_header=*/FALSE);
     /* traits */
-    get_bytes(mod, (*storage) + 21, /*num_bytes=*/1, /*from_header=*/FALSE);
+    get_bytes(mod, (*storage) + 21, /*num_bytes=*/3, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_type_method_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC TypePlaceholder nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -31241,7 +27852,7 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_type_placeholder_storage;
   if (has_matching_endianness(mod)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/9);
+      memcpy(*storage, mod->byte_buffer, /*size=*/12);
     } else {
       storage = (storage_type*)(mod->byte_buffer);
     }  /* if */
@@ -31254,21 +27865,10 @@ the storage specified by the storage argument).
     /* basis */
     get_bytes(mod, (*storage) + 4, /*num_bytes=*/1, /*from_header=*/FALSE);
     /* elaboration */
-    get_bytes(mod, (*storage) + 5, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(mod, (*storage) + 5, /*num_bytes=*/7, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_type_placeholder_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC TypePointer nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -31311,17 +27911,6 @@ the storage specified by the storage argument).
   }  /* if */
   return storage;
 }  /* get<an_ifc_type_pointer_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC TypePointerToMember nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -31369,17 +27958,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_type_pointer_to_member_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC TypeQualified nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_type_qualified_storage* get<an_ifc_type_qualified_storage>(
                                     an_ifc_module                 *mod,
@@ -31407,7 +27985,7 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_type_qualified_storage;
   if (has_matching_endianness(mod)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/5);
+      memcpy(*storage, mod->byte_buffer, /*size=*/8);
     } else {
       storage = (storage_type*)(mod->byte_buffer);
     }  /* if */
@@ -31418,21 +27996,10 @@ the storage specified by the storage argument).
     /* unqualified */
     get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* qualifiers */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/1, /*from_header=*/FALSE);
+    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_type_qualified_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC TypeRvalueReference nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -31478,17 +28045,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_type_rvalue_reference_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC TypeSyntactic nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_type_syntactic_storage* get<an_ifc_type_syntactic_storage>(
                                     an_ifc_module                 *mod,
@@ -31529,17 +28085,6 @@ the storage specified by the storage argument).
   }  /* if */
   return storage;
 }  /* get<an_ifc_type_syntactic_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC TypeSyntaxTree nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -31584,17 +28129,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_type_syntax_tree_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC TypeTor nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_type_tor_storage* get<an_ifc_type_tor_storage>(
                                           an_ifc_module           *mod,
@@ -31621,7 +28155,7 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_type_tor_storage;
   if (has_matching_endianness(mod)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/13);
+      memcpy(*storage, mod->byte_buffer, /*size=*/16);
     } else {
       storage = (storage_type*)(mod->byte_buffer);
     }  /* if */
@@ -31636,21 +28170,10 @@ the storage specified by the storage argument).
     /* eh_spec.sort */
     get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* convention */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/1, /*from_header=*/FALSE);
+    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_type_tor_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC TypeTuple nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -31696,17 +28219,6 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_type_tuple_storage> */
 
 
-
-
-/*
-Functions for interacting with IFC TypeTypename nodes.
-*/
-
-
-
-
-
-
 template<>
 an_ifc_type_typename_storage* get<an_ifc_type_typename_storage>(
                                      an_ifc_module                *mod,
@@ -31747,17 +28259,6 @@ the storage specified by the storage argument).
   }  /* if */
   return storage;
 }  /* get<an_ifc_type_typename_storage> */
-
-
-
-
-/*
-Functions for interacting with IFC TypeUnaligned nodes.
-*/
-
-
-
-
 
 
 template<>
@@ -31802,6 +28303,912 @@ the storage specified by the storage argument).
 }  /* get<an_ifc_type_unaligned_storage> */
 
 
+an_ifc_entity_size_storage get_ifc_partition_element_size(
+                                                    an_ifc_module         *mod,
+                                                    an_ifc_partition_kind kind)
+/*
+Given the partition kind and the associated module, return the corresponding
+expected partition element size.
+*/
+{
+  an_ifc_entity_size_storage result;
+
+  switch (kind) {
+    case ifc_pk_msvc_trait_decl_attrs:
+      result = 8;
+      break;
+    case ifc_pk_msvc_trait_named_function_parameters:
+      result = 8;
+      break;
+    case ifc_pk_msvc_trait_uuid:
+      result = 8;
+      break;
+    case ifc_pk_msvc_trait_vendor_traits:
+      result = 8;
+      break;
+    case ifc_pk_attr_basic:
+      result = 16;
+      break;
+    case ifc_pk_attr_called:
+      result = 8;
+      break;
+    case ifc_pk_attr_elaborated:
+      result = 4;
+      break;
+    case ifc_pk_attr_expanded:
+      result = 4;
+      break;
+    case ifc_pk_attr_factored:
+      result = 20;
+      break;
+    case ifc_pk_attr_labeled:
+      result = 20;
+      break;
+    case ifc_pk_attr_scoped:
+      result = 32;
+      break;
+    case ifc_pk_attr_tuple:
+      result = 8;
+      break;
+    case ifc_pk_chart_multilevel:
+      result = 8;
+      break;
+    case ifc_pk_chart_unilevel:
+      result = 12;
+      break;
+    case ifc_pk_const_f64:
+      result = 12;
+      break;
+    case ifc_pk_const_i64:
+      result = 8;
+      break;
+    case ifc_pk_const_str:
+      result = 12;
+      break;
+    case ifc_pk_decl_alias:
+      result = 28;
+      break;
+    case ifc_pk_decl_bitfield:
+      result = 32;
+      break;
+    case ifc_pk_decl_concept:
+      result = 40;
+      break;
+    case ifc_pk_decl_constructor:
+      result = 32;
+      break;
+    case ifc_pk_decl_deduction_guide:
+      result = 28;
+      break;
+    case ifc_pk_decl_destructor:
+      result = 32;
+      break;
+    case ifc_pk_decl_enum:
+      result = 40;
+      break;
+    case ifc_pk_decl_enumerator:
+      result = 24;
+      break;
+    case ifc_pk_decl_expansion:
+      result = 12;
+      break;
+    case ifc_pk_decl_explicit_instantiation:
+      result = 8;
+      break;
+    case ifc_pk_decl_explicit_specialization:
+      result = 8;
+      break;
+    case ifc_pk_decl_field:
+      result = 32;
+      break;
+    case ifc_pk_decl_friend:
+      result = 4;
+      break;
+    case ifc_pk_decl_function:
+      result = 32;
+      break;
+    case ifc_pk_decl_inherited_constructor:
+      result = 32;
+      break;
+    case ifc_pk_decl_intrinsic:
+      result = 24;
+      break;
+    case ifc_pk_decl_method:
+      result = 32;
+      break;
+    case ifc_pk_decl_parameter:
+      result = 36;
+      break;
+    case ifc_pk_decl_partial_specialization:
+      result = 44;
+      break;
+    case ifc_pk_decl_property:
+      result = 12;
+      break;
+    case ifc_pk_decl_reference:
+      result = 12;
+      break;
+    case ifc_pk_decl_scope:
+      result = 40;
+      break;
+    case ifc_pk_decl_segment:
+      result = 16;
+      break;
+    case ifc_pk_decl_specialization:
+      result = 12;
+      break;
+    case ifc_pk_decl_template:
+      result = 44;
+      break;
+    case ifc_pk_decl_temploid:
+      result = 24;
+      break;
+    case ifc_pk_decl_tuple:
+      result = 8;
+      break;
+    case ifc_pk_decl_using_declaration:
+      result = 32;
+      break;
+    case ifc_pk_decl_variable:
+      result = 32;
+      break;
+    case ifc_pk_expr_alignof_type_id:
+      result = 16;
+      break;
+    case ifc_pk_expr_array_value:
+      result = 20;
+      break;
+    case ifc_pk_expr_assign_initializer:
+      result = 12;
+      break;
+    case ifc_pk_expr_binary_fold:
+      result = 23;
+      break;
+    case ifc_pk_expr_call:
+      result = 20;
+      break;
+    case ifc_pk_expr_cast:
+      result = 24;
+      break;
+    case ifc_pk_expr_class_subobject_value:
+      result = 4;
+      break;
+    case ifc_pk_expr_compound_string:
+      result = 20;
+      break;
+    case ifc_pk_expr_condition:
+      result = 16;
+      break;
+    case ifc_pk_expr_decl:
+      result = 16;
+      break;
+    case ifc_pk_expr_designated_init:
+      result = 20;
+      break;
+    case ifc_pk_expr_destructor_call:
+      result = 21;
+      break;
+    case ifc_pk_expr_dyad:
+      result = 28;
+      break;
+    case ifc_pk_expr_dynamic_dispatch:
+      result = 16;
+      break;
+    case ifc_pk_expr_empty:
+      result = 12;
+      break;
+    case ifc_pk_expr_expansion:
+      result = 16;
+      break;
+    case ifc_pk_expr_expression_list:
+      result = 24;
+      break;
+    case ifc_pk_expr_function_string:
+      result = 16;
+      break;
+    case ifc_pk_expr_hierarchy_conversion:
+      result = 32;
+      break;
+    case ifc_pk_expr_inheritance_path:
+      result = 16;
+      break;
+    case ifc_pk_expr_initializer:
+      result = 17;
+      break;
+    case ifc_pk_expr_initializer_list:
+      result = 16;
+      break;
+    case ifc_pk_expr_lambda:
+      result = 20;
+      break;
+    case ifc_pk_expr_literal:
+      result = 16;
+      break;
+    case ifc_pk_expr_member_access:
+      result = 24;
+      break;
+    case ifc_pk_expr_member_initializer:
+      result = 24;
+      break;
+    case ifc_pk_expr_monad:
+      result = 24;
+      break;
+    case ifc_pk_expr_nullptr:
+      result = 12;
+      break;
+    case ifc_pk_expr_packed_template_arguments:
+      result = 16;
+      break;
+    case ifc_pk_expr_path:
+      result = 20;
+      break;
+    case ifc_pk_expr_placeholder:
+      result = 12;
+      break;
+    case ifc_pk_expr_pointer:
+      result = 8;
+      break;
+    case ifc_pk_expr_product_type_value:
+      result = 24;
+      break;
+    case ifc_pk_expr_push_state:
+      result = 22;
+      break;
+    case ifc_pk_expr_qualified_name:
+      result = 24;
+      break;
+    case ifc_pk_expr_read:
+      result = 20;
+      break;
+    case ifc_pk_expr_requires:
+      result = 20;
+      break;
+    case ifc_pk_expr_simple_identifier:
+      result = 16;
+      break;
+    case ifc_pk_expr_sizeof_type:
+      result = 16;
+      break;
+    case ifc_pk_expr_string_sequence:
+      result = 16;
+      break;
+    case ifc_pk_expr_strings:
+      result = 16;
+      break;
+    case ifc_pk_expr_sum_type_value:
+      result = 24;
+      break;
+    case ifc_pk_expr_syntax_tree:
+      result = 4;
+      break;
+    case ifc_pk_expr_template_id:
+      result = 20;
+      break;
+    case ifc_pk_expr_template_reference:
+      result = 32;
+      break;
+    case ifc_pk_expr_temporary:
+      result = 16;
+      break;
+    case ifc_pk_expr_this:
+      result = 12;
+      break;
+    case ifc_pk_expr_tokens:
+      result = 16;
+      break;
+    case ifc_pk_expr_triad:
+      result = 32;
+      break;
+    case ifc_pk_expr_tuple:
+      result = 20;
+      break;
+    case ifc_pk_expr_type:
+      result = 16;
+      break;
+    case ifc_pk_expr_type_trait:
+      result = 20;
+      break;
+    case ifc_pk_expr_typeid:
+      result = 16;
+      break;
+    case ifc_pk_expr_unary_fold:
+      result = 20;
+      break;
+    case ifc_pk_expr_unqualified_id:
+      result = 28;
+      break;
+    case ifc_pk_expr_unresolved:
+      result = 16;
+      break;
+    case ifc_pk_expr_virtual_function_conversion:
+      result = 16;
+      break;
+    case ifc_pk_form_spec:
+      result = 8;
+      break;
+    case ifc_pk_heap_attr:
+      result = 4;
+      break;
+    case ifc_pk_heap_chart:
+      result = 4;
+      break;
+    case ifc_pk_heap_decl:
+      result = 4;
+      break;
+    case ifc_pk_heap_expr:
+      result = 4;
+      break;
+    case ifc_pk_heap_form:
+      result = 4;
+      break;
+    case ifc_pk_heap_pp:
+      result = 4;
+      break;
+    case ifc_pk_heap_stmt:
+      result = 4;
+      break;
+    case ifc_pk_heap_syn:
+      result = 4;
+      break;
+    case ifc_pk_heap_type:
+      result = 4;
+      break;
+    case ifc_pk_macro_function_like:
+      result = 24;
+      break;
+    case ifc_pk_macro_object_like:
+      result = 16;
+      break;
+    case ifc_pk_module_exported:
+      result = 8;
+      break;
+    case ifc_pk_module_imported:
+      result = 8;
+      break;
+    case ifc_pk_name_conversion:
+      result = 8;
+      break;
+    case ifc_pk_name_guide:
+      result = 4;
+      break;
+    case ifc_pk_name_literal:
+      result = 4;
+      break;
+    case ifc_pk_name_operator:
+      result = 8;
+      break;
+    case ifc_pk_name_source_file:
+      result = 8;
+      break;
+    case ifc_pk_name_specialization:
+      result = 8;
+      break;
+    case ifc_pk_name_template:
+      result = 4;
+      break;
+    case ifc_pk_pp_catenate:
+      result = 16;
+      break;
+    case ifc_pk_pp_char:
+      result = 12;
+      break;
+    case ifc_pk_pp_header:
+      result = 12;
+      break;
+    case ifc_pk_pp_ident:
+      result = 12;
+      break;
+    case ifc_pk_pp_junk:
+      result = 12;
+      break;
+    case ifc_pk_pp_key:
+      result = 12;
+      break;
+    case ifc_pk_pp_num:
+      result = 12;
+      break;
+    case ifc_pk_pp_op:
+      result = 16;
+      break;
+    case ifc_pk_pp_param:
+      result = 12;
+      break;
+    case ifc_pk_pp_paren:
+      result = 12;
+      break;
+    case ifc_pk_pp_pragma:
+      result = 12;
+      break;
+    case ifc_pk_pp_space:
+      result = 8;
+      break;
+    case ifc_pk_pp_string:
+      result = 12;
+      break;
+    case ifc_pk_pp_to_string:
+      result = 12;
+      break;
+    case ifc_pk_pp_tuple:
+      result = 8;
+      break;
+    case ifc_pk_scope_desc:
+      result = 8;
+      break;
+    case ifc_pk_scope_member:
+      result = 4;
+      break;
+    case ifc_pk_src_line:
+      result = 8;
+      break;
+    case ifc_pk_src_sentence:
+      result = 16;
+      break;
+    case ifc_pk_src_word:
+      result = 16;
+      break;
+    case ifc_pk_stmt_block:
+      result = 8;
+      break;
+    case ifc_pk_stmt_break:
+      result = 8;
+      break;
+    case ifc_pk_stmt_case:
+      result = 12;
+      break;
+    case ifc_pk_stmt_continue:
+      result = 8;
+      break;
+    case ifc_pk_stmt_default:
+      result = 8;
+      break;
+    case ifc_pk_stmt_do_while:
+      result = 16;
+      break;
+    case ifc_pk_stmt_empty:
+      result = 8;
+      break;
+    case ifc_pk_stmt_expansion:
+      result = 4;
+      break;
+    case ifc_pk_stmt_expression:
+      result = 12;
+      break;
+    case ifc_pk_stmt_for:
+      result = 24;
+      break;
+    case ifc_pk_stmt_if:
+      result = 24;
+      break;
+    case ifc_pk_stmt_return:
+      result = 20;
+      break;
+    case ifc_pk_stmt_switch:
+      result = 20;
+      break;
+    case ifc_pk_stmt_variable:
+      result = 12;
+      break;
+    case ifc_pk_stmt_while:
+      result = 16;
+      break;
+    case ifc_pk_syntax_access_specifier:
+      result = 48;
+      break;
+    case ifc_pk_syntax_alias_declaration:
+      result = 32;
+      break;
+    case ifc_pk_syntax_alignas:
+      result = 28;
+      break;
+    case ifc_pk_syntax_array_declarator:
+      result = 20;
+      break;
+    case ifc_pk_syntax_array_index:
+      result = 24;
+      break;
+    case ifc_pk_syntax_array_or_function_declarator:
+      result = 8;
+      break;
+    case ifc_pk_syntax_asm_statement:
+      result = 12;
+      break;
+    case ifc_pk_syntax_attribute:
+      result = 36;
+      break;
+    case ifc_pk_syntax_attribute_argument_clause:
+      result = 20;
+      break;
+    case ifc_pk_syntax_attribute_specifier:
+      result = 40;
+      break;
+    case ifc_pk_syntax_attribute_specifier_seq:
+      result = 4;
+      break;
+    case ifc_pk_syntax_attribute_using_prefix:
+      result = 16;
+      break;
+    case ifc_pk_syntax_attributed_declaration:
+      result = 16;
+      break;
+    case ifc_pk_syntax_attributed_statement:
+      result = 12;
+      break;
+    case ifc_pk_syntax_base_specifier:
+      result = 20;
+      break;
+    case ifc_pk_syntax_base_specifier_list:
+      result = 12;
+      break;
+    case ifc_pk_syntax_binary_fold_expression:
+      result = 54;
+      break;
+    case ifc_pk_syntax_break_statement:
+      result = 16;
+      break;
+    case ifc_pk_syntax_capture_default:
+      result = 17;
+      break;
+    case ifc_pk_syntax_class_specifier:
+      result = 32;
+      break;
+    case ifc_pk_syntax_compound_requirement:
+      result = 32;
+      break;
+    case ifc_pk_syntax_compound_statement:
+      result = 24;
+      break;
+    case ifc_pk_syntax_concept_definition:
+      result = 44;
+      break;
+    case ifc_pk_syntax_condition_declaration:
+      result = 16;
+      break;
+    case ifc_pk_syntax_continue_statement:
+      result = 16;
+      break;
+    case ifc_pk_syntax_ctor_initializer:
+      result = 12;
+      break;
+    case ifc_pk_syntax_decl_specifier_seq:
+      result = 32;
+      break;
+    case ifc_pk_syntax_declaration_statement:
+      result = 8;
+      break;
+    case ifc_pk_syntax_declarator:
+      result = 44;
+      break;
+    case ifc_pk_syntax_decltype_specifier:
+      result = 28;
+      break;
+    case ifc_pk_syntax_do_statement:
+      result = 36;
+      break;
+    case ifc_pk_syntax_dynamic_exception_spec:
+      result = 36;
+      break;
+    case ifc_pk_syntax_empty_statement:
+      result = 8;
+      break;
+    case ifc_pk_syntax_enum_specifier:
+      result = 56;
+      break;
+    case ifc_pk_syntax_enumerator_definition:
+      result = 32;
+      break;
+    case ifc_pk_syntax_exception_declaration:
+      result = 24;
+      break;
+    case ifc_pk_syntax_explicit_specifier:
+      result = 28;
+      break;
+    case ifc_pk_syntax_expression:
+      result = 4;
+      break;
+    case ifc_pk_syntax_expression_statement:
+      result = 16;
+      break;
+    case ifc_pk_syntax_for_range_declaration:
+      result = 8;
+      break;
+    case ifc_pk_syntax_for_statement:
+      result = 52;
+      break;
+    case ifc_pk_syntax_function_body:
+      result = 40;
+      break;
+    case ifc_pk_syntax_function_declarator:
+      result = 44;
+      break;
+    case ifc_pk_syntax_function_definition:
+      result = 40;
+      break;
+    case ifc_pk_syntax_function_try_block:
+      result = 12;
+      break;
+    case ifc_pk_syntax_goto_statement:
+      result = 32;
+      break;
+    case ifc_pk_syntax_handler:
+      result = 36;
+      break;
+    case ifc_pk_syntax_handler_seq:
+      result = 4;
+      break;
+    case ifc_pk_syntax_if_statement:
+      result = 44;
+      break;
+    case ifc_pk_syntax_init_capture:
+      result = 32;
+      break;
+    case ifc_pk_syntax_init_declarator:
+      result = 20;
+      break;
+    case ifc_pk_syntax_init_statement:
+      result = 8;
+      break;
+    case ifc_pk_syntax_labeled_statement:
+      result = 20;
+      break;
+    case ifc_pk_syntax_lambda_declarator:
+      result = 48;
+      break;
+    case ifc_pk_syntax_lambda_introducer:
+      result = 20;
+      break;
+    case ifc_pk_syntax_mem_initializer:
+      result = 24;
+      break;
+    case ifc_pk_syntax_member_declaration:
+      result = 16;
+      break;
+    case ifc_pk_syntax_member_declarator:
+      result = 40;
+      break;
+    case ifc_pk_syntax_member_function_declaration:
+      result = 4;
+      break;
+    case ifc_pk_syntax_member_specification:
+      result = 4;
+      break;
+    case ifc_pk_syntax_namespace_alias_definition:
+      result = 32;
+      break;
+    case ifc_pk_syntax_nested_requirement:
+      result = 12;
+      break;
+    case ifc_pk_syntax_new_declarator:
+      result = 4;
+      break;
+    case ifc_pk_syntax_noexcept_specification:
+      result = 28;
+      break;
+    case ifc_pk_syntax_non_type_template_argument:
+      result = 20;
+      break;
+    case ifc_pk_syntax_parameter_declarator:
+      result = 24;
+      break;
+    case ifc_pk_syntax_placeholder_type_specifier:
+      result = 21;
+      break;
+    case ifc_pk_syntax_pointer_declarator:
+      result = 20;
+      break;
+    case ifc_pk_syntax_range_based_for_statement:
+      result = 52;
+      break;
+    case ifc_pk_syntax_requirement_body:
+      result = 20;
+      break;
+    case ifc_pk_syntax_requires_clause:
+      result = 12;
+      break;
+    case ifc_pk_syntax_return_statement:
+      result = 28;
+      break;
+    case ifc_pk_syntax_seh_except:
+      result = 32;
+      break;
+    case ifc_pk_syntax_seh_finally:
+      result = 12;
+      break;
+    case ifc_pk_syntax_seh_leave:
+      result = 16;
+      break;
+    case ifc_pk_syntax_seh_try:
+      result = 16;
+      break;
+    case ifc_pk_syntax_simple_capture:
+      result = 28;
+      break;
+    case ifc_pk_syntax_simple_declaration:
+      result = 24;
+      break;
+    case ifc_pk_syntax_simple_requirement:
+      result = 12;
+      break;
+    case ifc_pk_syntax_simple_type_specifier:
+      result = 16;
+      break;
+    case ifc_pk_syntax_statement_seq:
+      result = 4;
+      break;
+    case ifc_pk_syntax_static_assert_declaration:
+      result = 48;
+      break;
+    case ifc_pk_syntax_structured_binding_declaration:
+      result = 28;
+      break;
+    case ifc_pk_syntax_structured_binding_identifier:
+      result = 12;
+      break;
+    case ifc_pk_syntax_super:
+      result = 8;
+      break;
+    case ifc_pk_syntax_switch_statement:
+      result = 24;
+      break;
+    case ifc_pk_syntax_template_argument_list:
+      result = 20;
+      break;
+    case ifc_pk_syntax_template_declaration:
+      result = 16;
+      break;
+    case ifc_pk_syntax_template_id:
+      result = 28;
+      break;
+    case ifc_pk_syntax_template_parameter_list:
+      result = 24;
+      break;
+    case ifc_pk_syntax_template_template_parameter:
+      result = 48;
+      break;
+    case ifc_pk_syntax_this_capture:
+      result = 24;
+      break;
+    case ifc_pk_syntax_trailing_return_type:
+      result = 12;
+      break;
+    case ifc_pk_syntax_try_block:
+      result = 20;
+      break;
+    case ifc_pk_syntax_tuple:
+      result = 8;
+      break;
+    case ifc_pk_syntax_type_id:
+      result = 16;
+      break;
+    case ifc_pk_syntax_type_id_list_element:
+      result = 12;
+      break;
+    case ifc_pk_syntax_type_requirement:
+      result = 12;
+      break;
+    case ifc_pk_syntax_type_specifier_seq:
+      result = 20;
+      break;
+    case ifc_pk_syntax_type_template_argument:
+      result = 20;
+      break;
+    case ifc_pk_syntax_type_template_parameter:
+      result = 28;
+      break;
+    case ifc_pk_syntax_type_trait_intrinsic:
+      result = 16;
+      break;
+    case ifc_pk_syntax_unary_fold_expression:
+      result = 44;
+      break;
+    case ifc_pk_syntax_using_declaration:
+      result = 20;
+      break;
+    case ifc_pk_syntax_using_declarator:
+      result = 28;
+      break;
+    case ifc_pk_syntax_using_directive:
+      result = 28;
+      break;
+    case ifc_pk_syntax_using_enum_declaration:
+      result = 28;
+      break;
+    case ifc_pk_syntax_virtual_specifier_seq:
+      result = 25;
+      break;
+    case ifc_pk_syntax_while_statement:
+      result = 20;
+      break;
+    case ifc_pk_trait_alias_template:
+      result = 8;
+      break;
+    case ifc_pk_trait_attribute:
+      result = 8;
+      break;
+    case ifc_pk_trait_deduction_guides:
+      result = 8;
+      break;
+    case ifc_pk_trait_deprecated:
+      result = 8;
+      break;
+    case ifc_pk_trait_friend:
+      result = 12;
+      break;
+    case ifc_pk_trait_mapping_expr:
+      result = 16;
+      break;
+    case ifc_pk_trait_requires:
+      result = 8;
+      break;
+    case ifc_pk_trait_specialization:
+      result = 12;
+      break;
+    case ifc_pk_type_array:
+      result = 8;
+      break;
+    case ifc_pk_type_base:
+      result = 8;
+      break;
+    case ifc_pk_type_decltype:
+      result = 4;
+      break;
+    case ifc_pk_type_designated:
+      result = 4;
+      break;
+    case ifc_pk_type_expansion:
+      result = 8;
+      break;
+    case ifc_pk_type_forall:
+      result = 8;
+      break;
+    case ifc_pk_type_function:
+      result = 20;
+      break;
+    case ifc_pk_type_fundamental:
+      result = 4;
+      break;
+    case ifc_pk_type_lvalue_reference:
+      result = 4;
+      break;
+    case ifc_pk_type_nonstatic_member_function:
+      result = 24;
+      break;
+    case ifc_pk_type_placeholder:
+      result = 12;
+      break;
+    case ifc_pk_type_pointer:
+      result = 4;
+      break;
+    case ifc_pk_type_pointer_to_member:
+      result = 8;
+      break;
+    case ifc_pk_type_qualified:
+      result = 8;
+      break;
+    case ifc_pk_type_rvalue_reference:
+      result = 4;
+      break;
+    case ifc_pk_type_syntactic:
+      result = 4;
+      break;
+    case ifc_pk_type_syntax_tree:
+      result = 4;
+      break;
+    case ifc_pk_type_tor:
+      result = 16;
+      break;
+    case ifc_pk_type_tuple:
+      result = 8;
+      break;
+    case ifc_pk_type_typename:
+      result = 4;
+      break;
+    case ifc_pk_type_unaligned:
+      result = 4;
+      break;
+    default_is_unexpected();
+  }  /* switch */
+  return result;
+}  /* get_ifc_partition_element_size */
 
 
 /*

@@ -1040,20 +1040,9 @@ extern an_ifc_decl_index to_universal_index(
                                      an_ifc_module                  *mod,
                                      an_ifc_decl_foreign_index_0_33 versioned);
 
-extern a_boolean validate_index(
-                               an_ifc_module                     *mod,
-                               an_ifc_decl_foreign_index_storage universal,
-                               an_ifc_module                     *foreign_mod,
-                               const an_ifc_validation_trace     *parent);
-
 extern a_boolean validate_index(an_ifc_module                 *foreign_mod,
                                 an_ifc_decl_foreign_index     universal,
                                 const an_ifc_validation_trace *parent);
-
-extern an_ifc_decl_index to_universal_index(
-                               an_ifc_module                     *mod,
-                               an_ifc_decl_foreign_index_storage universal,
-                               an_ifc_module                     *foreign_mod);
 
 extern an_ifc_decl_index to_universal_index(
                                        an_ifc_module             *foreign_mod,
@@ -11675,16 +11664,10 @@ extern a_boolean has_ifc_alternative(
 extern an_ifc_syntax_index get_ifc_alternative(
                                   const an_ifc_syntax_if_statement &universal);
 
-extern a_boolean has_ifc_condition_as_expr(
+extern a_boolean has_ifc_condition(
                                   const an_ifc_syntax_if_statement &universal);
 
-extern an_ifc_expr_index get_ifc_condition_as_expr(
-                                  const an_ifc_syntax_if_statement &universal);
-
-extern a_boolean has_ifc_condition_as_syntax(
-                                  const an_ifc_syntax_if_statement &universal);
-
-extern an_ifc_syntax_index get_ifc_condition_as_syntax(
+extern an_ifc_index get_ifc_condition(
                                   const an_ifc_syntax_if_statement &universal);
 
 extern a_boolean has_ifc_consequence(
@@ -16292,6 +16275,10 @@ Return the corresponding partition kind for TypeUnaligned.
 {
   return ifc_pk_type_unaligned;
 }  /* get_ifc_partition_kind */
+
+extern an_ifc_entity_size_storage get_ifc_partition_element_size(
+                                                   an_ifc_module         *mod,
+                                                   an_ifc_partition_kind kind);
 
 /*
 Functions for converting IFC partition kinds to various IFC sorts.

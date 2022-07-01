@@ -6295,38 +6295,40 @@ using an_ifc_const_str = an_ifc_Byte_buffer<an_ifc_const_str_storage>;
 
 
 /*
-  |-------------------------------------------------------|
-  |              DeclAlias - 0.33 (26 bytes)              |
-  |------------|-------------------------|---------|------|
-  | Name       | Type                    | Version | Size |
-  |------------|-------------------------|---------|------|
-  | name       | TextOffset              | 0.33    | 4    |
-  | locus      | SourceLocation          | 0.33    | 8    |
-  | type       | TypeIndex               | 0.33    | 4    |
-  | home_scope | DeclIndex               | 0.33    | 4    |
-  | aliasee    | TypeIndex               | 0.33    | 4    |
-  | specifiers | BasicSpecifiersBitfield | 0.33    | 1    |
-  | access     | AccessSort              | 0.33    | 1    |
-  |------------|-------------------------|---------|------|
+  |--------------------------------------------------------|
+  |              DeclAlias - 0.33 (28 bytes)               |
+  |-------------|-------------------------|---------|------|
+  | Name        | Type                    | Version | Size |
+  |-------------|-------------------------|---------|------|
+  | name        | TextOffset              | 0.33    | 4    |
+  | locus       | SourceLocation          | 0.33    | 8    |
+  | type        | TypeIndex               | 0.33    | 4    |
+  | home_scope  | DeclIndex               | 0.33    | 4    |
+  | aliasee     | TypeIndex               | 0.33    | 4    |
+  | specifiers  | BasicSpecifiersBitfield | 0.33    | 1    |
+  | access      | AccessSort              | 0.33    | 1    |
+  | __padding__ | uint8_t[2]              |         | 2    |
+  |-------------|-------------------------|---------|------|
 
-  |-------------------------------------------------------|
-  |              DeclAlias - 0.41 (26 bytes)              |
-  |------------|-------------------------|---------|------|
-  | Name       | Type                    | Version | Size |
-  |------------|-------------------------|---------|------|
-  | name       | TextOffset              | 0.33    | 4    |
-  | locus      | SourceLocation          | 0.33    | 8    |
-  | type       | TypeIndex               | 0.33    | 4    |
-  | home_scope | DeclIndex               | 0.41    | 4    |
-  | aliasee    | TypeIndex               | 0.33    | 4    |
-  | specifiers | BasicSpecifiersBitfield | 0.33    | 1    |
-  | access     | AccessSort              | 0.33    | 1    |
-  |------------|-------------------------|---------|------|
-  | home_scope | DeclIndex               | 0.41    | RF   |
-  |------------|-------------------------|---------|------|
+  |--------------------------------------------------------|
+  |              DeclAlias - 0.41 (28 bytes)               |
+  |-------------|-------------------------|---------|------|
+  | Name        | Type                    | Version | Size |
+  |-------------|-------------------------|---------|------|
+  | name        | TextOffset              | 0.33    | 4    |
+  | locus       | SourceLocation          | 0.33    | 8    |
+  | type        | TypeIndex               | 0.33    | 4    |
+  | home_scope  | DeclIndex               | 0.41    | 4    |
+  | aliasee     | TypeIndex               | 0.33    | 4    |
+  | specifiers  | BasicSpecifiersBitfield | 0.33    | 1    |
+  | access      | AccessSort              | 0.33    | 1    |
+  | __padding__ | uint8_t[2]              |         | 2    |
+  |-------------|-------------------------|---------|------|
+  | home_scope  | DeclIndex               | 0.41    | RF   |
+  |-------------|-------------------------|---------|------|
 */
 enum an_ifc_decl_alias_part : uint8_t {};
-using an_ifc_decl_alias_storage = an_ifc_decl_alias_part[26];
+using an_ifc_decl_alias_storage = an_ifc_decl_alias_part[28];
 #if USE_MMAP_FOR_MODULES
 using an_ifc_decl_alias_bytes = const an_ifc_decl_alias_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
@@ -6432,45 +6434,47 @@ using an_ifc_decl_concept = an_ifc_Byte_buffer<an_ifc_decl_concept_storage>;
 
 
 /*
-  |-----------------------------------------------------------|
-  |             DeclConstructor - 0.33 (29 bytes)             |
-  |------------|-----------------------------|---------|------|
-  | Name       | Type                        | Version | Size |
-  |------------|-----------------------------|---------|------|
-  | name       | TextOffset                  | 0.33    | 4    |
-  | locus      | SourceLocation              | 0.33    | 8    |
-  | type       | TypeIndex                   | 0.33    | 4    |
-  | home_scope | DeclIndex                   | 0.33    | 4    |
-  | chart      | ChartIndex                  | 0.33    | 4    |
-  | traits     | FunctionTraitsBitfield      | 0.33    | 2    |
-  | specifiers | BasicSpecifiersBitfield     | 0.33    | 1    |
-  | access     | AccessSort                  | 0.33    | 1    |
-  | properties | ReachablePropertiesBitfield | 0.33    | 1    |
-  |------------|-----------------------------|---------|------|
-  | name       | NameIndex                   | ANY     | RF   |
-  |------------|-----------------------------|---------|------|
+  |------------------------------------------------------------|
+  |             DeclConstructor - 0.33 (32 bytes)              |
+  |-------------|-----------------------------|---------|------|
+  | Name        | Type                        | Version | Size |
+  |-------------|-----------------------------|---------|------|
+  | name        | TextOffset                  | 0.33    | 4    |
+  | locus       | SourceLocation              | 0.33    | 8    |
+  | type        | TypeIndex                   | 0.33    | 4    |
+  | home_scope  | DeclIndex                   | 0.33    | 4    |
+  | chart       | ChartIndex                  | 0.33    | 4    |
+  | traits      | FunctionTraitsBitfield      | 0.33    | 2    |
+  | specifiers  | BasicSpecifiersBitfield     | 0.33    | 1    |
+  | access      | AccessSort                  | 0.33    | 1    |
+  | properties  | ReachablePropertiesBitfield | 0.33    | 1    |
+  | __padding__ | uint8_t[3]                  |         | 3    |
+  |-------------|-----------------------------|---------|------|
+  | name        | NameIndex                   | ANY     | RF   |
+  |-------------|-----------------------------|---------|------|
 
-  |-----------------------------------------------------------|
-  |             DeclConstructor - 0.41 (29 bytes)             |
-  |------------|-----------------------------|---------|------|
-  | Name       | Type                        | Version | Size |
-  |------------|-----------------------------|---------|------|
-  | name       | TextOffset                  | 0.33    | 4    |
-  | locus      | SourceLocation              | 0.33    | 8    |
-  | type       | TypeIndex                   | 0.33    | 4    |
-  | home_scope | DeclIndex                   | 0.41    | 4    |
-  | chart      | ChartIndex                  | 0.33    | 4    |
-  | traits     | FunctionTraitsBitfield      | 0.33    | 2    |
-  | specifiers | BasicSpecifiersBitfield     | 0.33    | 1    |
-  | access     | AccessSort                  | 0.33    | 1    |
-  | properties | ReachablePropertiesBitfield | 0.33    | 1    |
-  |------------|-----------------------------|---------|------|
-  | home_scope | DeclIndex                   | 0.41    | RF   |
-  | name       | NameIndex                   | ANY     | RF   |
-  |------------|-----------------------------|---------|------|
+  |------------------------------------------------------------|
+  |             DeclConstructor - 0.41 (32 bytes)              |
+  |-------------|-----------------------------|---------|------|
+  | Name        | Type                        | Version | Size |
+  |-------------|-----------------------------|---------|------|
+  | name        | TextOffset                  | 0.33    | 4    |
+  | locus       | SourceLocation              | 0.33    | 8    |
+  | type        | TypeIndex                   | 0.33    | 4    |
+  | home_scope  | DeclIndex                   | 0.41    | 4    |
+  | chart       | ChartIndex                  | 0.33    | 4    |
+  | traits      | FunctionTraitsBitfield      | 0.33    | 2    |
+  | specifiers  | BasicSpecifiersBitfield     | 0.33    | 1    |
+  | access      | AccessSort                  | 0.33    | 1    |
+  | properties  | ReachablePropertiesBitfield | 0.33    | 1    |
+  | __padding__ | uint8_t[3]                  |         | 3    |
+  |-------------|-----------------------------|---------|------|
+  | home_scope  | DeclIndex                   | 0.41    | RF   |
+  | name        | NameIndex                   | ANY     | RF   |
+  |-------------|-----------------------------|---------|------|
 */
 enum an_ifc_decl_constructor_part : uint8_t {};
-using an_ifc_decl_constructor_storage = an_ifc_decl_constructor_part[29];
+using an_ifc_decl_constructor_storage = an_ifc_decl_constructor_part[32];
 #if USE_MMAP_FOR_MODULES
 using an_ifc_decl_constructor_bytes = const an_ifc_decl_constructor_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
@@ -6481,39 +6485,41 @@ using an_ifc_decl_constructor =
 
 
 /*
-  |-------------------------------------------------------|
-  |         DeclDeductionGuide - 0.33 (26 bytes)          |
-  |------------|-------------------------|---------|------|
-  | Name       | Type                    | Version | Size |
-  |------------|-------------------------|---------|------|
-  | name       | TextOffset              | 0.33    | 4    |
-  | locus      | SourceLocation          | 0.33    | 8    |
-  | home_scope | DeclIndex               | 0.33    | 4    |
-  | source     | ChartIndex              | 0.33    | 4    |
-  | target     | ExprIndex               | 0.33    | 4    |
-  | traits     | GuideTraitsBitfield     | 0.33    | 1    |
-  | specifiers | BasicSpecifiersBitfield | 0.33    | 1    |
-  |------------|-------------------------|---------|------|
+  |--------------------------------------------------------|
+  |          DeclDeductionGuide - 0.33 (28 bytes)          |
+  |-------------|-------------------------|---------|------|
+  | Name        | Type                    | Version | Size |
+  |-------------|-------------------------|---------|------|
+  | name        | TextOffset              | 0.33    | 4    |
+  | locus       | SourceLocation          | 0.33    | 8    |
+  | home_scope  | DeclIndex               | 0.33    | 4    |
+  | source      | ChartIndex              | 0.33    | 4    |
+  | target      | ExprIndex               | 0.33    | 4    |
+  | traits      | GuideTraitsBitfield     | 0.33    | 1    |
+  | specifiers  | BasicSpecifiersBitfield | 0.33    | 1    |
+  | __padding__ | uint8_t[2]              |         | 2    |
+  |-------------|-------------------------|---------|------|
 
-  |-------------------------------------------------------|
-  |         DeclDeductionGuide - 0.41 (26 bytes)          |
-  |------------|-------------------------|---------|------|
-  | Name       | Type                    | Version | Size |
-  |------------|-------------------------|---------|------|
-  | name       | TextOffset              | 0.33    | 4    |
-  | locus      | SourceLocation          | 0.33    | 8    |
-  | home_scope | DeclIndex               | 0.41    | 4    |
-  | source     | ChartIndex              | 0.33    | 4    |
-  | target     | ExprIndex               | 0.33    | 4    |
-  | traits     | GuideTraitsBitfield     | 0.33    | 1    |
-  | specifiers | BasicSpecifiersBitfield | 0.33    | 1    |
-  |------------|-------------------------|---------|------|
-  | home_scope | DeclIndex               | 0.41    | RF   |
-  |------------|-------------------------|---------|------|
+  |--------------------------------------------------------|
+  |          DeclDeductionGuide - 0.41 (28 bytes)          |
+  |-------------|-------------------------|---------|------|
+  | Name        | Type                    | Version | Size |
+  |-------------|-------------------------|---------|------|
+  | name        | TextOffset              | 0.33    | 4    |
+  | locus       | SourceLocation          | 0.33    | 8    |
+  | home_scope  | DeclIndex               | 0.41    | 4    |
+  | source      | ChartIndex              | 0.33    | 4    |
+  | target      | ExprIndex               | 0.33    | 4    |
+  | traits      | GuideTraitsBitfield     | 0.33    | 1    |
+  | specifiers  | BasicSpecifiersBitfield | 0.33    | 1    |
+  | __padding__ | uint8_t[2]              |         | 2    |
+  |-------------|-------------------------|---------|------|
+  | home_scope  | DeclIndex               | 0.41    | RF   |
+  |-------------|-------------------------|---------|------|
 */
 enum an_ifc_decl_deduction_guide_part : uint8_t {};
 using an_ifc_decl_deduction_guide_storage =
-                                          an_ifc_decl_deduction_guide_part[26];
+                                          an_ifc_decl_deduction_guide_part[28];
 #if USE_MMAP_FOR_MODULES
 using an_ifc_decl_deduction_guide_bytes =
                                     const an_ifc_decl_deduction_guide_storage*;
@@ -6525,45 +6531,47 @@ using an_ifc_decl_deduction_guide =
 
 
 /*
-  |-----------------------------------------------------------|
-  |             DeclDestructor - 0.33 (30 bytes)              |
-  |------------|-----------------------------|---------|------|
-  | Name       | Type                        | Version | Size |
-  |------------|-----------------------------|---------|------|
-  | name       | TextOffset                  | 0.33    | 4    |
-  | locus      | SourceLocation              | 0.33    | 8    |
-  | home_scope | DeclIndex                   | 0.33    | 4    |
-  | eh_spec    | NoexceptSpecification       | 0.33    | 8    |
-  | traits     | FunctionTraitsBitfield      | 0.33    | 2    |
-  | specifiers | BasicSpecifiersBitfield     | 0.33    | 1    |
-  | access     | AccessSort                  | 0.33    | 1    |
-  | convention | CallingConventionSort       | 0.33    | 1    |
-  | properties | ReachablePropertiesBitfield | 0.33    | 1    |
-  |------------|-----------------------------|---------|------|
-  | name       | NameIndex                   | ANY     | RF   |
-  |------------|-----------------------------|---------|------|
+  |------------------------------------------------------------|
+  |              DeclDestructor - 0.33 (32 bytes)              |
+  |-------------|-----------------------------|---------|------|
+  | Name        | Type                        | Version | Size |
+  |-------------|-----------------------------|---------|------|
+  | name        | TextOffset                  | 0.33    | 4    |
+  | locus       | SourceLocation              | 0.33    | 8    |
+  | home_scope  | DeclIndex                   | 0.33    | 4    |
+  | eh_spec     | NoexceptSpecification       | 0.33    | 8    |
+  | traits      | FunctionTraitsBitfield      | 0.33    | 2    |
+  | specifiers  | BasicSpecifiersBitfield     | 0.33    | 1    |
+  | access      | AccessSort                  | 0.33    | 1    |
+  | convention  | CallingConventionSort       | 0.33    | 1    |
+  | properties  | ReachablePropertiesBitfield | 0.33    | 1    |
+  | __padding__ | uint8_t[2]                  |         | 2    |
+  |-------------|-----------------------------|---------|------|
+  | name        | NameIndex                   | ANY     | RF   |
+  |-------------|-----------------------------|---------|------|
 
-  |-----------------------------------------------------------|
-  |             DeclDestructor - 0.41 (30 bytes)              |
-  |------------|-----------------------------|---------|------|
-  | Name       | Type                        | Version | Size |
-  |------------|-----------------------------|---------|------|
-  | name       | TextOffset                  | 0.33    | 4    |
-  | locus      | SourceLocation              | 0.33    | 8    |
-  | home_scope | DeclIndex                   | 0.41    | 4    |
-  | eh_spec    | NoexceptSpecification       | 0.33    | 8    |
-  | traits     | FunctionTraitsBitfield      | 0.33    | 2    |
-  | specifiers | BasicSpecifiersBitfield     | 0.33    | 1    |
-  | access     | AccessSort                  | 0.33    | 1    |
-  | convention | CallingConventionSort       | 0.33    | 1    |
-  | properties | ReachablePropertiesBitfield | 0.33    | 1    |
-  |------------|-----------------------------|---------|------|
-  | home_scope | DeclIndex                   | 0.41    | RF   |
-  | name       | NameIndex                   | ANY     | RF   |
-  |------------|-----------------------------|---------|------|
+  |------------------------------------------------------------|
+  |              DeclDestructor - 0.41 (32 bytes)              |
+  |-------------|-----------------------------|---------|------|
+  | Name        | Type                        | Version | Size |
+  |-------------|-----------------------------|---------|------|
+  | name        | TextOffset                  | 0.33    | 4    |
+  | locus       | SourceLocation              | 0.33    | 8    |
+  | home_scope  | DeclIndex                   | 0.41    | 4    |
+  | eh_spec     | NoexceptSpecification       | 0.33    | 8    |
+  | traits      | FunctionTraitsBitfield      | 0.33    | 2    |
+  | specifiers  | BasicSpecifiersBitfield     | 0.33    | 1    |
+  | access      | AccessSort                  | 0.33    | 1    |
+  | convention  | CallingConventionSort       | 0.33    | 1    |
+  | properties  | ReachablePropertiesBitfield | 0.33    | 1    |
+  | __padding__ | uint8_t[2]                  |         | 2    |
+  |-------------|-----------------------------|---------|------|
+  | home_scope  | DeclIndex                   | 0.41    | RF   |
+  | name        | NameIndex                   | ANY     | RF   |
+  |-------------|-----------------------------|---------|------|
 */
 enum an_ifc_decl_destructor_part : uint8_t {};
-using an_ifc_decl_destructor_storage = an_ifc_decl_destructor_part[30];
+using an_ifc_decl_destructor_storage = an_ifc_decl_destructor_part[32];
 #if USE_MMAP_FOR_MODULES
 using an_ifc_decl_destructor_bytes = const an_ifc_decl_destructor_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
@@ -6575,7 +6583,7 @@ using an_ifc_decl_destructor =
 
 /*
   |------------------------------------------------------------|
-  |             DeclEnumeration - 0.33 (39 bytes)              |
+  |             DeclEnumeration - 0.33 (40 bytes)              |
   |-------------|-----------------------------|---------|------|
   | Name        | Type                        | Version | Size |
   |-------------|-----------------------------|---------|------|
@@ -6589,10 +6597,11 @@ using an_ifc_decl_destructor =
   | specifiers  | BasicSpecifiersBitfield     | 0.33    | 1    |
   | access      | AccessSort                  | 0.33    | 1    |
   | properties  | ReachablePropertiesBitfield | 0.33    | 1    |
+  | __padding__ | uint8_t[1]                  |         | 1    |
   |-------------|-----------------------------|---------|------|
 
   |------------------------------------------------------------|
-  |             DeclEnumeration - 0.41 (39 bytes)              |
+  |             DeclEnumeration - 0.41 (40 bytes)              |
   |-------------|-----------------------------|---------|------|
   | Name        | Type                        | Version | Size |
   |-------------|-----------------------------|---------|------|
@@ -6606,12 +6615,13 @@ using an_ifc_decl_destructor =
   | specifiers  | BasicSpecifiersBitfield     | 0.33    | 1    |
   | access      | AccessSort                  | 0.33    | 1    |
   | properties  | ReachablePropertiesBitfield | 0.33    | 1    |
+  | __padding__ | uint8_t[1]                  |         | 1    |
   |-------------|-----------------------------|---------|------|
   | home_scope  | DeclIndex                   | 0.41    | RF   |
   |-------------|-----------------------------|---------|------|
 */
 enum an_ifc_decl_enumeration_part : uint8_t {};
-using an_ifc_decl_enumeration_storage = an_ifc_decl_enumeration_part[39];
+using an_ifc_decl_enumeration_storage = an_ifc_decl_enumeration_part[40];
 #if USE_MMAP_FOR_MODULES
 using an_ifc_decl_enumeration_bytes = const an_ifc_decl_enumeration_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
@@ -6623,7 +6633,7 @@ using an_ifc_decl_enumeration =
 
 /*
   |--------------------------------------------------------|
-  |            DeclEnumerator - 0.33 (22 bytes)            |
+  |            DeclEnumerator - 0.33 (24 bytes)            |
   |-------------|-------------------------|---------|------|
   | Name        | Type                    | Version | Size |
   |-------------|-------------------------|---------|------|
@@ -6633,12 +6643,13 @@ using an_ifc_decl_enumeration =
   | initializer | ExprIndex               | 0.33    | 4    |
   | specifiers  | BasicSpecifiersBitfield | 0.33    | 1    |
   | access      | AccessSort              | 0.33    | 1    |
+  | __padding__ | uint8_t[2]              |         | 2    |
   |-------------|-------------------------|---------|------|
   | home_scope  | DeclIndex               | 0.33    | RF   |
   |-------------|-------------------------|---------|------|
 */
 enum an_ifc_decl_enumerator_part : uint8_t {};
-using an_ifc_decl_enumerator_storage = an_ifc_decl_enumerator_part[22];
+using an_ifc_decl_enumerator_storage = an_ifc_decl_enumerator_part[24];
 #if USE_MMAP_FOR_MODULES
 using an_ifc_decl_enumerator_bytes = const an_ifc_decl_enumerator_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
@@ -6793,42 +6804,44 @@ using an_ifc_decl_friend = an_ifc_Byte_buffer<an_ifc_decl_friend_storage>;
 
 
 /*
-  |-----------------------------------------------------------|
-  |              DeclFunction - 0.33 (29 bytes)               |
-  |------------|-----------------------------|---------|------|
-  | Name       | Type                        | Version | Size |
-  |------------|-----------------------------|---------|------|
-  | name       | NameIndex                   | 0.33    | 4    |
-  | locus      | SourceLocation              | 0.33    | 8    |
-  | type       | TypeIndex                   | 0.33    | 4    |
-  | home_scope | DeclIndex                   | 0.33    | 4    |
-  | chart      | ChartIndex                  | 0.33    | 4    |
-  | traits     | FunctionTraitsBitfield      | 0.33    | 2    |
-  | specifiers | BasicSpecifiersBitfield     | 0.33    | 1    |
-  | access     | AccessSort                  | 0.33    | 1    |
-  | properties | ReachablePropertiesBitfield | 0.33    | 1    |
-  |------------|-----------------------------|---------|------|
+  |------------------------------------------------------------|
+  |               DeclFunction - 0.33 (32 bytes)               |
+  |-------------|-----------------------------|---------|------|
+  | Name        | Type                        | Version | Size |
+  |-------------|-----------------------------|---------|------|
+  | name        | NameIndex                   | 0.33    | 4    |
+  | locus       | SourceLocation              | 0.33    | 8    |
+  | type        | TypeIndex                   | 0.33    | 4    |
+  | home_scope  | DeclIndex                   | 0.33    | 4    |
+  | chart       | ChartIndex                  | 0.33    | 4    |
+  | traits      | FunctionTraitsBitfield      | 0.33    | 2    |
+  | specifiers  | BasicSpecifiersBitfield     | 0.33    | 1    |
+  | access      | AccessSort                  | 0.33    | 1    |
+  | properties  | ReachablePropertiesBitfield | 0.33    | 1    |
+  | __padding__ | uint8_t[3]                  |         | 3    |
+  |-------------|-----------------------------|---------|------|
 
-  |-----------------------------------------------------------|
-  |              DeclFunction - 0.41 (29 bytes)               |
-  |------------|-----------------------------|---------|------|
-  | Name       | Type                        | Version | Size |
-  |------------|-----------------------------|---------|------|
-  | name       | NameIndex                   | 0.33    | 4    |
-  | locus      | SourceLocation              | 0.33    | 8    |
-  | type       | TypeIndex                   | 0.33    | 4    |
-  | home_scope | DeclIndex                   | 0.41    | 4    |
-  | chart      | ChartIndex                  | 0.33    | 4    |
-  | traits     | FunctionTraitsBitfield      | 0.33    | 2    |
-  | specifiers | BasicSpecifiersBitfield     | 0.33    | 1    |
-  | access     | AccessSort                  | 0.33    | 1    |
-  | properties | ReachablePropertiesBitfield | 0.33    | 1    |
-  |------------|-----------------------------|---------|------|
-  | home_scope | DeclIndex                   | 0.41    | RF   |
-  |------------|-----------------------------|---------|------|
+  |------------------------------------------------------------|
+  |               DeclFunction - 0.41 (32 bytes)               |
+  |-------------|-----------------------------|---------|------|
+  | Name        | Type                        | Version | Size |
+  |-------------|-----------------------------|---------|------|
+  | name        | NameIndex                   | 0.33    | 4    |
+  | locus       | SourceLocation              | 0.33    | 8    |
+  | type        | TypeIndex                   | 0.33    | 4    |
+  | home_scope  | DeclIndex                   | 0.41    | 4    |
+  | chart       | ChartIndex                  | 0.33    | 4    |
+  | traits      | FunctionTraitsBitfield      | 0.33    | 2    |
+  | specifiers  | BasicSpecifiersBitfield     | 0.33    | 1    |
+  | access      | AccessSort                  | 0.33    | 1    |
+  | properties  | ReachablePropertiesBitfield | 0.33    | 1    |
+  | __padding__ | uint8_t[3]                  |         | 3    |
+  |-------------|-----------------------------|---------|------|
+  | home_scope  | DeclIndex                   | 0.41    | RF   |
+  |-------------|-----------------------------|---------|------|
 */
 enum an_ifc_decl_function_part : uint8_t {};
-using an_ifc_decl_function_storage = an_ifc_decl_function_part[29];
+using an_ifc_decl_function_storage = an_ifc_decl_function_part[32];
 #if USE_MMAP_FOR_MODULES
 using an_ifc_decl_function_bytes = const an_ifc_decl_function_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
@@ -6887,36 +6900,38 @@ using an_ifc_decl_inherited_constructor =
 
 
 /*
-  |-------------------------------------------------------|
-  |            DeclIntrinsic - 0.33 (22 bytes)            |
-  |------------|-------------------------|---------|------|
-  | Name       | Type                    | Version | Size |
-  |------------|-------------------------|---------|------|
-  | name       | TextOffset              | 0.33    | 4    |
-  | locus      | SourceLocation          | 0.33    | 8    |
-  | type       | TypeIndex               | 0.33    | 4    |
-  | home_scope | DeclIndex               | 0.33    | 4    |
-  | specifiers | BasicSpecifiersBitfield | 0.33    | 1    |
-  | access     | AccessSort              | 0.33    | 1    |
-  |------------|-------------------------|---------|------|
+  |--------------------------------------------------------|
+  |            DeclIntrinsic - 0.33 (24 bytes)             |
+  |-------------|-------------------------|---------|------|
+  | Name        | Type                    | Version | Size |
+  |-------------|-------------------------|---------|------|
+  | name        | TextOffset              | 0.33    | 4    |
+  | locus       | SourceLocation          | 0.33    | 8    |
+  | type        | TypeIndex               | 0.33    | 4    |
+  | home_scope  | DeclIndex               | 0.33    | 4    |
+  | specifiers  | BasicSpecifiersBitfield | 0.33    | 1    |
+  | access      | AccessSort              | 0.33    | 1    |
+  | __padding__ | uint8_t[2]              |         | 2    |
+  |-------------|-------------------------|---------|------|
 
-  |-------------------------------------------------------|
-  |            DeclIntrinsic - 0.41 (22 bytes)            |
-  |------------|-------------------------|---------|------|
-  | Name       | Type                    | Version | Size |
-  |------------|-------------------------|---------|------|
-  | name       | TextOffset              | 0.33    | 4    |
-  | locus      | SourceLocation          | 0.33    | 8    |
-  | type       | TypeIndex               | 0.33    | 4    |
-  | home_scope | DeclIndex               | 0.41    | 4    |
-  | specifiers | BasicSpecifiersBitfield | 0.33    | 1    |
-  | access     | AccessSort              | 0.33    | 1    |
-  |------------|-------------------------|---------|------|
-  | home_scope | DeclIndex               | 0.41    | RF   |
-  |------------|-------------------------|---------|------|
+  |--------------------------------------------------------|
+  |            DeclIntrinsic - 0.41 (24 bytes)             |
+  |-------------|-------------------------|---------|------|
+  | Name        | Type                    | Version | Size |
+  |-------------|-------------------------|---------|------|
+  | name        | TextOffset              | 0.33    | 4    |
+  | locus       | SourceLocation          | 0.33    | 8    |
+  | type        | TypeIndex               | 0.33    | 4    |
+  | home_scope  | DeclIndex               | 0.41    | 4    |
+  | specifiers  | BasicSpecifiersBitfield | 0.33    | 1    |
+  | access      | AccessSort              | 0.33    | 1    |
+  | __padding__ | uint8_t[2]              |         | 2    |
+  |-------------|-------------------------|---------|------|
+  | home_scope  | DeclIndex               | 0.41    | RF   |
+  |-------------|-------------------------|---------|------|
 */
 enum an_ifc_decl_intrinsic_part : uint8_t {};
-using an_ifc_decl_intrinsic_storage = an_ifc_decl_intrinsic_part[22];
+using an_ifc_decl_intrinsic_storage = an_ifc_decl_intrinsic_part[24];
 #if USE_MMAP_FOR_MODULES
 using an_ifc_decl_intrinsic_bytes = const an_ifc_decl_intrinsic_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
@@ -6927,42 +6942,44 @@ using an_ifc_decl_intrinsic =
 
 
 /*
-  |-----------------------------------------------------------|
-  |               DeclMethod - 0.33 (29 bytes)                |
-  |------------|-----------------------------|---------|------|
-  | Name       | Type                        | Version | Size |
-  |------------|-----------------------------|---------|------|
-  | name       | NameIndex                   | 0.33    | 4    |
-  | locus      | SourceLocation              | 0.33    | 8    |
-  | type       | TypeIndex                   | 0.33    | 4    |
-  | home_scope | DeclIndex                   | 0.33    | 4    |
-  | chart      | ChartIndex                  | 0.33    | 4    |
-  | traits     | FunctionTraitsBitfield      | 0.33    | 2    |
-  | specifiers | BasicSpecifiersBitfield     | 0.33    | 1    |
-  | access     | AccessSort                  | 0.33    | 1    |
-  | properties | ReachablePropertiesBitfield | 0.33    | 1    |
-  |------------|-----------------------------|---------|------|
+  |------------------------------------------------------------|
+  |                DeclMethod - 0.33 (32 bytes)                |
+  |-------------|-----------------------------|---------|------|
+  | Name        | Type                        | Version | Size |
+  |-------------|-----------------------------|---------|------|
+  | name        | NameIndex                   | 0.33    | 4    |
+  | locus       | SourceLocation              | 0.33    | 8    |
+  | type        | TypeIndex                   | 0.33    | 4    |
+  | home_scope  | DeclIndex                   | 0.33    | 4    |
+  | chart       | ChartIndex                  | 0.33    | 4    |
+  | traits      | FunctionTraitsBitfield      | 0.33    | 2    |
+  | specifiers  | BasicSpecifiersBitfield     | 0.33    | 1    |
+  | access      | AccessSort                  | 0.33    | 1    |
+  | properties  | ReachablePropertiesBitfield | 0.33    | 1    |
+  | __padding__ | uint8_t[3]                  |         | 3    |
+  |-------------|-----------------------------|---------|------|
 
-  |-----------------------------------------------------------|
-  |               DeclMethod - 0.41 (29 bytes)                |
-  |------------|-----------------------------|---------|------|
-  | Name       | Type                        | Version | Size |
-  |------------|-----------------------------|---------|------|
-  | name       | NameIndex                   | 0.33    | 4    |
-  | locus      | SourceLocation              | 0.33    | 8    |
-  | type       | TypeIndex                   | 0.33    | 4    |
-  | home_scope | DeclIndex                   | 0.41    | 4    |
-  | chart      | ChartIndex                  | 0.33    | 4    |
-  | traits     | FunctionTraitsBitfield      | 0.33    | 2    |
-  | specifiers | BasicSpecifiersBitfield     | 0.33    | 1    |
-  | access     | AccessSort                  | 0.33    | 1    |
-  | properties | ReachablePropertiesBitfield | 0.33    | 1    |
-  |------------|-----------------------------|---------|------|
-  | home_scope | DeclIndex                   | 0.41    | RF   |
-  |------------|-----------------------------|---------|------|
+  |------------------------------------------------------------|
+  |                DeclMethod - 0.41 (32 bytes)                |
+  |-------------|-----------------------------|---------|------|
+  | Name        | Type                        | Version | Size |
+  |-------------|-----------------------------|---------|------|
+  | name        | NameIndex                   | 0.33    | 4    |
+  | locus       | SourceLocation              | 0.33    | 8    |
+  | type        | TypeIndex                   | 0.33    | 4    |
+  | home_scope  | DeclIndex                   | 0.41    | 4    |
+  | chart       | ChartIndex                  | 0.33    | 4    |
+  | traits      | FunctionTraitsBitfield      | 0.33    | 2    |
+  | specifiers  | BasicSpecifiersBitfield     | 0.33    | 1    |
+  | access      | AccessSort                  | 0.33    | 1    |
+  | properties  | ReachablePropertiesBitfield | 0.33    | 1    |
+  | __padding__ | uint8_t[3]                  |         | 3    |
+  |-------------|-----------------------------|---------|------|
+  | home_scope  | DeclIndex                   | 0.41    | RF   |
+  |-------------|-----------------------------|---------|------|
 */
 enum an_ifc_decl_method_part : uint8_t {};
-using an_ifc_decl_method_storage = an_ifc_decl_method_part[29];
+using an_ifc_decl_method_storage = an_ifc_decl_method_part[32];
 #if USE_MMAP_FOR_MODULES
 using an_ifc_decl_method_bytes = const an_ifc_decl_method_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
@@ -6997,7 +7014,7 @@ using an_ifc_decl_output_segment =
 
 /*
   |------------------------------------------------------------|
-  |              DeclParameter - 0.33 (35 bytes)               |
+  |              DeclParameter - 0.33 (36 bytes)               |
   |-------------|-----------------------------|---------|------|
   | Name        | Type                        | Version | Size |
   |-------------|-----------------------------|---------|------|
@@ -7011,10 +7028,11 @@ using an_ifc_decl_output_segment =
   | sort        | ParameterSort               | 0.33    | 1    |
   | properties  | ReachablePropertiesBitfield | 0.33    | 1    |
   | pack        | bool                        | 0.33    | 1    |
+  | __padding__ | uint8_t[1]                  |         | 1    |
   |-------------|-----------------------------|---------|------|
 */
 enum an_ifc_decl_parameter_part : uint8_t {};
-using an_ifc_decl_parameter_storage = an_ifc_decl_parameter_part[35];
+using an_ifc_decl_parameter_storage = an_ifc_decl_parameter_part[36];
 #if USE_MMAP_FOR_MODULES
 using an_ifc_decl_parameter_bytes = const an_ifc_decl_parameter_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
@@ -7025,47 +7043,49 @@ using an_ifc_decl_parameter =
 
 
 /*
-  |-----------------------------------------------------------|
-  |        DeclPartialSpecialization - 0.33 (43 bytes)        |
-  |------------|-----------------------------|---------|------|
-  | Name       | Type                        | Version | Size |
-  |------------|-----------------------------|---------|------|
-  | name       | NameIndex                   | 0.33    | 4    |
-  | locus      | SourceLocation              | 0.33    | 8    |
-  | home_scope | DeclIndex                   | 0.33    | 4    |
-  | chart      | ChartIndex                  | 0.33    | 4    |
-  | entity     | ParameterizedEntity         | 0.33    | 16   |
-  | form       | FormSpecIndex               | 0.33    | 4    |
-  | specifiers | BasicSpecifiersBitfield     | 0.33    | 1    |
-  | access     | AccessSort                  | 0.33    | 1    |
-  | properties | ReachablePropertiesBitfield | 0.33    | 1    |
-  |------------|-----------------------------|---------|------|
-  | home_scope | DeclIndex                   | ANY     | RF   |
-  | name       | NameIndex                   | ANY     | RF   |
-  |------------|-----------------------------|---------|------|
+  |------------------------------------------------------------|
+  |        DeclPartialSpecialization - 0.33 (44 bytes)         |
+  |-------------|-----------------------------|---------|------|
+  | Name        | Type                        | Version | Size |
+  |-------------|-----------------------------|---------|------|
+  | name        | NameIndex                   | 0.33    | 4    |
+  | locus       | SourceLocation              | 0.33    | 8    |
+  | home_scope  | DeclIndex                   | 0.33    | 4    |
+  | chart       | ChartIndex                  | 0.33    | 4    |
+  | entity      | ParameterizedEntity         | 0.33    | 16   |
+  | form        | FormSpecIndex               | 0.33    | 4    |
+  | specifiers  | BasicSpecifiersBitfield     | 0.33    | 1    |
+  | access      | AccessSort                  | 0.33    | 1    |
+  | properties  | ReachablePropertiesBitfield | 0.33    | 1    |
+  | __padding__ | uint8_t[1]                  |         | 1    |
+  |-------------|-----------------------------|---------|------|
+  | home_scope  | DeclIndex                   | ANY     | RF   |
+  | name        | NameIndex                   | ANY     | RF   |
+  |-------------|-----------------------------|---------|------|
 
-  |-----------------------------------------------------------|
-  |        DeclPartialSpecialization - 0.41 (43 bytes)        |
-  |------------|-----------------------------|---------|------|
-  | Name       | Type                        | Version | Size |
-  |------------|-----------------------------|---------|------|
-  | name       | NameIndex                   | 0.33    | 4    |
-  | locus      | SourceLocation              | 0.33    | 8    |
-  | home_scope | DeclIndex                   | 0.41    | 4    |
-  | chart      | ChartIndex                  | 0.33    | 4    |
-  | entity     | ParameterizedEntity         | 0.41    | 16   |
-  | form       | FormSpecIndex               | 0.33    | 4    |
-  | specifiers | BasicSpecifiersBitfield     | 0.33    | 1    |
-  | access     | AccessSort                  | 0.33    | 1    |
-  | properties | ReachablePropertiesBitfield | 0.33    | 1    |
-  |------------|-----------------------------|---------|------|
-  | home_scope | DeclIndex                   | ANY     | RF   |
-  | name       | NameIndex                   | ANY     | RF   |
-  |------------|-----------------------------|---------|------|
+  |------------------------------------------------------------|
+  |        DeclPartialSpecialization - 0.41 (44 bytes)         |
+  |-------------|-----------------------------|---------|------|
+  | Name        | Type                        | Version | Size |
+  |-------------|-----------------------------|---------|------|
+  | name        | NameIndex                   | 0.33    | 4    |
+  | locus       | SourceLocation              | 0.33    | 8    |
+  | home_scope  | DeclIndex                   | 0.41    | 4    |
+  | chart       | ChartIndex                  | 0.33    | 4    |
+  | entity      | ParameterizedEntity         | 0.41    | 16   |
+  | form        | FormSpecIndex               | 0.33    | 4    |
+  | specifiers  | BasicSpecifiersBitfield     | 0.33    | 1    |
+  | access      | AccessSort                  | 0.33    | 1    |
+  | properties  | ReachablePropertiesBitfield | 0.33    | 1    |
+  | __padding__ | uint8_t[1]                  |         | 1    |
+  |-------------|-----------------------------|---------|------|
+  | home_scope  | DeclIndex                   | ANY     | RF   |
+  | name        | NameIndex                   | ANY     | RF   |
+  |-------------|-----------------------------|---------|------|
 */
 enum an_ifc_decl_partial_specialization_part : uint8_t {};
 using an_ifc_decl_partial_specialization_storage =
-                                   an_ifc_decl_partial_specialization_part[43];
+                                   an_ifc_decl_partial_specialization_part[44];
 #if USE_MMAP_FOR_MODULES
 using an_ifc_decl_partial_specialization_bytes =
                              const an_ifc_decl_partial_specialization_storage*;
@@ -7133,7 +7153,7 @@ using an_ifc_decl_reference =
 
 /*
   |------------------------------------------------------------|
-  |                DeclScope - 0.33 (38 bytes)                 |
+  |                DeclScope - 0.33 (40 bytes)                 |
   |-------------|-----------------------------|---------|------|
   | Name        | Type                        | Version | Size |
   |-------------|-----------------------------|---------|------|
@@ -7149,10 +7169,11 @@ using an_ifc_decl_reference =
   | traits      | ScopeTraitsBitfield         | 0.33    | 1    |
   | access      | AccessSort                  | 0.33    | 1    |
   | properties  | ReachablePropertiesBitfield | 0.33    | 1    |
+  | __padding__ | uint8_t[2]                  |         | 2    |
   |-------------|-----------------------------|---------|------|
 
   |------------------------------------------------------------|
-  |                DeclScope - 0.41 (38 bytes)                 |
+  |                DeclScope - 0.41 (40 bytes)                 |
   |-------------|-----------------------------|---------|------|
   | Name        | Type                        | Version | Size |
   |-------------|-----------------------------|---------|------|
@@ -7168,12 +7189,13 @@ using an_ifc_decl_reference =
   | traits      | ScopeTraitsBitfield         | 0.33    | 1    |
   | access      | AccessSort                  | 0.33    | 1    |
   | properties  | ReachablePropertiesBitfield | 0.33    | 1    |
+  | __padding__ | uint8_t[2]                  |         | 2    |
   |-------------|-----------------------------|---------|------|
   | home_scope  | DeclIndex                   | 0.41    | RF   |
   |-------------|-----------------------------|---------|------|
 */
 enum an_ifc_decl_scope_part : uint8_t {};
-using an_ifc_decl_scope_storage = an_ifc_decl_scope_part[38];
+using an_ifc_decl_scope_storage = an_ifc_decl_scope_part[40];
 #if USE_MMAP_FOR_MODULES
 using an_ifc_decl_scope_bytes = const an_ifc_decl_scope_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
@@ -7183,22 +7205,23 @@ using an_ifc_decl_scope = an_ifc_Byte_buffer<an_ifc_decl_scope_storage>;
 
 
 /*
-  |--------------------------------------------------|
-  |       DeclSpecialization - 0.41 (9 bytes)        |
-  |------------|--------------------|---------|------|
-  | Name       | Type               | Version | Size |
-  |------------|--------------------|---------|------|
-  | form       | FormSpecIndex      | 0.33    | 4    |
-  | decl       | DeclIndex          | 0.41    | 4    |
-  | sort       | SpecializationSort | 0.33    | 1    |
-  |------------|--------------------|---------|------|
-  | home_scope | DeclIndex          | ANY     | RF   |
-  | locus      | SourceLocation     | ANY     | RF   |
-  | name       | NameIndex          | ANY     | RF   |
-  |------------|--------------------|---------|------|
+  |---------------------------------------------------|
+  |       DeclSpecialization - 0.41 (12 bytes)        |
+  |-------------|--------------------|---------|------|
+  | Name        | Type               | Version | Size |
+  |-------------|--------------------|---------|------|
+  | form        | FormSpecIndex      | 0.33    | 4    |
+  | decl        | DeclIndex          | 0.41    | 4    |
+  | sort        | SpecializationSort | 0.33    | 1    |
+  | __padding__ | uint8_t[3]         |         | 3    |
+  |-------------|--------------------|---------|------|
+  | home_scope  | DeclIndex          | ANY     | RF   |
+  | locus       | SourceLocation     | ANY     | RF   |
+  | name        | NameIndex          | ANY     | RF   |
+  |-------------|--------------------|---------|------|
 */
 enum an_ifc_decl_specialization_part : uint8_t {};
-using an_ifc_decl_specialization_storage = an_ifc_decl_specialization_part[9];
+using an_ifc_decl_specialization_storage = an_ifc_decl_specialization_part[12];
 #if USE_MMAP_FOR_MODULES
 using an_ifc_decl_specialization_bytes =
                                      const an_ifc_decl_specialization_storage*;
@@ -7210,45 +7233,47 @@ using an_ifc_decl_specialization =
 
 
 /*
-  |-----------------------------------------------------------|
-  |              DeclTemplate - 0.33 (43 bytes)               |
-  |------------|-----------------------------|---------|------|
-  | Name       | Type                        | Version | Size |
-  |------------|-----------------------------|---------|------|
-  | name       | NameIndex                   | 0.33    | 4    |
-  | locus      | SourceLocation              | 0.33    | 8    |
-  | home_scope | DeclIndex                   | 0.33    | 4    |
-  | chart      | ChartIndex                  | 0.33    | 4    |
-  | entity     | ParameterizedEntity         | 0.33    | 16   |
-  | type       | TypeIndex                   | 0.33    | 4    |
-  | specifiers | BasicSpecifiersBitfield     | 0.33    | 1    |
-  | access     | AccessSort                  | 0.33    | 1    |
-  | properties | ReachablePropertiesBitfield | 0.33    | 1    |
-  |------------|-----------------------------|---------|------|
-  | name       | NameIndex                   | ANY     | RF   |
-  |------------|-----------------------------|---------|------|
+  |------------------------------------------------------------|
+  |               DeclTemplate - 0.33 (44 bytes)               |
+  |-------------|-----------------------------|---------|------|
+  | Name        | Type                        | Version | Size |
+  |-------------|-----------------------------|---------|------|
+  | name        | NameIndex                   | 0.33    | 4    |
+  | locus       | SourceLocation              | 0.33    | 8    |
+  | home_scope  | DeclIndex                   | 0.33    | 4    |
+  | chart       | ChartIndex                  | 0.33    | 4    |
+  | entity      | ParameterizedEntity         | 0.33    | 16   |
+  | type        | TypeIndex                   | 0.33    | 4    |
+  | specifiers  | BasicSpecifiersBitfield     | 0.33    | 1    |
+  | access      | AccessSort                  | 0.33    | 1    |
+  | properties  | ReachablePropertiesBitfield | 0.33    | 1    |
+  | __padding__ | uint8_t[1]                  |         | 1    |
+  |-------------|-----------------------------|---------|------|
+  | name        | NameIndex                   | ANY     | RF   |
+  |-------------|-----------------------------|---------|------|
 
-  |-----------------------------------------------------------|
-  |              DeclTemplate - 0.41 (43 bytes)               |
-  |------------|-----------------------------|---------|------|
-  | Name       | Type                        | Version | Size |
-  |------------|-----------------------------|---------|------|
-  | name       | NameIndex                   | 0.33    | 4    |
-  | locus      | SourceLocation              | 0.33    | 8    |
-  | home_scope | DeclIndex                   | 0.41    | 4    |
-  | chart      | ChartIndex                  | 0.33    | 4    |
-  | entity     | ParameterizedEntity         | 0.41    | 16   |
-  | type       | TypeIndex                   | 0.33    | 4    |
-  | specifiers | BasicSpecifiersBitfield     | 0.33    | 1    |
-  | access     | AccessSort                  | 0.33    | 1    |
-  | properties | ReachablePropertiesBitfield | 0.33    | 1    |
-  |------------|-----------------------------|---------|------|
-  | home_scope | DeclIndex                   | 0.41    | RF   |
-  | name       | NameIndex                   | ANY     | RF   |
-  |------------|-----------------------------|---------|------|
+  |------------------------------------------------------------|
+  |               DeclTemplate - 0.41 (44 bytes)               |
+  |-------------|-----------------------------|---------|------|
+  | Name        | Type                        | Version | Size |
+  |-------------|-----------------------------|---------|------|
+  | name        | NameIndex                   | 0.33    | 4    |
+  | locus       | SourceLocation              | 0.33    | 8    |
+  | home_scope  | DeclIndex                   | 0.41    | 4    |
+  | chart       | ChartIndex                  | 0.33    | 4    |
+  | entity      | ParameterizedEntity         | 0.41    | 16   |
+  | type        | TypeIndex                   | 0.33    | 4    |
+  | specifiers  | BasicSpecifiersBitfield     | 0.33    | 1    |
+  | access      | AccessSort                  | 0.33    | 1    |
+  | properties  | ReachablePropertiesBitfield | 0.33    | 1    |
+  | __padding__ | uint8_t[1]                  |         | 1    |
+  |-------------|-----------------------------|---------|------|
+  | home_scope  | DeclIndex                   | 0.41    | RF   |
+  | name        | NameIndex                   | ANY     | RF   |
+  |-------------|-----------------------------|---------|------|
 */
 enum an_ifc_decl_template_part : uint8_t {};
-using an_ifc_decl_template_storage = an_ifc_decl_template_part[43];
+using an_ifc_decl_template_storage = an_ifc_decl_template_part[44];
 #if USE_MMAP_FOR_MODULES
 using an_ifc_decl_template_bytes = const an_ifc_decl_template_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
@@ -7258,28 +7283,30 @@ using an_ifc_decl_template = an_ifc_Byte_buffer<an_ifc_decl_template_storage>;
 
 
 /*
-  |-----------------------------------------------------------|
-  |              DeclTemploid - 0.33 (21 bytes)               |
-  |------------|-----------------------------|---------|------|
-  | Name       | Type                        | Version | Size |
-  |------------|-----------------------------|---------|------|
-  | entity     | ParameterizedEntity         | 0.33    | 16   |
-  | chart      | ChartIndex                  | 0.33    | 4    |
-  | properties | ReachablePropertiesBitfield | 0.33    | 1    |
-  |------------|-----------------------------|---------|------|
+  |------------------------------------------------------------|
+  |               DeclTemploid - 0.33 (24 bytes)               |
+  |-------------|-----------------------------|---------|------|
+  | Name        | Type                        | Version | Size |
+  |-------------|-----------------------------|---------|------|
+  | entity      | ParameterizedEntity         | 0.33    | 16   |
+  | chart       | ChartIndex                  | 0.33    | 4    |
+  | properties  | ReachablePropertiesBitfield | 0.33    | 1    |
+  | __padding__ | uint8_t[3]                  |         | 3    |
+  |-------------|-----------------------------|---------|------|
 
-  |-----------------------------------------------------------|
-  |              DeclTemploid - 0.41 (21 bytes)               |
-  |------------|-----------------------------|---------|------|
-  | Name       | Type                        | Version | Size |
-  |------------|-----------------------------|---------|------|
-  | entity     | ParameterizedEntity         | 0.41    | 16   |
-  | chart      | ChartIndex                  | 0.33    | 4    |
-  | properties | ReachablePropertiesBitfield | 0.33    | 1    |
-  |------------|-----------------------------|---------|------|
+  |------------------------------------------------------------|
+  |               DeclTemploid - 0.41 (24 bytes)               |
+  |-------------|-----------------------------|---------|------|
+  | Name        | Type                        | Version | Size |
+  |-------------|-----------------------------|---------|------|
+  | entity      | ParameterizedEntity         | 0.41    | 16   |
+  | chart       | ChartIndex                  | 0.33    | 4    |
+  | properties  | ReachablePropertiesBitfield | 0.33    | 1    |
+  | __padding__ | uint8_t[3]                  |         | 3    |
+  |-------------|-----------------------------|---------|------|
 */
 enum an_ifc_decl_temploid_part : uint8_t {};
-using an_ifc_decl_temploid_storage = an_ifc_decl_temploid_part[21];
+using an_ifc_decl_temploid_storage = an_ifc_decl_temploid_part[24];
 #if USE_MMAP_FOR_MODULES
 using an_ifc_decl_temploid_bytes = const an_ifc_decl_temploid_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
@@ -7309,43 +7336,45 @@ using an_ifc_decl_tuple = an_ifc_Byte_buffer<an_ifc_decl_tuple_storage>;
 
 
 /*
-  |-------------------------------------------------------|
-  |        DeclUsingDeclaration - 0.33 (31 bytes)         |
-  |------------|-------------------------|---------|------|
-  | Name       | Type                    | Version | Size |
-  |------------|-------------------------|---------|------|
-  | name       | TextOffset              | 0.33    | 4    |
-  | locus      | SourceLocation          | 0.33    | 8    |
-  | home_scope | DeclIndex               | 0.33    | 4    |
-  | resolution | DeclIndex               | 0.33    | 4    |
-  | parent     | ExprIndex               | 0.33    | 4    |
-  | name2      | TextOffset              | 0.33    | 4    |
-  | specifiers | BasicSpecifiersBitfield | 0.33    | 1    |
-  | access     | AccessSort              | 0.33    | 1    |
-  | hidden     | bool                    | 0.33    | 1    |
-  |------------|-------------------------|---------|------|
+  |--------------------------------------------------------|
+  |         DeclUsingDeclaration - 0.33 (32 bytes)         |
+  |-------------|-------------------------|---------|------|
+  | Name        | Type                    | Version | Size |
+  |-------------|-------------------------|---------|------|
+  | name        | TextOffset              | 0.33    | 4    |
+  | locus       | SourceLocation          | 0.33    | 8    |
+  | home_scope  | DeclIndex               | 0.33    | 4    |
+  | resolution  | DeclIndex               | 0.33    | 4    |
+  | parent      | ExprIndex               | 0.33    | 4    |
+  | name2       | TextOffset              | 0.33    | 4    |
+  | specifiers  | BasicSpecifiersBitfield | 0.33    | 1    |
+  | access      | AccessSort              | 0.33    | 1    |
+  | hidden      | bool                    | 0.33    | 1    |
+  | __padding__ | uint8_t[1]              |         | 1    |
+  |-------------|-------------------------|---------|------|
 
-  |-------------------------------------------------------|
-  |        DeclUsingDeclaration - 0.41 (31 bytes)         |
-  |------------|-------------------------|---------|------|
-  | Name       | Type                    | Version | Size |
-  |------------|-------------------------|---------|------|
-  | name       | TextOffset              | 0.33    | 4    |
-  | locus      | SourceLocation          | 0.33    | 8    |
-  | home_scope | DeclIndex               | 0.41    | 4    |
-  | resolution | DeclIndex               | 0.41    | 4    |
-  | parent     | ExprIndex               | 0.33    | 4    |
-  | name2      | TextOffset              | 0.33    | 4    |
-  | specifiers | BasicSpecifiersBitfield | 0.33    | 1    |
-  | access     | AccessSort              | 0.33    | 1    |
-  | hidden     | bool                    | 0.33    | 1    |
-  |------------|-------------------------|---------|------|
-  | home_scope | DeclIndex               | 0.41    | RF   |
-  |------------|-------------------------|---------|------|
+  |--------------------------------------------------------|
+  |         DeclUsingDeclaration - 0.41 (32 bytes)         |
+  |-------------|-------------------------|---------|------|
+  | Name        | Type                    | Version | Size |
+  |-------------|-------------------------|---------|------|
+  | name        | TextOffset              | 0.33    | 4    |
+  | locus       | SourceLocation          | 0.33    | 8    |
+  | home_scope  | DeclIndex               | 0.41    | 4    |
+  | resolution  | DeclIndex               | 0.41    | 4    |
+  | parent      | ExprIndex               | 0.33    | 4    |
+  | name2       | TextOffset              | 0.33    | 4    |
+  | specifiers  | BasicSpecifiersBitfield | 0.33    | 1    |
+  | access      | AccessSort              | 0.33    | 1    |
+  | hidden      | bool                    | 0.33    | 1    |
+  | __padding__ | uint8_t[1]              |         | 1    |
+  |-------------|-------------------------|---------|------|
+  | home_scope  | DeclIndex               | 0.41    | RF   |
+  |-------------|-------------------------|---------|------|
 */
 enum an_ifc_decl_using_declaration_part : uint8_t {};
 using an_ifc_decl_using_declaration_storage =
-                                        an_ifc_decl_using_declaration_part[31];
+                                        an_ifc_decl_using_declaration_part[32];
 #if USE_MMAP_FOR_MODULES
 using an_ifc_decl_using_declaration_bytes =
                                   const an_ifc_decl_using_declaration_storage*;
@@ -7520,20 +7549,21 @@ using an_ifc_expr_call = an_ifc_Byte_buffer<an_ifc_expr_call_storage>;
 
 
 /*
-  |----------------------------------------------|
-  |          ExprCast - 0.33 (22 bytes)          |
-  |--------|--------------------|---------|------|
-  | Name   | Type               | Version | Size |
-  |--------|--------------------|---------|------|
-  | locus  | SourceLocation     | 0.33    | 8    |
-  | type   | TypeIndex          | 0.33    | 4    |
-  | source | ExprIndex          | 0.33    | 4    |
-  | target | TypeIndex          | 0.33    | 4    |
-  | op     | DyadicOperatorSort | 0.33    | 2    |
-  |--------|--------------------|---------|------|
+  |---------------------------------------------------|
+  |            ExprCast - 0.33 (24 bytes)             |
+  |-------------|--------------------|---------|------|
+  | Name        | Type               | Version | Size |
+  |-------------|--------------------|---------|------|
+  | locus       | SourceLocation     | 0.33    | 8    |
+  | type        | TypeIndex          | 0.33    | 4    |
+  | source      | ExprIndex          | 0.33    | 4    |
+  | target      | TypeIndex          | 0.33    | 4    |
+  | op          | DyadicOperatorSort | 0.33    | 2    |
+  | __padding__ | uint8_t[2]         |         | 2    |
+  |-------------|--------------------|---------|------|
 */
 enum an_ifc_expr_cast_part : uint8_t {};
-using an_ifc_expr_cast_storage = an_ifc_expr_cast_part[22];
+using an_ifc_expr_cast_storage = an_ifc_expr_cast_part[24];
 #if USE_MMAP_FOR_MODULES
 using an_ifc_expr_cast_bytes = const an_ifc_expr_cast_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
@@ -7642,34 +7672,36 @@ using an_ifc_expr_destructor_call =
 
 
 /*
-  |--------------------------------------------------|
-  |            ExprDyad - 0.33 (26 bytes)            |
-  |------------|--------------------|---------|------|
-  | Name       | Type               | Version | Size |
-  |------------|--------------------|---------|------|
-  | locus      | SourceLocation     | 0.33    | 8    |
-  | type       | TypeIndex          | 0.33    | 4    |
-  | impl       | DeclIndex          | 0.33    | 4    |
-  | argument_0 | ExprIndex          | 0.33    | 4    |
-  | argument_1 | ExprIndex          | 0.33    | 4    |
-  | assoc      | DyadicOperatorSort | 0.33    | 2    |
-  |------------|--------------------|---------|------|
+  |---------------------------------------------------|
+  |            ExprDyad - 0.33 (28 bytes)             |
+  |-------------|--------------------|---------|------|
+  | Name        | Type               | Version | Size |
+  |-------------|--------------------|---------|------|
+  | locus       | SourceLocation     | 0.33    | 8    |
+  | type        | TypeIndex          | 0.33    | 4    |
+  | impl        | DeclIndex          | 0.33    | 4    |
+  | argument_0  | ExprIndex          | 0.33    | 4    |
+  | argument_1  | ExprIndex          | 0.33    | 4    |
+  | assoc       | DyadicOperatorSort | 0.33    | 2    |
+  | __padding__ | uint8_t[2]         |         | 2    |
+  |-------------|--------------------|---------|------|
 
-  |--------------------------------------------------|
-  |            ExprDyad - 0.41 (26 bytes)            |
-  |------------|--------------------|---------|------|
-  | Name       | Type               | Version | Size |
-  |------------|--------------------|---------|------|
-  | locus      | SourceLocation     | 0.33    | 8    |
-  | type       | TypeIndex          | 0.33    | 4    |
-  | impl       | DeclIndex          | 0.41    | 4    |
-  | argument_0 | ExprIndex          | 0.33    | 4    |
-  | argument_1 | ExprIndex          | 0.33    | 4    |
-  | assoc      | DyadicOperatorSort | 0.33    | 2    |
-  |------------|--------------------|---------|------|
+  |---------------------------------------------------|
+  |            ExprDyad - 0.41 (28 bytes)             |
+  |-------------|--------------------|---------|------|
+  | Name        | Type               | Version | Size |
+  |-------------|--------------------|---------|------|
+  | locus       | SourceLocation     | 0.33    | 8    |
+  | type        | TypeIndex          | 0.33    | 4    |
+  | impl        | DeclIndex          | 0.41    | 4    |
+  | argument_0  | ExprIndex          | 0.33    | 4    |
+  | argument_1  | ExprIndex          | 0.33    | 4    |
+  | assoc       | DyadicOperatorSort | 0.33    | 2    |
+  | __padding__ | uint8_t[2]         |         | 2    |
+  |-------------|--------------------|---------|------|
 */
 enum an_ifc_expr_dyad_part : uint8_t {};
-using an_ifc_expr_dyad_storage = an_ifc_expr_dyad_part[26];
+using an_ifc_expr_dyad_storage = an_ifc_expr_dyad_part[28];
 #if USE_MMAP_FOR_MODULES
 using an_ifc_expr_dyad_bytes = const an_ifc_expr_dyad_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
@@ -7746,20 +7778,21 @@ using an_ifc_expr_expansion =
 
 
 /*
-  |---------------------------------------------|
-  |    ExprExpressionList - 0.33 (21 bytes)     |
-  |-----------|----------------|---------|------|
-  | Name      | Type           | Version | Size |
-  |-----------|----------------|---------|------|
-  | left      | SourceLocation | 0.33    | 8    |
-  | right     | SourceLocation | 0.33    | 8    |
-  | contents  | ExprIndex      | 0.33    | 4    |
-  | delimiter | DelimiterSort  | 0.33    | 1    |
-  |-----------|----------------|---------|------|
+  |-----------------------------------------------|
+  |     ExprExpressionList - 0.33 (24 bytes)      |
+  |-------------|----------------|---------|------|
+  | Name        | Type           | Version | Size |
+  |-------------|----------------|---------|------|
+  | left        | SourceLocation | 0.33    | 8    |
+  | right       | SourceLocation | 0.33    | 8    |
+  | contents    | ExprIndex      | 0.33    | 4    |
+  | delimiter   | DelimiterSort  | 0.33    | 1    |
+  | __padding__ | uint8_t[3]     |         | 3    |
+  |-------------|----------------|---------|------|
 */
 enum an_ifc_expr_expression_list_part : uint8_t {};
 using an_ifc_expr_expression_list_storage =
-                                          an_ifc_expr_expression_list_part[21];
+                                          an_ifc_expr_expression_list_part[24];
 #if USE_MMAP_FOR_MODULES
 using an_ifc_expr_expression_list_bytes =
                                     const an_ifc_expr_expression_list_storage*;
@@ -7796,7 +7829,7 @@ using an_ifc_expr_function_string =
 
 /*
   |---------------------------------------------------|
-  |     ExprHierarchyConversion - 0.33 (30 bytes)     |
+  |     ExprHierarchyConversion - 0.33 (32 bytes)     |
   |-------------|--------------------|---------|------|
   | Name        | Type               | Version | Size |
   |-------------|--------------------|---------|------|
@@ -7807,11 +7840,12 @@ using an_ifc_expr_function_string =
   | inheritance | ExprIndex          | 0.33    | 4    |
   | override    | ExprIndex          | 0.33    | 4    |
   | op          | DyadicOperatorSort | 0.33    | 2    |
+  | __padding__ | uint8_t[2]         |         | 2    |
   |-------------|--------------------|---------|------|
 */
 enum an_ifc_expr_hierarchy_conversion_part : uint8_t {};
 using an_ifc_expr_hierarchy_conversion_storage =
-                                     an_ifc_expr_hierarchy_conversion_part[30];
+                                     an_ifc_expr_hierarchy_conversion_part[32];
 #if USE_MMAP_FOR_MODULES
 using an_ifc_expr_hierarchy_conversion_bytes =
                                const an_ifc_expr_hierarchy_conversion_storage*;
@@ -8005,32 +8039,34 @@ using an_ifc_expr_member_initializer =
 
 
 /*
-  |-------------------------------------------------|
-  |           ExprMonad - 0.33 (22 bytes)           |
-  |----------|---------------------|---------|------|
-  | Name     | Type                | Version | Size |
-  |----------|---------------------|---------|------|
-  | locus    | SourceLocation      | 0.33    | 8    |
-  | type     | TypeIndex           | 0.33    | 4    |
-  | impl     | DeclIndex           | 0.33    | 4    |
-  | argument | ExprIndex           | 0.33    | 4    |
-  | assoc    | MonadicOperatorSort | 0.33    | 2    |
-  |----------|---------------------|---------|------|
+  |----------------------------------------------------|
+  |            ExprMonad - 0.33 (24 bytes)             |
+  |-------------|---------------------|---------|------|
+  | Name        | Type                | Version | Size |
+  |-------------|---------------------|---------|------|
+  | locus       | SourceLocation      | 0.33    | 8    |
+  | type        | TypeIndex           | 0.33    | 4    |
+  | impl        | DeclIndex           | 0.33    | 4    |
+  | argument    | ExprIndex           | 0.33    | 4    |
+  | assoc       | MonadicOperatorSort | 0.33    | 2    |
+  | __padding__ | uint8_t[2]          |         | 2    |
+  |-------------|---------------------|---------|------|
 
-  |-------------------------------------------------|
-  |           ExprMonad - 0.41 (22 bytes)           |
-  |----------|---------------------|---------|------|
-  | Name     | Type                | Version | Size |
-  |----------|---------------------|---------|------|
-  | locus    | SourceLocation      | 0.33    | 8    |
-  | type     | TypeIndex           | 0.33    | 4    |
-  | impl     | DeclIndex           | 0.41    | 4    |
-  | argument | ExprIndex           | 0.33    | 4    |
-  | assoc    | MonadicOperatorSort | 0.33    | 2    |
-  |----------|---------------------|---------|------|
+  |----------------------------------------------------|
+  |            ExprMonad - 0.41 (24 bytes)             |
+  |-------------|---------------------|---------|------|
+  | Name        | Type                | Version | Size |
+  |-------------|---------------------|---------|------|
+  | locus       | SourceLocation      | 0.33    | 8    |
+  | type        | TypeIndex           | 0.33    | 4    |
+  | impl        | DeclIndex           | 0.41    | 4    |
+  | argument    | ExprIndex           | 0.33    | 4    |
+  | assoc       | MonadicOperatorSort | 0.33    | 2    |
+  | __padding__ | uint8_t[2]          |         | 2    |
+  |-------------|---------------------|---------|------|
 */
 enum an_ifc_expr_monad_part : uint8_t {};
-using an_ifc_expr_monad_storage = an_ifc_expr_monad_part[22];
+using an_ifc_expr_monad_storage = an_ifc_expr_monad_part[24];
 #if USE_MMAP_FOR_MODULES
 using an_ifc_expr_monad_bytes = const an_ifc_expr_monad_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
@@ -8254,19 +8290,20 @@ using an_ifc_expr_qualified_name =
 
 
 /*
-  |-----------------------------------------------|
-  |          ExprRead - 0.33 (17 bytes)           |
-  |---------|--------------------|---------|------|
-  | Name    | Type               | Version | Size |
-  |---------|--------------------|---------|------|
-  | locus   | SourceLocation     | 0.33    | 8    |
-  | type    | TypeIndex          | 0.33    | 4    |
-  | address | ExprIndex          | 0.33    | 4    |
-  | sort    | ReadConversionSort | 0.33    | 1    |
-  |---------|--------------------|---------|------|
+  |---------------------------------------------------|
+  |            ExprRead - 0.33 (20 bytes)             |
+  |-------------|--------------------|---------|------|
+  | Name        | Type               | Version | Size |
+  |-------------|--------------------|---------|------|
+  | locus       | SourceLocation     | 0.33    | 8    |
+  | type        | TypeIndex          | 0.33    | 4    |
+  | address     | ExprIndex          | 0.33    | 4    |
+  | sort        | ReadConversionSort | 0.33    | 1    |
+  | __padding__ | uint8_t[3]         |         | 3    |
+  |-------------|--------------------|---------|------|
 */
 enum an_ifc_expr_read_part : uint8_t {};
-using an_ifc_expr_read_storage = an_ifc_expr_read_part[17];
+using an_ifc_expr_read_storage = an_ifc_expr_read_part[20];
 #if USE_MMAP_FOR_MODULES
 using an_ifc_expr_read_bytes = const an_ifc_expr_read_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
@@ -8583,36 +8620,38 @@ using an_ifc_expr_tokens = an_ifc_Byte_buffer<an_ifc_expr_tokens_storage>;
 
 
 /*
-  |---------------------------------------------------|
-  |            ExprTriad - 0.33 (30 bytes)            |
-  |------------|---------------------|---------|------|
-  | Name       | Type                | Version | Size |
-  |------------|---------------------|---------|------|
-  | locus      | SourceLocation      | 0.33    | 8    |
-  | type       | TypeIndex           | 0.33    | 4    |
-  | impl       | DeclIndex           | 0.33    | 4    |
-  | argument_0 | ExprIndex           | 0.33    | 4    |
-  | argument_1 | ExprIndex           | 0.33    | 4    |
-  | argument_2 | ExprIndex           | 0.33    | 4    |
-  | assoc      | TriadicOperatorSort | 0.33    | 2    |
-  |------------|---------------------|---------|------|
+  |----------------------------------------------------|
+  |            ExprTriad - 0.33 (32 bytes)             |
+  |-------------|---------------------|---------|------|
+  | Name        | Type                | Version | Size |
+  |-------------|---------------------|---------|------|
+  | locus       | SourceLocation      | 0.33    | 8    |
+  | type        | TypeIndex           | 0.33    | 4    |
+  | impl        | DeclIndex           | 0.33    | 4    |
+  | argument_0  | ExprIndex           | 0.33    | 4    |
+  | argument_1  | ExprIndex           | 0.33    | 4    |
+  | argument_2  | ExprIndex           | 0.33    | 4    |
+  | assoc       | TriadicOperatorSort | 0.33    | 2    |
+  | __padding__ | uint8_t[2]          |         | 2    |
+  |-------------|---------------------|---------|------|
 
-  |---------------------------------------------------|
-  |            ExprTriad - 0.41 (30 bytes)            |
-  |------------|---------------------|---------|------|
-  | Name       | Type                | Version | Size |
-  |------------|---------------------|---------|------|
-  | locus      | SourceLocation      | 0.33    | 8    |
-  | type       | TypeIndex           | 0.33    | 4    |
-  | impl       | DeclIndex           | 0.41    | 4    |
-  | argument_0 | ExprIndex           | 0.33    | 4    |
-  | argument_1 | ExprIndex           | 0.33    | 4    |
-  | argument_2 | ExprIndex           | 0.33    | 4    |
-  | assoc      | TriadicOperatorSort | 0.33    | 2    |
-  |------------|---------------------|---------|------|
+  |----------------------------------------------------|
+  |            ExprTriad - 0.41 (32 bytes)             |
+  |-------------|---------------------|---------|------|
+  | Name        | Type                | Version | Size |
+  |-------------|---------------------|---------|------|
+  | locus       | SourceLocation      | 0.33    | 8    |
+  | type        | TypeIndex           | 0.33    | 4    |
+  | impl        | DeclIndex           | 0.41    | 4    |
+  | argument_0  | ExprIndex           | 0.33    | 4    |
+  | argument_1  | ExprIndex           | 0.33    | 4    |
+  | argument_2  | ExprIndex           | 0.33    | 4    |
+  | assoc       | TriadicOperatorSort | 0.33    | 2    |
+  | __padding__ | uint8_t[2]          |         | 2    |
+  |-------------|---------------------|---------|------|
 */
 enum an_ifc_expr_triad_part : uint8_t {};
-using an_ifc_expr_triad_storage = an_ifc_expr_triad_part[30];
+using an_ifc_expr_triad_storage = an_ifc_expr_triad_part[32];
 #if USE_MMAP_FOR_MODULES
 using an_ifc_expr_triad_bytes = const an_ifc_expr_triad_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
@@ -8665,20 +8704,21 @@ using an_ifc_expr_type = an_ifc_Byte_buffer<an_ifc_expr_type_storage>;
 
 
 /*
-  |-----------------------------------------------|
-  |   ExprTypeTraitIntrinsic - 0.33 (18 bytes)    |
-  |-----------|------------------|---------|------|
-  | Name      | Type             | Version | Size |
-  |-----------|------------------|---------|------|
-  | locus     | SourceLocation   | 0.33    | 8    |
-  | type      | TypeIndex        | 0.33    | 4    |
-  | arguments | TypeIndex        | 0.33    | 4    |
-  | intrinsic | OperatorCategory | 0.33    | 2    |
-  |-----------|------------------|---------|------|
+  |-------------------------------------------------|
+  |    ExprTypeTraitIntrinsic - 0.33 (20 bytes)     |
+  |-------------|------------------|---------|------|
+  | Name        | Type             | Version | Size |
+  |-------------|------------------|---------|------|
+  | locus       | SourceLocation   | 0.33    | 8    |
+  | type        | TypeIndex        | 0.33    | 4    |
+  | arguments   | TypeIndex        | 0.33    | 4    |
+  | intrinsic   | OperatorCategory | 0.33    | 2    |
+  | __padding__ | uint8_t[2]       |         | 2    |
+  |-------------|------------------|---------|------|
 */
 enum an_ifc_expr_type_trait_intrinsic_part : uint8_t {};
 using an_ifc_expr_type_trait_intrinsic_storage =
-                                     an_ifc_expr_type_trait_intrinsic_part[18];
+                                     an_ifc_expr_type_trait_intrinsic_part[20];
 #if USE_MMAP_FOR_MODULES
 using an_ifc_expr_type_trait_intrinsic_bytes =
                                const an_ifc_expr_type_trait_intrinsic_storage*;
@@ -8713,7 +8753,7 @@ using an_ifc_expr_typeid = an_ifc_Byte_buffer<an_ifc_expr_typeid_storage>;
 
 /*
   |-----------------------------------------------------|
-  |           ExprUnaryFold - 0.33 (19 bytes)           |
+  |           ExprUnaryFold - 0.33 (20 bytes)           |
   |---------------|--------------------|---------|------|
   | Name          | Type               | Version | Size |
   |---------------|--------------------|---------|------|
@@ -8722,10 +8762,11 @@ using an_ifc_expr_typeid = an_ifc_Byte_buffer<an_ifc_expr_typeid_storage>;
   | expr          | ExprIndex          | 0.33    | 4    |
   | operation     | DyadicOperatorSort | 0.33    | 2    |
   | associativity | Associativity      | 0.33    | 1    |
+  | __padding__   | uint8_t[1]         |         | 1    |
   |---------------|--------------------|---------|------|
 */
 enum an_ifc_expr_unary_fold_part : uint8_t {};
-using an_ifc_expr_unary_fold_storage = an_ifc_expr_unary_fold_part[19];
+using an_ifc_expr_unary_fold_storage = an_ifc_expr_unary_fold_part[20];
 #if USE_MMAP_FOR_MODULES
 using an_ifc_expr_unary_fold_bytes = const an_ifc_expr_unary_fold_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
@@ -8962,18 +9003,19 @@ using an_ifc_form_number = an_ifc_Byte_buffer<an_ifc_form_number_storage>;
 
 
 /*
-  |----------------------------------------------|
-  |        FormOperator - 0.33 (14 bytes)        |
-  |----------|------------------|---------|------|
-  | Name     | Type             | Version | Size |
-  |----------|------------------|---------|------|
-  | locus    | SourceLocation   | 0.33    | 8    |
-  | spelling | TextOffset       | 0.33    | 4    |
-  | op       | FormOperatorSort | 0.33    | 2    |
-  |----------|------------------|---------|------|
+  |-------------------------------------------------|
+  |         FormOperator - 0.33 (16 bytes)          |
+  |-------------|------------------|---------|------|
+  | Name        | Type             | Version | Size |
+  |-------------|------------------|---------|------|
+  | locus       | SourceLocation   | 0.33    | 8    |
+  | spelling    | TextOffset       | 0.33    | 4    |
+  | op          | FormOperatorSort | 0.33    | 2    |
+  | __padding__ | uint8_t[2]       |         | 2    |
+  |-------------|------------------|---------|------|
 */
 enum an_ifc_form_operator_part : uint8_t {};
-using an_ifc_form_operator_storage = an_ifc_form_operator_part[14];
+using an_ifc_form_operator_storage = an_ifc_form_operator_part[16];
 #if USE_MMAP_FOR_MODULES
 using an_ifc_form_operator_bytes = const an_ifc_form_operator_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
@@ -9495,17 +9537,18 @@ using an_ifc_name_literal = an_ifc_Byte_buffer<an_ifc_name_literal_storage>;
 
 
 /*
-  |----------------------------------------------|
-  |        NameOperator - 0.33 (6 bytes)         |
-  |----------|------------------|---------|------|
-  | Name     | Type             | Version | Size |
-  |----------|------------------|---------|------|
-  | encoded  | TextOffset       | 0.33    | 4    |
-  | operator | OperatorCategory | 0.33    | 2    |
-  |----------|------------------|---------|------|
+  |-------------------------------------------------|
+  |          NameOperator - 0.33 (8 bytes)          |
+  |-------------|------------------|---------|------|
+  | Name        | Type             | Version | Size |
+  |-------------|------------------|---------|------|
+  | encoded     | TextOffset       | 0.33    | 4    |
+  | operator    | OperatorCategory | 0.33    | 2    |
+  | __padding__ | uint8_t[2]       |         | 2    |
+  |-------------|------------------|---------|------|
 */
 enum an_ifc_name_operator_part : uint8_t {};
-using an_ifc_name_operator_storage = an_ifc_name_operator_part[6];
+using an_ifc_name_operator_storage = an_ifc_name_operator_part[8];
 #if USE_MMAP_FOR_MODULES
 using an_ifc_name_operator_bytes = const an_ifc_name_operator_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
@@ -9668,7 +9711,7 @@ using an_ifc_source_sentence =
 
 /*
   |-----------------------------------------------|
-  |         SourceWord - 0.33 (23 bytes)          |
+  |         SourceWord - 0.33 (16 bytes)          |
   |-------------|----------------|---------|------|
   | Name        | Type           | Version | Size |
   |-------------|----------------|---------|------|
@@ -9676,13 +9719,13 @@ using an_ifc_source_sentence =
   | index       | Index          | 0.33    | 4    |
   | value       | u16            | 0.33    | 2    |
   | sort        | WordSort       | 0.33    | 1    |
-  | __padding__ | uint8_t[8]     |         | 8    |
+  | __padding__ | uint8_t[1]     |         | 1    |
   |-------------|----------------|---------|------|
   | category    | WordCategory   | 0.33    | RF   |
   |-------------|----------------|---------|------|
 */
 enum an_ifc_source_word_part : uint8_t {};
-using an_ifc_source_word_storage = an_ifc_source_word_part[23];
+using an_ifc_source_word_storage = an_ifc_source_word_part[16];
 #if USE_MMAP_FOR_MODULES
 using an_ifc_source_word_bytes = const an_ifc_source_word_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
@@ -10673,7 +10716,7 @@ using an_ifc_syntax_ctor_initializer =
 
 /*
   |----------------------------------------------------|
-  |      SyntaxDeclSpecifierSeq - 0.33 (29 bytes)      |
+  |      SyntaxDeclSpecifierSeq - 0.33 (32 bytes)      |
   |---------------|-------------------|---------|------|
   | Name          | Type              | Version | Size |
   |---------------|-------------------|---------|------|
@@ -10684,11 +10727,12 @@ using an_ifc_syntax_ctor_initializer =
   | declspec      | SentenceIndex     | 0.33    | 4    |
   | explicit_kw   | SyntaxIndex       | 0.33    | 4    |
   | qualifiers    | QualifierBitfield | 0.33    | 1    |
+  | __padding__   | uint8_t[3]        |         | 3    |
   |---------------|-------------------|---------|------|
 */
 enum an_ifc_syntax_decl_specifier_seq_part : uint8_t {};
 using an_ifc_syntax_decl_specifier_seq_storage =
-                                     an_ifc_syntax_decl_specifier_seq_part[29];
+                                     an_ifc_syntax_decl_specifier_seq_part[32];
 #if USE_MMAP_FOR_MODULES
 using an_ifc_syntax_decl_specifier_seq_bytes =
                                const an_ifc_syntax_decl_specifier_seq_storage*;
@@ -10726,7 +10770,7 @@ using an_ifc_syntax_declaration_statement =
 
 /*
   |-------------------------------------------------------------|
-  |             SyntaxDeclarator - 0.33 (43 bytes)              |
+  |             SyntaxDeclarator - 0.33 (44 bytes)              |
   |--------------------|-----------------------|---------|------|
   | Name               | Type                  | Version | Size |
   |--------------------|-----------------------|---------|------|
@@ -10741,10 +10785,11 @@ using an_ifc_syntax_declaration_statement =
   | qualifiers         | QualifierBitfield     | 0.33    | 1    |
   | convention         | CallingConventionSort | 0.33    | 1    |
   | callable           | bool                  | 0.33    | 1    |
+  | __padding__        | uint8_t[1]            |         | 1    |
   |--------------------|-----------------------|---------|------|
 */
 enum an_ifc_syntax_declarator_part : uint8_t {};
-using an_ifc_syntax_declarator_storage = an_ifc_syntax_declarator_part[43];
+using an_ifc_syntax_declarator_storage = an_ifc_syntax_declarator_part[44];
 #if USE_MMAP_FOR_MODULES
 using an_ifc_syntax_declarator_bytes = const an_ifc_syntax_declarator_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
@@ -11247,24 +11292,23 @@ using an_ifc_syntax_handler_seq =
 
 
 /*
-  |-------------------------------------------------------|
-  |          SyntaxIfStatement - 0.33 (48 bytes)          |
-  |---------------------|----------------|---------|------|
-  | Name                | Type           | Version | Size |
-  |---------------------|----------------|---------|------|
-  | pragma              | SentenceIndex  | 0.33    | 4    |
-  | initialization      | SyntaxIndex    | 0.33    | 4    |
-  | condition_as_syntax | SyntaxIndex    | 0.33    | 4    |
-  | condition_as_expr   | ExprIndex      | 0.33    | 4    |
-  | consequence         | SyntaxIndex    | 0.33    | 4    |
-  | alternative         | SyntaxIndex    | 0.33    | 4    |
-  | if                  | SourceLocation | 0.33    | 8    |
-  | constexpr           | SourceLocation | 0.33    | 8    |
-  | else                | SourceLocation | 0.33    | 8    |
-  |---------------------|----------------|---------|------|
+  |--------------------------------------------------|
+  |       SyntaxIfStatement - 0.33 (44 bytes)        |
+  |----------------|----------------|---------|------|
+  | Name           | Type           | Version | Size |
+  |----------------|----------------|---------|------|
+  | pragma         | SentenceIndex  | 0.33    | 4    |
+  | initialization | SyntaxIndex    | 0.33    | 4    |
+  | condition      | Index          | 0.33    | 4    |
+  | consequence    | SyntaxIndex    | 0.33    | 4    |
+  | alternative    | SyntaxIndex    | 0.33    | 4    |
+  | if             | SourceLocation | 0.33    | 8    |
+  | constexpr      | SourceLocation | 0.33    | 8    |
+  | else           | SourceLocation | 0.33    | 8    |
+  |----------------|----------------|---------|------|
 */
 enum an_ifc_syntax_if_statement_part : uint8_t {};
-using an_ifc_syntax_if_statement_storage = an_ifc_syntax_if_statement_part[48];
+using an_ifc_syntax_if_statement_storage = an_ifc_syntax_if_statement_part[44];
 #if USE_MMAP_FOR_MODULES
 using an_ifc_syntax_if_statement_bytes =
                                      const an_ifc_syntax_if_statement_storage*;
@@ -11379,7 +11423,7 @@ using an_ifc_syntax_labeled_statement =
 
 /*
   |---------------------------------------------------|
-  |     SyntaxLambdaDeclarator - 0.33 (40 bytes)      |
+  |     SyntaxLambdaDeclarator - 0.33 (48 bytes)      |
   |-----------------|----------------|---------|------|
   | Name            | Type           | Version | Size |
   |-----------------|----------------|---------|------|
@@ -11390,11 +11434,12 @@ using an_ifc_syntax_labeled_statement =
   | left_paren      | SourceLocation | 0.33    | 8    |
   | right_paren     | SourceLocation | 0.33    | 8    |
   | expander        | SourceLocation | 0.33    | 8    |
+  | __padding__     | uint8_t[8]     |         | 8    |
   |-----------------|----------------|---------|------|
 */
 enum an_ifc_syntax_lambda_declarator_part : uint8_t {};
 using an_ifc_syntax_lambda_declarator_storage =
-                                      an_ifc_syntax_lambda_declarator_part[40];
+                                      an_ifc_syntax_lambda_declarator_part[48];
 #if USE_MMAP_FOR_MODULES
 using an_ifc_syntax_lambda_declarator_bytes =
                                 const an_ifc_syntax_lambda_declarator_storage*;
@@ -11684,7 +11729,7 @@ using an_ifc_syntax_non_type_template_argument =
 
 /*
   |---------------------------------------------------|
-  |    SyntaxParameterDeclarator - 0.33 (21 bytes)    |
+  |    SyntaxParameterDeclarator - 0.33 (24 bytes)    |
   |-----------------|----------------|---------|------|
   | Name            | Type           | Version | Size |
   |-----------------|----------------|---------|------|
@@ -11693,11 +11738,12 @@ using an_ifc_syntax_non_type_template_argument =
   | default_expr    | ExprIndex      | 0.33    | 4    |
   | locus           | SourceLocation | 0.33    | 8    |
   | sort            | ParameterSort  | 0.33    | 1    |
+  | __padding__     | uint8_t[3]     |         | 3    |
   |-----------------|----------------|---------|------|
 */
 enum an_ifc_syntax_parameter_declarator_part : uint8_t {};
 using an_ifc_syntax_parameter_declarator_storage =
-                                   an_ifc_syntax_parameter_declarator_part[21];
+                                   an_ifc_syntax_parameter_declarator_part[24];
 #if USE_MMAP_FOR_MODULES
 using an_ifc_syntax_parameter_declarator_bytes =
                              const an_ifc_syntax_parameter_declarator_storage*;
@@ -11845,21 +11891,22 @@ using an_ifc_syntax_requires_clause =
 
 
 /*
-  |---------------------------------------------|
-  |   SyntaxReturnStatement - 0.33 (25 bytes)   |
-  |-----------|----------------|---------|------|
-  | Name      | Type           | Version | Size |
-  |-----------|----------------|---------|------|
-  | pragma    | SentenceIndex  | 0.33    | 4    |
-  | expr      | ExprIndex      | 0.33    | 4    |
-  | sort      | ReturnSort     | 0.33    | 1    |
-  | return    | SourceLocation | 0.33    | 8    |
-  | semicolon | SourceLocation | 0.33    | 8    |
-  |-----------|----------------|---------|------|
+  |-----------------------------------------------|
+  |    SyntaxReturnStatement - 0.33 (28 bytes)    |
+  |-------------|----------------|---------|------|
+  | Name        | Type           | Version | Size |
+  |-------------|----------------|---------|------|
+  | pragma      | SentenceIndex  | 0.33    | 4    |
+  | expr        | ExprIndex      | 0.33    | 4    |
+  | sort        | ReturnSort     | 0.33    | 1    |
+  | return      | SourceLocation | 0.33    | 8    |
+  | semicolon   | SourceLocation | 0.33    | 8    |
+  | __padding__ | uint8_t[3]     |         | 3    |
+  |-------------|----------------|---------|------|
 */
 enum an_ifc_syntax_return_statement_part : uint8_t {};
 using an_ifc_syntax_return_statement_storage =
-                                       an_ifc_syntax_return_statement_part[25];
+                                       an_ifc_syntax_return_statement_part[28];
 #if USE_MMAP_FOR_MODULES
 using an_ifc_syntax_return_statement_bytes =
                                  const an_ifc_syntax_return_statement_storage*;
@@ -12500,21 +12547,22 @@ using an_ifc_syntax_type_requirement =
 
 
 /*
-  |-------------------------------------------------|
-  |    SyntaxTypeSpecifierSeq - 0.33 (18 bytes)     |
-  |------------|-------------------|---------|------|
-  | Name       | Type              | Version | Size |
-  |------------|-------------------|---------|------|
-  | type_name  | SyntaxIndex       | 0.33    | 4    |
-  | type       | TypeIndex         | 0.33    | 4    |
-  | locus      | SourceLocation    | 0.33    | 8    |
-  | qualifiers | QualifierBitfield | 0.33    | 1    |
-  | unhashed   | bool              | 0.33    | 1    |
-  |------------|-------------------|---------|------|
+  |--------------------------------------------------|
+  |     SyntaxTypeSpecifierSeq - 0.33 (20 bytes)     |
+  |-------------|-------------------|---------|------|
+  | Name        | Type              | Version | Size |
+  |-------------|-------------------|---------|------|
+  | type_name   | SyntaxIndex       | 0.33    | 4    |
+  | type        | TypeIndex         | 0.33    | 4    |
+  | locus       | SourceLocation    | 0.33    | 8    |
+  | qualifiers  | QualifierBitfield | 0.33    | 1    |
+  | unhashed    | bool              | 0.33    | 1    |
+  | __padding__ | uint8_t[2]        |         | 2    |
+  |-------------|-------------------|---------|------|
 */
 enum an_ifc_syntax_type_specifier_seq_part : uint8_t {};
 using an_ifc_syntax_type_specifier_seq_storage =
-                                     an_ifc_syntax_type_specifier_seq_part[18];
+                                     an_ifc_syntax_type_specifier_seq_part[20];
 #if USE_MMAP_FOR_MODULES
 using an_ifc_syntax_type_specifier_seq_bytes =
                                const an_ifc_syntax_type_specifier_seq_storage*;
@@ -12579,19 +12627,20 @@ using an_ifc_syntax_type_template_parameter =
 
 
 /*
-  |-----------------------------------------------|
-  |  SyntaxTypeTraitIntrinsic - 0.33 (14 bytes)   |
-  |-----------|------------------|---------|------|
-  | Name      | Type             | Version | Size |
-  |-----------|------------------|---------|------|
-  | arguments | SyntaxIndex      | 0.33    | 4    |
-  | locus     | SourceLocation   | 0.33    | 8    |
-  | intrinsic | OperatorCategory | 0.33    | 2    |
-  |-----------|------------------|---------|------|
+  |-------------------------------------------------|
+  |   SyntaxTypeTraitIntrinsic - 0.33 (16 bytes)    |
+  |-------------|------------------|---------|------|
+  | Name        | Type             | Version | Size |
+  |-------------|------------------|---------|------|
+  | arguments   | SyntaxIndex      | 0.33    | 4    |
+  | locus       | SourceLocation   | 0.33    | 8    |
+  | intrinsic   | OperatorCategory | 0.33    | 2    |
+  | __padding__ | uint8_t[2]       |         | 2    |
+  |-------------|------------------|---------|------|
 */
 enum an_ifc_syntax_type_trait_intrinsic_part : uint8_t {};
 using an_ifc_syntax_type_trait_intrinsic_storage =
-                                   an_ifc_syntax_type_trait_intrinsic_part[14];
+                                   an_ifc_syntax_type_trait_intrinsic_part[16];
 #if USE_MMAP_FOR_MODULES
 using an_ifc_syntax_type_trait_intrinsic_bytes =
                              const an_ifc_syntax_type_trait_intrinsic_storage*;
@@ -12605,7 +12654,7 @@ using an_ifc_syntax_type_trait_intrinsic =
 
 /*
   |---------------------------------------------------|
-  |    SyntaxUnaryFoldExpression - 0.33 (42 bytes)    |
+  |    SyntaxUnaryFoldExpression - 0.33 (44 bytes)    |
   |-------------|--------------------|---------|------|
   | Name        | Type               | Version | Size |
   |-------------|--------------------|---------|------|
@@ -12616,11 +12665,12 @@ using an_ifc_syntax_type_trait_intrinsic =
   | ellipsis    | SourceLocation     | 0.33    | 8    |
   | glyph_locus | SourceLocation     | 0.33    | 8    |
   | right_paren | SourceLocation     | 0.33    | 8    |
+  | __padding__ | uint8_t[2]         |         | 2    |
   |-------------|--------------------|---------|------|
 */
 enum an_ifc_syntax_unary_fold_expression_part : uint8_t {};
 using an_ifc_syntax_unary_fold_expression_storage =
-                                  an_ifc_syntax_unary_fold_expression_part[42];
+                                  an_ifc_syntax_unary_fold_expression_part[44];
 #if USE_MMAP_FOR_MODULES
 using an_ifc_syntax_unary_fold_expression_bytes =
                             const an_ifc_syntax_unary_fold_expression_storage*;
@@ -13078,29 +13128,31 @@ using an_ifc_trait_msvc_func_params =
 
 /*
   |--------------------------------------------------|
-  |          TraitMsvcUuid - 0.33 (6 bytes)          |
+  |          TraitMsvcUuid - 0.33 (8 bytes)          |
   |--------------|------------------|---------|------|
   | Name         | Type             | Version | Size |
   |--------------|------------------|---------|------|
   | decl         | DeclIndex        | 0.33    | 4    |
   | uuid         | Uuid             | 0.33    | 2    |
+  | __padding__  | uint8_t[2]       |         | 2    |
   |--------------|------------------|---------|------|
   | encoded_decl | EncodedDeclIndex | 0.33    | RF   |
   |--------------|------------------|---------|------|
 
   |--------------------------------------------------|
-  |          TraitMsvcUuid - 0.41 (6 bytes)          |
+  |          TraitMsvcUuid - 0.41 (8 bytes)          |
   |--------------|------------------|---------|------|
   | Name         | Type             | Version | Size |
   |--------------|------------------|---------|------|
   | decl         | DeclIndex        | 0.41    | 4    |
   | uuid         | Uuid             | 0.33    | 2    |
+  | __padding__  | uint8_t[2]       |         | 2    |
   |--------------|------------------|---------|------|
   | encoded_decl | EncodedDeclIndex | 0.33    | RF   |
   |--------------|------------------|---------|------|
 */
 enum an_ifc_trait_msvc_uuid_part : uint8_t {};
-using an_ifc_trait_msvc_uuid_storage = an_ifc_trait_msvc_uuid_part[6];
+using an_ifc_trait_msvc_uuid_storage = an_ifc_trait_msvc_uuid_part[8];
 #if USE_MMAP_FOR_MODULES
 using an_ifc_trait_msvc_uuid_bytes = const an_ifc_trait_msvc_uuid_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
@@ -13239,7 +13291,7 @@ using an_ifc_type_array = an_ifc_Byte_buffer<an_ifc_type_array_storage>;
 
 /*
   |---------------------------------------------|
-  |          TypeBase - 0.33 (7 bytes)          |
+  |          TypeBase - 0.33 (8 bytes)          |
   |---------------|------------|---------|------|
   | Name          | Type       | Version | Size |
   |---------------|------------|---------|------|
@@ -13247,10 +13299,11 @@ using an_ifc_type_array = an_ifc_Byte_buffer<an_ifc_type_array_storage>;
   | access        | AccessSort | 0.33    | 1    |
   | shared        | bool       | 0.33    | 1    |
   | pack_expanded | bool       | 0.33    | 1    |
+  | __padding__   | uint8_t[1] |         | 1    |
   |---------------|------------|---------|------|
 */
 enum an_ifc_type_base_part : uint8_t {};
-using an_ifc_type_base_storage = an_ifc_type_base_part[7];
+using an_ifc_type_base_storage = an_ifc_type_base_part[8];
 #if USE_MMAP_FOR_MODULES
 using an_ifc_type_base_bytes = const an_ifc_type_base_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
@@ -13307,17 +13360,18 @@ using an_ifc_type_designated =
 
 
 /*
-  |-------------------------------------------|
-  |      TypeExpansion - 0.33 (5 bytes)       |
-  |------|-------------------|---------|------|
-  | Name | Type              | Version | Size |
-  |------|-------------------|---------|------|
-  | pack | TypeIndex         | 0.33    | 4    |
-  | mode | ExpansionModeSort | 0.33    | 1    |
-  |------|-------------------|---------|------|
+  |--------------------------------------------------|
+  |          TypeExpansion - 0.33 (8 bytes)          |
+  |-------------|-------------------|---------|------|
+  | Name        | Type              | Version | Size |
+  |-------------|-------------------|---------|------|
+  | pack        | TypeIndex         | 0.33    | 4    |
+  | mode        | ExpansionModeSort | 0.33    | 1    |
+  | __padding__ | uint8_t[3]        |         | 3    |
+  |-------------|-------------------|---------|------|
 */
 enum an_ifc_type_expansion_part : uint8_t {};
-using an_ifc_type_expansion_storage = an_ifc_type_expansion_part[5];
+using an_ifc_type_expansion_storage = an_ifc_type_expansion_part[8];
 #if USE_MMAP_FOR_MODULES
 using an_ifc_type_expansion_bytes = const an_ifc_type_expansion_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
@@ -13348,20 +13402,21 @@ using an_ifc_type_forall = an_ifc_Byte_buffer<an_ifc_type_forall_storage>;
 
 
 /*
-  |----------------------------------------------------------|
-  |              TypeFunction - 0.33 (18 bytes)              |
-  |------------|----------------------------|---------|------|
-  | Name       | Type                       | Version | Size |
-  |------------|----------------------------|---------|------|
-  | target     | TypeIndex                  | 0.33    | 4    |
-  | source     | TypeIndex                  | 0.33    | 4    |
-  | eh_spec    | NoexceptSpecification      | 0.33    | 8    |
-  | convention | CallingConventionSort      | 0.33    | 1    |
-  | traits     | FunctionTypeTraitsBitfield | 0.33    | 1    |
-  |------------|----------------------------|---------|------|
+  |-----------------------------------------------------------|
+  |              TypeFunction - 0.33 (20 bytes)               |
+  |-------------|----------------------------|---------|------|
+  | Name        | Type                       | Version | Size |
+  |-------------|----------------------------|---------|------|
+  | target      | TypeIndex                  | 0.33    | 4    |
+  | source      | TypeIndex                  | 0.33    | 4    |
+  | eh_spec     | NoexceptSpecification      | 0.33    | 8    |
+  | convention  | CallingConventionSort      | 0.33    | 1    |
+  | traits      | FunctionTypeTraitsBitfield | 0.33    | 1    |
+  | __padding__ | uint8_t[2]                 |         | 2    |
+  |-------------|----------------------------|---------|------|
 */
 enum an_ifc_type_function_part : uint8_t {};
-using an_ifc_type_function_storage = an_ifc_type_function_part[18];
+using an_ifc_type_function_storage = an_ifc_type_function_part[20];
 #if USE_MMAP_FOR_MODULES
 using an_ifc_type_function_bytes = const an_ifc_type_function_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
@@ -13417,21 +13472,22 @@ using an_ifc_type_lvalue_reference =
 
 
 /*
-  |----------------------------------------------------------|
-  |               TypeMethod - 0.33 (22 bytes)               |
-  |------------|----------------------------|---------|------|
-  | Name       | Type                       | Version | Size |
-  |------------|----------------------------|---------|------|
-  | target     | TypeIndex                  | 0.33    | 4    |
-  | source     | TypeIndex                  | 0.33    | 4    |
-  | scope      | TypeIndex                  | 0.33    | 4    |
-  | eh_spec    | NoexceptSpecification      | 0.33    | 8    |
-  | convention | CallingConventionSort      | 0.33    | 1    |
-  | traits     | FunctionTypeTraitsBitfield | 0.33    | 1    |
-  |------------|----------------------------|---------|------|
+  |-----------------------------------------------------------|
+  |               TypeMethod - 0.33 (24 bytes)                |
+  |-------------|----------------------------|---------|------|
+  | Name        | Type                       | Version | Size |
+  |-------------|----------------------------|---------|------|
+  | target      | TypeIndex                  | 0.33    | 4    |
+  | source      | TypeIndex                  | 0.33    | 4    |
+  | scope       | TypeIndex                  | 0.33    | 4    |
+  | eh_spec     | NoexceptSpecification      | 0.33    | 8    |
+  | convention  | CallingConventionSort      | 0.33    | 1    |
+  | traits      | FunctionTypeTraitsBitfield | 0.33    | 1    |
+  | __padding__ | uint8_t[2]                 |         | 2    |
+  |-------------|----------------------------|---------|------|
 */
 enum an_ifc_type_method_part : uint8_t {};
-using an_ifc_type_method_storage = an_ifc_type_method_part[22];
+using an_ifc_type_method_storage = an_ifc_type_method_part[24];
 #if USE_MMAP_FOR_MODULES
 using an_ifc_type_method_bytes = const an_ifc_type_method_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
@@ -13442,17 +13498,18 @@ using an_ifc_type_method = an_ifc_Byte_buffer<an_ifc_type_method_storage>;
 
 /*
   |----------------------------------------------|
-  |       TypePlaceholder - 0.33 (9 bytes)       |
+  |      TypePlaceholder - 0.33 (12 bytes)       |
   |-------------|---------------|---------|------|
   | Name        | Type          | Version | Size |
   |-------------|---------------|---------|------|
   | constraint  | ExprIndex     | 0.33    | 4    |
   | basis       | TypeBasisSort | 0.33    | 1    |
   | elaboration | TypeIndex     | 0.33    | 4    |
+  | __padding__ | uint8_t[3]    |         | 3    |
   |-------------|---------------|---------|------|
 */
 enum an_ifc_type_placeholder_part : uint8_t {};
-using an_ifc_type_placeholder_storage = an_ifc_type_placeholder_part[9];
+using an_ifc_type_placeholder_storage = an_ifc_type_placeholder_part[12];
 #if USE_MMAP_FOR_MODULES
 using an_ifc_type_placeholder_bytes = const an_ifc_type_placeholder_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
@@ -13507,16 +13564,17 @@ using an_ifc_type_pointer_to_member =
 
 /*
   |--------------------------------------------------|
-  |          TypeQualified - 0.33 (5 bytes)          |
+  |          TypeQualified - 0.33 (8 bytes)          |
   |-------------|-------------------|---------|------|
   | Name        | Type              | Version | Size |
   |-------------|-------------------|---------|------|
   | unqualified | TypeIndex         | 0.33    | 4    |
   | qualifiers  | QualifierBitfield | 0.33    | 1    |
+  | __padding__ | uint8_t[3]        |         | 3    |
   |-------------|-------------------|---------|------|
 */
 enum an_ifc_type_qualified_part : uint8_t {};
-using an_ifc_type_qualified_storage = an_ifc_type_qualified_part[5];
+using an_ifc_type_qualified_storage = an_ifc_type_qualified_part[8];
 #if USE_MMAP_FOR_MODULES
 using an_ifc_type_qualified_bytes = const an_ifc_type_qualified_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
@@ -13590,18 +13648,19 @@ using an_ifc_type_syntax_tree =
 
 
 /*
-  |-----------------------------------------------------|
-  |              TypeTor - 0.33 (13 bytes)              |
-  |------------|-----------------------|---------|------|
-  | Name       | Type                  | Version | Size |
-  |------------|-----------------------|---------|------|
-  | source     | TypeIndex             | 0.33    | 4    |
-  | eh_spec    | NoexceptSpecification | 0.33    | 8    |
-  | convention | CallingConventionSort | 0.33    | 1    |
-  |------------|-----------------------|---------|------|
+  |------------------------------------------------------|
+  |              TypeTor - 0.33 (16 bytes)               |
+  |-------------|-----------------------|---------|------|
+  | Name        | Type                  | Version | Size |
+  |-------------|-----------------------|---------|------|
+  | source      | TypeIndex             | 0.33    | 4    |
+  | eh_spec     | NoexceptSpecification | 0.33    | 8    |
+  | convention  | CallingConventionSort | 0.33    | 1    |
+  | __padding__ | uint8_t[3]            |         | 3    |
+  |-------------|-----------------------|---------|------|
 */
 enum an_ifc_type_tor_part : uint8_t {};
-using an_ifc_type_tor_storage = an_ifc_type_tor_part[13];
+using an_ifc_type_tor_storage = an_ifc_type_tor_part[16];
 #if USE_MMAP_FOR_MODULES
 using an_ifc_type_tor_bytes = const an_ifc_type_tor_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
