@@ -4956,24 +4956,13 @@ issue_diag is TRUE.
         pp->entry_size = entry_size;
         pp->format_validated = alloc_validation_bit_array(cardinality);
         if (entry_size != expected_entry_size) {
-          an_error_severity severity = es_error;
-
-          /* If the entry size has extra bits, just warn, we might be able
-             to recover safely, let the validation logic sort it out.
-             Otherwise, the object is too small to be safely read (from
-             disk or memory). */
-          if (entry_size > expected_entry_size) {
-            severity = es_warning;
-          }  /* if */
-          pos_st_num2_diagnostic(severity, ec_ifc_partition_bad_entry_size,
+          pos_st_num2_diagnostic(es_error, ec_ifc_partition_bad_entry_size,
                                  &midp->module_name_position,
                                  name_str, entry_size, expected_entry_size);
-          if (severity == es_error) {
-            /* Invalid all elements of the partition, this stops processing
-               of these partition elements without further diagnostics,
-               and without ending further diagnostics. */
-            invalidate_all_validation_bits(pp->format_validated, cardinality);
-          }  /* if */
+          /* Invalid all elements of the partition, this stops processing of
+             these partition elements without further diagnostics, and without
+             ending further diagnostics. */
+          invalidate_all_validation_bits(pp->format_validated, cardinality);
         }  /* if */
       }  /* if */
     }  /* for */
