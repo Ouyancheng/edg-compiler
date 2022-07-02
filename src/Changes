@@ -1,7 +1,7 @@
 Version 6.4
 
 7/1/22   [EDGcpfe/23306,EDGcpfe/24748,EDGcpfe/25063]
-Literal types an constexpr friends of class templates
+Literal types and constexpr friends of class templates
 
 Consider:
 
