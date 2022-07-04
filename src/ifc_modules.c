@@ -2053,14 +2053,6 @@ an_ifc_function_body_map
 }  /* namespace */
 
 
-template<typename an_ifc_Bitfield_type>
-static constexpr an_ifc_Bitfield_type do_bitor(const an_ifc_Bitfield_type &lhs,
-                                               const an_ifc_Bitfield_type &rhs)
-{
-  return lhs | rhs;
-}
-
-
 template<typename an_ifc_Node_type>
 static a_boolean function_is_user_defined(const an_ifc_Node_type &node)
 /*
