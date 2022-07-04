@@ -129,6 +129,12 @@ typedef struct a_char_conversion_state {
 			/* If TRUE, input is assumed to be encoded as
 			   UTF-8, regardless of the setting of
 			   curr_file_unicode_source_kind. */
+  a_byte_boolean
+		is_rescan;
+			/* If TRUE, the source is a string literal literal
+			   constant that is being rescanned, e.g., to
+			   change its literal kind during string literal
+			   concatenation. */
   char		translated_char[MAX_MULTIBYTE_CHAR_LENGTH];
 			/* When translating from UTF-8 to multibyte
 			   characters and for universal-character-names,
@@ -147,6 +153,7 @@ typedef struct a_char_conversion_state {
     (state)->create_surrogate_pairs = FALSE;                    \
     (state)->warn_on_invalid_conversion = FALSE;                \
     (state)->force_utf8 = FALSE;                                \
+    (state)->is_rescan = FALSE;                                 \
   }  /* clear_char_conversion_state */
 
 extern void conv_single_char(a_char_conversion_state_ptr state,

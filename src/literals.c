@@ -1423,12 +1423,12 @@ defines the size of character.
     /* Convert a multibyte character sequence to a wide character. */
     numch = mbc_to_wide_char(*state->next_token_char, &wc, &err, is_native);
     if (err) {
-      if (state->force_utf8) {
+      if (state->is_rescan) {
         /* This is a rescan of a previously-processed string literal, so
            presumably this character resulted from an octal or hexadecimal
            escape, not an actual extended character or universal character
            name.  Just take the single character. */
-        wc = (unsigned long)*state->next_token_char;
+        wc = (unsigned char)**state->next_token_char;
         numch = 1;
       } else {
         /* Invalid multibyte character sequence.  Report an error and
@@ -1879,6 +1879,7 @@ fewer characters than the number of bytes in the UTF-8 encoding.
   conv_state.create_surrogate_pairs = (prefix_kind == SCLK_WIDE_LITERAL ||
                                        prefix_kind == SCLK_CHAR16_T_LITERAL);
   conv_state.force_utf8 = gnu_mode && is_rescan;
+  conv_state.is_rescan = is_rescan;
 #if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
   /* Initialize for scanning multibyte characters in the string. */
   mbc_scan_init_if_multibyte_chars_in_source_enabled();
