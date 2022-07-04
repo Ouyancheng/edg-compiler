@@ -1159,8 +1159,83 @@ representation with the given indent.
     fprintf(f_debug, "name: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_specifiers(universal)) {
-    db_print_indent(indent);
-    fprintf(f_debug, "specifiers: UNIMPLEMENTED\n");
+    an_ifc_basic_specifiers_bitfield field = get_ifc_specifiers(universal);
+
+    fprintf(f_debug, "specifiers:\n");
+    ++indent;
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_c>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "C:                      %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_cxx>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Cxx:                    %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_deprecated>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Deprecated:             %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_external>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "External:               %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_initialized_in_class>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "InitializedInClass:     %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_internal>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Internal:               %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_is_member_of_global_module>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "IsMemberOfGlobalModule: %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_non_exported>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "NonExported:            %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_vague>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Vague:                  %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    --indent;
   }  /* if */
   if (has_ifc_type(universal)) {
     an_ifc_type_index field = get_ifc_type(universal);
@@ -1231,16 +1306,188 @@ representation with the given indent.
     fprintf(f_debug, "name: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_properties(universal)) {
-    db_print_indent(indent);
-    fprintf(f_debug, "properties: UNIMPLEMENTED\n");
+    an_ifc_reachable_properties_bitfield field = get_ifc_properties(universal);
+
+    fprintf(f_debug, "properties:\n");
+    ++indent;
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_rpb_all>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "All:              %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_rpb_attributes>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Attributes:       %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_rpb_default_arguments>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "DefaultArguments: %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_rpb_initializer>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Initializer:      %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_rpb_none>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "None:             %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    --indent;
   }  /* if */
   if (has_ifc_specifiers(universal)) {
-    db_print_indent(indent);
-    fprintf(f_debug, "specifiers: UNIMPLEMENTED\n");
+    an_ifc_basic_specifiers_bitfield field = get_ifc_specifiers(universal);
+
+    fprintf(f_debug, "specifiers:\n");
+    ++indent;
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_c>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "C:                      %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_cxx>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Cxx:                    %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_deprecated>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Deprecated:             %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_external>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "External:               %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_initialized_in_class>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "InitializedInClass:     %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_internal>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Internal:               %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_is_member_of_global_module>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "IsMemberOfGlobalModule: %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_non_exported>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "NonExported:            %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_vague>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Vague:                  %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    --indent;
   }  /* if */
   if (has_ifc_traits(universal)) {
-    db_print_indent(indent);
-    fprintf(f_debug, "traits: UNIMPLEMENTED\n");
+    an_ifc_object_traits_bitfield field = get_ifc_traits(universal);
+
+    fprintf(f_debug, "traits:\n");
+    ++indent;
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_otb_constexpr>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Constexpr:           %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_otb_initializer_exported>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "InitializerExported: %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_otb_inline>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Inline:              %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_otb_mutable>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Mutable:             %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_otb_none>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "None:                %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_otb_thread_local>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "ThreadLocal:         %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_otb_vendor>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Vendor:              %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    --indent;
   }  /* if */
   if (has_ifc_type(universal)) {
     an_ifc_type_index field = get_ifc_type(universal);
@@ -1343,8 +1590,83 @@ representation with the given indent.
     fprintf(f_debug, "name: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_specifiers(universal)) {
-    db_print_indent(indent);
-    fprintf(f_debug, "specifiers: UNIMPLEMENTED\n");
+    an_ifc_basic_specifiers_bitfield field = get_ifc_specifiers(universal);
+
+    fprintf(f_debug, "specifiers:\n");
+    ++indent;
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_c>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "C:                      %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_cxx>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Cxx:                    %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_deprecated>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Deprecated:             %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_external>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "External:               %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_initialized_in_class>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "InitializedInClass:     %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_internal>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Internal:               %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_is_member_of_global_module>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "IsMemberOfGlobalModule: %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_non_exported>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "NonExported:            %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_vague>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Vague:                  %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    --indent;
   }  /* if */
   if (has_ifc_type(universal)) {
     an_ifc_type_index field = get_ifc_type(universal);
@@ -1425,16 +1747,216 @@ textual representation with the given indent.
     fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_properties(universal)) {
-    db_print_indent(indent);
-    fprintf(f_debug, "properties: UNIMPLEMENTED\n");
+    an_ifc_reachable_properties_bitfield field = get_ifc_properties(universal);
+
+    fprintf(f_debug, "properties:\n");
+    ++indent;
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_rpb_all>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "All:              %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_rpb_attributes>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Attributes:       %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_rpb_default_arguments>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "DefaultArguments: %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_rpb_initializer>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Initializer:      %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_rpb_none>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "None:             %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    --indent;
   }  /* if */
   if (has_ifc_specifiers(universal)) {
-    db_print_indent(indent);
-    fprintf(f_debug, "specifiers: UNIMPLEMENTED\n");
+    an_ifc_basic_specifiers_bitfield field = get_ifc_specifiers(universal);
+
+    fprintf(f_debug, "specifiers:\n");
+    ++indent;
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_c>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "C:                      %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_cxx>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Cxx:                    %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_deprecated>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Deprecated:             %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_external>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "External:               %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_initialized_in_class>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "InitializedInClass:     %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_internal>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Internal:               %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_is_member_of_global_module>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "IsMemberOfGlobalModule: %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_non_exported>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "NonExported:            %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_vague>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Vague:                  %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    --indent;
   }  /* if */
   if (has_ifc_traits(universal)) {
-    db_print_indent(indent);
-    fprintf(f_debug, "traits: UNIMPLEMENTED\n");
+    an_ifc_function_traits_bitfield field = get_ifc_traits(universal);
+
+    fprintf(f_debug, "traits:\n");
+    ++indent;
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_ftb_constexpr>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Constexpr:    %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_ftb_constrained>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Constrained:  %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_ftb_defaulted>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Defaulted:    %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_ftb_deleted>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Deleted:      %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_ftb_explicit>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Explicit:     %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_ftb_hidden_friend>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "HiddenFriend: %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_ftb_immediate>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Immediate:    %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_ftb_inline>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Inline:       %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_ftb_no_return>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "NoReturn:     %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_ftb_none>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "None:         %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_ftb_pure_virtual>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "PureVirtual:  %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_ftb_virtual>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Virtual:      %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    --indent;
   }  /* if */
   if (has_ifc_type(universal)) {
     an_ifc_type_index field = get_ifc_type(universal);
@@ -1499,8 +2021,83 @@ textual representation with the given indent.
     fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_specifiers(universal)) {
-    db_print_indent(indent);
-    fprintf(f_debug, "specifiers: UNIMPLEMENTED\n");
+    an_ifc_basic_specifiers_bitfield field = get_ifc_specifiers(universal);
+
+    fprintf(f_debug, "specifiers:\n");
+    ++indent;
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_c>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "C:                      %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_cxx>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Cxx:                    %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_deprecated>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Deprecated:             %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_external>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "External:               %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_initialized_in_class>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "InitializedInClass:     %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_internal>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Internal:               %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_is_member_of_global_module>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "IsMemberOfGlobalModule: %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_non_exported>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "NonExported:            %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_vague>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Vague:                  %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    --indent;
   }  /* if */
   if (has_ifc_target(universal)) {
     an_ifc_expr_index field = get_ifc_target(universal);
@@ -1584,16 +2181,216 @@ textual representation with the given indent.
     fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_properties(universal)) {
-    db_print_indent(indent);
-    fprintf(f_debug, "properties: UNIMPLEMENTED\n");
+    an_ifc_reachable_properties_bitfield field = get_ifc_properties(universal);
+
+    fprintf(f_debug, "properties:\n");
+    ++indent;
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_rpb_all>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "All:              %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_rpb_attributes>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Attributes:       %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_rpb_default_arguments>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "DefaultArguments: %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_rpb_initializer>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Initializer:      %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_rpb_none>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "None:             %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    --indent;
   }  /* if */
   if (has_ifc_specifiers(universal)) {
-    db_print_indent(indent);
-    fprintf(f_debug, "specifiers: UNIMPLEMENTED\n");
+    an_ifc_basic_specifiers_bitfield field = get_ifc_specifiers(universal);
+
+    fprintf(f_debug, "specifiers:\n");
+    ++indent;
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_c>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "C:                      %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_cxx>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Cxx:                    %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_deprecated>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Deprecated:             %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_external>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "External:               %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_initialized_in_class>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "InitializedInClass:     %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_internal>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Internal:               %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_is_member_of_global_module>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "IsMemberOfGlobalModule: %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_non_exported>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "NonExported:            %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_vague>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Vague:                  %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    --indent;
   }  /* if */
   if (has_ifc_traits(universal)) {
-    db_print_indent(indent);
-    fprintf(f_debug, "traits: UNIMPLEMENTED\n");
+    an_ifc_function_traits_bitfield field = get_ifc_traits(universal);
+
+    fprintf(f_debug, "traits:\n");
+    ++indent;
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_ftb_constexpr>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Constexpr:    %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_ftb_constrained>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Constrained:  %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_ftb_defaulted>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Defaulted:    %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_ftb_deleted>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Deleted:      %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_ftb_explicit>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Explicit:     %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_ftb_hidden_friend>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "HiddenFriend: %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_ftb_immediate>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Immediate:    %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_ftb_inline>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Inline:       %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_ftb_no_return>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "NoReturn:     %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_ftb_none>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "None:         %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_ftb_pure_virtual>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "PureVirtual:  %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_ftb_virtual>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Virtual:      %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    --indent;
   }  /* if */
 }  /* db_node */
 
@@ -1671,12 +2468,125 @@ textual representation with the given indent.
     fprintf(f_debug, "name: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_properties(universal)) {
-    db_print_indent(indent);
-    fprintf(f_debug, "properties: UNIMPLEMENTED\n");
+    an_ifc_reachable_properties_bitfield field = get_ifc_properties(universal);
+
+    fprintf(f_debug, "properties:\n");
+    ++indent;
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_rpb_all>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "All:              %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_rpb_attributes>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Attributes:       %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_rpb_default_arguments>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "DefaultArguments: %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_rpb_initializer>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Initializer:      %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_rpb_none>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "None:             %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    --indent;
   }  /* if */
   if (has_ifc_specifiers(universal)) {
-    db_print_indent(indent);
-    fprintf(f_debug, "specifiers: UNIMPLEMENTED\n");
+    an_ifc_basic_specifiers_bitfield field = get_ifc_specifiers(universal);
+
+    fprintf(f_debug, "specifiers:\n");
+    ++indent;
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_c>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "C:                      %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_cxx>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Cxx:                    %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_deprecated>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Deprecated:             %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_external>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "External:               %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_initialized_in_class>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "InitializedInClass:     %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_internal>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Internal:               %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_is_member_of_global_module>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "IsMemberOfGlobalModule: %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_non_exported>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "NonExported:            %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_vague>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Vague:                  %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    --indent;
   }  /* if */
   if (has_ifc_type(universal)) {
     an_ifc_type_index field = get_ifc_type(universal);
@@ -1747,8 +2657,83 @@ textual representation with the given indent.
     fprintf(f_debug, "name: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_specifiers(universal)) {
-    db_print_indent(indent);
-    fprintf(f_debug, "specifiers: UNIMPLEMENTED\n");
+    an_ifc_basic_specifiers_bitfield field = get_ifc_specifiers(universal);
+
+    fprintf(f_debug, "specifiers:\n");
+    ++indent;
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_c>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "C:                      %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_cxx>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Cxx:                    %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_deprecated>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Deprecated:             %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_external>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "External:               %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_initialized_in_class>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "InitializedInClass:     %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_internal>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Internal:               %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_is_member_of_global_module>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "IsMemberOfGlobalModule: %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_non_exported>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "NonExported:            %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_vague>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Vague:                  %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    --indent;
   }  /* if */
   if (has_ifc_type(universal)) {
     an_ifc_type_index field = get_ifc_type(universal);
@@ -1937,16 +2922,188 @@ representation with the given indent.
     fprintf(f_debug, "name: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_properties(universal)) {
-    db_print_indent(indent);
-    fprintf(f_debug, "properties: UNIMPLEMENTED\n");
+    an_ifc_reachable_properties_bitfield field = get_ifc_properties(universal);
+
+    fprintf(f_debug, "properties:\n");
+    ++indent;
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_rpb_all>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "All:              %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_rpb_attributes>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Attributes:       %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_rpb_default_arguments>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "DefaultArguments: %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_rpb_initializer>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Initializer:      %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_rpb_none>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "None:             %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    --indent;
   }  /* if */
   if (has_ifc_specifiers(universal)) {
-    db_print_indent(indent);
-    fprintf(f_debug, "specifiers: UNIMPLEMENTED\n");
+    an_ifc_basic_specifiers_bitfield field = get_ifc_specifiers(universal);
+
+    fprintf(f_debug, "specifiers:\n");
+    ++indent;
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_c>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "C:                      %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_cxx>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Cxx:                    %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_deprecated>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Deprecated:             %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_external>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "External:               %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_initialized_in_class>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "InitializedInClass:     %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_internal>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Internal:               %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_is_member_of_global_module>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "IsMemberOfGlobalModule: %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_non_exported>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "NonExported:            %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_vague>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Vague:                  %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    --indent;
   }  /* if */
   if (has_ifc_traits(universal)) {
-    db_print_indent(indent);
-    fprintf(f_debug, "traits: UNIMPLEMENTED\n");
+    an_ifc_object_traits_bitfield field = get_ifc_traits(universal);
+
+    fprintf(f_debug, "traits:\n");
+    ++indent;
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_otb_constexpr>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Constexpr:           %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_otb_initializer_exported>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "InitializerExported: %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_otb_inline>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Inline:              %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_otb_mutable>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Mutable:             %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_otb_none>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "None:                %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_otb_thread_local>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "ThreadLocal:         %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_otb_vendor>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Vendor:              %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    --indent;
   }  /* if */
   if (has_ifc_type(universal)) {
     an_ifc_type_index field = get_ifc_type(universal);
@@ -2050,16 +3207,216 @@ representation with the given indent.
     fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_properties(universal)) {
-    db_print_indent(indent);
-    fprintf(f_debug, "properties: UNIMPLEMENTED\n");
+    an_ifc_reachable_properties_bitfield field = get_ifc_properties(universal);
+
+    fprintf(f_debug, "properties:\n");
+    ++indent;
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_rpb_all>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "All:              %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_rpb_attributes>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Attributes:       %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_rpb_default_arguments>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "DefaultArguments: %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_rpb_initializer>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Initializer:      %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_rpb_none>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "None:             %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    --indent;
   }  /* if */
   if (has_ifc_specifiers(universal)) {
-    db_print_indent(indent);
-    fprintf(f_debug, "specifiers: UNIMPLEMENTED\n");
+    an_ifc_basic_specifiers_bitfield field = get_ifc_specifiers(universal);
+
+    fprintf(f_debug, "specifiers:\n");
+    ++indent;
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_c>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "C:                      %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_cxx>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Cxx:                    %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_deprecated>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Deprecated:             %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_external>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "External:               %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_initialized_in_class>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "InitializedInClass:     %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_internal>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Internal:               %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_is_member_of_global_module>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "IsMemberOfGlobalModule: %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_non_exported>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "NonExported:            %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_vague>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Vague:                  %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    --indent;
   }  /* if */
   if (has_ifc_traits(universal)) {
-    db_print_indent(indent);
-    fprintf(f_debug, "traits: UNIMPLEMENTED\n");
+    an_ifc_function_traits_bitfield field = get_ifc_traits(universal);
+
+    fprintf(f_debug, "traits:\n");
+    ++indent;
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_ftb_constexpr>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Constexpr:    %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_ftb_constrained>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Constrained:  %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_ftb_defaulted>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Defaulted:    %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_ftb_deleted>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Deleted:      %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_ftb_explicit>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Explicit:     %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_ftb_hidden_friend>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "HiddenFriend: %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_ftb_immediate>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Immediate:    %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_ftb_inline>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Inline:       %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_ftb_no_return>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "NoReturn:     %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_ftb_none>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "None:         %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_ftb_pure_virtual>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "PureVirtual:  %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_ftb_virtual>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Virtual:      %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    --indent;
   }  /* if */
   if (has_ifc_type(universal)) {
     an_ifc_type_index field = get_ifc_type(universal);
@@ -2141,12 +3498,174 @@ diagnostic textual representation with the given indent.
     fprintf(f_debug, "name: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_specifiers(universal)) {
-    db_print_indent(indent);
-    fprintf(f_debug, "specifiers: UNIMPLEMENTED\n");
+    an_ifc_basic_specifiers_bitfield field = get_ifc_specifiers(universal);
+
+    fprintf(f_debug, "specifiers:\n");
+    ++indent;
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_c>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "C:                      %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_cxx>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Cxx:                    %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_deprecated>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Deprecated:             %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_external>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "External:               %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_initialized_in_class>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "InitializedInClass:     %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_internal>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Internal:               %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_is_member_of_global_module>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "IsMemberOfGlobalModule: %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_non_exported>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "NonExported:            %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_vague>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Vague:                  %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    --indent;
   }  /* if */
   if (has_ifc_traits(universal)) {
-    db_print_indent(indent);
-    fprintf(f_debug, "traits: UNIMPLEMENTED\n");
+    an_ifc_function_traits_bitfield field = get_ifc_traits(universal);
+
+    fprintf(f_debug, "traits:\n");
+    ++indent;
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_ftb_constexpr>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Constexpr:    %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_ftb_constrained>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Constrained:  %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_ftb_defaulted>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Defaulted:    %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_ftb_deleted>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Deleted:      %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_ftb_explicit>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Explicit:     %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_ftb_hidden_friend>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "HiddenFriend: %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_ftb_immediate>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Immediate:    %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_ftb_inline>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Inline:       %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_ftb_no_return>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "NoReturn:     %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_ftb_none>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "None:         %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_ftb_pure_virtual>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "PureVirtual:  %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_ftb_virtual>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Virtual:      %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    --indent;
   }  /* if */
   if (has_ifc_type(universal)) {
     an_ifc_type_index field = get_ifc_type(universal);
@@ -2207,8 +3726,83 @@ representation with the given indent.
     fprintf(f_debug, "name: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_specifiers(universal)) {
-    db_print_indent(indent);
-    fprintf(f_debug, "specifiers: UNIMPLEMENTED\n");
+    an_ifc_basic_specifiers_bitfield field = get_ifc_specifiers(universal);
+
+    fprintf(f_debug, "specifiers:\n");
+    ++indent;
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_c>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "C:                      %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_cxx>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Cxx:                    %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_deprecated>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Deprecated:             %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_external>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "External:               %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_initialized_in_class>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "InitializedInClass:     %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_internal>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Internal:               %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_is_member_of_global_module>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "IsMemberOfGlobalModule: %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_non_exported>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "NonExported:            %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_vague>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Vague:                  %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    --indent;
   }  /* if */
   if (has_ifc_type(universal)) {
     an_ifc_type_index field = get_ifc_type(universal);
@@ -2283,16 +3877,216 @@ representation with the given indent.
     fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_properties(universal)) {
-    db_print_indent(indent);
-    fprintf(f_debug, "properties: UNIMPLEMENTED\n");
+    an_ifc_reachable_properties_bitfield field = get_ifc_properties(universal);
+
+    fprintf(f_debug, "properties:\n");
+    ++indent;
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_rpb_all>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "All:              %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_rpb_attributes>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Attributes:       %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_rpb_default_arguments>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "DefaultArguments: %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_rpb_initializer>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Initializer:      %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_rpb_none>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "None:             %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    --indent;
   }  /* if */
   if (has_ifc_specifiers(universal)) {
-    db_print_indent(indent);
-    fprintf(f_debug, "specifiers: UNIMPLEMENTED\n");
+    an_ifc_basic_specifiers_bitfield field = get_ifc_specifiers(universal);
+
+    fprintf(f_debug, "specifiers:\n");
+    ++indent;
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_c>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "C:                      %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_cxx>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Cxx:                    %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_deprecated>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Deprecated:             %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_external>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "External:               %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_initialized_in_class>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "InitializedInClass:     %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_internal>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Internal:               %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_is_member_of_global_module>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "IsMemberOfGlobalModule: %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_non_exported>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "NonExported:            %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_vague>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Vague:                  %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    --indent;
   }  /* if */
   if (has_ifc_traits(universal)) {
-    db_print_indent(indent);
-    fprintf(f_debug, "traits: UNIMPLEMENTED\n");
+    an_ifc_function_traits_bitfield field = get_ifc_traits(universal);
+
+    fprintf(f_debug, "traits:\n");
+    ++indent;
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_ftb_constexpr>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Constexpr:    %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_ftb_constrained>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Constrained:  %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_ftb_defaulted>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Defaulted:    %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_ftb_deleted>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Deleted:      %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_ftb_explicit>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Explicit:     %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_ftb_hidden_friend>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "HiddenFriend: %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_ftb_immediate>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Immediate:    %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_ftb_inline>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Inline:       %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_ftb_no_return>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "NoReturn:     %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_ftb_none>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "None:         %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_ftb_pure_virtual>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "PureVirtual:  %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_ftb_virtual>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Virtual:      %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    --indent;
   }  /* if */
   if (has_ifc_type(universal)) {
     an_ifc_type_index field = get_ifc_type(universal);
@@ -2418,8 +4212,46 @@ representation with the given indent.
     fprintf(f_debug, "position: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_properties(universal)) {
-    db_print_indent(indent);
-    fprintf(f_debug, "properties: UNIMPLEMENTED\n");
+    an_ifc_reachable_properties_bitfield field = get_ifc_properties(universal);
+
+    fprintf(f_debug, "properties:\n");
+    ++indent;
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_rpb_all>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "All:              %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_rpb_attributes>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Attributes:       %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_rpb_default_arguments>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "DefaultArguments: %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_rpb_initializer>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Initializer:      %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_rpb_none>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "None:             %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    --indent;
   }  /* if */
   if (has_ifc_sort(universal)) {
     an_ifc_parameter_sort field = get_ifc_sort(universal);
@@ -2514,12 +4346,125 @@ diagnostic textual representation with the given indent.
     fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_properties(universal)) {
-    db_print_indent(indent);
-    fprintf(f_debug, "properties: UNIMPLEMENTED\n");
+    an_ifc_reachable_properties_bitfield field = get_ifc_properties(universal);
+
+    fprintf(f_debug, "properties:\n");
+    ++indent;
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_rpb_all>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "All:              %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_rpb_attributes>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Attributes:       %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_rpb_default_arguments>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "DefaultArguments: %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_rpb_initializer>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Initializer:      %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_rpb_none>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "None:             %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    --indent;
   }  /* if */
   if (has_ifc_specifiers(universal)) {
-    db_print_indent(indent);
-    fprintf(f_debug, "specifiers: UNIMPLEMENTED\n");
+    an_ifc_basic_specifiers_bitfield field = get_ifc_specifiers(universal);
+
+    fprintf(f_debug, "specifiers:\n");
+    ++indent;
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_c>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "C:                      %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_cxx>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Cxx:                    %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_deprecated>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Deprecated:             %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_external>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "External:               %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_initialized_in_class>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "InitializedInClass:     %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_internal>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Internal:               %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_is_member_of_global_module>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "IsMemberOfGlobalModule: %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_non_exported>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "NonExported:            %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_vague>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Vague:                  %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    --indent;
   }  /* if */
 }  /* db_node */
 
@@ -2687,16 +4632,188 @@ representation with the given indent.
     fprintf(f_debug, "pack_size: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_properties(universal)) {
-    db_print_indent(indent);
-    fprintf(f_debug, "properties: UNIMPLEMENTED\n");
+    an_ifc_reachable_properties_bitfield field = get_ifc_properties(universal);
+
+    fprintf(f_debug, "properties:\n");
+    ++indent;
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_rpb_all>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "All:              %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_rpb_attributes>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Attributes:       %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_rpb_default_arguments>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "DefaultArguments: %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_rpb_initializer>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Initializer:      %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_rpb_none>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "None:             %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    --indent;
   }  /* if */
   if (has_ifc_specifiers(universal)) {
-    db_print_indent(indent);
-    fprintf(f_debug, "specifiers: UNIMPLEMENTED\n");
+    an_ifc_basic_specifiers_bitfield field = get_ifc_specifiers(universal);
+
+    fprintf(f_debug, "specifiers:\n");
+    ++indent;
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_c>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "C:                      %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_cxx>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Cxx:                    %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_deprecated>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Deprecated:             %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_external>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "External:               %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_initialized_in_class>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "InitializedInClass:     %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_internal>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Internal:               %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_is_member_of_global_module>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "IsMemberOfGlobalModule: %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_non_exported>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "NonExported:            %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_vague>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Vague:                  %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    --indent;
   }  /* if */
   if (has_ifc_traits(universal)) {
-    db_print_indent(indent);
-    fprintf(f_debug, "traits: UNIMPLEMENTED\n");
+    an_ifc_scope_traits_bitfield field = get_ifc_traits(universal);
+
+    fprintf(f_debug, "traits:\n");
+    ++indent;
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_stb_closure_type>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "ClosureType:         %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_stb_final>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Final:               %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_stb_initializer_exported>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "InitializerExported: %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_stb_inline>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Inline:              %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_stb_none>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "None:                %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_stb_unnamed>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Unnamed:             %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_stb_vendor>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Vendor:              %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    --indent;
   }  /* if */
   if (has_ifc_type(universal)) {
     an_ifc_type_index field = get_ifc_type(universal);
@@ -2846,12 +4963,125 @@ representation with the given indent.
     fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_properties(universal)) {
-    db_print_indent(indent);
-    fprintf(f_debug, "properties: UNIMPLEMENTED\n");
+    an_ifc_reachable_properties_bitfield field = get_ifc_properties(universal);
+
+    fprintf(f_debug, "properties:\n");
+    ++indent;
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_rpb_all>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "All:              %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_rpb_attributes>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Attributes:       %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_rpb_default_arguments>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "DefaultArguments: %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_rpb_initializer>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Initializer:      %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_rpb_none>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "None:             %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    --indent;
   }  /* if */
   if (has_ifc_specifiers(universal)) {
-    db_print_indent(indent);
-    fprintf(f_debug, "specifiers: UNIMPLEMENTED\n");
+    an_ifc_basic_specifiers_bitfield field = get_ifc_specifiers(universal);
+
+    fprintf(f_debug, "specifiers:\n");
+    ++indent;
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_c>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "C:                      %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_cxx>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Cxx:                    %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_deprecated>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Deprecated:             %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_external>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "External:               %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_initialized_in_class>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "InitializedInClass:     %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_internal>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Internal:               %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_is_member_of_global_module>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "IsMemberOfGlobalModule: %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_non_exported>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "NonExported:            %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_vague>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Vague:                  %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    --indent;
   }  /* if */
   if (has_ifc_type(universal)) {
     an_ifc_type_index field = get_ifc_type(universal);
@@ -2900,8 +5130,46 @@ representation with the given indent.
     db_node(field, indent + 1);
   }  /* if */
   if (has_ifc_properties(universal)) {
-    db_print_indent(indent);
-    fprintf(f_debug, "properties: UNIMPLEMENTED\n");
+    an_ifc_reachable_properties_bitfield field = get_ifc_properties(universal);
+
+    fprintf(f_debug, "properties:\n");
+    ++indent;
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_rpb_all>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "All:              %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_rpb_attributes>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Attributes:       %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_rpb_default_arguments>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "DefaultArguments: %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_rpb_initializer>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Initializer:      %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_rpb_none>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "None:             %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    --indent;
   }  /* if */
 }  /* db_node */
 
@@ -3015,8 +5283,83 @@ textual representation with the given indent.
     fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_specifiers(universal)) {
-    db_print_indent(indent);
-    fprintf(f_debug, "specifiers: UNIMPLEMENTED\n");
+    an_ifc_basic_specifiers_bitfield field = get_ifc_specifiers(universal);
+
+    fprintf(f_debug, "specifiers:\n");
+    ++indent;
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_c>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "C:                      %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_cxx>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Cxx:                    %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_deprecated>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Deprecated:             %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_external>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "External:               %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_initialized_in_class>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "InitializedInClass:     %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_internal>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Internal:               %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_is_member_of_global_module>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "IsMemberOfGlobalModule: %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_non_exported>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "NonExported:            %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_vague>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Vague:                  %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    --indent;
   }  /* if */
 }  /* db_node */
 
@@ -3091,16 +5434,188 @@ representation with the given indent.
     fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_properties(universal)) {
-    db_print_indent(indent);
-    fprintf(f_debug, "properties: UNIMPLEMENTED\n");
+    an_ifc_reachable_properties_bitfield field = get_ifc_properties(universal);
+
+    fprintf(f_debug, "properties:\n");
+    ++indent;
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_rpb_all>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "All:              %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_rpb_attributes>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Attributes:       %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_rpb_default_arguments>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "DefaultArguments: %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_rpb_initializer>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Initializer:      %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_rpb_none>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "None:             %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    --indent;
   }  /* if */
   if (has_ifc_specifiers(universal)) {
-    db_print_indent(indent);
-    fprintf(f_debug, "specifiers: UNIMPLEMENTED\n");
+    an_ifc_basic_specifiers_bitfield field = get_ifc_specifiers(universal);
+
+    fprintf(f_debug, "specifiers:\n");
+    ++indent;
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_c>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "C:                      %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_cxx>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Cxx:                    %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_deprecated>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Deprecated:             %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_external>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "External:               %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_initialized_in_class>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "InitializedInClass:     %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_internal>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Internal:               %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_is_member_of_global_module>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "IsMemberOfGlobalModule: %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_non_exported>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "NonExported:            %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_bsb_vague>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Vague:                  %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    --indent;
   }  /* if */
   if (has_ifc_traits(universal)) {
-    db_print_indent(indent);
-    fprintf(f_debug, "traits: UNIMPLEMENTED\n");
+    an_ifc_object_traits_bitfield field = get_ifc_traits(universal);
+
+    fprintf(f_debug, "traits:\n");
+    ++indent;
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_otb_constexpr>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Constexpr:           %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_otb_initializer_exported>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "InitializerExported: %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_otb_inline>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Inline:              %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_otb_mutable>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Mutable:             %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_otb_none>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "None:                %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_otb_thread_local>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "ThreadLocal:         %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_otb_vendor>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Vendor:              %s\n",
+              (match ? "TRUE" : "FALSE"));
+    }
+    --indent;
   }  /* if */
   if (has_ifc_type(universal)) {
     an_ifc_type_index field = get_ifc_type(universal);
@@ -9709,8 +12224,39 @@ diagnostic textual representation with the given indent.
     db_node(field, indent + 1);
   }  /* if */
   if (has_ifc_qualifiers(universal)) {
-    db_print_indent(indent);
-    fprintf(f_debug, "qualifiers: UNIMPLEMENTED\n");
+    an_ifc_qualifier_bitfield field = get_ifc_qualifiers(universal);
+
+    fprintf(f_debug, "qualifiers:\n");
+    ++indent;
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_qb_const>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Const:    %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_qb_none>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "None:     %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_qb_restrict>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Restrict: %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_qb_volatile>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Volatile: %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    --indent;
   }  /* if */
   if (has_ifc_storage_class(universal)) {
     db_print_indent(indent);
@@ -9858,8 +12404,39 @@ textual representation with the given indent.
     fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_qualifiers(universal)) {
-    db_print_indent(indent);
-    fprintf(f_debug, "qualifiers: UNIMPLEMENTED\n");
+    an_ifc_qualifier_bitfield field = get_ifc_qualifiers(universal);
+
+    fprintf(f_debug, "qualifiers:\n");
+    ++indent;
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_qb_const>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Const:    %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_qb_none>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "None:     %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_qb_restrict>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Restrict: %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_qb_volatile>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Volatile: %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    --indent;
   }  /* if */
   if (has_ifc_trailing_target(universal)) {
     an_ifc_syntax_index field = get_ifc_trailing_target(universal);
@@ -11960,8 +14537,39 @@ diagnostic textual representation with the given indent.
     fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_qualifiers(universal)) {
-    db_print_indent(indent);
-    fprintf(f_debug, "qualifiers: UNIMPLEMENTED\n");
+    an_ifc_qualifier_bitfield field = get_ifc_qualifiers(universal);
+
+    fprintf(f_debug, "qualifiers:\n");
+    ++indent;
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_qb_const>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Const:    %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_qb_none>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "None:     %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_qb_restrict>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Restrict: %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_qb_volatile>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Volatile: %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    --indent;
   }  /* if */
   if (has_ifc_sort(universal)) {
     an_ifc_pointer_declarator_sort field = get_ifc_sort(universal);
@@ -13452,8 +16060,39 @@ diagnostic textual representation with the given indent.
     db_node(field, indent + 1);
   }  /* if */
   if (has_ifc_qualifiers(universal)) {
-    db_print_indent(indent);
-    fprintf(f_debug, "qualifiers: UNIMPLEMENTED\n");
+    an_ifc_qualifier_bitfield field = get_ifc_qualifiers(universal);
+
+    fprintf(f_debug, "qualifiers:\n");
+    ++indent;
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_qb_const>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Const:    %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_qb_none>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "None:     %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_qb_restrict>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Restrict: %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_qb_volatile>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Volatile: %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    --indent;
   }  /* if */
   if (has_ifc_type(universal)) {
     an_ifc_type_index field = get_ifc_type(universal);
@@ -14495,8 +17134,137 @@ textual representation with the given indent.
     fprintf(f_debug, "encoded_decl: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_trait(universal)) {
-    db_print_indent(indent);
-    fprintf(f_debug, "trait: UNIMPLEMENTED\n");
+    an_ifc_msvc_traits_bitfield field = get_ifc_trait(universal);
+
+    fprintf(f_debug, "trait:\n");
+    ++indent;
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_mtb_allocate>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Allocate:      %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_mtb_code_segment>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "CodeSegment:   %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_mtb_comdat>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Comdat:        %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_mtb_dll_export>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "DllExport:     %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_mtb_dll_import>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "DllImport:     %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_mtb_empty_bases>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "EmptyBases:    %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_mtb_force_inline>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "ForceInline:   %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_mtb_intrinsic_type>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "IntrinsicType: %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_mtb_naked>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Naked:         %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_mtb_no_alias>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "NoAlias:       %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_mtb_no_inline>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "NoInline:      %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_mtb_none>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "None:          %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_mtb_novtable>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Novtable:      %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_mtb_process>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Process:       %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_mtb_restrict>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Restrict:      %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_mtb_safe_buffers>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "SafeBuffers:   %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_mtb_select_any>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "SelectAny:     %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_mtb_uuid>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Uuid:          %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    --indent;
   }  /* if */
 }  /* db_node */
 
@@ -14857,8 +17625,46 @@ representation with the given indent.
     fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_traits(universal)) {
-    db_print_indent(indent);
-    fprintf(f_debug, "traits: UNIMPLEMENTED\n");
+    an_ifc_function_type_traits_bitfield field = get_ifc_traits(universal);
+
+    fprintf(f_debug, "traits:\n");
+    ++indent;
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_fttb_const>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Const:    %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_fttb_lvalue>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Lvalue:   %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_fttb_none>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "None:     %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_fttb_rvalue>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Rvalue:   %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_fttb_volatile>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Volatile: %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    --indent;
   }  /* if */
 }  /* db_node */
 
@@ -14989,8 +17795,46 @@ representation with the given indent.
     fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_traits(universal)) {
-    db_print_indent(indent);
-    fprintf(f_debug, "traits: UNIMPLEMENTED\n");
+    an_ifc_function_type_traits_bitfield field = get_ifc_traits(universal);
+
+    fprintf(f_debug, "traits:\n");
+    ++indent;
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_fttb_const>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Const:    %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_fttb_lvalue>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Lvalue:   %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_fttb_none>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "None:     %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_fttb_rvalue>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Rvalue:   %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_fttb_volatile>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Volatile: %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    --indent;
   }  /* if */
 }  /* db_node */
 
@@ -15125,8 +17969,39 @@ representation with the given indent.
 */
 {
   if (has_ifc_qualifiers(universal)) {
-    db_print_indent(indent);
-    fprintf(f_debug, "qualifiers: UNIMPLEMENTED\n");
+    an_ifc_qualifier_bitfield field = get_ifc_qualifiers(universal);
+
+    fprintf(f_debug, "qualifiers:\n");
+    ++indent;
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_qb_const>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Const:    %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_qb_none>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "None:     %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_qb_restrict>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Restrict: %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    {
+      a_boolean match;
+
+      match = test_bitmask<ifc_qb_volatile>(field);
+      db_print_indent(indent);
+      fprintf(f_debug, "Volatile: %s\n", (match ? "TRUE" : "FALSE"));
+    }
+    --indent;
   }  /* if */
   if (has_ifc_unqualified(universal)) {
     an_ifc_type_index field = get_ifc_unqualified(universal);
