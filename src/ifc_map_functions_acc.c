@@ -9807,7 +9807,8 @@ representation of the field "index".
   static_assert(sizeof(stage_3) == 4,
                 "stage_3 is not properly sized storage!");
   copy_ifc_field(&stage_3, universal.get_storage(), /*offset=*/8);
-  stage_4 = {stage_2, (an_ifc_decl_foreign_index_storage)stage_3};
+  stage_4 = {universal.get_module(),
+             (an_ifc_decl_foreign_index_storage)stage_3};
   stage_5 = to_universal_index(stage_2, stage_4);
   result = stage_5;
   return result;

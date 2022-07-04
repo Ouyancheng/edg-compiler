@@ -1079,7 +1079,10 @@ the universal bitmask specified by a_Query matches; otherwise, return FALSE.
 {
   a_boolean result;
 
-  result = universal.value & to_bitmask_0_33(a_Query);
+  uint8_t mask = to_bitmask_0_33(a_Query);
+  uint8_t test_value = universal.value & mask;;
+
+  result = test_value == mask;
   return result;
 }  /* test_bitmask */
 
@@ -1114,7 +1117,10 @@ the universal bitmask specified by a_Query matches; otherwise, return FALSE.
 {
   a_boolean result;
 
-  result = universal.value & to_bitmask_0_33(a_Query);
+  uint16_t mask = to_bitmask_0_33(a_Query);
+  uint16_t test_value = universal.value & mask;;
+
+  result = test_value == mask;
   return result;
 }  /* test_bitmask */
 
@@ -1151,7 +1157,10 @@ if the universal bitmask specified by a_Query matches; otherwise, return FALSE.
 {
   a_boolean result;
 
-  result = universal.value & to_bitmask_0_33(a_Query);
+  uint8_t mask = to_bitmask_0_33(a_Query);
+  uint8_t test_value = universal.value & mask;;
+
+  result = test_value == mask;
   return result;
 }  /* test_bitmask */
 
@@ -1185,7 +1194,10 @@ universal bitmask specified by a_Query matches; otherwise, return FALSE.
 {
   a_boolean result;
 
-  result = universal.value & to_bitmask_0_33(a_Query);
+  uint32_t mask = to_bitmask_0_33(a_Query);
+  uint32_t test_value = universal.value & mask;;
+
+  result = test_value == mask;
   return result;
 }  /* test_bitmask */
 
@@ -1219,7 +1231,10 @@ universal bitmask specified by a_Query matches; otherwise, return FALSE.
 {
   a_boolean result;
 
-  result = universal.value & to_bitmask_0_33(a_Query);
+  uint8_t mask = to_bitmask_0_33(a_Query);
+  uint8_t test_value = universal.value & mask;;
+
+  result = test_value == mask;
   return result;
 }  /* test_bitmask */
 
@@ -1253,7 +1268,10 @@ universal bitmask specified by a_Query matches; otherwise, return FALSE.
 {
   a_boolean result;
 
-  result = universal.value & to_bitmask_0_33(a_Query);
+  uint8_t mask = to_bitmask_0_33(a_Query);
+  uint8_t test_value = universal.value & mask;;
+
+  result = test_value == mask;
   return result;
 }  /* test_bitmask */
 
@@ -1290,7 +1308,10 @@ if the universal bitmask specified by a_Query matches; otherwise, return FALSE.
 {
   a_boolean result;
 
-  result = universal.value & to_bitmask_0_33(a_Query);
+  uint8_t mask = to_bitmask_0_33(a_Query);
+  uint8_t test_value = universal.value & mask;;
+
+  result = test_value == mask;
   return result;
 }  /* test_bitmask */
 
@@ -1324,7 +1345,10 @@ universal bitmask specified by a_Query matches; otherwise, return FALSE.
 {
   a_boolean result;
 
-  result = universal.value & to_bitmask_0_33(a_Query);
+  uint8_t mask = to_bitmask_0_33(a_Query);
+  uint8_t test_value = universal.value & mask;;
+
+  result = test_value == mask;
   return result;
 }  /* test_bitmask */
 

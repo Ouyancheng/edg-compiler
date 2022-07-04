@@ -2068,20 +2068,15 @@ Return TRUE if the given function-like IFC declaration node has a definition
 that is not "= default" or "= delete"; otherwise, return FALSE.
 */
 {
-  using function_traits_bit_query = an_ifc_function_traits_bitfield_query;
-
   an_ifc_reachable_properties_bitfield properties = get_ifc_properties(node);
   an_ifc_function_traits_bitfield      traits = get_ifc_traits(node);
-  /* Work around a GCC bug affecting older GCC versions by performing the bitor
-     using a constexpr variable rather than in the template argument list. */
-  constexpr function_traits_bit_query  default_or_deleted = ifc_ftb_defaulted |
-                                                            ifc_ftb_deleted;
 
   /* For the IFC to provide a function definition, the function must be
      constexpr and the definition must be exported (marked by the presence of a
      reachable initializer property). */
   return (test_bitmask<ifc_rpb_initializer>(properties) &&
-          !test_bitmask<default_or_deleted>(traits) &&
+          !(test_bitmask<ifc_ftb_defaulted>(traits) ||
+            test_bitmask<ifc_ftb_deleted>(traits)) &&
           (test_bitmask<ifc_ftb_constexpr>(traits) ||
            test_bitmask<ifc_ftb_immediate>(traits)));
 }  /* function_is_user_defined */

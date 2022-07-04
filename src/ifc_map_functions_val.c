@@ -6482,6 +6482,7 @@ representation is valid; otherwise, return FALSE.
     an_ifc_decl_foreign_index_0_33 stage_3;
     an_ifc_validation_trace        stage_3_trace =
                                          {"local_index", /*offset=*/8, parent};
+    an_ifc_decl_foreign_index      stage_4;
 
 #if USE_MMAP_FOR_MODULES
     /* Update the universal storage pointer to the start of the field
@@ -6508,22 +6509,9 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_3) == 4,
                   "stage_3 is not properly sized storage!");
     copy_ifc_field(&stage_3, universal.get_storage(), /*offset=*/8);
-    if (!validate_index(stage_2, stage_3, &stage_3_trace)) {
-      result = FALSE;
-      goto done;
-    }  /* if */
-  }  /* if */
-  if (has_ifc_local_index(universal)) {
-    an_ifc_decl_foreign_index_0_33 stage_0;
-    an_ifc_validation_trace        stage_0_trace =
-                                         {"local_index", /*offset=*/8, parent};
-
-    /* Copy the field (DeclReference::local_index - DeclForeignIndex) into
-       version specific storage. */
-    static_assert(sizeof(stage_0) == 4,
-                  "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    stage_4 = {universal.get_module(),
+               (an_ifc_decl_foreign_index_storage)stage_3};
+    if (!validate_index(stage_2, stage_4, &stage_3_trace)) {
       result = FALSE;
       goto done;
     }  /* if */

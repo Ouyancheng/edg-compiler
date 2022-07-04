@@ -65,6 +65,9 @@ Given the universal representation of KeywordSyntax, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "================================ ");
+  fprintf(f_debug, "KeywordSyntax ");
+  fprintf(f_debug, "=================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -96,6 +99,9 @@ Given the universal representation of ModuleReference, print a diagnostic
 textual representation.
 */
 {
+  fprintf(f_debug, "=============================== ");
+  fprintf(f_debug, "ModuleReference ");
+  fprintf(f_debug, "================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -400,6 +406,9 @@ Given the universal representation of NestableWord, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "================================= ");
+  fprintf(f_debug, "NestableWord ");
+  fprintf(f_debug, "=================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -431,6 +440,9 @@ Given the universal representation of NoexceptSpecification, print a diagnostic
 textual representation.
 */
 {
+  fprintf(f_debug, "============================ ");
+  fprintf(f_debug, "NoexceptSpecification ");
+  fprintf(f_debug, "=============================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -478,6 +490,9 @@ Given the universal representation of ParameterizedEntity, print a diagnostic
 textual representation.
 */
 {
+  fprintf(f_debug, "============================= ");
+  fprintf(f_debug, "ParameterizedEntity ");
+  fprintf(f_debug, "==============================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -509,6 +524,9 @@ Given the universal representation of Sequence, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "=================================== ");
+  fprintf(f_debug, "Sequence ");
+  fprintf(f_debug, "===================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -540,6 +558,9 @@ Given the universal representation of SourceLocation, print a diagnostic
 textual representation.
 */
 {
+  fprintf(f_debug, "================================ ");
+  fprintf(f_debug, "SourceLocation ");
+  fprintf(f_debug, "================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -650,6 +671,9 @@ Given the universal representation of FileHeader, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "================================== ");
+  fprintf(f_debug, "FileHeader ");
+  fprintf(f_debug, "==================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -693,6 +717,9 @@ Given the universal representation of Partition, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "================================== ");
+  fprintf(f_debug, "Partition ");
+  fprintf(f_debug, "===================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -719,6 +746,9 @@ Given the universal representation of AttrBasic, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "================================== ");
+  fprintf(f_debug, "AttrBasic ");
+  fprintf(f_debug, "===================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -758,6 +788,9 @@ Given the universal representation of AttrCalled, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "================================== ");
+  fprintf(f_debug, "AttrCalled ");
+  fprintf(f_debug, "==================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -787,6 +820,9 @@ Given the universal representation of AttrElaborated, print a diagnostic
 textual representation.
 */
 {
+  fprintf(f_debug, "================================ ");
+  fprintf(f_debug, "AttrElaborated ");
+  fprintf(f_debug, "================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -816,6 +852,9 @@ Given the universal representation of AttrExpanded, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "================================= ");
+  fprintf(f_debug, "AttrExpanded ");
+  fprintf(f_debug, "=================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -852,6 +891,9 @@ Given the universal representation of AttrFactored, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "================================= ");
+  fprintf(f_debug, "AttrFactored ");
+  fprintf(f_debug, "=================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -888,6 +930,9 @@ Given the universal representation of AttrLabeled, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "================================= ");
+  fprintf(f_debug, "AttrLabeled ");
+  fprintf(f_debug, "==================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -921,6 +966,9 @@ Given the universal representation of AttrScoped, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "================================== ");
+  fprintf(f_debug, "AttrScoped ");
+  fprintf(f_debug, "==================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -952,6 +1000,9 @@ Given the universal representation of AttrTuple, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "================================== ");
+  fprintf(f_debug, "AttrTuple ");
+  fprintf(f_debug, "===================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -983,6 +1034,9 @@ Given the universal representation of ChartMultilevel, print a diagnostic
 textual representation.
 */
 {
+  fprintf(f_debug, "=============================== ");
+  fprintf(f_debug, "ChartMultilevel ");
+  fprintf(f_debug, "================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -1024,6 +1078,9 @@ Given the universal representation of ChartUnilevel, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "================================ ");
+  fprintf(f_debug, "ChartUnilevel ");
+  fprintf(f_debug, "=================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -1047,6 +1104,9 @@ Given the universal representation of ConstF64, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "=================================== ");
+  fprintf(f_debug, "ConstF64 ");
+  fprintf(f_debug, "===================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -1072,6 +1132,9 @@ Given the universal representation of ConstI64, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "=================================== ");
+  fprintf(f_debug, "ConstI64 ");
+  fprintf(f_debug, "===================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -1109,6 +1172,9 @@ Given the universal representation of ConstStr, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "=================================== ");
+  fprintf(f_debug, "ConstStr ");
+  fprintf(f_debug, "===================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -1163,78 +1229,42 @@ representation with the given indent.
 
     fprintf(f_debug, "specifiers:\n");
     ++indent;
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_c>(field);
+    if (test_bitmask<ifc_bsb_c>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "C:                      %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_cxx>(field);
+      fprintf(f_debug, "- C\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_cxx>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Cxx:                    %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_deprecated>(field);
+      fprintf(f_debug, "- Cxx\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_deprecated>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Deprecated:             %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_external>(field);
+      fprintf(f_debug, "- Deprecated\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_external>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "External:               %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_initialized_in_class>(field);
+      fprintf(f_debug, "- External\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_initialized_in_class>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "InitializedInClass:     %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_internal>(field);
+      fprintf(f_debug, "- InitializedInClass\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_internal>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Internal:               %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_is_member_of_global_module>(field);
+      fprintf(f_debug, "- Internal\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_is_member_of_global_module>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "IsMemberOfGlobalModule: %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_non_exported>(field);
+      fprintf(f_debug, "- IsMemberOfGlobalModule\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_non_exported>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "NonExported:            %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_vague>(field);
+      fprintf(f_debug, "- NonExported\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_vague>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Vague:                  %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
+      fprintf(f_debug, "- Vague\n");
+    }  /* if */
     --indent;
   }  /* if */
   if (has_ifc_type(universal)) {
@@ -1256,6 +1286,9 @@ Given the universal representation of DeclAlias, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "================================== ");
+  fprintf(f_debug, "DeclAlias ");
+  fprintf(f_debug, "===================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -1310,41 +1343,26 @@ representation with the given indent.
 
     fprintf(f_debug, "properties:\n");
     ++indent;
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_rpb_all>(field);
+    if (test_bitmask<ifc_rpb_all>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "All:              %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_rpb_attributes>(field);
+      fprintf(f_debug, "- All\n");
+    }  /* if */
+    if (test_bitmask<ifc_rpb_attributes>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Attributes:       %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_rpb_default_arguments>(field);
+      fprintf(f_debug, "- Attributes\n");
+    }  /* if */
+    if (test_bitmask<ifc_rpb_default_arguments>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "DefaultArguments: %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_rpb_initializer>(field);
+      fprintf(f_debug, "- DefaultArguments\n");
+    }  /* if */
+    if (test_bitmask<ifc_rpb_initializer>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Initializer:      %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_rpb_none>(field);
+      fprintf(f_debug, "- Initializer\n");
+    }  /* if */
+    if (test_bitmask<ifc_rpb_none>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "None:             %s\n", (match ? "TRUE" : "FALSE"));
-    }
+      fprintf(f_debug, "- None\n");
+    }  /* if */
     --indent;
   }  /* if */
   if (has_ifc_specifiers(universal)) {
@@ -1352,78 +1370,42 @@ representation with the given indent.
 
     fprintf(f_debug, "specifiers:\n");
     ++indent;
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_c>(field);
+    if (test_bitmask<ifc_bsb_c>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "C:                      %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_cxx>(field);
+      fprintf(f_debug, "- C\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_cxx>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Cxx:                    %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_deprecated>(field);
+      fprintf(f_debug, "- Cxx\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_deprecated>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Deprecated:             %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_external>(field);
+      fprintf(f_debug, "- Deprecated\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_external>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "External:               %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_initialized_in_class>(field);
+      fprintf(f_debug, "- External\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_initialized_in_class>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "InitializedInClass:     %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_internal>(field);
+      fprintf(f_debug, "- InitializedInClass\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_internal>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Internal:               %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_is_member_of_global_module>(field);
+      fprintf(f_debug, "- Internal\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_is_member_of_global_module>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "IsMemberOfGlobalModule: %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_non_exported>(field);
+      fprintf(f_debug, "- IsMemberOfGlobalModule\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_non_exported>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "NonExported:            %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_vague>(field);
+      fprintf(f_debug, "- NonExported\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_vague>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Vague:                  %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
+      fprintf(f_debug, "- Vague\n");
+    }  /* if */
     --indent;
   }  /* if */
   if (has_ifc_traits(universal)) {
@@ -1431,62 +1413,34 @@ representation with the given indent.
 
     fprintf(f_debug, "traits:\n");
     ++indent;
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_otb_constexpr>(field);
+    if (test_bitmask<ifc_otb_constexpr>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Constexpr:           %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_otb_initializer_exported>(field);
+      fprintf(f_debug, "- Constexpr\n");
+    }  /* if */
+    if (test_bitmask<ifc_otb_initializer_exported>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "InitializerExported: %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_otb_inline>(field);
+      fprintf(f_debug, "- InitializerExported\n");
+    }  /* if */
+    if (test_bitmask<ifc_otb_inline>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Inline:              %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_otb_mutable>(field);
+      fprintf(f_debug, "- Inline\n");
+    }  /* if */
+    if (test_bitmask<ifc_otb_mutable>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Mutable:             %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_otb_none>(field);
+      fprintf(f_debug, "- Mutable\n");
+    }  /* if */
+    if (test_bitmask<ifc_otb_none>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "None:                %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_otb_thread_local>(field);
+      fprintf(f_debug, "- None\n");
+    }  /* if */
+    if (test_bitmask<ifc_otb_thread_local>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "ThreadLocal:         %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_otb_vendor>(field);
+      fprintf(f_debug, "- ThreadLocal\n");
+    }  /* if */
+    if (test_bitmask<ifc_otb_vendor>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Vendor:              %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
+      fprintf(f_debug, "- Vendor\n");
+    }  /* if */
     --indent;
   }  /* if */
   if (has_ifc_type(universal)) {
@@ -1518,6 +1472,9 @@ Given the universal representation of DeclBitfield, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "================================= ");
+  fprintf(f_debug, "DeclBitfield ");
+  fprintf(f_debug, "=================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -1594,78 +1551,42 @@ representation with the given indent.
 
     fprintf(f_debug, "specifiers:\n");
     ++indent;
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_c>(field);
+    if (test_bitmask<ifc_bsb_c>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "C:                      %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_cxx>(field);
+      fprintf(f_debug, "- C\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_cxx>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Cxx:                    %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_deprecated>(field);
+      fprintf(f_debug, "- Cxx\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_deprecated>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Deprecated:             %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_external>(field);
+      fprintf(f_debug, "- Deprecated\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_external>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "External:               %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_initialized_in_class>(field);
+      fprintf(f_debug, "- External\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_initialized_in_class>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "InitializedInClass:     %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_internal>(field);
+      fprintf(f_debug, "- InitializedInClass\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_internal>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Internal:               %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_is_member_of_global_module>(field);
+      fprintf(f_debug, "- Internal\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_is_member_of_global_module>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "IsMemberOfGlobalModule: %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_non_exported>(field);
+      fprintf(f_debug, "- IsMemberOfGlobalModule\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_non_exported>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "NonExported:            %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_vague>(field);
+      fprintf(f_debug, "- NonExported\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_vague>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Vague:                  %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
+      fprintf(f_debug, "- Vague\n");
+    }  /* if */
     --indent;
   }  /* if */
   if (has_ifc_type(universal)) {
@@ -1693,6 +1614,9 @@ Given the universal representation of DeclConcept, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "================================= ");
+  fprintf(f_debug, "DeclConcept ");
+  fprintf(f_debug, "==================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -1751,41 +1675,26 @@ textual representation with the given indent.
 
     fprintf(f_debug, "properties:\n");
     ++indent;
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_rpb_all>(field);
+    if (test_bitmask<ifc_rpb_all>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "All:              %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_rpb_attributes>(field);
+      fprintf(f_debug, "- All\n");
+    }  /* if */
+    if (test_bitmask<ifc_rpb_attributes>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Attributes:       %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_rpb_default_arguments>(field);
+      fprintf(f_debug, "- Attributes\n");
+    }  /* if */
+    if (test_bitmask<ifc_rpb_default_arguments>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "DefaultArguments: %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_rpb_initializer>(field);
+      fprintf(f_debug, "- DefaultArguments\n");
+    }  /* if */
+    if (test_bitmask<ifc_rpb_initializer>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Initializer:      %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_rpb_none>(field);
+      fprintf(f_debug, "- Initializer\n");
+    }  /* if */
+    if (test_bitmask<ifc_rpb_none>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "None:             %s\n", (match ? "TRUE" : "FALSE"));
-    }
+      fprintf(f_debug, "- None\n");
+    }  /* if */
     --indent;
   }  /* if */
   if (has_ifc_specifiers(universal)) {
@@ -1793,78 +1702,42 @@ textual representation with the given indent.
 
     fprintf(f_debug, "specifiers:\n");
     ++indent;
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_c>(field);
+    if (test_bitmask<ifc_bsb_c>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "C:                      %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_cxx>(field);
+      fprintf(f_debug, "- C\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_cxx>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Cxx:                    %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_deprecated>(field);
+      fprintf(f_debug, "- Cxx\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_deprecated>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Deprecated:             %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_external>(field);
+      fprintf(f_debug, "- Deprecated\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_external>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "External:               %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_initialized_in_class>(field);
+      fprintf(f_debug, "- External\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_initialized_in_class>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "InitializedInClass:     %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_internal>(field);
+      fprintf(f_debug, "- InitializedInClass\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_internal>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Internal:               %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_is_member_of_global_module>(field);
+      fprintf(f_debug, "- Internal\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_is_member_of_global_module>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "IsMemberOfGlobalModule: %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_non_exported>(field);
+      fprintf(f_debug, "- IsMemberOfGlobalModule\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_non_exported>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "NonExported:            %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_vague>(field);
+      fprintf(f_debug, "- NonExported\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_vague>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Vague:                  %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
+      fprintf(f_debug, "- Vague\n");
+    }  /* if */
     --indent;
   }  /* if */
   if (has_ifc_traits(universal)) {
@@ -1872,90 +1745,54 @@ textual representation with the given indent.
 
     fprintf(f_debug, "traits:\n");
     ++indent;
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_ftb_constexpr>(field);
+    if (test_bitmask<ifc_ftb_constexpr>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Constexpr:    %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_ftb_constrained>(field);
+      fprintf(f_debug, "- Constexpr\n");
+    }  /* if */
+    if (test_bitmask<ifc_ftb_constrained>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Constrained:  %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_ftb_defaulted>(field);
+      fprintf(f_debug, "- Constrained\n");
+    }  /* if */
+    if (test_bitmask<ifc_ftb_defaulted>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Defaulted:    %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_ftb_deleted>(field);
+      fprintf(f_debug, "- Defaulted\n");
+    }  /* if */
+    if (test_bitmask<ifc_ftb_deleted>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Deleted:      %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_ftb_explicit>(field);
+      fprintf(f_debug, "- Deleted\n");
+    }  /* if */
+    if (test_bitmask<ifc_ftb_explicit>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Explicit:     %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_ftb_hidden_friend>(field);
+      fprintf(f_debug, "- Explicit\n");
+    }  /* if */
+    if (test_bitmask<ifc_ftb_hidden_friend>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "HiddenFriend: %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_ftb_immediate>(field);
+      fprintf(f_debug, "- HiddenFriend\n");
+    }  /* if */
+    if (test_bitmask<ifc_ftb_immediate>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Immediate:    %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_ftb_inline>(field);
+      fprintf(f_debug, "- Immediate\n");
+    }  /* if */
+    if (test_bitmask<ifc_ftb_inline>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Inline:       %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_ftb_no_return>(field);
+      fprintf(f_debug, "- Inline\n");
+    }  /* if */
+    if (test_bitmask<ifc_ftb_no_return>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "NoReturn:     %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_ftb_none>(field);
+      fprintf(f_debug, "- NoReturn\n");
+    }  /* if */
+    if (test_bitmask<ifc_ftb_none>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "None:         %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_ftb_pure_virtual>(field);
+      fprintf(f_debug, "- None\n");
+    }  /* if */
+    if (test_bitmask<ifc_ftb_pure_virtual>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "PureVirtual:  %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_ftb_virtual>(field);
+      fprintf(f_debug, "- PureVirtual\n");
+    }  /* if */
+    if (test_bitmask<ifc_ftb_virtual>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Virtual:      %s\n", (match ? "TRUE" : "FALSE"));
-    }
+      fprintf(f_debug, "- Virtual\n");
+    }  /* if */
     --indent;
   }  /* if */
   if (has_ifc_type(universal)) {
@@ -1977,6 +1814,9 @@ Given the universal representation of DeclConstructor, print a diagnostic
 textual representation.
 */
 {
+  fprintf(f_debug, "=============================== ");
+  fprintf(f_debug, "DeclConstructor ");
+  fprintf(f_debug, "================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -2025,78 +1865,42 @@ textual representation with the given indent.
 
     fprintf(f_debug, "specifiers:\n");
     ++indent;
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_c>(field);
+    if (test_bitmask<ifc_bsb_c>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "C:                      %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_cxx>(field);
+      fprintf(f_debug, "- C\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_cxx>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Cxx:                    %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_deprecated>(field);
+      fprintf(f_debug, "- Cxx\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_deprecated>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Deprecated:             %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_external>(field);
+      fprintf(f_debug, "- Deprecated\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_external>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "External:               %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_initialized_in_class>(field);
+      fprintf(f_debug, "- External\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_initialized_in_class>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "InitializedInClass:     %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_internal>(field);
+      fprintf(f_debug, "- InitializedInClass\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_internal>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Internal:               %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_is_member_of_global_module>(field);
+      fprintf(f_debug, "- Internal\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_is_member_of_global_module>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "IsMemberOfGlobalModule: %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_non_exported>(field);
+      fprintf(f_debug, "- IsMemberOfGlobalModule\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_non_exported>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "NonExported:            %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_vague>(field);
+      fprintf(f_debug, "- NonExported\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_vague>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Vague:                  %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
+      fprintf(f_debug, "- Vague\n");
+    }  /* if */
     --indent;
   }  /* if */
   if (has_ifc_target(universal)) {
@@ -2124,6 +1928,9 @@ Given the universal representation of DeclDeductionGuide, print a diagnostic
 textual representation.
 */
 {
+  fprintf(f_debug, "============================== ");
+  fprintf(f_debug, "DeclDeductionGuide ");
+  fprintf(f_debug, "==============================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -2185,41 +1992,26 @@ textual representation with the given indent.
 
     fprintf(f_debug, "properties:\n");
     ++indent;
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_rpb_all>(field);
+    if (test_bitmask<ifc_rpb_all>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "All:              %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_rpb_attributes>(field);
+      fprintf(f_debug, "- All\n");
+    }  /* if */
+    if (test_bitmask<ifc_rpb_attributes>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Attributes:       %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_rpb_default_arguments>(field);
+      fprintf(f_debug, "- Attributes\n");
+    }  /* if */
+    if (test_bitmask<ifc_rpb_default_arguments>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "DefaultArguments: %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_rpb_initializer>(field);
+      fprintf(f_debug, "- DefaultArguments\n");
+    }  /* if */
+    if (test_bitmask<ifc_rpb_initializer>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Initializer:      %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_rpb_none>(field);
+      fprintf(f_debug, "- Initializer\n");
+    }  /* if */
+    if (test_bitmask<ifc_rpb_none>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "None:             %s\n", (match ? "TRUE" : "FALSE"));
-    }
+      fprintf(f_debug, "- None\n");
+    }  /* if */
     --indent;
   }  /* if */
   if (has_ifc_specifiers(universal)) {
@@ -2227,78 +2019,42 @@ textual representation with the given indent.
 
     fprintf(f_debug, "specifiers:\n");
     ++indent;
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_c>(field);
+    if (test_bitmask<ifc_bsb_c>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "C:                      %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_cxx>(field);
+      fprintf(f_debug, "- C\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_cxx>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Cxx:                    %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_deprecated>(field);
+      fprintf(f_debug, "- Cxx\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_deprecated>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Deprecated:             %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_external>(field);
+      fprintf(f_debug, "- Deprecated\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_external>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "External:               %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_initialized_in_class>(field);
+      fprintf(f_debug, "- External\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_initialized_in_class>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "InitializedInClass:     %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_internal>(field);
+      fprintf(f_debug, "- InitializedInClass\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_internal>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Internal:               %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_is_member_of_global_module>(field);
+      fprintf(f_debug, "- Internal\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_is_member_of_global_module>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "IsMemberOfGlobalModule: %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_non_exported>(field);
+      fprintf(f_debug, "- IsMemberOfGlobalModule\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_non_exported>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "NonExported:            %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_vague>(field);
+      fprintf(f_debug, "- NonExported\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_vague>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Vague:                  %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
+      fprintf(f_debug, "- Vague\n");
+    }  /* if */
     --indent;
   }  /* if */
   if (has_ifc_traits(universal)) {
@@ -2306,90 +2062,54 @@ textual representation with the given indent.
 
     fprintf(f_debug, "traits:\n");
     ++indent;
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_ftb_constexpr>(field);
+    if (test_bitmask<ifc_ftb_constexpr>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Constexpr:    %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_ftb_constrained>(field);
+      fprintf(f_debug, "- Constexpr\n");
+    }  /* if */
+    if (test_bitmask<ifc_ftb_constrained>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Constrained:  %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_ftb_defaulted>(field);
+      fprintf(f_debug, "- Constrained\n");
+    }  /* if */
+    if (test_bitmask<ifc_ftb_defaulted>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Defaulted:    %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_ftb_deleted>(field);
+      fprintf(f_debug, "- Defaulted\n");
+    }  /* if */
+    if (test_bitmask<ifc_ftb_deleted>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Deleted:      %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_ftb_explicit>(field);
+      fprintf(f_debug, "- Deleted\n");
+    }  /* if */
+    if (test_bitmask<ifc_ftb_explicit>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Explicit:     %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_ftb_hidden_friend>(field);
+      fprintf(f_debug, "- Explicit\n");
+    }  /* if */
+    if (test_bitmask<ifc_ftb_hidden_friend>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "HiddenFriend: %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_ftb_immediate>(field);
+      fprintf(f_debug, "- HiddenFriend\n");
+    }  /* if */
+    if (test_bitmask<ifc_ftb_immediate>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Immediate:    %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_ftb_inline>(field);
+      fprintf(f_debug, "- Immediate\n");
+    }  /* if */
+    if (test_bitmask<ifc_ftb_inline>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Inline:       %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_ftb_no_return>(field);
+      fprintf(f_debug, "- Inline\n");
+    }  /* if */
+    if (test_bitmask<ifc_ftb_no_return>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "NoReturn:     %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_ftb_none>(field);
+      fprintf(f_debug, "- NoReturn\n");
+    }  /* if */
+    if (test_bitmask<ifc_ftb_none>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "None:         %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_ftb_pure_virtual>(field);
+      fprintf(f_debug, "- None\n");
+    }  /* if */
+    if (test_bitmask<ifc_ftb_pure_virtual>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "PureVirtual:  %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_ftb_virtual>(field);
+      fprintf(f_debug, "- PureVirtual\n");
+    }  /* if */
+    if (test_bitmask<ifc_ftb_virtual>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Virtual:      %s\n", (match ? "TRUE" : "FALSE"));
-    }
+      fprintf(f_debug, "- Virtual\n");
+    }  /* if */
     --indent;
   }  /* if */
 }  /* db_node */
@@ -2401,6 +2121,9 @@ Given the universal representation of DeclDestructor, print a diagnostic
 textual representation.
 */
 {
+  fprintf(f_debug, "================================ ");
+  fprintf(f_debug, "DeclDestructor ");
+  fprintf(f_debug, "================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -2472,41 +2195,26 @@ textual representation with the given indent.
 
     fprintf(f_debug, "properties:\n");
     ++indent;
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_rpb_all>(field);
+    if (test_bitmask<ifc_rpb_all>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "All:              %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_rpb_attributes>(field);
+      fprintf(f_debug, "- All\n");
+    }  /* if */
+    if (test_bitmask<ifc_rpb_attributes>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Attributes:       %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_rpb_default_arguments>(field);
+      fprintf(f_debug, "- Attributes\n");
+    }  /* if */
+    if (test_bitmask<ifc_rpb_default_arguments>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "DefaultArguments: %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_rpb_initializer>(field);
+      fprintf(f_debug, "- DefaultArguments\n");
+    }  /* if */
+    if (test_bitmask<ifc_rpb_initializer>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Initializer:      %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_rpb_none>(field);
+      fprintf(f_debug, "- Initializer\n");
+    }  /* if */
+    if (test_bitmask<ifc_rpb_none>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "None:             %s\n", (match ? "TRUE" : "FALSE"));
-    }
+      fprintf(f_debug, "- None\n");
+    }  /* if */
     --indent;
   }  /* if */
   if (has_ifc_specifiers(universal)) {
@@ -2514,78 +2222,42 @@ textual representation with the given indent.
 
     fprintf(f_debug, "specifiers:\n");
     ++indent;
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_c>(field);
+    if (test_bitmask<ifc_bsb_c>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "C:                      %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_cxx>(field);
+      fprintf(f_debug, "- C\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_cxx>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Cxx:                    %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_deprecated>(field);
+      fprintf(f_debug, "- Cxx\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_deprecated>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Deprecated:             %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_external>(field);
+      fprintf(f_debug, "- Deprecated\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_external>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "External:               %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_initialized_in_class>(field);
+      fprintf(f_debug, "- External\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_initialized_in_class>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "InitializedInClass:     %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_internal>(field);
+      fprintf(f_debug, "- InitializedInClass\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_internal>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Internal:               %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_is_member_of_global_module>(field);
+      fprintf(f_debug, "- Internal\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_is_member_of_global_module>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "IsMemberOfGlobalModule: %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_non_exported>(field);
+      fprintf(f_debug, "- IsMemberOfGlobalModule\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_non_exported>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "NonExported:            %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_vague>(field);
+      fprintf(f_debug, "- NonExported\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_vague>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Vague:                  %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
+      fprintf(f_debug, "- Vague\n");
+    }  /* if */
     --indent;
   }  /* if */
   if (has_ifc_type(universal)) {
@@ -2607,6 +2279,9 @@ Given the universal representation of DeclEnumeration, print a diagnostic
 textual representation.
 */
 {
+  fprintf(f_debug, "=============================== ");
+  fprintf(f_debug, "DeclEnumeration ");
+  fprintf(f_debug, "================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -2661,78 +2336,42 @@ textual representation with the given indent.
 
     fprintf(f_debug, "specifiers:\n");
     ++indent;
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_c>(field);
+    if (test_bitmask<ifc_bsb_c>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "C:                      %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_cxx>(field);
+      fprintf(f_debug, "- C\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_cxx>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Cxx:                    %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_deprecated>(field);
+      fprintf(f_debug, "- Cxx\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_deprecated>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Deprecated:             %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_external>(field);
+      fprintf(f_debug, "- Deprecated\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_external>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "External:               %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_initialized_in_class>(field);
+      fprintf(f_debug, "- External\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_initialized_in_class>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "InitializedInClass:     %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_internal>(field);
+      fprintf(f_debug, "- InitializedInClass\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_internal>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Internal:               %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_is_member_of_global_module>(field);
+      fprintf(f_debug, "- Internal\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_is_member_of_global_module>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "IsMemberOfGlobalModule: %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_non_exported>(field);
+      fprintf(f_debug, "- IsMemberOfGlobalModule\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_non_exported>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "NonExported:            %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_vague>(field);
+      fprintf(f_debug, "- NonExported\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_vague>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Vague:                  %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
+      fprintf(f_debug, "- Vague\n");
+    }  /* if */
     --indent;
   }  /* if */
   if (has_ifc_type(universal)) {
@@ -2754,6 +2393,9 @@ Given the universal representation of DeclEnumerator, print a diagnostic
 textual representation.
 */
 {
+  fprintf(f_debug, "================================ ");
+  fprintf(f_debug, "DeclEnumerator ");
+  fprintf(f_debug, "================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -2790,6 +2432,9 @@ Given the universal representation of DeclExpansion, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "================================ ");
+  fprintf(f_debug, "DeclExpansion ");
+  fprintf(f_debug, "=================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -2826,6 +2471,9 @@ Given the universal representation of DeclExplicitInstantiation, print a
 diagnostic textual representation.
 */
 {
+  fprintf(f_debug, "========================== ");
+  fprintf(f_debug, "DeclExplicitInstantiation ");
+  fprintf(f_debug, "===========================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -2862,6 +2510,9 @@ Given the universal representation of DeclExplicitSpecialization, print a
 diagnostic textual representation.
 */
 {
+  fprintf(f_debug, "========================== ");
+  fprintf(f_debug, "DeclExplicitSpecialization ");
+  fprintf(f_debug, "==========================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -2926,41 +2577,26 @@ representation with the given indent.
 
     fprintf(f_debug, "properties:\n");
     ++indent;
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_rpb_all>(field);
+    if (test_bitmask<ifc_rpb_all>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "All:              %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_rpb_attributes>(field);
+      fprintf(f_debug, "- All\n");
+    }  /* if */
+    if (test_bitmask<ifc_rpb_attributes>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Attributes:       %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_rpb_default_arguments>(field);
+      fprintf(f_debug, "- Attributes\n");
+    }  /* if */
+    if (test_bitmask<ifc_rpb_default_arguments>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "DefaultArguments: %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_rpb_initializer>(field);
+      fprintf(f_debug, "- DefaultArguments\n");
+    }  /* if */
+    if (test_bitmask<ifc_rpb_initializer>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Initializer:      %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_rpb_none>(field);
+      fprintf(f_debug, "- Initializer\n");
+    }  /* if */
+    if (test_bitmask<ifc_rpb_none>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "None:             %s\n", (match ? "TRUE" : "FALSE"));
-    }
+      fprintf(f_debug, "- None\n");
+    }  /* if */
     --indent;
   }  /* if */
   if (has_ifc_specifiers(universal)) {
@@ -2968,78 +2604,42 @@ representation with the given indent.
 
     fprintf(f_debug, "specifiers:\n");
     ++indent;
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_c>(field);
+    if (test_bitmask<ifc_bsb_c>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "C:                      %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_cxx>(field);
+      fprintf(f_debug, "- C\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_cxx>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Cxx:                    %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_deprecated>(field);
+      fprintf(f_debug, "- Cxx\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_deprecated>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Deprecated:             %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_external>(field);
+      fprintf(f_debug, "- Deprecated\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_external>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "External:               %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_initialized_in_class>(field);
+      fprintf(f_debug, "- External\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_initialized_in_class>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "InitializedInClass:     %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_internal>(field);
+      fprintf(f_debug, "- InitializedInClass\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_internal>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Internal:               %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_is_member_of_global_module>(field);
+      fprintf(f_debug, "- Internal\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_is_member_of_global_module>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "IsMemberOfGlobalModule: %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_non_exported>(field);
+      fprintf(f_debug, "- IsMemberOfGlobalModule\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_non_exported>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "NonExported:            %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_vague>(field);
+      fprintf(f_debug, "- NonExported\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_vague>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Vague:                  %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
+      fprintf(f_debug, "- Vague\n");
+    }  /* if */
     --indent;
   }  /* if */
   if (has_ifc_traits(universal)) {
@@ -3047,62 +2647,34 @@ representation with the given indent.
 
     fprintf(f_debug, "traits:\n");
     ++indent;
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_otb_constexpr>(field);
+    if (test_bitmask<ifc_otb_constexpr>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Constexpr:           %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_otb_initializer_exported>(field);
+      fprintf(f_debug, "- Constexpr\n");
+    }  /* if */
+    if (test_bitmask<ifc_otb_initializer_exported>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "InitializerExported: %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_otb_inline>(field);
+      fprintf(f_debug, "- InitializerExported\n");
+    }  /* if */
+    if (test_bitmask<ifc_otb_inline>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Inline:              %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_otb_mutable>(field);
+      fprintf(f_debug, "- Inline\n");
+    }  /* if */
+    if (test_bitmask<ifc_otb_mutable>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Mutable:             %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_otb_none>(field);
+      fprintf(f_debug, "- Mutable\n");
+    }  /* if */
+    if (test_bitmask<ifc_otb_none>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "None:                %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_otb_thread_local>(field);
+      fprintf(f_debug, "- None\n");
+    }  /* if */
+    if (test_bitmask<ifc_otb_thread_local>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "ThreadLocal:         %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_otb_vendor>(field);
+      fprintf(f_debug, "- ThreadLocal\n");
+    }  /* if */
+    if (test_bitmask<ifc_otb_vendor>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Vendor:              %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
+      fprintf(f_debug, "- Vendor\n");
+    }  /* if */
     --indent;
   }  /* if */
   if (has_ifc_type(universal)) {
@@ -3124,6 +2696,9 @@ Given the universal representation of DeclField, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "================================== ");
+  fprintf(f_debug, "DeclField ");
+  fprintf(f_debug, "===================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -3153,6 +2728,9 @@ Given the universal representation of DeclFriend, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "================================== ");
+  fprintf(f_debug, "DeclFriend ");
+  fprintf(f_debug, "==================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -3211,41 +2789,26 @@ representation with the given indent.
 
     fprintf(f_debug, "properties:\n");
     ++indent;
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_rpb_all>(field);
+    if (test_bitmask<ifc_rpb_all>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "All:              %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_rpb_attributes>(field);
+      fprintf(f_debug, "- All\n");
+    }  /* if */
+    if (test_bitmask<ifc_rpb_attributes>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Attributes:       %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_rpb_default_arguments>(field);
+      fprintf(f_debug, "- Attributes\n");
+    }  /* if */
+    if (test_bitmask<ifc_rpb_default_arguments>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "DefaultArguments: %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_rpb_initializer>(field);
+      fprintf(f_debug, "- DefaultArguments\n");
+    }  /* if */
+    if (test_bitmask<ifc_rpb_initializer>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Initializer:      %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_rpb_none>(field);
+      fprintf(f_debug, "- Initializer\n");
+    }  /* if */
+    if (test_bitmask<ifc_rpb_none>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "None:             %s\n", (match ? "TRUE" : "FALSE"));
-    }
+      fprintf(f_debug, "- None\n");
+    }  /* if */
     --indent;
   }  /* if */
   if (has_ifc_specifiers(universal)) {
@@ -3253,78 +2816,42 @@ representation with the given indent.
 
     fprintf(f_debug, "specifiers:\n");
     ++indent;
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_c>(field);
+    if (test_bitmask<ifc_bsb_c>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "C:                      %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_cxx>(field);
+      fprintf(f_debug, "- C\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_cxx>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Cxx:                    %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_deprecated>(field);
+      fprintf(f_debug, "- Cxx\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_deprecated>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Deprecated:             %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_external>(field);
+      fprintf(f_debug, "- Deprecated\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_external>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "External:               %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_initialized_in_class>(field);
+      fprintf(f_debug, "- External\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_initialized_in_class>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "InitializedInClass:     %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_internal>(field);
+      fprintf(f_debug, "- InitializedInClass\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_internal>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Internal:               %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_is_member_of_global_module>(field);
+      fprintf(f_debug, "- Internal\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_is_member_of_global_module>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "IsMemberOfGlobalModule: %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_non_exported>(field);
+      fprintf(f_debug, "- IsMemberOfGlobalModule\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_non_exported>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "NonExported:            %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_vague>(field);
+      fprintf(f_debug, "- NonExported\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_vague>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Vague:                  %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
+      fprintf(f_debug, "- Vague\n");
+    }  /* if */
     --indent;
   }  /* if */
   if (has_ifc_traits(universal)) {
@@ -3332,90 +2859,54 @@ representation with the given indent.
 
     fprintf(f_debug, "traits:\n");
     ++indent;
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_ftb_constexpr>(field);
+    if (test_bitmask<ifc_ftb_constexpr>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Constexpr:    %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_ftb_constrained>(field);
+      fprintf(f_debug, "- Constexpr\n");
+    }  /* if */
+    if (test_bitmask<ifc_ftb_constrained>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Constrained:  %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_ftb_defaulted>(field);
+      fprintf(f_debug, "- Constrained\n");
+    }  /* if */
+    if (test_bitmask<ifc_ftb_defaulted>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Defaulted:    %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_ftb_deleted>(field);
+      fprintf(f_debug, "- Defaulted\n");
+    }  /* if */
+    if (test_bitmask<ifc_ftb_deleted>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Deleted:      %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_ftb_explicit>(field);
+      fprintf(f_debug, "- Deleted\n");
+    }  /* if */
+    if (test_bitmask<ifc_ftb_explicit>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Explicit:     %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_ftb_hidden_friend>(field);
+      fprintf(f_debug, "- Explicit\n");
+    }  /* if */
+    if (test_bitmask<ifc_ftb_hidden_friend>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "HiddenFriend: %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_ftb_immediate>(field);
+      fprintf(f_debug, "- HiddenFriend\n");
+    }  /* if */
+    if (test_bitmask<ifc_ftb_immediate>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Immediate:    %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_ftb_inline>(field);
+      fprintf(f_debug, "- Immediate\n");
+    }  /* if */
+    if (test_bitmask<ifc_ftb_inline>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Inline:       %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_ftb_no_return>(field);
+      fprintf(f_debug, "- Inline\n");
+    }  /* if */
+    if (test_bitmask<ifc_ftb_no_return>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "NoReturn:     %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_ftb_none>(field);
+      fprintf(f_debug, "- NoReturn\n");
+    }  /* if */
+    if (test_bitmask<ifc_ftb_none>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "None:         %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_ftb_pure_virtual>(field);
+      fprintf(f_debug, "- None\n");
+    }  /* if */
+    if (test_bitmask<ifc_ftb_pure_virtual>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "PureVirtual:  %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_ftb_virtual>(field);
+      fprintf(f_debug, "- PureVirtual\n");
+    }  /* if */
+    if (test_bitmask<ifc_ftb_virtual>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Virtual:      %s\n", (match ? "TRUE" : "FALSE"));
-    }
+      fprintf(f_debug, "- Virtual\n");
+    }  /* if */
     --indent;
   }  /* if */
   if (has_ifc_type(universal)) {
@@ -3437,6 +2928,9 @@ Given the universal representation of DeclFunction, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "================================= ");
+  fprintf(f_debug, "DeclFunction ");
+  fprintf(f_debug, "=================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -3502,78 +2996,42 @@ diagnostic textual representation with the given indent.
 
     fprintf(f_debug, "specifiers:\n");
     ++indent;
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_c>(field);
+    if (test_bitmask<ifc_bsb_c>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "C:                      %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_cxx>(field);
+      fprintf(f_debug, "- C\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_cxx>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Cxx:                    %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_deprecated>(field);
+      fprintf(f_debug, "- Cxx\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_deprecated>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Deprecated:             %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_external>(field);
+      fprintf(f_debug, "- Deprecated\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_external>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "External:               %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_initialized_in_class>(field);
+      fprintf(f_debug, "- External\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_initialized_in_class>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "InitializedInClass:     %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_internal>(field);
+      fprintf(f_debug, "- InitializedInClass\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_internal>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Internal:               %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_is_member_of_global_module>(field);
+      fprintf(f_debug, "- Internal\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_is_member_of_global_module>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "IsMemberOfGlobalModule: %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_non_exported>(field);
+      fprintf(f_debug, "- IsMemberOfGlobalModule\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_non_exported>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "NonExported:            %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_vague>(field);
+      fprintf(f_debug, "- NonExported\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_vague>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Vague:                  %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
+      fprintf(f_debug, "- Vague\n");
+    }  /* if */
     --indent;
   }  /* if */
   if (has_ifc_traits(universal)) {
@@ -3581,90 +3039,54 @@ diagnostic textual representation with the given indent.
 
     fprintf(f_debug, "traits:\n");
     ++indent;
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_ftb_constexpr>(field);
+    if (test_bitmask<ifc_ftb_constexpr>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Constexpr:    %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_ftb_constrained>(field);
+      fprintf(f_debug, "- Constexpr\n");
+    }  /* if */
+    if (test_bitmask<ifc_ftb_constrained>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Constrained:  %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_ftb_defaulted>(field);
+      fprintf(f_debug, "- Constrained\n");
+    }  /* if */
+    if (test_bitmask<ifc_ftb_defaulted>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Defaulted:    %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_ftb_deleted>(field);
+      fprintf(f_debug, "- Defaulted\n");
+    }  /* if */
+    if (test_bitmask<ifc_ftb_deleted>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Deleted:      %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_ftb_explicit>(field);
+      fprintf(f_debug, "- Deleted\n");
+    }  /* if */
+    if (test_bitmask<ifc_ftb_explicit>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Explicit:     %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_ftb_hidden_friend>(field);
+      fprintf(f_debug, "- Explicit\n");
+    }  /* if */
+    if (test_bitmask<ifc_ftb_hidden_friend>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "HiddenFriend: %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_ftb_immediate>(field);
+      fprintf(f_debug, "- HiddenFriend\n");
+    }  /* if */
+    if (test_bitmask<ifc_ftb_immediate>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Immediate:    %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_ftb_inline>(field);
+      fprintf(f_debug, "- Immediate\n");
+    }  /* if */
+    if (test_bitmask<ifc_ftb_inline>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Inline:       %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_ftb_no_return>(field);
+      fprintf(f_debug, "- Inline\n");
+    }  /* if */
+    if (test_bitmask<ifc_ftb_no_return>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "NoReturn:     %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_ftb_none>(field);
+      fprintf(f_debug, "- NoReturn\n");
+    }  /* if */
+    if (test_bitmask<ifc_ftb_none>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "None:         %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_ftb_pure_virtual>(field);
+      fprintf(f_debug, "- None\n");
+    }  /* if */
+    if (test_bitmask<ifc_ftb_pure_virtual>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "PureVirtual:  %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_ftb_virtual>(field);
+      fprintf(f_debug, "- PureVirtual\n");
+    }  /* if */
+    if (test_bitmask<ifc_ftb_virtual>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Virtual:      %s\n", (match ? "TRUE" : "FALSE"));
-    }
+      fprintf(f_debug, "- Virtual\n");
+    }  /* if */
     --indent;
   }  /* if */
   if (has_ifc_type(universal)) {
@@ -3686,6 +3108,9 @@ Given the universal representation of DeclInheritedConstructor, print a
 diagnostic textual representation.
 */
 {
+  fprintf(f_debug, "=========================== ");
+  fprintf(f_debug, "DeclInheritedConstructor ");
+  fprintf(f_debug, "===========================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -3730,78 +3155,42 @@ representation with the given indent.
 
     fprintf(f_debug, "specifiers:\n");
     ++indent;
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_c>(field);
+    if (test_bitmask<ifc_bsb_c>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "C:                      %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_cxx>(field);
+      fprintf(f_debug, "- C\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_cxx>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Cxx:                    %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_deprecated>(field);
+      fprintf(f_debug, "- Cxx\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_deprecated>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Deprecated:             %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_external>(field);
+      fprintf(f_debug, "- Deprecated\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_external>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "External:               %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_initialized_in_class>(field);
+      fprintf(f_debug, "- External\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_initialized_in_class>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "InitializedInClass:     %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_internal>(field);
+      fprintf(f_debug, "- InitializedInClass\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_internal>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Internal:               %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_is_member_of_global_module>(field);
+      fprintf(f_debug, "- Internal\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_is_member_of_global_module>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "IsMemberOfGlobalModule: %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_non_exported>(field);
+      fprintf(f_debug, "- IsMemberOfGlobalModule\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_non_exported>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "NonExported:            %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_vague>(field);
+      fprintf(f_debug, "- NonExported\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_vague>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Vague:                  %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
+      fprintf(f_debug, "- Vague\n");
+    }  /* if */
     --indent;
   }  /* if */
   if (has_ifc_type(universal)) {
@@ -3823,6 +3212,9 @@ Given the universal representation of DeclIntrinsic, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "================================ ");
+  fprintf(f_debug, "DeclIntrinsic ");
+  fprintf(f_debug, "=================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -3881,41 +3273,26 @@ representation with the given indent.
 
     fprintf(f_debug, "properties:\n");
     ++indent;
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_rpb_all>(field);
+    if (test_bitmask<ifc_rpb_all>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "All:              %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_rpb_attributes>(field);
+      fprintf(f_debug, "- All\n");
+    }  /* if */
+    if (test_bitmask<ifc_rpb_attributes>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Attributes:       %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_rpb_default_arguments>(field);
+      fprintf(f_debug, "- Attributes\n");
+    }  /* if */
+    if (test_bitmask<ifc_rpb_default_arguments>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "DefaultArguments: %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_rpb_initializer>(field);
+      fprintf(f_debug, "- DefaultArguments\n");
+    }  /* if */
+    if (test_bitmask<ifc_rpb_initializer>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Initializer:      %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_rpb_none>(field);
+      fprintf(f_debug, "- Initializer\n");
+    }  /* if */
+    if (test_bitmask<ifc_rpb_none>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "None:             %s\n", (match ? "TRUE" : "FALSE"));
-    }
+      fprintf(f_debug, "- None\n");
+    }  /* if */
     --indent;
   }  /* if */
   if (has_ifc_specifiers(universal)) {
@@ -3923,78 +3300,42 @@ representation with the given indent.
 
     fprintf(f_debug, "specifiers:\n");
     ++indent;
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_c>(field);
+    if (test_bitmask<ifc_bsb_c>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "C:                      %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_cxx>(field);
+      fprintf(f_debug, "- C\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_cxx>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Cxx:                    %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_deprecated>(field);
+      fprintf(f_debug, "- Cxx\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_deprecated>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Deprecated:             %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_external>(field);
+      fprintf(f_debug, "- Deprecated\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_external>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "External:               %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_initialized_in_class>(field);
+      fprintf(f_debug, "- External\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_initialized_in_class>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "InitializedInClass:     %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_internal>(field);
+      fprintf(f_debug, "- InitializedInClass\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_internal>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Internal:               %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_is_member_of_global_module>(field);
+      fprintf(f_debug, "- Internal\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_is_member_of_global_module>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "IsMemberOfGlobalModule: %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_non_exported>(field);
+      fprintf(f_debug, "- IsMemberOfGlobalModule\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_non_exported>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "NonExported:            %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_vague>(field);
+      fprintf(f_debug, "- NonExported\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_vague>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Vague:                  %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
+      fprintf(f_debug, "- Vague\n");
+    }  /* if */
     --indent;
   }  /* if */
   if (has_ifc_traits(universal)) {
@@ -4002,90 +3343,54 @@ representation with the given indent.
 
     fprintf(f_debug, "traits:\n");
     ++indent;
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_ftb_constexpr>(field);
+    if (test_bitmask<ifc_ftb_constexpr>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Constexpr:    %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_ftb_constrained>(field);
+      fprintf(f_debug, "- Constexpr\n");
+    }  /* if */
+    if (test_bitmask<ifc_ftb_constrained>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Constrained:  %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_ftb_defaulted>(field);
+      fprintf(f_debug, "- Constrained\n");
+    }  /* if */
+    if (test_bitmask<ifc_ftb_defaulted>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Defaulted:    %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_ftb_deleted>(field);
+      fprintf(f_debug, "- Defaulted\n");
+    }  /* if */
+    if (test_bitmask<ifc_ftb_deleted>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Deleted:      %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_ftb_explicit>(field);
+      fprintf(f_debug, "- Deleted\n");
+    }  /* if */
+    if (test_bitmask<ifc_ftb_explicit>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Explicit:     %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_ftb_hidden_friend>(field);
+      fprintf(f_debug, "- Explicit\n");
+    }  /* if */
+    if (test_bitmask<ifc_ftb_hidden_friend>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "HiddenFriend: %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_ftb_immediate>(field);
+      fprintf(f_debug, "- HiddenFriend\n");
+    }  /* if */
+    if (test_bitmask<ifc_ftb_immediate>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Immediate:    %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_ftb_inline>(field);
+      fprintf(f_debug, "- Immediate\n");
+    }  /* if */
+    if (test_bitmask<ifc_ftb_inline>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Inline:       %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_ftb_no_return>(field);
+      fprintf(f_debug, "- Inline\n");
+    }  /* if */
+    if (test_bitmask<ifc_ftb_no_return>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "NoReturn:     %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_ftb_none>(field);
+      fprintf(f_debug, "- NoReturn\n");
+    }  /* if */
+    if (test_bitmask<ifc_ftb_none>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "None:         %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_ftb_pure_virtual>(field);
+      fprintf(f_debug, "- None\n");
+    }  /* if */
+    if (test_bitmask<ifc_ftb_pure_virtual>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "PureVirtual:  %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_ftb_virtual>(field);
+      fprintf(f_debug, "- PureVirtual\n");
+    }  /* if */
+    if (test_bitmask<ifc_ftb_virtual>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Virtual:      %s\n", (match ? "TRUE" : "FALSE"));
-    }
+      fprintf(f_debug, "- Virtual\n");
+    }  /* if */
     --indent;
   }  /* if */
   if (has_ifc_type(universal)) {
@@ -4107,6 +3412,9 @@ Given the universal representation of DeclMethod, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "================================== ");
+  fprintf(f_debug, "DeclMethod ");
+  fprintf(f_debug, "==================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -4150,6 +3458,9 @@ Given the universal representation of DeclOutputSegment, print a diagnostic
 textual representation.
 */
 {
+  fprintf(f_debug, "============================== ");
+  fprintf(f_debug, "DeclOutputSegment ");
+  fprintf(f_debug, "===============================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -4216,41 +3527,26 @@ representation with the given indent.
 
     fprintf(f_debug, "properties:\n");
     ++indent;
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_rpb_all>(field);
+    if (test_bitmask<ifc_rpb_all>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "All:              %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_rpb_attributes>(field);
+      fprintf(f_debug, "- All\n");
+    }  /* if */
+    if (test_bitmask<ifc_rpb_attributes>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Attributes:       %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_rpb_default_arguments>(field);
+      fprintf(f_debug, "- Attributes\n");
+    }  /* if */
+    if (test_bitmask<ifc_rpb_default_arguments>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "DefaultArguments: %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_rpb_initializer>(field);
+      fprintf(f_debug, "- DefaultArguments\n");
+    }  /* if */
+    if (test_bitmask<ifc_rpb_initializer>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Initializer:      %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_rpb_none>(field);
+      fprintf(f_debug, "- Initializer\n");
+    }  /* if */
+    if (test_bitmask<ifc_rpb_none>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "None:             %s\n", (match ? "TRUE" : "FALSE"));
-    }
+      fprintf(f_debug, "- None\n");
+    }  /* if */
     --indent;
   }  /* if */
   if (has_ifc_sort(universal)) {
@@ -4278,6 +3574,9 @@ Given the universal representation of DeclParameter, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "================================ ");
+  fprintf(f_debug, "DeclParameter ");
+  fprintf(f_debug, "=================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -4350,41 +3649,26 @@ diagnostic textual representation with the given indent.
 
     fprintf(f_debug, "properties:\n");
     ++indent;
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_rpb_all>(field);
+    if (test_bitmask<ifc_rpb_all>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "All:              %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_rpb_attributes>(field);
+      fprintf(f_debug, "- All\n");
+    }  /* if */
+    if (test_bitmask<ifc_rpb_attributes>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Attributes:       %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_rpb_default_arguments>(field);
+      fprintf(f_debug, "- Attributes\n");
+    }  /* if */
+    if (test_bitmask<ifc_rpb_default_arguments>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "DefaultArguments: %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_rpb_initializer>(field);
+      fprintf(f_debug, "- DefaultArguments\n");
+    }  /* if */
+    if (test_bitmask<ifc_rpb_initializer>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Initializer:      %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_rpb_none>(field);
+      fprintf(f_debug, "- Initializer\n");
+    }  /* if */
+    if (test_bitmask<ifc_rpb_none>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "None:             %s\n", (match ? "TRUE" : "FALSE"));
-    }
+      fprintf(f_debug, "- None\n");
+    }  /* if */
     --indent;
   }  /* if */
   if (has_ifc_specifiers(universal)) {
@@ -4392,78 +3676,42 @@ diagnostic textual representation with the given indent.
 
     fprintf(f_debug, "specifiers:\n");
     ++indent;
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_c>(field);
+    if (test_bitmask<ifc_bsb_c>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "C:                      %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_cxx>(field);
+      fprintf(f_debug, "- C\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_cxx>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Cxx:                    %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_deprecated>(field);
+      fprintf(f_debug, "- Cxx\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_deprecated>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Deprecated:             %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_external>(field);
+      fprintf(f_debug, "- Deprecated\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_external>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "External:               %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_initialized_in_class>(field);
+      fprintf(f_debug, "- External\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_initialized_in_class>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "InitializedInClass:     %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_internal>(field);
+      fprintf(f_debug, "- InitializedInClass\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_internal>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Internal:               %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_is_member_of_global_module>(field);
+      fprintf(f_debug, "- Internal\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_is_member_of_global_module>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "IsMemberOfGlobalModule: %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_non_exported>(field);
+      fprintf(f_debug, "- IsMemberOfGlobalModule\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_non_exported>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "NonExported:            %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_vague>(field);
+      fprintf(f_debug, "- NonExported\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_vague>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Vague:                  %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
+      fprintf(f_debug, "- Vague\n");
+    }  /* if */
     --indent;
   }  /* if */
 }  /* db_node */
@@ -4475,6 +3723,9 @@ Given the universal representation of DeclPartialSpecialization, print a
 diagnostic textual representation.
 */
 {
+  fprintf(f_debug, "========================== ");
+  fprintf(f_debug, "DeclPartialSpecialization ");
+  fprintf(f_debug, "===========================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -4516,6 +3767,9 @@ Given the universal representation of DeclProperty, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "================================= ");
+  fprintf(f_debug, "DeclProperty ");
+  fprintf(f_debug, "=================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -4556,6 +3810,9 @@ Given the universal representation of DeclReference, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "================================ ");
+  fprintf(f_debug, "DeclReference ");
+  fprintf(f_debug, "=================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -4636,41 +3893,26 @@ representation with the given indent.
 
     fprintf(f_debug, "properties:\n");
     ++indent;
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_rpb_all>(field);
+    if (test_bitmask<ifc_rpb_all>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "All:              %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_rpb_attributes>(field);
+      fprintf(f_debug, "- All\n");
+    }  /* if */
+    if (test_bitmask<ifc_rpb_attributes>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Attributes:       %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_rpb_default_arguments>(field);
+      fprintf(f_debug, "- Attributes\n");
+    }  /* if */
+    if (test_bitmask<ifc_rpb_default_arguments>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "DefaultArguments: %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_rpb_initializer>(field);
+      fprintf(f_debug, "- DefaultArguments\n");
+    }  /* if */
+    if (test_bitmask<ifc_rpb_initializer>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Initializer:      %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_rpb_none>(field);
+      fprintf(f_debug, "- Initializer\n");
+    }  /* if */
+    if (test_bitmask<ifc_rpb_none>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "None:             %s\n", (match ? "TRUE" : "FALSE"));
-    }
+      fprintf(f_debug, "- None\n");
+    }  /* if */
     --indent;
   }  /* if */
   if (has_ifc_specifiers(universal)) {
@@ -4678,78 +3920,42 @@ representation with the given indent.
 
     fprintf(f_debug, "specifiers:\n");
     ++indent;
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_c>(field);
+    if (test_bitmask<ifc_bsb_c>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "C:                      %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_cxx>(field);
+      fprintf(f_debug, "- C\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_cxx>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Cxx:                    %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_deprecated>(field);
+      fprintf(f_debug, "- Cxx\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_deprecated>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Deprecated:             %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_external>(field);
+      fprintf(f_debug, "- Deprecated\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_external>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "External:               %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_initialized_in_class>(field);
+      fprintf(f_debug, "- External\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_initialized_in_class>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "InitializedInClass:     %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_internal>(field);
+      fprintf(f_debug, "- InitializedInClass\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_internal>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Internal:               %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_is_member_of_global_module>(field);
+      fprintf(f_debug, "- Internal\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_is_member_of_global_module>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "IsMemberOfGlobalModule: %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_non_exported>(field);
+      fprintf(f_debug, "- IsMemberOfGlobalModule\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_non_exported>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "NonExported:            %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_vague>(field);
+      fprintf(f_debug, "- NonExported\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_vague>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Vague:                  %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
+      fprintf(f_debug, "- Vague\n");
+    }  /* if */
     --indent;
   }  /* if */
   if (has_ifc_traits(universal)) {
@@ -4757,62 +3963,34 @@ representation with the given indent.
 
     fprintf(f_debug, "traits:\n");
     ++indent;
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_stb_closure_type>(field);
+    if (test_bitmask<ifc_stb_closure_type>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "ClosureType:         %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_stb_final>(field);
+      fprintf(f_debug, "- ClosureType\n");
+    }  /* if */
+    if (test_bitmask<ifc_stb_final>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Final:               %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_stb_initializer_exported>(field);
+      fprintf(f_debug, "- Final\n");
+    }  /* if */
+    if (test_bitmask<ifc_stb_initializer_exported>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "InitializerExported: %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_stb_inline>(field);
+      fprintf(f_debug, "- InitializerExported\n");
+    }  /* if */
+    if (test_bitmask<ifc_stb_inline>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Inline:              %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_stb_none>(field);
+      fprintf(f_debug, "- Inline\n");
+    }  /* if */
+    if (test_bitmask<ifc_stb_none>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "None:                %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_stb_unnamed>(field);
+      fprintf(f_debug, "- None\n");
+    }  /* if */
+    if (test_bitmask<ifc_stb_unnamed>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Unnamed:             %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_stb_vendor>(field);
+      fprintf(f_debug, "- Unnamed\n");
+    }  /* if */
+    if (test_bitmask<ifc_stb_vendor>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Vendor:              %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
+      fprintf(f_debug, "- Vendor\n");
+    }  /* if */
     --indent;
   }  /* if */
   if (has_ifc_type(universal)) {
@@ -4834,6 +4012,9 @@ Given the universal representation of DeclScope, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "================================== ");
+  fprintf(f_debug, "DeclScope ");
+  fprintf(f_debug, "===================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -4902,6 +4083,9 @@ Given the universal representation of DeclSpecialization, print a diagnostic
 textual representation.
 */
 {
+  fprintf(f_debug, "============================== ");
+  fprintf(f_debug, "DeclSpecialization ");
+  fprintf(f_debug, "==============================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -4967,41 +4151,26 @@ representation with the given indent.
 
     fprintf(f_debug, "properties:\n");
     ++indent;
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_rpb_all>(field);
+    if (test_bitmask<ifc_rpb_all>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "All:              %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_rpb_attributes>(field);
+      fprintf(f_debug, "- All\n");
+    }  /* if */
+    if (test_bitmask<ifc_rpb_attributes>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Attributes:       %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_rpb_default_arguments>(field);
+      fprintf(f_debug, "- Attributes\n");
+    }  /* if */
+    if (test_bitmask<ifc_rpb_default_arguments>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "DefaultArguments: %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_rpb_initializer>(field);
+      fprintf(f_debug, "- DefaultArguments\n");
+    }  /* if */
+    if (test_bitmask<ifc_rpb_initializer>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Initializer:      %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_rpb_none>(field);
+      fprintf(f_debug, "- Initializer\n");
+    }  /* if */
+    if (test_bitmask<ifc_rpb_none>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "None:             %s\n", (match ? "TRUE" : "FALSE"));
-    }
+      fprintf(f_debug, "- None\n");
+    }  /* if */
     --indent;
   }  /* if */
   if (has_ifc_specifiers(universal)) {
@@ -5009,78 +4178,42 @@ representation with the given indent.
 
     fprintf(f_debug, "specifiers:\n");
     ++indent;
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_c>(field);
+    if (test_bitmask<ifc_bsb_c>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "C:                      %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_cxx>(field);
+      fprintf(f_debug, "- C\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_cxx>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Cxx:                    %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_deprecated>(field);
+      fprintf(f_debug, "- Cxx\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_deprecated>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Deprecated:             %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_external>(field);
+      fprintf(f_debug, "- Deprecated\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_external>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "External:               %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_initialized_in_class>(field);
+      fprintf(f_debug, "- External\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_initialized_in_class>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "InitializedInClass:     %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_internal>(field);
+      fprintf(f_debug, "- InitializedInClass\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_internal>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Internal:               %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_is_member_of_global_module>(field);
+      fprintf(f_debug, "- Internal\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_is_member_of_global_module>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "IsMemberOfGlobalModule: %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_non_exported>(field);
+      fprintf(f_debug, "- IsMemberOfGlobalModule\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_non_exported>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "NonExported:            %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_vague>(field);
+      fprintf(f_debug, "- NonExported\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_vague>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Vague:                  %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
+      fprintf(f_debug, "- Vague\n");
+    }  /* if */
     --indent;
   }  /* if */
   if (has_ifc_type(universal)) {
@@ -5102,6 +4235,9 @@ Given the universal representation of DeclTemplate, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "================================= ");
+  fprintf(f_debug, "DeclTemplate ");
+  fprintf(f_debug, "=================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -5134,41 +4270,26 @@ representation with the given indent.
 
     fprintf(f_debug, "properties:\n");
     ++indent;
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_rpb_all>(field);
+    if (test_bitmask<ifc_rpb_all>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "All:              %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_rpb_attributes>(field);
+      fprintf(f_debug, "- All\n");
+    }  /* if */
+    if (test_bitmask<ifc_rpb_attributes>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Attributes:       %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_rpb_default_arguments>(field);
+      fprintf(f_debug, "- Attributes\n");
+    }  /* if */
+    if (test_bitmask<ifc_rpb_default_arguments>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "DefaultArguments: %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_rpb_initializer>(field);
+      fprintf(f_debug, "- DefaultArguments\n");
+    }  /* if */
+    if (test_bitmask<ifc_rpb_initializer>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Initializer:      %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_rpb_none>(field);
+      fprintf(f_debug, "- Initializer\n");
+    }  /* if */
+    if (test_bitmask<ifc_rpb_none>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "None:             %s\n", (match ? "TRUE" : "FALSE"));
-    }
+      fprintf(f_debug, "- None\n");
+    }  /* if */
     --indent;
   }  /* if */
 }  /* db_node */
@@ -5180,6 +4301,9 @@ Given the universal representation of DeclTemploid, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "================================= ");
+  fprintf(f_debug, "DeclTemploid ");
+  fprintf(f_debug, "=================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -5211,6 +4335,9 @@ Given the universal representation of DeclTuple, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "================================== ");
+  fprintf(f_debug, "DeclTuple ");
+  fprintf(f_debug, "===================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -5287,78 +4414,42 @@ textual representation with the given indent.
 
     fprintf(f_debug, "specifiers:\n");
     ++indent;
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_c>(field);
+    if (test_bitmask<ifc_bsb_c>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "C:                      %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_cxx>(field);
+      fprintf(f_debug, "- C\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_cxx>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Cxx:                    %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_deprecated>(field);
+      fprintf(f_debug, "- Cxx\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_deprecated>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Deprecated:             %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_external>(field);
+      fprintf(f_debug, "- Deprecated\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_external>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "External:               %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_initialized_in_class>(field);
+      fprintf(f_debug, "- External\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_initialized_in_class>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "InitializedInClass:     %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_internal>(field);
+      fprintf(f_debug, "- InitializedInClass\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_internal>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Internal:               %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_is_member_of_global_module>(field);
+      fprintf(f_debug, "- Internal\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_is_member_of_global_module>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "IsMemberOfGlobalModule: %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_non_exported>(field);
+      fprintf(f_debug, "- IsMemberOfGlobalModule\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_non_exported>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "NonExported:            %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_vague>(field);
+      fprintf(f_debug, "- NonExported\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_vague>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Vague:                  %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
+      fprintf(f_debug, "- Vague\n");
+    }  /* if */
     --indent;
   }  /* if */
 }  /* db_node */
@@ -5370,6 +4461,9 @@ Given the universal representation of DeclUsingDeclaration, print a diagnostic
 textual representation.
 */
 {
+  fprintf(f_debug, "============================= ");
+  fprintf(f_debug, "DeclUsingDeclaration ");
+  fprintf(f_debug, "=============================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -5438,41 +4532,26 @@ representation with the given indent.
 
     fprintf(f_debug, "properties:\n");
     ++indent;
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_rpb_all>(field);
+    if (test_bitmask<ifc_rpb_all>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "All:              %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_rpb_attributes>(field);
+      fprintf(f_debug, "- All\n");
+    }  /* if */
+    if (test_bitmask<ifc_rpb_attributes>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Attributes:       %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_rpb_default_arguments>(field);
+      fprintf(f_debug, "- Attributes\n");
+    }  /* if */
+    if (test_bitmask<ifc_rpb_default_arguments>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "DefaultArguments: %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_rpb_initializer>(field);
+      fprintf(f_debug, "- DefaultArguments\n");
+    }  /* if */
+    if (test_bitmask<ifc_rpb_initializer>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Initializer:      %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_rpb_none>(field);
+      fprintf(f_debug, "- Initializer\n");
+    }  /* if */
+    if (test_bitmask<ifc_rpb_none>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "None:             %s\n", (match ? "TRUE" : "FALSE"));
-    }
+      fprintf(f_debug, "- None\n");
+    }  /* if */
     --indent;
   }  /* if */
   if (has_ifc_specifiers(universal)) {
@@ -5480,78 +4559,42 @@ representation with the given indent.
 
     fprintf(f_debug, "specifiers:\n");
     ++indent;
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_c>(field);
+    if (test_bitmask<ifc_bsb_c>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "C:                      %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_cxx>(field);
+      fprintf(f_debug, "- C\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_cxx>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Cxx:                    %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_deprecated>(field);
+      fprintf(f_debug, "- Cxx\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_deprecated>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Deprecated:             %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_external>(field);
+      fprintf(f_debug, "- Deprecated\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_external>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "External:               %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_initialized_in_class>(field);
+      fprintf(f_debug, "- External\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_initialized_in_class>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "InitializedInClass:     %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_internal>(field);
+      fprintf(f_debug, "- InitializedInClass\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_internal>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Internal:               %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_is_member_of_global_module>(field);
+      fprintf(f_debug, "- Internal\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_is_member_of_global_module>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "IsMemberOfGlobalModule: %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_non_exported>(field);
+      fprintf(f_debug, "- IsMemberOfGlobalModule\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_non_exported>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "NonExported:            %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_bsb_vague>(field);
+      fprintf(f_debug, "- NonExported\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_vague>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Vague:                  %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
+      fprintf(f_debug, "- Vague\n");
+    }  /* if */
     --indent;
   }  /* if */
   if (has_ifc_traits(universal)) {
@@ -5559,62 +4602,34 @@ representation with the given indent.
 
     fprintf(f_debug, "traits:\n");
     ++indent;
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_otb_constexpr>(field);
+    if (test_bitmask<ifc_otb_constexpr>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Constexpr:           %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_otb_initializer_exported>(field);
+      fprintf(f_debug, "- Constexpr\n");
+    }  /* if */
+    if (test_bitmask<ifc_otb_initializer_exported>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "InitializerExported: %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_otb_inline>(field);
+      fprintf(f_debug, "- InitializerExported\n");
+    }  /* if */
+    if (test_bitmask<ifc_otb_inline>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Inline:              %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_otb_mutable>(field);
+      fprintf(f_debug, "- Inline\n");
+    }  /* if */
+    if (test_bitmask<ifc_otb_mutable>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Mutable:             %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_otb_none>(field);
+      fprintf(f_debug, "- Mutable\n");
+    }  /* if */
+    if (test_bitmask<ifc_otb_none>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "None:                %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_otb_thread_local>(field);
+      fprintf(f_debug, "- None\n");
+    }  /* if */
+    if (test_bitmask<ifc_otb_thread_local>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "ThreadLocal:         %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_otb_vendor>(field);
+      fprintf(f_debug, "- ThreadLocal\n");
+    }  /* if */
+    if (test_bitmask<ifc_otb_vendor>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Vendor:              %s\n",
-              (match ? "TRUE" : "FALSE"));
-    }
+      fprintf(f_debug, "- Vendor\n");
+    }  /* if */
     --indent;
   }  /* if */
   if (has_ifc_type(universal)) {
@@ -5636,6 +4651,9 @@ Given the universal representation of DeclVariable, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "================================= ");
+  fprintf(f_debug, "DeclVariable ");
+  fprintf(f_debug, "=================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -5682,6 +4700,9 @@ Given the universal representation of ExprAlignof, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "================================= ");
+  fprintf(f_debug, "ExprAlignof ");
+  fprintf(f_debug, "==================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -5738,6 +4759,9 @@ Given the universal representation of ExprArrayValue, print a diagnostic
 textual representation.
 */
 {
+  fprintf(f_debug, "================================ ");
+  fprintf(f_debug, "ExprArrayValue ");
+  fprintf(f_debug, "================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -5774,6 +4798,9 @@ Given the universal representation of ExprAssignInitializer, print a diagnostic
 textual representation.
 */
 {
+  fprintf(f_debug, "============================ ");
+  fprintf(f_debug, "ExprAssignInitializer ");
+  fprintf(f_debug, "=============================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -5843,6 +4870,9 @@ Given the universal representation of ExprBinaryFold, print a diagnostic
 textual representation.
 */
 {
+  fprintf(f_debug, "================================ ");
+  fprintf(f_debug, "ExprBinaryFold ");
+  fprintf(f_debug, "================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -5899,6 +4929,9 @@ Given the universal representation of ExprCall, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "=================================== ");
+  fprintf(f_debug, "ExprCall ");
+  fprintf(f_debug, "===================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -5961,6 +4994,9 @@ Given the universal representation of ExprCast, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "=================================== ");
+  fprintf(f_debug, "ExprCast ");
+  fprintf(f_debug, "===================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -6013,6 +5049,9 @@ Given the universal representation of ExprCompoundString, print a diagnostic
 textual representation.
 */
 {
+  fprintf(f_debug, "============================== ");
+  fprintf(f_debug, "ExprCompoundString ");
+  fprintf(f_debug, "==============================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -6059,6 +5098,9 @@ Given the universal representation of ExprCondition, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "================================ ");
+  fprintf(f_debug, "ExprCondition ");
+  fprintf(f_debug, "=================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -6112,6 +5154,9 @@ Given the universal representation of ExprDesignatedInitializer, print a
 diagnostic textual representation.
 */
 {
+  fprintf(f_debug, "========================== ");
+  fprintf(f_debug, "ExprDesignatedInitializer ");
+  fprintf(f_debug, "===========================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -6174,6 +5219,9 @@ Given the universal representation of ExprDestructorCall, print a diagnostic
 textual representation.
 */
 {
+  fprintf(f_debug, "============================== ");
+  fprintf(f_debug, "ExprDestructorCall ");
+  fprintf(f_debug, "==============================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -6246,6 +5294,9 @@ Given the universal representation of ExprDyad, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "=================================== ");
+  fprintf(f_debug, "ExprDyad ");
+  fprintf(f_debug, "===================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -6292,6 +5343,9 @@ Given the universal representation of ExprDynamicDispatch, print a diagnostic
 textual representation.
 */
 {
+  fprintf(f_debug, "============================= ");
+  fprintf(f_debug, "ExprDynamicDispatch ");
+  fprintf(f_debug, "==============================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -6328,6 +5382,9 @@ Given the universal representation of ExprEmpty, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "================================== ");
+  fprintf(f_debug, "ExprEmpty ");
+  fprintf(f_debug, "===================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -6374,6 +5431,9 @@ Given the universal representation of ExprExpansion, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "================================ ");
+  fprintf(f_debug, "ExprExpansion ");
+  fprintf(f_debug, "=================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -6423,6 +5483,9 @@ Given the universal representation of ExprExpressionList, print a diagnostic
 textual representation.
 */
 {
+  fprintf(f_debug, "============================== ");
+  fprintf(f_debug, "ExprExpressionList ");
+  fprintf(f_debug, "==============================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -6465,6 +5528,9 @@ Given the universal representation of ExprFunctionString, print a diagnostic
 textual representation.
 */
 {
+  fprintf(f_debug, "============================== ");
+  fprintf(f_debug, "ExprFunctionString ");
+  fprintf(f_debug, "==============================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -6548,6 +5614,9 @@ Given the universal representation of ExprHierarchyConversion, print a
 diagnostic textual representation.
 */
 {
+  fprintf(f_debug, "=========================== ");
+  fprintf(f_debug, "ExprHierarchyConversion ");
+  fprintf(f_debug, "============================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -6594,6 +5663,9 @@ Given the universal representation of ExprInheritancePath, print a diagnostic
 textual representation.
 */
 {
+  fprintf(f_debug, "============================= ");
+  fprintf(f_debug, "ExprInheritancePath ");
+  fprintf(f_debug, "==============================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -6646,6 +5718,9 @@ Given the universal representation of ExprInitializer, print a diagnostic
 textual representation.
 */
 {
+  fprintf(f_debug, "=============================== ");
+  fprintf(f_debug, "ExprInitializer ");
+  fprintf(f_debug, "================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -6692,6 +5767,9 @@ Given the universal representation of ExprInitializerList, print a diagnostic
 textual representation.
 */
 {
+  fprintf(f_debug, "============================= ");
+  fprintf(f_debug, "ExprInitializerList ");
+  fprintf(f_debug, "==============================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -6761,6 +5839,9 @@ Given the universal representation of ExprLambda, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "================================== ");
+  fprintf(f_debug, "ExprLambda ");
+  fprintf(f_debug, "==================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -6807,6 +5888,9 @@ Given the universal representation of ExprLiteral, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "================================= ");
+  fprintf(f_debug, "ExprLiteral ");
+  fprintf(f_debug, "==================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -6869,6 +5953,9 @@ Given the universal representation of ExprMemberAccess, print a diagnostic
 textual representation.
 */
 {
+  fprintf(f_debug, "=============================== ");
+  fprintf(f_debug, "ExprMemberAccess ");
+  fprintf(f_debug, "===============================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -6935,6 +6022,9 @@ Given the universal representation of ExprMemberInitializer, print a diagnostic
 textual representation.
 */
 {
+  fprintf(f_debug, "============================ ");
+  fprintf(f_debug, "ExprMemberInitializer ");
+  fprintf(f_debug, "=============================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -6997,6 +6087,9 @@ Given the universal representation of ExprMonad, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "================================== ");
+  fprintf(f_debug, "ExprMonad ");
+  fprintf(f_debug, "===================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -7043,6 +6136,9 @@ Given the universal representation of ExprNamedDecl, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "================================ ");
+  fprintf(f_debug, "ExprNamedDecl ");
+  fprintf(f_debug, "=================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -7079,6 +6175,9 @@ Given the universal representation of ExprNullptr, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "================================= ");
+  fprintf(f_debug, "ExprNullptr ");
+  fprintf(f_debug, "==================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -7126,6 +6225,9 @@ Given the universal representation of ExprPackedTemplateArguments, print a
 diagnostic textual representation.
 */
 {
+  fprintf(f_debug, "========================= ");
+  fprintf(f_debug, "ExprPackedTemplateArguments ");
+  fprintf(f_debug, "==========================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -7182,6 +6284,9 @@ Given the universal representation of ExprPath, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "=================================== ");
+  fprintf(f_debug, "ExprPath ");
+  fprintf(f_debug, "===================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -7218,6 +6323,9 @@ Given the universal representation of ExprPlaceholder, print a diagnostic
 textual representation.
 */
 {
+  fprintf(f_debug, "=============================== ");
+  fprintf(f_debug, "ExprPlaceholder ");
+  fprintf(f_debug, "================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -7244,6 +6352,9 @@ Given the universal representation of ExprPointer, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "================================= ");
+  fprintf(f_debug, "ExprPointer ");
+  fprintf(f_debug, "==================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -7310,6 +6421,9 @@ Given the universal representation of ExprProductTypeValue, print a diagnostic
 textual representation.
 */
 {
+  fprintf(f_debug, "============================= ");
+  fprintf(f_debug, "ExprProductTypeValue ");
+  fprintf(f_debug, "=============================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -7372,6 +6486,9 @@ Given the universal representation of ExprPushState, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "================================ ");
+  fprintf(f_debug, "ExprPushState ");
+  fprintf(f_debug, "=================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -7425,6 +6542,9 @@ Given the universal representation of ExprQualifiedName, print a diagnostic
 textual representation.
 */
 {
+  fprintf(f_debug, "============================== ");
+  fprintf(f_debug, "ExprQualifiedName ");
+  fprintf(f_debug, "===============================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -7477,6 +6597,9 @@ Given the universal representation of ExprRead, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "=================================== ");
+  fprintf(f_debug, "ExprRead ");
+  fprintf(f_debug, "===================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -7533,6 +6656,9 @@ Given the universal representation of ExprRequires, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "================================= ");
+  fprintf(f_debug, "ExprRequires ");
+  fprintf(f_debug, "=================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -7579,6 +6705,9 @@ Given the universal representation of ExprSimpleIdentifier, print a diagnostic
 textual representation.
 */
 {
+  fprintf(f_debug, "============================= ");
+  fprintf(f_debug, "ExprSimpleIdentifier ");
+  fprintf(f_debug, "=============================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -7625,6 +6754,9 @@ Given the universal representation of ExprSizeofType, print a diagnostic
 textual representation.
 */
 {
+  fprintf(f_debug, "================================ ");
+  fprintf(f_debug, "ExprSizeofType ");
+  fprintf(f_debug, "================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -7671,6 +6803,9 @@ Given the universal representation of ExprString, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "================================== ");
+  fprintf(f_debug, "ExprString ");
+  fprintf(f_debug, "==================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -7717,6 +6852,9 @@ Given the universal representation of ExprStringSequence, print a diagnostic
 textual representation.
 */
 {
+  fprintf(f_debug, "============================== ");
+  fprintf(f_debug, "ExprStringSequence ");
+  fprintf(f_debug, "==============================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -7746,6 +6884,9 @@ Given the universal representation of ExprSubobjectValue, print a diagnostic
 textual representation.
 */
 {
+  fprintf(f_debug, "============================== ");
+  fprintf(f_debug, "ExprSubobjectValue ");
+  fprintf(f_debug, "==============================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -7808,6 +6949,9 @@ Given the universal representation of ExprSumTypeValue, print a diagnostic
 textual representation.
 */
 {
+  fprintf(f_debug, "=============================== ");
+  fprintf(f_debug, "ExprSumTypeValue ");
+  fprintf(f_debug, "===============================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -7837,6 +6981,9 @@ Given the universal representation of ExprSyntaxTree, print a diagnostic
 textual representation.
 */
 {
+  fprintf(f_debug, "================================ ");
+  fprintf(f_debug, "ExprSyntaxTree ");
+  fprintf(f_debug, "================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -7893,6 +7040,9 @@ Given the universal representation of ExprTemplateId, print a diagnostic
 textual representation.
 */
 {
+  fprintf(f_debug, "================================ ");
+  fprintf(f_debug, "ExprTemplateId ");
+  fprintf(f_debug, "================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -7966,6 +7116,9 @@ Given the universal representation of ExprTemplateReference, print a diagnostic
 textual representation.
 */
 {
+  fprintf(f_debug, "============================ ");
+  fprintf(f_debug, "ExprTemplateReference ");
+  fprintf(f_debug, "=============================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -8008,6 +7161,9 @@ Given the universal representation of ExprTemporary, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "================================ ");
+  fprintf(f_debug, "ExprTemporary ");
+  fprintf(f_debug, "=================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -8044,6 +7200,9 @@ Given the universal representation of ExprThis, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "=================================== ");
+  fprintf(f_debug, "ExprThis ");
+  fprintf(f_debug, "===================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -8086,6 +7245,9 @@ Given the universal representation of ExprTokens, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "================================== ");
+  fprintf(f_debug, "ExprTokens ");
+  fprintf(f_debug, "==================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -8168,6 +7330,9 @@ Given the universal representation of ExprTriad, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "================================== ");
+  fprintf(f_debug, "ExprTriad ");
+  fprintf(f_debug, "===================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -8216,6 +7381,9 @@ Given the universal representation of ExprTuple, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "================================== ");
+  fprintf(f_debug, "ExprTuple ");
+  fprintf(f_debug, "===================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -8262,6 +7430,9 @@ Given the universal representation of ExprType, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "=================================== ");
+  fprintf(f_debug, "ExprType ");
+  fprintf(f_debug, "===================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -8370,6 +7541,9 @@ Given the universal representation of ExprTypeTraitIntrinsic, print a
 diagnostic textual representation.
 */
 {
+  fprintf(f_debug, "============================ ");
+  fprintf(f_debug, "ExprTypeTraitIntrinsic ");
+  fprintf(f_debug, "============================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -8416,6 +7590,9 @@ Given the universal representation of ExprTypeid, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "================================== ");
+  fprintf(f_debug, "ExprTypeid ");
+  fprintf(f_debug, "==================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -8475,6 +7652,9 @@ Given the universal representation of ExprUnaryFold, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "================================ ");
+  fprintf(f_debug, "ExprUnaryFold ");
+  fprintf(f_debug, "=================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -8538,6 +7718,9 @@ Given the universal representation of ExprUnqualifiedId, print a diagnostic
 textual representation.
 */
 {
+  fprintf(f_debug, "============================== ");
+  fprintf(f_debug, "ExprUnqualifiedId ");
+  fprintf(f_debug, "===============================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -8584,6 +7767,9 @@ Given the universal representation of ExprUnresolvedId, print a diagnostic
 textual representation.
 */
 {
+  fprintf(f_debug, "=============================== ");
+  fprintf(f_debug, "ExprUnresolvedId ");
+  fprintf(f_debug, "===============================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -8631,6 +7817,9 @@ Given the universal representation of ExprVirtualFunctionConversion, print a
 diagnostic textual representation.
 */
 {
+  fprintf(f_debug, "======================== ");
+  fprintf(f_debug, "ExprVirtualFunctionConversion ");
+  fprintf(f_debug, "=========================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -8677,6 +7866,9 @@ Given the universal representation of FormCatenate, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "================================= ");
+  fprintf(f_debug, "FormCatenate ");
+  fprintf(f_debug, "=================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -8709,6 +7901,9 @@ Given the universal representation of FormCharacter, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "================================ ");
+  fprintf(f_debug, "FormCharacter ");
+  fprintf(f_debug, "=================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -8741,6 +7936,9 @@ Given the universal representation of FormHeader, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "================================== ");
+  fprintf(f_debug, "FormHeader ");
+  fprintf(f_debug, "==================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -8773,6 +7971,9 @@ Given the universal representation of FormIdentifier, print a diagnostic
 textual representation.
 */
 {
+  fprintf(f_debug, "================================ ");
+  fprintf(f_debug, "FormIdentifier ");
+  fprintf(f_debug, "================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -8805,6 +8006,9 @@ Given the universal representation of FormJunk, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "=================================== ");
+  fprintf(f_debug, "FormJunk ");
+  fprintf(f_debug, "===================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -8837,6 +8041,9 @@ Given the universal representation of FormKeyword, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "================================= ");
+  fprintf(f_debug, "FormKeyword ");
+  fprintf(f_debug, "==================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -8869,6 +8076,9 @@ Given the universal representation of FormNumber, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "================================== ");
+  fprintf(f_debug, "FormNumber ");
+  fprintf(f_debug, "==================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -8907,6 +8117,9 @@ Given the universal representation of FormOperator, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "================================= ");
+  fprintf(f_debug, "FormOperator ");
+  fprintf(f_debug, "=================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -8939,6 +8152,9 @@ Given the universal representation of FormParameter, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "================================ ");
+  fprintf(f_debug, "FormParameter ");
+  fprintf(f_debug, "=================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -8975,6 +8191,9 @@ Given the universal representation of FormParenthesized, print a diagnostic
 textual representation.
 */
 {
+  fprintf(f_debug, "============================== ");
+  fprintf(f_debug, "FormParenthesized ");
+  fprintf(f_debug, "===============================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -9011,6 +8230,9 @@ Given the universal representation of FormPragma, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "================================== ");
+  fprintf(f_debug, "FormPragma ");
+  fprintf(f_debug, "==================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -9050,6 +8272,9 @@ Given the universal representation of FormSpec, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "=================================== ");
+  fprintf(f_debug, "FormSpec ");
+  fprintf(f_debug, "===================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -9082,6 +8307,9 @@ Given the universal representation of FormString, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "================================== ");
+  fprintf(f_debug, "FormString ");
+  fprintf(f_debug, "==================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -9118,6 +8346,9 @@ Given the universal representation of FormStringize, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "================================ ");
+  fprintf(f_debug, "FormStringize ");
+  fprintf(f_debug, "=================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -9149,6 +8380,9 @@ Given the universal representation of FormTuple, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "================================== ");
+  fprintf(f_debug, "FormTuple ");
+  fprintf(f_debug, "===================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -9175,6 +8409,9 @@ Given the universal representation of FormWhitespace, print a diagnostic
 textual representation.
 */
 {
+  fprintf(f_debug, "================================ ");
+  fprintf(f_debug, "FormWhitespace ");
+  fprintf(f_debug, "================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -9204,6 +8441,9 @@ Given the universal representation of HeapAttr, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "=================================== ");
+  fprintf(f_debug, "HeapAttr ");
+  fprintf(f_debug, "===================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -9233,6 +8473,9 @@ Given the universal representation of HeapChart, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "================================== ");
+  fprintf(f_debug, "HeapChart ");
+  fprintf(f_debug, "===================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -9262,6 +8505,9 @@ Given the universal representation of HeapDecl, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "=================================== ");
+  fprintf(f_debug, "HeapDecl ");
+  fprintf(f_debug, "===================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -9291,6 +8537,9 @@ Given the universal representation of HeapExpr, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "=================================== ");
+  fprintf(f_debug, "HeapExpr ");
+  fprintf(f_debug, "===================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -9320,6 +8569,9 @@ Given the universal representation of HeapForm, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "=================================== ");
+  fprintf(f_debug, "HeapForm ");
+  fprintf(f_debug, "===================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -9349,6 +8601,9 @@ Given the universal representation of HeapPPForm, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "================================== ");
+  fprintf(f_debug, "HeapPPForm ");
+  fprintf(f_debug, "==================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -9378,6 +8633,9 @@ Given the universal representation of HeapStmt, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "=================================== ");
+  fprintf(f_debug, "HeapStmt ");
+  fprintf(f_debug, "===================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -9407,6 +8665,9 @@ Given the universal representation of HeapSyntax, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "================================== ");
+  fprintf(f_debug, "HeapSyntax ");
+  fprintf(f_debug, "==================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -9436,6 +8697,9 @@ Given the universal representation of HeapType, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "=================================== ");
+  fprintf(f_debug, "HeapType ");
+  fprintf(f_debug, "===================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -9492,6 +8756,9 @@ Given the universal representation of MacroFunctionLike, print a diagnostic
 textual representation.
 */
 {
+  fprintf(f_debug, "============================== ");
+  fprintf(f_debug, "MacroFunctionLike ");
+  fprintf(f_debug, "===============================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -9534,6 +8801,9 @@ Given the universal representation of MacroObjectLike, print a diagnostic
 textual representation.
 */
 {
+  fprintf(f_debug, "=============================== ");
+  fprintf(f_debug, "MacroObjectLike ");
+  fprintf(f_debug, "================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -9560,6 +8830,9 @@ Given the universal representation of ModuleExportReference, print a diagnostic
 textual representation.
 */
 {
+  fprintf(f_debug, "============================ ");
+  fprintf(f_debug, "ModuleExportReference ");
+  fprintf(f_debug, "=============================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -9586,6 +8859,9 @@ Given the universal representation of ModuleImportReference, print a diagnostic
 textual representation.
 */
 {
+  fprintf(f_debug, "============================ ");
+  fprintf(f_debug, "ModuleImportReference ");
+  fprintf(f_debug, "=============================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -9621,6 +8897,9 @@ Given the universal representation of NameConversion, print a diagnostic
 textual representation.
 */
 {
+  fprintf(f_debug, "================================ ");
+  fprintf(f_debug, "NameConversion ");
+  fprintf(f_debug, "================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -9650,6 +8929,9 @@ Given the universal representation of NameGuide, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "================================== ");
+  fprintf(f_debug, "NameGuide ");
+  fprintf(f_debug, "===================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -9675,6 +8957,9 @@ Given the universal representation of NameLiteral, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "================================= ");
+  fprintf(f_debug, "NameLiteral ");
+  fprintf(f_debug, "==================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -9761,6 +9046,9 @@ Given the universal representation of NameOperator, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "================================= ");
+  fprintf(f_debug, "NameOperator ");
+  fprintf(f_debug, "=================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -9792,6 +9080,9 @@ Given the universal representation of NameSourceFile, print a diagnostic
 textual representation.
 */
 {
+  fprintf(f_debug, "================================ ");
+  fprintf(f_debug, "NameSourceFile ");
+  fprintf(f_debug, "================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -9831,6 +9122,9 @@ Given the universal representation of NameSpecialization, print a diagnostic
 textual representation.
 */
 {
+  fprintf(f_debug, "============================== ");
+  fprintf(f_debug, "NameSpecialization ");
+  fprintf(f_debug, "==============================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -9860,6 +9154,9 @@ Given the universal representation of NameTemplate, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "================================= ");
+  fprintf(f_debug, "NameTemplate ");
+  fprintf(f_debug, "=================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -9891,6 +9188,9 @@ Given the universal representation of ScopeDescriptor, print a diagnostic
 textual representation.
 */
 {
+  fprintf(f_debug, "=============================== ");
+  fprintf(f_debug, "ScopeDescriptor ");
+  fprintf(f_debug, "================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -9920,6 +9220,9 @@ Given the universal representation of ScopeMember, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "================================= ");
+  fprintf(f_debug, "ScopeMember ");
+  fprintf(f_debug, "==================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -9955,6 +9258,9 @@ Given the universal representation of SourceLine, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "================================== ");
+  fprintf(f_debug, "SourceLine ");
+  fprintf(f_debug, "==================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -9993,6 +9299,9 @@ Given the universal representation of SourceSentence, print a diagnostic
 textual representation.
 */
 {
+  fprintf(f_debug, "================================ ");
+  fprintf(f_debug, "SourceSentence ");
+  fprintf(f_debug, "================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -10297,6 +9606,9 @@ Given the universal representation of SourceWord, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "================================== ");
+  fprintf(f_debug, "SourceWord ");
+  fprintf(f_debug, "==================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -10328,6 +9640,9 @@ Given the universal representation of StmtBlock, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "================================== ");
+  fprintf(f_debug, "StmtBlock ");
+  fprintf(f_debug, "===================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -10354,6 +9669,9 @@ Given the universal representation of StmtBreak, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "================================== ");
+  fprintf(f_debug, "StmtBreak ");
+  fprintf(f_debug, "===================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -10390,6 +9708,9 @@ Given the universal representation of StmtCase, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "=================================== ");
+  fprintf(f_debug, "StmtCase ");
+  fprintf(f_debug, "===================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -10416,6 +9737,9 @@ Given the universal representation of StmtContinue, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "================================= ");
+  fprintf(f_debug, "StmtContinue ");
+  fprintf(f_debug, "=================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -10442,6 +9766,9 @@ Given the universal representation of StmtDefault, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "================================= ");
+  fprintf(f_debug, "StmtDefault ");
+  fprintf(f_debug, "==================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -10488,6 +9815,9 @@ Given the universal representation of StmtDoWhile, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "================================= ");
+  fprintf(f_debug, "StmtDoWhile ");
+  fprintf(f_debug, "==================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -10514,6 +9844,9 @@ Given the universal representation of StmtEmpty, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "================================== ");
+  fprintf(f_debug, "StmtEmpty ");
+  fprintf(f_debug, "===================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -10543,6 +9876,9 @@ Given the universal representation of StmtExpansion, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "================================ ");
+  fprintf(f_debug, "StmtExpansion ");
+  fprintf(f_debug, "=================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -10579,6 +9915,9 @@ Given the universal representation of StmtExpression, print a diagnostic
 textual representation.
 */
 {
+  fprintf(f_debug, "================================ ");
+  fprintf(f_debug, "StmtExpression ");
+  fprintf(f_debug, "================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -10645,6 +9984,9 @@ Given the universal representation of StmtFor, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "=================================== ");
+  fprintf(f_debug, "StmtFor ");
+  fprintf(f_debug, "====================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -10711,6 +10053,9 @@ Given the universal representation of StmtIf, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "==================================== ");
+  fprintf(f_debug, "StmtIf ");
+  fprintf(f_debug, "====================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -10767,6 +10112,9 @@ Given the universal representation of StmtReturn, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "================================== ");
+  fprintf(f_debug, "StmtReturn ");
+  fprintf(f_debug, "==================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -10823,6 +10171,9 @@ Given the universal representation of StmtSwitch, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "================================== ");
+  fprintf(f_debug, "StmtSwitch ");
+  fprintf(f_debug, "==================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -10859,6 +10210,9 @@ Given the universal representation of StmtVariableDecl, print a diagnostic
 textual representation.
 */
 {
+  fprintf(f_debug, "=============================== ");
+  fprintf(f_debug, "StmtVariableDecl ");
+  fprintf(f_debug, "===============================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -10905,6 +10259,9 @@ Given the universal representation of StmtWhile, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "================================== ");
+  fprintf(f_debug, "StmtWhile ");
+  fprintf(f_debug, "===================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -10969,6 +10326,9 @@ Given the universal representation of SyntaxAccessSpecifier, print a diagnostic
 textual representation.
 */
 {
+  fprintf(f_debug, "============================ ");
+  fprintf(f_debug, "SyntaxAccessSpecifier ");
+  fprintf(f_debug, "=============================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -11029,6 +10389,9 @@ Given the universal representation of SyntaxAliasDeclaration, print a
 diagnostic textual representation.
 */
 {
+  fprintf(f_debug, "============================ ");
+  fprintf(f_debug, "SyntaxAliasDeclaration ");
+  fprintf(f_debug, "============================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -11079,6 +10442,9 @@ Given the universal representation of SyntaxAlignas, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "================================ ");
+  fprintf(f_debug, "SyntaxAlignas ");
+  fprintf(f_debug, "=================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -11122,6 +10488,9 @@ Given the universal representation of SyntaxArrayDeclarator, print a diagnostic
 textual representation.
 */
 {
+  fprintf(f_debug, "============================ ");
+  fprintf(f_debug, "SyntaxArrayDeclarator ");
+  fprintf(f_debug, "=============================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -11175,6 +10544,9 @@ Given the universal representation of SyntaxArrayIndex, print a diagnostic
 textual representation.
 */
 {
+  fprintf(f_debug, "=============================== ");
+  fprintf(f_debug, "SyntaxArrayIndex ");
+  fprintf(f_debug, "===============================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -11215,6 +10587,9 @@ Given the universal representation of SyntaxArrayOrFunctionDeclarator, print a
 diagnostic textual representation.
 */
 {
+  fprintf(f_debug, "======================= ");
+  fprintf(f_debug, "SyntaxArrayOrFunctionDeclarator ");
+  fprintf(f_debug, "========================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -11247,6 +10622,9 @@ Given the universal representation of SyntaxAsmStatement, print a diagnostic
 textual representation.
 */
 {
+  fprintf(f_debug, "============================== ");
+  fprintf(f_debug, "SyntaxAsmStatement ");
+  fprintf(f_debug, "==============================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -11317,6 +10695,9 @@ Given the universal representation of SyntaxAttribute, print a diagnostic
 textual representation.
 */
 {
+  fprintf(f_debug, "=============================== ");
+  fprintf(f_debug, "SyntaxAttribute ");
+  fprintf(f_debug, "================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -11357,6 +10738,9 @@ Given the universal representation of SyntaxAttributeArgumentClause, print a
 diagnostic textual representation.
 */
 {
+  fprintf(f_debug, "======================== ");
+  fprintf(f_debug, "SyntaxAttributeArgumentClause ");
+  fprintf(f_debug, "=========================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -11425,6 +10809,9 @@ Given the universal representation of SyntaxAttributeSpecifier, print a
 diagnostic textual representation.
 */
 {
+  fprintf(f_debug, "=========================== ");
+  fprintf(f_debug, "SyntaxAttributeSpecifier ");
+  fprintf(f_debug, "===========================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -11455,6 +10842,9 @@ Given the universal representation of SyntaxAttributeSpecifierSeq, print a
 diagnostic textual representation.
 */
 {
+  fprintf(f_debug, "========================= ");
+  fprintf(f_debug, "SyntaxAttributeSpecifierSeq ");
+  fprintf(f_debug, "==========================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -11489,6 +10879,9 @@ Given the universal representation of SyntaxAttributeUsingPrefix, print a
 diagnostic textual representation.
 */
 {
+  fprintf(f_debug, "========================== ");
+  fprintf(f_debug, "SyntaxAttributeUsingPrefix ");
+  fprintf(f_debug, "==========================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -11536,6 +10929,9 @@ Given the universal representation of SyntaxAttributedDeclaration, print a
 diagnostic textual representation.
 */
 {
+  fprintf(f_debug, "========================= ");
+  fprintf(f_debug, "SyntaxAttributedDeclaration ");
+  fprintf(f_debug, "==========================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -11582,6 +10978,9 @@ Given the universal representation of SyntaxAttributedStatement, print a
 diagnostic textual representation.
 */
 {
+  fprintf(f_debug, "========================== ");
+  fprintf(f_debug, "SyntaxAttributedStatement ");
+  fprintf(f_debug, "===========================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -11615,6 +11014,9 @@ Given the universal representation of SyntaxBaseSpecifier, print a diagnostic
 textual representation.
 */
 {
+  fprintf(f_debug, "============================= ");
+  fprintf(f_debug, "SyntaxBaseSpecifier ");
+  fprintf(f_debug, "==============================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -11652,6 +11054,9 @@ Given the universal representation of SyntaxBaseSpecifierList, print a
 diagnostic textual representation.
 */
 {
+  fprintf(f_debug, "=========================== ");
+  fprintf(f_debug, "SyntaxBaseSpecifierList ");
+  fprintf(f_debug, "============================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -11739,6 +11144,9 @@ Given the universal representation of SyntaxBinaryFoldExpression, print a
 diagnostic textual representation.
 */
 {
+  fprintf(f_debug, "========================== ");
+  fprintf(f_debug, "SyntaxBinaryFoldExpression ");
+  fprintf(f_debug, "==========================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -11772,6 +11180,9 @@ Given the universal representation of SyntaxBreakStatement, print a diagnostic
 textual representation.
 */
 {
+  fprintf(f_debug, "============================= ");
+  fprintf(f_debug, "SyntaxBreakStatement ");
+  fprintf(f_debug, "=============================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -11811,6 +11222,9 @@ Given the universal representation of SyntaxCaptureDefault, print a diagnostic
 textual representation.
 */
 {
+  fprintf(f_debug, "============================= ");
+  fprintf(f_debug, "SyntaxCaptureDefault ");
+  fprintf(f_debug, "=============================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -11887,6 +11301,9 @@ Given the universal representation of SyntaxClassSpecifier, print a diagnostic
 textual representation.
 */
 {
+  fprintf(f_debug, "============================= ");
+  fprintf(f_debug, "SyntaxClassSpecifier ");
+  fprintf(f_debug, "=============================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -11948,6 +11365,9 @@ Given the universal representation of SyntaxCompoundRequirement, print a
 diagnostic textual representation.
 */
 {
+  fprintf(f_debug, "========================== ");
+  fprintf(f_debug, "SyntaxCompoundRequirement ");
+  fprintf(f_debug, "===========================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -11998,6 +11418,9 @@ Given the universal representation of SyntaxCompoundStatement, print a
 diagnostic textual representation.
 */
 {
+  fprintf(f_debug, "=========================== ");
+  fprintf(f_debug, "SyntaxCompoundStatement ");
+  fprintf(f_debug, "============================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -12072,6 +11495,9 @@ Given the universal representation of SyntaxConceptDefinition, print a
 diagnostic textual representation.
 */
 {
+  fprintf(f_debug, "=========================== ");
+  fprintf(f_debug, "SyntaxConceptDefinition ");
+  fprintf(f_debug, "============================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -12119,6 +11545,9 @@ Given the universal representation of SyntaxConditionDeclaration, print a
 diagnostic textual representation.
 */
 {
+  fprintf(f_debug, "========================== ");
+  fprintf(f_debug, "SyntaxConditionDeclaration ");
+  fprintf(f_debug, "==========================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -12153,6 +11582,9 @@ Given the universal representation of SyntaxContinueStatement, print a
 diagnostic textual representation.
 */
 {
+  fprintf(f_debug, "=========================== ");
+  fprintf(f_debug, "SyntaxContinueStatement ");
+  fprintf(f_debug, "============================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -12189,6 +11621,9 @@ Given the universal representation of SyntaxCtorInitializer, print a diagnostic
 textual representation.
 */
 {
+  fprintf(f_debug, "============================ ");
+  fprintf(f_debug, "SyntaxCtorInitializer ");
+  fprintf(f_debug, "=============================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -12228,34 +11663,22 @@ diagnostic textual representation with the given indent.
 
     fprintf(f_debug, "qualifiers:\n");
     ++indent;
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_qb_const>(field);
+    if (test_bitmask<ifc_qb_const>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Const:    %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_qb_none>(field);
+      fprintf(f_debug, "- Const\n");
+    }  /* if */
+    if (test_bitmask<ifc_qb_none>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "None:     %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_qb_restrict>(field);
+      fprintf(f_debug, "- None\n");
+    }  /* if */
+    if (test_bitmask<ifc_qb_restrict>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Restrict: %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_qb_volatile>(field);
+      fprintf(f_debug, "- Restrict\n");
+    }  /* if */
+    if (test_bitmask<ifc_qb_volatile>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Volatile: %s\n", (match ? "TRUE" : "FALSE"));
-    }
+      fprintf(f_debug, "- Volatile\n");
+    }  /* if */
     --indent;
   }  /* if */
   if (has_ifc_storage_class(universal)) {
@@ -12291,6 +11714,9 @@ Given the universal representation of SyntaxDeclSpecifierSeq, print a
 diagnostic textual representation.
 */
 {
+  fprintf(f_debug, "============================ ");
+  fprintf(f_debug, "SyntaxDeclSpecifierSeq ");
+  fprintf(f_debug, "============================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -12327,6 +11753,9 @@ Given the universal representation of SyntaxDeclarationStatement, print a
 diagnostic textual representation.
 */
 {
+  fprintf(f_debug, "========================== ");
+  fprintf(f_debug, "SyntaxDeclarationStatement ");
+  fprintf(f_debug, "==========================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -12408,34 +11837,22 @@ textual representation with the given indent.
 
     fprintf(f_debug, "qualifiers:\n");
     ++indent;
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_qb_const>(field);
+    if (test_bitmask<ifc_qb_const>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Const:    %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_qb_none>(field);
+      fprintf(f_debug, "- Const\n");
+    }  /* if */
+    if (test_bitmask<ifc_qb_none>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "None:     %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_qb_restrict>(field);
+      fprintf(f_debug, "- None\n");
+    }  /* if */
+    if (test_bitmask<ifc_qb_restrict>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Restrict: %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_qb_volatile>(field);
+      fprintf(f_debug, "- Restrict\n");
+    }  /* if */
+    if (test_bitmask<ifc_qb_volatile>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Volatile: %s\n", (match ? "TRUE" : "FALSE"));
-    }
+      fprintf(f_debug, "- Volatile\n");
+    }  /* if */
     --indent;
   }  /* if */
   if (has_ifc_trailing_target(universal)) {
@@ -12467,6 +11884,9 @@ Given the universal representation of SyntaxDeclarator, print a diagnostic
 textual representation.
 */
 {
+  fprintf(f_debug, "=============================== ");
+  fprintf(f_debug, "SyntaxDeclarator ");
+  fprintf(f_debug, "===============================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -12518,6 +11938,9 @@ Given the universal representation of SyntaxDecltypeSpecifier, print a
 diagnostic textual representation.
 */
 {
+  fprintf(f_debug, "=========================== ");
+  fprintf(f_debug, "SyntaxDecltypeSpecifier ");
+  fprintf(f_debug, "============================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -12585,6 +12008,9 @@ Given the universal representation of SyntaxDoWhileStatement, print a
 diagnostic textual representation.
 */
 {
+  fprintf(f_debug, "============================ ");
+  fprintf(f_debug, "SyntaxDoWhileStatement ");
+  fprintf(f_debug, "============================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -12643,6 +12069,9 @@ Given the universal representation of SyntaxDynamicExceptionSpec, print a
 diagnostic textual representation.
 */
 {
+  fprintf(f_debug, "========================== ");
+  fprintf(f_debug, "SyntaxDynamicExceptionSpec ");
+  fprintf(f_debug, "==========================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -12669,6 +12098,9 @@ Given the universal representation of SyntaxEmptyStatement, print a diagnostic
 textual representation.
 */
 {
+  fprintf(f_debug, "============================= ");
+  fprintf(f_debug, "SyntaxEmptyStatement ");
+  fprintf(f_debug, "=============================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -12753,6 +12185,9 @@ Given the universal representation of SyntaxEnumSpecifier, print a diagnostic
 textual representation.
 */
 {
+  fprintf(f_debug, "============================= ");
+  fprintf(f_debug, "SyntaxEnumSpecifier ");
+  fprintf(f_debug, "==============================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -12810,6 +12245,9 @@ Given the universal representation of SyntaxEnumeratorDefinition, print a
 diagnostic textual representation.
 */
 {
+  fprintf(f_debug, "========================== ");
+  fprintf(f_debug, "SyntaxEnumeratorDefinition ");
+  fprintf(f_debug, "==========================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -12864,6 +12302,9 @@ Given the universal representation of SyntaxExceptionDeclaration, print a
 diagnostic textual representation.
 */
 {
+  fprintf(f_debug, "========================== ");
+  fprintf(f_debug, "SyntaxExceptionDeclaration ");
+  fprintf(f_debug, "==========================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -12915,6 +12356,9 @@ Given the universal representation of SyntaxExplicitSpecifier, print a
 diagnostic textual representation.
 */
 {
+  fprintf(f_debug, "=========================== ");
+  fprintf(f_debug, "SyntaxExplicitSpecifier ");
+  fprintf(f_debug, "============================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -12944,6 +12388,9 @@ Given the universal representation of SyntaxExpression, print a diagnostic
 textual representation.
 */
 {
+  fprintf(f_debug, "=============================== ");
+  fprintf(f_debug, "SyntaxExpression ");
+  fprintf(f_debug, "===============================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -12987,6 +12434,9 @@ Given the universal representation of SyntaxExpressionStatement, print a
 diagnostic textual representation.
 */
 {
+  fprintf(f_debug, "========================== ");
+  fprintf(f_debug, "SyntaxExpressionStatement ");
+  fprintf(f_debug, "===========================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -13027,6 +12477,9 @@ Given the universal representation of SyntaxForRangeDeclaration, print a
 diagnostic textual representation.
 */
 {
+  fprintf(f_debug, "========================== ");
+  fprintf(f_debug, "SyntaxForRangeDeclaration ");
+  fprintf(f_debug, "===========================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -13120,6 +12573,9 @@ Given the universal representation of SyntaxForStatement, print a diagnostic
 textual representation.
 */
 {
+  fprintf(f_debug, "============================== ");
+  fprintf(f_debug, "SyntaxForStatement ");
+  fprintf(f_debug, "==============================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -13190,6 +12646,9 @@ Given the universal representation of SyntaxFunctionBody, print a diagnostic
 textual representation.
 */
 {
+  fprintf(f_debug, "============================== ");
+  fprintf(f_debug, "SyntaxFunctionBody ");
+  fprintf(f_debug, "==============================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -13244,6 +12703,9 @@ Given the universal representation of SyntaxFunctionDeclarator, print a
 diagnostic textual representation.
 */
 {
+  fprintf(f_debug, "=========================== ");
+  fprintf(f_debug, "SyntaxFunctionDeclarator ");
+  fprintf(f_debug, "===========================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -13315,6 +12777,9 @@ Given the universal representation of SyntaxFunctionDefinition, print a
 diagnostic textual representation.
 */
 {
+  fprintf(f_debug, "=========================== ");
+  fprintf(f_debug, "SyntaxFunctionDefinition ");
+  fprintf(f_debug, "===========================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -13365,6 +12830,9 @@ Given the universal representation of SyntaxFunctionTryBlock, print a
 diagnostic textual representation.
 */
 {
+  fprintf(f_debug, "============================ ");
+  fprintf(f_debug, "SyntaxFunctionTryBlock ");
+  fprintf(f_debug, "============================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -13417,6 +12885,9 @@ Given the universal representation of SyntaxGotoStatement, print a diagnostic
 textual representation.
 */
 {
+  fprintf(f_debug, "============================= ");
+  fprintf(f_debug, "SyntaxGotoStatement ");
+  fprintf(f_debug, "==============================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -13483,6 +12954,9 @@ Given the universal representation of SyntaxHandler, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "================================ ");
+  fprintf(f_debug, "SyntaxHandler ");
+  fprintf(f_debug, "=================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -13512,6 +12986,9 @@ Given the universal representation of SyntaxHandlerSeq, print a diagnostic
 textual representation.
 */
 {
+  fprintf(f_debug, "=============================== ");
+  fprintf(f_debug, "SyntaxHandlerSeq ");
+  fprintf(f_debug, "===============================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -13594,6 +13071,9 @@ Given the universal representation of SyntaxIfStatement, print a diagnostic
 textual representation.
 */
 {
+  fprintf(f_debug, "============================== ");
+  fprintf(f_debug, "SyntaxIfStatement ");
+  fprintf(f_debug, "===============================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -13654,6 +13134,9 @@ Given the universal representation of SyntaxInitCapture, print a diagnostic
 textual representation.
 */
 {
+  fprintf(f_debug, "============================== ");
+  fprintf(f_debug, "SyntaxInitCapture ");
+  fprintf(f_debug, "===============================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -13710,6 +13193,9 @@ Given the universal representation of SyntaxInitDeclarator, print a diagnostic
 textual representation.
 */
 {
+  fprintf(f_debug, "============================= ");
+  fprintf(f_debug, "SyntaxInitDeclarator ");
+  fprintf(f_debug, "=============================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -13745,6 +13231,9 @@ Given the universal representation of SyntaxInitStatement, print a diagnostic
 textual representation.
 */
 {
+  fprintf(f_debug, "============================= ");
+  fprintf(f_debug, "SyntaxInitStatement ");
+  fprintf(f_debug, "==============================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -13802,6 +13291,9 @@ Given the universal representation of SyntaxLabeledStatement, print a
 diagnostic textual representation.
 */
 {
+  fprintf(f_debug, "============================ ");
+  fprintf(f_debug, "SyntaxLabeledStatement ");
+  fprintf(f_debug, "============================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -13878,6 +13370,9 @@ Given the universal representation of SyntaxLambdaDeclarator, print a
 diagnostic textual representation.
 */
 {
+  fprintf(f_debug, "============================ ");
+  fprintf(f_debug, "SyntaxLambdaDeclarator ");
+  fprintf(f_debug, "============================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -13921,6 +13416,9 @@ Given the universal representation of SyntaxLambdaIntroducer, print a
 diagnostic textual representation.
 */
 {
+  fprintf(f_debug, "============================ ");
+  fprintf(f_debug, "SyntaxLambdaIntroducer ");
+  fprintf(f_debug, "============================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -13974,6 +13472,9 @@ Given the universal representation of SyntaxMemInitializer, print a diagnostic
 textual representation.
 */
 {
+  fprintf(f_debug, "============================= ");
+  fprintf(f_debug, "SyntaxMemInitializer ");
+  fprintf(f_debug, "=============================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -14021,6 +13522,9 @@ Given the universal representation of SyntaxMemberDeclaration, print a
 diagnostic textual representation.
 */
 {
+  fprintf(f_debug, "=========================== ");
+  fprintf(f_debug, "SyntaxMemberDeclaration ");
+  fprintf(f_debug, "============================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -14101,6 +13605,9 @@ Given the universal representation of SyntaxMemberDeclarator, print a
 diagnostic textual representation.
 */
 {
+  fprintf(f_debug, "============================ ");
+  fprintf(f_debug, "SyntaxMemberDeclarator ");
+  fprintf(f_debug, "============================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -14131,6 +13638,9 @@ Given the universal representation of SyntaxMemberFunctionDeclaration, print a
 diagnostic textual representation.
 */
 {
+  fprintf(f_debug, "======================= ");
+  fprintf(f_debug, "SyntaxMemberFunctionDeclaration ");
+  fprintf(f_debug, "========================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -14161,6 +13671,9 @@ Given the universal representation of SyntaxMemberSpecification, print a
 diagnostic textual representation.
 */
 {
+  fprintf(f_debug, "========================== ");
+  fprintf(f_debug, "SyntaxMemberSpecification ");
+  fprintf(f_debug, "===========================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -14222,6 +13735,9 @@ Given the universal representation of SyntaxNamespaceAliasDefinition, print a
 diagnostic textual representation.
 */
 {
+  fprintf(f_debug, "======================== ");
+  fprintf(f_debug, "SyntaxNamespaceAliasDefinition ");
+  fprintf(f_debug, "========================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -14259,6 +13775,9 @@ Given the universal representation of SyntaxNestedRequirement, print a
 diagnostic textual representation.
 */
 {
+  fprintf(f_debug, "=========================== ");
+  fprintf(f_debug, "SyntaxNestedRequirement ");
+  fprintf(f_debug, "============================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -14288,6 +13807,9 @@ Given the universal representation of SyntaxNewDeclarator, print a diagnostic
 textual representation.
 */
 {
+  fprintf(f_debug, "============================= ");
+  fprintf(f_debug, "SyntaxNewDeclarator ");
+  fprintf(f_debug, "==============================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -14339,6 +13861,9 @@ Given the universal representation of SyntaxNoexceptSpecification, print a
 diagnostic textual representation.
 */
 {
+  fprintf(f_debug, "========================= ");
+  fprintf(f_debug, "SyntaxNoexceptSpecification ");
+  fprintf(f_debug, "==========================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -14383,6 +13908,9 @@ Given the universal representation of SyntaxNonTypeTemplateArgument, print a
 diagnostic textual representation.
 */
 {
+  fprintf(f_debug, "======================== ");
+  fprintf(f_debug, "SyntaxNonTypeTemplateArgument ");
+  fprintf(f_debug, "=========================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -14446,6 +13974,9 @@ Given the universal representation of SyntaxParameterDeclarator, print a
 diagnostic textual representation.
 */
 {
+  fprintf(f_debug, "========================== ");
+  fprintf(f_debug, "SyntaxParameterDeclarator ");
+  fprintf(f_debug, "===========================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -14496,6 +14027,9 @@ Given the universal representation of SyntaxPlaceholderTypeSpecifier, print a
 diagnostic textual representation.
 */
 {
+  fprintf(f_debug, "======================== ");
+  fprintf(f_debug, "SyntaxPlaceholderTypeSpecifier ");
+  fprintf(f_debug, "========================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -14541,34 +14075,22 @@ diagnostic textual representation with the given indent.
 
     fprintf(f_debug, "qualifiers:\n");
     ++indent;
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_qb_const>(field);
+    if (test_bitmask<ifc_qb_const>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Const:    %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_qb_none>(field);
+      fprintf(f_debug, "- Const\n");
+    }  /* if */
+    if (test_bitmask<ifc_qb_none>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "None:     %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_qb_restrict>(field);
+      fprintf(f_debug, "- None\n");
+    }  /* if */
+    if (test_bitmask<ifc_qb_restrict>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Restrict: %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_qb_volatile>(field);
+      fprintf(f_debug, "- Restrict\n");
+    }  /* if */
+    if (test_bitmask<ifc_qb_volatile>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Volatile: %s\n", (match ? "TRUE" : "FALSE"));
-    }
+      fprintf(f_debug, "- Volatile\n");
+    }  /* if */
     --indent;
   }  /* if */
   if (has_ifc_sort(universal)) {
@@ -14596,6 +14118,9 @@ Given the universal representation of SyntaxPointerDeclarator, print a
 diagnostic textual representation.
 */
 {
+  fprintf(f_debug, "=========================== ");
+  fprintf(f_debug, "SyntaxPointerDeclarator ");
+  fprintf(f_debug, "============================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -14690,6 +14215,9 @@ Given the universal representation of SyntaxRangeBasedForStatement, print a
 diagnostic textual representation.
 */
 {
+  fprintf(f_debug, "========================= ");
+  fprintf(f_debug, "SyntaxRangeBasedForStatement ");
+  fprintf(f_debug, "=========================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -14733,6 +14261,9 @@ Given the universal representation of SyntaxRequirementBody, print a diagnostic
 textual representation.
 */
 {
+  fprintf(f_debug, "============================ ");
+  fprintf(f_debug, "SyntaxRequirementBody ");
+  fprintf(f_debug, "=============================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -14769,6 +14300,9 @@ Given the universal representation of SyntaxRequiresClause, print a diagnostic
 textual representation.
 */
 {
+  fprintf(f_debug, "============================= ");
+  fprintf(f_debug, "SyntaxRequiresClause ");
+  fprintf(f_debug, "=============================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -14824,6 +14358,9 @@ Given the universal representation of SyntaxReturnStatement, print a diagnostic
 textual representation.
 */
 {
+  fprintf(f_debug, "============================ ");
+  fprintf(f_debug, "SyntaxReturnStatement ");
+  fprintf(f_debug, "=============================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -14884,6 +14421,9 @@ Given the universal representation of SyntaxSEHExcept, print a diagnostic
 textual representation.
 */
 {
+  fprintf(f_debug, "=============================== ");
+  fprintf(f_debug, "SyntaxSEHExcept ");
+  fprintf(f_debug, "================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -14920,6 +14460,9 @@ Given the universal representation of SyntaxSEHFinally, print a diagnostic
 textual representation.
 */
 {
+  fprintf(f_debug, "=============================== ");
+  fprintf(f_debug, "SyntaxSEHFinally ");
+  fprintf(f_debug, "===============================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -14953,6 +14496,9 @@ Given the universal representation of SyntaxSEHLeave, print a diagnostic
 textual representation.
 */
 {
+  fprintf(f_debug, "================================ ");
+  fprintf(f_debug, "SyntaxSEHLeave ");
+  fprintf(f_debug, "================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -14999,6 +14545,9 @@ Given the universal representation of SyntaxSEHTry, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "================================= ");
+  fprintf(f_debug, "SyntaxSEHTry ");
+  fprintf(f_debug, "=================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -15049,6 +14598,9 @@ Given the universal representation of SyntaxSimpleCapture, print a diagnostic
 textual representation.
 */
 {
+  fprintf(f_debug, "============================= ");
+  fprintf(f_debug, "SyntaxSimpleCapture ");
+  fprintf(f_debug, "==============================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -15103,6 +14655,9 @@ Given the universal representation of SyntaxSimpleDeclaration, print a
 diagnostic textual representation.
 */
 {
+  fprintf(f_debug, "=========================== ");
+  fprintf(f_debug, "SyntaxSimpleDeclaration ");
+  fprintf(f_debug, "============================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -15140,6 +14695,9 @@ Given the universal representation of SyntaxSimpleRequirement, print a
 diagnostic textual representation.
 */
 {
+  fprintf(f_debug, "=========================== ");
+  fprintf(f_debug, "SyntaxSimpleRequirement ");
+  fprintf(f_debug, "============================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -15187,6 +14745,9 @@ Given the universal representation of SyntaxSimpleTypeSpecifier, print a
 diagnostic textual representation.
 */
 {
+  fprintf(f_debug, "========================== ");
+  fprintf(f_debug, "SyntaxSimpleTypeSpecifier ");
+  fprintf(f_debug, "===========================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -15216,6 +14777,9 @@ Given the universal representation of SyntaxStatementSeq, print a diagnostic
 textual representation.
 */
 {
+  fprintf(f_debug, "============================== ");
+  fprintf(f_debug, "SyntaxStatementSeq ");
+  fprintf(f_debug, "==============================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -15291,6 +14855,9 @@ Given the universal representation of SyntaxStaticAssertDeclaration, print a
 diagnostic textual representation.
 */
 {
+  fprintf(f_debug, "======================== ");
+  fprintf(f_debug, "SyntaxStaticAssertDeclaration ");
+  fprintf(f_debug, "=========================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -15355,6 +14922,9 @@ Given the universal representation of SyntaxStructuredBindingDeclaration, print
 a diagnostic textual representation.
 */
 {
+  fprintf(f_debug, "====================== ");
+  fprintf(f_debug, "SyntaxStructuredBindingDeclaration ");
+  fprintf(f_debug, "======================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -15392,6 +14962,9 @@ Given the universal representation of SyntaxStructuredBindingIdentifier, print
 a diagnostic textual representation.
 */
 {
+  fprintf(f_debug, "====================== ");
+  fprintf(f_debug, "SyntaxStructuredBindingIdentifier ");
+  fprintf(f_debug, "=======================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -15418,6 +14991,9 @@ Given the universal representation of SyntaxSuper, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "================================= ");
+  fprintf(f_debug, "SyntaxSuper ");
+  fprintf(f_debug, "==================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -15480,6 +15056,9 @@ Given the universal representation of SyntaxSwitchStatement, print a diagnostic
 textual representation.
 */
 {
+  fprintf(f_debug, "============================ ");
+  fprintf(f_debug, "SyntaxSwitchStatement ");
+  fprintf(f_debug, "=============================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -15524,6 +15103,9 @@ Given the universal representation of SyntaxTemplateArgumentList, print a
 diagnostic textual representation.
 */
 {
+  fprintf(f_debug, "========================== ");
+  fprintf(f_debug, "SyntaxTemplateArgumentList ");
+  fprintf(f_debug, "==========================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -15571,6 +15153,9 @@ Given the universal representation of SyntaxTemplateDeclaration, print a
 diagnostic textual representation.
 */
 {
+  fprintf(f_debug, "========================== ");
+  fprintf(f_debug, "SyntaxTemplateDeclaration ");
+  fprintf(f_debug, "===========================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -15634,6 +15219,9 @@ Given the universal representation of SyntaxTemplateId, print a diagnostic
 textual representation.
 */
 {
+  fprintf(f_debug, "=============================== ");
+  fprintf(f_debug, "SyntaxTemplateId ");
+  fprintf(f_debug, "===============================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -15688,6 +15276,9 @@ Given the universal representation of SyntaxTemplateParameterList, print a
 diagnostic textual representation.
 */
 {
+  fprintf(f_debug, "========================= ");
+  fprintf(f_debug, "SyntaxTemplateParameterList ");
+  fprintf(f_debug, "==========================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -15762,6 +15353,9 @@ Given the universal representation of SyntaxTemplateTemplateParameter, print a
 diagnostic textual representation.
 */
 {
+  fprintf(f_debug, "======================= ");
+  fprintf(f_debug, "SyntaxTemplateTemplateParameter ");
+  fprintf(f_debug, "========================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -15802,6 +15396,9 @@ Given the universal representation of SyntaxThisCapture, print a diagnostic
 textual representation.
 */
 {
+  fprintf(f_debug, "============================== ");
+  fprintf(f_debug, "SyntaxThisCapture ");
+  fprintf(f_debug, "===============================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -15839,6 +15436,9 @@ Given the universal representation of SyntaxTrailingReturnType, print a
 diagnostic textual representation.
 */
 {
+  fprintf(f_debug, "=========================== ");
+  fprintf(f_debug, "SyntaxTrailingReturnType ");
+  fprintf(f_debug, "===========================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -15891,6 +15491,9 @@ Given the universal representation of SyntaxTryBlock, print a diagnostic
 textual representation.
 */
 {
+  fprintf(f_debug, "================================ ");
+  fprintf(f_debug, "SyntaxTryBlock ");
+  fprintf(f_debug, "================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -15922,6 +15525,9 @@ Given the universal representation of SyntaxTuple, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "================================= ");
+  fprintf(f_debug, "SyntaxTuple ");
+  fprintf(f_debug, "==================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -15968,6 +15574,9 @@ Given the universal representation of SyntaxTypeId, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "================================= ");
+  fprintf(f_debug, "SyntaxTypeId ");
+  fprintf(f_debug, "=================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -16005,6 +15614,9 @@ Given the universal representation of SyntaxTypeIdListElement, print a
 diagnostic textual representation.
 */
 {
+  fprintf(f_debug, "=========================== ");
+  fprintf(f_debug, "SyntaxTypeIdListElement ");
+  fprintf(f_debug, "============================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -16041,6 +15653,9 @@ Given the universal representation of SyntaxTypeRequirement, print a diagnostic
 textual representation.
 */
 {
+  fprintf(f_debug, "============================ ");
+  fprintf(f_debug, "SyntaxTypeRequirement ");
+  fprintf(f_debug, "=============================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -16064,34 +15679,22 @@ diagnostic textual representation with the given indent.
 
     fprintf(f_debug, "qualifiers:\n");
     ++indent;
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_qb_const>(field);
+    if (test_bitmask<ifc_qb_const>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Const:    %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_qb_none>(field);
+      fprintf(f_debug, "- Const\n");
+    }  /* if */
+    if (test_bitmask<ifc_qb_none>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "None:     %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_qb_restrict>(field);
+      fprintf(f_debug, "- None\n");
+    }  /* if */
+    if (test_bitmask<ifc_qb_restrict>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Restrict: %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_qb_volatile>(field);
+      fprintf(f_debug, "- Restrict\n");
+    }  /* if */
+    if (test_bitmask<ifc_qb_volatile>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Volatile: %s\n", (match ? "TRUE" : "FALSE"));
-    }
+      fprintf(f_debug, "- Volatile\n");
+    }  /* if */
     --indent;
   }  /* if */
   if (has_ifc_type(universal)) {
@@ -16129,6 +15732,9 @@ Given the universal representation of SyntaxTypeSpecifierSeq, print a
 diagnostic textual representation.
 */
 {
+  fprintf(f_debug, "============================ ");
+  fprintf(f_debug, "SyntaxTypeSpecifierSeq ");
+  fprintf(f_debug, "============================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -16173,6 +15779,9 @@ Given the universal representation of SyntaxTypeTemplateArgument, print a
 diagnostic textual representation.
 */
 {
+  fprintf(f_debug, "========================== ");
+  fprintf(f_debug, "SyntaxTypeTemplateArgument ");
+  fprintf(f_debug, "==========================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -16233,6 +15842,9 @@ Given the universal representation of SyntaxTypeTemplateParameter, print a
 diagnostic textual representation.
 */
 {
+  fprintf(f_debug, "========================= ");
+  fprintf(f_debug, "SyntaxTypeTemplateParameter ");
+  fprintf(f_debug, "==========================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -16331,6 +15943,9 @@ Given the universal representation of SyntaxTypeTraitIntrinsic, print a
 diagnostic textual representation.
 */
 {
+  fprintf(f_debug, "=========================== ");
+  fprintf(f_debug, "SyntaxTypeTraitIntrinsic ");
+  fprintf(f_debug, "===========================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -16401,6 +16016,9 @@ Given the universal representation of SyntaxUnaryFoldExpression, print a
 diagnostic textual representation.
 */
 {
+  fprintf(f_debug, "========================== ");
+  fprintf(f_debug, "SyntaxUnaryFoldExpression ");
+  fprintf(f_debug, "===========================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -16444,6 +16062,9 @@ Given the universal representation of SyntaxUsingDeclaration, print a
 diagnostic textual representation.
 */
 {
+  fprintf(f_debug, "============================ ");
+  fprintf(f_debug, "SyntaxUsingDeclaration ");
+  fprintf(f_debug, "============================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -16494,6 +16115,9 @@ Given the universal representation of SyntaxUsingDeclarator, print a diagnostic
 textual representation.
 */
 {
+  fprintf(f_debug, "============================ ");
+  fprintf(f_debug, "SyntaxUsingDeclarator ");
+  fprintf(f_debug, "=============================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -16544,6 +16168,9 @@ Given the universal representation of SyntaxUsingDirective, print a diagnostic
 textual representation.
 */
 {
+  fprintf(f_debug, "============================= ");
+  fprintf(f_debug, "SyntaxUsingDirective ");
+  fprintf(f_debug, "=============================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -16595,6 +16222,9 @@ Given the universal representation of SyntaxUsingEnumDeclaration, print a
 diagnostic textual representation.
 */
 {
+  fprintf(f_debug, "========================== ");
+  fprintf(f_debug, "SyntaxUsingEnumDeclaration ");
+  fprintf(f_debug, "==========================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -16642,6 +16272,9 @@ Given the universal representation of SyntaxVirtualSpecifierSeq, print a
 diagnostic textual representation.
 */
 {
+  fprintf(f_debug, "========================== ");
+  fprintf(f_debug, "SyntaxVirtualSpecifierSeq ");
+  fprintf(f_debug, "===========================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -16694,6 +16327,9 @@ Given the universal representation of SyntaxWhileStatement, print a diagnostic
 textual representation.
 */
 {
+  fprintf(f_debug, "============================= ");
+  fprintf(f_debug, "SyntaxWhileStatement ");
+  fprintf(f_debug, "=============================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -16739,6 +16375,9 @@ Given the universal representation of TraitAliasTemplate, print a diagnostic
 textual representation.
 */
 {
+  fprintf(f_debug, "============================== ");
+  fprintf(f_debug, "TraitAliasTemplate ");
+  fprintf(f_debug, "==============================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -16784,6 +16423,9 @@ Given the universal representation of TraitAttribute, print a diagnostic
 textual representation.
 */
 {
+  fprintf(f_debug, "================================ ");
+  fprintf(f_debug, "TraitAttribute ");
+  fprintf(f_debug, "================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -16829,6 +16471,9 @@ Given the universal representation of TraitDeductionGuide, print a diagnostic
 textual representation.
 */
 {
+  fprintf(f_debug, "============================= ");
+  fprintf(f_debug, "TraitDeductionGuide ");
+  fprintf(f_debug, "==============================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -16870,6 +16515,9 @@ Given the universal representation of TraitDeprecated, print a diagnostic
 textual representation.
 */
 {
+  fprintf(f_debug, "=============================== ");
+  fprintf(f_debug, "TraitDeprecated ");
+  fprintf(f_debug, "================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -16912,6 +16560,9 @@ Given the universal representation of TraitFriend, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "================================= ");
+  fprintf(f_debug, "TraitFriend ");
+  fprintf(f_debug, "==================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -16978,6 +16629,9 @@ Given the universal representation of TraitFunctionDefinition, print a
 diagnostic textual representation.
 */
 {
+  fprintf(f_debug, "=========================== ");
+  fprintf(f_debug, "TraitFunctionDefinition ");
+  fprintf(f_debug, "============================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -17023,6 +16677,9 @@ Given the universal representation of TraitMsvcDeclAttrs, print a diagnostic
 textual representation.
 */
 {
+  fprintf(f_debug, "============================== ");
+  fprintf(f_debug, "TraitMsvcDeclAttrs ");
+  fprintf(f_debug, "==============================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -17068,6 +16725,9 @@ Given the universal representation of TraitMsvcFuncParams, print a diagnostic
 textual representation.
 */
 {
+  fprintf(f_debug, "============================= ");
+  fprintf(f_debug, "TraitMsvcFuncParams ");
+  fprintf(f_debug, "==============================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -17107,6 +16767,9 @@ Given the universal representation of TraitMsvcUuid, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "================================ ");
+  fprintf(f_debug, "TraitMsvcUuid ");
+  fprintf(f_debug, "=================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -17138,132 +16801,78 @@ textual representation with the given indent.
 
     fprintf(f_debug, "trait:\n");
     ++indent;
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_mtb_allocate>(field);
+    if (test_bitmask<ifc_mtb_allocate>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Allocate:      %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_mtb_code_segment>(field);
+      fprintf(f_debug, "- Allocate\n");
+    }  /* if */
+    if (test_bitmask<ifc_mtb_code_segment>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "CodeSegment:   %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_mtb_comdat>(field);
+      fprintf(f_debug, "- CodeSegment\n");
+    }  /* if */
+    if (test_bitmask<ifc_mtb_comdat>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Comdat:        %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_mtb_dll_export>(field);
+      fprintf(f_debug, "- Comdat\n");
+    }  /* if */
+    if (test_bitmask<ifc_mtb_dll_export>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "DllExport:     %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_mtb_dll_import>(field);
+      fprintf(f_debug, "- DllExport\n");
+    }  /* if */
+    if (test_bitmask<ifc_mtb_dll_import>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "DllImport:     %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_mtb_empty_bases>(field);
+      fprintf(f_debug, "- DllImport\n");
+    }  /* if */
+    if (test_bitmask<ifc_mtb_empty_bases>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "EmptyBases:    %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_mtb_force_inline>(field);
+      fprintf(f_debug, "- EmptyBases\n");
+    }  /* if */
+    if (test_bitmask<ifc_mtb_force_inline>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "ForceInline:   %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_mtb_intrinsic_type>(field);
+      fprintf(f_debug, "- ForceInline\n");
+    }  /* if */
+    if (test_bitmask<ifc_mtb_intrinsic_type>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "IntrinsicType: %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_mtb_naked>(field);
+      fprintf(f_debug, "- IntrinsicType\n");
+    }  /* if */
+    if (test_bitmask<ifc_mtb_naked>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Naked:         %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_mtb_no_alias>(field);
+      fprintf(f_debug, "- Naked\n");
+    }  /* if */
+    if (test_bitmask<ifc_mtb_no_alias>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "NoAlias:       %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_mtb_no_inline>(field);
+      fprintf(f_debug, "- NoAlias\n");
+    }  /* if */
+    if (test_bitmask<ifc_mtb_no_inline>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "NoInline:      %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_mtb_none>(field);
+      fprintf(f_debug, "- NoInline\n");
+    }  /* if */
+    if (test_bitmask<ifc_mtb_none>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "None:          %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_mtb_novtable>(field);
+      fprintf(f_debug, "- None\n");
+    }  /* if */
+    if (test_bitmask<ifc_mtb_novtable>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Novtable:      %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_mtb_process>(field);
+      fprintf(f_debug, "- Novtable\n");
+    }  /* if */
+    if (test_bitmask<ifc_mtb_process>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Process:       %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_mtb_restrict>(field);
+      fprintf(f_debug, "- Process\n");
+    }  /* if */
+    if (test_bitmask<ifc_mtb_restrict>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Restrict:      %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_mtb_safe_buffers>(field);
+      fprintf(f_debug, "- Restrict\n");
+    }  /* if */
+    if (test_bitmask<ifc_mtb_safe_buffers>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "SafeBuffers:   %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_mtb_select_any>(field);
+      fprintf(f_debug, "- SafeBuffers\n");
+    }  /* if */
+    if (test_bitmask<ifc_mtb_select_any>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "SelectAny:     %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_mtb_uuid>(field);
+      fprintf(f_debug, "- SelectAny\n");
+    }  /* if */
+    if (test_bitmask<ifc_mtb_uuid>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Uuid:          %s\n", (match ? "TRUE" : "FALSE"));
-    }
+      fprintf(f_debug, "- Uuid\n");
+    }  /* if */
     --indent;
   }  /* if */
 }  /* db_node */
@@ -17275,6 +16884,9 @@ Given the universal representation of TraitMsvcVendorTrait, print a diagnostic
 textual representation.
 */
 {
+  fprintf(f_debug, "============================= ");
+  fprintf(f_debug, "TraitMsvcVendorTrait ");
+  fprintf(f_debug, "=============================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -17320,6 +16932,9 @@ Given the universal representation of TraitRequires, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "================================ ");
+  fprintf(f_debug, "TraitRequires ");
+  fprintf(f_debug, "=================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -17362,6 +16977,9 @@ Given the universal representation of TraitSpecialization, print a diagnostic
 textual representation.
 */
 {
+  fprintf(f_debug, "============================= ");
+  fprintf(f_debug, "TraitSpecialization ");
+  fprintf(f_debug, "==============================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -17401,6 +17019,9 @@ Given the universal representation of TypeArray, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "================================== ");
+  fprintf(f_debug, "TypeArray ");
+  fprintf(f_debug, "===================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -17449,6 +17070,9 @@ Given the universal representation of TypeBase, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "=================================== ");
+  fprintf(f_debug, "TypeBase ");
+  fprintf(f_debug, "===================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -17478,6 +17102,9 @@ Given the universal representation of TypeDecltype, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "================================= ");
+  fprintf(f_debug, "TypeDecltype ");
+  fprintf(f_debug, "=================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -17507,6 +17134,9 @@ Given the universal representation of TypeDesignated, print a diagnostic
 textual representation.
 */
 {
+  fprintf(f_debug, "================================ ");
+  fprintf(f_debug, "TypeDesignated ");
+  fprintf(f_debug, "================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -17542,6 +17172,9 @@ Given the universal representation of TypeExpansion, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "================================ ");
+  fprintf(f_debug, "TypeExpansion ");
+  fprintf(f_debug, "=================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -17581,6 +17214,9 @@ Given the universal representation of TypeForall, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "================================== ");
+  fprintf(f_debug, "TypeForall ");
+  fprintf(f_debug, "==================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -17629,41 +17265,26 @@ representation with the given indent.
 
     fprintf(f_debug, "traits:\n");
     ++indent;
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_fttb_const>(field);
+    if (test_bitmask<ifc_fttb_const>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Const:    %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_fttb_lvalue>(field);
+      fprintf(f_debug, "- Const\n");
+    }  /* if */
+    if (test_bitmask<ifc_fttb_lvalue>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Lvalue:   %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_fttb_none>(field);
+      fprintf(f_debug, "- Lvalue\n");
+    }  /* if */
+    if (test_bitmask<ifc_fttb_none>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "None:     %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_fttb_rvalue>(field);
+      fprintf(f_debug, "- None\n");
+    }  /* if */
+    if (test_bitmask<ifc_fttb_rvalue>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Rvalue:   %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_fttb_volatile>(field);
+      fprintf(f_debug, "- Rvalue\n");
+    }  /* if */
+    if (test_bitmask<ifc_fttb_volatile>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Volatile: %s\n", (match ? "TRUE" : "FALSE"));
-    }
+      fprintf(f_debug, "- Volatile\n");
+    }  /* if */
     --indent;
   }  /* if */
 }  /* db_node */
@@ -17675,6 +17296,9 @@ Given the universal representation of TypeFunction, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "================================= ");
+  fprintf(f_debug, "TypeFunction ");
+  fprintf(f_debug, "=================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -17712,6 +17336,9 @@ Given the universal representation of TypeFundamental, print a diagnostic
 textual representation.
 */
 {
+  fprintf(f_debug, "=============================== ");
+  fprintf(f_debug, "TypeFundamental ");
+  fprintf(f_debug, "================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -17741,6 +17368,9 @@ Given the universal representation of TypeLvalueReference, print a diagnostic
 textual representation.
 */
 {
+  fprintf(f_debug, "============================= ");
+  fprintf(f_debug, "TypeLvalueReference ");
+  fprintf(f_debug, "==============================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -17799,41 +17429,26 @@ representation with the given indent.
 
     fprintf(f_debug, "traits:\n");
     ++indent;
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_fttb_const>(field);
+    if (test_bitmask<ifc_fttb_const>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Const:    %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_fttb_lvalue>(field);
+      fprintf(f_debug, "- Const\n");
+    }  /* if */
+    if (test_bitmask<ifc_fttb_lvalue>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Lvalue:   %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_fttb_none>(field);
+      fprintf(f_debug, "- Lvalue\n");
+    }  /* if */
+    if (test_bitmask<ifc_fttb_none>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "None:     %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_fttb_rvalue>(field);
+      fprintf(f_debug, "- None\n");
+    }  /* if */
+    if (test_bitmask<ifc_fttb_rvalue>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Rvalue:   %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_fttb_volatile>(field);
+      fprintf(f_debug, "- Rvalue\n");
+    }  /* if */
+    if (test_bitmask<ifc_fttb_volatile>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Volatile: %s\n", (match ? "TRUE" : "FALSE"));
-    }
+      fprintf(f_debug, "- Volatile\n");
+    }  /* if */
     --indent;
   }  /* if */
 }  /* db_node */
@@ -17845,6 +17460,9 @@ Given the universal representation of TypeMethod, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "================================== ");
+  fprintf(f_debug, "TypeMethod ");
+  fprintf(f_debug, "==================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -17890,6 +17508,9 @@ Given the universal representation of TypePlaceholder, print a diagnostic
 textual representation.
 */
 {
+  fprintf(f_debug, "=============================== ");
+  fprintf(f_debug, "TypePlaceholder ");
+  fprintf(f_debug, "================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -17919,6 +17540,9 @@ Given the universal representation of TypePointer, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "================================= ");
+  fprintf(f_debug, "TypePointer ");
+  fprintf(f_debug, "==================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -17958,6 +17582,9 @@ Given the universal representation of TypePointerToMember, print a diagnostic
 textual representation.
 */
 {
+  fprintf(f_debug, "============================= ");
+  fprintf(f_debug, "TypePointerToMember ");
+  fprintf(f_debug, "==============================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -17973,34 +17600,22 @@ representation with the given indent.
 
     fprintf(f_debug, "qualifiers:\n");
     ++indent;
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_qb_const>(field);
+    if (test_bitmask<ifc_qb_const>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Const:    %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_qb_none>(field);
+      fprintf(f_debug, "- Const\n");
+    }  /* if */
+    if (test_bitmask<ifc_qb_none>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "None:     %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_qb_restrict>(field);
+      fprintf(f_debug, "- None\n");
+    }  /* if */
+    if (test_bitmask<ifc_qb_restrict>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Restrict: %s\n", (match ? "TRUE" : "FALSE"));
-    }
-    {
-      a_boolean match;
-
-      match = test_bitmask<ifc_qb_volatile>(field);
+      fprintf(f_debug, "- Restrict\n");
+    }  /* if */
+    if (test_bitmask<ifc_qb_volatile>(field)) {
       db_print_indent(indent);
-      fprintf(f_debug, "Volatile: %s\n", (match ? "TRUE" : "FALSE"));
-    }
+      fprintf(f_debug, "- Volatile\n");
+    }  /* if */
     --indent;
   }  /* if */
   if (has_ifc_unqualified(universal)) {
@@ -18022,6 +17637,9 @@ Given the universal representation of TypeQualified, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "================================ ");
+  fprintf(f_debug, "TypeQualified ");
+  fprintf(f_debug, "=================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -18051,6 +17669,9 @@ Given the universal representation of TypeRvalueReference, print a diagnostic
 textual representation.
 */
 {
+  fprintf(f_debug, "============================= ");
+  fprintf(f_debug, "TypeRvalueReference ");
+  fprintf(f_debug, "==============================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -18080,6 +17701,9 @@ Given the universal representation of TypeSyntactic, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "================================ ");
+  fprintf(f_debug, "TypeSyntactic ");
+  fprintf(f_debug, "=================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -18109,6 +17733,9 @@ Given the universal representation of TypeSyntaxTree, print a diagnostic
 textual representation.
 */
 {
+  fprintf(f_debug, "================================ ");
+  fprintf(f_debug, "TypeSyntaxTree ");
+  fprintf(f_debug, "================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -18151,6 +17778,9 @@ Given the universal representation of TypeTor, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "=================================== ");
+  fprintf(f_debug, "TypeTor ");
+  fprintf(f_debug, "====================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -18182,6 +17812,9 @@ Given the universal representation of TypeTuple, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "================================== ");
+  fprintf(f_debug, "TypeTuple ");
+  fprintf(f_debug, "===================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -18211,6 +17844,9 @@ Given the universal representation of TypeTypename, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "================================= ");
+  fprintf(f_debug, "TypeTypename ");
+  fprintf(f_debug, "=================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -18240,6 +17876,9 @@ Given the universal representation of TypeUnaligned, print a diagnostic textual
 representation.
 */
 {
+  fprintf(f_debug, "================================ ");
+  fprintf(f_debug, "TypeUnaligned ");
+  fprintf(f_debug, "=================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
