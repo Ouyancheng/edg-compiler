@@ -15588,6 +15588,7 @@ it's a definition and NULL otherwise).
            definition will extend it, so reuse the symbol that was found. */
       }  /* if */
       make_locator_for_symbol(ns_sym, &locator);
+      locator.source_position = pos_curr_token;
     }  /* if */
   } else {
     /* A named namespace definition (possibly nested) or a namespace alias.
