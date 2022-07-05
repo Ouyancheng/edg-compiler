@@ -131,11 +131,11 @@ typedef struct a_char_conversion_state {
 			   curr_file_unicode_source_kind. */
   a_byte_boolean
 		is_rescan;
-			/* If TRUE, the source is a string literal literal
-			   constant that is being rescanned, e.g., to
-			   change its literal kind during string literal
+			/* If TRUE, the source is a string literal constant
+			   that is being rescanned, e.g., to change its
+			   literal kind during string literal
 			   concatenation. */
-  char		translated_char[MAX_MULTIBYTE_CHAR_LENGTH];
+char		translated_char[MAX_MULTIBYTE_CHAR_LENGTH];
 			/* When translating from UTF-8 to multibyte
 			   characters and for universal-character-names,
 			   contains the translated version of the current
