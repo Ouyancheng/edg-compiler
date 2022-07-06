@@ -1121,7 +1121,7 @@ get_another:
       default:
         unexpected_condition();
     }  /* switch */
-  } else if (targ_ch == LE_ESCAPE) {
+  } else if (targ_ch == LE_ESCAPE && !state->is_rescan) {
     check_assertion(lptr[1] == LE_NULL);
     /* Null (zero) character, represented as an escape. */
     targ_ch = 0;
