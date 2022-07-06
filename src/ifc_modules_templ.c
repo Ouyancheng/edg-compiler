@@ -10,7 +10,8 @@
 /*
 
 ifc_modules_templ.c -- Microsoft-specific IFC module code template code that's
-                       shared between ifc_modules.c and ifc_map_functions.c
+                       shared between ifc_modules.c, ifc_map_functions.c,
+                       ifc_map_functions_acc.c, and ifc_map_functions_val.c.
 
 */
 

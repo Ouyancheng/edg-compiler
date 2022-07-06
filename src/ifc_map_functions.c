@@ -29205,6 +29205,10 @@ expected partition element size.
     case ifc_pk_type_unaligned:
       result = 4;
       break;
+    case ifc_pk_none:
+      unexpected_condition_str(
+                       "Attempted to get the size of the \"none\" partition.");
+      break;
     default_is_unexpected();
   }  /* switch */
   return result;
