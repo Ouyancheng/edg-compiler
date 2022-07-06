@@ -18647,6 +18647,7 @@ are handled in symbol_tbl_init.)
 #if NAMED_REGISTERS_ALLOWED
   register_trans_unit_variable(next_named_register_id);
 #endif /* NAMED_REGISTERS_ALLOWED */
+  register_trans_unit_variable(template_cache_segment_table);
 }  /* symbol_tbl_one_time_init */
 
 
