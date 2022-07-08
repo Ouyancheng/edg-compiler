@@ -46,15 +46,9 @@ struct an_ifc_Byte_buffer {
     : storing_value(FALSE), mod(mod_val), storage_ptr(storage_ptr_val)
     {}
 
-#if CHECKING
-  /* A default state is provided for forward declaration.  This struct
-     shouldn't remain "uninitialized." */
-  ~an_ifc_Byte_buffer()
-    { check_assertion(storing_value || storage_ptr != NULL); }
-#endif /* CHECKING */
-
   inline an_ifc_module *get_module() const
     { return mod; }
+
   inline const an_ifc_Storage_type *get_storage() const;
 private:
   a_boolean storing_value;
