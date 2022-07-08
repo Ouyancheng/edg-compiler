@@ -280,8 +280,7 @@ Split an input string [str, end) into parts.
   if (str != end) {
     dec->type = fpt_invalid;
   }  /* if */
-end_of_routine:
-  ;
+end_of_routine:;
 }  /* split_string */
 
 #if FP_USE_EMULATION || FP_UNIT_TESTING

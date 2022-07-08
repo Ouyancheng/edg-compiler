@@ -4342,8 +4342,7 @@ defaulted.
     }  /* if */
     write_tok_str("<>");
   }  /* if */
-end_of_routine:
-  ;
+end_of_routine:;
 }  /* gen_template_arguments_full */
 
 

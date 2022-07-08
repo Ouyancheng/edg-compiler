@@ -317,11 +317,9 @@ Utility to print some debug information for every access to an IFC module file.
   }  /* if */
 }  /* f_db_get_byte */
 
-
 #else /* !(DEBUG && EXPENSIVE_CHECKING) */
 #define db_get_byte(value_str, addr, len) /*nothing*/
 #endif /* DEBUG && EXPENSIVE_CHECKING */
-
 
 static an_ifc_partition_kind_index to_partition_kind_index(
                                                        a_module_entity_ptr mep)
@@ -367,7 +365,8 @@ corresponding name.
 
 static a_module_ref_key as_key(const an_ifc_module_reference &ref)
 /*
-Convert to a key for hashing purposes.
+Given a module reference, return the associated module ref key (i.e., a hash
+key).
 */
 {
   an_ifc_text_offset_storage partition = get_ifc_partition(ref);
@@ -433,7 +432,7 @@ Given a module reference, import the referenced module.
 
 a_boolean check_module(const an_ifc_module_reference &ref)
 /*
-Given a module reference, check that the referenced module can be located, and
+Given a module reference, check that the referenced module can be located and
 has a valid an_ifc_module handler.  Return TRUE if the module reference
 satisfies these requirements; otherwise, return FALSE.
 */
@@ -1681,7 +1680,7 @@ done:
 static size_t calculate_validation_block_byte_count(uint32_t num_elements)
 /*
 For a given number of elements, return the number of bytes required to
-represent the elements validation status.
+represent the elements' validation status.
 */
 {
   /* Over count by one integer as this simplifies the logic and is necessary in
@@ -2368,8 +2367,7 @@ to the given cache if options & cso_no_final_semicolon is nonzero.
       break;
     default_is_unexpected_str("Unknown StmtSort kind");
   }  /* switch */
-invalid:
-  ;
+invalid:;
 }  /* cache_statement */
 
 
@@ -2470,10 +2468,10 @@ if parameter counts match, return FALSE otherwise.
 
 
 static void add_function_def_parameter(
-                         const an_ifc_decl_parameter &idp,
-                         a_param_type_ptr            ptp,
-                         a_func_info_block           *func_info,
-                         a_param_id_ptr              *last_param_id)
+                                    const an_ifc_decl_parameter &idp,
+                                    a_param_type_ptr            ptp,
+                                    a_func_info_block           *func_info,
+                                    a_param_id_ptr              *last_param_id)
 /*
 Add the given IFC parameter, using the associated parameter type pointer, to
 the given function info.  last_param_id is a pointer to the pointer for the
@@ -8470,8 +8468,7 @@ locus is the location of the Sentence containing literal.
       break;
     default_is_unexpected_str("Unknown SourceLiteral");
   }  /* switch */
-invalid:
-  ;
+invalid:;
 }  /* cache_source_literal */
 
 
@@ -10467,8 +10464,7 @@ this is needed.
       break;
     default_is_unexpected_str("Unexpected TypeSort");
   }  /* switch */
-invalid:
-  ;
+invalid:;
 }  /* cache_type_first_pass */
 
 
@@ -10638,8 +10634,7 @@ this is needed.
       break;
     default_is_unexpected_str("Unexpected TypeSort");
   }  /* switch */
-invalid:
-  ;
+invalid:;
 }  /* cache_type_second_pass */
 
 
@@ -12125,8 +12120,7 @@ Add the tokens corresponding to the given partial specialization declaration
     default:
       unexpected_condition_str("Unexpected DeclSort");
   }  /* switch */
-invalid:
-  ;
+invalid:;
 }  /* cache_decl_partial_specialization */
 
 
@@ -12393,8 +12387,7 @@ END_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
     default:
       unexpected_condition_str("Unexpected DeclSort");
   }  /* switch */
-invalid:
-  ;
+invalid:;
 }  /* cache_decl_specialization */
 
 
@@ -12663,8 +12656,7 @@ is responsible for ensuring that the brackets are cached appropriately.
       break;
     default_is_unexpected_str("Unexpected AttrSort");
   }  /* switch */
-invalid:
-  ;
+invalid:;
 }  /* cache_attr */
 
 
@@ -13280,8 +13272,7 @@ Add the tokens corresponding to the given declaration (decl) to cache.
       break;
     default_is_unexpected_str("Unexpected DeclSort");
   }  /* switch */
-invalid:
-  ;
+invalid:;
 }  /* cache_decl */
 
 
@@ -13337,8 +13328,7 @@ suppress_automatic_namespace_qualification.
       }  /* switch */
     }  /* if */
   }  /* if */
-invalid:
-  ;
+invalid:;
 }  /* suppress_automatic_qualification */
 
 
@@ -14187,8 +14177,7 @@ common_cast:
       break;
     default_is_unexpected_str("Unknown ExprSort");
   }  /* switch */
-invalid:
-  ;
+invalid:;
 }  /* cache_expr */
 
 
@@ -15295,8 +15284,7 @@ Add the tokens corresponding to the given syntax tree to cache.
       break;
     default_is_unexpected_str("Unexpected SyntaxSort");
   }  /* switch */
-invalid:
-  ;
+invalid:;
 }  /* cache_syntax */
 
 
@@ -15418,8 +15406,7 @@ of the name.
       break;
     default_is_unexpected();
   }  /* switch */
-invalid:
-  ;
+invalid:;
 }  /* cache_name */
 
 
@@ -15596,8 +15583,7 @@ Add the tokens corresponding to the given macro's definition to cache.
       break;
     default_is_unexpected_str("Unexpected MacroSort");
   }  /* switch */
-invalid:
-  ;
+invalid:;
 }  /* cache_macro */
 
 
@@ -15845,8 +15831,7 @@ raw-text spelling.
       break;
     default_is_unexpected_str("Unexpected FormSort");
   }  /* switch */
-invalid:
-  ;
+invalid:;
 }  /* cache_form */
 
 
