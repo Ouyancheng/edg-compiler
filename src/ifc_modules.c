@@ -456,26 +456,28 @@ Load and return the an_ifc_module handler for the referenced module.
 }  /* get_module */
 
 
-template<an_ifc_partition_kind a_Partition_Kind, typename a_Trait_T>
+template<typename a_Trait_T>
 static void find_trait(Opt<an_ifc_Byte_buffer<a_Trait_T>> *result,
                        an_ifc_decl_index                  decl)
 /*
-Given the declaration index (decl) to use as a trait table key for the trait
-table identified by a_Partition_Kind, find and return the associated trait as
-an optional.  If the returned optional is empty the trait either wasn't found
-(because it doesn't exist), or a diagnosed validation error occurred.
+Given the declaration index (decl) to use as a trait table key (for the trait
+table associated with the given trait type), find and return the associated
+trait as an optional.  If the returned optional is empty the trait either
+wasn't found (because it doesn't exist), or a diagnosed validation error
+occurred.
 */
 {
   /* If this check fails, the validator needs additional validation to prevent
      a required IFC field from being 0 (i.e., "NULL"), or there's a logic
      bug. */
   check_assertion(!is_null_index(decl));
-  an_ifc_module *mod = decl.mod;
-  size_t        num_traits = mod->get_num_entries(a_Partition_Kind);
+  an_ifc_partition_kind trait_part_kind = get_ifc_partition_kind<a_Trait_T>();
+  an_ifc_module         *mod = decl.mod;
+  size_t                num_traits = mod->get_num_entries(trait_part_kind);
   /* Provide a value function for retrieving the trait at the given trait
      partition index. */
-  auto          value_lambda = [mod](ptrdiff_t idx) {
-    an_ifc_partition_kind_index   part_idx{mod, a_Partition_Kind,
+  auto                  value_lambda = [mod, trait_part_kind](ptrdiff_t idx) {
+    an_ifc_partition_kind_index   part_idx{mod, trait_part_kind,
                                            (an_ifc_index_type)idx};
     an_ifc_Byte_buffer<a_Trait_T> trait;
 
@@ -487,11 +489,12 @@ an optional.  If the returned optional is empty the trait either wasn't found
     return get_ifc_encoded_decl(trait);
   };
   /* Get the partition index (if any) for decl. */
-  ptrdiff_t     partition_idx = bin_search(num_traits, to_encoded(mod, decl),
-                                           value_lambda);
+  ptrdiff_t             partition_idx = bin_search(num_traits,
+                                                   to_encoded(mod, decl),
+                                                   value_lambda);
 
   if (partition_idx != -1) {
-    an_ifc_partition_kind_index part_idx{mod, a_Partition_Kind,
+    an_ifc_partition_kind_index part_idx{mod, trait_part_kind,
                                          (an_ifc_index_type)partition_idx};
 
     /* A trait was found for decl.  Load the trait (again) to retrieve the
@@ -2605,7 +2608,7 @@ instead.
   Opt<an_ifc_trait_function_definition> opt_itfd;
 
   check_assertion(type_is(rp->type, tk_routine));
-  find_trait<ifc_pk_trait_mapping_expr>(&opt_itfd, decl_idx);
+  find_trait(&opt_itfd, decl_idx);
   if (opt_itfd.has_value()) {
     an_ifc_trait_function_definition itfd = *opt_itfd;
 
@@ -2798,7 +2801,7 @@ template's IFC description structure.
       an_ifc_decl_index      decl = itf->decl_index_of(mep);
       Opt<an_ifc_trait_deduction_guide>
                              opt_itdg;
-      find_trait<ifc_pk_trait_deduction_guides>(&opt_itdg, decl);
+      find_trait(&opt_itdg, decl);
       if (opt_itdg.has_value()) {
         an_ifc_decl_index    guides_idx = get_ifc_trait(*opt_itdg);
         a_module_entity_ptr  guides_mep =
@@ -15924,7 +15927,7 @@ its ifc_AttrIndex.
   an_ifc_attr_index                 result = {};
   Opt<an_ifc_trait_msvc_decl_attrs> opt_itmda;
 
-  find_trait<ifc_pk_msvc_trait_decl_attrs>(&opt_itmda, decl_idx);
+  find_trait(&opt_itmda, decl_idx);
   if (opt_itmda.has_value()) {
     result = get_ifc_trait(*opt_itmda);
   }  /* if */
@@ -16095,7 +16098,7 @@ decl, or 0 if not found.
   an_ifc_chart_index                 params = {};
   Opt<an_ifc_trait_msvc_func_params> opt_itmfp;
 
-  find_trait<ifc_pk_msvc_trait_named_function_parameters>(&opt_itmfp, decl);
+  find_trait(&opt_itmfp, decl);
   if (opt_itmfp.has_value()) {
     params = get_ifc_params(*opt_itmfp);
   }  /* if */
@@ -16113,7 +16116,7 @@ If not found, return the appropriate trait to indicate "none".
   an_ifc_msvc_traits_bitfield         result = {};
   Opt<an_ifc_trait_msvc_vendor_trait> opt_itmvt;
 
-  find_trait<ifc_pk_msvc_trait_vendor_traits>(&opt_itmvt, decl);
+  find_trait(&opt_itmvt, decl);
   if (opt_itmvt.has_value()) {
     result = get_ifc_trait(*opt_itmvt);
   }  /* if */
@@ -16132,7 +16135,7 @@ decl, or an empty sequence if not found.
   Opt<an_ifc_trait_specialization> opt_its;
 
   check_assertion(decl.sort == ifc_ds_decl_template);
-  find_trait<ifc_pk_trait_specialization>(&opt_its, decl);
+  find_trait(&opt_its, decl);
   if (opt_its.has_value()) {
     result = get_ifc_trait(*opt_its);
   }  /* if */
