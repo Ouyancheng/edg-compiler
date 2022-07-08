@@ -14898,6 +14898,7 @@ Add the tokens corresponding to the given syntax tree to cache.
 
         an_ifc_syntax_type_requirement istr = *opt_istr;
         source_position_from_locus(&pos, get_ifc_locus(istr));
+        cache_token(cache, tok_typename, &pos);
         cache_expr(cache, get_ifc_type(istr));
         cache_token(cache, tok_semicolon, &pos);
       }
