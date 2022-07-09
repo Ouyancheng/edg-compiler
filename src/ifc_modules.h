@@ -165,7 +165,6 @@ struct an_ifc_module : public a_module_interface {
 		suppress_automatic_namespace_qualification = FALSE;
 			/* Flag to indicate the namespace portion of the
 			   current nested name specifier has already been
-
 			   cached and must not be recached. */
   /* FIXME: This is module specific, should it not be, or should we use a
     structure that's module specific.  It seems very redundant to have a module
@@ -305,6 +304,10 @@ public:
   a_constant_ptr constant_for_expr_index(an_ifc_expr_index expr_index,
                                          a_type_ptr        default_type);
   a_constant_ptr constant_for_named_decl(const an_ifc_expr_named_decl &iesndp);
+  a_boolean fill_in_routine_parameter_defaults(
+                                              an_ifc_chart_index params,
+                                              a_type_ptr         rout_type,
+                                              a_boolean          is_consteval);
   /* Token caching. */
   void cache_scope_member_sequence(a_token_cache_ptr     cache,
                                    an_ifc_decl_index     scope_decl,

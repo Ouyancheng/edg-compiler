@@ -622,6 +622,7 @@ Given a scope reference find and return the associated scope.
       }  /* if */
       result = get_assoc_scope_of_il_entry(mep->entity.ptr,
                                            (an_il_entry_kind)mep->entity.kind);
+      result->parent = mep->scope;
       if (assoc_type != NULL &&
           (scope_is(result, sck_class_struct_union) ||
            scope_is(result, sck_enum) ||
@@ -3170,6 +3171,7 @@ principal associated IL entity.
             a_func_info_block               func_info;
             a_type_ptr                      old_type;
             a_routine_ptr                   rp;
+            a_boolean                       is_consteval;
 
             /* FIXME: There's a chicken-and-egg problem here when the return
                type is deduced and requires access to the class scope (e.g.,
@@ -3183,12 +3185,17 @@ principal associated IL entity.
                      an_ifc_msvc_traits_bitfield{},
                      get_ifc_specifiers(idf), get_ifc_access(idf),
                      an_ifc_expr_index{}, &psss);
-            if (test_bitmask<ifc_ftb_immediate>(traits)) {
+            is_consteval = test_bitmask<ifc_ftb_immediate>(traits);
+            if (is_consteval) {
               dps.dso_flags |= DSO_CONSTEVAL;
             } else if (test_bitmask<ifc_ftb_constexpr>(traits)) {
               dps.dso_flags |= DSO_CONSTEXPR;
             } else if (test_bitmask<ifc_ftb_inline>(traits)) {
               dps.dso_flags |= DSO_INLINE;
+            }  /* if */
+            if (!fill_in_routine_parameter_defaults(get_ifc_chart(idf),
+                                                    dps.type, is_consteval)) {
+              goto invalid;
             }  /* if */
             clear_func_info(&func_info);
             clear_decl_pos_block(&decl_pos_block);
@@ -7878,6 +7885,74 @@ invalid:
 done:
   return cp;
 }  /* constant_for_named_decl */
+
+
+a_boolean an_ifc_module::fill_in_routine_parameter_defaults(
+                                               an_ifc_chart_index params,
+                                               a_type_ptr         rout_type,
+                                               a_boolean          is_consteval)
+/*
+Fill in any parameter defaults for a routine with type rout_type.  The
+parameter type list must already be populated.  params is the chart index
+associated with the routine and contains the default argument information.
+Return TRUE if successful, FALSE if any errors were encountered.
+*/
+{
+  a_routine_type_supplement_ptr rtsp = rout_type_supp(rout_type);
+  Opt<an_ifc_chart_unilevel>    opt_icu;
+  a_param_type_ptr              ptp = rtsp->param_type_list;
+  a_token_cache                 cache;
+  a_boolean                     result = TRUE;
+
+  if (is_null_index(params)) {
+    goto done;
+  }  /* if */
+  check_assertion(params.sort == ifc_cs_chart_unilevel);
+  construct_node(&opt_icu, params);
+  if (opt_icu.has_value()) {
+    an_ifc_chart_unilevel icu = *opt_icu;
+    an_ifc_index          start = get_ifc_start(icu);
+    an_ifc_cardinality    cardinality = get_ifc_cardinality(icu);
+
+    for (an_ifc_cardinality_storage idx = 0; idx < cardinality.value; ++idx) {
+      if (ptp == NULL) {
+        /* This should only be possible to encounter when the function has
+           an ellipsis parameter. */
+        check_assertion(idx == cardinality.value - 1 && rtsp->has_ellipsis);
+        break;
+      }  /* if */
+      Opt<an_ifc_decl_parameter>  opt_param;
+      an_ifc_partition_kind_index decl_param_idx{start.mod,
+                                                 ifc_pk_decl_parameter,
+                                                 start + idx};
+      construct_node(&opt_param, decl_param_idx);
+      if (!opt_param.has_value()) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+      an_ifc_decl_parameter curr_param = *opt_param;
+      an_ifc_expr_index     initializer_expr = get_ifc_initializer(curr_param);
+      if (!is_null_index(initializer_expr)) {
+        ptp->has_default_arg = TRUE;
+        clear_token_cache(&cache, /*reusable=*/FALSE);
+        cache_expr(&cache, initializer_expr);
+        terminate_token_cache(&cache);
+        rescan_cached_tokens(&cache);
+        scan_default_arg_expr(ptp, /*is_member_or_friend=*/FALSE,
+                              is_consteval);
+        if (curr_token != tok_end_of_source) {
+          expect_error();
+          flush_tokens_without_warning();
+        }  /* if */
+        check_assertion(curr_token == tok_end_of_source);
+        (void)get_token();
+      }  /* if */
+      ptp = ptp->next;
+    }  /* for */
+  }  /* if */
+done:
+  return result;
+}  /* fill_in_routine_parameter_defaults */
 
 
 static void cache_identifier(a_token_cache_ptr     cache,
@@ -15422,8 +15497,8 @@ TRUE if the scope and its parents should be cached, FALSE otherwise.
 
   if (scope == NULL) {
     result = FALSE;
-  } else if (scope->kind == (a_scope_kind)sck_namespace &&
-             suppress_automatic_namespace_qualification) {
+  } else if (suppress_automatic_namespace_qualification &&
+             (scope->kind == sck_namespace || scope->kind == sck_file)) {
     result = FALSE;
   }  /* if */
   return result;
@@ -15449,9 +15524,11 @@ the position of the qualified-id this nested-name-specifier is part of.
       check_assertion(type_ptr != NULL);
       cache_identifier(cache, type_ptr->source_corresp.name, pos);
       cache_token(cache, tok_colon_colon, pos);
-    } else if (scope->kind == (a_scope_kind)sck_namespace) {
+    } else if (scope_is(scope, sck_namespace)) {
       a_namespace_ptr namespace_ptr = scope->variant.assoc_namespace;
       cache_identifier(cache, namespace_ptr->source_corresp.name, pos);
+      cache_token(cache, tok_colon_colon, pos);
+    } else if (scope_is(scope, sck_file)) {
       cache_token(cache, tok_colon_colon, pos);
     }  /* if */
   }  /* if */

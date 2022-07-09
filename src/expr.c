@@ -45630,7 +45630,8 @@ function.
   an_expr_stack_entry_ptr saved_expr_stack;
 
   db_enter(3, "scan_default_arg_expr");
-  check_assertion(scope_stack_top().kind == (a_scope_kind)sck_func_prototype);
+  check_assertion(scope_stack_top().kind == sck_func_prototype ||
+                  scope_stack_top().kind == sck_module_decl_import);
   if (gpp_mode && !parameters_visible_late) {
     /* GCC does not consider parameter declarations while scanning default
        arguments.  Some versions don't consider parameters visible at all
