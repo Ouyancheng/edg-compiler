@@ -7894,8 +7894,9 @@ a_boolean an_ifc_module::fill_in_routine_parameter_defaults(
 /*
 Fill in any parameter defaults for a routine with type rout_type.  The
 parameter type list must already be populated.  params is the chart index
-associated with the routine and contains the default argument information.
-Return TRUE if successful, FALSE if any errors were encountered.
+associated with the routine and contains the default argument information.  If
+the routine is a consteval routine, is_consteval is TRUE.  Return TRUE if
+successful, FALSE if any errors were encountered.
 */
 {
   a_routine_type_supplement_ptr rtsp = rout_type_supp(rout_type);
@@ -15527,8 +15528,6 @@ the position of the qualified-id this nested-name-specifier is part of.
     } else if (scope_is(scope, sck_namespace)) {
       a_namespace_ptr namespace_ptr = scope->variant.assoc_namespace;
       cache_identifier(cache, namespace_ptr->source_corresp.name, pos);
-      cache_token(cache, tok_colon_colon, pos);
-    } else if (scope_is(scope, sck_file)) {
       cache_token(cache, tok_colon_colon, pos);
     }  /* if */
   }  /* if */
