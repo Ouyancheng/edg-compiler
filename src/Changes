@@ -1,5 +1,17 @@
 Version 6.4
 
+7/12/22  [EDGcpfe/25296]
+Internal error when lowering certain pointer arithmetic expressions
+
+In configurations where LOWER_VARIABLE_LENGTH_ARRAYS is TRUE, lowering of
+certain pointer arithmetic expressions had caused an internal error (in
+type_pointed_to).  For example, with --vla:
+
+  void f(bool b) {
+    b += &b;
+  }
+
+
 7/12/22  [EDGcpfe/25423]
 Assertion failure in define_default_version_of_routine
 

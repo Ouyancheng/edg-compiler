@@ -16857,7 +16857,8 @@ cast.  See lower_expr for typical invocation.
           case eok_padd:
           case eok_psubtract:
           case eok_psubtract_assign:
-            if (vla_enabled && is_vla_type(type_pointed_to(expr->type))) {
+            if (vla_enabled && is_pointer_type(expr->type) &&
+                is_vla_type(type_pointed_to(expr->type))) {
               /* Arithmetic on pointers to VLAs depends on the run-time sizes
                  of those VLAs.  Since the VLAs are lowered, the pointer
                  arithmetic must be transformed to explicitly include the
