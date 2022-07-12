@@ -15502,12 +15502,19 @@ parameters.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       if (ptp->is_parameter_pack) {
         /* If the type is a pack, make the new parameter a pack as well,
-           otherwise make the new parameter a pack element. */
+           otherwise make the new parameter a pack element.  For deduction
+           guides we want to preserve the original pack and pack element
+           status. */
         a_type_ptr	bottom_tp;
+        a_boolean       is_deduction_guide =
+                                         (options & CTWS_DEDUCTION_GUIDE) != 0;
+        a_boolean       bottom_is_pack;
         bottom_tp = find_bottom_of_type(tp);
-        if (!type_is_pack(bottom_tp)) {
+        bottom_is_pack = type_is_pack(bottom_tp);
+        if (!bottom_is_pack || (is_deduction_guide && ptp->is_pack_element)) {
           new_ptp->is_pack_element = TRUE;
-        } else {
+        }  /* if */
+        if (bottom_is_pack || is_deduction_guide) {
           new_ptp->is_parameter_pack = TRUE;
           if (ctws_state->new_templ_params == NULL) {
             new_ptp->pack_expansion_descr = ptp->pack_expansion_descr;
