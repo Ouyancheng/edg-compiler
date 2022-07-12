@@ -5858,7 +5858,7 @@ using an_ifc_module_reference =
   | sort        | WordSort       | 0.33    | 1    |
   | __padding__ | uint8_t[1]     |         | 1    |
   |-------------|----------------|---------|------|
-  | category    | WordCategory   | 0.33    | RF   |
+  | category    | WordCategory   | 0.33    | TF   |
   |-------------|----------------|---------|------|
 */
 enum an_ifc_nestable_word_part : uint8_t {};
@@ -6318,7 +6318,7 @@ using an_ifc_const_str = an_ifc_Byte_buffer<an_ifc_const_str_storage>;
   | access      | AccessSort              | 0.33    | 1    |
   | __padding__ | uint8_t[2]              |         | 2    |
   |-------------|-------------------------|---------|------|
-  | home_scope  | DeclIndex               | 0.41    | RF   |
+  | home_scope  | DeclIndex               | 0.41    | TF   |
   |-------------|-------------------------|---------|------|
 */
 enum an_ifc_decl_alias_part : uint8_t {};
@@ -6365,7 +6365,7 @@ using an_ifc_decl_alias = an_ifc_Byte_buffer<an_ifc_decl_alias_storage>;
   | access      | AccessSort                  | 0.33    | 1    |
   | properties  | ReachablePropertiesBitfield | 0.33    | 1    |
   |-------------|-----------------------------|---------|------|
-  | home_scope  | DeclIndex                   | 0.41    | RF   |
+  | home_scope  | DeclIndex                   | 0.41    | TF   |
   |-------------|-----------------------------|---------|------|
 */
 enum an_ifc_decl_bitfield_part : uint8_t {};
@@ -6414,7 +6414,7 @@ using an_ifc_decl_bitfield = an_ifc_Byte_buffer<an_ifc_decl_bitfield_storage>;
   | head       | SentenceIndex           | 0.33    | 4    |
   | body       | SentenceIndex           | 0.33    | 4    |
   |------------|-------------------------|---------|------|
-  | home_scope | DeclIndex               | 0.41    | RF   |
+  | home_scope | DeclIndex               | 0.41    | TF   |
   |------------|-------------------------|---------|------|
 */
 enum an_ifc_decl_concept_part : uint8_t {};
@@ -6444,7 +6444,7 @@ using an_ifc_decl_concept = an_ifc_Byte_buffer<an_ifc_decl_concept_storage>;
   | properties  | ReachablePropertiesBitfield | 0.33    | 1    |
   | __padding__ | uint8_t[3]                  |         | 3    |
   |-------------|-----------------------------|---------|------|
-  | name        | NameIndex                   | ANY     | RF   |
+  | name        | NameIndex                   | ANY     | TF   |
   |-------------|-----------------------------|---------|------|
 
   |------------------------------------------------------------|
@@ -6463,8 +6463,8 @@ using an_ifc_decl_concept = an_ifc_Byte_buffer<an_ifc_decl_concept_storage>;
   | properties  | ReachablePropertiesBitfield | 0.33    | 1    |
   | __padding__ | uint8_t[3]                  |         | 3    |
   |-------------|-----------------------------|---------|------|
-  | home_scope  | DeclIndex                   | 0.41    | RF   |
-  | name        | NameIndex                   | ANY     | RF   |
+  | home_scope  | DeclIndex                   | 0.41    | TF   |
+  | name        | NameIndex                   | ANY     | TF   |
   |-------------|-----------------------------|---------|------|
 */
 enum an_ifc_decl_constructor_part : uint8_t {};
@@ -6508,7 +6508,7 @@ using an_ifc_decl_constructor =
   | specifiers  | BasicSpecifiersBitfield | 0.33    | 1    |
   | __padding__ | uint8_t[2]              |         | 2    |
   |-------------|-------------------------|---------|------|
-  | home_scope  | DeclIndex               | 0.41    | RF   |
+  | home_scope  | DeclIndex               | 0.41    | TF   |
   |-------------|-------------------------|---------|------|
 */
 enum an_ifc_decl_deduction_guide_part : uint8_t {};
@@ -6541,7 +6541,7 @@ using an_ifc_decl_deduction_guide =
   | properties  | ReachablePropertiesBitfield | 0.33    | 1    |
   | __padding__ | uint8_t[2]                  |         | 2    |
   |-------------|-----------------------------|---------|------|
-  | name        | NameIndex                   | ANY     | RF   |
+  | name        | NameIndex                   | ANY     | TF   |
   |-------------|-----------------------------|---------|------|
 
   |------------------------------------------------------------|
@@ -6560,8 +6560,8 @@ using an_ifc_decl_deduction_guide =
   | properties  | ReachablePropertiesBitfield | 0.33    | 1    |
   | __padding__ | uint8_t[2]                  |         | 2    |
   |-------------|-----------------------------|---------|------|
-  | home_scope  | DeclIndex                   | 0.41    | RF   |
-  | name        | NameIndex                   | ANY     | RF   |
+  | home_scope  | DeclIndex                   | 0.41    | TF   |
+  | name        | NameIndex                   | ANY     | TF   |
   |-------------|-----------------------------|---------|------|
 */
 enum an_ifc_decl_destructor_part : uint8_t {};
@@ -6611,7 +6611,7 @@ using an_ifc_decl_destructor =
   | properties  | ReachablePropertiesBitfield | 0.33    | 1    |
   | __padding__ | uint8_t[1]                  |         | 1    |
   |-------------|-----------------------------|---------|------|
-  | home_scope  | DeclIndex                   | 0.41    | RF   |
+  | home_scope  | DeclIndex                   | 0.41    | TF   |
   |-------------|-----------------------------|---------|------|
 */
 enum an_ifc_decl_enumeration_part : uint8_t {};
@@ -6639,7 +6639,7 @@ using an_ifc_decl_enumeration =
   | access      | AccessSort              | 0.33    | 1    |
   | __padding__ | uint8_t[2]              |         | 2    |
   |-------------|-------------------------|---------|------|
-  | home_scope  | DeclIndex               | 0.33    | RF   |
+  | home_scope  | DeclIndex               | 0.33    | TF   |
   |-------------|-------------------------|---------|------|
 */
 enum an_ifc_decl_enumerator_part : uint8_t {};
@@ -6765,7 +6765,7 @@ using an_ifc_decl_explicit_specialization =
   | access      | AccessSort                  | 0.33    | 1    |
   | properties  | ReachablePropertiesBitfield | 0.33    | 1    |
   |-------------|-----------------------------|---------|------|
-  | home_scope  | DeclIndex                   | 0.41    | RF   |
+  | home_scope  | DeclIndex                   | 0.41    | TF   |
   |-------------|-----------------------------|---------|------|
 */
 enum an_ifc_decl_field_part : uint8_t {};
@@ -6831,7 +6831,7 @@ using an_ifc_decl_friend = an_ifc_Byte_buffer<an_ifc_decl_friend_storage>;
   | properties  | ReachablePropertiesBitfield | 0.33    | 1    |
   | __padding__ | uint8_t[3]                  |         | 3    |
   |-------------|-----------------------------|---------|------|
-  | home_scope  | DeclIndex                   | 0.41    | RF   |
+  | home_scope  | DeclIndex                   | 0.41    | TF   |
   |-------------|-----------------------------|---------|------|
 */
 enum an_ifc_decl_function_part : uint8_t {};
@@ -6876,7 +6876,7 @@ using an_ifc_decl_function = an_ifc_Byte_buffer<an_ifc_decl_function_storage>;
   | access     | AccessSort              | 0.33    | 1    |
   | base_ctor  | DeclIndex               | 0.41    | 4    |
   |------------|-------------------------|---------|------|
-  | home_scope | DeclIndex               | 0.41    | RF   |
+  | home_scope | DeclIndex               | 0.41    | TF   |
   |------------|-------------------------|---------|------|
 */
 enum an_ifc_decl_inherited_constructor_part : uint8_t {};
@@ -6921,7 +6921,7 @@ using an_ifc_decl_inherited_constructor =
   | access      | AccessSort              | 0.33    | 1    |
   | __padding__ | uint8_t[2]              |         | 2    |
   |-------------|-------------------------|---------|------|
-  | home_scope  | DeclIndex               | 0.41    | RF   |
+  | home_scope  | DeclIndex               | 0.41    | TF   |
   |-------------|-------------------------|---------|------|
 */
 enum an_ifc_decl_intrinsic_part : uint8_t {};
@@ -6969,7 +6969,7 @@ using an_ifc_decl_intrinsic =
   | properties  | ReachablePropertiesBitfield | 0.33    | 1    |
   | __padding__ | uint8_t[3]                  |         | 3    |
   |-------------|-----------------------------|---------|------|
-  | home_scope  | DeclIndex                   | 0.41    | RF   |
+  | home_scope  | DeclIndex                   | 0.41    | TF   |
   |-------------|-----------------------------|---------|------|
 */
 enum an_ifc_decl_method_part : uint8_t {};
@@ -7053,8 +7053,8 @@ using an_ifc_decl_parameter =
   | properties  | ReachablePropertiesBitfield | 0.33    | 1    |
   | __padding__ | uint8_t[1]                  |         | 1    |
   |-------------|-----------------------------|---------|------|
-  | home_scope  | DeclIndex                   | ANY     | RF   |
-  | name        | NameIndex                   | ANY     | RF   |
+  | home_scope  | DeclIndex                   | ANY     | TF   |
+  | name        | NameIndex                   | ANY     | TF   |
   |-------------|-----------------------------|---------|------|
 
   |------------------------------------------------------------|
@@ -7073,8 +7073,8 @@ using an_ifc_decl_parameter =
   | properties  | ReachablePropertiesBitfield | 0.33    | 1    |
   | __padding__ | uint8_t[1]                  |         | 1    |
   |-------------|-----------------------------|---------|------|
-  | home_scope  | DeclIndex                   | ANY     | RF   |
-  | name        | NameIndex                   | ANY     | RF   |
+  | home_scope  | DeclIndex                   | ANY     | TF   |
+  | name        | NameIndex                   | ANY     | TF   |
   |-------------|-----------------------------|---------|------|
 */
 enum an_ifc_decl_partial_specialization_part : uint8_t {};
@@ -7131,7 +7131,7 @@ using an_ifc_decl_property = an_ifc_Byte_buffer<an_ifc_decl_property_storage>;
   | unit        | ModuleReference  | 0.33    | 8    |
   | local_index | DeclForeignIndex | 0.33    | 4    |
   |-------------|------------------|---------|------|
-  | index       | DeclIndex        | ANY     | RF   |
+  | index       | DeclIndex        | ANY     | TF   |
   |-------------|------------------|---------|------|
 */
 enum an_ifc_decl_reference_part : uint8_t {};
@@ -7185,7 +7185,7 @@ using an_ifc_decl_reference =
   | properties  | ReachablePropertiesBitfield | 0.33    | 1    |
   | __padding__ | uint8_t[2]                  |         | 2    |
   |-------------|-----------------------------|---------|------|
-  | home_scope  | DeclIndex                   | 0.41    | RF   |
+  | home_scope  | DeclIndex                   | 0.41    | TF   |
   |-------------|-----------------------------|---------|------|
 */
 enum an_ifc_decl_scope_part : uint8_t {};
@@ -7209,9 +7209,9 @@ using an_ifc_decl_scope = an_ifc_Byte_buffer<an_ifc_decl_scope_storage>;
   | sort        | SpecializationSort | 0.33    | 1    |
   | __padding__ | uint8_t[3]         |         | 3    |
   |-------------|--------------------|---------|------|
-  | home_scope  | DeclIndex          | ANY     | RF   |
-  | locus       | SourceLocation     | ANY     | RF   |
-  | name        | NameIndex          | ANY     | RF   |
+  | home_scope  | DeclIndex          | ANY     | TF   |
+  | locus       | SourceLocation     | ANY     | TF   |
+  | name        | NameIndex          | ANY     | TF   |
   |-------------|--------------------|---------|------|
 */
 enum an_ifc_decl_specialization_part : uint8_t {};
@@ -7243,7 +7243,7 @@ using an_ifc_decl_specialization =
   | properties  | ReachablePropertiesBitfield | 0.33    | 1    |
   | __padding__ | uint8_t[1]                  |         | 1    |
   |-------------|-----------------------------|---------|------|
-  | name        | NameIndex                   | ANY     | RF   |
+  | name        | NameIndex                   | ANY     | TF   |
   |-------------|-----------------------------|---------|------|
 
   |------------------------------------------------------------|
@@ -7262,8 +7262,8 @@ using an_ifc_decl_specialization =
   | properties  | ReachablePropertiesBitfield | 0.33    | 1    |
   | __padding__ | uint8_t[1]                  |         | 1    |
   |-------------|-----------------------------|---------|------|
-  | home_scope  | DeclIndex                   | 0.41    | RF   |
-  | name        | NameIndex                   | ANY     | RF   |
+  | home_scope  | DeclIndex                   | 0.41    | TF   |
+  | name        | NameIndex                   | ANY     | TF   |
   |-------------|-----------------------------|---------|------|
 */
 enum an_ifc_decl_template_part : uint8_t {};
@@ -7363,7 +7363,7 @@ using an_ifc_decl_tuple = an_ifc_Byte_buffer<an_ifc_decl_tuple_storage>;
   | hidden      | bool                    | 0.33    | 1    |
   | __padding__ | uint8_t[1]              |         | 1    |
   |-------------|-------------------------|---------|------|
-  | home_scope  | DeclIndex               | 0.41    | RF   |
+  | home_scope  | DeclIndex               | 0.41    | TF   |
   |-------------|-------------------------|---------|------|
 */
 enum an_ifc_decl_using_declaration_part : uint8_t {};
@@ -7414,7 +7414,7 @@ using an_ifc_decl_using_declaration =
   | access      | AccessSort                  | 0.33    | 1    |
   | properties  | ReachablePropertiesBitfield | 0.33    | 1    |
   |-------------|-----------------------------|---------|------|
-  | home_scope  | DeclIndex                   | 0.41    | RF   |
+  | home_scope  | DeclIndex                   | 0.41    | TF   |
   |-------------|-----------------------------|---------|------|
 */
 enum an_ifc_decl_variable_part : uint8_t {};
@@ -9715,7 +9715,7 @@ using an_ifc_source_sentence =
   | sort        | WordSort       | 0.33    | 1    |
   | __padding__ | uint8_t[1]     |         | 1    |
   |-------------|----------------|---------|------|
-  | category    | WordCategory   | 0.33    | RF   |
+  | category    | WordCategory   | 0.33    | TF   |
   |-------------|----------------|---------|------|
 */
 enum an_ifc_source_word_part : uint8_t {};
@@ -12840,7 +12840,7 @@ using an_ifc_syntax_while_statement =
   | decl         | DeclIndex        | 0.33    | 4    |
   | trait        | SyntaxIndex      | 0.33    | 4    |
   |--------------|------------------|---------|------|
-  | encoded_decl | EncodedDeclIndex | 0.33    | RF   |
+  | encoded_decl | EncodedDeclIndex | 0.33    | TF   |
   |--------------|------------------|---------|------|
 
   |--------------------------------------------------|
@@ -12851,7 +12851,7 @@ using an_ifc_syntax_while_statement =
   | decl         | DeclIndex        | 0.41    | 4    |
   | trait        | SyntaxIndex      | 0.33    | 4    |
   |--------------|------------------|---------|------|
-  | encoded_decl | EncodedDeclIndex | 0.33    | RF   |
+  | encoded_decl | EncodedDeclIndex | 0.33    | TF   |
   |--------------|------------------|---------|------|
 */
 enum an_ifc_trait_alias_template_part : uint8_t {};
@@ -12876,7 +12876,7 @@ using an_ifc_trait_alias_template =
   | decl         | DeclIndex        | 0.33    | 4    |
   | trait        | AttrIndex        | 0.33    | 4    |
   |--------------|------------------|---------|------|
-  | encoded_decl | EncodedDeclIndex | 0.33    | RF   |
+  | encoded_decl | EncodedDeclIndex | 0.33    | TF   |
   |--------------|------------------|---------|------|
 
   |--------------------------------------------------|
@@ -12887,7 +12887,7 @@ using an_ifc_trait_alias_template =
   | decl         | DeclIndex        | 0.41    | 4    |
   | trait        | AttrIndex        | 0.33    | 4    |
   |--------------|------------------|---------|------|
-  | encoded_decl | EncodedDeclIndex | 0.33    | RF   |
+  | encoded_decl | EncodedDeclIndex | 0.33    | TF   |
   |--------------|------------------|---------|------|
 */
 enum an_ifc_trait_attribute_part : uint8_t {};
@@ -12910,7 +12910,7 @@ using an_ifc_trait_attribute =
   | decl         | DeclIndex        | 0.33    | 4    |
   | trait        | DeclIndex        | 0.33    | 4    |
   |--------------|------------------|---------|------|
-  | encoded_decl | EncodedDeclIndex | 0.33    | RF   |
+  | encoded_decl | EncodedDeclIndex | 0.33    | TF   |
   |--------------|------------------|---------|------|
 
   |--------------------------------------------------|
@@ -12921,7 +12921,7 @@ using an_ifc_trait_attribute =
   | decl         | DeclIndex        | 0.41    | 4    |
   | trait        | DeclIndex        | 0.41    | 4    |
   |--------------|------------------|---------|------|
-  | encoded_decl | EncodedDeclIndex | 0.33    | RF   |
+  | encoded_decl | EncodedDeclIndex | 0.33    | TF   |
   |--------------|------------------|---------|------|
 */
 enum an_ifc_trait_deduction_guide_part : uint8_t {};
@@ -12947,7 +12947,7 @@ using an_ifc_trait_deduction_guide =
   | decl         | DeclIndex        | 0.33    | 4    |
   | trait        | TextOffset       | 0.33    | 4    |
   |--------------|------------------|---------|------|
-  | encoded_decl | EncodedDeclIndex | 0.33    | RF   |
+  | encoded_decl | EncodedDeclIndex | 0.33    | TF   |
   |--------------|------------------|---------|------|
 
   |--------------------------------------------------|
@@ -12958,7 +12958,7 @@ using an_ifc_trait_deduction_guide =
   | decl         | DeclIndex        | 0.41    | 4    |
   | trait        | TextOffset       | 0.33    | 4    |
   |--------------|------------------|---------|------|
-  | encoded_decl | EncodedDeclIndex | 0.33    | RF   |
+  | encoded_decl | EncodedDeclIndex | 0.33    | TF   |
   |--------------|------------------|---------|------|
 */
 enum an_ifc_trait_deprecated_part : uint8_t {};
@@ -12981,7 +12981,7 @@ using an_ifc_trait_deprecated =
   | decl         | DeclIndex        | 0.33    | 4    |
   | trait        | Sequence         | 0.33    | 8    |
   |--------------|------------------|---------|------|
-  | encoded_decl | EncodedDeclIndex | 0.33    | RF   |
+  | encoded_decl | EncodedDeclIndex | 0.33    | TF   |
   |--------------|------------------|---------|------|
 
   |--------------------------------------------------|
@@ -12992,7 +12992,7 @@ using an_ifc_trait_deprecated =
   | decl         | DeclIndex        | 0.41    | 4    |
   | trait        | Sequence         | 0.33    | 8    |
   |--------------|------------------|---------|------|
-  | encoded_decl | EncodedDeclIndex | 0.33    | RF   |
+  | encoded_decl | EncodedDeclIndex | 0.33    | TF   |
   |--------------|------------------|---------|------|
 */
 enum an_ifc_trait_friend_part : uint8_t {};
@@ -13016,7 +13016,7 @@ using an_ifc_trait_friend = an_ifc_Byte_buffer<an_ifc_trait_friend_storage>;
   | initializers | ExprIndex        | 0.33    | 4    |
   | body         | StmtIndex        | 0.33    | 4    |
   |--------------|------------------|---------|------|
-  | encoded_decl | EncodedDeclIndex | 0.33    | RF   |
+  | encoded_decl | EncodedDeclIndex | 0.33    | TF   |
   |--------------|------------------|---------|------|
 
   |--------------------------------------------------|
@@ -13029,7 +13029,7 @@ using an_ifc_trait_friend = an_ifc_Byte_buffer<an_ifc_trait_friend_storage>;
   | initializers | ExprIndex        | 0.33    | 4    |
   | body         | StmtIndex        | 0.33    | 4    |
   |--------------|------------------|---------|------|
-  | encoded_decl | EncodedDeclIndex | 0.33    | RF   |
+  | encoded_decl | EncodedDeclIndex | 0.33    | TF   |
   |--------------|------------------|---------|------|
 */
 enum an_ifc_trait_function_definition_part : uint8_t {};
@@ -13055,7 +13055,7 @@ using an_ifc_trait_function_definition =
   | decl         | DeclIndex        | 0.33    | 4    |
   | trait        | AttrIndex        | 0.33    | 4    |
   |--------------|------------------|---------|------|
-  | encoded_decl | EncodedDeclIndex | 0.33    | RF   |
+  | encoded_decl | EncodedDeclIndex | 0.33    | TF   |
   |--------------|------------------|---------|------|
 
   |--------------------------------------------------|
@@ -13066,7 +13066,7 @@ using an_ifc_trait_function_definition =
   | decl         | DeclIndex        | 0.41    | 4    |
   | trait        | AttrIndex        | 0.33    | 4    |
   |--------------|------------------|---------|------|
-  | encoded_decl | EncodedDeclIndex | 0.33    | RF   |
+  | encoded_decl | EncodedDeclIndex | 0.33    | TF   |
   |--------------|------------------|---------|------|
 */
 enum an_ifc_trait_msvc_decl_attrs_part : uint8_t {};
@@ -13092,7 +13092,7 @@ using an_ifc_trait_msvc_decl_attrs =
   | decl         | DeclIndex        | 0.33    | 4    |
   | params       | ChartIndex       | 0.33    | 4    |
   |--------------|------------------|---------|------|
-  | encoded_decl | EncodedDeclIndex | 0.33    | RF   |
+  | encoded_decl | EncodedDeclIndex | 0.33    | TF   |
   |--------------|------------------|---------|------|
 
   |--------------------------------------------------|
@@ -13103,7 +13103,7 @@ using an_ifc_trait_msvc_decl_attrs =
   | decl         | DeclIndex        | 0.41    | 4    |
   | params       | ChartIndex       | 0.33    | 4    |
   |--------------|------------------|---------|------|
-  | encoded_decl | EncodedDeclIndex | 0.33    | RF   |
+  | encoded_decl | EncodedDeclIndex | 0.33    | TF   |
   |--------------|------------------|---------|------|
 */
 enum an_ifc_trait_msvc_func_params_part : uint8_t {};
@@ -13130,7 +13130,7 @@ using an_ifc_trait_msvc_func_params =
   | uuid         | Uuid             | 0.33    | 2    |
   | __padding__  | uint8_t[2]       |         | 2    |
   |--------------|------------------|---------|------|
-  | encoded_decl | EncodedDeclIndex | 0.33    | RF   |
+  | encoded_decl | EncodedDeclIndex | 0.33    | TF   |
   |--------------|------------------|---------|------|
 
   |--------------------------------------------------|
@@ -13142,7 +13142,7 @@ using an_ifc_trait_msvc_func_params =
   | uuid         | Uuid             | 0.33    | 2    |
   | __padding__  | uint8_t[2]       |         | 2    |
   |--------------|------------------|---------|------|
-  | encoded_decl | EncodedDeclIndex | 0.33    | RF   |
+  | encoded_decl | EncodedDeclIndex | 0.33    | TF   |
   |--------------|------------------|---------|------|
 */
 enum an_ifc_trait_msvc_uuid_part : uint8_t {};
@@ -13165,7 +13165,7 @@ using an_ifc_trait_msvc_uuid =
   | decl         | DeclIndex          | 0.33    | 4    |
   | trait        | MsvcTraitsBitfield | 0.33    | 4    |
   |--------------|--------------------|---------|------|
-  | encoded_decl | EncodedDeclIndex   | 0.33    | RF   |
+  | encoded_decl | EncodedDeclIndex   | 0.33    | TF   |
   |--------------|--------------------|---------|------|
 
   |----------------------------------------------------|
@@ -13176,7 +13176,7 @@ using an_ifc_trait_msvc_uuid =
   | decl         | DeclIndex          | 0.41    | 4    |
   | trait        | MsvcTraitsBitfield | 0.33    | 4    |
   |--------------|--------------------|---------|------|
-  | encoded_decl | EncodedDeclIndex   | 0.33    | RF   |
+  | encoded_decl | EncodedDeclIndex   | 0.33    | TF   |
   |--------------|--------------------|---------|------|
 */
 enum an_ifc_trait_msvc_vendor_trait_part : uint8_t {};
@@ -13202,7 +13202,7 @@ using an_ifc_trait_msvc_vendor_trait =
   | decl         | DeclIndex        | 0.33    | 4    |
   | trait        | SyntaxIndex      | 0.33    | 4    |
   |--------------|------------------|---------|------|
-  | encoded_decl | EncodedDeclIndex | 0.33    | RF   |
+  | encoded_decl | EncodedDeclIndex | 0.33    | TF   |
   |--------------|------------------|---------|------|
 
   |--------------------------------------------------|
@@ -13213,7 +13213,7 @@ using an_ifc_trait_msvc_vendor_trait =
   | decl         | DeclIndex        | 0.41    | 4    |
   | trait        | SyntaxIndex      | 0.33    | 4    |
   |--------------|------------------|---------|------|
-  | encoded_decl | EncodedDeclIndex | 0.33    | RF   |
+  | encoded_decl | EncodedDeclIndex | 0.33    | TF   |
   |--------------|------------------|---------|------|
 */
 enum an_ifc_trait_requires_part : uint8_t {};
@@ -13236,7 +13236,7 @@ using an_ifc_trait_requires =
   | decl         | DeclIndex        | 0.33    | 4    |
   | trait        | Sequence         | 0.33    | 8    |
   |--------------|------------------|---------|------|
-  | encoded_decl | EncodedDeclIndex | 0.33    | RF   |
+  | encoded_decl | EncodedDeclIndex | 0.33    | TF   |
   |--------------|------------------|---------|------|
 
   |--------------------------------------------------|
@@ -13247,7 +13247,7 @@ using an_ifc_trait_requires =
   | decl         | DeclIndex        | 0.41    | 4    |
   | trait        | Sequence         | 0.33    | 8    |
   |--------------|------------------|---------|------|
-  | encoded_decl | EncodedDeclIndex | 0.33    | RF   |
+  | encoded_decl | EncodedDeclIndex | 0.33    | TF   |
   |--------------|------------------|---------|------|
 */
 enum an_ifc_trait_specialization_part : uint8_t {};
