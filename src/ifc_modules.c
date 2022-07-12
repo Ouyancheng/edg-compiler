@@ -2105,7 +2105,10 @@ Return NULL if none if found.
     /* We found the symbol above. */
   } else if (decl_idx.sort == ifc_ds_decl_template) {
     /* Non-member templates can be loaded from IFC. */
-    if (!scope_is(get_home_scope(decl_idx), sck_class_struct_union)) {
+    Opt<an_ifc_decl_template>  opt_template;
+    construct_node(&opt_template, decl_idx);
+    if (opt_template.has_value() &&
+        !scope_is(get_home_scope(*opt_template), sck_class_struct_union)) {
       load_ifc_entry = TRUE;
     }  /* if */
   } else if (decl_idx.sort != ifc_ds_decl_method &&
