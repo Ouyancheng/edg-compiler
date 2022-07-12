@@ -1508,19 +1508,8485 @@ extern an_ifc_Node_type* get(an_ifc_module    *mod,
 template<typename an_ifc_Node_type>
 constexpr an_ifc_partition_kind get_ifc_partition_kind() = delete;
 
+
+/*
+The IFC access field has multiple return types.  This type is a metadata type
+that allows resolution of those return types based on the respective node type.
+*/
+template<typename an_ifc_Node_type>
+struct an_ifc_access_metadata;
+
+
+/*
+The IFC access field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclAlias nodes.
+*/
+template<>
+struct an_ifc_access_metadata<an_ifc_decl_alias> {
+  using return_type = an_ifc_access_sort;
+};  /* an_ifc_access_metadata */
+
+
+/*
+The IFC access field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclBitfield nodes.
+*/
+template<>
+struct an_ifc_access_metadata<an_ifc_decl_bitfield> {
+  using return_type = an_ifc_access_sort;
+};  /* an_ifc_access_metadata */
+
+
+/*
+The IFC access field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclConcept nodes.
+*/
+template<>
+struct an_ifc_access_metadata<an_ifc_decl_concept> {
+  using return_type = an_ifc_access_sort;
+};  /* an_ifc_access_metadata */
+
+
+/*
+The IFC access field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclConstructor nodes.
+*/
+template<>
+struct an_ifc_access_metadata<an_ifc_decl_constructor> {
+  using return_type = an_ifc_access_sort;
+};  /* an_ifc_access_metadata */
+
+
+/*
+The IFC access field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclDestructor nodes.
+*/
+template<>
+struct an_ifc_access_metadata<an_ifc_decl_destructor> {
+  using return_type = an_ifc_access_sort;
+};  /* an_ifc_access_metadata */
+
+
+/*
+The IFC access field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclEnumeration nodes.
+*/
+template<>
+struct an_ifc_access_metadata<an_ifc_decl_enumeration> {
+  using return_type = an_ifc_access_sort;
+};  /* an_ifc_access_metadata */
+
+
+/*
+The IFC access field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclEnumerator nodes.
+*/
+template<>
+struct an_ifc_access_metadata<an_ifc_decl_enumerator> {
+  using return_type = an_ifc_access_sort;
+};  /* an_ifc_access_metadata */
+
+
+/*
+The IFC access field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclField nodes.
+*/
+template<>
+struct an_ifc_access_metadata<an_ifc_decl_field> {
+  using return_type = an_ifc_access_sort;
+};  /* an_ifc_access_metadata */
+
+
+/*
+The IFC access field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclFunction nodes.
+*/
+template<>
+struct an_ifc_access_metadata<an_ifc_decl_function> {
+  using return_type = an_ifc_access_sort;
+};  /* an_ifc_access_metadata */
+
+
+/*
+The IFC access field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclInheritedConstructor nodes.
+*/
+template<>
+struct an_ifc_access_metadata<an_ifc_decl_inherited_constructor> {
+  using return_type = an_ifc_access_sort;
+};  /* an_ifc_access_metadata */
+
+
+/*
+The IFC access field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclIntrinsic nodes.
+*/
+template<>
+struct an_ifc_access_metadata<an_ifc_decl_intrinsic> {
+  using return_type = an_ifc_access_sort;
+};  /* an_ifc_access_metadata */
+
+
+/*
+The IFC access field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclMethod nodes.
+*/
+template<>
+struct an_ifc_access_metadata<an_ifc_decl_method> {
+  using return_type = an_ifc_access_sort;
+};  /* an_ifc_access_metadata */
+
+
+/*
+The IFC access field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclPartialSpecialization nodes.
+*/
+template<>
+struct an_ifc_access_metadata<an_ifc_decl_partial_specialization> {
+  using return_type = an_ifc_access_sort;
+};  /* an_ifc_access_metadata */
+
+
+/*
+The IFC access field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclScope nodes.
+*/
+template<>
+struct an_ifc_access_metadata<an_ifc_decl_scope> {
+  using return_type = an_ifc_access_sort;
+};  /* an_ifc_access_metadata */
+
+
+/*
+The IFC access field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclTemplate nodes.
+*/
+template<>
+struct an_ifc_access_metadata<an_ifc_decl_template> {
+  using return_type = an_ifc_access_sort;
+};  /* an_ifc_access_metadata */
+
+
+/*
+The IFC access field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclUsingDeclaration nodes.
+*/
+template<>
+struct an_ifc_access_metadata<an_ifc_decl_using_declaration> {
+  using return_type = an_ifc_access_sort;
+};  /* an_ifc_access_metadata */
+
+
+/*
+The IFC access field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclVariable nodes.
+*/
+template<>
+struct an_ifc_access_metadata<an_ifc_decl_variable> {
+  using return_type = an_ifc_access_sort;
+};  /* an_ifc_access_metadata */
+
+
+/*
+The IFC access field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxAccessSpecifier nodes.
+*/
+template<>
+struct an_ifc_access_metadata<an_ifc_syntax_access_specifier> {
+  using return_type = an_ifc_keyword_syntax;
+};  /* an_ifc_access_metadata */
+
+
+/*
+The IFC access field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxBaseSpecifier nodes.
+*/
+template<>
+struct an_ifc_access_metadata<an_ifc_syntax_base_specifier> {
+  using return_type = an_ifc_keyword_syntax;
+};  /* an_ifc_access_metadata */
+
+
+/*
+The IFC access field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for TypeBase nodes.
+*/
+template<>
+struct an_ifc_access_metadata<an_ifc_type_base> {
+  using return_type = an_ifc_access_sort;
+};  /* an_ifc_access_metadata */
+
+
+/*
+The IFC aliasee field has multiple return types.  This type is a metadata type
+that allows resolution of those return types based on the respective node type.
+*/
+template<typename an_ifc_Node_type>
+struct an_ifc_aliasee_metadata;
+
+
+/*
+The IFC aliasee field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclAlias nodes.
+*/
+template<>
+struct an_ifc_aliasee_metadata<an_ifc_decl_alias> {
+  using return_type = an_ifc_type_index;
+};  /* an_ifc_aliasee_metadata */
+
+
+/*
+The IFC aliasee field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxAliasDeclaration nodes.
+*/
+template<>
+struct an_ifc_aliasee_metadata<an_ifc_syntax_alias_declaration> {
+  using return_type = an_ifc_syntax_index;
+};  /* an_ifc_aliasee_metadata */
+
+
+/*
+The IFC alternative field has multiple return types.  This type is a metadata
+type that allows resolution of those return types based on the respective node
+type.
+*/
+template<typename an_ifc_Node_type>
+struct an_ifc_alternative_metadata;
+
+
+/*
+The IFC alternative field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for StmtIf nodes.
+*/
+template<>
+struct an_ifc_alternative_metadata<an_ifc_stmt_if> {
+  using return_type = an_ifc_stmt_index;
+};  /* an_ifc_alternative_metadata */
+
+
+/*
+The IFC alternative field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for SyntaxIfStatement nodes.
+*/
+template<>
+struct an_ifc_alternative_metadata<an_ifc_syntax_if_statement> {
+  using return_type = an_ifc_syntax_index;
+};  /* an_ifc_alternative_metadata */
+
+
+/*
+The IFC argument field has multiple return types.  This type is a metadata type
+that allows resolution of those return types based on the respective node type.
+*/
+template<typename an_ifc_Node_type>
+struct an_ifc_argument_metadata;
+
+
+/*
+The IFC argument field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprMonad nodes.
+*/
+template<>
+struct an_ifc_argument_metadata<an_ifc_expr_monad> {
+  using return_type = an_ifc_expr_index;
+};  /* an_ifc_argument_metadata */
+
+
+/*
+The IFC argument field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxNonTypeTemplateArgument
+nodes.
+*/
+template<>
+struct an_ifc_argument_metadata<an_ifc_syntax_non_type_template_argument> {
+  using return_type = an_ifc_expr_index;
+};  /* an_ifc_argument_metadata */
+
+
+/*
+The IFC argument field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxTemplateTemplateParameter
+nodes.
+*/
+template<>
+struct an_ifc_argument_metadata<an_ifc_syntax_template_template_parameter> {
+  using return_type = an_ifc_syntax_index;
+};  /* an_ifc_argument_metadata */
+
+
+/*
+The IFC argument field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxTypeTemplateArgument nodes.
+*/
+template<>
+struct an_ifc_argument_metadata<an_ifc_syntax_type_template_argument> {
+  using return_type = an_ifc_syntax_index;
+};  /* an_ifc_argument_metadata */
+
+
+/*
+The IFC argument field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxTypeTemplateParameter
+nodes.
+*/
+template<>
+struct an_ifc_argument_metadata<an_ifc_syntax_type_template_parameter> {
+  using return_type = an_ifc_syntax_index;
+};  /* an_ifc_argument_metadata */
+
+
+/*
+The IFC arguments field has multiple return types.  This type is a metadata
+type that allows resolution of those return types based on the respective node
+type.
+*/
+template<typename an_ifc_Node_type>
+struct an_ifc_arguments_metadata;
+
+
+/*
+The IFC arguments field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for AttrCalled nodes.
+*/
+template<>
+struct an_ifc_arguments_metadata<an_ifc_attr_called> {
+  using return_type = an_ifc_attr_index;
+};  /* an_ifc_arguments_metadata */
+
+
+/*
+The IFC arguments field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for ExprCall nodes.
+*/
+template<>
+struct an_ifc_arguments_metadata<an_ifc_expr_call> {
+  using return_type = an_ifc_expr_index;
+};  /* an_ifc_arguments_metadata */
+
+
+/*
+The IFC arguments field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for ExprPackedTemplateArguments
+nodes.
+*/
+template<>
+struct an_ifc_arguments_metadata<an_ifc_expr_packed_template_arguments> {
+  using return_type = an_ifc_expr_index;
+};  /* an_ifc_arguments_metadata */
+
+
+/*
+The IFC arguments field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for ExprTemplateId nodes.
+*/
+template<>
+struct an_ifc_arguments_metadata<an_ifc_expr_template_id> {
+  using return_type = an_ifc_expr_index;
+};  /* an_ifc_arguments_metadata */
+
+
+/*
+The IFC arguments field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for ExprTemplateReference nodes.
+*/
+template<>
+struct an_ifc_arguments_metadata<an_ifc_expr_template_reference> {
+  using return_type = an_ifc_expr_index;
+};  /* an_ifc_arguments_metadata */
+
+
+/*
+The IFC arguments field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for ExprTypeTraitIntrinsic
+nodes.
+*/
+template<>
+struct an_ifc_arguments_metadata<an_ifc_expr_type_trait_intrinsic> {
+  using return_type = an_ifc_type_index;
+};  /* an_ifc_arguments_metadata */
+
+
+/*
+The IFC arguments field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for FormSpec nodes.
+*/
+template<>
+struct an_ifc_arguments_metadata<an_ifc_form_spec> {
+  using return_type = an_ifc_expr_index;
+};  /* an_ifc_arguments_metadata */
+
+
+/*
+The IFC arguments field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for NameSpecialization nodes.
+*/
+template<>
+struct an_ifc_arguments_metadata<an_ifc_name_specialization> {
+  using return_type = an_ifc_expr_index;
+};  /* an_ifc_arguments_metadata */
+
+
+/*
+The IFC arguments field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for SyntaxTemplateArgumentList
+nodes.
+*/
+template<>
+struct an_ifc_arguments_metadata<an_ifc_syntax_template_argument_list> {
+  using return_type = an_ifc_syntax_index;
+};  /* an_ifc_arguments_metadata */
+
+
+/*
+The IFC arguments field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for SyntaxTemplateId nodes.
+*/
+template<>
+struct an_ifc_arguments_metadata<an_ifc_syntax_template_id> {
+  using return_type = an_ifc_syntax_index;
+};  /* an_ifc_arguments_metadata */
+
+
+/*
+The IFC arguments field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for SyntaxTypeTraitIntrinsic
+nodes.
+*/
+template<>
+struct an_ifc_arguments_metadata<an_ifc_syntax_type_trait_intrinsic> {
+  using return_type = an_ifc_syntax_index;
+};  /* an_ifc_arguments_metadata */
+
+
+/*
+The IFC assoc field has multiple return types.  This type is a metadata type
+that allows resolution of those return types based on the respective node type.
+*/
+template<typename an_ifc_Node_type>
+struct an_ifc_assoc_metadata;
+
+
+/*
+The IFC assoc field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprDyad nodes.
+*/
+template<>
+struct an_ifc_assoc_metadata<an_ifc_expr_dyad> {
+  using return_type = an_ifc_dyadic_operator_sort;
+};  /* an_ifc_assoc_metadata */
+
+
+/*
+The IFC assoc field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprMonad nodes.
+*/
+template<>
+struct an_ifc_assoc_metadata<an_ifc_expr_monad> {
+  using return_type = an_ifc_monadic_operator_sort;
+};  /* an_ifc_assoc_metadata */
+
+
+/*
+The IFC assoc field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprTriad nodes.
+*/
+template<>
+struct an_ifc_assoc_metadata<an_ifc_expr_triad> {
+  using return_type = an_ifc_triadic_operator_sort;
+};  /* an_ifc_assoc_metadata */
+
+
+/*
+The IFC attributes field has multiple return types.  This type is a metadata
+type that allows resolution of those return types based on the respective node
+type.
+*/
+template<typename an_ifc_Node_type>
+struct an_ifc_attributes_metadata;
+
+
+/*
+The IFC attributes field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for ParameterizedEntity nodes.
+*/
+template<>
+struct an_ifc_attributes_metadata<an_ifc_parameterized_entity> {
+  using return_type = an_ifc_sentence_index;
+};  /* an_ifc_attributes_metadata */
+
+
+/*
+The IFC attributes field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for SyntaxAttributeSpecifier
+nodes.
+*/
+template<>
+struct an_ifc_attributes_metadata<an_ifc_syntax_attribute_specifier> {
+  using return_type = an_ifc_syntax_index;
+};  /* an_ifc_attributes_metadata */
+
+
+/*
+The IFC attributes field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for SyntaxAttributeSpecifierSeq
+nodes.
+*/
+template<>
+struct an_ifc_attributes_metadata<an_ifc_syntax_attribute_specifier_seq> {
+  using return_type = an_ifc_syntax_index;
+};  /* an_ifc_attributes_metadata */
+
+
+/*
+The IFC attributes field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for SyntaxAttributedDeclaration
+nodes.
+*/
+template<>
+struct an_ifc_attributes_metadata<an_ifc_syntax_attributed_declaration> {
+  using return_type = an_ifc_syntax_index;
+};  /* an_ifc_attributes_metadata */
+
+
+/*
+The IFC attributes field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for SyntaxAttributedStatement
+nodes.
+*/
+template<>
+struct an_ifc_attributes_metadata<an_ifc_syntax_attributed_statement> {
+  using return_type = an_ifc_syntax_index;
+};  /* an_ifc_attributes_metadata */
+
+
+/*
+The IFC base field has multiple return types.  This type is a metadata type
+that allows resolution of those return types based on the respective node type.
+*/
+template<typename an_ifc_Node_type>
+struct an_ifc_base_metadata;
+
+
+/*
+The IFC base field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclEnumeration nodes.
+*/
+template<>
+struct an_ifc_base_metadata<an_ifc_decl_enumeration> {
+  using return_type = an_ifc_type_index;
+};  /* an_ifc_base_metadata */
+
+
+/*
+The IFC base field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclScope nodes.
+*/
+template<>
+struct an_ifc_base_metadata<an_ifc_decl_scope> {
+  using return_type = an_ifc_type_index;
+};  /* an_ifc_base_metadata */
+
+
+/*
+The IFC base field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprMemberInitializer nodes.
+*/
+template<>
+struct an_ifc_base_metadata<an_ifc_expr_member_initializer> {
+  using return_type = an_ifc_type_index;
+};  /* an_ifc_base_metadata */
+
+
+/*
+The IFC base field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxEnumSpecifier nodes.
+*/
+template<>
+struct an_ifc_base_metadata<an_ifc_syntax_enum_specifier> {
+  using return_type = an_ifc_syntax_index;
+};  /* an_ifc_base_metadata */
+
+
+/*
+The IFC body field has multiple return types.  This type is a metadata type
+that allows resolution of those return types based on the respective node type.
+*/
+template<typename an_ifc_Node_type>
+struct an_ifc_body_metadata;
+
+
+/*
+The IFC body field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclConcept nodes.
+*/
+template<>
+struct an_ifc_body_metadata<an_ifc_decl_concept> {
+  using return_type = an_ifc_sentence_index;
+};  /* an_ifc_body_metadata */
+
+
+/*
+The IFC body field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprLambda nodes.
+*/
+template<>
+struct an_ifc_body_metadata<an_ifc_expr_lambda> {
+  using return_type = an_ifc_syntax_index;
+};  /* an_ifc_body_metadata */
+
+
+/*
+The IFC body field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprRequires nodes.
+*/
+template<>
+struct an_ifc_body_metadata<an_ifc_expr_requires> {
+  using return_type = an_ifc_syntax_index;
+};  /* an_ifc_body_metadata */
+
+
+/*
+The IFC body field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for MacroFunctionLike nodes.
+*/
+template<>
+struct an_ifc_body_metadata<an_ifc_macro_function_like> {
+  using return_type = an_ifc_form_index;
+};  /* an_ifc_body_metadata */
+
+
+/*
+The IFC body field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for MacroObjectLike nodes.
+*/
+template<>
+struct an_ifc_body_metadata<an_ifc_macro_object_like> {
+  using return_type = an_ifc_form_index;
+};  /* an_ifc_body_metadata */
+
+
+/*
+The IFC body field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ParameterizedEntity nodes.
+*/
+template<>
+struct an_ifc_body_metadata<an_ifc_parameterized_entity> {
+  using return_type = an_ifc_sentence_index;
+};  /* an_ifc_body_metadata */
+
+
+/*
+The IFC body field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for StmtDoWhile nodes.
+*/
+template<>
+struct an_ifc_body_metadata<an_ifc_stmt_do_while> {
+  using return_type = an_ifc_stmt_index;
+};  /* an_ifc_body_metadata */
+
+
+/*
+The IFC body field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for StmtFor nodes.
+*/
+template<>
+struct an_ifc_body_metadata<an_ifc_stmt_for> {
+  using return_type = an_ifc_stmt_index;
+};  /* an_ifc_body_metadata */
+
+
+/*
+The IFC body field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for StmtSwitch nodes.
+*/
+template<>
+struct an_ifc_body_metadata<an_ifc_stmt_switch> {
+  using return_type = an_ifc_stmt_index;
+};  /* an_ifc_body_metadata */
+
+
+/*
+The IFC body field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for StmtWhile nodes.
+*/
+template<>
+struct an_ifc_body_metadata<an_ifc_stmt_while> {
+  using return_type = an_ifc_stmt_index;
+};  /* an_ifc_body_metadata */
+
+
+/*
+The IFC body field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxDoWhileStatement nodes.
+*/
+template<>
+struct an_ifc_body_metadata<an_ifc_syntax_do_while_statement> {
+  using return_type = an_ifc_syntax_index;
+};  /* an_ifc_body_metadata */
+
+
+/*
+The IFC body field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxForStatement nodes.
+*/
+template<>
+struct an_ifc_body_metadata<an_ifc_syntax_for_statement> {
+  using return_type = an_ifc_syntax_index;
+};  /* an_ifc_body_metadata */
+
+
+/*
+The IFC body field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxFunctionTryBlock nodes.
+*/
+template<>
+struct an_ifc_body_metadata<an_ifc_syntax_function_try_block> {
+  using return_type = an_ifc_syntax_index;
+};  /* an_ifc_body_metadata */
+
+
+/*
+The IFC body field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxHandler nodes.
+*/
+template<>
+struct an_ifc_body_metadata<an_ifc_syntax_handler> {
+  using return_type = an_ifc_syntax_index;
+};  /* an_ifc_body_metadata */
+
+
+/*
+The IFC body field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxRangeBasedForStatement
+nodes.
+*/
+template<>
+struct an_ifc_body_metadata<an_ifc_syntax_range_based_for_statement> {
+  using return_type = an_ifc_syntax_index;
+};  /* an_ifc_body_metadata */
+
+
+/*
+The IFC body field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxSEHExcept nodes.
+*/
+template<>
+struct an_ifc_body_metadata<an_ifc_syntax_seh_except> {
+  using return_type = an_ifc_syntax_index;
+};  /* an_ifc_body_metadata */
+
+
+/*
+The IFC body field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxSEHFinally nodes.
+*/
+template<>
+struct an_ifc_body_metadata<an_ifc_syntax_seh_finally> {
+  using return_type = an_ifc_syntax_index;
+};  /* an_ifc_body_metadata */
+
+
+/*
+The IFC body field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxSEHTry nodes.
+*/
+template<>
+struct an_ifc_body_metadata<an_ifc_syntax_seh_try> {
+  using return_type = an_ifc_syntax_index;
+};  /* an_ifc_body_metadata */
+
+
+/*
+The IFC body field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxSwitchStatement nodes.
+*/
+template<>
+struct an_ifc_body_metadata<an_ifc_syntax_switch_statement> {
+  using return_type = an_ifc_syntax_index;
+};  /* an_ifc_body_metadata */
+
+
+/*
+The IFC body field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxTryBlock nodes.
+*/
+template<>
+struct an_ifc_body_metadata<an_ifc_syntax_try_block> {
+  using return_type = an_ifc_syntax_index;
+};  /* an_ifc_body_metadata */
+
+
+/*
+The IFC body field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxWhileStatement nodes.
+*/
+template<>
+struct an_ifc_body_metadata<an_ifc_syntax_while_statement> {
+  using return_type = an_ifc_syntax_index;
+};  /* an_ifc_body_metadata */
+
+
+/*
+The IFC body field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for TraitFunctionDefinition nodes.
+*/
+template<>
+struct an_ifc_body_metadata<an_ifc_trait_function_definition> {
+  using return_type = an_ifc_stmt_index;
+};  /* an_ifc_body_metadata */
+
+
+/*
+The IFC condition field has multiple return types.  This type is a metadata
+type that allows resolution of those return types based on the respective node
+type.
+*/
+template<typename an_ifc_Node_type>
+struct an_ifc_condition_metadata;
+
+
+/*
+The IFC condition field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for StmtDoWhile nodes.
+*/
+template<>
+struct an_ifc_condition_metadata<an_ifc_stmt_do_while> {
+  using return_type = an_ifc_stmt_index;
+};  /* an_ifc_condition_metadata */
+
+
+/*
+The IFC condition field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for StmtFor nodes.
+*/
+template<>
+struct an_ifc_condition_metadata<an_ifc_stmt_for> {
+  using return_type = an_ifc_stmt_index;
+};  /* an_ifc_condition_metadata */
+
+
+/*
+The IFC condition field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for StmtIf nodes.
+*/
+template<>
+struct an_ifc_condition_metadata<an_ifc_stmt_if> {
+  using return_type = an_ifc_stmt_index;
+};  /* an_ifc_condition_metadata */
+
+
+/*
+The IFC condition field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for StmtSwitch nodes.
+*/
+template<>
+struct an_ifc_condition_metadata<an_ifc_stmt_switch> {
+  using return_type = an_ifc_expr_index;
+};  /* an_ifc_condition_metadata */
+
+
+/*
+The IFC condition field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for StmtWhile nodes.
+*/
+template<>
+struct an_ifc_condition_metadata<an_ifc_stmt_while> {
+  using return_type = an_ifc_stmt_index;
+};  /* an_ifc_condition_metadata */
+
+
+/*
+The IFC condition field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for SyntaxCompoundRequirement
+nodes.
+*/
+template<>
+struct an_ifc_condition_metadata<an_ifc_syntax_compound_requirement> {
+  using return_type = an_ifc_expr_index;
+};  /* an_ifc_condition_metadata */
+
+
+/*
+The IFC condition field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for SyntaxDoWhileStatement
+nodes.
+*/
+template<>
+struct an_ifc_condition_metadata<an_ifc_syntax_do_while_statement> {
+  using return_type = an_ifc_expr_index;
+};  /* an_ifc_condition_metadata */
+
+
+/*
+The IFC condition field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for SyntaxExplicitSpecifier
+nodes.
+*/
+template<>
+struct an_ifc_condition_metadata<an_ifc_syntax_explicit_specifier> {
+  using return_type = an_ifc_expr_index;
+};  /* an_ifc_condition_metadata */
+
+
+/*
+The IFC condition field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for SyntaxForStatement nodes.
+*/
+template<>
+struct an_ifc_condition_metadata<an_ifc_syntax_for_statement> {
+  using return_type = an_ifc_expr_index;
+};  /* an_ifc_condition_metadata */
+
+
+/*
+The IFC condition field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for SyntaxIfStatement nodes.
+*/
+template<>
+struct an_ifc_condition_metadata<an_ifc_syntax_if_statement> {
+  using return_type = an_ifc_index;
+};  /* an_ifc_condition_metadata */
+
+
+/*
+The IFC condition field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for SyntaxNestedRequirement
+nodes.
+*/
+template<>
+struct an_ifc_condition_metadata<an_ifc_syntax_nested_requirement> {
+  using return_type = an_ifc_expr_index;
+};  /* an_ifc_condition_metadata */
+
+
+/*
+The IFC condition field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for SyntaxRequiresClause nodes.
+*/
+template<>
+struct an_ifc_condition_metadata<an_ifc_syntax_requires_clause> {
+  using return_type = an_ifc_expr_index;
+};  /* an_ifc_condition_metadata */
+
+
+/*
+The IFC condition field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for SyntaxSEHExcept nodes.
+*/
+template<>
+struct an_ifc_condition_metadata<an_ifc_syntax_seh_except> {
+  using return_type = an_ifc_expr_index;
+};  /* an_ifc_condition_metadata */
+
+
+/*
+The IFC condition field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for SyntaxSimpleRequirement
+nodes.
+*/
+template<>
+struct an_ifc_condition_metadata<an_ifc_syntax_simple_requirement> {
+  using return_type = an_ifc_expr_index;
+};  /* an_ifc_condition_metadata */
+
+
+/*
+The IFC condition field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for
+SyntaxStaticAssertDeclaration nodes.
+*/
+template<>
+struct an_ifc_condition_metadata<an_ifc_syntax_static_assert_declaration> {
+  using return_type = an_ifc_expr_index;
+};  /* an_ifc_condition_metadata */
+
+
+/*
+The IFC condition field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for SyntaxSwitchStatement nodes.
+*/
+template<>
+struct an_ifc_condition_metadata<an_ifc_syntax_switch_statement> {
+  using return_type = an_ifc_syntax_index;
+};  /* an_ifc_condition_metadata */
+
+
+/*
+The IFC condition field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for SyntaxWhileStatement nodes.
+*/
+template<>
+struct an_ifc_condition_metadata<an_ifc_syntax_while_statement> {
+  using return_type = an_ifc_expr_index;
+};  /* an_ifc_condition_metadata */
+
+
+/*
+The IFC consequence field has multiple return types.  This type is a metadata
+type that allows resolution of those return types based on the respective node
+type.
+*/
+template<typename an_ifc_Node_type>
+struct an_ifc_consequence_metadata;
+
+
+/*
+The IFC consequence field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for StmtIf nodes.
+*/
+template<>
+struct an_ifc_consequence_metadata<an_ifc_stmt_if> {
+  using return_type = an_ifc_stmt_index;
+};  /* an_ifc_consequence_metadata */
+
+
+/*
+The IFC consequence field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for SyntaxIfStatement nodes.
+*/
+template<>
+struct an_ifc_consequence_metadata<an_ifc_syntax_if_statement> {
+  using return_type = an_ifc_syntax_index;
+};  /* an_ifc_consequence_metadata */
+
+
+/*
+The IFC constraint field has multiple return types.  This type is a metadata
+type that allows resolution of those return types based on the respective node
+type.
+*/
+template<typename an_ifc_Node_type>
+struct an_ifc_constraint_metadata;
+
+
+/*
+The IFC constraint field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for ChartUnilevel nodes.
+*/
+template<>
+struct an_ifc_constraint_metadata<an_ifc_chart_unilevel> {
+  using return_type = an_ifc_expr_index;
+};  /* an_ifc_constraint_metadata */
+
+
+/*
+The IFC constraint field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for DeclConcept nodes.
+*/
+template<>
+struct an_ifc_constraint_metadata<an_ifc_decl_concept> {
+  using return_type = an_ifc_expr_index;
+};  /* an_ifc_constraint_metadata */
+
+
+/*
+The IFC constraint field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for DeclParameter nodes.
+*/
+template<>
+struct an_ifc_constraint_metadata<an_ifc_decl_parameter> {
+  using return_type = an_ifc_expr_index;
+};  /* an_ifc_constraint_metadata */
+
+
+/*
+The IFC constraint field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for ExprLambda nodes.
+*/
+template<>
+struct an_ifc_constraint_metadata<an_ifc_expr_lambda> {
+  using return_type = an_ifc_syntax_index;
+};  /* an_ifc_constraint_metadata */
+
+
+/*
+The IFC constraint field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for SyntaxCompoundRequirement
+nodes.
+*/
+template<>
+struct an_ifc_constraint_metadata<an_ifc_syntax_compound_requirement> {
+  using return_type = an_ifc_expr_index;
+};  /* an_ifc_constraint_metadata */
+
+
+/*
+The IFC constraint field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for SyntaxInitDeclarator nodes.
+*/
+template<>
+struct an_ifc_constraint_metadata<an_ifc_syntax_init_declarator> {
+  using return_type = an_ifc_syntax_index;
+};  /* an_ifc_constraint_metadata */
+
+
+/*
+The IFC constraint field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for SyntaxMemberDeclarator
+nodes.
+*/
+template<>
+struct an_ifc_constraint_metadata<an_ifc_syntax_member_declarator> {
+  using return_type = an_ifc_syntax_index;
+};  /* an_ifc_constraint_metadata */
+
+
+/*
+The IFC constraint field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for
+SyntaxPlaceholderTypeSpecifier nodes.
+*/
+template<>
+struct an_ifc_constraint_metadata<an_ifc_syntax_placeholder_type_specifier> {
+  using return_type = an_ifc_expr_index;
+};  /* an_ifc_constraint_metadata */
+
+
+/*
+The IFC constraint field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for SyntaxTypeTemplateParameter
+nodes.
+*/
+template<>
+struct an_ifc_constraint_metadata<an_ifc_syntax_type_template_parameter> {
+  using return_type = an_ifc_syntax_index;
+};  /* an_ifc_constraint_metadata */
+
+
+/*
+The IFC constraint field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for TypePlaceholder nodes.
+*/
+template<>
+struct an_ifc_constraint_metadata<an_ifc_type_placeholder> {
+  using return_type = an_ifc_expr_index;
+};  /* an_ifc_constraint_metadata */
+
+
+/*
+The IFC continuation field has multiple return types.  This type is a metadata
+type that allows resolution of those return types based on the respective node
+type.
+*/
+template<typename an_ifc_Node_type>
+struct an_ifc_continuation_metadata;
+
+
+/*
+The IFC continuation field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for StmtFor nodes.
+*/
+template<>
+struct an_ifc_continuation_metadata<an_ifc_stmt_for> {
+  using return_type = an_ifc_stmt_index;
+};  /* an_ifc_continuation_metadata */
+
+
+/*
+The IFC continuation field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for SyntaxForStatement nodes.
+*/
+template<>
+struct an_ifc_continuation_metadata<an_ifc_syntax_for_statement> {
+  using return_type = an_ifc_expr_index;
+};  /* an_ifc_continuation_metadata */
+
+
+/*
+The IFC decl field has multiple return types.  This type is a metadata type
+that allows resolution of those return types based on the respective node type.
+*/
+template<typename an_ifc_Node_type>
+struct an_ifc_decl_metadata;
+
+
+/*
+The IFC decl field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclExplicitInstantiation nodes.
+*/
+template<>
+struct an_ifc_decl_metadata<an_ifc_decl_explicit_instantiation> {
+  using return_type = an_ifc_decl_index;
+};  /* an_ifc_decl_metadata */
+
+
+/*
+The IFC decl field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclExplicitSpecialization nodes.
+*/
+template<>
+struct an_ifc_decl_metadata<an_ifc_decl_explicit_specialization> {
+  using return_type = an_ifc_decl_index;
+};  /* an_ifc_decl_metadata */
+
+
+/*
+The IFC decl field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclSpecialization nodes.
+*/
+template<>
+struct an_ifc_decl_metadata<an_ifc_decl_specialization> {
+  using return_type = an_ifc_decl_index;
+};  /* an_ifc_decl_metadata */
+
+
+/*
+The IFC decl field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ParameterizedEntity nodes.
+*/
+template<>
+struct an_ifc_decl_metadata<an_ifc_parameterized_entity> {
+  using return_type = an_ifc_decl_index;
+};  /* an_ifc_decl_metadata */
+
+
+/*
+The IFC decl field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for StmtVariableDecl nodes.
+*/
+template<>
+struct an_ifc_decl_metadata<an_ifc_stmt_variable_decl> {
+  using return_type = an_ifc_decl_index;
+};  /* an_ifc_decl_metadata */
+
+
+/*
+The IFC decl field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxAttributedDeclaration
+nodes.
+*/
+template<>
+struct an_ifc_decl_metadata<an_ifc_syntax_attributed_declaration> {
+  using return_type = an_ifc_syntax_index;
+};  /* an_ifc_decl_metadata */
+
+
+/*
+The IFC decl field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxDeclarationStatement nodes.
+*/
+template<>
+struct an_ifc_decl_metadata<an_ifc_syntax_declaration_statement> {
+  using return_type = an_ifc_syntax_index;
+};  /* an_ifc_decl_metadata */
+
+
+/*
+The IFC decl field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxRangeBasedForStatement
+nodes.
+*/
+template<>
+struct an_ifc_decl_metadata<an_ifc_syntax_range_based_for_statement> {
+  using return_type = an_ifc_syntax_index;
+};  /* an_ifc_decl_metadata */
+
+
+/*
+The IFC decl field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for TraitAliasTemplate nodes.
+*/
+template<>
+struct an_ifc_decl_metadata<an_ifc_trait_alias_template> {
+  using return_type = an_ifc_decl_index;
+};  /* an_ifc_decl_metadata */
+
+
+/*
+The IFC decl field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for TraitAttribute nodes.
+*/
+template<>
+struct an_ifc_decl_metadata<an_ifc_trait_attribute> {
+  using return_type = an_ifc_decl_index;
+};  /* an_ifc_decl_metadata */
+
+
+/*
+The IFC decl field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for TraitDeductionGuide nodes.
+*/
+template<>
+struct an_ifc_decl_metadata<an_ifc_trait_deduction_guide> {
+  using return_type = an_ifc_decl_index;
+};  /* an_ifc_decl_metadata */
+
+
+/*
+The IFC decl field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for TraitDeprecated nodes.
+*/
+template<>
+struct an_ifc_decl_metadata<an_ifc_trait_deprecated> {
+  using return_type = an_ifc_decl_index;
+};  /* an_ifc_decl_metadata */
+
+
+/*
+The IFC decl field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for TraitFriend nodes.
+*/
+template<>
+struct an_ifc_decl_metadata<an_ifc_trait_friend> {
+  using return_type = an_ifc_decl_index;
+};  /* an_ifc_decl_metadata */
+
+
+/*
+The IFC decl field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for TraitFunctionDefinition nodes.
+*/
+template<>
+struct an_ifc_decl_metadata<an_ifc_trait_function_definition> {
+  using return_type = an_ifc_decl_index;
+};  /* an_ifc_decl_metadata */
+
+
+/*
+The IFC decl field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for TraitMsvcDeclAttrs nodes.
+*/
+template<>
+struct an_ifc_decl_metadata<an_ifc_trait_msvc_decl_attrs> {
+  using return_type = an_ifc_decl_index;
+};  /* an_ifc_decl_metadata */
+
+
+/*
+The IFC decl field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for TraitMsvcFuncParams nodes.
+*/
+template<>
+struct an_ifc_decl_metadata<an_ifc_trait_msvc_func_params> {
+  using return_type = an_ifc_decl_index;
+};  /* an_ifc_decl_metadata */
+
+
+/*
+The IFC decl field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for TraitMsvcUuid nodes.
+*/
+template<>
+struct an_ifc_decl_metadata<an_ifc_trait_msvc_uuid> {
+  using return_type = an_ifc_decl_index;
+};  /* an_ifc_decl_metadata */
+
+
+/*
+The IFC decl field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for TraitMsvcVendorTrait nodes.
+*/
+template<>
+struct an_ifc_decl_metadata<an_ifc_trait_msvc_vendor_trait> {
+  using return_type = an_ifc_decl_index;
+};  /* an_ifc_decl_metadata */
+
+
+/*
+The IFC decl field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for TraitRequires nodes.
+*/
+template<>
+struct an_ifc_decl_metadata<an_ifc_trait_requires> {
+  using return_type = an_ifc_decl_index;
+};  /* an_ifc_decl_metadata */
+
+
+/*
+The IFC decl field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for TraitSpecialization nodes.
+*/
+template<>
+struct an_ifc_decl_metadata<an_ifc_trait_specialization> {
+  using return_type = an_ifc_decl_index;
+};  /* an_ifc_decl_metadata */
+
+
+/*
+The IFC decl field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for TypeDesignated nodes.
+*/
+template<>
+struct an_ifc_decl_metadata<an_ifc_type_designated> {
+  using return_type = an_ifc_decl_index;
+};  /* an_ifc_decl_metadata */
+
+
+/*
+The IFC eh_spec field has multiple return types.  This type is a metadata type
+that allows resolution of those return types based on the respective node type.
+*/
+template<typename an_ifc_Node_type>
+struct an_ifc_eh_spec_metadata;
+
+
+/*
+The IFC eh_spec field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclDestructor nodes.
+*/
+template<>
+struct an_ifc_eh_spec_metadata<an_ifc_decl_destructor> {
+  using return_type = an_ifc_noexcept_specification;
+};  /* an_ifc_eh_spec_metadata */
+
+
+/*
+The IFC eh_spec field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxFunctionDeclarator nodes.
+*/
+template<>
+struct an_ifc_eh_spec_metadata<an_ifc_syntax_function_declarator> {
+  using return_type = an_ifc_syntax_index;
+};  /* an_ifc_eh_spec_metadata */
+
+
+/*
+The IFC eh_spec field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxLambdaDeclarator nodes.
+*/
+template<>
+struct an_ifc_eh_spec_metadata<an_ifc_syntax_lambda_declarator> {
+  using return_type = an_ifc_syntax_index;
+};  /* an_ifc_eh_spec_metadata */
+
+
+/*
+The IFC eh_spec field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for TypeFunction nodes.
+*/
+template<>
+struct an_ifc_eh_spec_metadata<an_ifc_type_function> {
+  using return_type = an_ifc_noexcept_specification;
+};  /* an_ifc_eh_spec_metadata */
+
+
+/*
+The IFC eh_spec field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for TypeMethod nodes.
+*/
+template<>
+struct an_ifc_eh_spec_metadata<an_ifc_type_method> {
+  using return_type = an_ifc_noexcept_specification;
+};  /* an_ifc_eh_spec_metadata */
+
+
+/*
+The IFC eh_spec field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for TypeTor nodes.
+*/
+template<>
+struct an_ifc_eh_spec_metadata<an_ifc_type_tor> {
+  using return_type = an_ifc_noexcept_specification;
+};  /* an_ifc_eh_spec_metadata */
+
+
+/*
+The IFC entity field has multiple return types.  This type is a metadata type
+that allows resolution of those return types based on the respective node type.
+*/
+template<typename an_ifc_Node_type>
+struct an_ifc_entity_metadata;
+
+
+/*
+The IFC entity field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclFriend nodes.
+*/
+template<>
+struct an_ifc_entity_metadata<an_ifc_decl_friend> {
+  using return_type = an_ifc_expr_index;
+};  /* an_ifc_entity_metadata */
+
+
+/*
+The IFC entity field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclPartialSpecialization nodes.
+*/
+template<>
+struct an_ifc_entity_metadata<an_ifc_decl_partial_specialization> {
+  using return_type = an_ifc_parameterized_entity;
+};  /* an_ifc_entity_metadata */
+
+
+/*
+The IFC entity field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclTemplate nodes.
+*/
+template<>
+struct an_ifc_entity_metadata<an_ifc_decl_template> {
+  using return_type = an_ifc_parameterized_entity;
+};  /* an_ifc_entity_metadata */
+
+
+/*
+The IFC entity field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclTemploid nodes.
+*/
+template<>
+struct an_ifc_entity_metadata<an_ifc_decl_temploid> {
+  using return_type = an_ifc_parameterized_entity;
+};  /* an_ifc_entity_metadata */
+
+
+/*
+The IFC expr field has multiple return types.  This type is a metadata type
+that allows resolution of those return types based on the respective node type.
+*/
+template<typename an_ifc_Node_type>
+struct an_ifc_expr_metadata;
+
+
+/*
+The IFC expr field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprCondition nodes.
+*/
+template<>
+struct an_ifc_expr_metadata<an_ifc_expr_condition> {
+  using return_type = an_ifc_expr_index;
+};  /* an_ifc_expr_metadata */
+
+
+/*
+The IFC expr field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprInitializer nodes.
+*/
+template<>
+struct an_ifc_expr_metadata<an_ifc_expr_initializer> {
+  using return_type = an_ifc_expr_index;
+};  /* an_ifc_expr_metadata */
+
+
+/*
+The IFC expr field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprUnaryFold nodes.
+*/
+template<>
+struct an_ifc_expr_metadata<an_ifc_expr_unary_fold> {
+  using return_type = an_ifc_expr_index;
+};  /* an_ifc_expr_metadata */
+
+
+/*
+The IFC expr field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for StmtCase nodes.
+*/
+template<>
+struct an_ifc_expr_metadata<an_ifc_stmt_case> {
+  using return_type = an_ifc_expr_index;
+};  /* an_ifc_expr_metadata */
+
+
+/*
+The IFC expr field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for StmtExpression nodes.
+*/
+template<>
+struct an_ifc_expr_metadata<an_ifc_stmt_expression> {
+  using return_type = an_ifc_expr_index;
+};  /* an_ifc_expr_metadata */
+
+
+/*
+The IFC expr field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for StmtReturn nodes.
+*/
+template<>
+struct an_ifc_expr_metadata<an_ifc_stmt_return> {
+  using return_type = an_ifc_expr_index;
+};  /* an_ifc_expr_metadata */
+
+
+/*
+The IFC expr field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxDecltypeSpecifier nodes.
+*/
+template<>
+struct an_ifc_expr_metadata<an_ifc_syntax_decltype_specifier> {
+  using return_type = an_ifc_expr_index;
+};  /* an_ifc_expr_metadata */
+
+
+/*
+The IFC expr field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxExpressionStatement nodes.
+*/
+template<>
+struct an_ifc_expr_metadata<an_ifc_syntax_expression_statement> {
+  using return_type = an_ifc_expr_index;
+};  /* an_ifc_expr_metadata */
+
+
+/*
+The IFC expr field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxNoexceptSpecification
+nodes.
+*/
+template<>
+struct an_ifc_expr_metadata<an_ifc_syntax_noexcept_specification> {
+  using return_type = an_ifc_syntax_index;
+};  /* an_ifc_expr_metadata */
+
+
+/*
+The IFC expr field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxReturnStatement nodes.
+*/
+template<>
+struct an_ifc_expr_metadata<an_ifc_syntax_return_statement> {
+  using return_type = an_ifc_expr_index;
+};  /* an_ifc_expr_metadata */
+
+
+/*
+The IFC expr field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxSimpleTypeSpecifier nodes.
+*/
+template<>
+struct an_ifc_expr_metadata<an_ifc_syntax_simple_type_specifier> {
+  using return_type = an_ifc_expr_index;
+};  /* an_ifc_expr_metadata */
+
+
+/*
+The IFC expr field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for TypeDecltype nodes.
+*/
+template<>
+struct an_ifc_expr_metadata<an_ifc_type_decltype> {
+  using return_type = an_ifc_syntax_index;
+};  /* an_ifc_expr_metadata */
+
+
+/*
+The IFC expr field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for TypeSyntactic nodes.
+*/
+template<>
+struct an_ifc_expr_metadata<an_ifc_type_syntactic> {
+  using return_type = an_ifc_expr_index;
+};  /* an_ifc_expr_metadata */
+
+
+/*
+The IFC function field has multiple return types.  This type is a metadata type
+that allows resolution of those return types based on the respective node type.
+*/
+template<typename an_ifc_Node_type>
+struct an_ifc_function_metadata;
+
+
+/*
+The IFC function field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for AttrCalled nodes.
+*/
+template<>
+struct an_ifc_function_metadata<an_ifc_attr_called> {
+  using return_type = an_ifc_attr_index;
+};  /* an_ifc_function_metadata */
+
+
+/*
+The IFC function field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprVirtualFunctionConversion
+nodes.
+*/
+template<>
+struct an_ifc_function_metadata<an_ifc_expr_virtual_function_conversion> {
+  using return_type = an_ifc_decl_index;
+};  /* an_ifc_function_metadata */
+
+
+/*
+The IFC index field has multiple return types.  This type is a metadata type
+that allows resolution of those return types based on the respective node type.
+*/
+template<typename an_ifc_Node_type>
+struct an_ifc_index_metadata;
+
+
+/*
+The IFC index field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclReference nodes.
+*/
+template<>
+struct an_ifc_index_metadata<an_ifc_decl_reference> {
+  using return_type = an_ifc_decl_index;
+};  /* an_ifc_index_metadata */
+
+
+/*
+The IFC index field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for NestableWord nodes.
+*/
+template<>
+struct an_ifc_index_metadata<an_ifc_nestable_word> {
+  using return_type = an_ifc_index;
+};  /* an_ifc_index_metadata */
+
+
+/*
+The IFC index field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ScopeMember nodes.
+*/
+template<>
+struct an_ifc_index_metadata<an_ifc_scope_member> {
+  using return_type = an_ifc_decl_index;
+};  /* an_ifc_index_metadata */
+
+
+/*
+The IFC index field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SourceWord nodes.
+*/
+template<>
+struct an_ifc_index_metadata<an_ifc_source_word> {
+  using return_type = an_ifc_index;
+};  /* an_ifc_index_metadata */
+
+
+/*
+The IFC index field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxArrayIndex nodes.
+*/
+template<>
+struct an_ifc_index_metadata<an_ifc_syntax_array_index> {
+  using return_type = an_ifc_expr_index;
+};  /* an_ifc_index_metadata */
+
+
+/*
+The IFC initialization field has multiple return types.  This type is a
+metadata type that allows resolution of those return types based on the
+respective node type.
+*/
+template<typename an_ifc_Node_type>
+struct an_ifc_initialization_metadata;
+
+
+/*
+The IFC initialization field has multiple return types.  This type is a
+metadata type that allows resolution of the return type for StmtFor nodes.
+*/
+template<>
+struct an_ifc_initialization_metadata<an_ifc_stmt_for> {
+  using return_type = an_ifc_stmt_index;
+};  /* an_ifc_initialization_metadata */
+
+
+/*
+The IFC initialization field has multiple return types.  This type is a
+metadata type that allows resolution of the return type for StmtIf nodes.
+*/
+template<>
+struct an_ifc_initialization_metadata<an_ifc_stmt_if> {
+  using return_type = an_ifc_stmt_index;
+};  /* an_ifc_initialization_metadata */
+
+
+/*
+The IFC initialization field has multiple return types.  This type is a
+metadata type that allows resolution of the return type for StmtSwitch nodes.
+*/
+template<>
+struct an_ifc_initialization_metadata<an_ifc_stmt_switch> {
+  using return_type = an_ifc_stmt_index;
+};  /* an_ifc_initialization_metadata */
+
+
+/*
+The IFC initialization field has multiple return types.  This type is a
+metadata type that allows resolution of the return type for SyntaxForStatement
+nodes.
+*/
+template<>
+struct an_ifc_initialization_metadata<an_ifc_syntax_for_statement> {
+  using return_type = an_ifc_syntax_index;
+};  /* an_ifc_initialization_metadata */
+
+
+/*
+The IFC initialization field has multiple return types.  This type is a
+metadata type that allows resolution of the return type for SyntaxIfStatement
+nodes.
+*/
+template<>
+struct an_ifc_initialization_metadata<an_ifc_syntax_if_statement> {
+  using return_type = an_ifc_syntax_index;
+};  /* an_ifc_initialization_metadata */
+
+
+/*
+The IFC initializer field has multiple return types.  This type is a metadata
+type that allows resolution of those return types based on the respective node
+type.
+*/
+template<typename an_ifc_Node_type>
+struct an_ifc_initializer_metadata;
+
+
+/*
+The IFC initializer field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for DeclBitfield nodes.
+*/
+template<>
+struct an_ifc_initializer_metadata<an_ifc_decl_bitfield> {
+  using return_type = an_ifc_expr_index;
+};  /* an_ifc_initializer_metadata */
+
+
+/*
+The IFC initializer field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for DeclEnumeration nodes.
+*/
+template<>
+struct an_ifc_initializer_metadata<an_ifc_decl_enumeration> {
+  using return_type = an_ifc_sequence;
+};  /* an_ifc_initializer_metadata */
+
+
+/*
+The IFC initializer field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for DeclEnumerator nodes.
+*/
+template<>
+struct an_ifc_initializer_metadata<an_ifc_decl_enumerator> {
+  using return_type = an_ifc_expr_index;
+};  /* an_ifc_initializer_metadata */
+
+
+/*
+The IFC initializer field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for DeclField nodes.
+*/
+template<>
+struct an_ifc_initializer_metadata<an_ifc_decl_field> {
+  using return_type = an_ifc_expr_index;
+};  /* an_ifc_initializer_metadata */
+
+
+/*
+The IFC initializer field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for DeclParameter nodes.
+*/
+template<>
+struct an_ifc_initializer_metadata<an_ifc_decl_parameter> {
+  using return_type = an_ifc_expr_index;
+};  /* an_ifc_initializer_metadata */
+
+
+/*
+The IFC initializer field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for DeclScope nodes.
+*/
+template<>
+struct an_ifc_initializer_metadata<an_ifc_decl_scope> {
+  using return_type = an_ifc_scope_index;
+};  /* an_ifc_initializer_metadata */
+
+
+/*
+The IFC initializer field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for DeclVariable nodes.
+*/
+template<>
+struct an_ifc_initializer_metadata<an_ifc_decl_variable> {
+  using return_type = an_ifc_expr_index;
+};  /* an_ifc_initializer_metadata */
+
+
+/*
+The IFC initializer field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for ExprAssignInitializer nodes.
+*/
+template<>
+struct an_ifc_initializer_metadata<an_ifc_expr_assign_initializer> {
+  using return_type = an_ifc_expr_index;
+};  /* an_ifc_initializer_metadata */
+
+
+/*
+The IFC initializer field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for ExprDesignatedInitializer
+nodes.
+*/
+template<>
+struct an_ifc_initializer_metadata<an_ifc_expr_designated_initializer> {
+  using return_type = an_ifc_expr_index;
+};  /* an_ifc_initializer_metadata */
+
+
+/*
+The IFC initializer field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for ExprMemberInitializer nodes.
+*/
+template<>
+struct an_ifc_initializer_metadata<an_ifc_expr_member_initializer> {
+  using return_type = an_ifc_expr_index;
+};  /* an_ifc_initializer_metadata */
+
+
+/*
+The IFC initializer field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for SyntaxConceptDefinition
+nodes.
+*/
+template<>
+struct an_ifc_initializer_metadata<an_ifc_syntax_concept_definition> {
+  using return_type = an_ifc_expr_index;
+};  /* an_ifc_initializer_metadata */
+
+
+/*
+The IFC initializer field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for SyntaxEnumeratorDefinition
+nodes.
+*/
+template<>
+struct an_ifc_initializer_metadata<an_ifc_syntax_enumerator_definition> {
+  using return_type = an_ifc_expr_index;
+};  /* an_ifc_initializer_metadata */
+
+
+/*
+The IFC initializer field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for SyntaxInitCapture nodes.
+*/
+template<>
+struct an_ifc_initializer_metadata<an_ifc_syntax_init_capture> {
+  using return_type = an_ifc_expr_index;
+};  /* an_ifc_initializer_metadata */
+
+
+/*
+The IFC initializer field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for SyntaxInitDeclarator nodes.
+*/
+template<>
+struct an_ifc_initializer_metadata<an_ifc_syntax_init_declarator> {
+  using return_type = an_ifc_expr_index;
+};  /* an_ifc_initializer_metadata */
+
+
+/*
+The IFC initializer field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for SyntaxMemInitializer nodes.
+*/
+template<>
+struct an_ifc_initializer_metadata<an_ifc_syntax_mem_initializer> {
+  using return_type = an_ifc_expr_index;
+};  /* an_ifc_initializer_metadata */
+
+
+/*
+The IFC initializer field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for SyntaxMemberDeclarator
+nodes.
+*/
+template<>
+struct an_ifc_initializer_metadata<an_ifc_syntax_member_declarator> {
+  using return_type = an_ifc_expr_index;
+};  /* an_ifc_initializer_metadata */
+
+
+/*
+The IFC initializer field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for SyntaxRangeBasedForStatement
+nodes.
+*/
+template<>
+struct an_ifc_initializer_metadata<an_ifc_syntax_range_based_for_statement> {
+  using return_type = an_ifc_syntax_index;
+};  /* an_ifc_initializer_metadata */
+
+
+/*
+The IFC initializer field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for
+SyntaxStructuredBindingDeclaration nodes.
+*/
+template<>
+struct an_ifc_initializer_metadata<
+                                an_ifc_syntax_structured_binding_declaration> {
+  using return_type = an_ifc_expr_index;
+};  /* an_ifc_initializer_metadata */
+
+
+/*
+The IFC initializers field has multiple return types.  This type is a metadata
+type that allows resolution of those return types based on the respective node
+type.
+*/
+template<typename an_ifc_Node_type>
+struct an_ifc_initializers_metadata;
+
+
+/*
+The IFC initializers field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for SyntaxCtorInitializer nodes.
+*/
+template<>
+struct an_ifc_initializers_metadata<an_ifc_syntax_ctor_initializer> {
+  using return_type = an_ifc_syntax_index;
+};  /* an_ifc_initializers_metadata */
+
+
+/*
+The IFC initializers field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for SyntaxFunctionBody nodes.
+*/
+template<>
+struct an_ifc_initializers_metadata<an_ifc_syntax_function_body> {
+  using return_type = an_ifc_syntax_index;
+};  /* an_ifc_initializers_metadata */
+
+
+/*
+The IFC initializers field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for SyntaxFunctionDefinition
+nodes.
+*/
+template<>
+struct an_ifc_initializers_metadata<an_ifc_syntax_function_definition> {
+  using return_type = an_ifc_syntax_index;
+};  /* an_ifc_initializers_metadata */
+
+
+/*
+The IFC initializers field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for SyntaxFunctionTryBlock
+nodes.
+*/
+template<>
+struct an_ifc_initializers_metadata<an_ifc_syntax_function_try_block> {
+  using return_type = an_ifc_syntax_index;
+};  /* an_ifc_initializers_metadata */
+
+
+/*
+The IFC initializers field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for TraitFunctionDefinition
+nodes.
+*/
+template<>
+struct an_ifc_initializers_metadata<an_ifc_trait_function_definition> {
+  using return_type = an_ifc_expr_index;
+};  /* an_ifc_initializers_metadata */
+
+
+/*
+The IFC label field has multiple return types.  This type is a metadata type
+that allows resolution of those return types based on the respective node type.
+*/
+template<typename an_ifc_Node_type>
+struct an_ifc_label_metadata;
+
+
+/*
+The IFC label field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for AttrLabeled nodes.
+*/
+template<>
+struct an_ifc_label_metadata<an_ifc_attr_labeled> {
+  using return_type = an_ifc_nestable_word;
+};  /* an_ifc_label_metadata */
+
+
+/*
+The IFC label field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxGotoStatement nodes.
+*/
+template<>
+struct an_ifc_label_metadata<an_ifc_syntax_goto_statement> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_label_metadata */
+
+
+/*
+The IFC label field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxLabeledStatement nodes.
+*/
+template<>
+struct an_ifc_label_metadata<an_ifc_syntax_labeled_statement> {
+  using return_type = an_ifc_expr_index;
+};  /* an_ifc_label_metadata */
+
+
+/*
+The IFC left field has multiple return types.  This type is a metadata type
+that allows resolution of those return types based on the respective node type.
+*/
+template<typename an_ifc_Node_type>
+struct an_ifc_left_metadata;
+
+
+/*
+The IFC left field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprBinaryFold nodes.
+*/
+template<>
+struct an_ifc_left_metadata<an_ifc_expr_binary_fold> {
+  using return_type = an_ifc_expr_index;
+};  /* an_ifc_left_metadata */
+
+
+/*
+The IFC left field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprExpressionList nodes.
+*/
+template<>
+struct an_ifc_left_metadata<an_ifc_expr_expression_list> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_left_metadata */
+
+
+/*
+The IFC left_paren field has multiple return types.  This type is a metadata
+type that allows resolution of those return types based on the respective node
+type.
+*/
+template<typename an_ifc_Node_type>
+struct an_ifc_left_paren_metadata;
+
+
+/*
+The IFC left_paren field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for SyntaxAlignas nodes.
+*/
+template<>
+struct an_ifc_left_paren_metadata<an_ifc_syntax_alignas> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_left_paren_metadata */
+
+
+/*
+The IFC left_paren field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for
+SyntaxAttributeArgumentClause nodes.
+*/
+template<>
+struct an_ifc_left_paren_metadata<an_ifc_syntax_attribute_argument_clause> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_left_paren_metadata */
+
+
+/*
+The IFC left_paren field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for SyntaxClassSpecifier nodes.
+*/
+template<>
+struct an_ifc_left_paren_metadata<an_ifc_syntax_class_specifier> {
+  using return_type = an_ifc_syntax_index;
+};  /* an_ifc_left_paren_metadata */
+
+
+/*
+The IFC left_paren field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for SyntaxDecltypeSpecifier
+nodes.
+*/
+template<>
+struct an_ifc_left_paren_metadata<an_ifc_syntax_decltype_specifier> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_left_paren_metadata */
+
+
+/*
+The IFC left_paren field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for SyntaxDynamicExceptionSpec
+nodes.
+*/
+template<>
+struct an_ifc_left_paren_metadata<an_ifc_syntax_dynamic_exception_spec> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_left_paren_metadata */
+
+
+/*
+The IFC left_paren field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for SyntaxExplicitSpecifier
+nodes.
+*/
+template<>
+struct an_ifc_left_paren_metadata<an_ifc_syntax_explicit_specifier> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_left_paren_metadata */
+
+
+/*
+The IFC left_paren field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for SyntaxForStatement nodes.
+*/
+template<>
+struct an_ifc_left_paren_metadata<an_ifc_syntax_for_statement> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_left_paren_metadata */
+
+
+/*
+The IFC left_paren field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for SyntaxFunctionDeclarator
+nodes.
+*/
+template<>
+struct an_ifc_left_paren_metadata<an_ifc_syntax_function_declarator> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_left_paren_metadata */
+
+
+/*
+The IFC left_paren field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for SyntaxHandler nodes.
+*/
+template<>
+struct an_ifc_left_paren_metadata<an_ifc_syntax_handler> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_left_paren_metadata */
+
+
+/*
+The IFC left_paren field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for SyntaxLambdaDeclarator
+nodes.
+*/
+template<>
+struct an_ifc_left_paren_metadata<an_ifc_syntax_lambda_declarator> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_left_paren_metadata */
+
+
+/*
+The IFC left_paren field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for SyntaxNoexceptSpecification
+nodes.
+*/
+template<>
+struct an_ifc_left_paren_metadata<an_ifc_syntax_noexcept_specification> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_left_paren_metadata */
+
+
+/*
+The IFC left_paren field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for SyntaxRangeBasedForStatement
+nodes.
+*/
+template<>
+struct an_ifc_left_paren_metadata<an_ifc_syntax_range_based_for_statement> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_left_paren_metadata */
+
+
+/*
+The IFC left_paren field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for SyntaxSEHExcept nodes.
+*/
+template<>
+struct an_ifc_left_paren_metadata<an_ifc_syntax_seh_except> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_left_paren_metadata */
+
+
+/*
+The IFC left_paren field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for
+SyntaxStaticAssertDeclaration nodes.
+*/
+template<>
+struct an_ifc_left_paren_metadata<an_ifc_syntax_static_assert_declaration> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_left_paren_metadata */
+
+
+/*
+The IFC line field has multiple return types.  This type is a metadata type
+that allows resolution of those return types based on the respective node type.
+*/
+template<typename an_ifc_Node_type>
+struct an_ifc_line_metadata;
+
+
+/*
+The IFC line field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SourceLine nodes.
+*/
+template<>
+struct an_ifc_line_metadata<an_ifc_source_line> {
+  using return_type = an_ifc_line_number;
+};  /* an_ifc_line_metadata */
+
+
+/*
+The IFC line field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SourceLocation nodes.
+*/
+template<>
+struct an_ifc_line_metadata<an_ifc_source_location> {
+  using return_type = an_ifc_line_index;
+};  /* an_ifc_line_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of those return types based on the respective node type.
+*/
+template<typename an_ifc_Node_type>
+struct an_ifc_locus_metadata;
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclAlias nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_decl_alias> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclBitfield nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_decl_bitfield> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclConcept nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_decl_concept> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclConstructor nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_decl_constructor> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclDeductionGuide nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_decl_deduction_guide> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclDestructor nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_decl_destructor> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclEnumeration nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_decl_enumeration> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclEnumerator nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_decl_enumerator> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclExpansion nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_decl_expansion> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclField nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_decl_field> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclFunction nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_decl_function> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclInheritedConstructor nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_decl_inherited_constructor> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclIntrinsic nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_decl_intrinsic> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclMethod nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_decl_method> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclParameter nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_decl_parameter> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclPartialSpecialization nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_decl_partial_specialization> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclScope nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_decl_scope> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclSpecialization nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_decl_specialization> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclTemplate nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_decl_template> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclUsingDeclaration nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_decl_using_declaration> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclVariable nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_decl_variable> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprAlignof nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_expr_alignof> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprArrayValue nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_expr_array_value> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprBinaryFold nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_expr_binary_fold> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprCall nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_expr_call> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprCast nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_expr_cast> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprCompoundString nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_expr_compound_string> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprCondition nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_expr_condition> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprDesignatedInitializer nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_expr_designated_initializer> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprDestructorCall nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_expr_destructor_call> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprDyad nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_expr_dyad> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprDynamicDispatch nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_expr_dynamic_dispatch> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprEmpty nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_expr_empty> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprExpansion nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_expr_expansion> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprFunctionString nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_expr_function_string> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprHierarchyConversion nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_expr_hierarchy_conversion> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprInheritancePath nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_expr_inheritance_path> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprInitializer nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_expr_initializer> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprInitializerList nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_expr_initializer_list> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprLiteral nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_expr_literal> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprMemberAccess nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_expr_member_access> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprMemberInitializer nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_expr_member_initializer> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprMonad nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_expr_monad> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprNamedDecl nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_expr_named_decl> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprNullptr nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_expr_nullptr> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprPackedTemplateArguments
+nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_expr_packed_template_arguments> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprPath nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_expr_path> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprPlaceholder nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_expr_placeholder> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprPointer nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_expr_pointer> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprProductTypeValue nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_expr_product_type_value> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprPushState nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_expr_push_state> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprQualifiedName nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_expr_qualified_name> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprRead nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_expr_read> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprRequires nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_expr_requires> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprSimpleIdentifier nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_expr_simple_identifier> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprSizeofType nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_expr_sizeof_type> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprString nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_expr_string> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprStringSequence nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_expr_string_sequence> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprSumTypeValue nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_expr_sum_type_value> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprTemplateId nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_expr_template_id> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprTemplateReference nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_expr_template_reference> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprTemporary nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_expr_temporary> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprThis nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_expr_this> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprTokens nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_expr_tokens> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprTriad nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_expr_triad> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprTuple nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_expr_tuple> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprType nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_expr_type> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprTypeTraitIntrinsic nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_expr_type_trait_intrinsic> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprTypeid nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_expr_typeid> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprUnaryFold nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_expr_unary_fold> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprUnqualifiedId nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_expr_unqualified_id> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprUnresolvedId nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_expr_unresolved_id> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprVirtualFunctionConversion
+nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_expr_virtual_function_conversion> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for FormCatenate nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_form_catenate> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for FormCharacter nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_form_character> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for FormHeader nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_form_header> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for FormIdentifier nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_form_identifier> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for FormJunk nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_form_junk> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for FormKeyword nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_form_keyword> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for FormNumber nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_form_number> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for FormOperator nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_form_operator> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for FormParameter nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_form_parameter> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for FormParenthesized nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_form_parenthesized> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for FormPragma nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_form_pragma> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for FormString nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_form_string> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for FormStringize nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_form_stringize> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for FormWhitespace nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_form_whitespace> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for KeywordSyntax nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_keyword_syntax> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for MacroFunctionLike nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_macro_function_like> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for MacroObjectLike nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_macro_object_like> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for NestableWord nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_nestable_word> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SourceSentence nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_source_sentence> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SourceWord nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_source_word> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for StmtBreak nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_stmt_break> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for StmtCase nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_stmt_case> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for StmtContinue nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_stmt_continue> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for StmtDefault nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_stmt_default> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for StmtDoWhile nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_stmt_do_while> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for StmtEmpty nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_stmt_empty> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for StmtExpression nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_stmt_expression> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for StmtFor nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_stmt_for> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for StmtIf nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_stmt_if> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for StmtReturn nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_stmt_return> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for StmtSwitch nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_stmt_switch> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for StmtVariableDecl nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_stmt_variable_decl> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for StmtWhile nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_stmt_while> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxAccessSpecifier nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_syntax_access_specifier> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxAliasDeclaration nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_syntax_alias_declaration> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxAlignas nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_syntax_alignas> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxAsmStatement nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_syntax_asm_statement> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxAttributeUsingPrefix nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_syntax_attribute_using_prefix> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxAttributedDeclaration
+nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_syntax_attributed_declaration> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxBinaryFoldExpression nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_syntax_binary_fold_expression> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxCaptureDefault nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_syntax_capture_default> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxCompoundRequirement nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_syntax_compound_requirement> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxConceptDefinition nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_syntax_concept_definition> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxConditionDeclaration nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_syntax_condition_declaration> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxDeclSpecifierSeq nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_syntax_decl_specifier_seq> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxDeclarator nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_syntax_declarator> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxEmptyStatement nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_syntax_empty_statement> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxEnumSpecifier nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_syntax_enum_specifier> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxEnumeratorDefinition nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_syntax_enumerator_definition> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxExceptionDeclaration nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_syntax_exception_declaration> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxExplicitSpecifier nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_syntax_explicit_specifier> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxGotoStatement nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_syntax_goto_statement> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxLabeledStatement nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_syntax_labeled_statement> {
+  using return_type = an_ifc_keyword_sort;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxMemberDeclarator nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_syntax_member_declarator> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxNestedRequirement nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_syntax_nested_requirement> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxNoexceptSpecification
+nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_syntax_noexcept_specification> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxParameterDeclarator nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_syntax_parameter_declarator> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxPlaceholderTypeSpecifier
+nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_syntax_placeholder_type_specifier> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxPointerDeclarator nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_syntax_pointer_declarator> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxRequirementBody nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_syntax_requirement_body> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxRequiresClause nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_syntax_requires_clause> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxSimpleDeclaration nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_syntax_simple_declaration> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxSimpleRequirement nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_syntax_simple_requirement> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxSimpleTypeSpecifier nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_syntax_simple_type_specifier> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxStaticAssertDeclaration
+nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_syntax_static_assert_declaration> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for
+SyntaxStructuredBindingDeclaration nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_syntax_structured_binding_declaration> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxSuper nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_syntax_super> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxTemplateDeclaration nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_syntax_template_declaration> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxTemplateId nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_syntax_template_id> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxTemplateTemplateParameter
+nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_syntax_template_template_parameter> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxThisCapture nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_syntax_this_capture> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxTypeId nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_syntax_type_id> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxTypeRequirement nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_syntax_type_requirement> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxTypeSpecifierSeq nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_syntax_type_specifier_seq> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxTypeTemplateParameter
+nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_syntax_type_template_parameter> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxTypeTraitIntrinsic nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_syntax_type_trait_intrinsic> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxUnaryFoldExpression nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_syntax_unary_fold_expression> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxVirtualSpecifierSeq nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_syntax_virtual_specifier_seq> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC member field has multiple return types.  This type is a metadata type
+that allows resolution of those return types based on the respective node type.
+*/
+template<typename an_ifc_Node_type>
+struct an_ifc_member_metadata;
+
+
+/*
+The IFC member field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for AttrScoped nodes.
+*/
+template<>
+struct an_ifc_member_metadata<an_ifc_attr_scoped> {
+  using return_type = an_ifc_nestable_word;
+};  /* an_ifc_member_metadata */
+
+
+/*
+The IFC member field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclProperty nodes.
+*/
+template<>
+struct an_ifc_member_metadata<an_ifc_decl_property> {
+  using return_type = an_ifc_decl_index;
+};  /* an_ifc_member_metadata */
+
+
+/*
+The IFC member field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprDesignatedInitializer nodes.
+*/
+template<>
+struct an_ifc_member_metadata<an_ifc_expr_designated_initializer> {
+  using return_type = an_ifc_text_offset;
+};  /* an_ifc_member_metadata */
+
+
+/*
+The IFC member field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprMemberInitializer nodes.
+*/
+template<>
+struct an_ifc_member_metadata<an_ifc_expr_member_initializer> {
+  using return_type = an_ifc_decl_index;
+};  /* an_ifc_member_metadata */
+
+
+/*
+The IFC member field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprPath nodes.
+*/
+template<>
+struct an_ifc_member_metadata<an_ifc_expr_path> {
+  using return_type = an_ifc_expr_index;
+};  /* an_ifc_member_metadata */
+
+
+/*
+The IFC member field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxMemInitializer nodes.
+*/
+template<>
+struct an_ifc_member_metadata<an_ifc_syntax_mem_initializer> {
+  using return_type = an_ifc_expr_index;
+};  /* an_ifc_member_metadata */
+
+
+/*
+The IFC member field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for TypePointerToMember nodes.
+*/
+template<>
+struct an_ifc_member_metadata<an_ifc_type_pointer_to_member> {
+  using return_type = an_ifc_type_index;
+};  /* an_ifc_member_metadata */
+
+
+/*
+The IFC members field has multiple return types.  This type is a metadata type
+that allows resolution of those return types based on the respective node type.
+*/
+template<typename an_ifc_Node_type>
+struct an_ifc_members_metadata;
+
+
+/*
+The IFC members field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprProductTypeValue nodes.
+*/
+template<>
+struct an_ifc_members_metadata<an_ifc_expr_product_type_value> {
+  using return_type = an_ifc_expr_index;
+};  /* an_ifc_members_metadata */
+
+
+/*
+The IFC members field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxClassSpecifier nodes.
+*/
+template<>
+struct an_ifc_members_metadata<an_ifc_syntax_class_specifier> {
+  using return_type = an_ifc_syntax_index;
+};  /* an_ifc_members_metadata */
+
+
+/*
+The IFC name field has multiple return types.  This type is a metadata type
+that allows resolution of those return types based on the respective node type.
+*/
+template<typename an_ifc_Node_type>
+struct an_ifc_name_metadata;
+
+
+/*
+The IFC name field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclAlias nodes.
+*/
+template<>
+struct an_ifc_name_metadata<an_ifc_decl_alias> {
+  using return_type = an_ifc_text_offset;
+};  /* an_ifc_name_metadata */
+
+
+/*
+The IFC name field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclBitfield nodes.
+*/
+template<>
+struct an_ifc_name_metadata<an_ifc_decl_bitfield> {
+  using return_type = an_ifc_text_offset;
+};  /* an_ifc_name_metadata */
+
+
+/*
+The IFC name field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclConcept nodes.
+*/
+template<>
+struct an_ifc_name_metadata<an_ifc_decl_concept> {
+  using return_type = an_ifc_text_offset;
+};  /* an_ifc_name_metadata */
+
+
+/*
+The IFC name field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclConstructor nodes.
+*/
+template<>
+struct an_ifc_name_metadata<an_ifc_decl_constructor> {
+  using return_type = an_ifc_name_index;
+};  /* an_ifc_name_metadata */
+
+
+/*
+The IFC name field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclDeductionGuide nodes.
+*/
+template<>
+struct an_ifc_name_metadata<an_ifc_decl_deduction_guide> {
+  using return_type = an_ifc_text_offset;
+};  /* an_ifc_name_metadata */
+
+
+/*
+The IFC name field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclDestructor nodes.
+*/
+template<>
+struct an_ifc_name_metadata<an_ifc_decl_destructor> {
+  using return_type = an_ifc_name_index;
+};  /* an_ifc_name_metadata */
+
+
+/*
+The IFC name field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclEnumeration nodes.
+*/
+template<>
+struct an_ifc_name_metadata<an_ifc_decl_enumeration> {
+  using return_type = an_ifc_text_offset;
+};  /* an_ifc_name_metadata */
+
+
+/*
+The IFC name field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclEnumerator nodes.
+*/
+template<>
+struct an_ifc_name_metadata<an_ifc_decl_enumerator> {
+  using return_type = an_ifc_text_offset;
+};  /* an_ifc_name_metadata */
+
+
+/*
+The IFC name field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclField nodes.
+*/
+template<>
+struct an_ifc_name_metadata<an_ifc_decl_field> {
+  using return_type = an_ifc_text_offset;
+};  /* an_ifc_name_metadata */
+
+
+/*
+The IFC name field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclFunction nodes.
+*/
+template<>
+struct an_ifc_name_metadata<an_ifc_decl_function> {
+  using return_type = an_ifc_name_index;
+};  /* an_ifc_name_metadata */
+
+
+/*
+The IFC name field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclInheritedConstructor nodes.
+*/
+template<>
+struct an_ifc_name_metadata<an_ifc_decl_inherited_constructor> {
+  using return_type = an_ifc_text_offset;
+};  /* an_ifc_name_metadata */
+
+
+/*
+The IFC name field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclIntrinsic nodes.
+*/
+template<>
+struct an_ifc_name_metadata<an_ifc_decl_intrinsic> {
+  using return_type = an_ifc_text_offset;
+};  /* an_ifc_name_metadata */
+
+
+/*
+The IFC name field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclMethod nodes.
+*/
+template<>
+struct an_ifc_name_metadata<an_ifc_decl_method> {
+  using return_type = an_ifc_name_index;
+};  /* an_ifc_name_metadata */
+
+
+/*
+The IFC name field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclOutputSegment nodes.
+*/
+template<>
+struct an_ifc_name_metadata<an_ifc_decl_output_segment> {
+  using return_type = an_ifc_text_offset;
+};  /* an_ifc_name_metadata */
+
+
+/*
+The IFC name field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclParameter nodes.
+*/
+template<>
+struct an_ifc_name_metadata<an_ifc_decl_parameter> {
+  using return_type = an_ifc_text_offset;
+};  /* an_ifc_name_metadata */
+
+
+/*
+The IFC name field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclPartialSpecialization nodes.
+*/
+template<>
+struct an_ifc_name_metadata<an_ifc_decl_partial_specialization> {
+  using return_type = an_ifc_name_index;
+};  /* an_ifc_name_metadata */
+
+
+/*
+The IFC name field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclScope nodes.
+*/
+template<>
+struct an_ifc_name_metadata<an_ifc_decl_scope> {
+  using return_type = an_ifc_name_index;
+};  /* an_ifc_name_metadata */
+
+
+/*
+The IFC name field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclSpecialization nodes.
+*/
+template<>
+struct an_ifc_name_metadata<an_ifc_decl_specialization> {
+  using return_type = an_ifc_name_index;
+};  /* an_ifc_name_metadata */
+
+
+/*
+The IFC name field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclTemplate nodes.
+*/
+template<>
+struct an_ifc_name_metadata<an_ifc_decl_template> {
+  using return_type = an_ifc_name_index;
+};  /* an_ifc_name_metadata */
+
+
+/*
+The IFC name field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclUsingDeclaration nodes.
+*/
+template<>
+struct an_ifc_name_metadata<an_ifc_decl_using_declaration> {
+  using return_type = an_ifc_text_offset;
+};  /* an_ifc_name_metadata */
+
+
+/*
+The IFC name field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclVariable nodes.
+*/
+template<>
+struct an_ifc_name_metadata<an_ifc_decl_variable> {
+  using return_type = an_ifc_name_index;
+};  /* an_ifc_name_metadata */
+
+
+/*
+The IFC name field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprDestructorCall nodes.
+*/
+template<>
+struct an_ifc_name_metadata<an_ifc_expr_destructor_call> {
+  using return_type = an_ifc_expr_index;
+};  /* an_ifc_name_metadata */
+
+
+/*
+The IFC name field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprMemberAccess nodes.
+*/
+template<>
+struct an_ifc_name_metadata<an_ifc_expr_member_access> {
+  using return_type = an_ifc_text_offset;
+};  /* an_ifc_name_metadata */
+
+
+/*
+The IFC name field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprSimpleIdentifier nodes.
+*/
+template<>
+struct an_ifc_name_metadata<an_ifc_expr_simple_identifier> {
+  using return_type = an_ifc_name_index;
+};  /* an_ifc_name_metadata */
+
+
+/*
+The IFC name field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprUnqualifiedId nodes.
+*/
+template<>
+struct an_ifc_name_metadata<an_ifc_expr_unqualified_id> {
+  using return_type = an_ifc_name_index;
+};  /* an_ifc_name_metadata */
+
+
+/*
+The IFC name field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprUnresolvedId nodes.
+*/
+template<>
+struct an_ifc_name_metadata<an_ifc_expr_unresolved_id> {
+  using return_type = an_ifc_name_index;
+};  /* an_ifc_name_metadata */
+
+
+/*
+The IFC name field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for MacroFunctionLike nodes.
+*/
+template<>
+struct an_ifc_name_metadata<an_ifc_macro_function_like> {
+  using return_type = an_ifc_text_offset;
+};  /* an_ifc_name_metadata */
+
+
+/*
+The IFC name field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for MacroObjectLike nodes.
+*/
+template<>
+struct an_ifc_name_metadata<an_ifc_macro_object_like> {
+  using return_type = an_ifc_text_offset;
+};  /* an_ifc_name_metadata */
+
+
+/*
+The IFC name field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for NameTemplate nodes.
+*/
+template<>
+struct an_ifc_name_metadata<an_ifc_name_template> {
+  using return_type = an_ifc_name_index;
+};  /* an_ifc_name_metadata */
+
+
+/*
+The IFC name field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for Partition nodes.
+*/
+template<>
+struct an_ifc_name_metadata<an_ifc_partition> {
+  using return_type = an_ifc_text_offset;
+};  /* an_ifc_name_metadata */
+
+
+/*
+The IFC name field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxAliasDeclaration nodes.
+*/
+template<>
+struct an_ifc_name_metadata<an_ifc_syntax_alias_declaration> {
+  using return_type = an_ifc_expr_index;
+};  /* an_ifc_name_metadata */
+
+
+/*
+The IFC name field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxAttribute nodes.
+*/
+template<>
+struct an_ifc_name_metadata<an_ifc_syntax_attribute> {
+  using return_type = an_ifc_expr_index;
+};  /* an_ifc_name_metadata */
+
+
+/*
+The IFC name field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxClassSpecifier nodes.
+*/
+template<>
+struct an_ifc_name_metadata<an_ifc_syntax_class_specifier> {
+  using return_type = an_ifc_expr_index;
+};  /* an_ifc_name_metadata */
+
+
+/*
+The IFC name field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxConceptDefinition nodes.
+*/
+template<>
+struct an_ifc_name_metadata<an_ifc_syntax_concept_definition> {
+  using return_type = an_ifc_text_offset;
+};  /* an_ifc_name_metadata */
+
+
+/*
+The IFC name field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxDeclarator nodes.
+*/
+template<>
+struct an_ifc_name_metadata<an_ifc_syntax_declarator> {
+  using return_type = an_ifc_expr_index;
+};  /* an_ifc_name_metadata */
+
+
+/*
+The IFC name field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxEnumSpecifier nodes.
+*/
+template<>
+struct an_ifc_name_metadata<an_ifc_syntax_enum_specifier> {
+  using return_type = an_ifc_expr_index;
+};  /* an_ifc_name_metadata */
+
+
+/*
+The IFC name field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxEnumeratorDefinition nodes.
+*/
+template<>
+struct an_ifc_name_metadata<an_ifc_syntax_enumerator_definition> {
+  using return_type = an_ifc_text_offset;
+};  /* an_ifc_name_metadata */
+
+
+/*
+The IFC name field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxInitCapture nodes.
+*/
+template<>
+struct an_ifc_name_metadata<an_ifc_syntax_init_capture> {
+  using return_type = an_ifc_expr_index;
+};  /* an_ifc_name_metadata */
+
+
+/*
+The IFC name field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxNamespaceAliasDefinition
+nodes.
+*/
+template<>
+struct an_ifc_name_metadata<an_ifc_syntax_namespace_alias_definition> {
+  using return_type = an_ifc_expr_index;
+};  /* an_ifc_name_metadata */
+
+
+/*
+The IFC name field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxSimpleCapture nodes.
+*/
+template<>
+struct an_ifc_name_metadata<an_ifc_syntax_simple_capture> {
+  using return_type = an_ifc_expr_index;
+};  /* an_ifc_name_metadata */
+
+
+/*
+The IFC name field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxStructuredBindingIdentifier
+nodes.
+*/
+template<>
+struct an_ifc_name_metadata<an_ifc_syntax_structured_binding_identifier> {
+  using return_type = an_ifc_expr_index;
+};  /* an_ifc_name_metadata */
+
+
+/*
+The IFC name field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxTemplateId nodes.
+*/
+template<>
+struct an_ifc_name_metadata<an_ifc_syntax_template_id> {
+  using return_type = an_ifc_syntax_index;
+};  /* an_ifc_name_metadata */
+
+
+/*
+The IFC name field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxTemplateTemplateParameter
+nodes.
+*/
+template<>
+struct an_ifc_name_metadata<an_ifc_syntax_template_template_parameter> {
+  using return_type = an_ifc_text_offset;
+};  /* an_ifc_name_metadata */
+
+
+/*
+The IFC name field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxTypeTemplateParameter
+nodes.
+*/
+template<>
+struct an_ifc_name_metadata<an_ifc_syntax_type_template_parameter> {
+  using return_type = an_ifc_text_offset;
+};  /* an_ifc_name_metadata */
+
+
+/*
+The IFC name field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxUsingEnumDeclaration nodes.
+*/
+template<>
+struct an_ifc_name_metadata<an_ifc_syntax_using_enum_declaration> {
+  using return_type = an_ifc_expr_index;
+};  /* an_ifc_name_metadata */
+
+
+/*
+The IFC offset field has multiple return types.  This type is a metadata type
+that allows resolution of those return types based on the respective node type.
+*/
+template<typename an_ifc_Node_type>
+struct an_ifc_offset_metadata;
+
+
+/*
+The IFC offset field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprMemberAccess nodes.
+*/
+template<>
+struct an_ifc_offset_metadata<an_ifc_expr_member_access> {
+  using return_type = an_ifc_expr_index;
+};  /* an_ifc_offset_metadata */
+
+
+/*
+The IFC offset field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for Partition nodes.
+*/
+template<>
+struct an_ifc_offset_metadata<an_ifc_partition> {
+  using return_type = an_ifc_byte_offset;
+};  /* an_ifc_offset_metadata */
+
+
+/*
+The IFC op field has multiple return types.  This type is a metadata type that
+allows resolution of those return types based on the respective node type.
+*/
+template<typename an_ifc_Node_type>
+struct an_ifc_op_metadata;
+
+
+/*
+The IFC op field has multiple return types.  This type is a metadata type that
+allows resolution of the return type for ExprCast nodes.
+*/
+template<>
+struct an_ifc_op_metadata<an_ifc_expr_cast> {
+  using return_type = an_ifc_dyadic_operator_sort;
+};  /* an_ifc_op_metadata */
+
+
+/*
+The IFC op field has multiple return types.  This type is a metadata type that
+allows resolution of the return type for ExprHierarchyConversion nodes.
+*/
+template<>
+struct an_ifc_op_metadata<an_ifc_expr_hierarchy_conversion> {
+  using return_type = an_ifc_dyadic_operator_sort;
+};  /* an_ifc_op_metadata */
+
+
+/*
+The IFC op field has multiple return types.  This type is a metadata type that
+allows resolution of the return type for FormOperator nodes.
+*/
+template<>
+struct an_ifc_op_metadata<an_ifc_form_operator> {
+  using return_type = an_ifc_form_operator_sort;
+};  /* an_ifc_op_metadata */
+
+
+/*
+The IFC operand field has multiple return types.  This type is a metadata type
+that allows resolution of those return types based on the respective node type.
+*/
+template<typename an_ifc_Node_type>
+struct an_ifc_operand_metadata;
+
+
+/*
+The IFC operand field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for AttrExpanded nodes.
+*/
+template<>
+struct an_ifc_operand_metadata<an_ifc_attr_expanded> {
+  using return_type = an_ifc_attr_index;
+};  /* an_ifc_operand_metadata */
+
+
+/*
+The IFC operand field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclExpansion nodes.
+*/
+template<>
+struct an_ifc_operand_metadata<an_ifc_decl_expansion> {
+  using return_type = an_ifc_decl_index;
+};  /* an_ifc_operand_metadata */
+
+
+/*
+The IFC operand field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprAlignof nodes.
+*/
+template<>
+struct an_ifc_operand_metadata<an_ifc_expr_alignof> {
+  using return_type = an_ifc_syntax_index;
+};  /* an_ifc_operand_metadata */
+
+
+/*
+The IFC operand field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprExpansion nodes.
+*/
+template<>
+struct an_ifc_operand_metadata<an_ifc_expr_expansion> {
+  using return_type = an_ifc_expr_index;
+};  /* an_ifc_operand_metadata */
+
+
+/*
+The IFC operand field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprSizeofType nodes.
+*/
+template<>
+struct an_ifc_operand_metadata<an_ifc_expr_sizeof_type> {
+  using return_type = an_ifc_type_index;
+};  /* an_ifc_operand_metadata */
+
+
+/*
+The IFC operand field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprTypeid nodes.
+*/
+template<>
+struct an_ifc_operand_metadata<an_ifc_expr_typeid> {
+  using return_type = an_ifc_type_index;
+};  /* an_ifc_operand_metadata */
+
+
+/*
+The IFC operand field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for FormParenthesized nodes.
+*/
+template<>
+struct an_ifc_operand_metadata<an_ifc_form_parenthesized> {
+  using return_type = an_ifc_form_index;
+};  /* an_ifc_operand_metadata */
+
+
+/*
+The IFC operand field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for FormPragma nodes.
+*/
+template<>
+struct an_ifc_operand_metadata<an_ifc_form_pragma> {
+  using return_type = an_ifc_form_index;
+};  /* an_ifc_operand_metadata */
+
+
+/*
+The IFC operand field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for FormStringize nodes.
+*/
+template<>
+struct an_ifc_operand_metadata<an_ifc_form_stringize> {
+  using return_type = an_ifc_form_index;
+};  /* an_ifc_operand_metadata */
+
+
+/*
+The IFC operand field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for StmtExpansion nodes.
+*/
+template<>
+struct an_ifc_operand_metadata<an_ifc_stmt_expansion> {
+  using return_type = an_ifc_stmt_index;
+};  /* an_ifc_operand_metadata */
+
+
+/*
+The IFC operand field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxAlignas nodes.
+*/
+template<>
+struct an_ifc_operand_metadata<an_ifc_syntax_alignas> {
+  using return_type = an_ifc_syntax_index;
+};  /* an_ifc_operand_metadata */
+
+
+/*
+The IFC operand field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxUnaryFoldExpression nodes.
+*/
+template<>
+struct an_ifc_operand_metadata<an_ifc_syntax_unary_fold_expression> {
+  using return_type = an_ifc_expr_index;
+};  /* an_ifc_operand_metadata */
+
+
+/*
+The IFC operation field has multiple return types.  This type is a metadata
+type that allows resolution of those return types based on the respective node
+type.
+*/
+template<typename an_ifc_Node_type>
+struct an_ifc_operation_metadata;
+
+
+/*
+The IFC operation field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for ExprBinaryFold nodes.
+*/
+template<>
+struct an_ifc_operation_metadata<an_ifc_expr_binary_fold> {
+  using return_type = an_ifc_dyadic_operator_sort;
+};  /* an_ifc_operation_metadata */
+
+
+/*
+The IFC operation field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for ExprCall nodes.
+*/
+template<>
+struct an_ifc_operation_metadata<an_ifc_expr_call> {
+  using return_type = an_ifc_expr_index;
+};  /* an_ifc_operation_metadata */
+
+
+/*
+The IFC operation field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for ExprUnaryFold nodes.
+*/
+template<>
+struct an_ifc_operation_metadata<an_ifc_expr_unary_fold> {
+  using return_type = an_ifc_dyadic_operator_sort;
+};  /* an_ifc_operation_metadata */
+
+
+/*
+The IFC pack field has multiple return types.  This type is a metadata type
+that allows resolution of those return types based on the respective node type.
+*/
+template<typename an_ifc_Node_type>
+struct an_ifc_pack_metadata;
+
+
+/*
+The IFC pack field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclParameter nodes.
+*/
+template<>
+struct an_ifc_pack_metadata<an_ifc_decl_parameter> {
+  using return_type = an_ifc_bool;
+};  /* an_ifc_pack_metadata */
+
+
+/*
+The IFC pack field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for TypeExpansion nodes.
+*/
+template<>
+struct an_ifc_pack_metadata<an_ifc_type_expansion> {
+  using return_type = an_ifc_type_index;
+};  /* an_ifc_pack_metadata */
+
+
+/*
+The IFC parameters field has multiple return types.  This type is a metadata
+type that allows resolution of those return types based on the respective node
+type.
+*/
+template<typename an_ifc_Node_type>
+struct an_ifc_parameters_metadata;
+
+
+/*
+The IFC parameters field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for ExprRequires nodes.
+*/
+template<>
+struct an_ifc_parameters_metadata<an_ifc_expr_requires> {
+  using return_type = an_ifc_syntax_index;
+};  /* an_ifc_parameters_metadata */
+
+
+/*
+The IFC parameters field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for MacroFunctionLike nodes.
+*/
+template<>
+struct an_ifc_parameters_metadata<an_ifc_macro_function_like> {
+  using return_type = an_ifc_form_index;
+};  /* an_ifc_parameters_metadata */
+
+
+/*
+The IFC parameters field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for SyntaxConceptDefinition
+nodes.
+*/
+template<>
+struct an_ifc_parameters_metadata<an_ifc_syntax_concept_definition> {
+  using return_type = an_ifc_syntax_index;
+};  /* an_ifc_parameters_metadata */
+
+
+/*
+The IFC parameters field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for SyntaxFunctionDeclarator
+nodes.
+*/
+template<>
+struct an_ifc_parameters_metadata<an_ifc_syntax_function_declarator> {
+  using return_type = an_ifc_syntax_index;
+};  /* an_ifc_parameters_metadata */
+
+
+/*
+The IFC parameters field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for SyntaxLambdaDeclarator
+nodes.
+*/
+template<>
+struct an_ifc_parameters_metadata<an_ifc_syntax_lambda_declarator> {
+  using return_type = an_ifc_syntax_index;
+};  /* an_ifc_parameters_metadata */
+
+
+/*
+The IFC parameters field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for SyntaxTemplateDeclaration
+nodes.
+*/
+template<>
+struct an_ifc_parameters_metadata<an_ifc_syntax_template_declaration> {
+  using return_type = an_ifc_syntax_index;
+};  /* an_ifc_parameters_metadata */
+
+
+/*
+The IFC parameters field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for SyntaxTemplateParameterList
+nodes.
+*/
+template<>
+struct an_ifc_parameters_metadata<an_ifc_syntax_template_parameter_list> {
+  using return_type = an_ifc_syntax_index;
+};  /* an_ifc_parameters_metadata */
+
+
+/*
+The IFC parameters field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for
+SyntaxTemplateTemplateParameter nodes.
+*/
+template<>
+struct an_ifc_parameters_metadata<an_ifc_syntax_template_template_parameter> {
+  using return_type = an_ifc_syntax_index;
+};  /* an_ifc_parameters_metadata */
+
+
+/*
+The IFC parameters field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for TraitFunctionDefinition
+nodes.
+*/
+template<>
+struct an_ifc_parameters_metadata<an_ifc_trait_function_definition> {
+  using return_type = an_ifc_chart_index;
+};  /* an_ifc_parameters_metadata */
+
+
+/*
+The IFC path field has multiple return types.  This type is a metadata type
+that allows resolution of those return types based on the respective node type.
+*/
+template<typename an_ifc_Node_type>
+struct an_ifc_path_metadata;
+
+
+/*
+The IFC path field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprInheritancePath nodes.
+*/
+template<>
+struct an_ifc_path_metadata<an_ifc_expr_inheritance_path> {
+  using return_type = an_ifc_expr_index;
+};  /* an_ifc_path_metadata */
+
+
+/*
+The IFC path field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for NameSourceFile nodes.
+*/
+template<>
+struct an_ifc_path_metadata<an_ifc_name_source_file> {
+  using return_type = an_ifc_text_offset;
+};  /* an_ifc_path_metadata */
+
+
+/*
+The IFC path field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for TypeTypename nodes.
+*/
+template<>
+struct an_ifc_path_metadata<an_ifc_type_typename> {
+  using return_type = an_ifc_expr_index;
+};  /* an_ifc_path_metadata */
+
+
+/*
+The IFC prefix field has multiple return types.  This type is a metadata type
+that allows resolution of those return types based on the respective node type.
+*/
+template<typename an_ifc_Node_type>
+struct an_ifc_prefix_metadata;
+
+
+/*
+The IFC prefix field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprCompoundString nodes.
+*/
+template<>
+struct an_ifc_prefix_metadata<an_ifc_expr_compound_string> {
+  using return_type = an_ifc_text_offset;
+};  /* an_ifc_prefix_metadata */
+
+
+/*
+The IFC prefix field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxAttributeSpecifier nodes.
+*/
+template<>
+struct an_ifc_prefix_metadata<an_ifc_syntax_attribute_specifier> {
+  using return_type = an_ifc_syntax_index;
+};  /* an_ifc_prefix_metadata */
+
+
+/*
+The IFC primary field has multiple return types.  This type is a metadata type
+that allows resolution of those return types based on the respective node type.
+*/
+template<typename an_ifc_Node_type>
+struct an_ifc_primary_metadata;
+
+
+/*
+The IFC primary field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprTemplateId nodes.
+*/
+template<>
+struct an_ifc_primary_metadata<an_ifc_expr_template_id> {
+  using return_type = an_ifc_expr_index;
+};  /* an_ifc_primary_metadata */
+
+
+/*
+The IFC primary field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for NameSpecialization nodes.
+*/
+template<>
+struct an_ifc_primary_metadata<an_ifc_name_specialization> {
+  using return_type = an_ifc_name_index;
+};  /* an_ifc_primary_metadata */
+
+
+/*
+The IFC resolution field has multiple return types.  This type is a metadata
+type that allows resolution of those return types based on the respective node
+type.
+*/
+template<typename an_ifc_Node_type>
+struct an_ifc_resolution_metadata;
+
+
+/*
+The IFC resolution field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for DeclUsingDeclaration nodes.
+*/
+template<>
+struct an_ifc_resolution_metadata<an_ifc_decl_using_declaration> {
+  using return_type = an_ifc_decl_index;
+};  /* an_ifc_resolution_metadata */
+
+
+/*
+The IFC resolution field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for ExprNamedDecl nodes.
+*/
+template<>
+struct an_ifc_resolution_metadata<an_ifc_expr_named_decl> {
+  using return_type = an_ifc_decl_index;
+};  /* an_ifc_resolution_metadata */
+
+
+/*
+The IFC resolution field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for ExprUnqualifiedId nodes.
+*/
+template<>
+struct an_ifc_resolution_metadata<an_ifc_expr_unqualified_id> {
+  using return_type = an_ifc_expr_index;
+};  /* an_ifc_resolution_metadata */
+
+
+/*
+The IFC right field has multiple return types.  This type is a metadata type
+that allows resolution of those return types based on the respective node type.
+*/
+template<typename an_ifc_Node_type>
+struct an_ifc_right_metadata;
+
+
+/*
+The IFC right field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprBinaryFold nodes.
+*/
+template<>
+struct an_ifc_right_metadata<an_ifc_expr_binary_fold> {
+  using return_type = an_ifc_expr_index;
+};  /* an_ifc_right_metadata */
+
+
+/*
+The IFC right field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprExpressionList nodes.
+*/
+template<>
+struct an_ifc_right_metadata<an_ifc_expr_expression_list> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_right_metadata */
+
+
+/*
+The IFC right_paren field has multiple return types.  This type is a metadata
+type that allows resolution of those return types based on the respective node
+type.
+*/
+template<typename an_ifc_Node_type>
+struct an_ifc_right_paren_metadata;
+
+
+/*
+The IFC right_paren field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for SyntaxAlignas nodes.
+*/
+template<>
+struct an_ifc_right_paren_metadata<an_ifc_syntax_alignas> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_right_paren_metadata */
+
+
+/*
+The IFC right_paren field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for
+SyntaxAttributeArgumentClause nodes.
+*/
+template<>
+struct an_ifc_right_paren_metadata<an_ifc_syntax_attribute_argument_clause> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_right_paren_metadata */
+
+
+/*
+The IFC right_paren field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for SyntaxBinaryFoldExpression
+nodes.
+*/
+template<>
+struct an_ifc_right_paren_metadata<an_ifc_syntax_binary_fold_expression> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_right_paren_metadata */
+
+
+/*
+The IFC right_paren field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for SyntaxClassSpecifier nodes.
+*/
+template<>
+struct an_ifc_right_paren_metadata<an_ifc_syntax_class_specifier> {
+  using return_type = an_ifc_syntax_index;
+};  /* an_ifc_right_paren_metadata */
+
+
+/*
+The IFC right_paren field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for SyntaxDecltypeSpecifier
+nodes.
+*/
+template<>
+struct an_ifc_right_paren_metadata<an_ifc_syntax_decltype_specifier> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_right_paren_metadata */
+
+
+/*
+The IFC right_paren field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for SyntaxDynamicExceptionSpec
+nodes.
+*/
+template<>
+struct an_ifc_right_paren_metadata<an_ifc_syntax_dynamic_exception_spec> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_right_paren_metadata */
+
+
+/*
+The IFC right_paren field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for SyntaxExplicitSpecifier
+nodes.
+*/
+template<>
+struct an_ifc_right_paren_metadata<an_ifc_syntax_explicit_specifier> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_right_paren_metadata */
+
+
+/*
+The IFC right_paren field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for SyntaxForStatement nodes.
+*/
+template<>
+struct an_ifc_right_paren_metadata<an_ifc_syntax_for_statement> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_right_paren_metadata */
+
+
+/*
+The IFC right_paren field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for SyntaxFunctionDeclarator
+nodes.
+*/
+template<>
+struct an_ifc_right_paren_metadata<an_ifc_syntax_function_declarator> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_right_paren_metadata */
+
+
+/*
+The IFC right_paren field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for SyntaxHandler nodes.
+*/
+template<>
+struct an_ifc_right_paren_metadata<an_ifc_syntax_handler> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_right_paren_metadata */
+
+
+/*
+The IFC right_paren field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for SyntaxLambdaDeclarator
+nodes.
+*/
+template<>
+struct an_ifc_right_paren_metadata<an_ifc_syntax_lambda_declarator> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_right_paren_metadata */
+
+
+/*
+The IFC right_paren field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for SyntaxNoexceptSpecification
+nodes.
+*/
+template<>
+struct an_ifc_right_paren_metadata<an_ifc_syntax_noexcept_specification> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_right_paren_metadata */
+
+
+/*
+The IFC right_paren field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for SyntaxRangeBasedForStatement
+nodes.
+*/
+template<>
+struct an_ifc_right_paren_metadata<an_ifc_syntax_range_based_for_statement> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_right_paren_metadata */
+
+
+/*
+The IFC right_paren field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for SyntaxSEHExcept nodes.
+*/
+template<>
+struct an_ifc_right_paren_metadata<an_ifc_syntax_seh_except> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_right_paren_metadata */
+
+
+/*
+The IFC right_paren field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for
+SyntaxStaticAssertDeclaration nodes.
+*/
+template<>
+struct an_ifc_right_paren_metadata<an_ifc_syntax_static_assert_declaration> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_right_paren_metadata */
+
+
+/*
+The IFC right_paren field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for SyntaxUnaryFoldExpression
+nodes.
+*/
+template<>
+struct an_ifc_right_paren_metadata<an_ifc_syntax_unary_fold_expression> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_right_paren_metadata */
+
+
+/*
+The IFC scope field has multiple return types.  This type is a metadata type
+that allows resolution of those return types based on the respective node type.
+*/
+template<typename an_ifc_Node_type>
+struct an_ifc_scope_metadata;
+
+
+/*
+The IFC scope field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for AttrScoped nodes.
+*/
+template<>
+struct an_ifc_scope_metadata<an_ifc_attr_scoped> {
+  using return_type = an_ifc_nestable_word;
+};  /* an_ifc_scope_metadata */
+
+
+/*
+The IFC scope field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprPath nodes.
+*/
+template<>
+struct an_ifc_scope_metadata<an_ifc_expr_path> {
+  using return_type = an_ifc_expr_index;
+};  /* an_ifc_scope_metadata */
+
+
+/*
+The IFC scope field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprTemplateReference nodes.
+*/
+template<>
+struct an_ifc_scope_metadata<an_ifc_expr_template_reference> {
+  using return_type = an_ifc_type_index;
+};  /* an_ifc_scope_metadata */
+
+
+/*
+The IFC scope field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxAttribute nodes.
+*/
+template<>
+struct an_ifc_scope_metadata<an_ifc_syntax_attribute> {
+  using return_type = an_ifc_expr_index;
+};  /* an_ifc_scope_metadata */
+
+
+/*
+The IFC scope field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxAttributeUsingPrefix nodes.
+*/
+template<>
+struct an_ifc_scope_metadata<an_ifc_syntax_attribute_using_prefix> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_scope_metadata */
+
+
+/*
+The IFC scope field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for TypeMethod nodes.
+*/
+template<>
+struct an_ifc_scope_metadata<an_ifc_type_method> {
+  using return_type = an_ifc_type_index;
+};  /* an_ifc_scope_metadata */
+
+
+/*
+The IFC scope field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for TypePointerToMember nodes.
+*/
+template<>
+struct an_ifc_scope_metadata<an_ifc_type_pointer_to_member> {
+  using return_type = an_ifc_type_index;
+};  /* an_ifc_scope_metadata */
+
+
+/*
+The IFC sort field has multiple return types.  This type is a metadata type
+that allows resolution of those return types based on the respective node type.
+*/
+template<typename an_ifc_Node_type>
+struct an_ifc_sort_metadata;
+
+
+/*
+The IFC sort field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclParameter nodes.
+*/
+template<>
+struct an_ifc_sort_metadata<an_ifc_decl_parameter> {
+  using return_type = an_ifc_parameter_sort;
+};  /* an_ifc_sort_metadata */
+
+
+/*
+The IFC sort field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclSpecialization nodes.
+*/
+template<>
+struct an_ifc_sort_metadata<an_ifc_decl_specialization> {
+  using return_type = an_ifc_specialization_sort;
+};  /* an_ifc_sort_metadata */
+
+
+/*
+The IFC sort field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprInitializer nodes.
+*/
+template<>
+struct an_ifc_sort_metadata<an_ifc_expr_initializer> {
+  using return_type = an_ifc_initializer_sort;
+};  /* an_ifc_sort_metadata */
+
+
+/*
+The IFC sort field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprRead nodes.
+*/
+template<>
+struct an_ifc_sort_metadata<an_ifc_expr_read> {
+  using return_type = an_ifc_read_conversion_sort;
+};  /* an_ifc_sort_metadata */
+
+
+/*
+The IFC sort field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for NestableWord nodes.
+*/
+template<>
+struct an_ifc_sort_metadata<an_ifc_nestable_word> {
+  using return_type = an_ifc_word_sort;
+};  /* an_ifc_sort_metadata */
+
+
+/*
+The IFC sort field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for NoexceptSpecification nodes.
+*/
+template<>
+struct an_ifc_sort_metadata<an_ifc_noexcept_specification> {
+  using return_type = an_ifc_noexcept_sort;
+};  /* an_ifc_sort_metadata */
+
+
+/*
+The IFC sort field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SourceWord nodes.
+*/
+template<>
+struct an_ifc_sort_metadata<an_ifc_source_word> {
+  using return_type = an_ifc_word_sort;
+};  /* an_ifc_sort_metadata */
+
+
+/*
+The IFC sort field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxLabeledStatement nodes.
+*/
+template<>
+struct an_ifc_sort_metadata<an_ifc_syntax_labeled_statement> {
+  using return_type = an_ifc_label_sort;
+};  /* an_ifc_sort_metadata */
+
+
+/*
+The IFC sort field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxParameterDeclarator nodes.
+*/
+template<>
+struct an_ifc_sort_metadata<an_ifc_syntax_parameter_declarator> {
+  using return_type = an_ifc_parameter_sort;
+};  /* an_ifc_sort_metadata */
+
+
+/*
+The IFC sort field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxPointerDeclarator nodes.
+*/
+template<>
+struct an_ifc_sort_metadata<an_ifc_syntax_pointer_declarator> {
+  using return_type = an_ifc_pointer_declarator_sort;
+};  /* an_ifc_sort_metadata */
+
+
+/*
+The IFC sort field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxReturnStatement nodes.
+*/
+template<>
+struct an_ifc_sort_metadata<an_ifc_syntax_return_statement> {
+  using return_type = an_ifc_return_sort;
+};  /* an_ifc_sort_metadata */
+
+
+/*
+The IFC source field has multiple return types.  This type is a metadata type
+that allows resolution of those return types based on the respective node type.
+*/
+template<typename an_ifc_Node_type>
+struct an_ifc_source_metadata;
+
+
+/*
+The IFC source field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclDeductionGuide nodes.
+*/
+template<>
+struct an_ifc_source_metadata<an_ifc_decl_deduction_guide> {
+  using return_type = an_ifc_chart_index;
+};  /* an_ifc_source_metadata */
+
+
+/*
+The IFC source field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprCast nodes.
+*/
+template<>
+struct an_ifc_source_metadata<an_ifc_expr_cast> {
+  using return_type = an_ifc_expr_index;
+};  /* an_ifc_source_metadata */
+
+
+/*
+The IFC source field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprHierarchyConversion nodes.
+*/
+template<>
+struct an_ifc_source_metadata<an_ifc_expr_hierarchy_conversion> {
+  using return_type = an_ifc_expr_index;
+};  /* an_ifc_source_metadata */
+
+
+/*
+The IFC source field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for TypeFunction nodes.
+*/
+template<>
+struct an_ifc_source_metadata<an_ifc_type_function> {
+  using return_type = an_ifc_type_index;
+};  /* an_ifc_source_metadata */
+
+
+/*
+The IFC source field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for TypeMethod nodes.
+*/
+template<>
+struct an_ifc_source_metadata<an_ifc_type_method> {
+  using return_type = an_ifc_type_index;
+};  /* an_ifc_source_metadata */
+
+
+/*
+The IFC source field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for TypeTor nodes.
+*/
+template<>
+struct an_ifc_source_metadata<an_ifc_type_tor> {
+  using return_type = an_ifc_type_index;
+};  /* an_ifc_source_metadata */
+
+
+/*
+The IFC specifiers field has multiple return types.  This type is a metadata
+type that allows resolution of those return types based on the respective node
+type.
+*/
+template<typename an_ifc_Node_type>
+struct an_ifc_specifiers_metadata;
+
+
+/*
+The IFC specifiers field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for DeclAlias nodes.
+*/
+template<>
+struct an_ifc_specifiers_metadata<an_ifc_decl_alias> {
+  using return_type = an_ifc_basic_specifiers_bitfield;
+};  /* an_ifc_specifiers_metadata */
+
+
+/*
+The IFC specifiers field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for DeclBitfield nodes.
+*/
+template<>
+struct an_ifc_specifiers_metadata<an_ifc_decl_bitfield> {
+  using return_type = an_ifc_basic_specifiers_bitfield;
+};  /* an_ifc_specifiers_metadata */
+
+
+/*
+The IFC specifiers field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for DeclConcept nodes.
+*/
+template<>
+struct an_ifc_specifiers_metadata<an_ifc_decl_concept> {
+  using return_type = an_ifc_basic_specifiers_bitfield;
+};  /* an_ifc_specifiers_metadata */
+
+
+/*
+The IFC specifiers field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for DeclConstructor nodes.
+*/
+template<>
+struct an_ifc_specifiers_metadata<an_ifc_decl_constructor> {
+  using return_type = an_ifc_basic_specifiers_bitfield;
+};  /* an_ifc_specifiers_metadata */
+
+
+/*
+The IFC specifiers field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for DeclDeductionGuide nodes.
+*/
+template<>
+struct an_ifc_specifiers_metadata<an_ifc_decl_deduction_guide> {
+  using return_type = an_ifc_basic_specifiers_bitfield;
+};  /* an_ifc_specifiers_metadata */
+
+
+/*
+The IFC specifiers field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for DeclDestructor nodes.
+*/
+template<>
+struct an_ifc_specifiers_metadata<an_ifc_decl_destructor> {
+  using return_type = an_ifc_basic_specifiers_bitfield;
+};  /* an_ifc_specifiers_metadata */
+
+
+/*
+The IFC specifiers field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for DeclEnumeration nodes.
+*/
+template<>
+struct an_ifc_specifiers_metadata<an_ifc_decl_enumeration> {
+  using return_type = an_ifc_basic_specifiers_bitfield;
+};  /* an_ifc_specifiers_metadata */
+
+
+/*
+The IFC specifiers field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for DeclEnumerator nodes.
+*/
+template<>
+struct an_ifc_specifiers_metadata<an_ifc_decl_enumerator> {
+  using return_type = an_ifc_basic_specifiers_bitfield;
+};  /* an_ifc_specifiers_metadata */
+
+
+/*
+The IFC specifiers field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for DeclField nodes.
+*/
+template<>
+struct an_ifc_specifiers_metadata<an_ifc_decl_field> {
+  using return_type = an_ifc_basic_specifiers_bitfield;
+};  /* an_ifc_specifiers_metadata */
+
+
+/*
+The IFC specifiers field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for DeclFunction nodes.
+*/
+template<>
+struct an_ifc_specifiers_metadata<an_ifc_decl_function> {
+  using return_type = an_ifc_basic_specifiers_bitfield;
+};  /* an_ifc_specifiers_metadata */
+
+
+/*
+The IFC specifiers field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for DeclInheritedConstructor
+nodes.
+*/
+template<>
+struct an_ifc_specifiers_metadata<an_ifc_decl_inherited_constructor> {
+  using return_type = an_ifc_basic_specifiers_bitfield;
+};  /* an_ifc_specifiers_metadata */
+
+
+/*
+The IFC specifiers field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for DeclIntrinsic nodes.
+*/
+template<>
+struct an_ifc_specifiers_metadata<an_ifc_decl_intrinsic> {
+  using return_type = an_ifc_basic_specifiers_bitfield;
+};  /* an_ifc_specifiers_metadata */
+
+
+/*
+The IFC specifiers field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for DeclMethod nodes.
+*/
+template<>
+struct an_ifc_specifiers_metadata<an_ifc_decl_method> {
+  using return_type = an_ifc_basic_specifiers_bitfield;
+};  /* an_ifc_specifiers_metadata */
+
+
+/*
+The IFC specifiers field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for DeclPartialSpecialization
+nodes.
+*/
+template<>
+struct an_ifc_specifiers_metadata<an_ifc_decl_partial_specialization> {
+  using return_type = an_ifc_basic_specifiers_bitfield;
+};  /* an_ifc_specifiers_metadata */
+
+
+/*
+The IFC specifiers field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for DeclScope nodes.
+*/
+template<>
+struct an_ifc_specifiers_metadata<an_ifc_decl_scope> {
+  using return_type = an_ifc_basic_specifiers_bitfield;
+};  /* an_ifc_specifiers_metadata */
+
+
+/*
+The IFC specifiers field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for DeclTemplate nodes.
+*/
+template<>
+struct an_ifc_specifiers_metadata<an_ifc_decl_template> {
+  using return_type = an_ifc_basic_specifiers_bitfield;
+};  /* an_ifc_specifiers_metadata */
+
+
+/*
+The IFC specifiers field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for DeclUsingDeclaration nodes.
+*/
+template<>
+struct an_ifc_specifiers_metadata<an_ifc_decl_using_declaration> {
+  using return_type = an_ifc_basic_specifiers_bitfield;
+};  /* an_ifc_specifiers_metadata */
+
+
+/*
+The IFC specifiers field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for DeclVariable nodes.
+*/
+template<>
+struct an_ifc_specifiers_metadata<an_ifc_decl_variable> {
+  using return_type = an_ifc_basic_specifiers_bitfield;
+};  /* an_ifc_specifiers_metadata */
+
+
+/*
+The IFC specifiers field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for SyntaxForRangeDeclaration
+nodes.
+*/
+template<>
+struct an_ifc_specifiers_metadata<an_ifc_syntax_for_range_declaration> {
+  using return_type = an_ifc_syntax_index;
+};  /* an_ifc_specifiers_metadata */
+
+
+/*
+The IFC specifiers field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for
+SyntaxStructuredBindingDeclaration nodes.
+*/
+template<>
+struct an_ifc_specifiers_metadata<
+                                an_ifc_syntax_structured_binding_declaration> {
+  using return_type = an_ifc_syntax_index;
+};  /* an_ifc_specifiers_metadata */
+
+
+/*
+The IFC start field has multiple return types.  This type is a metadata type
+that allows resolution of those return types based on the respective node type.
+*/
+template<typename an_ifc_Node_type>
+struct an_ifc_start_metadata;
+
+
+/*
+The IFC start field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for AttrTuple nodes.
+*/
+template<>
+struct an_ifc_start_metadata<an_ifc_attr_tuple> {
+  using return_type = an_ifc_index;
+};  /* an_ifc_start_metadata */
+
+
+/*
+The IFC start field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ChartMultilevel nodes.
+*/
+template<>
+struct an_ifc_start_metadata<an_ifc_chart_multilevel> {
+  using return_type = an_ifc_index;
+};  /* an_ifc_start_metadata */
+
+
+/*
+The IFC start field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ChartUnilevel nodes.
+*/
+template<>
+struct an_ifc_start_metadata<an_ifc_chart_unilevel> {
+  using return_type = an_ifc_index;
+};  /* an_ifc_start_metadata */
+
+
+/*
+The IFC start field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ConstStr nodes.
+*/
+template<>
+struct an_ifc_start_metadata<an_ifc_const_str> {
+  using return_type = an_ifc_text_offset;
+};  /* an_ifc_start_metadata */
+
+
+/*
+The IFC start field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclTuple nodes.
+*/
+template<>
+struct an_ifc_start_metadata<an_ifc_decl_tuple> {
+  using return_type = an_ifc_index;
+};  /* an_ifc_start_metadata */
+
+
+/*
+The IFC start field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprTuple nodes.
+*/
+template<>
+struct an_ifc_start_metadata<an_ifc_expr_tuple> {
+  using return_type = an_ifc_index;
+};  /* an_ifc_start_metadata */
+
+
+/*
+The IFC start field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for FormTuple nodes.
+*/
+template<>
+struct an_ifc_start_metadata<an_ifc_form_tuple> {
+  using return_type = an_ifc_index;
+};  /* an_ifc_start_metadata */
+
+
+/*
+The IFC start field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ScopeDescriptor nodes.
+*/
+template<>
+struct an_ifc_start_metadata<an_ifc_scope_descriptor> {
+  using return_type = an_ifc_index;
+};  /* an_ifc_start_metadata */
+
+
+/*
+The IFC start field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for Sequence nodes.
+*/
+template<>
+struct an_ifc_start_metadata<an_ifc_sequence> {
+  using return_type = an_ifc_index;
+};  /* an_ifc_start_metadata */
+
+
+/*
+The IFC start field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SourceSentence nodes.
+*/
+template<>
+struct an_ifc_start_metadata<an_ifc_source_sentence> {
+  using return_type = an_ifc_index;
+};  /* an_ifc_start_metadata */
+
+
+/*
+The IFC start field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for StmtBlock nodes.
+*/
+template<>
+struct an_ifc_start_metadata<an_ifc_stmt_block> {
+  using return_type = an_ifc_index;
+};  /* an_ifc_start_metadata */
+
+
+/*
+The IFC start field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxTuple nodes.
+*/
+template<>
+struct an_ifc_start_metadata<an_ifc_syntax_tuple> {
+  using return_type = an_ifc_index;
+};  /* an_ifc_start_metadata */
+
+
+/*
+The IFC start field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for TypeTuple nodes.
+*/
+template<>
+struct an_ifc_start_metadata<an_ifc_type_tuple> {
+  using return_type = an_ifc_index;
+};  /* an_ifc_start_metadata */
+
+
+/*
+The IFC subject field has multiple return types.  This type is a metadata type
+that allows resolution of those return types based on the respective node type.
+*/
+template<typename an_ifc_Node_type>
+struct an_ifc_subject_metadata;
+
+
+/*
+The IFC subject field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxTemplateDeclaration nodes.
+*/
+template<>
+struct an_ifc_subject_metadata<an_ifc_syntax_template_declaration> {
+  using return_type = an_ifc_syntax_index;
+};  /* an_ifc_subject_metadata */
+
+
+/*
+The IFC subject field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for TypeForall nodes.
+*/
+template<>
+struct an_ifc_subject_metadata<an_ifc_type_forall> {
+  using return_type = an_ifc_type_index;
+};  /* an_ifc_subject_metadata */
+
+
+/*
+The IFC target field has multiple return types.  This type is a metadata type
+that allows resolution of those return types based on the respective node type.
+*/
+template<typename an_ifc_Node_type>
+struct an_ifc_target_metadata;
+
+
+/*
+The IFC target field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclDeductionGuide nodes.
+*/
+template<>
+struct an_ifc_target_metadata<an_ifc_decl_deduction_guide> {
+  using return_type = an_ifc_expr_index;
+};  /* an_ifc_target_metadata */
+
+
+/*
+The IFC target field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprCast nodes.
+*/
+template<>
+struct an_ifc_target_metadata<an_ifc_expr_cast> {
+  using return_type = an_ifc_type_index;
+};  /* an_ifc_target_metadata */
+
+
+/*
+The IFC target field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprHierarchyConversion nodes.
+*/
+template<>
+struct an_ifc_target_metadata<an_ifc_expr_hierarchy_conversion> {
+  using return_type = an_ifc_type_index;
+};  /* an_ifc_target_metadata */
+
+
+/*
+The IFC target field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for NameConversion nodes.
+*/
+template<>
+struct an_ifc_target_metadata<an_ifc_name_conversion> {
+  using return_type = an_ifc_type_index;
+};  /* an_ifc_target_metadata */
+
+
+/*
+The IFC target field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxGotoStatement nodes.
+*/
+template<>
+struct an_ifc_target_metadata<an_ifc_syntax_goto_statement> {
+  using return_type = an_ifc_text_offset;
+};  /* an_ifc_target_metadata */
+
+
+/*
+The IFC target field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxNamespaceAliasDefinition
+nodes.
+*/
+template<>
+struct an_ifc_target_metadata<an_ifc_syntax_namespace_alias_definition> {
+  using return_type = an_ifc_expr_index;
+};  /* an_ifc_target_metadata */
+
+
+/*
+The IFC target field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxTrailingReturnType nodes.
+*/
+template<>
+struct an_ifc_target_metadata<an_ifc_syntax_trailing_return_type> {
+  using return_type = an_ifc_syntax_index;
+};  /* an_ifc_target_metadata */
+
+
+/*
+The IFC target field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for TypeFunction nodes.
+*/
+template<>
+struct an_ifc_target_metadata<an_ifc_type_function> {
+  using return_type = an_ifc_type_index;
+};  /* an_ifc_target_metadata */
+
+
+/*
+The IFC target field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for TypeMethod nodes.
+*/
+template<>
+struct an_ifc_target_metadata<an_ifc_type_method> {
+  using return_type = an_ifc_type_index;
+};  /* an_ifc_target_metadata */
+
+
+/*
+The IFC trait field has multiple return types.  This type is a metadata type
+that allows resolution of those return types based on the respective node type.
+*/
+template<typename an_ifc_Node_type>
+struct an_ifc_trait_metadata;
+
+
+/*
+The IFC trait field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for TraitAliasTemplate nodes.
+*/
+template<>
+struct an_ifc_trait_metadata<an_ifc_trait_alias_template> {
+  using return_type = an_ifc_syntax_index;
+};  /* an_ifc_trait_metadata */
+
+
+/*
+The IFC trait field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for TraitAttribute nodes.
+*/
+template<>
+struct an_ifc_trait_metadata<an_ifc_trait_attribute> {
+  using return_type = an_ifc_attr_index;
+};  /* an_ifc_trait_metadata */
+
+
+/*
+The IFC trait field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for TraitDeductionGuide nodes.
+*/
+template<>
+struct an_ifc_trait_metadata<an_ifc_trait_deduction_guide> {
+  using return_type = an_ifc_decl_index;
+};  /* an_ifc_trait_metadata */
+
+
+/*
+The IFC trait field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for TraitDeprecated nodes.
+*/
+template<>
+struct an_ifc_trait_metadata<an_ifc_trait_deprecated> {
+  using return_type = an_ifc_text_offset;
+};  /* an_ifc_trait_metadata */
+
+
+/*
+The IFC trait field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for TraitFriend nodes.
+*/
+template<>
+struct an_ifc_trait_metadata<an_ifc_trait_friend> {
+  using return_type = an_ifc_sequence;
+};  /* an_ifc_trait_metadata */
+
+
+/*
+The IFC trait field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for TraitMsvcDeclAttrs nodes.
+*/
+template<>
+struct an_ifc_trait_metadata<an_ifc_trait_msvc_decl_attrs> {
+  using return_type = an_ifc_attr_index;
+};  /* an_ifc_trait_metadata */
+
+
+/*
+The IFC trait field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for TraitMsvcVendorTrait nodes.
+*/
+template<>
+struct an_ifc_trait_metadata<an_ifc_trait_msvc_vendor_trait> {
+  using return_type = an_ifc_msvc_traits_bitfield;
+};  /* an_ifc_trait_metadata */
+
+
+/*
+The IFC trait field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for TraitRequires nodes.
+*/
+template<>
+struct an_ifc_trait_metadata<an_ifc_trait_requires> {
+  using return_type = an_ifc_syntax_index;
+};  /* an_ifc_trait_metadata */
+
+
+/*
+The IFC trait field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for TraitSpecialization nodes.
+*/
+template<>
+struct an_ifc_trait_metadata<an_ifc_trait_specialization> {
+  using return_type = an_ifc_sequence;
+};  /* an_ifc_trait_metadata */
+
+
+/*
+The IFC traits field has multiple return types.  This type is a metadata type
+that allows resolution of those return types based on the respective node type.
+*/
+template<typename an_ifc_Node_type>
+struct an_ifc_traits_metadata;
+
+
+/*
+The IFC traits field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclBitfield nodes.
+*/
+template<>
+struct an_ifc_traits_metadata<an_ifc_decl_bitfield> {
+  using return_type = an_ifc_object_traits_bitfield;
+};  /* an_ifc_traits_metadata */
+
+
+/*
+The IFC traits field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclConstructor nodes.
+*/
+template<>
+struct an_ifc_traits_metadata<an_ifc_decl_constructor> {
+  using return_type = an_ifc_function_traits_bitfield;
+};  /* an_ifc_traits_metadata */
+
+
+/*
+The IFC traits field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclDeductionGuide nodes.
+*/
+template<>
+struct an_ifc_traits_metadata<an_ifc_decl_deduction_guide> {
+  using return_type = an_ifc_guide_traits_bitfield;
+};  /* an_ifc_traits_metadata */
+
+
+/*
+The IFC traits field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclDestructor nodes.
+*/
+template<>
+struct an_ifc_traits_metadata<an_ifc_decl_destructor> {
+  using return_type = an_ifc_function_traits_bitfield;
+};  /* an_ifc_traits_metadata */
+
+
+/*
+The IFC traits field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclField nodes.
+*/
+template<>
+struct an_ifc_traits_metadata<an_ifc_decl_field> {
+  using return_type = an_ifc_object_traits_bitfield;
+};  /* an_ifc_traits_metadata */
+
+
+/*
+The IFC traits field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclFunction nodes.
+*/
+template<>
+struct an_ifc_traits_metadata<an_ifc_decl_function> {
+  using return_type = an_ifc_function_traits_bitfield;
+};  /* an_ifc_traits_metadata */
+
+
+/*
+The IFC traits field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclInheritedConstructor nodes.
+*/
+template<>
+struct an_ifc_traits_metadata<an_ifc_decl_inherited_constructor> {
+  using return_type = an_ifc_function_traits_bitfield;
+};  /* an_ifc_traits_metadata */
+
+
+/*
+The IFC traits field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclMethod nodes.
+*/
+template<>
+struct an_ifc_traits_metadata<an_ifc_decl_method> {
+  using return_type = an_ifc_function_traits_bitfield;
+};  /* an_ifc_traits_metadata */
+
+
+/*
+The IFC traits field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclOutputSegment nodes.
+*/
+template<>
+struct an_ifc_traits_metadata<an_ifc_decl_output_segment> {
+  using return_type = an_ifc_segment_traits;
+};  /* an_ifc_traits_metadata */
+
+
+/*
+The IFC traits field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclScope nodes.
+*/
+template<>
+struct an_ifc_traits_metadata<an_ifc_decl_scope> {
+  using return_type = an_ifc_scope_traits_bitfield;
+};  /* an_ifc_traits_metadata */
+
+
+/*
+The IFC traits field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclVariable nodes.
+*/
+template<>
+struct an_ifc_traits_metadata<an_ifc_decl_variable> {
+  using return_type = an_ifc_object_traits_bitfield;
+};  /* an_ifc_traits_metadata */
+
+
+/*
+The IFC traits field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for TypeFunction nodes.
+*/
+template<>
+struct an_ifc_traits_metadata<an_ifc_type_function> {
+  using return_type = an_ifc_function_type_traits_bitfield;
+};  /* an_ifc_traits_metadata */
+
+
+/*
+The IFC traits field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for TypeMethod nodes.
+*/
+template<>
+struct an_ifc_traits_metadata<an_ifc_type_method> {
+  using return_type = an_ifc_function_type_traits_bitfield;
+};  /* an_ifc_traits_metadata */
+
+
+/*
+The IFC type field has multiple return types.  This type is a metadata type
+that allows resolution of those return types based on the respective node type.
+*/
+template<typename an_ifc_Node_type>
+struct an_ifc_type_metadata;
+
+
+/*
+The IFC type field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclAlias nodes.
+*/
+template<>
+struct an_ifc_type_metadata<an_ifc_decl_alias> {
+  using return_type = an_ifc_type_index;
+};  /* an_ifc_type_metadata */
+
+
+/*
+The IFC type field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclBitfield nodes.
+*/
+template<>
+struct an_ifc_type_metadata<an_ifc_decl_bitfield> {
+  using return_type = an_ifc_type_index;
+};  /* an_ifc_type_metadata */
+
+
+/*
+The IFC type field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclConcept nodes.
+*/
+template<>
+struct an_ifc_type_metadata<an_ifc_decl_concept> {
+  using return_type = an_ifc_type_index;
+};  /* an_ifc_type_metadata */
+
+
+/*
+The IFC type field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclConstructor nodes.
+*/
+template<>
+struct an_ifc_type_metadata<an_ifc_decl_constructor> {
+  using return_type = an_ifc_type_index;
+};  /* an_ifc_type_metadata */
+
+
+/*
+The IFC type field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclEnumeration nodes.
+*/
+template<>
+struct an_ifc_type_metadata<an_ifc_decl_enumeration> {
+  using return_type = an_ifc_type_index;
+};  /* an_ifc_type_metadata */
+
+
+/*
+The IFC type field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclEnumerator nodes.
+*/
+template<>
+struct an_ifc_type_metadata<an_ifc_decl_enumerator> {
+  using return_type = an_ifc_type_index;
+};  /* an_ifc_type_metadata */
+
+
+/*
+The IFC type field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclField nodes.
+*/
+template<>
+struct an_ifc_type_metadata<an_ifc_decl_field> {
+  using return_type = an_ifc_type_index;
+};  /* an_ifc_type_metadata */
+
+
+/*
+The IFC type field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclFunction nodes.
+*/
+template<>
+struct an_ifc_type_metadata<an_ifc_decl_function> {
+  using return_type = an_ifc_type_index;
+};  /* an_ifc_type_metadata */
+
+
+/*
+The IFC type field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclInheritedConstructor nodes.
+*/
+template<>
+struct an_ifc_type_metadata<an_ifc_decl_inherited_constructor> {
+  using return_type = an_ifc_type_index;
+};  /* an_ifc_type_metadata */
+
+
+/*
+The IFC type field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclIntrinsic nodes.
+*/
+template<>
+struct an_ifc_type_metadata<an_ifc_decl_intrinsic> {
+  using return_type = an_ifc_type_index;
+};  /* an_ifc_type_metadata */
+
+
+/*
+The IFC type field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclMethod nodes.
+*/
+template<>
+struct an_ifc_type_metadata<an_ifc_decl_method> {
+  using return_type = an_ifc_type_index;
+};  /* an_ifc_type_metadata */
+
+
+/*
+The IFC type field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclOutputSegment nodes.
+*/
+template<>
+struct an_ifc_type_metadata<an_ifc_decl_output_segment> {
+  using return_type = an_ifc_segment_type;
+};  /* an_ifc_type_metadata */
+
+
+/*
+The IFC type field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclParameter nodes.
+*/
+template<>
+struct an_ifc_type_metadata<an_ifc_decl_parameter> {
+  using return_type = an_ifc_type_index;
+};  /* an_ifc_type_metadata */
+
+
+/*
+The IFC type field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclScope nodes.
+*/
+template<>
+struct an_ifc_type_metadata<an_ifc_decl_scope> {
+  using return_type = an_ifc_type_index;
+};  /* an_ifc_type_metadata */
+
+
+/*
+The IFC type field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclTemplate nodes.
+*/
+template<>
+struct an_ifc_type_metadata<an_ifc_decl_template> {
+  using return_type = an_ifc_type_index;
+};  /* an_ifc_type_metadata */
+
+
+/*
+The IFC type field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclVariable nodes.
+*/
+template<>
+struct an_ifc_type_metadata<an_ifc_decl_variable> {
+  using return_type = an_ifc_type_index;
+};  /* an_ifc_type_metadata */
+
+
+/*
+The IFC type field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprAlignof nodes.
+*/
+template<>
+struct an_ifc_type_metadata<an_ifc_expr_alignof> {
+  using return_type = an_ifc_type_index;
+};  /* an_ifc_type_metadata */
+
+
+/*
+The IFC type field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprArrayValue nodes.
+*/
+template<>
+struct an_ifc_type_metadata<an_ifc_expr_array_value> {
+  using return_type = an_ifc_type_index;
+};  /* an_ifc_type_metadata */
+
+
+/*
+The IFC type field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprBinaryFold nodes.
+*/
+template<>
+struct an_ifc_type_metadata<an_ifc_expr_binary_fold> {
+  using return_type = an_ifc_type_index;
+};  /* an_ifc_type_metadata */
+
+
+/*
+The IFC type field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprCall nodes.
+*/
+template<>
+struct an_ifc_type_metadata<an_ifc_expr_call> {
+  using return_type = an_ifc_type_index;
+};  /* an_ifc_type_metadata */
+
+
+/*
+The IFC type field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprCast nodes.
+*/
+template<>
+struct an_ifc_type_metadata<an_ifc_expr_cast> {
+  using return_type = an_ifc_type_index;
+};  /* an_ifc_type_metadata */
+
+
+/*
+The IFC type field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprCompoundString nodes.
+*/
+template<>
+struct an_ifc_type_metadata<an_ifc_expr_compound_string> {
+  using return_type = an_ifc_type_index;
+};  /* an_ifc_type_metadata */
+
+
+/*
+The IFC type field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprCondition nodes.
+*/
+template<>
+struct an_ifc_type_metadata<an_ifc_expr_condition> {
+  using return_type = an_ifc_type_index;
+};  /* an_ifc_type_metadata */
+
+
+/*
+The IFC type field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprDesignatedInitializer nodes.
+*/
+template<>
+struct an_ifc_type_metadata<an_ifc_expr_designated_initializer> {
+  using return_type = an_ifc_type_index;
+};  /* an_ifc_type_metadata */
+
+
+/*
+The IFC type field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprDestructorCall nodes.
+*/
+template<>
+struct an_ifc_type_metadata<an_ifc_expr_destructor_call> {
+  using return_type = an_ifc_type_index;
+};  /* an_ifc_type_metadata */
+
+
+/*
+The IFC type field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprDyad nodes.
+*/
+template<>
+struct an_ifc_type_metadata<an_ifc_expr_dyad> {
+  using return_type = an_ifc_type_index;
+};  /* an_ifc_type_metadata */
+
+
+/*
+The IFC type field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprDynamicDispatch nodes.
+*/
+template<>
+struct an_ifc_type_metadata<an_ifc_expr_dynamic_dispatch> {
+  using return_type = an_ifc_type_index;
+};  /* an_ifc_type_metadata */
+
+
+/*
+The IFC type field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprEmpty nodes.
+*/
+template<>
+struct an_ifc_type_metadata<an_ifc_expr_empty> {
+  using return_type = an_ifc_type_index;
+};  /* an_ifc_type_metadata */
+
+
+/*
+The IFC type field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprExpansion nodes.
+*/
+template<>
+struct an_ifc_type_metadata<an_ifc_expr_expansion> {
+  using return_type = an_ifc_type_index;
+};  /* an_ifc_type_metadata */
+
+
+/*
+The IFC type field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprFunctionString nodes.
+*/
+template<>
+struct an_ifc_type_metadata<an_ifc_expr_function_string> {
+  using return_type = an_ifc_type_index;
+};  /* an_ifc_type_metadata */
+
+
+/*
+The IFC type field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprHierarchyConversion nodes.
+*/
+template<>
+struct an_ifc_type_metadata<an_ifc_expr_hierarchy_conversion> {
+  using return_type = an_ifc_type_index;
+};  /* an_ifc_type_metadata */
+
+
+/*
+The IFC type field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprInheritancePath nodes.
+*/
+template<>
+struct an_ifc_type_metadata<an_ifc_expr_inheritance_path> {
+  using return_type = an_ifc_type_index;
+};  /* an_ifc_type_metadata */
+
+
+/*
+The IFC type field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprInitializer nodes.
+*/
+template<>
+struct an_ifc_type_metadata<an_ifc_expr_initializer> {
+  using return_type = an_ifc_type_index;
+};  /* an_ifc_type_metadata */
+
+
+/*
+The IFC type field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprInitializerList nodes.
+*/
+template<>
+struct an_ifc_type_metadata<an_ifc_expr_initializer_list> {
+  using return_type = an_ifc_type_index;
+};  /* an_ifc_type_metadata */
+
+
+/*
+The IFC type field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprLiteral nodes.
+*/
+template<>
+struct an_ifc_type_metadata<an_ifc_expr_literal> {
+  using return_type = an_ifc_type_index;
+};  /* an_ifc_type_metadata */
+
+
+/*
+The IFC type field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprMemberAccess nodes.
+*/
+template<>
+struct an_ifc_type_metadata<an_ifc_expr_member_access> {
+  using return_type = an_ifc_type_index;
+};  /* an_ifc_type_metadata */
+
+
+/*
+The IFC type field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprMemberInitializer nodes.
+*/
+template<>
+struct an_ifc_type_metadata<an_ifc_expr_member_initializer> {
+  using return_type = an_ifc_type_index;
+};  /* an_ifc_type_metadata */
+
+
+/*
+The IFC type field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprMonad nodes.
+*/
+template<>
+struct an_ifc_type_metadata<an_ifc_expr_monad> {
+  using return_type = an_ifc_type_index;
+};  /* an_ifc_type_metadata */
+
+
+/*
+The IFC type field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprNamedDecl nodes.
+*/
+template<>
+struct an_ifc_type_metadata<an_ifc_expr_named_decl> {
+  using return_type = an_ifc_type_index;
+};  /* an_ifc_type_metadata */
+
+
+/*
+The IFC type field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprNullptr nodes.
+*/
+template<>
+struct an_ifc_type_metadata<an_ifc_expr_nullptr> {
+  using return_type = an_ifc_type_index;
+};  /* an_ifc_type_metadata */
+
+
+/*
+The IFC type field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprPackedTemplateArguments
+nodes.
+*/
+template<>
+struct an_ifc_type_metadata<an_ifc_expr_packed_template_arguments> {
+  using return_type = an_ifc_type_index;
+};  /* an_ifc_type_metadata */
+
+
+/*
+The IFC type field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprPath nodes.
+*/
+template<>
+struct an_ifc_type_metadata<an_ifc_expr_path> {
+  using return_type = an_ifc_type_index;
+};  /* an_ifc_type_metadata */
+
+
+/*
+The IFC type field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprPlaceholder nodes.
+*/
+template<>
+struct an_ifc_type_metadata<an_ifc_expr_placeholder> {
+  using return_type = an_ifc_type_index;
+};  /* an_ifc_type_metadata */
+
+
+/*
+The IFC type field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprProductTypeValue nodes.
+*/
+template<>
+struct an_ifc_type_metadata<an_ifc_expr_product_type_value> {
+  using return_type = an_ifc_type_index;
+};  /* an_ifc_type_metadata */
+
+
+/*
+The IFC type field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprPushState nodes.
+*/
+template<>
+struct an_ifc_type_metadata<an_ifc_expr_push_state> {
+  using return_type = an_ifc_type_index;
+};  /* an_ifc_type_metadata */
+
+
+/*
+The IFC type field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprQualifiedName nodes.
+*/
+template<>
+struct an_ifc_type_metadata<an_ifc_expr_qualified_name> {
+  using return_type = an_ifc_type_index;
+};  /* an_ifc_type_metadata */
+
+
+/*
+The IFC type field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprRead nodes.
+*/
+template<>
+struct an_ifc_type_metadata<an_ifc_expr_read> {
+  using return_type = an_ifc_type_index;
+};  /* an_ifc_type_metadata */
+
+
+/*
+The IFC type field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprRequires nodes.
+*/
+template<>
+struct an_ifc_type_metadata<an_ifc_expr_requires> {
+  using return_type = an_ifc_type_index;
+};  /* an_ifc_type_metadata */
+
+
+/*
+The IFC type field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprSimpleIdentifier nodes.
+*/
+template<>
+struct an_ifc_type_metadata<an_ifc_expr_simple_identifier> {
+  using return_type = an_ifc_type_index;
+};  /* an_ifc_type_metadata */
+
+
+/*
+The IFC type field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprSizeofType nodes.
+*/
+template<>
+struct an_ifc_type_metadata<an_ifc_expr_sizeof_type> {
+  using return_type = an_ifc_type_index;
+};  /* an_ifc_type_metadata */
+
+
+/*
+The IFC type field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprString nodes.
+*/
+template<>
+struct an_ifc_type_metadata<an_ifc_expr_string> {
+  using return_type = an_ifc_type_index;
+};  /* an_ifc_type_metadata */
+
+
+/*
+The IFC type field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprStringSequence nodes.
+*/
+template<>
+struct an_ifc_type_metadata<an_ifc_expr_string_sequence> {
+  using return_type = an_ifc_type_index;
+};  /* an_ifc_type_metadata */
+
+
+/*
+The IFC type field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprSumTypeValue nodes.
+*/
+template<>
+struct an_ifc_type_metadata<an_ifc_expr_sum_type_value> {
+  using return_type = an_ifc_type_index;
+};  /* an_ifc_type_metadata */
+
+
+/*
+The IFC type field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprTemplateId nodes.
+*/
+template<>
+struct an_ifc_type_metadata<an_ifc_expr_template_id> {
+  using return_type = an_ifc_type_index;
+};  /* an_ifc_type_metadata */
+
+
+/*
+The IFC type field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprTemplateReference nodes.
+*/
+template<>
+struct an_ifc_type_metadata<an_ifc_expr_template_reference> {
+  using return_type = an_ifc_type_index;
+};  /* an_ifc_type_metadata */
+
+
+/*
+The IFC type field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprTemporary nodes.
+*/
+template<>
+struct an_ifc_type_metadata<an_ifc_expr_temporary> {
+  using return_type = an_ifc_type_index;
+};  /* an_ifc_type_metadata */
+
+
+/*
+The IFC type field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprThis nodes.
+*/
+template<>
+struct an_ifc_type_metadata<an_ifc_expr_this> {
+  using return_type = an_ifc_type_index;
+};  /* an_ifc_type_metadata */
+
+
+/*
+The IFC type field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprTokens nodes.
+*/
+template<>
+struct an_ifc_type_metadata<an_ifc_expr_tokens> {
+  using return_type = an_ifc_type_index;
+};  /* an_ifc_type_metadata */
+
+
+/*
+The IFC type field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprTriad nodes.
+*/
+template<>
+struct an_ifc_type_metadata<an_ifc_expr_triad> {
+  using return_type = an_ifc_type_index;
+};  /* an_ifc_type_metadata */
+
+
+/*
+The IFC type field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprTuple nodes.
+*/
+template<>
+struct an_ifc_type_metadata<an_ifc_expr_tuple> {
+  using return_type = an_ifc_type_index;
+};  /* an_ifc_type_metadata */
+
+
+/*
+The IFC type field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprType nodes.
+*/
+template<>
+struct an_ifc_type_metadata<an_ifc_expr_type> {
+  using return_type = an_ifc_type_index;
+};  /* an_ifc_type_metadata */
+
+
+/*
+The IFC type field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprTypeTraitIntrinsic nodes.
+*/
+template<>
+struct an_ifc_type_metadata<an_ifc_expr_type_trait_intrinsic> {
+  using return_type = an_ifc_type_index;
+};  /* an_ifc_type_metadata */
+
+
+/*
+The IFC type field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprTypeid nodes.
+*/
+template<>
+struct an_ifc_type_metadata<an_ifc_expr_typeid> {
+  using return_type = an_ifc_type_index;
+};  /* an_ifc_type_metadata */
+
+
+/*
+The IFC type field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprUnaryFold nodes.
+*/
+template<>
+struct an_ifc_type_metadata<an_ifc_expr_unary_fold> {
+  using return_type = an_ifc_type_index;
+};  /* an_ifc_type_metadata */
+
+
+/*
+The IFC type field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprUnqualifiedId nodes.
+*/
+template<>
+struct an_ifc_type_metadata<an_ifc_expr_unqualified_id> {
+  using return_type = an_ifc_type_index;
+};  /* an_ifc_type_metadata */
+
+
+/*
+The IFC type field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprUnresolvedId nodes.
+*/
+template<>
+struct an_ifc_type_metadata<an_ifc_expr_unresolved_id> {
+  using return_type = an_ifc_type_index;
+};  /* an_ifc_type_metadata */
+
+
+/*
+The IFC type field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprVirtualFunctionConversion
+nodes.
+*/
+template<>
+struct an_ifc_type_metadata<an_ifc_expr_virtual_function_conversion> {
+  using return_type = an_ifc_type_index;
+};  /* an_ifc_type_metadata */
+
+
+/*
+The IFC type field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxDeclSpecifierSeq nodes.
+*/
+template<>
+struct an_ifc_type_metadata<an_ifc_syntax_decl_specifier_seq> {
+  using return_type = an_ifc_type_index;
+};  /* an_ifc_type_metadata */
+
+
+/*
+The IFC type field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxSimpleTypeSpecifier nodes.
+*/
+template<>
+struct an_ifc_type_metadata<an_ifc_syntax_simple_type_specifier> {
+  using return_type = an_ifc_type_index;
+};  /* an_ifc_type_metadata */
+
+
+/*
+The IFC type field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxTypeRequirement nodes.
+*/
+template<>
+struct an_ifc_type_metadata<an_ifc_syntax_type_requirement> {
+  using return_type = an_ifc_expr_index;
+};  /* an_ifc_type_metadata */
+
+
+/*
+The IFC type field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxTypeSpecifierSeq nodes.
+*/
+template<>
+struct an_ifc_type_metadata<an_ifc_syntax_type_specifier_seq> {
+  using return_type = an_ifc_type_index;
+};  /* an_ifc_type_metadata */
+
+
+/*
+The IFC type field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for TypeBase nodes.
+*/
+template<>
+struct an_ifc_type_metadata<an_ifc_type_base> {
+  using return_type = an_ifc_type_index;
+};  /* an_ifc_type_metadata */
+
+
+/*
+The IFC type field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for TypeUnaligned nodes.
+*/
+template<>
+struct an_ifc_type_metadata<an_ifc_type_unaligned> {
+  using return_type = an_ifc_type_index;
+};  /* an_ifc_type_metadata */
+
+
+/*
+The IFC unit field has multiple return types.  This type is a metadata type
+that allows resolution of those return types based on the respective node type.
+*/
+template<typename an_ifc_Node_type>
+struct an_ifc_unit_metadata;
+
+
+/*
+The IFC unit field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclReference nodes.
+*/
+template<>
+struct an_ifc_unit_metadata<an_ifc_decl_reference> {
+  using return_type = an_ifc_module_reference;
+};  /* an_ifc_unit_metadata */
+
+
+/*
+The IFC unit field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for FileHeader nodes.
+*/
+template<>
+struct an_ifc_unit_metadata<an_ifc_file_header> {
+  using return_type = an_ifc_unit_index;
+};  /* an_ifc_unit_metadata */
+
+
+/*
+The IFC value field has multiple return types.  This type is a metadata type
+that allows resolution of those return types based on the respective node type.
+*/
+template<typename an_ifc_Node_type>
+struct an_ifc_value_metadata;
+
+
+/*
+The IFC value field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ConstF64 nodes.
+*/
+template<>
+struct an_ifc_value_metadata<an_ifc_const_f64> {
+  using return_type = an_ifc_ieeele_float;
+};  /* an_ifc_value_metadata */
+
+
+/*
+The IFC value field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ConstI64 nodes.
+*/
+template<>
+struct an_ifc_value_metadata<an_ifc_const_i64> {
+  using return_type = an_ifc_u64;
+};  /* an_ifc_value_metadata */
+
+
+/*
+The IFC value field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprLiteral nodes.
+*/
+template<>
+struct an_ifc_value_metadata<an_ifc_expr_literal> {
+  using return_type = an_ifc_lit_index;
+};  /* an_ifc_value_metadata */
+
+
+/*
+The IFC value field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprSubobjectValue nodes.
+*/
+template<>
+struct an_ifc_value_metadata<an_ifc_expr_subobject_value> {
+  using return_type = an_ifc_expr_index;
+};  /* an_ifc_value_metadata */
+
+
+/*
+The IFC value field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprSumTypeValue nodes.
+*/
+template<>
+struct an_ifc_value_metadata<an_ifc_expr_sum_type_value> {
+  using return_type = an_ifc_expr_index;
+};  /* an_ifc_value_metadata */
+
+
+/*
+The IFC value field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for HeapAttr nodes.
+*/
+template<>
+struct an_ifc_value_metadata<an_ifc_heap_attr> {
+  using return_type = an_ifc_attr_index;
+};  /* an_ifc_value_metadata */
+
+
+/*
+The IFC value field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for HeapChart nodes.
+*/
+template<>
+struct an_ifc_value_metadata<an_ifc_heap_chart> {
+  using return_type = an_ifc_chart_index;
+};  /* an_ifc_value_metadata */
+
+
+/*
+The IFC value field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for HeapDecl nodes.
+*/
+template<>
+struct an_ifc_value_metadata<an_ifc_heap_decl> {
+  using return_type = an_ifc_decl_index;
+};  /* an_ifc_value_metadata */
+
+
+/*
+The IFC value field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for HeapExpr nodes.
+*/
+template<>
+struct an_ifc_value_metadata<an_ifc_heap_expr> {
+  using return_type = an_ifc_expr_index;
+};  /* an_ifc_value_metadata */
+
+
+/*
+The IFC value field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for HeapForm nodes.
+*/
+template<>
+struct an_ifc_value_metadata<an_ifc_heap_form> {
+  using return_type = an_ifc_form_index;
+};  /* an_ifc_value_metadata */
+
+
+/*
+The IFC value field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for HeapPPForm nodes.
+*/
+template<>
+struct an_ifc_value_metadata<an_ifc_heap_pp_form> {
+  using return_type = an_ifc_form_index;
+};  /* an_ifc_value_metadata */
+
+
+/*
+The IFC value field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for HeapStmt nodes.
+*/
+template<>
+struct an_ifc_value_metadata<an_ifc_heap_stmt> {
+  using return_type = an_ifc_stmt_index;
+};  /* an_ifc_value_metadata */
+
+
+/*
+The IFC value field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for HeapSyntax nodes.
+*/
+template<>
+struct an_ifc_value_metadata<an_ifc_heap_syntax> {
+  using return_type = an_ifc_syntax_index;
+};  /* an_ifc_value_metadata */
+
+
+/*
+The IFC value field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for HeapType nodes.
+*/
+template<>
+struct an_ifc_value_metadata<an_ifc_heap_type> {
+  using return_type = an_ifc_type_index;
+};  /* an_ifc_value_metadata */
+
+
+/*
+The IFC value field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for KeywordSyntax nodes.
+*/
+template<>
+struct an_ifc_value_metadata<an_ifc_keyword_syntax> {
+  using return_type = an_ifc_keyword_sort;
+};  /* an_ifc_value_metadata */
+
+
+/*
+The IFC value field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for NestableWord nodes.
+*/
+template<>
+struct an_ifc_value_metadata<an_ifc_nestable_word> {
+  using return_type = an_ifc_u16;
+};  /* an_ifc_value_metadata */
+
+
+/*
+The IFC value field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SourceWord nodes.
+*/
+template<>
+struct an_ifc_value_metadata<an_ifc_source_word> {
+  using return_type = an_ifc_u16;
+};  /* an_ifc_value_metadata */
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_text_offset get_ifc_ID(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_abi get_ifc_abi(const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_syntax_index get_ifc_abstract_declarator(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern typename an_ifc_access_metadata<an_ifc_Node_type>::return_type
+get_ifc_access(const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_expr_index get_ifc_address(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern typename an_ifc_aliasee_metadata<an_ifc_Node_type>::return_type
+get_ifc_aliasee(const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_expr_index get_ifc_alignment(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern typename an_ifc_alternative_metadata<an_ifc_Node_type>::return_type
+get_ifc_alternative(const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_source_location get_ifc_ampersand(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_architecture_sort get_ifc_arch(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern typename an_ifc_argument_metadata<an_ifc_Node_type>::return_type
+get_ifc_argument(const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_expr_index get_ifc_argument_0(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_expr_index get_ifc_argument_1(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_expr_index get_ifc_argument_2(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_syntax_index get_ifc_argument_clause(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern typename an_ifc_arguments_metadata<an_ifc_Node_type>::return_type
+get_ifc_arguments(const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_variadic_arity get_ifc_arity_variadic(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_expr_index get_ifc_array(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_syntax_index get_ifc_array_or_function(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_source_location get_ifc_arrow(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_source_location get_ifc_assign(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern typename an_ifc_assoc_metadata<an_ifc_Node_type>::return_type
+get_ifc_assoc(const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_associativity get_ifc_associativity(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_source_location get_ifc_asterisk(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_attr_index get_ifc_attribute(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern typename an_ifc_attributes_metadata<an_ifc_Node_type>::return_type
+get_ifc_attributes(const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern typename an_ifc_base_metadata<an_ifc_Node_type>::return_type
+get_ifc_base(const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_decl_index get_ifc_base_ctor(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_syntax_index get_ifc_base_specifiers(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_expr_index get_ifc_base_subobjects(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_syntax_index get_ifc_bases(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_type_basis_sort get_ifc_basis(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_expr_index get_ifc_bitwidth(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern typename an_ifc_body_metadata<an_ifc_Node_type>::return_type
+get_ifc_body(const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_expr_index get_ifc_bound(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_source_location get_ifc_break(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_bool get_ifc_by_ref(const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_bool get_ifc_callable(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_syntax_index get_ifc_captures(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_cardinality get_ifc_cardinality(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_source_location get_ifc_catch(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_word_category get_ifc_category(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_chart_index get_ifc_chart(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_sha256 get_ifc_checksum(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_type_index get_ifc_class_decl(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_keyword_syntax get_ifc_class_key(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_syntax_index get_ifc_clause(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_destructor_sort get_ifc_cleanup(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_source_location get_ifc_colon(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_source_location get_ifc_colons(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_column get_ifc_column(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_source_location get_ifc_comma(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_source_location get_ifc_concept_keyword(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern typename an_ifc_condition_metadata<an_ifc_Node_type>::return_type
+get_ifc_condition(const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern typename an_ifc_consequence_metadata<an_ifc_Node_type>::return_type
+get_ifc_consequence(const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_source_location get_ifc_constexpr(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern typename an_ifc_constraint_metadata<an_ifc_Node_type>::return_type
+get_ifc_constraint(const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_expr_index get_ifc_contents(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern typename an_ifc_continuation_metadata<an_ifc_Node_type>::return_type
+get_ifc_continuation(const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_source_location get_ifc_continue(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_calling_convention_sort get_ifc_convention(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_expr_index get_ifc_ctor_call(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern typename an_ifc_decl_metadata<an_ifc_Node_type>::return_type
+get_ifc_decl(const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_syntax_index get_ifc_decl_specifier(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_syntax_index get_ifc_decl_specifiers(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_syntax_index get_ifc_declarations(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_syntax_index get_ifc_declarator(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_syntax_index get_ifc_declarators(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_sentence_index get_ifc_declspec(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_source_location get_ifc_decltype_keyword(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_syntax_index get_ifc_decltype_specifier(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_expr_index get_ifc_default_expr(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_syntax_index get_ifc_definition(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_delimiter_sort get_ifc_delimiter(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_type_index get_ifc_denotation(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_expr_index get_ifc_designator(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_language_version get_ifc_dialect(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_fold_direction_sort get_ifc_direction(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_active_member get_ifc_discriminant(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_source_location get_ifc_do(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_expr_index get_ifc_dtor_call(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_dyadic_operator_sort get_ifc_dyad(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern typename an_ifc_eh_spec_metadata<an_ifc_Node_type>::return_type
+get_ifc_eh_spec(const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_type_index get_ifc_elaboration(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_type_index get_ifc_element(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_type_index get_ifc_element_type(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_expr_index get_ifc_elements(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_source_location get_ifc_ellipsis(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_source_location get_ifc_else(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_type_index get_ifc_enclosing(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_text_offset get_ifc_encoded(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_encoded_decl_index get_ifc_encoded_decl(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern typename an_ifc_entity_metadata<an_ifc_Node_type>::return_type
+get_ifc_entity(const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_entity_size get_ifc_entry_size(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_source_location get_ifc_enum_kw(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_syntax_index get_ifc_enumerators(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_source_location get_ifc_equal(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_source_location get_ifc_except_kw(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_syntax_index get_ifc_exception(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_source_location get_ifc_expander(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_syntax_index get_ifc_explicit_kw(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern typename an_ifc_expr_metadata<an_ifc_Node_type>::return_type
+get_ifc_expr(const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_expr_index get_ifc_expression(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_type_index get_ifc_expression_type(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_expr_index get_ifc_extent(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_nestable_word get_ifc_factor(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_name_index get_ifc_file(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_source_location get_ifc_final_kw(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_source_location get_ifc_finally_kw(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_form_index get_ifc_first(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_eh_flags get_ifc_flags(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_source_location get_ifc_for(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_form_spec_index get_ifc_form(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern typename an_ifc_function_metadata<an_ifc_Node_type>::return_type
+get_ifc_function(const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_type_index get_ifc_function_type(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_keyword_syntax get_ifc_generate(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_text_offset get_ifc_getter(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_scope_index get_ifc_global_scope(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_source_location get_ifc_glyph_loci_1(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_source_location get_ifc_glyph_loci_2(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_source_location get_ifc_glyph_locus(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_text_offset get_ifc_guard(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_syntax_index get_ifc_handler(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_syntax_index get_ifc_handlers(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_sentence_index get_ifc_head(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_bool get_ifc_hidden(const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_decl_index get_ifc_home_scope(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_unique_id get_ifc_id(const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_source_location get_ifc_if(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_decl_index get_ifc_impl(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern typename an_ifc_index_metadata<an_ifc_Node_type>::return_type
+get_ifc_index(const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_expr_index get_ifc_inheritance(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_syntax_index get_ifc_init(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_syntax_index get_ifc_initializaerion(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern typename an_ifc_initialization_metadata<an_ifc_Node_type>::return_type
+get_ifc_initialization(const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern typename an_ifc_initializer_metadata<an_ifc_Node_type>::return_type
+get_ifc_initializer(const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern typename an_ifc_initializers_metadata<an_ifc_Node_type>::return_type
+get_ifc_initializers(const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_bool get_ifc_internal(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_operator_category get_ifc_intrinsic(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_syntax_index get_ifc_introducer(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_keyword_syntax get_ifc_key(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_source_location get_ifc_keyword(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern typename an_ifc_label_metadata<an_ifc_Node_type>::return_type
+get_ifc_label(const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_source_location get_ifc_leave_kw(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern typename an_ifc_left_metadata<an_ifc_Node_type>::return_type
+get_ifc_left(const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_source_location get_ifc_left_angle(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_source_location get_ifc_left_brace(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_source_location get_ifc_left_bracket(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_source_location get_ifc_left_curly(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern typename an_ifc_left_paren_metadata<an_ifc_Node_type>::return_type
+get_ifc_left_paren(const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_source_location get_ifc_left_paren_1(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_source_location get_ifc_left_paren_2(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_cardinality get_ifc_length(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_parameter_level get_ifc_level(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern typename an_ifc_line_metadata<an_ifc_Node_type>::return_type
+get_ifc_line(const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_decl_foreign_index get_ifc_local_index(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern typename an_ifc_locus_metadata<an_ifc_Node_type>::return_type
+get_ifc_locus(const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_text_offset get_ifc_macro(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_version get_ifc_major_version(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern typename an_ifc_member_metadata<an_ifc_Node_type>::return_type
+get_ifc_member(const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_syntax_index get_ifc_member_declarations(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_source_location get_ifc_member_locus(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_name_index get_ifc_member_name(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern typename an_ifc_members_metadata<an_ifc_Node_type>::return_type
+get_ifc_members(const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_expr_index get_ifc_message(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_version get_ifc_minor_version(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_expansion_mode_sort get_ifc_mode(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_keyword_sort get_ifc_modifier(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern typename an_ifc_name_metadata<an_ifc_Node_type>::return_type
+get_ifc_name(const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_text_offset get_ifc_name2(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_syntax_index get_ifc_names(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_source_location get_ifc_namespace_kw(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_syntax_index get_ifc_next(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_source_location get_ifc_noexcept_loc(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern typename an_ifc_offset_metadata<an_ifc_Node_type>::return_type
+get_ifc_offset(const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern typename an_ifc_op_metadata<an_ifc_Node_type>::return_type get_ifc_op(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern typename an_ifc_operand_metadata<an_ifc_Node_type>::return_type
+get_ifc_operand(const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_expr_index get_ifc_operand_1(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_expr_index get_ifc_operand_2(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern typename an_ifc_operation_metadata<an_ifc_Node_type>::return_type
+get_ifc_operation(const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_operator_category get_ifc_operator(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_expr_index get_ifc_override(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_source_location get_ifc_override_kw(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_text_offset get_ifc_owner(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern typename an_ifc_pack_metadata<an_ifc_Node_type>::return_type
+get_ifc_pack(const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_bool get_ifc_pack_expanded(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_pack_size get_ifc_pack_size(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern typename an_ifc_parameters_metadata<an_ifc_Node_type>::return_type
+get_ifc_parameters(const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_chart_index get_ifc_params(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_expr_index get_ifc_parent(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_syntax_index get_ifc_parenthesized(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_text_offset get_ifc_partition(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_cardinality get_ifc_partition_count(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern typename an_ifc_path_metadata<an_ifc_Node_type>::return_type
+get_ifc_path(const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_expr_index get_ifc_pivot(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_type_index get_ifc_pointee(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_syntax_index get_ifc_pointer(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_parameter_position get_ifc_position(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_sentence_index get_ifc_pragam(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_sentence_index get_ifc_pragma(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_type_precision_sort get_ifc_precision(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern typename an_ifc_prefix_metadata<an_ifc_Node_type>::return_type
+get_ifc_prefix(const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern typename an_ifc_primary_metadata<an_ifc_Node_type>::return_type
+get_ifc_primary(const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_decl_index get_ifc_primary_template(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_reachable_properties_bitfield get_ifc_properties(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_bool get_ifc_pure(const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_expr_index get_ifc_qualified_name(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_qualifier_bitfield get_ifc_qualifiers(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_source_location get_ifc_ref(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_type_index get_ifc_referee(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_module_reference get_ifc_reference(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_syntax_index get_ifc_requirements(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern typename an_ifc_resolution_metadata<an_ifc_Node_type>::return_type
+get_ifc_resolution(const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_source_location get_ifc_return(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern typename an_ifc_right_metadata<an_ifc_Node_type>::return_type
+get_ifc_right(const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_source_location get_ifc_right_angle(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_source_location get_ifc_right_brace(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_source_location get_ifc_right_bracket(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_source_location get_ifc_right_curly(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern typename an_ifc_right_paren_metadata<an_ifc_Node_type>::return_type
+get_ifc_right_paren(const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_source_location get_ifc_right_paren_1(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_source_location get_ifc_right_paren_2(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern typename an_ifc_scope_metadata<an_ifc_Node_type>::return_type
+get_ifc_scope(const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_form_index get_ifc_second(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_source_location get_ifc_semicolon(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_text_offset get_ifc_setter(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_bool get_ifc_shared(const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_type_sign_sort get_ifc_sign(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern typename an_ifc_sort_metadata<an_ifc_Node_type>::return_type
+get_ifc_sort(const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern typename an_ifc_source_metadata<an_ifc_Node_type>::return_type
+get_ifc_source(const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern typename an_ifc_specifiers_metadata<an_ifc_Node_type>::return_type
+get_ifc_specifiers(const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_text_offset get_ifc_spelling(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_text_offset get_ifc_src_path(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern typename an_ifc_start_metadata<an_ifc_Node_type>::return_type
+get_ifc_start(const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_syntax_index get_ifc_stmt(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_syntax_index get_ifc_stmts(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_storage_class get_ifc_storage_class(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_expr_index get_ifc_string(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_string_index get_ifc_string_index(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_byte_offset get_ifc_string_table_bytes(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_cardinality get_ifc_string_table_size(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_expr_index get_ifc_strings(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern typename an_ifc_subject_metadata<an_ifc_Node_type>::return_type
+get_ifc_subject(const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_text_offset get_ifc_suffix(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_source_location get_ifc_switch(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_expr_index get_ifc_symbol(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_syntax_index get_ifc_syntax(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_keyword_syntax get_ifc_synthesis(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern typename an_ifc_target_metadata<an_ifc_Node_type>::return_type
+get_ifc_target(const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_source_location get_ifc_template_keyword(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_source_location get_ifc_template_kw(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_syntax_index get_ifc_template_parameters(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_attr_index get_ifc_terms(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_source_location get_ifc_throw(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_byte_offset get_ifc_toc(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_sentence_index get_ifc_tokens(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_syntax_index get_ifc_trailing_target(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern typename an_ifc_trait_metadata<an_ifc_Node_type>::return_type
+get_ifc_trait(const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern typename an_ifc_traits_metadata<an_ifc_Node_type>::return_type
+get_ifc_traits(const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_source_location get_ifc_try(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_syntax_index get_ifc_try_block(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_source_location get_ifc_try_kw(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern typename an_ifc_type_metadata<an_ifc_Node_type>::return_type
+get_ifc_type(const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_syntax_index get_ifc_type_id(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_syntax_index get_ifc_type_list(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_syntax_index get_ifc_type_name(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_syntax_index get_ifc_type_specifier(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_syntax_index get_ifc_type_specifiers(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_source_location get_ifc_typename_keyword(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_source_location get_ifc_typename_kw(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_bool get_ifc_unhashed(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern typename an_ifc_unit_metadata<an_ifc_Node_type>::return_type
+get_ifc_unit(const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_u16 get_ifc_unknown(const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_type_index get_ifc_unqualified(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_source_location get_ifc_using_kw(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_uuid get_ifc_uuid(const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern typename an_ifc_value_metadata<an_ifc_Node_type>::return_type
+get_ifc_value(const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_decl_index get_ifc_variant(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_source_location get_ifc_virtual_kw(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_source_location get_ifc_virtual_kw2(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_syntax_index get_ifc_virtual_specifiers(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_source_location get_ifc_while(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_syntax_index get_ifc_whole(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_expr_index get_ifc_width(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_nestable_word get_ifc_word(
+                                   const an_ifc_Node_type &universal) = delete;
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_sentence_index get_ifc_words(
+                                   const an_ifc_Node_type &universal) = delete;
+
 /*
 Functions for interacting with IFC KeywordSyntax nodes.
 */
 
 extern a_boolean has_ifc_locus(const an_ifc_keyword_syntax &universal);
 
-extern an_ifc_source_location get_ifc_locus(
-                                       const an_ifc_keyword_syntax &universal);
+template<>
+an_ifc_source_location get_ifc_locus(const an_ifc_keyword_syntax &universal);
 
 extern a_boolean has_ifc_value(const an_ifc_keyword_syntax &universal);
 
-extern an_ifc_keyword_sort get_ifc_value(
-                                       const an_ifc_keyword_syntax &universal);
+template<>
+an_ifc_keyword_sort get_ifc_value(const an_ifc_keyword_syntax &universal);
 
 extern a_boolean validate(const an_ifc_keyword_syntax   &universal,
                           const an_ifc_validation_trace *parent);
@@ -1537,13 +10003,13 @@ Functions for interacting with IFC ModuleReference nodes.
 
 extern a_boolean has_ifc_owner(const an_ifc_module_reference &universal);
 
-extern an_ifc_text_offset get_ifc_owner(
-                                     const an_ifc_module_reference &universal);
+template<>
+an_ifc_text_offset get_ifc_owner(const an_ifc_module_reference &universal);
 
 extern a_boolean has_ifc_partition(const an_ifc_module_reference &universal);
 
-extern an_ifc_text_offset get_ifc_partition(
-                                     const an_ifc_module_reference &universal);
+template<>
+an_ifc_text_offset get_ifc_partition(const an_ifc_module_reference &universal);
 
 extern a_boolean validate(const an_ifc_module_reference &universal,
                           const an_ifc_validation_trace *parent);
@@ -1560,25 +10026,28 @@ Functions for interacting with IFC NestableWord nodes.
 
 extern a_boolean has_ifc_category(const an_ifc_nestable_word &universal);
 
-extern an_ifc_word_category get_ifc_category(
-                                        const an_ifc_nestable_word &universal);
+template<>
+an_ifc_word_category get_ifc_category(const an_ifc_nestable_word &universal);
 
 extern a_boolean has_ifc_index(const an_ifc_nestable_word &universal);
 
-extern an_ifc_index get_ifc_index(const an_ifc_nestable_word &universal);
+template<>
+an_ifc_index get_ifc_index(const an_ifc_nestable_word &universal);
 
 extern a_boolean has_ifc_locus(const an_ifc_nestable_word &universal);
 
-extern an_ifc_source_location get_ifc_locus(
-                                        const an_ifc_nestable_word &universal);
+template<>
+an_ifc_source_location get_ifc_locus(const an_ifc_nestable_word &universal);
 
 extern a_boolean has_ifc_sort(const an_ifc_nestable_word &universal);
 
-extern an_ifc_word_sort get_ifc_sort(const an_ifc_nestable_word &universal);
+template<>
+an_ifc_word_sort get_ifc_sort(const an_ifc_nestable_word &universal);
 
 extern a_boolean has_ifc_value(const an_ifc_nestable_word &universal);
 
-extern an_ifc_u16 get_ifc_value(const an_ifc_nestable_word &universal);
+template<>
+an_ifc_u16 get_ifc_value(const an_ifc_nestable_word &universal);
 
 extern a_boolean validate(const an_ifc_nestable_word    &universal,
                           const an_ifc_validation_trace *parent);
@@ -1595,12 +10064,14 @@ Functions for interacting with IFC NoexceptSpecification nodes.
 
 extern a_boolean has_ifc_sort(const an_ifc_noexcept_specification &universal);
 
-extern an_ifc_noexcept_sort get_ifc_sort(
+template<>
+an_ifc_noexcept_sort get_ifc_sort(
                                const an_ifc_noexcept_specification &universal);
 
 extern a_boolean has_ifc_words(const an_ifc_noexcept_specification &universal);
 
-extern an_ifc_sentence_index get_ifc_words(
+template<>
+an_ifc_sentence_index get_ifc_words(
                                const an_ifc_noexcept_specification &universal);
 
 extern a_boolean validate(const an_ifc_noexcept_specification &universal,
@@ -1620,22 +10091,25 @@ Functions for interacting with IFC ParameterizedEntity nodes.
 extern a_boolean has_ifc_attributes(
                                  const an_ifc_parameterized_entity &universal);
 
-extern an_ifc_sentence_index get_ifc_attributes(
+template<>
+an_ifc_sentence_index get_ifc_attributes(
                                  const an_ifc_parameterized_entity &universal);
 
 extern a_boolean has_ifc_body(const an_ifc_parameterized_entity &universal);
 
-extern an_ifc_sentence_index get_ifc_body(
+template<>
+an_ifc_sentence_index get_ifc_body(
                                  const an_ifc_parameterized_entity &universal);
 
 extern a_boolean has_ifc_decl(const an_ifc_parameterized_entity &universal);
 
-extern an_ifc_decl_index get_ifc_decl(
-                                 const an_ifc_parameterized_entity &universal);
+template<>
+an_ifc_decl_index get_ifc_decl(const an_ifc_parameterized_entity &universal);
 
 extern a_boolean has_ifc_head(const an_ifc_parameterized_entity &universal);
 
-extern an_ifc_sentence_index get_ifc_head(
+template<>
+an_ifc_sentence_index get_ifc_head(
                                  const an_ifc_parameterized_entity &universal);
 
 extern a_boolean validate(const an_ifc_parameterized_entity &universal,
@@ -1654,12 +10128,13 @@ Functions for interacting with IFC Sequence nodes.
 
 extern a_boolean has_ifc_cardinality(const an_ifc_sequence &universal);
 
-extern an_ifc_cardinality get_ifc_cardinality(
-                                             const an_ifc_sequence &universal);
+template<>
+an_ifc_cardinality get_ifc_cardinality(const an_ifc_sequence &universal);
 
 extern a_boolean has_ifc_start(const an_ifc_sequence &universal);
 
-extern an_ifc_index get_ifc_start(const an_ifc_sequence &universal);
+template<>
+an_ifc_index get_ifc_start(const an_ifc_sequence &universal);
 
 extern a_boolean validate(const an_ifc_sequence         &universal,
                           const an_ifc_validation_trace *parent);
@@ -1676,11 +10151,13 @@ Functions for interacting with IFC SourceLocation nodes.
 
 extern a_boolean has_ifc_column(const an_ifc_source_location &universal);
 
-extern an_ifc_column get_ifc_column(const an_ifc_source_location &universal);
+template<>
+an_ifc_column get_ifc_column(const an_ifc_source_location &universal);
 
 extern a_boolean has_ifc_line(const an_ifc_source_location &universal);
 
-extern an_ifc_line_index get_ifc_line(const an_ifc_source_location &universal);
+template<>
+an_ifc_line_index get_ifc_line(const an_ifc_source_location &universal);
 
 extern a_boolean validate(const an_ifc_source_location  &universal,
                           const an_ifc_validation_trace *parent);
@@ -1697,70 +10174,78 @@ Functions for interacting with IFC FileHeader nodes.
 
 extern a_boolean has_ifc_abi(const an_ifc_file_header &universal);
 
-extern an_ifc_abi get_ifc_abi(const an_ifc_file_header &universal);
+template<>
+an_ifc_abi get_ifc_abi(const an_ifc_file_header &universal);
 
 extern a_boolean has_ifc_arch(const an_ifc_file_header &universal);
 
-extern an_ifc_architecture_sort get_ifc_arch(
-                                          const an_ifc_file_header &universal);
+template<>
+an_ifc_architecture_sort get_ifc_arch(const an_ifc_file_header &universal);
 
 extern a_boolean has_ifc_checksum(const an_ifc_file_header &universal);
 
-extern an_ifc_sha256 get_ifc_checksum(const an_ifc_file_header &universal);
+template<>
+an_ifc_sha256 get_ifc_checksum(const an_ifc_file_header &universal);
 
 extern a_boolean has_ifc_dialect(const an_ifc_file_header &universal);
 
-extern an_ifc_language_version get_ifc_dialect(
-                                          const an_ifc_file_header &universal);
+template<>
+an_ifc_language_version get_ifc_dialect(const an_ifc_file_header &universal);
 
 extern a_boolean has_ifc_global_scope(const an_ifc_file_header &universal);
 
-extern an_ifc_scope_index get_ifc_global_scope(
-                                          const an_ifc_file_header &universal);
+template<>
+an_ifc_scope_index get_ifc_global_scope(const an_ifc_file_header &universal);
 
 extern a_boolean has_ifc_internal(const an_ifc_file_header &universal);
 
-extern an_ifc_bool get_ifc_internal(const an_ifc_file_header &universal);
+template<>
+an_ifc_bool get_ifc_internal(const an_ifc_file_header &universal);
 
 extern a_boolean has_ifc_major_version(const an_ifc_file_header &universal);
 
-extern an_ifc_version get_ifc_major_version(
-                                          const an_ifc_file_header &universal);
+template<>
+an_ifc_version get_ifc_major_version(const an_ifc_file_header &universal);
 
 extern a_boolean has_ifc_minor_version(const an_ifc_file_header &universal);
 
-extern an_ifc_version get_ifc_minor_version(
-                                          const an_ifc_file_header &universal);
+template<>
+an_ifc_version get_ifc_minor_version(const an_ifc_file_header &universal);
 
 extern a_boolean has_ifc_partition_count(const an_ifc_file_header &universal);
 
-extern an_ifc_cardinality get_ifc_partition_count(
+template<>
+an_ifc_cardinality get_ifc_partition_count(
                                           const an_ifc_file_header &universal);
 
 extern a_boolean has_ifc_src_path(const an_ifc_file_header &universal);
 
-extern an_ifc_text_offset get_ifc_src_path(
-                                          const an_ifc_file_header &universal);
+template<>
+an_ifc_text_offset get_ifc_src_path(const an_ifc_file_header &universal);
 
 extern a_boolean has_ifc_string_table_bytes(
                                           const an_ifc_file_header &universal);
 
-extern an_ifc_byte_offset get_ifc_string_table_bytes(
+template<>
+an_ifc_byte_offset get_ifc_string_table_bytes(
                                           const an_ifc_file_header &universal);
 
 extern a_boolean has_ifc_string_table_size(
                                           const an_ifc_file_header &universal);
 
-extern an_ifc_cardinality get_ifc_string_table_size(
+template<>
+an_ifc_cardinality get_ifc_string_table_size(
                                           const an_ifc_file_header &universal);
 
 extern a_boolean has_ifc_toc(const an_ifc_file_header &universal);
 
-extern an_ifc_byte_offset get_ifc_toc(const an_ifc_file_header &universal);
+template<>
+an_ifc_byte_offset get_ifc_toc(const an_ifc_file_header &universal);
 
 extern a_boolean has_ifc_unit(const an_ifc_file_header &universal);
 
-extern an_ifc_unit_index get_ifc_unit(const an_ifc_file_header &universal);
+template<>
+an_ifc_unit_index get_ifc_unit(const an_ifc_file_header &universal);
 
 extern a_boolean validate(const an_ifc_file_header      &universal,
                           const an_ifc_validation_trace *parent);
@@ -1783,21 +10268,23 @@ Functions for interacting with IFC Partition nodes.
 
 extern a_boolean has_ifc_cardinality(const an_ifc_partition &universal);
 
-extern an_ifc_cardinality get_ifc_cardinality(
-                                            const an_ifc_partition &universal);
+template<>
+an_ifc_cardinality get_ifc_cardinality(const an_ifc_partition &universal);
 
 extern a_boolean has_ifc_entry_size(const an_ifc_partition &universal);
 
-extern an_ifc_entity_size get_ifc_entry_size(
-                                            const an_ifc_partition &universal);
+template<>
+an_ifc_entity_size get_ifc_entry_size(const an_ifc_partition &universal);
 
 extern a_boolean has_ifc_name(const an_ifc_partition &universal);
 
-extern an_ifc_text_offset get_ifc_name(const an_ifc_partition &universal);
+template<>
+an_ifc_text_offset get_ifc_name(const an_ifc_partition &universal);
 
 extern a_boolean has_ifc_offset(const an_ifc_partition &universal);
 
-extern an_ifc_byte_offset get_ifc_offset(const an_ifc_partition &universal);
+template<>
+an_ifc_byte_offset get_ifc_offset(const an_ifc_partition &universal);
 
 extern a_boolean validate(const an_ifc_partition        &universal,
                           const an_ifc_validation_trace *parent);
@@ -1820,7 +10307,8 @@ Functions for interacting with IFC AttrBasic nodes.
 
 extern a_boolean has_ifc_word(const an_ifc_attr_basic &universal);
 
-extern an_ifc_nestable_word get_ifc_word(const an_ifc_attr_basic &universal);
+template<>
+an_ifc_nestable_word get_ifc_word(const an_ifc_attr_basic &universal);
 
 extern a_boolean validate(const an_ifc_attr_basic       &universal,
                           const an_ifc_validation_trace *parent);
@@ -1853,12 +10341,13 @@ Functions for interacting with IFC AttrCalled nodes.
 
 extern a_boolean has_ifc_arguments(const an_ifc_attr_called &universal);
 
-extern an_ifc_attr_index get_ifc_arguments(
-                                          const an_ifc_attr_called &universal);
+template<>
+an_ifc_attr_index get_ifc_arguments(const an_ifc_attr_called &universal);
 
 extern a_boolean has_ifc_function(const an_ifc_attr_called &universal);
 
-extern an_ifc_attr_index get_ifc_function(const an_ifc_attr_called &universal);
+template<>
+an_ifc_attr_index get_ifc_function(const an_ifc_attr_called &universal);
 
 extern a_boolean validate(const an_ifc_attr_called      &universal,
                           const an_ifc_validation_trace *parent);
@@ -1891,8 +10380,8 @@ Functions for interacting with IFC AttrElaborated nodes.
 
 extern a_boolean has_ifc_expression(const an_ifc_attr_elaborated &universal);
 
-extern an_ifc_expr_index get_ifc_expression(
-                                      const an_ifc_attr_elaborated &universal);
+template<>
+an_ifc_expr_index get_ifc_expression(const an_ifc_attr_elaborated &universal);
 
 extern a_boolean validate(const an_ifc_attr_elaborated  &universal,
                           const an_ifc_validation_trace *parent);
@@ -1925,8 +10414,8 @@ Functions for interacting with IFC AttrExpanded nodes.
 
 extern a_boolean has_ifc_operand(const an_ifc_attr_expanded &universal);
 
-extern an_ifc_attr_index get_ifc_operand(
-                                        const an_ifc_attr_expanded &universal);
+template<>
+an_ifc_attr_index get_ifc_operand(const an_ifc_attr_expanded &universal);
 
 extern a_boolean validate(const an_ifc_attr_expanded    &universal,
                           const an_ifc_validation_trace *parent);
@@ -1959,12 +10448,13 @@ Functions for interacting with IFC AttrFactored nodes.
 
 extern a_boolean has_ifc_factor(const an_ifc_attr_factored &universal);
 
-extern an_ifc_nestable_word get_ifc_factor(
-                                        const an_ifc_attr_factored &universal);
+template<>
+an_ifc_nestable_word get_ifc_factor(const an_ifc_attr_factored &universal);
 
 extern a_boolean has_ifc_terms(const an_ifc_attr_factored &universal);
 
-extern an_ifc_attr_index get_ifc_terms(const an_ifc_attr_factored &universal);
+template<>
+an_ifc_attr_index get_ifc_terms(const an_ifc_attr_factored &universal);
 
 extern a_boolean validate(const an_ifc_attr_factored    &universal,
                           const an_ifc_validation_trace *parent);
@@ -1997,13 +10487,13 @@ Functions for interacting with IFC AttrLabeled nodes.
 
 extern a_boolean has_ifc_attribute(const an_ifc_attr_labeled &universal);
 
-extern an_ifc_attr_index get_ifc_attribute(
-                                         const an_ifc_attr_labeled &universal);
+template<>
+an_ifc_attr_index get_ifc_attribute(const an_ifc_attr_labeled &universal);
 
 extern a_boolean has_ifc_label(const an_ifc_attr_labeled &universal);
 
-extern an_ifc_nestable_word get_ifc_label(
-                                         const an_ifc_attr_labeled &universal);
+template<>
+an_ifc_nestable_word get_ifc_label(const an_ifc_attr_labeled &universal);
 
 extern a_boolean validate(const an_ifc_attr_labeled     &universal,
                           const an_ifc_validation_trace *parent);
@@ -2036,12 +10526,13 @@ Functions for interacting with IFC AttrScoped nodes.
 
 extern a_boolean has_ifc_member(const an_ifc_attr_scoped &universal);
 
-extern an_ifc_nestable_word get_ifc_member(
-                                          const an_ifc_attr_scoped &universal);
+template<>
+an_ifc_nestable_word get_ifc_member(const an_ifc_attr_scoped &universal);
 
 extern a_boolean has_ifc_scope(const an_ifc_attr_scoped &universal);
 
-extern an_ifc_nestable_word get_ifc_scope(const an_ifc_attr_scoped &universal);
+template<>
+an_ifc_nestable_word get_ifc_scope(const an_ifc_attr_scoped &universal);
 
 extern a_boolean validate(const an_ifc_attr_scoped      &universal,
                           const an_ifc_validation_trace *parent);
@@ -2074,12 +10565,13 @@ Functions for interacting with IFC AttrTuple nodes.
 
 extern a_boolean has_ifc_cardinality(const an_ifc_attr_tuple &universal);
 
-extern an_ifc_cardinality get_ifc_cardinality(
-                                           const an_ifc_attr_tuple &universal);
+template<>
+an_ifc_cardinality get_ifc_cardinality(const an_ifc_attr_tuple &universal);
 
 extern a_boolean has_ifc_start(const an_ifc_attr_tuple &universal);
 
-extern an_ifc_index get_ifc_start(const an_ifc_attr_tuple &universal);
+template<>
+an_ifc_index get_ifc_start(const an_ifc_attr_tuple &universal);
 
 extern a_boolean validate(const an_ifc_attr_tuple       &universal,
                           const an_ifc_validation_trace *parent);
@@ -2112,12 +10604,14 @@ Functions for interacting with IFC ChartMultilevel nodes.
 
 extern a_boolean has_ifc_cardinality(const an_ifc_chart_multilevel &universal);
 
-extern an_ifc_cardinality get_ifc_cardinality(
+template<>
+an_ifc_cardinality get_ifc_cardinality(
                                      const an_ifc_chart_multilevel &universal);
 
 extern a_boolean has_ifc_start(const an_ifc_chart_multilevel &universal);
 
-extern an_ifc_index get_ifc_start(const an_ifc_chart_multilevel &universal);
+template<>
+an_ifc_index get_ifc_start(const an_ifc_chart_multilevel &universal);
 
 extern a_boolean validate(const an_ifc_chart_multilevel &universal,
                           const an_ifc_validation_trace *parent);
@@ -2150,17 +10644,18 @@ Functions for interacting with IFC ChartUnilevel nodes.
 
 extern a_boolean has_ifc_cardinality(const an_ifc_chart_unilevel &universal);
 
-extern an_ifc_cardinality get_ifc_cardinality(
-                                       const an_ifc_chart_unilevel &universal);
+template<>
+an_ifc_cardinality get_ifc_cardinality(const an_ifc_chart_unilevel &universal);
 
 extern a_boolean has_ifc_constraint(const an_ifc_chart_unilevel &universal);
 
-extern an_ifc_expr_index get_ifc_constraint(
-                                       const an_ifc_chart_unilevel &universal);
+template<>
+an_ifc_expr_index get_ifc_constraint(const an_ifc_chart_unilevel &universal);
 
 extern a_boolean has_ifc_start(const an_ifc_chart_unilevel &universal);
 
-extern an_ifc_index get_ifc_start(const an_ifc_chart_unilevel &universal);
+template<>
+an_ifc_index get_ifc_start(const an_ifc_chart_unilevel &universal);
 
 extern a_boolean validate(const an_ifc_chart_unilevel   &universal,
                           const an_ifc_validation_trace *parent);
@@ -2193,7 +10688,8 @@ Functions for interacting with IFC ConstF64 nodes.
 
 extern a_boolean has_ifc_value(const an_ifc_const_f64 &universal);
 
-extern an_ifc_ieeele_float get_ifc_value(const an_ifc_const_f64 &universal);
+template<>
+an_ifc_ieeele_float get_ifc_value(const an_ifc_const_f64 &universal);
 
 extern a_boolean validate(const an_ifc_const_f64        &universal,
                           const an_ifc_validation_trace *parent);
@@ -2226,7 +10722,8 @@ Functions for interacting with IFC ConstI64 nodes.
 
 extern a_boolean has_ifc_value(const an_ifc_const_i64 &universal);
 
-extern an_ifc_u64 get_ifc_value(const an_ifc_const_i64 &universal);
+template<>
+an_ifc_u64 get_ifc_value(const an_ifc_const_i64 &universal);
 
 extern a_boolean validate(const an_ifc_const_i64        &universal,
                           const an_ifc_validation_trace *parent);
@@ -2259,15 +10756,18 @@ Functions for interacting with IFC ConstStr nodes.
 
 extern a_boolean has_ifc_length(const an_ifc_const_str &universal);
 
-extern an_ifc_cardinality get_ifc_length(const an_ifc_const_str &universal);
+template<>
+an_ifc_cardinality get_ifc_length(const an_ifc_const_str &universal);
 
 extern a_boolean has_ifc_start(const an_ifc_const_str &universal);
 
-extern an_ifc_text_offset get_ifc_start(const an_ifc_const_str &universal);
+template<>
+an_ifc_text_offset get_ifc_start(const an_ifc_const_str &universal);
 
 extern a_boolean has_ifc_suffix(const an_ifc_const_str &universal);
 
-extern an_ifc_text_offset get_ifc_suffix(const an_ifc_const_str &universal);
+template<>
+an_ifc_text_offset get_ifc_suffix(const an_ifc_const_str &universal);
 
 extern a_boolean validate(const an_ifc_const_str        &universal,
                           const an_ifc_validation_trace *parent);
@@ -2300,34 +10800,39 @@ Functions for interacting with IFC DeclAlias nodes.
 
 extern a_boolean has_ifc_access(const an_ifc_decl_alias &universal);
 
-extern an_ifc_access_sort get_ifc_access(const an_ifc_decl_alias &universal);
+template<>
+an_ifc_access_sort get_ifc_access(const an_ifc_decl_alias &universal);
 
 extern a_boolean has_ifc_aliasee(const an_ifc_decl_alias &universal);
 
-extern an_ifc_type_index get_ifc_aliasee(const an_ifc_decl_alias &universal);
+template<>
+an_ifc_type_index get_ifc_aliasee(const an_ifc_decl_alias &universal);
 
 extern a_boolean has_ifc_home_scope(const an_ifc_decl_alias &universal);
 
-extern an_ifc_decl_index get_ifc_home_scope(
-                                           const an_ifc_decl_alias &universal);
+template<>
+an_ifc_decl_index get_ifc_home_scope(const an_ifc_decl_alias &universal);
 
 extern a_boolean has_ifc_locus(const an_ifc_decl_alias &universal);
 
-extern an_ifc_source_location get_ifc_locus(
-                                           const an_ifc_decl_alias &universal);
+template<>
+an_ifc_source_location get_ifc_locus(const an_ifc_decl_alias &universal);
 
 extern a_boolean has_ifc_name(const an_ifc_decl_alias &universal);
 
-extern an_ifc_text_offset get_ifc_name(const an_ifc_decl_alias &universal);
+template<>
+an_ifc_text_offset get_ifc_name(const an_ifc_decl_alias &universal);
 
 extern a_boolean has_ifc_specifiers(const an_ifc_decl_alias &universal);
 
-extern an_ifc_basic_specifiers_bitfield get_ifc_specifiers(
+template<>
+an_ifc_basic_specifiers_bitfield get_ifc_specifiers(
                                            const an_ifc_decl_alias &universal);
 
 extern a_boolean has_ifc_type(const an_ifc_decl_alias &universal);
 
-extern an_ifc_type_index get_ifc_type(const an_ifc_decl_alias &universal);
+template<>
+an_ifc_type_index get_ifc_type(const an_ifc_decl_alias &universal);
 
 extern a_boolean validate(const an_ifc_decl_alias       &universal,
                           const an_ifc_validation_trace *parent);
@@ -2360,50 +10865,56 @@ Functions for interacting with IFC DeclBitfield nodes.
 
 extern a_boolean has_ifc_access(const an_ifc_decl_bitfield &universal);
 
-extern an_ifc_access_sort get_ifc_access(
-                                        const an_ifc_decl_bitfield &universal);
+template<>
+an_ifc_access_sort get_ifc_access(const an_ifc_decl_bitfield &universal);
 
 extern a_boolean has_ifc_home_scope(const an_ifc_decl_bitfield &universal);
 
-extern an_ifc_decl_index get_ifc_home_scope(
-                                        const an_ifc_decl_bitfield &universal);
+template<>
+an_ifc_decl_index get_ifc_home_scope(const an_ifc_decl_bitfield &universal);
 
 extern a_boolean has_ifc_initializer(const an_ifc_decl_bitfield &universal);
 
-extern an_ifc_expr_index get_ifc_initializer(
-                                        const an_ifc_decl_bitfield &universal);
+template<>
+an_ifc_expr_index get_ifc_initializer(const an_ifc_decl_bitfield &universal);
 
 extern a_boolean has_ifc_locus(const an_ifc_decl_bitfield &universal);
 
-extern an_ifc_source_location get_ifc_locus(
-                                        const an_ifc_decl_bitfield &universal);
+template<>
+an_ifc_source_location get_ifc_locus(const an_ifc_decl_bitfield &universal);
 
 extern a_boolean has_ifc_name(const an_ifc_decl_bitfield &universal);
 
-extern an_ifc_text_offset get_ifc_name(const an_ifc_decl_bitfield &universal);
+template<>
+an_ifc_text_offset get_ifc_name(const an_ifc_decl_bitfield &universal);
 
 extern a_boolean has_ifc_properties(const an_ifc_decl_bitfield &universal);
 
-extern an_ifc_reachable_properties_bitfield get_ifc_properties(
+template<>
+an_ifc_reachable_properties_bitfield get_ifc_properties(
                                         const an_ifc_decl_bitfield &universal);
 
 extern a_boolean has_ifc_specifiers(const an_ifc_decl_bitfield &universal);
 
-extern an_ifc_basic_specifiers_bitfield get_ifc_specifiers(
+template<>
+an_ifc_basic_specifiers_bitfield get_ifc_specifiers(
                                         const an_ifc_decl_bitfield &universal);
 
 extern a_boolean has_ifc_traits(const an_ifc_decl_bitfield &universal);
 
-extern an_ifc_object_traits_bitfield get_ifc_traits(
+template<>
+an_ifc_object_traits_bitfield get_ifc_traits(
                                         const an_ifc_decl_bitfield &universal);
 
 extern a_boolean has_ifc_type(const an_ifc_decl_bitfield &universal);
 
-extern an_ifc_type_index get_ifc_type(const an_ifc_decl_bitfield &universal);
+template<>
+an_ifc_type_index get_ifc_type(const an_ifc_decl_bitfield &universal);
 
 extern a_boolean has_ifc_width(const an_ifc_decl_bitfield &universal);
 
-extern an_ifc_expr_index get_ifc_width(const an_ifc_decl_bitfield &universal);
+template<>
+an_ifc_expr_index get_ifc_width(const an_ifc_decl_bitfield &universal);
 
 extern a_boolean validate(const an_ifc_decl_bitfield    &universal,
                           const an_ifc_validation_trace *parent);
@@ -2436,53 +10947,59 @@ Functions for interacting with IFC DeclConcept nodes.
 
 extern a_boolean has_ifc_access(const an_ifc_decl_concept &universal);
 
-extern an_ifc_access_sort get_ifc_access(const an_ifc_decl_concept &universal);
+template<>
+an_ifc_access_sort get_ifc_access(const an_ifc_decl_concept &universal);
 
 extern a_boolean has_ifc_body(const an_ifc_decl_concept &universal);
 
-extern an_ifc_sentence_index get_ifc_body(
-                                         const an_ifc_decl_concept &universal);
+template<>
+an_ifc_sentence_index get_ifc_body(const an_ifc_decl_concept &universal);
 
 extern a_boolean has_ifc_chart(const an_ifc_decl_concept &universal);
 
-extern an_ifc_chart_index get_ifc_chart(const an_ifc_decl_concept &universal);
+template<>
+an_ifc_chart_index get_ifc_chart(const an_ifc_decl_concept &universal);
 
 extern a_boolean has_ifc_constraint(const an_ifc_decl_concept &universal);
 
-extern an_ifc_expr_index get_ifc_constraint(
-                                         const an_ifc_decl_concept &universal);
+template<>
+an_ifc_expr_index get_ifc_constraint(const an_ifc_decl_concept &universal);
 
 extern a_boolean has_ifc_head(const an_ifc_decl_concept &universal);
 
-extern an_ifc_sentence_index get_ifc_head(
-                                         const an_ifc_decl_concept &universal);
+template<>
+an_ifc_sentence_index get_ifc_head(const an_ifc_decl_concept &universal);
 
 extern a_boolean has_ifc_home_scope(const an_ifc_decl_concept &universal);
 
-extern an_ifc_decl_index get_ifc_home_scope(
-                                         const an_ifc_decl_concept &universal);
+template<>
+an_ifc_decl_index get_ifc_home_scope(const an_ifc_decl_concept &universal);
 
 extern a_boolean has_ifc_locus(const an_ifc_decl_concept &universal);
 
-extern an_ifc_source_location get_ifc_locus(
-                                         const an_ifc_decl_concept &universal);
+template<>
+an_ifc_source_location get_ifc_locus(const an_ifc_decl_concept &universal);
 
 extern a_boolean has_ifc_name(const an_ifc_decl_concept &universal);
 
-extern an_ifc_text_offset get_ifc_name(const an_ifc_decl_concept &universal);
+template<>
+an_ifc_text_offset get_ifc_name(const an_ifc_decl_concept &universal);
 
 extern a_boolean has_ifc_specifiers(const an_ifc_decl_concept &universal);
 
-extern an_ifc_basic_specifiers_bitfield get_ifc_specifiers(
+template<>
+an_ifc_basic_specifiers_bitfield get_ifc_specifiers(
                                          const an_ifc_decl_concept &universal);
 
 extern a_boolean has_ifc_type(const an_ifc_decl_concept &universal);
 
-extern an_ifc_type_index get_ifc_type(const an_ifc_decl_concept &universal);
+template<>
+an_ifc_type_index get_ifc_type(const an_ifc_decl_concept &universal);
 
 extern a_boolean has_ifc_unknown(const an_ifc_decl_concept &universal);
 
-extern an_ifc_u16 get_ifc_unknown(const an_ifc_decl_concept &universal);
+template<>
+an_ifc_u16 get_ifc_unknown(const an_ifc_decl_concept &universal);
 
 extern a_boolean validate(const an_ifc_decl_concept     &universal,
                           const an_ifc_validation_trace *parent);
@@ -2515,48 +11032,51 @@ Functions for interacting with IFC DeclConstructor nodes.
 
 extern a_boolean has_ifc_access(const an_ifc_decl_constructor &universal);
 
-extern an_ifc_access_sort get_ifc_access(
-                                     const an_ifc_decl_constructor &universal);
+template<>
+an_ifc_access_sort get_ifc_access(const an_ifc_decl_constructor &universal);
 
 extern a_boolean has_ifc_chart(const an_ifc_decl_constructor &universal);
 
-extern an_ifc_chart_index get_ifc_chart(
-                                     const an_ifc_decl_constructor &universal);
+template<>
+an_ifc_chart_index get_ifc_chart(const an_ifc_decl_constructor &universal);
 
 extern a_boolean has_ifc_home_scope(const an_ifc_decl_constructor &universal);
 
-extern an_ifc_decl_index get_ifc_home_scope(
-                                     const an_ifc_decl_constructor &universal);
+template<>
+an_ifc_decl_index get_ifc_home_scope(const an_ifc_decl_constructor &universal);
 
 extern a_boolean has_ifc_locus(const an_ifc_decl_constructor &universal);
 
-extern an_ifc_source_location get_ifc_locus(
-                                     const an_ifc_decl_constructor &universal);
+template<>
+an_ifc_source_location get_ifc_locus(const an_ifc_decl_constructor &universal);
 
 extern a_boolean has_ifc_name(const an_ifc_decl_constructor &universal);
 
-extern an_ifc_name_index get_ifc_name(
-                                     const an_ifc_decl_constructor &universal);
+template<>
+an_ifc_name_index get_ifc_name(const an_ifc_decl_constructor &universal);
 
 extern a_boolean has_ifc_properties(const an_ifc_decl_constructor &universal);
 
-extern an_ifc_reachable_properties_bitfield get_ifc_properties(
+template<>
+an_ifc_reachable_properties_bitfield get_ifc_properties(
                                      const an_ifc_decl_constructor &universal);
 
 extern a_boolean has_ifc_specifiers(const an_ifc_decl_constructor &universal);
 
-extern an_ifc_basic_specifiers_bitfield get_ifc_specifiers(
+template<>
+an_ifc_basic_specifiers_bitfield get_ifc_specifiers(
                                      const an_ifc_decl_constructor &universal);
 
 extern a_boolean has_ifc_traits(const an_ifc_decl_constructor &universal);
 
-extern an_ifc_function_traits_bitfield get_ifc_traits(
+template<>
+an_ifc_function_traits_bitfield get_ifc_traits(
                                      const an_ifc_decl_constructor &universal);
 
 extern a_boolean has_ifc_type(const an_ifc_decl_constructor &universal);
 
-extern an_ifc_type_index get_ifc_type(
-                                     const an_ifc_decl_constructor &universal);
+template<>
+an_ifc_type_index get_ifc_type(const an_ifc_decl_constructor &universal);
 
 extern a_boolean validate(const an_ifc_decl_constructor &universal,
                           const an_ifc_validation_trace *parent);
@@ -2590,38 +11110,43 @@ Functions for interacting with IFC DeclDeductionGuide nodes.
 extern a_boolean has_ifc_home_scope(
                                  const an_ifc_decl_deduction_guide &universal);
 
-extern an_ifc_decl_index get_ifc_home_scope(
+template<>
+an_ifc_decl_index get_ifc_home_scope(
                                  const an_ifc_decl_deduction_guide &universal);
 
 extern a_boolean has_ifc_locus(const an_ifc_decl_deduction_guide &universal);
 
-extern an_ifc_source_location get_ifc_locus(
+template<>
+an_ifc_source_location get_ifc_locus(
                                  const an_ifc_decl_deduction_guide &universal);
 
 extern a_boolean has_ifc_name(const an_ifc_decl_deduction_guide &universal);
 
-extern an_ifc_text_offset get_ifc_name(
-                                 const an_ifc_decl_deduction_guide &universal);
+template<>
+an_ifc_text_offset get_ifc_name(const an_ifc_decl_deduction_guide &universal);
 
 extern a_boolean has_ifc_source(const an_ifc_decl_deduction_guide &universal);
 
-extern an_ifc_chart_index get_ifc_source(
+template<>
+an_ifc_chart_index get_ifc_source(
                                  const an_ifc_decl_deduction_guide &universal);
 
 extern a_boolean has_ifc_specifiers(
                                  const an_ifc_decl_deduction_guide &universal);
 
-extern an_ifc_basic_specifiers_bitfield get_ifc_specifiers(
+template<>
+an_ifc_basic_specifiers_bitfield get_ifc_specifiers(
                                  const an_ifc_decl_deduction_guide &universal);
 
 extern a_boolean has_ifc_target(const an_ifc_decl_deduction_guide &universal);
 
-extern an_ifc_expr_index get_ifc_target(
-                                 const an_ifc_decl_deduction_guide &universal);
+template<>
+an_ifc_expr_index get_ifc_target(const an_ifc_decl_deduction_guide &universal);
 
 extern a_boolean has_ifc_traits(const an_ifc_decl_deduction_guide &universal);
 
-extern an_ifc_guide_traits_bitfield get_ifc_traits(
+template<>
+an_ifc_guide_traits_bitfield get_ifc_traits(
                                  const an_ifc_decl_deduction_guide &universal);
 
 extern a_boolean validate(const an_ifc_decl_deduction_guide &universal,
@@ -2656,46 +11181,52 @@ Functions for interacting with IFC DeclDestructor nodes.
 
 extern a_boolean has_ifc_access(const an_ifc_decl_destructor &universal);
 
-extern an_ifc_access_sort get_ifc_access(
-                                      const an_ifc_decl_destructor &universal);
+template<>
+an_ifc_access_sort get_ifc_access(const an_ifc_decl_destructor &universal);
 
 extern a_boolean has_ifc_convention(const an_ifc_decl_destructor &universal);
 
-extern an_ifc_calling_convention_sort get_ifc_convention(
+template<>
+an_ifc_calling_convention_sort get_ifc_convention(
                                       const an_ifc_decl_destructor &universal);
 
 extern a_boolean has_ifc_eh_spec(const an_ifc_decl_destructor &universal);
 
-extern an_ifc_noexcept_specification get_ifc_eh_spec(
+template<>
+an_ifc_noexcept_specification get_ifc_eh_spec(
                                       const an_ifc_decl_destructor &universal);
 
 extern a_boolean has_ifc_home_scope(const an_ifc_decl_destructor &universal);
 
-extern an_ifc_decl_index get_ifc_home_scope(
-                                      const an_ifc_decl_destructor &universal);
+template<>
+an_ifc_decl_index get_ifc_home_scope(const an_ifc_decl_destructor &universal);
 
 extern a_boolean has_ifc_locus(const an_ifc_decl_destructor &universal);
 
-extern an_ifc_source_location get_ifc_locus(
-                                      const an_ifc_decl_destructor &universal);
+template<>
+an_ifc_source_location get_ifc_locus(const an_ifc_decl_destructor &universal);
 
 extern a_boolean has_ifc_name(const an_ifc_decl_destructor &universal);
 
-extern an_ifc_name_index get_ifc_name(const an_ifc_decl_destructor &universal);
+template<>
+an_ifc_name_index get_ifc_name(const an_ifc_decl_destructor &universal);
 
 extern a_boolean has_ifc_properties(const an_ifc_decl_destructor &universal);
 
-extern an_ifc_reachable_properties_bitfield get_ifc_properties(
+template<>
+an_ifc_reachable_properties_bitfield get_ifc_properties(
                                       const an_ifc_decl_destructor &universal);
 
 extern a_boolean has_ifc_specifiers(const an_ifc_decl_destructor &universal);
 
-extern an_ifc_basic_specifiers_bitfield get_ifc_specifiers(
+template<>
+an_ifc_basic_specifiers_bitfield get_ifc_specifiers(
                                       const an_ifc_decl_destructor &universal);
 
 extern a_boolean has_ifc_traits(const an_ifc_decl_destructor &universal);
 
-extern an_ifc_function_traits_bitfield get_ifc_traits(
+template<>
+an_ifc_function_traits_bitfield get_ifc_traits(
                                       const an_ifc_decl_destructor &universal);
 
 extern a_boolean validate(const an_ifc_decl_destructor  &universal,
@@ -2729,53 +11260,55 @@ Functions for interacting with IFC DeclEnumeration nodes.
 
 extern a_boolean has_ifc_access(const an_ifc_decl_enumeration &universal);
 
-extern an_ifc_access_sort get_ifc_access(
-                                     const an_ifc_decl_enumeration &universal);
+template<>
+an_ifc_access_sort get_ifc_access(const an_ifc_decl_enumeration &universal);
 
 extern a_boolean has_ifc_alignment(const an_ifc_decl_enumeration &universal);
 
-extern an_ifc_expr_index get_ifc_alignment(
-                                     const an_ifc_decl_enumeration &universal);
+template<>
+an_ifc_expr_index get_ifc_alignment(const an_ifc_decl_enumeration &universal);
 
 extern a_boolean has_ifc_base(const an_ifc_decl_enumeration &universal);
 
-extern an_ifc_type_index get_ifc_base(
-                                     const an_ifc_decl_enumeration &universal);
+template<>
+an_ifc_type_index get_ifc_base(const an_ifc_decl_enumeration &universal);
 
 extern a_boolean has_ifc_home_scope(const an_ifc_decl_enumeration &universal);
 
-extern an_ifc_decl_index get_ifc_home_scope(
-                                     const an_ifc_decl_enumeration &universal);
+template<>
+an_ifc_decl_index get_ifc_home_scope(const an_ifc_decl_enumeration &universal);
 
 extern a_boolean has_ifc_initializer(const an_ifc_decl_enumeration &universal);
 
-extern an_ifc_sequence get_ifc_initializer(
-                                     const an_ifc_decl_enumeration &universal);
+template<>
+an_ifc_sequence get_ifc_initializer(const an_ifc_decl_enumeration &universal);
 
 extern a_boolean has_ifc_locus(const an_ifc_decl_enumeration &universal);
 
-extern an_ifc_source_location get_ifc_locus(
-                                     const an_ifc_decl_enumeration &universal);
+template<>
+an_ifc_source_location get_ifc_locus(const an_ifc_decl_enumeration &universal);
 
 extern a_boolean has_ifc_name(const an_ifc_decl_enumeration &universal);
 
-extern an_ifc_text_offset get_ifc_name(
-                                     const an_ifc_decl_enumeration &universal);
+template<>
+an_ifc_text_offset get_ifc_name(const an_ifc_decl_enumeration &universal);
 
 extern a_boolean has_ifc_properties(const an_ifc_decl_enumeration &universal);
 
-extern an_ifc_reachable_properties_bitfield get_ifc_properties(
+template<>
+an_ifc_reachable_properties_bitfield get_ifc_properties(
                                      const an_ifc_decl_enumeration &universal);
 
 extern a_boolean has_ifc_specifiers(const an_ifc_decl_enumeration &universal);
 
-extern an_ifc_basic_specifiers_bitfield get_ifc_specifiers(
+template<>
+an_ifc_basic_specifiers_bitfield get_ifc_specifiers(
                                      const an_ifc_decl_enumeration &universal);
 
 extern a_boolean has_ifc_type(const an_ifc_decl_enumeration &universal);
 
-extern an_ifc_type_index get_ifc_type(
-                                     const an_ifc_decl_enumeration &universal);
+template<>
+an_ifc_type_index get_ifc_type(const an_ifc_decl_enumeration &universal);
 
 extern a_boolean validate(const an_ifc_decl_enumeration &universal,
                           const an_ifc_validation_trace *parent);
@@ -2808,37 +11341,39 @@ Functions for interacting with IFC DeclEnumerator nodes.
 
 extern a_boolean has_ifc_access(const an_ifc_decl_enumerator &universal);
 
-extern an_ifc_access_sort get_ifc_access(
-                                      const an_ifc_decl_enumerator &universal);
+template<>
+an_ifc_access_sort get_ifc_access(const an_ifc_decl_enumerator &universal);
 
 extern a_boolean has_ifc_home_scope(const an_ifc_decl_enumerator &universal);
 
-extern an_ifc_decl_index get_ifc_home_scope(
-                                      const an_ifc_decl_enumerator &universal);
+template<>
+an_ifc_decl_index get_ifc_home_scope(const an_ifc_decl_enumerator &universal);
 
 extern a_boolean has_ifc_initializer(const an_ifc_decl_enumerator &universal);
 
-extern an_ifc_expr_index get_ifc_initializer(
-                                      const an_ifc_decl_enumerator &universal);
+template<>
+an_ifc_expr_index get_ifc_initializer(const an_ifc_decl_enumerator &universal);
 
 extern a_boolean has_ifc_locus(const an_ifc_decl_enumerator &universal);
 
-extern an_ifc_source_location get_ifc_locus(
-                                      const an_ifc_decl_enumerator &universal);
+template<>
+an_ifc_source_location get_ifc_locus(const an_ifc_decl_enumerator &universal);
 
 extern a_boolean has_ifc_name(const an_ifc_decl_enumerator &universal);
 
-extern an_ifc_text_offset get_ifc_name(
-                                      const an_ifc_decl_enumerator &universal);
+template<>
+an_ifc_text_offset get_ifc_name(const an_ifc_decl_enumerator &universal);
 
 extern a_boolean has_ifc_specifiers(const an_ifc_decl_enumerator &universal);
 
-extern an_ifc_basic_specifiers_bitfield get_ifc_specifiers(
+template<>
+an_ifc_basic_specifiers_bitfield get_ifc_specifiers(
                                       const an_ifc_decl_enumerator &universal);
 
 extern a_boolean has_ifc_type(const an_ifc_decl_enumerator &universal);
 
-extern an_ifc_type_index get_ifc_type(const an_ifc_decl_enumerator &universal);
+template<>
+an_ifc_type_index get_ifc_type(const an_ifc_decl_enumerator &universal);
 
 extern a_boolean validate(const an_ifc_decl_enumerator  &universal,
                           const an_ifc_validation_trace *parent);
@@ -2871,13 +11406,13 @@ Functions for interacting with IFC DeclExpansion nodes.
 
 extern a_boolean has_ifc_locus(const an_ifc_decl_expansion &universal);
 
-extern an_ifc_source_location get_ifc_locus(
-                                       const an_ifc_decl_expansion &universal);
+template<>
+an_ifc_source_location get_ifc_locus(const an_ifc_decl_expansion &universal);
 
 extern a_boolean has_ifc_operand(const an_ifc_decl_expansion &universal);
 
-extern an_ifc_decl_index get_ifc_operand(
-                                       const an_ifc_decl_expansion &universal);
+template<>
+an_ifc_decl_index get_ifc_operand(const an_ifc_decl_expansion &universal);
 
 extern a_boolean validate(const an_ifc_decl_expansion   &universal,
                           const an_ifc_validation_trace *parent);
@@ -2911,13 +11446,15 @@ Functions for interacting with IFC DeclExplicitInstantiation nodes.
 extern a_boolean has_ifc_decl(
                           const an_ifc_decl_explicit_instantiation &universal);
 
-extern an_ifc_decl_index get_ifc_decl(
+template<>
+an_ifc_decl_index get_ifc_decl(
                           const an_ifc_decl_explicit_instantiation &universal);
 
 extern a_boolean has_ifc_form(
                           const an_ifc_decl_explicit_instantiation &universal);
 
-extern an_ifc_form_spec_index get_ifc_form(
+template<>
+an_ifc_form_spec_index get_ifc_form(
                           const an_ifc_decl_explicit_instantiation &universal);
 
 extern a_boolean validate(const an_ifc_decl_explicit_instantiation &universal,
@@ -2954,13 +11491,15 @@ Functions for interacting with IFC DeclExplicitSpecialization nodes.
 extern a_boolean has_ifc_decl(
                          const an_ifc_decl_explicit_specialization &universal);
 
-extern an_ifc_decl_index get_ifc_decl(
+template<>
+an_ifc_decl_index get_ifc_decl(
                          const an_ifc_decl_explicit_specialization &universal);
 
 extern a_boolean has_ifc_form(
                          const an_ifc_decl_explicit_specialization &universal);
 
-extern an_ifc_form_spec_index get_ifc_form(
+template<>
+an_ifc_form_spec_index get_ifc_form(
                          const an_ifc_decl_explicit_specialization &universal);
 
 extern a_boolean validate(
@@ -2997,49 +11536,56 @@ Functions for interacting with IFC DeclField nodes.
 
 extern a_boolean has_ifc_access(const an_ifc_decl_field &universal);
 
-extern an_ifc_access_sort get_ifc_access(const an_ifc_decl_field &universal);
+template<>
+an_ifc_access_sort get_ifc_access(const an_ifc_decl_field &universal);
 
 extern a_boolean has_ifc_alignment(const an_ifc_decl_field &universal);
 
-extern an_ifc_expr_index get_ifc_alignment(const an_ifc_decl_field &universal);
+template<>
+an_ifc_expr_index get_ifc_alignment(const an_ifc_decl_field &universal);
 
 extern a_boolean has_ifc_home_scope(const an_ifc_decl_field &universal);
 
-extern an_ifc_decl_index get_ifc_home_scope(
-                                           const an_ifc_decl_field &universal);
+template<>
+an_ifc_decl_index get_ifc_home_scope(const an_ifc_decl_field &universal);
 
 extern a_boolean has_ifc_initializer(const an_ifc_decl_field &universal);
 
-extern an_ifc_expr_index get_ifc_initializer(
-                                           const an_ifc_decl_field &universal);
+template<>
+an_ifc_expr_index get_ifc_initializer(const an_ifc_decl_field &universal);
 
 extern a_boolean has_ifc_locus(const an_ifc_decl_field &universal);
 
-extern an_ifc_source_location get_ifc_locus(
-                                           const an_ifc_decl_field &universal);
+template<>
+an_ifc_source_location get_ifc_locus(const an_ifc_decl_field &universal);
 
 extern a_boolean has_ifc_name(const an_ifc_decl_field &universal);
 
-extern an_ifc_text_offset get_ifc_name(const an_ifc_decl_field &universal);
+template<>
+an_ifc_text_offset get_ifc_name(const an_ifc_decl_field &universal);
 
 extern a_boolean has_ifc_properties(const an_ifc_decl_field &universal);
 
-extern an_ifc_reachable_properties_bitfield get_ifc_properties(
+template<>
+an_ifc_reachable_properties_bitfield get_ifc_properties(
                                            const an_ifc_decl_field &universal);
 
 extern a_boolean has_ifc_specifiers(const an_ifc_decl_field &universal);
 
-extern an_ifc_basic_specifiers_bitfield get_ifc_specifiers(
+template<>
+an_ifc_basic_specifiers_bitfield get_ifc_specifiers(
                                            const an_ifc_decl_field &universal);
 
 extern a_boolean has_ifc_traits(const an_ifc_decl_field &universal);
 
-extern an_ifc_object_traits_bitfield get_ifc_traits(
+template<>
+an_ifc_object_traits_bitfield get_ifc_traits(
                                            const an_ifc_decl_field &universal);
 
 extern a_boolean has_ifc_type(const an_ifc_decl_field &universal);
 
-extern an_ifc_type_index get_ifc_type(const an_ifc_decl_field &universal);
+template<>
+an_ifc_type_index get_ifc_type(const an_ifc_decl_field &universal);
 
 extern a_boolean validate(const an_ifc_decl_field       &universal,
                           const an_ifc_validation_trace *parent);
@@ -3072,7 +11618,8 @@ Functions for interacting with IFC DeclFriend nodes.
 
 extern a_boolean has_ifc_entity(const an_ifc_decl_friend &universal);
 
-extern an_ifc_expr_index get_ifc_entity(const an_ifc_decl_friend &universal);
+template<>
+an_ifc_expr_index get_ifc_entity(const an_ifc_decl_friend &universal);
 
 extern a_boolean validate(const an_ifc_decl_friend      &universal,
                           const an_ifc_validation_trace *parent);
@@ -3105,45 +11652,51 @@ Functions for interacting with IFC DeclFunction nodes.
 
 extern a_boolean has_ifc_access(const an_ifc_decl_function &universal);
 
-extern an_ifc_access_sort get_ifc_access(
-                                        const an_ifc_decl_function &universal);
+template<>
+an_ifc_access_sort get_ifc_access(const an_ifc_decl_function &universal);
 
 extern a_boolean has_ifc_chart(const an_ifc_decl_function &universal);
 
-extern an_ifc_chart_index get_ifc_chart(const an_ifc_decl_function &universal);
+template<>
+an_ifc_chart_index get_ifc_chart(const an_ifc_decl_function &universal);
 
 extern a_boolean has_ifc_home_scope(const an_ifc_decl_function &universal);
 
-extern an_ifc_decl_index get_ifc_home_scope(
-                                        const an_ifc_decl_function &universal);
+template<>
+an_ifc_decl_index get_ifc_home_scope(const an_ifc_decl_function &universal);
 
 extern a_boolean has_ifc_locus(const an_ifc_decl_function &universal);
 
-extern an_ifc_source_location get_ifc_locus(
-                                        const an_ifc_decl_function &universal);
+template<>
+an_ifc_source_location get_ifc_locus(const an_ifc_decl_function &universal);
 
 extern a_boolean has_ifc_name(const an_ifc_decl_function &universal);
 
-extern an_ifc_name_index get_ifc_name(const an_ifc_decl_function &universal);
+template<>
+an_ifc_name_index get_ifc_name(const an_ifc_decl_function &universal);
 
 extern a_boolean has_ifc_properties(const an_ifc_decl_function &universal);
 
-extern an_ifc_reachable_properties_bitfield get_ifc_properties(
+template<>
+an_ifc_reachable_properties_bitfield get_ifc_properties(
                                         const an_ifc_decl_function &universal);
 
 extern a_boolean has_ifc_specifiers(const an_ifc_decl_function &universal);
 
-extern an_ifc_basic_specifiers_bitfield get_ifc_specifiers(
+template<>
+an_ifc_basic_specifiers_bitfield get_ifc_specifiers(
                                         const an_ifc_decl_function &universal);
 
 extern a_boolean has_ifc_traits(const an_ifc_decl_function &universal);
 
-extern an_ifc_function_traits_bitfield get_ifc_traits(
+template<>
+an_ifc_function_traits_bitfield get_ifc_traits(
                                         const an_ifc_decl_function &universal);
 
 extern a_boolean has_ifc_type(const an_ifc_decl_function &universal);
 
-extern an_ifc_type_index get_ifc_type(const an_ifc_decl_function &universal);
+template<>
+an_ifc_type_index get_ifc_type(const an_ifc_decl_function &universal);
 
 extern a_boolean validate(const an_ifc_decl_function    &universal,
                           const an_ifc_validation_trace *parent);
@@ -3177,55 +11730,64 @@ Functions for interacting with IFC DeclInheritedConstructor nodes.
 extern a_boolean has_ifc_access(
                            const an_ifc_decl_inherited_constructor &universal);
 
-extern an_ifc_access_sort get_ifc_access(
+template<>
+an_ifc_access_sort get_ifc_access(
                            const an_ifc_decl_inherited_constructor &universal);
 
 extern a_boolean has_ifc_base_ctor(
                            const an_ifc_decl_inherited_constructor &universal);
 
-extern an_ifc_decl_index get_ifc_base_ctor(
+template<>
+an_ifc_decl_index get_ifc_base_ctor(
                            const an_ifc_decl_inherited_constructor &universal);
 
 extern a_boolean has_ifc_chart(
                            const an_ifc_decl_inherited_constructor &universal);
 
-extern an_ifc_chart_index get_ifc_chart(
+template<>
+an_ifc_chart_index get_ifc_chart(
                            const an_ifc_decl_inherited_constructor &universal);
 
 extern a_boolean has_ifc_home_scope(
                            const an_ifc_decl_inherited_constructor &universal);
 
-extern an_ifc_decl_index get_ifc_home_scope(
+template<>
+an_ifc_decl_index get_ifc_home_scope(
                            const an_ifc_decl_inherited_constructor &universal);
 
 extern a_boolean has_ifc_locus(
                            const an_ifc_decl_inherited_constructor &universal);
 
-extern an_ifc_source_location get_ifc_locus(
+template<>
+an_ifc_source_location get_ifc_locus(
                            const an_ifc_decl_inherited_constructor &universal);
 
 extern a_boolean has_ifc_name(
                            const an_ifc_decl_inherited_constructor &universal);
 
-extern an_ifc_text_offset get_ifc_name(
+template<>
+an_ifc_text_offset get_ifc_name(
                            const an_ifc_decl_inherited_constructor &universal);
 
 extern a_boolean has_ifc_specifiers(
                            const an_ifc_decl_inherited_constructor &universal);
 
-extern an_ifc_basic_specifiers_bitfield get_ifc_specifiers(
+template<>
+an_ifc_basic_specifiers_bitfield get_ifc_specifiers(
                            const an_ifc_decl_inherited_constructor &universal);
 
 extern a_boolean has_ifc_traits(
                            const an_ifc_decl_inherited_constructor &universal);
 
-extern an_ifc_function_traits_bitfield get_ifc_traits(
+template<>
+an_ifc_function_traits_bitfield get_ifc_traits(
                            const an_ifc_decl_inherited_constructor &universal);
 
 extern a_boolean has_ifc_type(
                            const an_ifc_decl_inherited_constructor &universal);
 
-extern an_ifc_type_index get_ifc_type(
+template<>
+an_ifc_type_index get_ifc_type(
                            const an_ifc_decl_inherited_constructor &universal);
 
 extern a_boolean validate(const an_ifc_decl_inherited_constructor &universal,
@@ -3261,31 +11823,34 @@ Functions for interacting with IFC DeclIntrinsic nodes.
 
 extern a_boolean has_ifc_access(const an_ifc_decl_intrinsic &universal);
 
-extern an_ifc_access_sort get_ifc_access(
-                                       const an_ifc_decl_intrinsic &universal);
+template<>
+an_ifc_access_sort get_ifc_access(const an_ifc_decl_intrinsic &universal);
 
 extern a_boolean has_ifc_home_scope(const an_ifc_decl_intrinsic &universal);
 
-extern an_ifc_decl_index get_ifc_home_scope(
-                                       const an_ifc_decl_intrinsic &universal);
+template<>
+an_ifc_decl_index get_ifc_home_scope(const an_ifc_decl_intrinsic &universal);
 
 extern a_boolean has_ifc_locus(const an_ifc_decl_intrinsic &universal);
 
-extern an_ifc_source_location get_ifc_locus(
-                                       const an_ifc_decl_intrinsic &universal);
+template<>
+an_ifc_source_location get_ifc_locus(const an_ifc_decl_intrinsic &universal);
 
 extern a_boolean has_ifc_name(const an_ifc_decl_intrinsic &universal);
 
-extern an_ifc_text_offset get_ifc_name(const an_ifc_decl_intrinsic &universal);
+template<>
+an_ifc_text_offset get_ifc_name(const an_ifc_decl_intrinsic &universal);
 
 extern a_boolean has_ifc_specifiers(const an_ifc_decl_intrinsic &universal);
 
-extern an_ifc_basic_specifiers_bitfield get_ifc_specifiers(
+template<>
+an_ifc_basic_specifiers_bitfield get_ifc_specifiers(
                                        const an_ifc_decl_intrinsic &universal);
 
 extern a_boolean has_ifc_type(const an_ifc_decl_intrinsic &universal);
 
-extern an_ifc_type_index get_ifc_type(const an_ifc_decl_intrinsic &universal);
+template<>
+an_ifc_type_index get_ifc_type(const an_ifc_decl_intrinsic &universal);
 
 extern a_boolean validate(const an_ifc_decl_intrinsic   &universal,
                           const an_ifc_validation_trace *parent);
@@ -3318,44 +11883,51 @@ Functions for interacting with IFC DeclMethod nodes.
 
 extern a_boolean has_ifc_access(const an_ifc_decl_method &universal);
 
-extern an_ifc_access_sort get_ifc_access(const an_ifc_decl_method &universal);
+template<>
+an_ifc_access_sort get_ifc_access(const an_ifc_decl_method &universal);
 
 extern a_boolean has_ifc_chart(const an_ifc_decl_method &universal);
 
-extern an_ifc_chart_index get_ifc_chart(const an_ifc_decl_method &universal);
+template<>
+an_ifc_chart_index get_ifc_chart(const an_ifc_decl_method &universal);
 
 extern a_boolean has_ifc_home_scope(const an_ifc_decl_method &universal);
 
-extern an_ifc_decl_index get_ifc_home_scope(
-                                          const an_ifc_decl_method &universal);
+template<>
+an_ifc_decl_index get_ifc_home_scope(const an_ifc_decl_method &universal);
 
 extern a_boolean has_ifc_locus(const an_ifc_decl_method &universal);
 
-extern an_ifc_source_location get_ifc_locus(
-                                          const an_ifc_decl_method &universal);
+template<>
+an_ifc_source_location get_ifc_locus(const an_ifc_decl_method &universal);
 
 extern a_boolean has_ifc_name(const an_ifc_decl_method &universal);
 
-extern an_ifc_name_index get_ifc_name(const an_ifc_decl_method &universal);
+template<>
+an_ifc_name_index get_ifc_name(const an_ifc_decl_method &universal);
 
 extern a_boolean has_ifc_properties(const an_ifc_decl_method &universal);
 
-extern an_ifc_reachable_properties_bitfield get_ifc_properties(
+template<>
+an_ifc_reachable_properties_bitfield get_ifc_properties(
                                           const an_ifc_decl_method &universal);
 
 extern a_boolean has_ifc_specifiers(const an_ifc_decl_method &universal);
 
-extern an_ifc_basic_specifiers_bitfield get_ifc_specifiers(
+template<>
+an_ifc_basic_specifiers_bitfield get_ifc_specifiers(
                                           const an_ifc_decl_method &universal);
 
 extern a_boolean has_ifc_traits(const an_ifc_decl_method &universal);
 
-extern an_ifc_function_traits_bitfield get_ifc_traits(
+template<>
+an_ifc_function_traits_bitfield get_ifc_traits(
                                           const an_ifc_decl_method &universal);
 
 extern a_boolean has_ifc_type(const an_ifc_decl_method &universal);
 
-extern an_ifc_type_index get_ifc_type(const an_ifc_decl_method &universal);
+template<>
+an_ifc_type_index get_ifc_type(const an_ifc_decl_method &universal);
 
 extern a_boolean validate(const an_ifc_decl_method      &universal,
                           const an_ifc_validation_trace *parent);
@@ -3388,23 +11960,24 @@ Functions for interacting with IFC DeclOutputSegment nodes.
 
 extern a_boolean has_ifc_ID(const an_ifc_decl_output_segment &universal);
 
-extern an_ifc_text_offset get_ifc_ID(
-                                  const an_ifc_decl_output_segment &universal);
+template<>
+an_ifc_text_offset get_ifc_ID(const an_ifc_decl_output_segment &universal);
 
 extern a_boolean has_ifc_name(const an_ifc_decl_output_segment &universal);
 
-extern an_ifc_text_offset get_ifc_name(
-                                  const an_ifc_decl_output_segment &universal);
+template<>
+an_ifc_text_offset get_ifc_name(const an_ifc_decl_output_segment &universal);
 
 extern a_boolean has_ifc_traits(const an_ifc_decl_output_segment &universal);
 
-extern an_ifc_segment_traits get_ifc_traits(
+template<>
+an_ifc_segment_traits get_ifc_traits(
                                   const an_ifc_decl_output_segment &universal);
 
 extern a_boolean has_ifc_type(const an_ifc_decl_output_segment &universal);
 
-extern an_ifc_segment_type get_ifc_type(
-                                  const an_ifc_decl_output_segment &universal);
+template<>
+an_ifc_segment_type get_ifc_type(const an_ifc_decl_output_segment &universal);
 
 extern a_boolean validate(const an_ifc_decl_output_segment &universal,
                           const an_ifc_validation_trace    *parent);
@@ -3438,50 +12011,55 @@ Functions for interacting with IFC DeclParameter nodes.
 
 extern a_boolean has_ifc_constraint(const an_ifc_decl_parameter &universal);
 
-extern an_ifc_expr_index get_ifc_constraint(
-                                       const an_ifc_decl_parameter &universal);
+template<>
+an_ifc_expr_index get_ifc_constraint(const an_ifc_decl_parameter &universal);
 
 extern a_boolean has_ifc_initializer(const an_ifc_decl_parameter &universal);
 
-extern an_ifc_expr_index get_ifc_initializer(
-                                       const an_ifc_decl_parameter &universal);
+template<>
+an_ifc_expr_index get_ifc_initializer(const an_ifc_decl_parameter &universal);
 
 extern a_boolean has_ifc_level(const an_ifc_decl_parameter &universal);
 
-extern an_ifc_parameter_level get_ifc_level(
-                                       const an_ifc_decl_parameter &universal);
+template<>
+an_ifc_parameter_level get_ifc_level(const an_ifc_decl_parameter &universal);
 
 extern a_boolean has_ifc_locus(const an_ifc_decl_parameter &universal);
 
-extern an_ifc_source_location get_ifc_locus(
-                                       const an_ifc_decl_parameter &universal);
+template<>
+an_ifc_source_location get_ifc_locus(const an_ifc_decl_parameter &universal);
 
 extern a_boolean has_ifc_name(const an_ifc_decl_parameter &universal);
 
-extern an_ifc_text_offset get_ifc_name(const an_ifc_decl_parameter &universal);
+template<>
+an_ifc_text_offset get_ifc_name(const an_ifc_decl_parameter &universal);
 
 extern a_boolean has_ifc_pack(const an_ifc_decl_parameter &universal);
 
-extern an_ifc_bool get_ifc_pack(const an_ifc_decl_parameter &universal);
+template<>
+an_ifc_bool get_ifc_pack(const an_ifc_decl_parameter &universal);
 
 extern a_boolean has_ifc_position(const an_ifc_decl_parameter &universal);
 
-extern an_ifc_parameter_position get_ifc_position(
+template<>
+an_ifc_parameter_position get_ifc_position(
                                        const an_ifc_decl_parameter &universal);
 
 extern a_boolean has_ifc_properties(const an_ifc_decl_parameter &universal);
 
-extern an_ifc_reachable_properties_bitfield get_ifc_properties(
+template<>
+an_ifc_reachable_properties_bitfield get_ifc_properties(
                                        const an_ifc_decl_parameter &universal);
 
 extern a_boolean has_ifc_sort(const an_ifc_decl_parameter &universal);
 
-extern an_ifc_parameter_sort get_ifc_sort(
-                                       const an_ifc_decl_parameter &universal);
+template<>
+an_ifc_parameter_sort get_ifc_sort(const an_ifc_decl_parameter &universal);
 
 extern a_boolean has_ifc_type(const an_ifc_decl_parameter &universal);
 
-extern an_ifc_type_index get_ifc_type(const an_ifc_decl_parameter &universal);
+template<>
+an_ifc_type_index get_ifc_type(const an_ifc_decl_parameter &universal);
 
 extern a_boolean validate(const an_ifc_decl_parameter   &universal,
                           const an_ifc_validation_trace *parent);
@@ -3515,55 +12093,64 @@ Functions for interacting with IFC DeclPartialSpecialization nodes.
 extern a_boolean has_ifc_access(
                           const an_ifc_decl_partial_specialization &universal);
 
-extern an_ifc_access_sort get_ifc_access(
+template<>
+an_ifc_access_sort get_ifc_access(
                           const an_ifc_decl_partial_specialization &universal);
 
 extern a_boolean has_ifc_chart(
                           const an_ifc_decl_partial_specialization &universal);
 
-extern an_ifc_chart_index get_ifc_chart(
+template<>
+an_ifc_chart_index get_ifc_chart(
                           const an_ifc_decl_partial_specialization &universal);
 
 extern a_boolean has_ifc_entity(
                           const an_ifc_decl_partial_specialization &universal);
 
-extern an_ifc_parameterized_entity get_ifc_entity(
+template<>
+an_ifc_parameterized_entity get_ifc_entity(
                           const an_ifc_decl_partial_specialization &universal);
 
 extern a_boolean has_ifc_form(
                           const an_ifc_decl_partial_specialization &universal);
 
-extern an_ifc_form_spec_index get_ifc_form(
+template<>
+an_ifc_form_spec_index get_ifc_form(
                           const an_ifc_decl_partial_specialization &universal);
 
 extern a_boolean has_ifc_home_scope(
                           const an_ifc_decl_partial_specialization &universal);
 
-extern an_ifc_decl_index get_ifc_home_scope(
+template<>
+an_ifc_decl_index get_ifc_home_scope(
                           const an_ifc_decl_partial_specialization &universal);
 
 extern a_boolean has_ifc_locus(
                           const an_ifc_decl_partial_specialization &universal);
 
-extern an_ifc_source_location get_ifc_locus(
+template<>
+an_ifc_source_location get_ifc_locus(
                           const an_ifc_decl_partial_specialization &universal);
 
 extern a_boolean has_ifc_name(
                           const an_ifc_decl_partial_specialization &universal);
 
-extern an_ifc_name_index get_ifc_name(
+template<>
+an_ifc_name_index get_ifc_name(
                           const an_ifc_decl_partial_specialization &universal);
 
 extern a_boolean has_ifc_properties(
                           const an_ifc_decl_partial_specialization &universal);
 
-extern an_ifc_reachable_properties_bitfield get_ifc_properties(
+template<>
+an_ifc_reachable_properties_bitfield get_ifc_properties(
                           const an_ifc_decl_partial_specialization &universal);
 
 extern a_boolean has_ifc_specifiers(
                           const an_ifc_decl_partial_specialization &universal);
 
-extern an_ifc_basic_specifiers_bitfield get_ifc_specifiers(
+template<>
+an_ifc_basic_specifiers_bitfield get_ifc_specifiers(
                           const an_ifc_decl_partial_specialization &universal);
 
 extern a_boolean validate(const an_ifc_decl_partial_specialization &universal,
@@ -3599,17 +12186,18 @@ Functions for interacting with IFC DeclProperty nodes.
 
 extern a_boolean has_ifc_getter(const an_ifc_decl_property &universal);
 
-extern an_ifc_text_offset get_ifc_getter(
-                                        const an_ifc_decl_property &universal);
+template<>
+an_ifc_text_offset get_ifc_getter(const an_ifc_decl_property &universal);
 
 extern a_boolean has_ifc_member(const an_ifc_decl_property &universal);
 
-extern an_ifc_decl_index get_ifc_member(const an_ifc_decl_property &universal);
+template<>
+an_ifc_decl_index get_ifc_member(const an_ifc_decl_property &universal);
 
 extern a_boolean has_ifc_setter(const an_ifc_decl_property &universal);
 
-extern an_ifc_text_offset get_ifc_setter(
-                                        const an_ifc_decl_property &universal);
+template<>
+an_ifc_text_offset get_ifc_setter(const an_ifc_decl_property &universal);
 
 extern a_boolean validate(const an_ifc_decl_property    &universal,
                           const an_ifc_validation_trace *parent);
@@ -3642,17 +12230,19 @@ Functions for interacting with IFC DeclReference nodes.
 
 extern a_boolean has_ifc_index(const an_ifc_decl_reference &universal);
 
-extern an_ifc_decl_index get_ifc_index(const an_ifc_decl_reference &universal);
+template<>
+an_ifc_decl_index get_ifc_index(const an_ifc_decl_reference &universal);
 
 extern a_boolean has_ifc_local_index(const an_ifc_decl_reference &universal);
 
-extern an_ifc_decl_foreign_index get_ifc_local_index(
+template<>
+an_ifc_decl_foreign_index get_ifc_local_index(
                                        const an_ifc_decl_reference &universal);
 
 extern a_boolean has_ifc_unit(const an_ifc_decl_reference &universal);
 
-extern an_ifc_module_reference get_ifc_unit(
-                                       const an_ifc_decl_reference &universal);
+template<>
+an_ifc_module_reference get_ifc_unit(const an_ifc_decl_reference &universal);
 
 extern a_boolean validate(const an_ifc_decl_reference   &universal,
                           const an_ifc_validation_trace *parent);
@@ -3685,57 +12275,66 @@ Functions for interacting with IFC DeclScope nodes.
 
 extern a_boolean has_ifc_access(const an_ifc_decl_scope &universal);
 
-extern an_ifc_access_sort get_ifc_access(const an_ifc_decl_scope &universal);
+template<>
+an_ifc_access_sort get_ifc_access(const an_ifc_decl_scope &universal);
 
 extern a_boolean has_ifc_alignment(const an_ifc_decl_scope &universal);
 
-extern an_ifc_expr_index get_ifc_alignment(const an_ifc_decl_scope &universal);
+template<>
+an_ifc_expr_index get_ifc_alignment(const an_ifc_decl_scope &universal);
 
 extern a_boolean has_ifc_base(const an_ifc_decl_scope &universal);
 
-extern an_ifc_type_index get_ifc_base(const an_ifc_decl_scope &universal);
+template<>
+an_ifc_type_index get_ifc_base(const an_ifc_decl_scope &universal);
 
 extern a_boolean has_ifc_home_scope(const an_ifc_decl_scope &universal);
 
-extern an_ifc_decl_index get_ifc_home_scope(
-                                           const an_ifc_decl_scope &universal);
+template<>
+an_ifc_decl_index get_ifc_home_scope(const an_ifc_decl_scope &universal);
 
 extern a_boolean has_ifc_initializer(const an_ifc_decl_scope &universal);
 
-extern an_ifc_scope_index get_ifc_initializer(
-                                           const an_ifc_decl_scope &universal);
+template<>
+an_ifc_scope_index get_ifc_initializer(const an_ifc_decl_scope &universal);
 
 extern a_boolean has_ifc_locus(const an_ifc_decl_scope &universal);
 
-extern an_ifc_source_location get_ifc_locus(
-                                           const an_ifc_decl_scope &universal);
+template<>
+an_ifc_source_location get_ifc_locus(const an_ifc_decl_scope &universal);
 
 extern a_boolean has_ifc_name(const an_ifc_decl_scope &universal);
 
-extern an_ifc_name_index get_ifc_name(const an_ifc_decl_scope &universal);
+template<>
+an_ifc_name_index get_ifc_name(const an_ifc_decl_scope &universal);
 
 extern a_boolean has_ifc_pack_size(const an_ifc_decl_scope &universal);
 
-extern an_ifc_pack_size get_ifc_pack_size(const an_ifc_decl_scope &universal);
+template<>
+an_ifc_pack_size get_ifc_pack_size(const an_ifc_decl_scope &universal);
 
 extern a_boolean has_ifc_properties(const an_ifc_decl_scope &universal);
 
-extern an_ifc_reachable_properties_bitfield get_ifc_properties(
+template<>
+an_ifc_reachable_properties_bitfield get_ifc_properties(
                                            const an_ifc_decl_scope &universal);
 
 extern a_boolean has_ifc_specifiers(const an_ifc_decl_scope &universal);
 
-extern an_ifc_basic_specifiers_bitfield get_ifc_specifiers(
+template<>
+an_ifc_basic_specifiers_bitfield get_ifc_specifiers(
                                            const an_ifc_decl_scope &universal);
 
 extern a_boolean has_ifc_traits(const an_ifc_decl_scope &universal);
 
-extern an_ifc_scope_traits_bitfield get_ifc_traits(
+template<>
+an_ifc_scope_traits_bitfield get_ifc_traits(
                                            const an_ifc_decl_scope &universal);
 
 extern a_boolean has_ifc_type(const an_ifc_decl_scope &universal);
 
-extern an_ifc_type_index get_ifc_type(const an_ifc_decl_scope &universal);
+template<>
+an_ifc_type_index get_ifc_type(const an_ifc_decl_scope &universal);
 
 extern a_boolean validate(const an_ifc_decl_scope       &universal,
                           const an_ifc_validation_trace *parent);
@@ -3768,33 +12367,37 @@ Functions for interacting with IFC DeclSpecialization nodes.
 
 extern a_boolean has_ifc_decl(const an_ifc_decl_specialization &universal);
 
-extern an_ifc_decl_index get_ifc_decl(
-                                  const an_ifc_decl_specialization &universal);
+template<>
+an_ifc_decl_index get_ifc_decl(const an_ifc_decl_specialization &universal);
 
 extern a_boolean has_ifc_form(const an_ifc_decl_specialization &universal);
 
-extern an_ifc_form_spec_index get_ifc_form(
+template<>
+an_ifc_form_spec_index get_ifc_form(
                                   const an_ifc_decl_specialization &universal);
 
 extern a_boolean has_ifc_home_scope(
                                   const an_ifc_decl_specialization &universal);
 
-extern an_ifc_decl_index get_ifc_home_scope(
+template<>
+an_ifc_decl_index get_ifc_home_scope(
                                   const an_ifc_decl_specialization &universal);
 
 extern a_boolean has_ifc_locus(const an_ifc_decl_specialization &universal);
 
-extern an_ifc_source_location get_ifc_locus(
+template<>
+an_ifc_source_location get_ifc_locus(
                                   const an_ifc_decl_specialization &universal);
 
 extern a_boolean has_ifc_name(const an_ifc_decl_specialization &universal);
 
-extern an_ifc_name_index get_ifc_name(
-                                  const an_ifc_decl_specialization &universal);
+template<>
+an_ifc_name_index get_ifc_name(const an_ifc_decl_specialization &universal);
 
 extern a_boolean has_ifc_sort(const an_ifc_decl_specialization &universal);
 
-extern an_ifc_specialization_sort get_ifc_sort(
+template<>
+an_ifc_specialization_sort get_ifc_sort(
                                   const an_ifc_decl_specialization &universal);
 
 extern a_boolean validate(const an_ifc_decl_specialization &universal,
@@ -3829,45 +12432,51 @@ Functions for interacting with IFC DeclTemplate nodes.
 
 extern a_boolean has_ifc_access(const an_ifc_decl_template &universal);
 
-extern an_ifc_access_sort get_ifc_access(
-                                        const an_ifc_decl_template &universal);
+template<>
+an_ifc_access_sort get_ifc_access(const an_ifc_decl_template &universal);
 
 extern a_boolean has_ifc_chart(const an_ifc_decl_template &universal);
 
-extern an_ifc_chart_index get_ifc_chart(const an_ifc_decl_template &universal);
+template<>
+an_ifc_chart_index get_ifc_chart(const an_ifc_decl_template &universal);
 
 extern a_boolean has_ifc_entity(const an_ifc_decl_template &universal);
 
-extern an_ifc_parameterized_entity get_ifc_entity(
+template<>
+an_ifc_parameterized_entity get_ifc_entity(
                                         const an_ifc_decl_template &universal);
 
 extern a_boolean has_ifc_home_scope(const an_ifc_decl_template &universal);
 
-extern an_ifc_decl_index get_ifc_home_scope(
-                                        const an_ifc_decl_template &universal);
+template<>
+an_ifc_decl_index get_ifc_home_scope(const an_ifc_decl_template &universal);
 
 extern a_boolean has_ifc_locus(const an_ifc_decl_template &universal);
 
-extern an_ifc_source_location get_ifc_locus(
-                                        const an_ifc_decl_template &universal);
+template<>
+an_ifc_source_location get_ifc_locus(const an_ifc_decl_template &universal);
 
 extern a_boolean has_ifc_name(const an_ifc_decl_template &universal);
 
-extern an_ifc_name_index get_ifc_name(const an_ifc_decl_template &universal);
+template<>
+an_ifc_name_index get_ifc_name(const an_ifc_decl_template &universal);
 
 extern a_boolean has_ifc_properties(const an_ifc_decl_template &universal);
 
-extern an_ifc_reachable_properties_bitfield get_ifc_properties(
+template<>
+an_ifc_reachable_properties_bitfield get_ifc_properties(
                                         const an_ifc_decl_template &universal);
 
 extern a_boolean has_ifc_specifiers(const an_ifc_decl_template &universal);
 
-extern an_ifc_basic_specifiers_bitfield get_ifc_specifiers(
+template<>
+an_ifc_basic_specifiers_bitfield get_ifc_specifiers(
                                         const an_ifc_decl_template &universal);
 
 extern a_boolean has_ifc_type(const an_ifc_decl_template &universal);
 
-extern an_ifc_type_index get_ifc_type(const an_ifc_decl_template &universal);
+template<>
+an_ifc_type_index get_ifc_type(const an_ifc_decl_template &universal);
 
 extern a_boolean validate(const an_ifc_decl_template    &universal,
                           const an_ifc_validation_trace *parent);
@@ -3900,16 +12509,19 @@ Functions for interacting with IFC DeclTemploid nodes.
 
 extern a_boolean has_ifc_chart(const an_ifc_decl_temploid &universal);
 
-extern an_ifc_chart_index get_ifc_chart(const an_ifc_decl_temploid &universal);
+template<>
+an_ifc_chart_index get_ifc_chart(const an_ifc_decl_temploid &universal);
 
 extern a_boolean has_ifc_entity(const an_ifc_decl_temploid &universal);
 
-extern an_ifc_parameterized_entity get_ifc_entity(
+template<>
+an_ifc_parameterized_entity get_ifc_entity(
                                         const an_ifc_decl_temploid &universal);
 
 extern a_boolean has_ifc_properties(const an_ifc_decl_temploid &universal);
 
-extern an_ifc_reachable_properties_bitfield get_ifc_properties(
+template<>
+an_ifc_reachable_properties_bitfield get_ifc_properties(
                                         const an_ifc_decl_temploid &universal);
 
 extern a_boolean validate(const an_ifc_decl_temploid    &universal,
@@ -3943,12 +12555,13 @@ Functions for interacting with IFC DeclTuple nodes.
 
 extern a_boolean has_ifc_cardinality(const an_ifc_decl_tuple &universal);
 
-extern an_ifc_cardinality get_ifc_cardinality(
-                                           const an_ifc_decl_tuple &universal);
+template<>
+an_ifc_cardinality get_ifc_cardinality(const an_ifc_decl_tuple &universal);
 
 extern a_boolean has_ifc_start(const an_ifc_decl_tuple &universal);
 
-extern an_ifc_index get_ifc_start(const an_ifc_decl_tuple &universal);
+template<>
+an_ifc_index get_ifc_start(const an_ifc_decl_tuple &universal);
 
 extern a_boolean validate(const an_ifc_decl_tuple       &universal,
                           const an_ifc_validation_trace *parent);
@@ -3982,52 +12595,60 @@ Functions for interacting with IFC DeclUsingDeclaration nodes.
 extern a_boolean has_ifc_access(
                                const an_ifc_decl_using_declaration &universal);
 
-extern an_ifc_access_sort get_ifc_access(
+template<>
+an_ifc_access_sort get_ifc_access(
                                const an_ifc_decl_using_declaration &universal);
 
 extern a_boolean has_ifc_hidden(
                                const an_ifc_decl_using_declaration &universal);
 
-extern an_ifc_bool get_ifc_hidden(
-                               const an_ifc_decl_using_declaration &universal);
+template<>
+an_ifc_bool get_ifc_hidden(const an_ifc_decl_using_declaration &universal);
 
 extern a_boolean has_ifc_home_scope(
                                const an_ifc_decl_using_declaration &universal);
 
-extern an_ifc_decl_index get_ifc_home_scope(
+template<>
+an_ifc_decl_index get_ifc_home_scope(
                                const an_ifc_decl_using_declaration &universal);
 
 extern a_boolean has_ifc_locus(const an_ifc_decl_using_declaration &universal);
 
-extern an_ifc_source_location get_ifc_locus(
+template<>
+an_ifc_source_location get_ifc_locus(
                                const an_ifc_decl_using_declaration &universal);
 
 extern a_boolean has_ifc_name(const an_ifc_decl_using_declaration &universal);
 
-extern an_ifc_text_offset get_ifc_name(
+template<>
+an_ifc_text_offset get_ifc_name(
                                const an_ifc_decl_using_declaration &universal);
 
 extern a_boolean has_ifc_name2(const an_ifc_decl_using_declaration &universal);
 
-extern an_ifc_text_offset get_ifc_name2(
+template<>
+an_ifc_text_offset get_ifc_name2(
                                const an_ifc_decl_using_declaration &universal);
 
 extern a_boolean has_ifc_parent(
                                const an_ifc_decl_using_declaration &universal);
 
-extern an_ifc_expr_index get_ifc_parent(
+template<>
+an_ifc_expr_index get_ifc_parent(
                                const an_ifc_decl_using_declaration &universal);
 
 extern a_boolean has_ifc_resolution(
                                const an_ifc_decl_using_declaration &universal);
 
-extern an_ifc_decl_index get_ifc_resolution(
+template<>
+an_ifc_decl_index get_ifc_resolution(
                                const an_ifc_decl_using_declaration &universal);
 
 extern a_boolean has_ifc_specifiers(
                                const an_ifc_decl_using_declaration &universal);
 
-extern an_ifc_basic_specifiers_bitfield get_ifc_specifiers(
+template<>
+an_ifc_basic_specifiers_bitfield get_ifc_specifiers(
                                const an_ifc_decl_using_declaration &universal);
 
 extern a_boolean validate(const an_ifc_decl_using_declaration &universal,
@@ -4063,51 +12684,56 @@ Functions for interacting with IFC DeclVariable nodes.
 
 extern a_boolean has_ifc_access(const an_ifc_decl_variable &universal);
 
-extern an_ifc_access_sort get_ifc_access(
-                                        const an_ifc_decl_variable &universal);
+template<>
+an_ifc_access_sort get_ifc_access(const an_ifc_decl_variable &universal);
 
 extern a_boolean has_ifc_alignment(const an_ifc_decl_variable &universal);
 
-extern an_ifc_expr_index get_ifc_alignment(
-                                        const an_ifc_decl_variable &universal);
+template<>
+an_ifc_expr_index get_ifc_alignment(const an_ifc_decl_variable &universal);
 
 extern a_boolean has_ifc_home_scope(const an_ifc_decl_variable &universal);
 
-extern an_ifc_decl_index get_ifc_home_scope(
-                                        const an_ifc_decl_variable &universal);
+template<>
+an_ifc_decl_index get_ifc_home_scope(const an_ifc_decl_variable &universal);
 
 extern a_boolean has_ifc_initializer(const an_ifc_decl_variable &universal);
 
-extern an_ifc_expr_index get_ifc_initializer(
-                                        const an_ifc_decl_variable &universal);
+template<>
+an_ifc_expr_index get_ifc_initializer(const an_ifc_decl_variable &universal);
 
 extern a_boolean has_ifc_locus(const an_ifc_decl_variable &universal);
 
-extern an_ifc_source_location get_ifc_locus(
-                                        const an_ifc_decl_variable &universal);
+template<>
+an_ifc_source_location get_ifc_locus(const an_ifc_decl_variable &universal);
 
 extern a_boolean has_ifc_name(const an_ifc_decl_variable &universal);
 
-extern an_ifc_name_index get_ifc_name(const an_ifc_decl_variable &universal);
+template<>
+an_ifc_name_index get_ifc_name(const an_ifc_decl_variable &universal);
 
 extern a_boolean has_ifc_properties(const an_ifc_decl_variable &universal);
 
-extern an_ifc_reachable_properties_bitfield get_ifc_properties(
+template<>
+an_ifc_reachable_properties_bitfield get_ifc_properties(
                                         const an_ifc_decl_variable &universal);
 
 extern a_boolean has_ifc_specifiers(const an_ifc_decl_variable &universal);
 
-extern an_ifc_basic_specifiers_bitfield get_ifc_specifiers(
+template<>
+an_ifc_basic_specifiers_bitfield get_ifc_specifiers(
                                         const an_ifc_decl_variable &universal);
 
 extern a_boolean has_ifc_traits(const an_ifc_decl_variable &universal);
 
-extern an_ifc_object_traits_bitfield get_ifc_traits(
+template<>
+an_ifc_object_traits_bitfield get_ifc_traits(
                                         const an_ifc_decl_variable &universal);
 
 extern a_boolean has_ifc_type(const an_ifc_decl_variable &universal);
 
-extern an_ifc_type_index get_ifc_type(const an_ifc_decl_variable &universal);
+template<>
+an_ifc_type_index get_ifc_type(const an_ifc_decl_variable &universal);
 
 extern a_boolean validate(const an_ifc_decl_variable    &universal,
                           const an_ifc_validation_trace *parent);
@@ -4140,17 +12766,18 @@ Functions for interacting with IFC ExprAlignof nodes.
 
 extern a_boolean has_ifc_locus(const an_ifc_expr_alignof &universal);
 
-extern an_ifc_source_location get_ifc_locus(
-                                         const an_ifc_expr_alignof &universal);
+template<>
+an_ifc_source_location get_ifc_locus(const an_ifc_expr_alignof &universal);
 
 extern a_boolean has_ifc_operand(const an_ifc_expr_alignof &universal);
 
-extern an_ifc_syntax_index get_ifc_operand(
-                                         const an_ifc_expr_alignof &universal);
+template<>
+an_ifc_syntax_index get_ifc_operand(const an_ifc_expr_alignof &universal);
 
 extern a_boolean has_ifc_type(const an_ifc_expr_alignof &universal);
 
-extern an_ifc_type_index get_ifc_type(const an_ifc_expr_alignof &universal);
+template<>
+an_ifc_type_index get_ifc_type(const an_ifc_expr_alignof &universal);
 
 extern a_boolean validate(const an_ifc_expr_alignof     &universal,
                           const an_ifc_validation_trace *parent);
@@ -4184,23 +12811,24 @@ Functions for interacting with IFC ExprArrayValue nodes.
 extern a_boolean has_ifc_element_type(
                                      const an_ifc_expr_array_value &universal);
 
-extern an_ifc_type_index get_ifc_element_type(
+template<>
+an_ifc_type_index get_ifc_element_type(
                                      const an_ifc_expr_array_value &universal);
 
 extern a_boolean has_ifc_elements(const an_ifc_expr_array_value &universal);
 
-extern an_ifc_expr_index get_ifc_elements(
-                                     const an_ifc_expr_array_value &universal);
+template<>
+an_ifc_expr_index get_ifc_elements(const an_ifc_expr_array_value &universal);
 
 extern a_boolean has_ifc_locus(const an_ifc_expr_array_value &universal);
 
-extern an_ifc_source_location get_ifc_locus(
-                                     const an_ifc_expr_array_value &universal);
+template<>
+an_ifc_source_location get_ifc_locus(const an_ifc_expr_array_value &universal);
 
 extern a_boolean has_ifc_type(const an_ifc_expr_array_value &universal);
 
-extern an_ifc_type_index get_ifc_type(
-                                     const an_ifc_expr_array_value &universal);
+template<>
+an_ifc_type_index get_ifc_type(const an_ifc_expr_array_value &universal);
 
 extern a_boolean validate(const an_ifc_expr_array_value &universal,
                           const an_ifc_validation_trace *parent);
@@ -4234,13 +12862,15 @@ Functions for interacting with IFC ExprAssignInitializer nodes.
 extern a_boolean has_ifc_equal(
                               const an_ifc_expr_assign_initializer &universal);
 
-extern an_ifc_source_location get_ifc_equal(
+template<>
+an_ifc_source_location get_ifc_equal(
                               const an_ifc_expr_assign_initializer &universal);
 
 extern a_boolean has_ifc_initializer(
                               const an_ifc_expr_assign_initializer &universal);
 
-extern an_ifc_expr_index get_ifc_initializer(
+template<>
+an_ifc_expr_index get_ifc_initializer(
                               const an_ifc_expr_assign_initializer &universal);
 
 extern a_boolean validate(const an_ifc_expr_assign_initializer &universal,
@@ -4277,33 +12907,35 @@ Functions for interacting with IFC ExprBinaryFold nodes.
 extern a_boolean has_ifc_associativity(
                                      const an_ifc_expr_binary_fold &universal);
 
-extern an_ifc_associativity get_ifc_associativity(
+template<>
+an_ifc_associativity get_ifc_associativity(
                                      const an_ifc_expr_binary_fold &universal);
 
 extern a_boolean has_ifc_left(const an_ifc_expr_binary_fold &universal);
 
-extern an_ifc_expr_index get_ifc_left(
-                                     const an_ifc_expr_binary_fold &universal);
+template<>
+an_ifc_expr_index get_ifc_left(const an_ifc_expr_binary_fold &universal);
 
 extern a_boolean has_ifc_locus(const an_ifc_expr_binary_fold &universal);
 
-extern an_ifc_source_location get_ifc_locus(
-                                     const an_ifc_expr_binary_fold &universal);
+template<>
+an_ifc_source_location get_ifc_locus(const an_ifc_expr_binary_fold &universal);
 
 extern a_boolean has_ifc_operation(const an_ifc_expr_binary_fold &universal);
 
-extern an_ifc_dyadic_operator_sort get_ifc_operation(
+template<>
+an_ifc_dyadic_operator_sort get_ifc_operation(
                                      const an_ifc_expr_binary_fold &universal);
 
 extern a_boolean has_ifc_right(const an_ifc_expr_binary_fold &universal);
 
-extern an_ifc_expr_index get_ifc_right(
-                                     const an_ifc_expr_binary_fold &universal);
+template<>
+an_ifc_expr_index get_ifc_right(const an_ifc_expr_binary_fold &universal);
 
 extern a_boolean has_ifc_type(const an_ifc_expr_binary_fold &universal);
 
-extern an_ifc_type_index get_ifc_type(
-                                     const an_ifc_expr_binary_fold &universal);
+template<>
+an_ifc_type_index get_ifc_type(const an_ifc_expr_binary_fold &universal);
 
 extern a_boolean validate(const an_ifc_expr_binary_fold &universal,
                           const an_ifc_validation_trace *parent);
@@ -4336,19 +12968,23 @@ Functions for interacting with IFC ExprCall nodes.
 
 extern a_boolean has_ifc_arguments(const an_ifc_expr_call &universal);
 
-extern an_ifc_expr_index get_ifc_arguments(const an_ifc_expr_call &universal);
+template<>
+an_ifc_expr_index get_ifc_arguments(const an_ifc_expr_call &universal);
 
 extern a_boolean has_ifc_locus(const an_ifc_expr_call &universal);
 
-extern an_ifc_source_location get_ifc_locus(const an_ifc_expr_call &universal);
+template<>
+an_ifc_source_location get_ifc_locus(const an_ifc_expr_call &universal);
 
 extern a_boolean has_ifc_operation(const an_ifc_expr_call &universal);
 
-extern an_ifc_expr_index get_ifc_operation(const an_ifc_expr_call &universal);
+template<>
+an_ifc_expr_index get_ifc_operation(const an_ifc_expr_call &universal);
 
 extern a_boolean has_ifc_type(const an_ifc_expr_call &universal);
 
-extern an_ifc_type_index get_ifc_type(const an_ifc_expr_call &universal);
+template<>
+an_ifc_type_index get_ifc_type(const an_ifc_expr_call &universal);
 
 extern a_boolean validate(const an_ifc_expr_call        &universal,
                           const an_ifc_validation_trace *parent);
@@ -4381,24 +13017,28 @@ Functions for interacting with IFC ExprCast nodes.
 
 extern a_boolean has_ifc_locus(const an_ifc_expr_cast &universal);
 
-extern an_ifc_source_location get_ifc_locus(const an_ifc_expr_cast &universal);
+template<>
+an_ifc_source_location get_ifc_locus(const an_ifc_expr_cast &universal);
 
 extern a_boolean has_ifc_op(const an_ifc_expr_cast &universal);
 
-extern an_ifc_dyadic_operator_sort get_ifc_op(
-                                            const an_ifc_expr_cast &universal);
+template<>
+an_ifc_dyadic_operator_sort get_ifc_op(const an_ifc_expr_cast &universal);
 
 extern a_boolean has_ifc_source(const an_ifc_expr_cast &universal);
 
-extern an_ifc_expr_index get_ifc_source(const an_ifc_expr_cast &universal);
+template<>
+an_ifc_expr_index get_ifc_source(const an_ifc_expr_cast &universal);
 
 extern a_boolean has_ifc_target(const an_ifc_expr_cast &universal);
 
-extern an_ifc_type_index get_ifc_target(const an_ifc_expr_cast &universal);
+template<>
+an_ifc_type_index get_ifc_target(const an_ifc_expr_cast &universal);
 
 extern a_boolean has_ifc_type(const an_ifc_expr_cast &universal);
 
-extern an_ifc_type_index get_ifc_type(const an_ifc_expr_cast &universal);
+template<>
+an_ifc_type_index get_ifc_type(const an_ifc_expr_cast &universal);
 
 extern a_boolean validate(const an_ifc_expr_cast        &universal,
                           const an_ifc_validation_trace *parent);
@@ -4431,23 +13071,25 @@ Functions for interacting with IFC ExprCompoundString nodes.
 
 extern a_boolean has_ifc_locus(const an_ifc_expr_compound_string &universal);
 
-extern an_ifc_source_location get_ifc_locus(
+template<>
+an_ifc_source_location get_ifc_locus(
                                  const an_ifc_expr_compound_string &universal);
 
 extern a_boolean has_ifc_prefix(const an_ifc_expr_compound_string &universal);
 
-extern an_ifc_text_offset get_ifc_prefix(
+template<>
+an_ifc_text_offset get_ifc_prefix(
                                  const an_ifc_expr_compound_string &universal);
 
 extern a_boolean has_ifc_string(const an_ifc_expr_compound_string &universal);
 
-extern an_ifc_expr_index get_ifc_string(
-                                 const an_ifc_expr_compound_string &universal);
+template<>
+an_ifc_expr_index get_ifc_string(const an_ifc_expr_compound_string &universal);
 
 extern a_boolean has_ifc_type(const an_ifc_expr_compound_string &universal);
 
-extern an_ifc_type_index get_ifc_type(
-                                 const an_ifc_expr_compound_string &universal);
+template<>
+an_ifc_type_index get_ifc_type(const an_ifc_expr_compound_string &universal);
 
 extern a_boolean validate(const an_ifc_expr_compound_string &universal,
                           const an_ifc_validation_trace     *parent);
@@ -4481,16 +13123,18 @@ Functions for interacting with IFC ExprCondition nodes.
 
 extern a_boolean has_ifc_expr(const an_ifc_expr_condition &universal);
 
-extern an_ifc_expr_index get_ifc_expr(const an_ifc_expr_condition &universal);
+template<>
+an_ifc_expr_index get_ifc_expr(const an_ifc_expr_condition &universal);
 
 extern a_boolean has_ifc_locus(const an_ifc_expr_condition &universal);
 
-extern an_ifc_source_location get_ifc_locus(
-                                       const an_ifc_expr_condition &universal);
+template<>
+an_ifc_source_location get_ifc_locus(const an_ifc_expr_condition &universal);
 
 extern a_boolean has_ifc_type(const an_ifc_expr_condition &universal);
 
-extern an_ifc_type_index get_ifc_type(const an_ifc_expr_condition &universal);
+template<>
+an_ifc_type_index get_ifc_type(const an_ifc_expr_condition &universal);
 
 extern a_boolean validate(const an_ifc_expr_condition   &universal,
                           const an_ifc_validation_trace *parent);
@@ -4524,25 +13168,29 @@ Functions for interacting with IFC ExprDesignatedInitializer nodes.
 extern a_boolean has_ifc_initializer(
                           const an_ifc_expr_designated_initializer &universal);
 
-extern an_ifc_expr_index get_ifc_initializer(
+template<>
+an_ifc_expr_index get_ifc_initializer(
                           const an_ifc_expr_designated_initializer &universal);
 
 extern a_boolean has_ifc_locus(
                           const an_ifc_expr_designated_initializer &universal);
 
-extern an_ifc_source_location get_ifc_locus(
+template<>
+an_ifc_source_location get_ifc_locus(
                           const an_ifc_expr_designated_initializer &universal);
 
 extern a_boolean has_ifc_member(
                           const an_ifc_expr_designated_initializer &universal);
 
-extern an_ifc_text_offset get_ifc_member(
+template<>
+an_ifc_text_offset get_ifc_member(
                           const an_ifc_expr_designated_initializer &universal);
 
 extern a_boolean has_ifc_type(
                           const an_ifc_expr_designated_initializer &universal);
 
-extern an_ifc_type_index get_ifc_type(
+template<>
+an_ifc_type_index get_ifc_type(
                           const an_ifc_expr_designated_initializer &universal);
 
 extern a_boolean validate(const an_ifc_expr_designated_initializer &universal,
@@ -4578,29 +13226,32 @@ Functions for interacting with IFC ExprDestructorCall nodes.
 
 extern a_boolean has_ifc_cleanup(const an_ifc_expr_destructor_call &universal);
 
-extern an_ifc_destructor_sort get_ifc_cleanup(
+template<>
+an_ifc_destructor_sort get_ifc_cleanup(
                                  const an_ifc_expr_destructor_call &universal);
 
 extern a_boolean has_ifc_decltype_specifier(
                                  const an_ifc_expr_destructor_call &universal);
 
-extern an_ifc_syntax_index get_ifc_decltype_specifier(
+template<>
+an_ifc_syntax_index get_ifc_decltype_specifier(
                                  const an_ifc_expr_destructor_call &universal);
 
 extern a_boolean has_ifc_locus(const an_ifc_expr_destructor_call &universal);
 
-extern an_ifc_source_location get_ifc_locus(
+template<>
+an_ifc_source_location get_ifc_locus(
                                  const an_ifc_expr_destructor_call &universal);
 
 extern a_boolean has_ifc_name(const an_ifc_expr_destructor_call &universal);
 
-extern an_ifc_expr_index get_ifc_name(
-                                 const an_ifc_expr_destructor_call &universal);
+template<>
+an_ifc_expr_index get_ifc_name(const an_ifc_expr_destructor_call &universal);
 
 extern a_boolean has_ifc_type(const an_ifc_expr_destructor_call &universal);
 
-extern an_ifc_type_index get_ifc_type(
-                                 const an_ifc_expr_destructor_call &universal);
+template<>
+an_ifc_type_index get_ifc_type(const an_ifc_expr_destructor_call &universal);
 
 extern a_boolean validate(const an_ifc_expr_destructor_call &universal,
                           const an_ifc_validation_trace     *parent);
@@ -4634,28 +13285,33 @@ Functions for interacting with IFC ExprDyad nodes.
 
 extern a_boolean has_ifc_argument_0(const an_ifc_expr_dyad &universal);
 
-extern an_ifc_expr_index get_ifc_argument_0(const an_ifc_expr_dyad &universal);
+template<>
+an_ifc_expr_index get_ifc_argument_0(const an_ifc_expr_dyad &universal);
 
 extern a_boolean has_ifc_argument_1(const an_ifc_expr_dyad &universal);
 
-extern an_ifc_expr_index get_ifc_argument_1(const an_ifc_expr_dyad &universal);
+template<>
+an_ifc_expr_index get_ifc_argument_1(const an_ifc_expr_dyad &universal);
 
 extern a_boolean has_ifc_assoc(const an_ifc_expr_dyad &universal);
 
-extern an_ifc_dyadic_operator_sort get_ifc_assoc(
-                                            const an_ifc_expr_dyad &universal);
+template<>
+an_ifc_dyadic_operator_sort get_ifc_assoc(const an_ifc_expr_dyad &universal);
 
 extern a_boolean has_ifc_impl(const an_ifc_expr_dyad &universal);
 
-extern an_ifc_decl_index get_ifc_impl(const an_ifc_expr_dyad &universal);
+template<>
+an_ifc_decl_index get_ifc_impl(const an_ifc_expr_dyad &universal);
 
 extern a_boolean has_ifc_locus(const an_ifc_expr_dyad &universal);
 
-extern an_ifc_source_location get_ifc_locus(const an_ifc_expr_dyad &universal);
+template<>
+an_ifc_source_location get_ifc_locus(const an_ifc_expr_dyad &universal);
 
 extern a_boolean has_ifc_type(const an_ifc_expr_dyad &universal);
 
-extern an_ifc_type_index get_ifc_type(const an_ifc_expr_dyad &universal);
+template<>
+an_ifc_type_index get_ifc_type(const an_ifc_expr_dyad &universal);
 
 extern a_boolean validate(const an_ifc_expr_dyad        &universal,
                           const an_ifc_validation_trace *parent);
@@ -4688,18 +13344,19 @@ Functions for interacting with IFC ExprDynamicDispatch nodes.
 
 extern a_boolean has_ifc_locus(const an_ifc_expr_dynamic_dispatch &universal);
 
-extern an_ifc_source_location get_ifc_locus(
+template<>
+an_ifc_source_location get_ifc_locus(
                                 const an_ifc_expr_dynamic_dispatch &universal);
 
 extern a_boolean has_ifc_pivot(const an_ifc_expr_dynamic_dispatch &universal);
 
-extern an_ifc_expr_index get_ifc_pivot(
-                                const an_ifc_expr_dynamic_dispatch &universal);
+template<>
+an_ifc_expr_index get_ifc_pivot(const an_ifc_expr_dynamic_dispatch &universal);
 
 extern a_boolean has_ifc_type(const an_ifc_expr_dynamic_dispatch &universal);
 
-extern an_ifc_type_index get_ifc_type(
-                                const an_ifc_expr_dynamic_dispatch &universal);
+template<>
+an_ifc_type_index get_ifc_type(const an_ifc_expr_dynamic_dispatch &universal);
 
 extern a_boolean validate(const an_ifc_expr_dynamic_dispatch &universal,
                           const an_ifc_validation_trace      *parent);
@@ -4734,12 +13391,13 @@ Functions for interacting with IFC ExprEmpty nodes.
 
 extern a_boolean has_ifc_locus(const an_ifc_expr_empty &universal);
 
-extern an_ifc_source_location get_ifc_locus(
-                                           const an_ifc_expr_empty &universal);
+template<>
+an_ifc_source_location get_ifc_locus(const an_ifc_expr_empty &universal);
 
 extern a_boolean has_ifc_type(const an_ifc_expr_empty &universal);
 
-extern an_ifc_type_index get_ifc_type(const an_ifc_expr_empty &universal);
+template<>
+an_ifc_type_index get_ifc_type(const an_ifc_expr_empty &universal);
 
 extern a_boolean validate(const an_ifc_expr_empty       &universal,
                           const an_ifc_validation_trace *parent);
@@ -4772,17 +13430,18 @@ Functions for interacting with IFC ExprExpansion nodes.
 
 extern a_boolean has_ifc_locus(const an_ifc_expr_expansion &universal);
 
-extern an_ifc_source_location get_ifc_locus(
-                                       const an_ifc_expr_expansion &universal);
+template<>
+an_ifc_source_location get_ifc_locus(const an_ifc_expr_expansion &universal);
 
 extern a_boolean has_ifc_operand(const an_ifc_expr_expansion &universal);
 
-extern an_ifc_expr_index get_ifc_operand(
-                                       const an_ifc_expr_expansion &universal);
+template<>
+an_ifc_expr_index get_ifc_operand(const an_ifc_expr_expansion &universal);
 
 extern a_boolean has_ifc_type(const an_ifc_expr_expansion &universal);
 
-extern an_ifc_type_index get_ifc_type(const an_ifc_expr_expansion &universal);
+template<>
+an_ifc_type_index get_ifc_type(const an_ifc_expr_expansion &universal);
 
 extern a_boolean validate(const an_ifc_expr_expansion   &universal,
                           const an_ifc_validation_trace *parent);
@@ -4816,23 +13475,27 @@ Functions for interacting with IFC ExprExpressionList nodes.
 extern a_boolean has_ifc_contents(
                                  const an_ifc_expr_expression_list &universal);
 
-extern an_ifc_expr_index get_ifc_contents(
+template<>
+an_ifc_expr_index get_ifc_contents(
                                  const an_ifc_expr_expression_list &universal);
 
 extern a_boolean has_ifc_delimiter(
                                  const an_ifc_expr_expression_list &universal);
 
-extern an_ifc_delimiter_sort get_ifc_delimiter(
+template<>
+an_ifc_delimiter_sort get_ifc_delimiter(
                                  const an_ifc_expr_expression_list &universal);
 
 extern a_boolean has_ifc_left(const an_ifc_expr_expression_list &universal);
 
-extern an_ifc_source_location get_ifc_left(
+template<>
+an_ifc_source_location get_ifc_left(
                                  const an_ifc_expr_expression_list &universal);
 
 extern a_boolean has_ifc_right(const an_ifc_expr_expression_list &universal);
 
-extern an_ifc_source_location get_ifc_right(
+template<>
+an_ifc_source_location get_ifc_right(
                                  const an_ifc_expr_expression_list &universal);
 
 extern a_boolean validate(const an_ifc_expr_expression_list &universal,
@@ -4867,18 +13530,19 @@ Functions for interacting with IFC ExprFunctionString nodes.
 
 extern a_boolean has_ifc_locus(const an_ifc_expr_function_string &universal);
 
-extern an_ifc_source_location get_ifc_locus(
+template<>
+an_ifc_source_location get_ifc_locus(
                                  const an_ifc_expr_function_string &universal);
 
 extern a_boolean has_ifc_macro(const an_ifc_expr_function_string &universal);
 
-extern an_ifc_text_offset get_ifc_macro(
-                                 const an_ifc_expr_function_string &universal);
+template<>
+an_ifc_text_offset get_ifc_macro(const an_ifc_expr_function_string &universal);
 
 extern a_boolean has_ifc_type(const an_ifc_expr_function_string &universal);
 
-extern an_ifc_type_index get_ifc_type(
-                                 const an_ifc_expr_function_string &universal);
+template<>
+an_ifc_type_index get_ifc_type(const an_ifc_expr_function_string &universal);
 
 extern a_boolean validate(const an_ifc_expr_function_string &universal,
                           const an_ifc_validation_trace     *parent);
@@ -4913,42 +13577,49 @@ Functions for interacting with IFC ExprHierarchyConversion nodes.
 extern a_boolean has_ifc_inheritance(
                             const an_ifc_expr_hierarchy_conversion &universal);
 
-extern an_ifc_expr_index get_ifc_inheritance(
+template<>
+an_ifc_expr_index get_ifc_inheritance(
                             const an_ifc_expr_hierarchy_conversion &universal);
 
 extern a_boolean has_ifc_locus(
                             const an_ifc_expr_hierarchy_conversion &universal);
 
-extern an_ifc_source_location get_ifc_locus(
+template<>
+an_ifc_source_location get_ifc_locus(
                             const an_ifc_expr_hierarchy_conversion &universal);
 
 extern a_boolean has_ifc_op(const an_ifc_expr_hierarchy_conversion &universal);
 
-extern an_ifc_dyadic_operator_sort get_ifc_op(
+template<>
+an_ifc_dyadic_operator_sort get_ifc_op(
                             const an_ifc_expr_hierarchy_conversion &universal);
 
 extern a_boolean has_ifc_override(
                             const an_ifc_expr_hierarchy_conversion &universal);
 
-extern an_ifc_expr_index get_ifc_override(
+template<>
+an_ifc_expr_index get_ifc_override(
                             const an_ifc_expr_hierarchy_conversion &universal);
 
 extern a_boolean has_ifc_source(
                             const an_ifc_expr_hierarchy_conversion &universal);
 
-extern an_ifc_expr_index get_ifc_source(
+template<>
+an_ifc_expr_index get_ifc_source(
                             const an_ifc_expr_hierarchy_conversion &universal);
 
 extern a_boolean has_ifc_target(
                             const an_ifc_expr_hierarchy_conversion &universal);
 
-extern an_ifc_type_index get_ifc_target(
+template<>
+an_ifc_type_index get_ifc_target(
                             const an_ifc_expr_hierarchy_conversion &universal);
 
 extern a_boolean has_ifc_type(
                             const an_ifc_expr_hierarchy_conversion &universal);
 
-extern an_ifc_type_index get_ifc_type(
+template<>
+an_ifc_type_index get_ifc_type(
                             const an_ifc_expr_hierarchy_conversion &universal);
 
 extern a_boolean validate(const an_ifc_expr_hierarchy_conversion &universal,
@@ -4984,18 +13655,19 @@ Functions for interacting with IFC ExprInheritancePath nodes.
 
 extern a_boolean has_ifc_locus(const an_ifc_expr_inheritance_path &universal);
 
-extern an_ifc_source_location get_ifc_locus(
+template<>
+an_ifc_source_location get_ifc_locus(
                                 const an_ifc_expr_inheritance_path &universal);
 
 extern a_boolean has_ifc_path(const an_ifc_expr_inheritance_path &universal);
 
-extern an_ifc_expr_index get_ifc_path(
-                                const an_ifc_expr_inheritance_path &universal);
+template<>
+an_ifc_expr_index get_ifc_path(const an_ifc_expr_inheritance_path &universal);
 
 extern a_boolean has_ifc_type(const an_ifc_expr_inheritance_path &universal);
 
-extern an_ifc_type_index get_ifc_type(
-                                const an_ifc_expr_inheritance_path &universal);
+template<>
+an_ifc_type_index get_ifc_type(const an_ifc_expr_inheritance_path &universal);
 
 extern a_boolean validate(const an_ifc_expr_inheritance_path &universal,
                           const an_ifc_validation_trace      *parent);
@@ -5030,23 +13702,23 @@ Functions for interacting with IFC ExprInitializer nodes.
 
 extern a_boolean has_ifc_expr(const an_ifc_expr_initializer &universal);
 
-extern an_ifc_expr_index get_ifc_expr(
-                                     const an_ifc_expr_initializer &universal);
+template<>
+an_ifc_expr_index get_ifc_expr(const an_ifc_expr_initializer &universal);
 
 extern a_boolean has_ifc_locus(const an_ifc_expr_initializer &universal);
 
-extern an_ifc_source_location get_ifc_locus(
-                                     const an_ifc_expr_initializer &universal);
+template<>
+an_ifc_source_location get_ifc_locus(const an_ifc_expr_initializer &universal);
 
 extern a_boolean has_ifc_sort(const an_ifc_expr_initializer &universal);
 
-extern an_ifc_initializer_sort get_ifc_sort(
-                                     const an_ifc_expr_initializer &universal);
+template<>
+an_ifc_initializer_sort get_ifc_sort(const an_ifc_expr_initializer &universal);
 
 extern a_boolean has_ifc_type(const an_ifc_expr_initializer &universal);
 
-extern an_ifc_type_index get_ifc_type(
-                                     const an_ifc_expr_initializer &universal);
+template<>
+an_ifc_type_index get_ifc_type(const an_ifc_expr_initializer &universal);
 
 extern a_boolean validate(const an_ifc_expr_initializer &universal,
                           const an_ifc_validation_trace *parent);
@@ -5080,18 +13752,20 @@ Functions for interacting with IFC ExprInitializerList nodes.
 extern a_boolean has_ifc_elements(
                                 const an_ifc_expr_initializer_list &universal);
 
-extern an_ifc_expr_index get_ifc_elements(
+template<>
+an_ifc_expr_index get_ifc_elements(
                                 const an_ifc_expr_initializer_list &universal);
 
 extern a_boolean has_ifc_locus(const an_ifc_expr_initializer_list &universal);
 
-extern an_ifc_source_location get_ifc_locus(
+template<>
+an_ifc_source_location get_ifc_locus(
                                 const an_ifc_expr_initializer_list &universal);
 
 extern a_boolean has_ifc_type(const an_ifc_expr_initializer_list &universal);
 
-extern an_ifc_type_index get_ifc_type(
-                                const an_ifc_expr_initializer_list &universal);
+template<>
+an_ifc_type_index get_ifc_type(const an_ifc_expr_initializer_list &universal);
 
 extern a_boolean validate(const an_ifc_expr_initializer_list &universal,
                           const an_ifc_validation_trace      *parent);
@@ -5126,27 +13800,29 @@ Functions for interacting with IFC ExprLambda nodes.
 
 extern a_boolean has_ifc_body(const an_ifc_expr_lambda &universal);
 
-extern an_ifc_syntax_index get_ifc_body(const an_ifc_expr_lambda &universal);
+template<>
+an_ifc_syntax_index get_ifc_body(const an_ifc_expr_lambda &universal);
 
 extern a_boolean has_ifc_constraint(const an_ifc_expr_lambda &universal);
 
-extern an_ifc_syntax_index get_ifc_constraint(
-                                          const an_ifc_expr_lambda &universal);
+template<>
+an_ifc_syntax_index get_ifc_constraint(const an_ifc_expr_lambda &universal);
 
 extern a_boolean has_ifc_declarator(const an_ifc_expr_lambda &universal);
 
-extern an_ifc_syntax_index get_ifc_declarator(
-                                          const an_ifc_expr_lambda &universal);
+template<>
+an_ifc_syntax_index get_ifc_declarator(const an_ifc_expr_lambda &universal);
 
 extern a_boolean has_ifc_introducer(const an_ifc_expr_lambda &universal);
 
-extern an_ifc_syntax_index get_ifc_introducer(
-                                          const an_ifc_expr_lambda &universal);
+template<>
+an_ifc_syntax_index get_ifc_introducer(const an_ifc_expr_lambda &universal);
 
 extern a_boolean has_ifc_template_parameters(
                                           const an_ifc_expr_lambda &universal);
 
-extern an_ifc_syntax_index get_ifc_template_parameters(
+template<>
+an_ifc_syntax_index get_ifc_template_parameters(
                                           const an_ifc_expr_lambda &universal);
 
 extern a_boolean validate(const an_ifc_expr_lambda      &universal,
@@ -5180,16 +13856,18 @@ Functions for interacting with IFC ExprLiteral nodes.
 
 extern a_boolean has_ifc_locus(const an_ifc_expr_literal &universal);
 
-extern an_ifc_source_location get_ifc_locus(
-                                         const an_ifc_expr_literal &universal);
+template<>
+an_ifc_source_location get_ifc_locus(const an_ifc_expr_literal &universal);
 
 extern a_boolean has_ifc_type(const an_ifc_expr_literal &universal);
 
-extern an_ifc_type_index get_ifc_type(const an_ifc_expr_literal &universal);
+template<>
+an_ifc_type_index get_ifc_type(const an_ifc_expr_literal &universal);
 
 extern a_boolean has_ifc_value(const an_ifc_expr_literal &universal);
 
-extern an_ifc_lit_index get_ifc_value(const an_ifc_expr_literal &universal);
+template<>
+an_ifc_lit_index get_ifc_value(const an_ifc_expr_literal &universal);
 
 extern a_boolean validate(const an_ifc_expr_literal     &universal,
                           const an_ifc_validation_trace *parent);
@@ -5222,28 +13900,30 @@ Functions for interacting with IFC ExprMemberAccess nodes.
 
 extern a_boolean has_ifc_enclosing(const an_ifc_expr_member_access &universal);
 
-extern an_ifc_type_index get_ifc_enclosing(
+template<>
+an_ifc_type_index get_ifc_enclosing(
                                    const an_ifc_expr_member_access &universal);
 
 extern a_boolean has_ifc_locus(const an_ifc_expr_member_access &universal);
 
-extern an_ifc_source_location get_ifc_locus(
+template<>
+an_ifc_source_location get_ifc_locus(
                                    const an_ifc_expr_member_access &universal);
 
 extern a_boolean has_ifc_name(const an_ifc_expr_member_access &universal);
 
-extern an_ifc_text_offset get_ifc_name(
-                                   const an_ifc_expr_member_access &universal);
+template<>
+an_ifc_text_offset get_ifc_name(const an_ifc_expr_member_access &universal);
 
 extern a_boolean has_ifc_offset(const an_ifc_expr_member_access &universal);
 
-extern an_ifc_expr_index get_ifc_offset(
-                                   const an_ifc_expr_member_access &universal);
+template<>
+an_ifc_expr_index get_ifc_offset(const an_ifc_expr_member_access &universal);
 
 extern a_boolean has_ifc_type(const an_ifc_expr_member_access &universal);
 
-extern an_ifc_type_index get_ifc_type(
-                                   const an_ifc_expr_member_access &universal);
+template<>
+an_ifc_type_index get_ifc_type(const an_ifc_expr_member_access &universal);
 
 extern a_boolean validate(const an_ifc_expr_member_access &universal,
                           const an_ifc_validation_trace   *parent);
@@ -5277,30 +13957,35 @@ Functions for interacting with IFC ExprMemberInitializer nodes.
 
 extern a_boolean has_ifc_base(const an_ifc_expr_member_initializer &universal);
 
-extern an_ifc_type_index get_ifc_base(
+template<>
+an_ifc_type_index get_ifc_base(
                               const an_ifc_expr_member_initializer &universal);
 
 extern a_boolean has_ifc_initializer(
                               const an_ifc_expr_member_initializer &universal);
 
-extern an_ifc_expr_index get_ifc_initializer(
+template<>
+an_ifc_expr_index get_ifc_initializer(
                               const an_ifc_expr_member_initializer &universal);
 
 extern a_boolean has_ifc_locus(
                               const an_ifc_expr_member_initializer &universal);
 
-extern an_ifc_source_location get_ifc_locus(
+template<>
+an_ifc_source_location get_ifc_locus(
                               const an_ifc_expr_member_initializer &universal);
 
 extern a_boolean has_ifc_member(
                               const an_ifc_expr_member_initializer &universal);
 
-extern an_ifc_decl_index get_ifc_member(
+template<>
+an_ifc_decl_index get_ifc_member(
                               const an_ifc_expr_member_initializer &universal);
 
 extern a_boolean has_ifc_type(const an_ifc_expr_member_initializer &universal);
 
-extern an_ifc_type_index get_ifc_type(
+template<>
+an_ifc_type_index get_ifc_type(
                               const an_ifc_expr_member_initializer &universal);
 
 extern a_boolean validate(const an_ifc_expr_member_initializer &universal,
@@ -5336,25 +14021,28 @@ Functions for interacting with IFC ExprMonad nodes.
 
 extern a_boolean has_ifc_argument(const an_ifc_expr_monad &universal);
 
-extern an_ifc_expr_index get_ifc_argument(const an_ifc_expr_monad &universal);
+template<>
+an_ifc_expr_index get_ifc_argument(const an_ifc_expr_monad &universal);
 
 extern a_boolean has_ifc_assoc(const an_ifc_expr_monad &universal);
 
-extern an_ifc_monadic_operator_sort get_ifc_assoc(
-                                           const an_ifc_expr_monad &universal);
+template<>
+an_ifc_monadic_operator_sort get_ifc_assoc(const an_ifc_expr_monad &universal);
 
 extern a_boolean has_ifc_impl(const an_ifc_expr_monad &universal);
 
-extern an_ifc_decl_index get_ifc_impl(const an_ifc_expr_monad &universal);
+template<>
+an_ifc_decl_index get_ifc_impl(const an_ifc_expr_monad &universal);
 
 extern a_boolean has_ifc_locus(const an_ifc_expr_monad &universal);
 
-extern an_ifc_source_location get_ifc_locus(
-                                           const an_ifc_expr_monad &universal);
+template<>
+an_ifc_source_location get_ifc_locus(const an_ifc_expr_monad &universal);
 
 extern a_boolean has_ifc_type(const an_ifc_expr_monad &universal);
 
-extern an_ifc_type_index get_ifc_type(const an_ifc_expr_monad &universal);
+template<>
+an_ifc_type_index get_ifc_type(const an_ifc_expr_monad &universal);
 
 extern a_boolean validate(const an_ifc_expr_monad       &universal,
                           const an_ifc_validation_trace *parent);
@@ -5387,17 +14075,18 @@ Functions for interacting with IFC ExprNamedDecl nodes.
 
 extern a_boolean has_ifc_locus(const an_ifc_expr_named_decl &universal);
 
-extern an_ifc_source_location get_ifc_locus(
-                                      const an_ifc_expr_named_decl &universal);
+template<>
+an_ifc_source_location get_ifc_locus(const an_ifc_expr_named_decl &universal);
 
 extern a_boolean has_ifc_resolution(const an_ifc_expr_named_decl &universal);
 
-extern an_ifc_decl_index get_ifc_resolution(
-                                      const an_ifc_expr_named_decl &universal);
+template<>
+an_ifc_decl_index get_ifc_resolution(const an_ifc_expr_named_decl &universal);
 
 extern a_boolean has_ifc_type(const an_ifc_expr_named_decl &universal);
 
-extern an_ifc_type_index get_ifc_type(const an_ifc_expr_named_decl &universal);
+template<>
+an_ifc_type_index get_ifc_type(const an_ifc_expr_named_decl &universal);
 
 extern a_boolean validate(const an_ifc_expr_named_decl  &universal,
                           const an_ifc_validation_trace *parent);
@@ -5430,12 +14119,13 @@ Functions for interacting with IFC ExprNullptr nodes.
 
 extern a_boolean has_ifc_locus(const an_ifc_expr_nullptr &universal);
 
-extern an_ifc_source_location get_ifc_locus(
-                                         const an_ifc_expr_nullptr &universal);
+template<>
+an_ifc_source_location get_ifc_locus(const an_ifc_expr_nullptr &universal);
 
 extern a_boolean has_ifc_type(const an_ifc_expr_nullptr &universal);
 
-extern an_ifc_type_index get_ifc_type(const an_ifc_expr_nullptr &universal);
+template<>
+an_ifc_type_index get_ifc_type(const an_ifc_expr_nullptr &universal);
 
 extern a_boolean validate(const an_ifc_expr_nullptr     &universal,
                           const an_ifc_validation_trace *parent);
@@ -5469,19 +14159,22 @@ Functions for interacting with IFC ExprPackedTemplateArguments nodes.
 extern a_boolean has_ifc_arguments(
                        const an_ifc_expr_packed_template_arguments &universal);
 
-extern an_ifc_expr_index get_ifc_arguments(
+template<>
+an_ifc_expr_index get_ifc_arguments(
                        const an_ifc_expr_packed_template_arguments &universal);
 
 extern a_boolean has_ifc_locus(
                        const an_ifc_expr_packed_template_arguments &universal);
 
-extern an_ifc_source_location get_ifc_locus(
+template<>
+an_ifc_source_location get_ifc_locus(
                        const an_ifc_expr_packed_template_arguments &universal);
 
 extern a_boolean has_ifc_type(
                        const an_ifc_expr_packed_template_arguments &universal);
 
-extern an_ifc_type_index get_ifc_type(
+template<>
+an_ifc_type_index get_ifc_type(
                        const an_ifc_expr_packed_template_arguments &universal);
 
 extern a_boolean validate(
@@ -5518,19 +14211,23 @@ Functions for interacting with IFC ExprPath nodes.
 
 extern a_boolean has_ifc_locus(const an_ifc_expr_path &universal);
 
-extern an_ifc_source_location get_ifc_locus(const an_ifc_expr_path &universal);
+template<>
+an_ifc_source_location get_ifc_locus(const an_ifc_expr_path &universal);
 
 extern a_boolean has_ifc_member(const an_ifc_expr_path &universal);
 
-extern an_ifc_expr_index get_ifc_member(const an_ifc_expr_path &universal);
+template<>
+an_ifc_expr_index get_ifc_member(const an_ifc_expr_path &universal);
 
 extern a_boolean has_ifc_scope(const an_ifc_expr_path &universal);
 
-extern an_ifc_expr_index get_ifc_scope(const an_ifc_expr_path &universal);
+template<>
+an_ifc_expr_index get_ifc_scope(const an_ifc_expr_path &universal);
 
 extern a_boolean has_ifc_type(const an_ifc_expr_path &universal);
 
-extern an_ifc_type_index get_ifc_type(const an_ifc_expr_path &universal);
+template<>
+an_ifc_type_index get_ifc_type(const an_ifc_expr_path &universal);
 
 extern a_boolean validate(const an_ifc_expr_path        &universal,
                           const an_ifc_validation_trace *parent);
@@ -5563,13 +14260,13 @@ Functions for interacting with IFC ExprPlaceholder nodes.
 
 extern a_boolean has_ifc_locus(const an_ifc_expr_placeholder &universal);
 
-extern an_ifc_source_location get_ifc_locus(
-                                     const an_ifc_expr_placeholder &universal);
+template<>
+an_ifc_source_location get_ifc_locus(const an_ifc_expr_placeholder &universal);
 
 extern a_boolean has_ifc_type(const an_ifc_expr_placeholder &universal);
 
-extern an_ifc_type_index get_ifc_type(
-                                     const an_ifc_expr_placeholder &universal);
+template<>
+an_ifc_type_index get_ifc_type(const an_ifc_expr_placeholder &universal);
 
 extern a_boolean validate(const an_ifc_expr_placeholder &universal,
                           const an_ifc_validation_trace *parent);
@@ -5602,8 +14299,8 @@ Functions for interacting with IFC ExprPointer nodes.
 
 extern a_boolean has_ifc_locus(const an_ifc_expr_pointer &universal);
 
-extern an_ifc_source_location get_ifc_locus(
-                                         const an_ifc_expr_pointer &universal);
+template<>
+an_ifc_source_location get_ifc_locus(const an_ifc_expr_pointer &universal);
 
 extern a_boolean validate(const an_ifc_expr_pointer     &universal,
                           const an_ifc_validation_trace *parent);
@@ -5637,30 +14334,35 @@ Functions for interacting with IFC ExprProductTypeValue nodes.
 extern a_boolean has_ifc_base_subobjects(
                               const an_ifc_expr_product_type_value &universal);
 
-extern an_ifc_expr_index get_ifc_base_subobjects(
+template<>
+an_ifc_expr_index get_ifc_base_subobjects(
                               const an_ifc_expr_product_type_value &universal);
 
 extern a_boolean has_ifc_class_decl(
                               const an_ifc_expr_product_type_value &universal);
 
-extern an_ifc_type_index get_ifc_class_decl(
+template<>
+an_ifc_type_index get_ifc_class_decl(
                               const an_ifc_expr_product_type_value &universal);
 
 extern a_boolean has_ifc_locus(
                               const an_ifc_expr_product_type_value &universal);
 
-extern an_ifc_source_location get_ifc_locus(
+template<>
+an_ifc_source_location get_ifc_locus(
                               const an_ifc_expr_product_type_value &universal);
 
 extern a_boolean has_ifc_members(
                               const an_ifc_expr_product_type_value &universal);
 
-extern an_ifc_expr_index get_ifc_members(
+template<>
+an_ifc_expr_index get_ifc_members(
                               const an_ifc_expr_product_type_value &universal);
 
 extern a_boolean has_ifc_type(const an_ifc_expr_product_type_value &universal);
 
-extern an_ifc_type_index get_ifc_type(
+template<>
+an_ifc_type_index get_ifc_type(
                               const an_ifc_expr_product_type_value &universal);
 
 extern a_boolean validate(const an_ifc_expr_product_type_value &universal,
@@ -5696,26 +14398,28 @@ Functions for interacting with IFC ExprPushState nodes.
 
 extern a_boolean has_ifc_ctor_call(const an_ifc_expr_push_state &universal);
 
-extern an_ifc_expr_index get_ifc_ctor_call(
-                                      const an_ifc_expr_push_state &universal);
+template<>
+an_ifc_expr_index get_ifc_ctor_call(const an_ifc_expr_push_state &universal);
 
 extern a_boolean has_ifc_dtor_call(const an_ifc_expr_push_state &universal);
 
-extern an_ifc_expr_index get_ifc_dtor_call(
-                                      const an_ifc_expr_push_state &universal);
+template<>
+an_ifc_expr_index get_ifc_dtor_call(const an_ifc_expr_push_state &universal);
 
 extern a_boolean has_ifc_flags(const an_ifc_expr_push_state &universal);
 
-extern an_ifc_eh_flags get_ifc_flags(const an_ifc_expr_push_state &universal);
+template<>
+an_ifc_eh_flags get_ifc_flags(const an_ifc_expr_push_state &universal);
 
 extern a_boolean has_ifc_locus(const an_ifc_expr_push_state &universal);
 
-extern an_ifc_source_location get_ifc_locus(
-                                      const an_ifc_expr_push_state &universal);
+template<>
+an_ifc_source_location get_ifc_locus(const an_ifc_expr_push_state &universal);
 
 extern a_boolean has_ifc_type(const an_ifc_expr_push_state &universal);
 
-extern an_ifc_type_index get_ifc_type(const an_ifc_expr_push_state &universal);
+template<>
+an_ifc_type_index get_ifc_type(const an_ifc_expr_push_state &universal);
 
 extern a_boolean validate(const an_ifc_expr_push_state  &universal,
                           const an_ifc_validation_trace *parent);
@@ -5748,23 +14452,26 @@ Functions for interacting with IFC ExprQualifiedName nodes.
 
 extern a_boolean has_ifc_elements(const an_ifc_expr_qualified_name &universal);
 
-extern an_ifc_expr_index get_ifc_elements(
+template<>
+an_ifc_expr_index get_ifc_elements(
                                   const an_ifc_expr_qualified_name &universal);
 
 extern a_boolean has_ifc_locus(const an_ifc_expr_qualified_name &universal);
 
-extern an_ifc_source_location get_ifc_locus(
+template<>
+an_ifc_source_location get_ifc_locus(
                                   const an_ifc_expr_qualified_name &universal);
 
 extern a_boolean has_ifc_type(const an_ifc_expr_qualified_name &universal);
 
-extern an_ifc_type_index get_ifc_type(
-                                  const an_ifc_expr_qualified_name &universal);
+template<>
+an_ifc_type_index get_ifc_type(const an_ifc_expr_qualified_name &universal);
 
 extern a_boolean has_ifc_typename_keyword(
                                   const an_ifc_expr_qualified_name &universal);
 
-extern an_ifc_source_location get_ifc_typename_keyword(
+template<>
+an_ifc_source_location get_ifc_typename_keyword(
                                   const an_ifc_expr_qualified_name &universal);
 
 extern a_boolean validate(const an_ifc_expr_qualified_name &universal,
@@ -5799,20 +14506,23 @@ Functions for interacting with IFC ExprRead nodes.
 
 extern a_boolean has_ifc_address(const an_ifc_expr_read &universal);
 
-extern an_ifc_expr_index get_ifc_address(const an_ifc_expr_read &universal);
+template<>
+an_ifc_expr_index get_ifc_address(const an_ifc_expr_read &universal);
 
 extern a_boolean has_ifc_locus(const an_ifc_expr_read &universal);
 
-extern an_ifc_source_location get_ifc_locus(const an_ifc_expr_read &universal);
+template<>
+an_ifc_source_location get_ifc_locus(const an_ifc_expr_read &universal);
 
 extern a_boolean has_ifc_sort(const an_ifc_expr_read &universal);
 
-extern an_ifc_read_conversion_sort get_ifc_sort(
-                                            const an_ifc_expr_read &universal);
+template<>
+an_ifc_read_conversion_sort get_ifc_sort(const an_ifc_expr_read &universal);
 
 extern a_boolean has_ifc_type(const an_ifc_expr_read &universal);
 
-extern an_ifc_type_index get_ifc_type(const an_ifc_expr_read &universal);
+template<>
+an_ifc_type_index get_ifc_type(const an_ifc_expr_read &universal);
 
 extern a_boolean validate(const an_ifc_expr_read        &universal,
                           const an_ifc_validation_trace *parent);
@@ -5845,21 +14555,23 @@ Functions for interacting with IFC ExprRequires nodes.
 
 extern a_boolean has_ifc_body(const an_ifc_expr_requires &universal);
 
-extern an_ifc_syntax_index get_ifc_body(const an_ifc_expr_requires &universal);
+template<>
+an_ifc_syntax_index get_ifc_body(const an_ifc_expr_requires &universal);
 
 extern a_boolean has_ifc_locus(const an_ifc_expr_requires &universal);
 
-extern an_ifc_source_location get_ifc_locus(
-                                        const an_ifc_expr_requires &universal);
+template<>
+an_ifc_source_location get_ifc_locus(const an_ifc_expr_requires &universal);
 
 extern a_boolean has_ifc_parameters(const an_ifc_expr_requires &universal);
 
-extern an_ifc_syntax_index get_ifc_parameters(
-                                        const an_ifc_expr_requires &universal);
+template<>
+an_ifc_syntax_index get_ifc_parameters(const an_ifc_expr_requires &universal);
 
 extern a_boolean has_ifc_type(const an_ifc_expr_requires &universal);
 
-extern an_ifc_type_index get_ifc_type(const an_ifc_expr_requires &universal);
+template<>
+an_ifc_type_index get_ifc_type(const an_ifc_expr_requires &universal);
 
 extern a_boolean validate(const an_ifc_expr_requires    &universal,
                           const an_ifc_validation_trace *parent);
@@ -5892,18 +14604,19 @@ Functions for interacting with IFC ExprSimpleIdentifier nodes.
 
 extern a_boolean has_ifc_locus(const an_ifc_expr_simple_identifier &universal);
 
-extern an_ifc_source_location get_ifc_locus(
+template<>
+an_ifc_source_location get_ifc_locus(
                                const an_ifc_expr_simple_identifier &universal);
 
 extern a_boolean has_ifc_name(const an_ifc_expr_simple_identifier &universal);
 
-extern an_ifc_name_index get_ifc_name(
-                               const an_ifc_expr_simple_identifier &universal);
+template<>
+an_ifc_name_index get_ifc_name(const an_ifc_expr_simple_identifier &universal);
 
 extern a_boolean has_ifc_type(const an_ifc_expr_simple_identifier &universal);
 
-extern an_ifc_type_index get_ifc_type(
-                               const an_ifc_expr_simple_identifier &universal);
+template<>
+an_ifc_type_index get_ifc_type(const an_ifc_expr_simple_identifier &universal);
 
 extern a_boolean validate(const an_ifc_expr_simple_identifier &universal,
                           const an_ifc_validation_trace       *parent);
@@ -5938,18 +14651,18 @@ Functions for interacting with IFC ExprSizeofType nodes.
 
 extern a_boolean has_ifc_locus(const an_ifc_expr_sizeof_type &universal);
 
-extern an_ifc_source_location get_ifc_locus(
-                                     const an_ifc_expr_sizeof_type &universal);
+template<>
+an_ifc_source_location get_ifc_locus(const an_ifc_expr_sizeof_type &universal);
 
 extern a_boolean has_ifc_operand(const an_ifc_expr_sizeof_type &universal);
 
-extern an_ifc_type_index get_ifc_operand(
-                                     const an_ifc_expr_sizeof_type &universal);
+template<>
+an_ifc_type_index get_ifc_operand(const an_ifc_expr_sizeof_type &universal);
 
 extern a_boolean has_ifc_type(const an_ifc_expr_sizeof_type &universal);
 
-extern an_ifc_type_index get_ifc_type(
-                                     const an_ifc_expr_sizeof_type &universal);
+template<>
+an_ifc_type_index get_ifc_type(const an_ifc_expr_sizeof_type &universal);
 
 extern a_boolean validate(const an_ifc_expr_sizeof_type &universal,
                           const an_ifc_validation_trace *parent);
@@ -5982,17 +14695,18 @@ Functions for interacting with IFC ExprString nodes.
 
 extern a_boolean has_ifc_locus(const an_ifc_expr_string &universal);
 
-extern an_ifc_source_location get_ifc_locus(
-                                          const an_ifc_expr_string &universal);
+template<>
+an_ifc_source_location get_ifc_locus(const an_ifc_expr_string &universal);
 
 extern a_boolean has_ifc_string_index(const an_ifc_expr_string &universal);
 
-extern an_ifc_string_index get_ifc_string_index(
-                                          const an_ifc_expr_string &universal);
+template<>
+an_ifc_string_index get_ifc_string_index(const an_ifc_expr_string &universal);
 
 extern a_boolean has_ifc_type(const an_ifc_expr_string &universal);
 
-extern an_ifc_type_index get_ifc_type(const an_ifc_expr_string &universal);
+template<>
+an_ifc_type_index get_ifc_type(const an_ifc_expr_string &universal);
 
 extern a_boolean validate(const an_ifc_expr_string      &universal,
                           const an_ifc_validation_trace *parent);
@@ -6025,18 +14739,20 @@ Functions for interacting with IFC ExprStringSequence nodes.
 
 extern a_boolean has_ifc_locus(const an_ifc_expr_string_sequence &universal);
 
-extern an_ifc_source_location get_ifc_locus(
+template<>
+an_ifc_source_location get_ifc_locus(
                                  const an_ifc_expr_string_sequence &universal);
 
 extern a_boolean has_ifc_strings(const an_ifc_expr_string_sequence &universal);
 
-extern an_ifc_expr_index get_ifc_strings(
+template<>
+an_ifc_expr_index get_ifc_strings(
                                  const an_ifc_expr_string_sequence &universal);
 
 extern a_boolean has_ifc_type(const an_ifc_expr_string_sequence &universal);
 
-extern an_ifc_type_index get_ifc_type(
-                                 const an_ifc_expr_string_sequence &universal);
+template<>
+an_ifc_type_index get_ifc_type(const an_ifc_expr_string_sequence &universal);
 
 extern a_boolean validate(const an_ifc_expr_string_sequence &universal,
                           const an_ifc_validation_trace     *parent);
@@ -6070,8 +14786,8 @@ Functions for interacting with IFC ExprSubobjectValue nodes.
 
 extern a_boolean has_ifc_value(const an_ifc_expr_subobject_value &universal);
 
-extern an_ifc_expr_index get_ifc_value(
-                                 const an_ifc_expr_subobject_value &universal);
+template<>
+an_ifc_expr_index get_ifc_value(const an_ifc_expr_subobject_value &universal);
 
 extern a_boolean validate(const an_ifc_expr_subobject_value &universal,
                           const an_ifc_validation_trace     *parent);
@@ -6106,28 +14822,30 @@ Functions for interacting with IFC ExprSumTypeValue nodes.
 extern a_boolean has_ifc_discriminant(
                                   const an_ifc_expr_sum_type_value &universal);
 
-extern an_ifc_active_member get_ifc_discriminant(
+template<>
+an_ifc_active_member get_ifc_discriminant(
                                   const an_ifc_expr_sum_type_value &universal);
 
 extern a_boolean has_ifc_locus(const an_ifc_expr_sum_type_value &universal);
 
-extern an_ifc_source_location get_ifc_locus(
+template<>
+an_ifc_source_location get_ifc_locus(
                                   const an_ifc_expr_sum_type_value &universal);
 
 extern a_boolean has_ifc_type(const an_ifc_expr_sum_type_value &universal);
 
-extern an_ifc_type_index get_ifc_type(
-                                  const an_ifc_expr_sum_type_value &universal);
+template<>
+an_ifc_type_index get_ifc_type(const an_ifc_expr_sum_type_value &universal);
 
 extern a_boolean has_ifc_value(const an_ifc_expr_sum_type_value &universal);
 
-extern an_ifc_expr_index get_ifc_value(
-                                  const an_ifc_expr_sum_type_value &universal);
+template<>
+an_ifc_expr_index get_ifc_value(const an_ifc_expr_sum_type_value &universal);
 
 extern a_boolean has_ifc_variant(const an_ifc_expr_sum_type_value &universal);
 
-extern an_ifc_decl_index get_ifc_variant(
-                                  const an_ifc_expr_sum_type_value &universal);
+template<>
+an_ifc_decl_index get_ifc_variant(const an_ifc_expr_sum_type_value &universal);
 
 extern a_boolean validate(const an_ifc_expr_sum_type_value &universal,
                           const an_ifc_validation_trace    *parent);
@@ -6161,8 +14879,8 @@ Functions for interacting with IFC ExprSyntaxTree nodes.
 
 extern a_boolean has_ifc_syntax(const an_ifc_expr_syntax_tree &universal);
 
-extern an_ifc_syntax_index get_ifc_syntax(
-                                     const an_ifc_expr_syntax_tree &universal);
+template<>
+an_ifc_syntax_index get_ifc_syntax(const an_ifc_expr_syntax_tree &universal);
 
 extern a_boolean validate(const an_ifc_expr_syntax_tree &universal,
                           const an_ifc_validation_trace *parent);
@@ -6195,23 +14913,23 @@ Functions for interacting with IFC ExprTemplateId nodes.
 
 extern a_boolean has_ifc_arguments(const an_ifc_expr_template_id &universal);
 
-extern an_ifc_expr_index get_ifc_arguments(
-                                     const an_ifc_expr_template_id &universal);
+template<>
+an_ifc_expr_index get_ifc_arguments(const an_ifc_expr_template_id &universal);
 
 extern a_boolean has_ifc_locus(const an_ifc_expr_template_id &universal);
 
-extern an_ifc_source_location get_ifc_locus(
-                                     const an_ifc_expr_template_id &universal);
+template<>
+an_ifc_source_location get_ifc_locus(const an_ifc_expr_template_id &universal);
 
 extern a_boolean has_ifc_primary(const an_ifc_expr_template_id &universal);
 
-extern an_ifc_expr_index get_ifc_primary(
-                                     const an_ifc_expr_template_id &universal);
+template<>
+an_ifc_expr_index get_ifc_primary(const an_ifc_expr_template_id &universal);
 
 extern a_boolean has_ifc_type(const an_ifc_expr_template_id &universal);
 
-extern an_ifc_type_index get_ifc_type(
-                                     const an_ifc_expr_template_id &universal);
+template<>
+an_ifc_type_index get_ifc_type(const an_ifc_expr_template_id &universal);
 
 extern a_boolean validate(const an_ifc_expr_template_id &universal,
                           const an_ifc_validation_trace *parent);
@@ -6245,36 +14963,42 @@ Functions for interacting with IFC ExprTemplateReference nodes.
 extern a_boolean has_ifc_arguments(
                               const an_ifc_expr_template_reference &universal);
 
-extern an_ifc_expr_index get_ifc_arguments(
+template<>
+an_ifc_expr_index get_ifc_arguments(
                               const an_ifc_expr_template_reference &universal);
 
 extern a_boolean has_ifc_locus(
                               const an_ifc_expr_template_reference &universal);
 
-extern an_ifc_source_location get_ifc_locus(
+template<>
+an_ifc_source_location get_ifc_locus(
                               const an_ifc_expr_template_reference &universal);
 
 extern a_boolean has_ifc_member_locus(
                               const an_ifc_expr_template_reference &universal);
 
-extern an_ifc_source_location get_ifc_member_locus(
+template<>
+an_ifc_source_location get_ifc_member_locus(
                               const an_ifc_expr_template_reference &universal);
 
 extern a_boolean has_ifc_member_name(
                               const an_ifc_expr_template_reference &universal);
 
-extern an_ifc_name_index get_ifc_member_name(
+template<>
+an_ifc_name_index get_ifc_member_name(
                               const an_ifc_expr_template_reference &universal);
 
 extern a_boolean has_ifc_scope(
                               const an_ifc_expr_template_reference &universal);
 
-extern an_ifc_type_index get_ifc_scope(
+template<>
+an_ifc_type_index get_ifc_scope(
                               const an_ifc_expr_template_reference &universal);
 
 extern a_boolean has_ifc_type(const an_ifc_expr_template_reference &universal);
 
-extern an_ifc_type_index get_ifc_type(
+template<>
+an_ifc_type_index get_ifc_type(
                               const an_ifc_expr_template_reference &universal);
 
 extern a_boolean validate(const an_ifc_expr_template_reference &universal,
@@ -6310,16 +15034,18 @@ Functions for interacting with IFC ExprTemporary nodes.
 
 extern a_boolean has_ifc_id(const an_ifc_expr_temporary &universal);
 
-extern an_ifc_unique_id get_ifc_id(const an_ifc_expr_temporary &universal);
+template<>
+an_ifc_unique_id get_ifc_id(const an_ifc_expr_temporary &universal);
 
 extern a_boolean has_ifc_locus(const an_ifc_expr_temporary &universal);
 
-extern an_ifc_source_location get_ifc_locus(
-                                       const an_ifc_expr_temporary &universal);
+template<>
+an_ifc_source_location get_ifc_locus(const an_ifc_expr_temporary &universal);
 
 extern a_boolean has_ifc_type(const an_ifc_expr_temporary &universal);
 
-extern an_ifc_type_index get_ifc_type(const an_ifc_expr_temporary &universal);
+template<>
+an_ifc_type_index get_ifc_type(const an_ifc_expr_temporary &universal);
 
 extern a_boolean validate(const an_ifc_expr_temporary   &universal,
                           const an_ifc_validation_trace *parent);
@@ -6352,11 +15078,13 @@ Functions for interacting with IFC ExprThis nodes.
 
 extern a_boolean has_ifc_locus(const an_ifc_expr_this &universal);
 
-extern an_ifc_source_location get_ifc_locus(const an_ifc_expr_this &universal);
+template<>
+an_ifc_source_location get_ifc_locus(const an_ifc_expr_this &universal);
 
 extern a_boolean has_ifc_type(const an_ifc_expr_this &universal);
 
-extern an_ifc_type_index get_ifc_type(const an_ifc_expr_this &universal);
+template<>
+an_ifc_type_index get_ifc_type(const an_ifc_expr_this &universal);
 
 extern a_boolean validate(const an_ifc_expr_this        &universal,
                           const an_ifc_validation_trace *parent);
@@ -6389,17 +15117,18 @@ Functions for interacting with IFC ExprTokens nodes.
 
 extern a_boolean has_ifc_locus(const an_ifc_expr_tokens &universal);
 
-extern an_ifc_source_location get_ifc_locus(
-                                          const an_ifc_expr_tokens &universal);
+template<>
+an_ifc_source_location get_ifc_locus(const an_ifc_expr_tokens &universal);
 
 extern a_boolean has_ifc_type(const an_ifc_expr_tokens &universal);
 
-extern an_ifc_type_index get_ifc_type(const an_ifc_expr_tokens &universal);
+template<>
+an_ifc_type_index get_ifc_type(const an_ifc_expr_tokens &universal);
 
 extern a_boolean has_ifc_words(const an_ifc_expr_tokens &universal);
 
-extern an_ifc_sentence_index get_ifc_words(
-                                          const an_ifc_expr_tokens &universal);
+template<>
+an_ifc_sentence_index get_ifc_words(const an_ifc_expr_tokens &universal);
 
 extern a_boolean validate(const an_ifc_expr_tokens      &universal,
                           const an_ifc_validation_trace *parent);
@@ -6432,36 +15161,38 @@ Functions for interacting with IFC ExprTriad nodes.
 
 extern a_boolean has_ifc_argument_0(const an_ifc_expr_triad &universal);
 
-extern an_ifc_expr_index get_ifc_argument_0(
-                                           const an_ifc_expr_triad &universal);
+template<>
+an_ifc_expr_index get_ifc_argument_0(const an_ifc_expr_triad &universal);
 
 extern a_boolean has_ifc_argument_1(const an_ifc_expr_triad &universal);
 
-extern an_ifc_expr_index get_ifc_argument_1(
-                                           const an_ifc_expr_triad &universal);
+template<>
+an_ifc_expr_index get_ifc_argument_1(const an_ifc_expr_triad &universal);
 
 extern a_boolean has_ifc_argument_2(const an_ifc_expr_triad &universal);
 
-extern an_ifc_expr_index get_ifc_argument_2(
-                                           const an_ifc_expr_triad &universal);
+template<>
+an_ifc_expr_index get_ifc_argument_2(const an_ifc_expr_triad &universal);
 
 extern a_boolean has_ifc_assoc(const an_ifc_expr_triad &universal);
 
-extern an_ifc_triadic_operator_sort get_ifc_assoc(
-                                           const an_ifc_expr_triad &universal);
+template<>
+an_ifc_triadic_operator_sort get_ifc_assoc(const an_ifc_expr_triad &universal);
 
 extern a_boolean has_ifc_impl(const an_ifc_expr_triad &universal);
 
-extern an_ifc_decl_index get_ifc_impl(const an_ifc_expr_triad &universal);
+template<>
+an_ifc_decl_index get_ifc_impl(const an_ifc_expr_triad &universal);
 
 extern a_boolean has_ifc_locus(const an_ifc_expr_triad &universal);
 
-extern an_ifc_source_location get_ifc_locus(
-                                           const an_ifc_expr_triad &universal);
+template<>
+an_ifc_source_location get_ifc_locus(const an_ifc_expr_triad &universal);
 
 extern a_boolean has_ifc_type(const an_ifc_expr_triad &universal);
 
-extern an_ifc_type_index get_ifc_type(const an_ifc_expr_triad &universal);
+template<>
+an_ifc_type_index get_ifc_type(const an_ifc_expr_triad &universal);
 
 extern a_boolean validate(const an_ifc_expr_triad       &universal,
                           const an_ifc_validation_trace *parent);
@@ -6494,21 +15225,23 @@ Functions for interacting with IFC ExprTuple nodes.
 
 extern a_boolean has_ifc_cardinality(const an_ifc_expr_tuple &universal);
 
-extern an_ifc_cardinality get_ifc_cardinality(
-                                           const an_ifc_expr_tuple &universal);
+template<>
+an_ifc_cardinality get_ifc_cardinality(const an_ifc_expr_tuple &universal);
 
 extern a_boolean has_ifc_locus(const an_ifc_expr_tuple &universal);
 
-extern an_ifc_source_location get_ifc_locus(
-                                           const an_ifc_expr_tuple &universal);
+template<>
+an_ifc_source_location get_ifc_locus(const an_ifc_expr_tuple &universal);
 
 extern a_boolean has_ifc_start(const an_ifc_expr_tuple &universal);
 
-extern an_ifc_index get_ifc_start(const an_ifc_expr_tuple &universal);
+template<>
+an_ifc_index get_ifc_start(const an_ifc_expr_tuple &universal);
 
 extern a_boolean has_ifc_type(const an_ifc_expr_tuple &universal);
 
-extern an_ifc_type_index get_ifc_type(const an_ifc_expr_tuple &universal);
+template<>
+an_ifc_type_index get_ifc_type(const an_ifc_expr_tuple &universal);
 
 extern a_boolean validate(const an_ifc_expr_tuple       &universal,
                           const an_ifc_validation_trace *parent);
@@ -6541,15 +15274,18 @@ Functions for interacting with IFC ExprType nodes.
 
 extern a_boolean has_ifc_denotation(const an_ifc_expr_type &universal);
 
-extern an_ifc_type_index get_ifc_denotation(const an_ifc_expr_type &universal);
+template<>
+an_ifc_type_index get_ifc_denotation(const an_ifc_expr_type &universal);
 
 extern a_boolean has_ifc_locus(const an_ifc_expr_type &universal);
 
-extern an_ifc_source_location get_ifc_locus(const an_ifc_expr_type &universal);
+template<>
+an_ifc_source_location get_ifc_locus(const an_ifc_expr_type &universal);
 
 extern a_boolean has_ifc_type(const an_ifc_expr_type &universal);
 
-extern an_ifc_type_index get_ifc_type(const an_ifc_expr_type &universal);
+template<>
+an_ifc_type_index get_ifc_type(const an_ifc_expr_type &universal);
 
 extern a_boolean validate(const an_ifc_expr_type        &universal,
                           const an_ifc_validation_trace *parent);
@@ -6583,25 +15319,29 @@ Functions for interacting with IFC ExprTypeTraitIntrinsic nodes.
 extern a_boolean has_ifc_arguments(
                             const an_ifc_expr_type_trait_intrinsic &universal);
 
-extern an_ifc_type_index get_ifc_arguments(
+template<>
+an_ifc_type_index get_ifc_arguments(
                             const an_ifc_expr_type_trait_intrinsic &universal);
 
 extern a_boolean has_ifc_intrinsic(
                             const an_ifc_expr_type_trait_intrinsic &universal);
 
-extern an_ifc_operator_category get_ifc_intrinsic(
+template<>
+an_ifc_operator_category get_ifc_intrinsic(
                             const an_ifc_expr_type_trait_intrinsic &universal);
 
 extern a_boolean has_ifc_locus(
                             const an_ifc_expr_type_trait_intrinsic &universal);
 
-extern an_ifc_source_location get_ifc_locus(
+template<>
+an_ifc_source_location get_ifc_locus(
                             const an_ifc_expr_type_trait_intrinsic &universal);
 
 extern a_boolean has_ifc_type(
                             const an_ifc_expr_type_trait_intrinsic &universal);
 
-extern an_ifc_type_index get_ifc_type(
+template<>
+an_ifc_type_index get_ifc_type(
                             const an_ifc_expr_type_trait_intrinsic &universal);
 
 extern a_boolean validate(const an_ifc_expr_type_trait_intrinsic &universal,
@@ -6637,16 +15377,18 @@ Functions for interacting with IFC ExprTypeid nodes.
 
 extern a_boolean has_ifc_locus(const an_ifc_expr_typeid &universal);
 
-extern an_ifc_source_location get_ifc_locus(
-                                          const an_ifc_expr_typeid &universal);
+template<>
+an_ifc_source_location get_ifc_locus(const an_ifc_expr_typeid &universal);
 
 extern a_boolean has_ifc_operand(const an_ifc_expr_typeid &universal);
 
-extern an_ifc_type_index get_ifc_operand(const an_ifc_expr_typeid &universal);
+template<>
+an_ifc_type_index get_ifc_operand(const an_ifc_expr_typeid &universal);
 
 extern a_boolean has_ifc_type(const an_ifc_expr_typeid &universal);
 
-extern an_ifc_type_index get_ifc_type(const an_ifc_expr_typeid &universal);
+template<>
+an_ifc_type_index get_ifc_type(const an_ifc_expr_typeid &universal);
 
 extern a_boolean validate(const an_ifc_expr_typeid      &universal,
                           const an_ifc_validation_trace *parent);
@@ -6680,26 +15422,30 @@ Functions for interacting with IFC ExprUnaryFold nodes.
 extern a_boolean has_ifc_associativity(
                                       const an_ifc_expr_unary_fold &universal);
 
-extern an_ifc_associativity get_ifc_associativity(
+template<>
+an_ifc_associativity get_ifc_associativity(
                                       const an_ifc_expr_unary_fold &universal);
 
 extern a_boolean has_ifc_expr(const an_ifc_expr_unary_fold &universal);
 
-extern an_ifc_expr_index get_ifc_expr(const an_ifc_expr_unary_fold &universal);
+template<>
+an_ifc_expr_index get_ifc_expr(const an_ifc_expr_unary_fold &universal);
 
 extern a_boolean has_ifc_locus(const an_ifc_expr_unary_fold &universal);
 
-extern an_ifc_source_location get_ifc_locus(
-                                      const an_ifc_expr_unary_fold &universal);
+template<>
+an_ifc_source_location get_ifc_locus(const an_ifc_expr_unary_fold &universal);
 
 extern a_boolean has_ifc_operation(const an_ifc_expr_unary_fold &universal);
 
-extern an_ifc_dyadic_operator_sort get_ifc_operation(
+template<>
+an_ifc_dyadic_operator_sort get_ifc_operation(
                                       const an_ifc_expr_unary_fold &universal);
 
 extern a_boolean has_ifc_type(const an_ifc_expr_unary_fold &universal);
 
-extern an_ifc_type_index get_ifc_type(const an_ifc_expr_unary_fold &universal);
+template<>
+an_ifc_type_index get_ifc_type(const an_ifc_expr_unary_fold &universal);
 
 extern a_boolean validate(const an_ifc_expr_unary_fold  &universal,
                           const an_ifc_validation_trace *parent);
@@ -6732,30 +15478,33 @@ Functions for interacting with IFC ExprUnqualifiedId nodes.
 
 extern a_boolean has_ifc_locus(const an_ifc_expr_unqualified_id &universal);
 
-extern an_ifc_source_location get_ifc_locus(
+template<>
+an_ifc_source_location get_ifc_locus(
                                   const an_ifc_expr_unqualified_id &universal);
 
 extern a_boolean has_ifc_name(const an_ifc_expr_unqualified_id &universal);
 
-extern an_ifc_name_index get_ifc_name(
-                                  const an_ifc_expr_unqualified_id &universal);
+template<>
+an_ifc_name_index get_ifc_name(const an_ifc_expr_unqualified_id &universal);
 
 extern a_boolean has_ifc_resolution(
                                   const an_ifc_expr_unqualified_id &universal);
 
-extern an_ifc_expr_index get_ifc_resolution(
+template<>
+an_ifc_expr_index get_ifc_resolution(
                                   const an_ifc_expr_unqualified_id &universal);
 
 extern a_boolean has_ifc_template_keyword(
                                   const an_ifc_expr_unqualified_id &universal);
 
-extern an_ifc_source_location get_ifc_template_keyword(
+template<>
+an_ifc_source_location get_ifc_template_keyword(
                                   const an_ifc_expr_unqualified_id &universal);
 
 extern a_boolean has_ifc_type(const an_ifc_expr_unqualified_id &universal);
 
-extern an_ifc_type_index get_ifc_type(
-                                  const an_ifc_expr_unqualified_id &universal);
+template<>
+an_ifc_type_index get_ifc_type(const an_ifc_expr_unqualified_id &universal);
 
 extern a_boolean validate(const an_ifc_expr_unqualified_id &universal,
                           const an_ifc_validation_trace    *parent);
@@ -6789,18 +15538,19 @@ Functions for interacting with IFC ExprUnresolvedId nodes.
 
 extern a_boolean has_ifc_locus(const an_ifc_expr_unresolved_id &universal);
 
-extern an_ifc_source_location get_ifc_locus(
+template<>
+an_ifc_source_location get_ifc_locus(
                                    const an_ifc_expr_unresolved_id &universal);
 
 extern a_boolean has_ifc_name(const an_ifc_expr_unresolved_id &universal);
 
-extern an_ifc_name_index get_ifc_name(
-                                   const an_ifc_expr_unresolved_id &universal);
+template<>
+an_ifc_name_index get_ifc_name(const an_ifc_expr_unresolved_id &universal);
 
 extern a_boolean has_ifc_type(const an_ifc_expr_unresolved_id &universal);
 
-extern an_ifc_type_index get_ifc_type(
-                                   const an_ifc_expr_unresolved_id &universal);
+template<>
+an_ifc_type_index get_ifc_type(const an_ifc_expr_unresolved_id &universal);
 
 extern a_boolean validate(const an_ifc_expr_unresolved_id &universal,
                           const an_ifc_validation_trace   *parent);
@@ -6835,19 +15585,22 @@ Functions for interacting with IFC ExprVirtualFunctionConversion nodes.
 extern a_boolean has_ifc_function(
                      const an_ifc_expr_virtual_function_conversion &universal);
 
-extern an_ifc_decl_index get_ifc_function(
+template<>
+an_ifc_decl_index get_ifc_function(
                      const an_ifc_expr_virtual_function_conversion &universal);
 
 extern a_boolean has_ifc_locus(
                      const an_ifc_expr_virtual_function_conversion &universal);
 
-extern an_ifc_source_location get_ifc_locus(
+template<>
+an_ifc_source_location get_ifc_locus(
                      const an_ifc_expr_virtual_function_conversion &universal);
 
 extern a_boolean has_ifc_type(
                      const an_ifc_expr_virtual_function_conversion &universal);
 
-extern an_ifc_type_index get_ifc_type(
+template<>
+an_ifc_type_index get_ifc_type(
                      const an_ifc_expr_virtual_function_conversion &universal);
 
 extern a_boolean validate(
@@ -6884,16 +15637,18 @@ Functions for interacting with IFC FormCatenate nodes.
 
 extern a_boolean has_ifc_first(const an_ifc_form_catenate &universal);
 
-extern an_ifc_form_index get_ifc_first(const an_ifc_form_catenate &universal);
+template<>
+an_ifc_form_index get_ifc_first(const an_ifc_form_catenate &universal);
 
 extern a_boolean has_ifc_locus(const an_ifc_form_catenate &universal);
 
-extern an_ifc_source_location get_ifc_locus(
-                                        const an_ifc_form_catenate &universal);
+template<>
+an_ifc_source_location get_ifc_locus(const an_ifc_form_catenate &universal);
 
 extern a_boolean has_ifc_second(const an_ifc_form_catenate &universal);
 
-extern an_ifc_form_index get_ifc_second(const an_ifc_form_catenate &universal);
+template<>
+an_ifc_form_index get_ifc_second(const an_ifc_form_catenate &universal);
 
 extern a_boolean validate(const an_ifc_form_catenate    &universal,
                           const an_ifc_validation_trace *parent);
@@ -6926,13 +15681,13 @@ Functions for interacting with IFC FormCharacter nodes.
 
 extern a_boolean has_ifc_locus(const an_ifc_form_character &universal);
 
-extern an_ifc_source_location get_ifc_locus(
-                                       const an_ifc_form_character &universal);
+template<>
+an_ifc_source_location get_ifc_locus(const an_ifc_form_character &universal);
 
 extern a_boolean has_ifc_spelling(const an_ifc_form_character &universal);
 
-extern an_ifc_text_offset get_ifc_spelling(
-                                       const an_ifc_form_character &universal);
+template<>
+an_ifc_text_offset get_ifc_spelling(const an_ifc_form_character &universal);
 
 extern a_boolean validate(const an_ifc_form_character   &universal,
                           const an_ifc_validation_trace *parent);
@@ -6965,13 +15720,13 @@ Functions for interacting with IFC FormHeader nodes.
 
 extern a_boolean has_ifc_locus(const an_ifc_form_header &universal);
 
-extern an_ifc_source_location get_ifc_locus(
-                                          const an_ifc_form_header &universal);
+template<>
+an_ifc_source_location get_ifc_locus(const an_ifc_form_header &universal);
 
 extern a_boolean has_ifc_spelling(const an_ifc_form_header &universal);
 
-extern an_ifc_text_offset get_ifc_spelling(
-                                          const an_ifc_form_header &universal);
+template<>
+an_ifc_text_offset get_ifc_spelling(const an_ifc_form_header &universal);
 
 extern a_boolean validate(const an_ifc_form_header      &universal,
                           const an_ifc_validation_trace *parent);
@@ -7004,13 +15759,13 @@ Functions for interacting with IFC FormIdentifier nodes.
 
 extern a_boolean has_ifc_locus(const an_ifc_form_identifier &universal);
 
-extern an_ifc_source_location get_ifc_locus(
-                                      const an_ifc_form_identifier &universal);
+template<>
+an_ifc_source_location get_ifc_locus(const an_ifc_form_identifier &universal);
 
 extern a_boolean has_ifc_spelling(const an_ifc_form_identifier &universal);
 
-extern an_ifc_text_offset get_ifc_spelling(
-                                      const an_ifc_form_identifier &universal);
+template<>
+an_ifc_text_offset get_ifc_spelling(const an_ifc_form_identifier &universal);
 
 extern a_boolean validate(const an_ifc_form_identifier  &universal,
                           const an_ifc_validation_trace *parent);
@@ -7043,11 +15798,13 @@ Functions for interacting with IFC FormJunk nodes.
 
 extern a_boolean has_ifc_locus(const an_ifc_form_junk &universal);
 
-extern an_ifc_source_location get_ifc_locus(const an_ifc_form_junk &universal);
+template<>
+an_ifc_source_location get_ifc_locus(const an_ifc_form_junk &universal);
 
 extern a_boolean has_ifc_spelling(const an_ifc_form_junk &universal);
 
-extern an_ifc_text_offset get_ifc_spelling(const an_ifc_form_junk &universal);
+template<>
+an_ifc_text_offset get_ifc_spelling(const an_ifc_form_junk &universal);
 
 extern a_boolean validate(const an_ifc_form_junk        &universal,
                           const an_ifc_validation_trace *parent);
@@ -7080,13 +15837,13 @@ Functions for interacting with IFC FormKeyword nodes.
 
 extern a_boolean has_ifc_locus(const an_ifc_form_keyword &universal);
 
-extern an_ifc_source_location get_ifc_locus(
-                                         const an_ifc_form_keyword &universal);
+template<>
+an_ifc_source_location get_ifc_locus(const an_ifc_form_keyword &universal);
 
 extern a_boolean has_ifc_spelling(const an_ifc_form_keyword &universal);
 
-extern an_ifc_text_offset get_ifc_spelling(
-                                         const an_ifc_form_keyword &universal);
+template<>
+an_ifc_text_offset get_ifc_spelling(const an_ifc_form_keyword &universal);
 
 extern a_boolean validate(const an_ifc_form_keyword     &universal,
                           const an_ifc_validation_trace *parent);
@@ -7119,13 +15876,13 @@ Functions for interacting with IFC FormNumber nodes.
 
 extern a_boolean has_ifc_locus(const an_ifc_form_number &universal);
 
-extern an_ifc_source_location get_ifc_locus(
-                                          const an_ifc_form_number &universal);
+template<>
+an_ifc_source_location get_ifc_locus(const an_ifc_form_number &universal);
 
 extern a_boolean has_ifc_spelling(const an_ifc_form_number &universal);
 
-extern an_ifc_text_offset get_ifc_spelling(
-                                          const an_ifc_form_number &universal);
+template<>
+an_ifc_text_offset get_ifc_spelling(const an_ifc_form_number &universal);
 
 extern a_boolean validate(const an_ifc_form_number      &universal,
                           const an_ifc_validation_trace *parent);
@@ -7158,18 +15915,18 @@ Functions for interacting with IFC FormOperator nodes.
 
 extern a_boolean has_ifc_locus(const an_ifc_form_operator &universal);
 
-extern an_ifc_source_location get_ifc_locus(
-                                        const an_ifc_form_operator &universal);
+template<>
+an_ifc_source_location get_ifc_locus(const an_ifc_form_operator &universal);
 
 extern a_boolean has_ifc_op(const an_ifc_form_operator &universal);
 
-extern an_ifc_form_operator_sort get_ifc_op(
-                                        const an_ifc_form_operator &universal);
+template<>
+an_ifc_form_operator_sort get_ifc_op(const an_ifc_form_operator &universal);
 
 extern a_boolean has_ifc_spelling(const an_ifc_form_operator &universal);
 
-extern an_ifc_text_offset get_ifc_spelling(
-                                        const an_ifc_form_operator &universal);
+template<>
+an_ifc_text_offset get_ifc_spelling(const an_ifc_form_operator &universal);
 
 extern a_boolean validate(const an_ifc_form_operator    &universal,
                           const an_ifc_validation_trace *parent);
@@ -7202,13 +15959,13 @@ Functions for interacting with IFC FormParameter nodes.
 
 extern a_boolean has_ifc_locus(const an_ifc_form_parameter &universal);
 
-extern an_ifc_source_location get_ifc_locus(
-                                       const an_ifc_form_parameter &universal);
+template<>
+an_ifc_source_location get_ifc_locus(const an_ifc_form_parameter &universal);
 
 extern a_boolean has_ifc_spelling(const an_ifc_form_parameter &universal);
 
-extern an_ifc_text_offset get_ifc_spelling(
-                                       const an_ifc_form_parameter &universal);
+template<>
+an_ifc_text_offset get_ifc_spelling(const an_ifc_form_parameter &universal);
 
 extern a_boolean validate(const an_ifc_form_parameter   &universal,
                           const an_ifc_validation_trace *parent);
@@ -7241,13 +15998,14 @@ Functions for interacting with IFC FormParenthesized nodes.
 
 extern a_boolean has_ifc_locus(const an_ifc_form_parenthesized &universal);
 
-extern an_ifc_source_location get_ifc_locus(
+template<>
+an_ifc_source_location get_ifc_locus(
                                    const an_ifc_form_parenthesized &universal);
 
 extern a_boolean has_ifc_operand(const an_ifc_form_parenthesized &universal);
 
-extern an_ifc_form_index get_ifc_operand(
-                                   const an_ifc_form_parenthesized &universal);
+template<>
+an_ifc_form_index get_ifc_operand(const an_ifc_form_parenthesized &universal);
 
 extern a_boolean validate(const an_ifc_form_parenthesized &universal,
                           const an_ifc_validation_trace   *parent);
@@ -7281,12 +16039,13 @@ Functions for interacting with IFC FormPragma nodes.
 
 extern a_boolean has_ifc_locus(const an_ifc_form_pragma &universal);
 
-extern an_ifc_source_location get_ifc_locus(
-                                          const an_ifc_form_pragma &universal);
+template<>
+an_ifc_source_location get_ifc_locus(const an_ifc_form_pragma &universal);
 
 extern a_boolean has_ifc_operand(const an_ifc_form_pragma &universal);
 
-extern an_ifc_form_index get_ifc_operand(const an_ifc_form_pragma &universal);
+template<>
+an_ifc_form_index get_ifc_operand(const an_ifc_form_pragma &universal);
 
 extern a_boolean validate(const an_ifc_form_pragma      &universal,
                           const an_ifc_validation_trace *parent);
@@ -7319,12 +16078,13 @@ Functions for interacting with IFC FormSpec nodes.
 
 extern a_boolean has_ifc_arguments(const an_ifc_form_spec &universal);
 
-extern an_ifc_expr_index get_ifc_arguments(const an_ifc_form_spec &universal);
+template<>
+an_ifc_expr_index get_ifc_arguments(const an_ifc_form_spec &universal);
 
 extern a_boolean has_ifc_primary_template(const an_ifc_form_spec &universal);
 
-extern an_ifc_decl_index get_ifc_primary_template(
-                                            const an_ifc_form_spec &universal);
+template<>
+an_ifc_decl_index get_ifc_primary_template(const an_ifc_form_spec &universal);
 
 extern a_boolean validate(const an_ifc_form_spec        &universal,
                           const an_ifc_validation_trace *parent);
@@ -7357,13 +16117,13 @@ Functions for interacting with IFC FormString nodes.
 
 extern a_boolean has_ifc_locus(const an_ifc_form_string &universal);
 
-extern an_ifc_source_location get_ifc_locus(
-                                          const an_ifc_form_string &universal);
+template<>
+an_ifc_source_location get_ifc_locus(const an_ifc_form_string &universal);
 
 extern a_boolean has_ifc_spelling(const an_ifc_form_string &universal);
 
-extern an_ifc_text_offset get_ifc_spelling(
-                                          const an_ifc_form_string &universal);
+template<>
+an_ifc_text_offset get_ifc_spelling(const an_ifc_form_string &universal);
 
 extern a_boolean validate(const an_ifc_form_string      &universal,
                           const an_ifc_validation_trace *parent);
@@ -7396,13 +16156,13 @@ Functions for interacting with IFC FormStringize nodes.
 
 extern a_boolean has_ifc_locus(const an_ifc_form_stringize &universal);
 
-extern an_ifc_source_location get_ifc_locus(
-                                       const an_ifc_form_stringize &universal);
+template<>
+an_ifc_source_location get_ifc_locus(const an_ifc_form_stringize &universal);
 
 extern a_boolean has_ifc_operand(const an_ifc_form_stringize &universal);
 
-extern an_ifc_form_index get_ifc_operand(
-                                       const an_ifc_form_stringize &universal);
+template<>
+an_ifc_form_index get_ifc_operand(const an_ifc_form_stringize &universal);
 
 extern a_boolean validate(const an_ifc_form_stringize   &universal,
                           const an_ifc_validation_trace *parent);
@@ -7435,12 +16195,13 @@ Functions for interacting with IFC FormTuple nodes.
 
 extern a_boolean has_ifc_cardinality(const an_ifc_form_tuple &universal);
 
-extern an_ifc_cardinality get_ifc_cardinality(
-                                           const an_ifc_form_tuple &universal);
+template<>
+an_ifc_cardinality get_ifc_cardinality(const an_ifc_form_tuple &universal);
 
 extern a_boolean has_ifc_start(const an_ifc_form_tuple &universal);
 
-extern an_ifc_index get_ifc_start(const an_ifc_form_tuple &universal);
+template<>
+an_ifc_index get_ifc_start(const an_ifc_form_tuple &universal);
 
 extern a_boolean validate(const an_ifc_form_tuple       &universal,
                           const an_ifc_validation_trace *parent);
@@ -7473,8 +16234,8 @@ Functions for interacting with IFC FormWhitespace nodes.
 
 extern a_boolean has_ifc_locus(const an_ifc_form_whitespace &universal);
 
-extern an_ifc_source_location get_ifc_locus(
-                                      const an_ifc_form_whitespace &universal);
+template<>
+an_ifc_source_location get_ifc_locus(const an_ifc_form_whitespace &universal);
 
 extern a_boolean validate(const an_ifc_form_whitespace  &universal,
                           const an_ifc_validation_trace *parent);
@@ -7507,7 +16268,8 @@ Functions for interacting with IFC HeapAttr nodes.
 
 extern a_boolean has_ifc_value(const an_ifc_heap_attr &universal);
 
-extern an_ifc_attr_index get_ifc_value(const an_ifc_heap_attr &universal);
+template<>
+an_ifc_attr_index get_ifc_value(const an_ifc_heap_attr &universal);
 
 extern a_boolean validate(const an_ifc_heap_attr        &universal,
                           const an_ifc_validation_trace *parent);
@@ -7540,7 +16302,8 @@ Functions for interacting with IFC HeapChart nodes.
 
 extern a_boolean has_ifc_value(const an_ifc_heap_chart &universal);
 
-extern an_ifc_chart_index get_ifc_value(const an_ifc_heap_chart &universal);
+template<>
+an_ifc_chart_index get_ifc_value(const an_ifc_heap_chart &universal);
 
 extern a_boolean validate(const an_ifc_heap_chart       &universal,
                           const an_ifc_validation_trace *parent);
@@ -7573,7 +16336,8 @@ Functions for interacting with IFC HeapDecl nodes.
 
 extern a_boolean has_ifc_value(const an_ifc_heap_decl &universal);
 
-extern an_ifc_decl_index get_ifc_value(const an_ifc_heap_decl &universal);
+template<>
+an_ifc_decl_index get_ifc_value(const an_ifc_heap_decl &universal);
 
 extern a_boolean validate(const an_ifc_heap_decl        &universal,
                           const an_ifc_validation_trace *parent);
@@ -7606,7 +16370,8 @@ Functions for interacting with IFC HeapExpr nodes.
 
 extern a_boolean has_ifc_value(const an_ifc_heap_expr &universal);
 
-extern an_ifc_expr_index get_ifc_value(const an_ifc_heap_expr &universal);
+template<>
+an_ifc_expr_index get_ifc_value(const an_ifc_heap_expr &universal);
 
 extern a_boolean validate(const an_ifc_heap_expr        &universal,
                           const an_ifc_validation_trace *parent);
@@ -7639,7 +16404,8 @@ Functions for interacting with IFC HeapForm nodes.
 
 extern a_boolean has_ifc_value(const an_ifc_heap_form &universal);
 
-extern an_ifc_form_index get_ifc_value(const an_ifc_heap_form &universal);
+template<>
+an_ifc_form_index get_ifc_value(const an_ifc_heap_form &universal);
 
 extern a_boolean validate(const an_ifc_heap_form        &universal,
                           const an_ifc_validation_trace *parent);
@@ -7672,7 +16438,8 @@ Functions for interacting with IFC HeapPPForm nodes.
 
 extern a_boolean has_ifc_value(const an_ifc_heap_pp_form &universal);
 
-extern an_ifc_form_index get_ifc_value(const an_ifc_heap_pp_form &universal);
+template<>
+an_ifc_form_index get_ifc_value(const an_ifc_heap_pp_form &universal);
 
 extern a_boolean validate(const an_ifc_heap_pp_form     &universal,
                           const an_ifc_validation_trace *parent);
@@ -7705,7 +16472,8 @@ Functions for interacting with IFC HeapStmt nodes.
 
 extern a_boolean has_ifc_value(const an_ifc_heap_stmt &universal);
 
-extern an_ifc_stmt_index get_ifc_value(const an_ifc_heap_stmt &universal);
+template<>
+an_ifc_stmt_index get_ifc_value(const an_ifc_heap_stmt &universal);
 
 extern a_boolean validate(const an_ifc_heap_stmt        &universal,
                           const an_ifc_validation_trace *parent);
@@ -7738,7 +16506,8 @@ Functions for interacting with IFC HeapSyntax nodes.
 
 extern a_boolean has_ifc_value(const an_ifc_heap_syntax &universal);
 
-extern an_ifc_syntax_index get_ifc_value(const an_ifc_heap_syntax &universal);
+template<>
+an_ifc_syntax_index get_ifc_value(const an_ifc_heap_syntax &universal);
 
 extern a_boolean validate(const an_ifc_heap_syntax      &universal,
                           const an_ifc_validation_trace *parent);
@@ -7771,7 +16540,8 @@ Functions for interacting with IFC HeapType nodes.
 
 extern a_boolean has_ifc_value(const an_ifc_heap_type &universal);
 
-extern an_ifc_type_index get_ifc_value(const an_ifc_heap_type &universal);
+template<>
+an_ifc_type_index get_ifc_value(const an_ifc_heap_type &universal);
 
 extern a_boolean validate(const an_ifc_heap_type        &universal,
                           const an_ifc_validation_trace *parent);
@@ -7805,28 +16575,31 @@ Functions for interacting with IFC MacroFunctionLike nodes.
 extern a_boolean has_ifc_arity_variadic(
                                   const an_ifc_macro_function_like &universal);
 
-extern an_ifc_variadic_arity get_ifc_arity_variadic(
+template<>
+an_ifc_variadic_arity get_ifc_arity_variadic(
                                   const an_ifc_macro_function_like &universal);
 
 extern a_boolean has_ifc_body(const an_ifc_macro_function_like &universal);
 
-extern an_ifc_form_index get_ifc_body(
-                                  const an_ifc_macro_function_like &universal);
+template<>
+an_ifc_form_index get_ifc_body(const an_ifc_macro_function_like &universal);
 
 extern a_boolean has_ifc_locus(const an_ifc_macro_function_like &universal);
 
-extern an_ifc_source_location get_ifc_locus(
+template<>
+an_ifc_source_location get_ifc_locus(
                                   const an_ifc_macro_function_like &universal);
 
 extern a_boolean has_ifc_name(const an_ifc_macro_function_like &universal);
 
-extern an_ifc_text_offset get_ifc_name(
-                                  const an_ifc_macro_function_like &universal);
+template<>
+an_ifc_text_offset get_ifc_name(const an_ifc_macro_function_like &universal);
 
 extern a_boolean has_ifc_parameters(
                                   const an_ifc_macro_function_like &universal);
 
-extern an_ifc_form_index get_ifc_parameters(
+template<>
+an_ifc_form_index get_ifc_parameters(
                                   const an_ifc_macro_function_like &universal);
 
 extern a_boolean validate(const an_ifc_macro_function_like &universal,
@@ -7861,18 +16634,19 @@ Functions for interacting with IFC MacroObjectLike nodes.
 
 extern a_boolean has_ifc_body(const an_ifc_macro_object_like &universal);
 
-extern an_ifc_form_index get_ifc_body(
-                                    const an_ifc_macro_object_like &universal);
+template<>
+an_ifc_form_index get_ifc_body(const an_ifc_macro_object_like &universal);
 
 extern a_boolean has_ifc_locus(const an_ifc_macro_object_like &universal);
 
-extern an_ifc_source_location get_ifc_locus(
+template<>
+an_ifc_source_location get_ifc_locus(
                                     const an_ifc_macro_object_like &universal);
 
 extern a_boolean has_ifc_name(const an_ifc_macro_object_like &universal);
 
-extern an_ifc_text_offset get_ifc_name(
-                                    const an_ifc_macro_object_like &universal);
+template<>
+an_ifc_text_offset get_ifc_name(const an_ifc_macro_object_like &universal);
 
 extern a_boolean validate(const an_ifc_macro_object_like &universal,
                           const an_ifc_validation_trace  *parent);
@@ -7907,7 +16681,8 @@ Functions for interacting with IFC ModuleExportReference nodes.
 extern a_boolean has_ifc_reference(
                               const an_ifc_module_export_reference &universal);
 
-extern an_ifc_module_reference get_ifc_reference(
+template<>
+an_ifc_module_reference get_ifc_reference(
                               const an_ifc_module_export_reference &universal);
 
 extern a_boolean validate(const an_ifc_module_export_reference &universal,
@@ -7944,7 +16719,8 @@ Functions for interacting with IFC ModuleImportReference nodes.
 extern a_boolean has_ifc_reference(
                               const an_ifc_module_import_reference &universal);
 
-extern an_ifc_module_reference get_ifc_reference(
+template<>
+an_ifc_module_reference get_ifc_reference(
                               const an_ifc_module_import_reference &universal);
 
 extern a_boolean validate(const an_ifc_module_import_reference &universal,
@@ -7980,13 +16756,13 @@ Functions for interacting with IFC NameConversion nodes.
 
 extern a_boolean has_ifc_encoded(const an_ifc_name_conversion &universal);
 
-extern an_ifc_text_offset get_ifc_encoded(
-                                      const an_ifc_name_conversion &universal);
+template<>
+an_ifc_text_offset get_ifc_encoded(const an_ifc_name_conversion &universal);
 
 extern a_boolean has_ifc_target(const an_ifc_name_conversion &universal);
 
-extern an_ifc_type_index get_ifc_target(
-                                      const an_ifc_name_conversion &universal);
+template<>
+an_ifc_type_index get_ifc_target(const an_ifc_name_conversion &universal);
 
 extern a_boolean validate(const an_ifc_name_conversion  &universal,
                           const an_ifc_validation_trace *parent);
@@ -8019,8 +16795,8 @@ Functions for interacting with IFC NameGuide nodes.
 
 extern a_boolean has_ifc_primary_template(const an_ifc_name_guide &universal);
 
-extern an_ifc_decl_index get_ifc_primary_template(
-                                           const an_ifc_name_guide &universal);
+template<>
+an_ifc_decl_index get_ifc_primary_template(const an_ifc_name_guide &universal);
 
 extern a_boolean validate(const an_ifc_name_guide       &universal,
                           const an_ifc_validation_trace *parent);
@@ -8053,8 +16829,8 @@ Functions for interacting with IFC NameLiteral nodes.
 
 extern a_boolean has_ifc_encoded(const an_ifc_name_literal &universal);
 
-extern an_ifc_text_offset get_ifc_encoded(
-                                         const an_ifc_name_literal &universal);
+template<>
+an_ifc_text_offset get_ifc_encoded(const an_ifc_name_literal &universal);
 
 extern a_boolean validate(const an_ifc_name_literal     &universal,
                           const an_ifc_validation_trace *parent);
@@ -8087,12 +16863,13 @@ Functions for interacting with IFC NameOperator nodes.
 
 extern a_boolean has_ifc_encoded(const an_ifc_name_operator &universal);
 
-extern an_ifc_text_offset get_ifc_encoded(
-                                        const an_ifc_name_operator &universal);
+template<>
+an_ifc_text_offset get_ifc_encoded(const an_ifc_name_operator &universal);
 
 extern a_boolean has_ifc_operator(const an_ifc_name_operator &universal);
 
-extern an_ifc_operator_category get_ifc_operator(
+template<>
+an_ifc_operator_category get_ifc_operator(
                                         const an_ifc_name_operator &universal);
 
 extern a_boolean validate(const an_ifc_name_operator    &universal,
@@ -8126,13 +16903,13 @@ Functions for interacting with IFC NameSourceFile nodes.
 
 extern a_boolean has_ifc_guard(const an_ifc_name_source_file &universal);
 
-extern an_ifc_text_offset get_ifc_guard(
-                                     const an_ifc_name_source_file &universal);
+template<>
+an_ifc_text_offset get_ifc_guard(const an_ifc_name_source_file &universal);
 
 extern a_boolean has_ifc_path(const an_ifc_name_source_file &universal);
 
-extern an_ifc_text_offset get_ifc_path(
-                                     const an_ifc_name_source_file &universal);
+template<>
+an_ifc_text_offset get_ifc_path(const an_ifc_name_source_file &universal);
 
 extern a_boolean validate(const an_ifc_name_source_file &universal,
                           const an_ifc_validation_trace *parent);
@@ -8166,13 +16943,14 @@ Functions for interacting with IFC NameSpecialization nodes.
 extern a_boolean has_ifc_arguments(
                                   const an_ifc_name_specialization &universal);
 
-extern an_ifc_expr_index get_ifc_arguments(
+template<>
+an_ifc_expr_index get_ifc_arguments(
                                   const an_ifc_name_specialization &universal);
 
 extern a_boolean has_ifc_primary(const an_ifc_name_specialization &universal);
 
-extern an_ifc_name_index get_ifc_primary(
-                                  const an_ifc_name_specialization &universal);
+template<>
+an_ifc_name_index get_ifc_primary(const an_ifc_name_specialization &universal);
 
 extern a_boolean validate(const an_ifc_name_specialization &universal,
                           const an_ifc_validation_trace    *parent);
@@ -8206,7 +16984,8 @@ Functions for interacting with IFC NameTemplate nodes.
 
 extern a_boolean has_ifc_name(const an_ifc_name_template &universal);
 
-extern an_ifc_name_index get_ifc_name(const an_ifc_name_template &universal);
+template<>
+an_ifc_name_index get_ifc_name(const an_ifc_name_template &universal);
 
 extern a_boolean validate(const an_ifc_name_template    &universal,
                           const an_ifc_validation_trace *parent);
@@ -8239,12 +17018,14 @@ Functions for interacting with IFC ScopeDescriptor nodes.
 
 extern a_boolean has_ifc_cardinality(const an_ifc_scope_descriptor &universal);
 
-extern an_ifc_cardinality get_ifc_cardinality(
+template<>
+an_ifc_cardinality get_ifc_cardinality(
                                      const an_ifc_scope_descriptor &universal);
 
 extern a_boolean has_ifc_start(const an_ifc_scope_descriptor &universal);
 
-extern an_ifc_index get_ifc_start(const an_ifc_scope_descriptor &universal);
+template<>
+an_ifc_index get_ifc_start(const an_ifc_scope_descriptor &universal);
 
 extern a_boolean validate(const an_ifc_scope_descriptor &universal,
                           const an_ifc_validation_trace *parent);
@@ -8277,7 +17058,8 @@ Functions for interacting with IFC ScopeMember nodes.
 
 extern a_boolean has_ifc_index(const an_ifc_scope_member &universal);
 
-extern an_ifc_decl_index get_ifc_index(const an_ifc_scope_member &universal);
+template<>
+an_ifc_decl_index get_ifc_index(const an_ifc_scope_member &universal);
 
 extern a_boolean validate(const an_ifc_scope_member     &universal,
                           const an_ifc_validation_trace *parent);
@@ -8310,11 +17092,13 @@ Functions for interacting with IFC SourceLine nodes.
 
 extern a_boolean has_ifc_file(const an_ifc_source_line &universal);
 
-extern an_ifc_name_index get_ifc_file(const an_ifc_source_line &universal);
+template<>
+an_ifc_name_index get_ifc_file(const an_ifc_source_line &universal);
 
 extern a_boolean has_ifc_line(const an_ifc_source_line &universal);
 
-extern an_ifc_line_number get_ifc_line(const an_ifc_source_line &universal);
+template<>
+an_ifc_line_number get_ifc_line(const an_ifc_source_line &universal);
 
 extern a_boolean validate(const an_ifc_source_line      &universal,
                           const an_ifc_validation_trace *parent);
@@ -8347,17 +17131,19 @@ Functions for interacting with IFC SourceSentence nodes.
 
 extern a_boolean has_ifc_cardinality(const an_ifc_source_sentence &universal);
 
-extern an_ifc_cardinality get_ifc_cardinality(
+template<>
+an_ifc_cardinality get_ifc_cardinality(
                                       const an_ifc_source_sentence &universal);
 
 extern a_boolean has_ifc_locus(const an_ifc_source_sentence &universal);
 
-extern an_ifc_source_location get_ifc_locus(
-                                      const an_ifc_source_sentence &universal);
+template<>
+an_ifc_source_location get_ifc_locus(const an_ifc_source_sentence &universal);
 
 extern a_boolean has_ifc_start(const an_ifc_source_sentence &universal);
 
-extern an_ifc_index get_ifc_start(const an_ifc_source_sentence &universal);
+template<>
+an_ifc_index get_ifc_start(const an_ifc_source_sentence &universal);
 
 extern a_boolean validate(const an_ifc_source_sentence  &universal,
                           const an_ifc_validation_trace *parent);
@@ -8390,25 +17176,28 @@ Functions for interacting with IFC SourceWord nodes.
 
 extern a_boolean has_ifc_category(const an_ifc_source_word &universal);
 
-extern an_ifc_word_category get_ifc_category(
-                                          const an_ifc_source_word &universal);
+template<>
+an_ifc_word_category get_ifc_category(const an_ifc_source_word &universal);
 
 extern a_boolean has_ifc_index(const an_ifc_source_word &universal);
 
-extern an_ifc_index get_ifc_index(const an_ifc_source_word &universal);
+template<>
+an_ifc_index get_ifc_index(const an_ifc_source_word &universal);
 
 extern a_boolean has_ifc_locus(const an_ifc_source_word &universal);
 
-extern an_ifc_source_location get_ifc_locus(
-                                          const an_ifc_source_word &universal);
+template<>
+an_ifc_source_location get_ifc_locus(const an_ifc_source_word &universal);
 
 extern a_boolean has_ifc_sort(const an_ifc_source_word &universal);
 
-extern an_ifc_word_sort get_ifc_sort(const an_ifc_source_word &universal);
+template<>
+an_ifc_word_sort get_ifc_sort(const an_ifc_source_word &universal);
 
 extern a_boolean has_ifc_value(const an_ifc_source_word &universal);
 
-extern an_ifc_u16 get_ifc_value(const an_ifc_source_word &universal);
+template<>
+an_ifc_u16 get_ifc_value(const an_ifc_source_word &universal);
 
 extern a_boolean validate(const an_ifc_source_word      &universal,
                           const an_ifc_validation_trace *parent);
@@ -8441,12 +17230,13 @@ Functions for interacting with IFC StmtBlock nodes.
 
 extern a_boolean has_ifc_cardinality(const an_ifc_stmt_block &universal);
 
-extern an_ifc_cardinality get_ifc_cardinality(
-                                           const an_ifc_stmt_block &universal);
+template<>
+an_ifc_cardinality get_ifc_cardinality(const an_ifc_stmt_block &universal);
 
 extern a_boolean has_ifc_start(const an_ifc_stmt_block &universal);
 
-extern an_ifc_index get_ifc_start(const an_ifc_stmt_block &universal);
+template<>
+an_ifc_index get_ifc_start(const an_ifc_stmt_block &universal);
 
 extern a_boolean validate(const an_ifc_stmt_block       &universal,
                           const an_ifc_validation_trace *parent);
@@ -8479,8 +17269,8 @@ Functions for interacting with IFC StmtBreak nodes.
 
 extern a_boolean has_ifc_locus(const an_ifc_stmt_break &universal);
 
-extern an_ifc_source_location get_ifc_locus(
-                                           const an_ifc_stmt_break &universal);
+template<>
+an_ifc_source_location get_ifc_locus(const an_ifc_stmt_break &universal);
 
 extern a_boolean validate(const an_ifc_stmt_break       &universal,
                           const an_ifc_validation_trace *parent);
@@ -8513,11 +17303,13 @@ Functions for interacting with IFC StmtCase nodes.
 
 extern a_boolean has_ifc_expr(const an_ifc_stmt_case &universal);
 
-extern an_ifc_expr_index get_ifc_expr(const an_ifc_stmt_case &universal);
+template<>
+an_ifc_expr_index get_ifc_expr(const an_ifc_stmt_case &universal);
 
 extern a_boolean has_ifc_locus(const an_ifc_stmt_case &universal);
 
-extern an_ifc_source_location get_ifc_locus(const an_ifc_stmt_case &universal);
+template<>
+an_ifc_source_location get_ifc_locus(const an_ifc_stmt_case &universal);
 
 extern a_boolean validate(const an_ifc_stmt_case        &universal,
                           const an_ifc_validation_trace *parent);
@@ -8550,8 +17342,8 @@ Functions for interacting with IFC StmtContinue nodes.
 
 extern a_boolean has_ifc_locus(const an_ifc_stmt_continue &universal);
 
-extern an_ifc_source_location get_ifc_locus(
-                                        const an_ifc_stmt_continue &universal);
+template<>
+an_ifc_source_location get_ifc_locus(const an_ifc_stmt_continue &universal);
 
 extern a_boolean validate(const an_ifc_stmt_continue    &universal,
                           const an_ifc_validation_trace *parent);
@@ -8584,8 +17376,8 @@ Functions for interacting with IFC StmtDefault nodes.
 
 extern a_boolean has_ifc_locus(const an_ifc_stmt_default &universal);
 
-extern an_ifc_source_location get_ifc_locus(
-                                         const an_ifc_stmt_default &universal);
+template<>
+an_ifc_source_location get_ifc_locus(const an_ifc_stmt_default &universal);
 
 extern a_boolean validate(const an_ifc_stmt_default     &universal,
                           const an_ifc_validation_trace *parent);
@@ -8618,17 +17410,18 @@ Functions for interacting with IFC StmtDoWhile nodes.
 
 extern a_boolean has_ifc_body(const an_ifc_stmt_do_while &universal);
 
-extern an_ifc_stmt_index get_ifc_body(const an_ifc_stmt_do_while &universal);
+template<>
+an_ifc_stmt_index get_ifc_body(const an_ifc_stmt_do_while &universal);
 
 extern a_boolean has_ifc_condition(const an_ifc_stmt_do_while &universal);
 
-extern an_ifc_stmt_index get_ifc_condition(
-                                        const an_ifc_stmt_do_while &universal);
+template<>
+an_ifc_stmt_index get_ifc_condition(const an_ifc_stmt_do_while &universal);
 
 extern a_boolean has_ifc_locus(const an_ifc_stmt_do_while &universal);
 
-extern an_ifc_source_location get_ifc_locus(
-                                        const an_ifc_stmt_do_while &universal);
+template<>
+an_ifc_source_location get_ifc_locus(const an_ifc_stmt_do_while &universal);
 
 extern a_boolean validate(const an_ifc_stmt_do_while    &universal,
                           const an_ifc_validation_trace *parent);
@@ -8661,8 +17454,8 @@ Functions for interacting with IFC StmtEmpty nodes.
 
 extern a_boolean has_ifc_locus(const an_ifc_stmt_empty &universal);
 
-extern an_ifc_source_location get_ifc_locus(
-                                           const an_ifc_stmt_empty &universal);
+template<>
+an_ifc_source_location get_ifc_locus(const an_ifc_stmt_empty &universal);
 
 extern a_boolean validate(const an_ifc_stmt_empty       &universal,
                           const an_ifc_validation_trace *parent);
@@ -8695,8 +17488,8 @@ Functions for interacting with IFC StmtExpansion nodes.
 
 extern a_boolean has_ifc_operand(const an_ifc_stmt_expansion &universal);
 
-extern an_ifc_stmt_index get_ifc_operand(
-                                       const an_ifc_stmt_expansion &universal);
+template<>
+an_ifc_stmt_index get_ifc_operand(const an_ifc_stmt_expansion &universal);
 
 extern a_boolean validate(const an_ifc_stmt_expansion   &universal,
                           const an_ifc_validation_trace *parent);
@@ -8729,12 +17522,13 @@ Functions for interacting with IFC StmtExpression nodes.
 
 extern a_boolean has_ifc_expr(const an_ifc_stmt_expression &universal);
 
-extern an_ifc_expr_index get_ifc_expr(const an_ifc_stmt_expression &universal);
+template<>
+an_ifc_expr_index get_ifc_expr(const an_ifc_stmt_expression &universal);
 
 extern a_boolean has_ifc_locus(const an_ifc_stmt_expression &universal);
 
-extern an_ifc_source_location get_ifc_locus(
-                                      const an_ifc_stmt_expression &universal);
+template<>
+an_ifc_source_location get_ifc_locus(const an_ifc_stmt_expression &universal);
 
 extern a_boolean validate(const an_ifc_stmt_expression  &universal,
                           const an_ifc_validation_trace *parent);
@@ -8767,25 +17561,28 @@ Functions for interacting with IFC StmtFor nodes.
 
 extern a_boolean has_ifc_body(const an_ifc_stmt_for &universal);
 
-extern an_ifc_stmt_index get_ifc_body(const an_ifc_stmt_for &universal);
+template<>
+an_ifc_stmt_index get_ifc_body(const an_ifc_stmt_for &universal);
 
 extern a_boolean has_ifc_condition(const an_ifc_stmt_for &universal);
 
-extern an_ifc_stmt_index get_ifc_condition(const an_ifc_stmt_for &universal);
+template<>
+an_ifc_stmt_index get_ifc_condition(const an_ifc_stmt_for &universal);
 
 extern a_boolean has_ifc_continuation(const an_ifc_stmt_for &universal);
 
-extern an_ifc_stmt_index get_ifc_continuation(
-                                             const an_ifc_stmt_for &universal);
+template<>
+an_ifc_stmt_index get_ifc_continuation(const an_ifc_stmt_for &universal);
 
 extern a_boolean has_ifc_initialization(const an_ifc_stmt_for &universal);
 
-extern an_ifc_stmt_index get_ifc_initialization(
-                                             const an_ifc_stmt_for &universal);
+template<>
+an_ifc_stmt_index get_ifc_initialization(const an_ifc_stmt_for &universal);
 
 extern a_boolean has_ifc_locus(const an_ifc_stmt_for &universal);
 
-extern an_ifc_source_location get_ifc_locus(const an_ifc_stmt_for &universal);
+template<>
+an_ifc_source_location get_ifc_locus(const an_ifc_stmt_for &universal);
 
 extern a_boolean validate(const an_ifc_stmt_for         &universal,
                           const an_ifc_validation_trace *parent);
@@ -8818,24 +17615,28 @@ Functions for interacting with IFC StmtIf nodes.
 
 extern a_boolean has_ifc_alternative(const an_ifc_stmt_if &universal);
 
-extern an_ifc_stmt_index get_ifc_alternative(const an_ifc_stmt_if &universal);
+template<>
+an_ifc_stmt_index get_ifc_alternative(const an_ifc_stmt_if &universal);
 
 extern a_boolean has_ifc_condition(const an_ifc_stmt_if &universal);
 
-extern an_ifc_stmt_index get_ifc_condition(const an_ifc_stmt_if &universal);
+template<>
+an_ifc_stmt_index get_ifc_condition(const an_ifc_stmt_if &universal);
 
 extern a_boolean has_ifc_consequence(const an_ifc_stmt_if &universal);
 
-extern an_ifc_stmt_index get_ifc_consequence(const an_ifc_stmt_if &universal);
+template<>
+an_ifc_stmt_index get_ifc_consequence(const an_ifc_stmt_if &universal);
 
 extern a_boolean has_ifc_initialization(const an_ifc_stmt_if &universal);
 
-extern an_ifc_stmt_index get_ifc_initialization(
-                                              const an_ifc_stmt_if &universal);
+template<>
+an_ifc_stmt_index get_ifc_initialization(const an_ifc_stmt_if &universal);
 
 extern a_boolean has_ifc_locus(const an_ifc_stmt_if &universal);
 
-extern an_ifc_source_location get_ifc_locus(const an_ifc_stmt_if &universal);
+template<>
+an_ifc_source_location get_ifc_locus(const an_ifc_stmt_if &universal);
 
 extern a_boolean validate(const an_ifc_stmt_if          &universal,
                           const an_ifc_validation_trace *parent);
@@ -8868,22 +17669,23 @@ Functions for interacting with IFC StmtReturn nodes.
 
 extern a_boolean has_ifc_expr(const an_ifc_stmt_return &universal);
 
-extern an_ifc_expr_index get_ifc_expr(const an_ifc_stmt_return &universal);
+template<>
+an_ifc_expr_index get_ifc_expr(const an_ifc_stmt_return &universal);
 
 extern a_boolean has_ifc_expression_type(const an_ifc_stmt_return &universal);
 
-extern an_ifc_type_index get_ifc_expression_type(
-                                          const an_ifc_stmt_return &universal);
+template<>
+an_ifc_type_index get_ifc_expression_type(const an_ifc_stmt_return &universal);
 
 extern a_boolean has_ifc_function_type(const an_ifc_stmt_return &universal);
 
-extern an_ifc_type_index get_ifc_function_type(
-                                          const an_ifc_stmt_return &universal);
+template<>
+an_ifc_type_index get_ifc_function_type(const an_ifc_stmt_return &universal);
 
 extern a_boolean has_ifc_locus(const an_ifc_stmt_return &universal);
 
-extern an_ifc_source_location get_ifc_locus(
-                                          const an_ifc_stmt_return &universal);
+template<>
+an_ifc_source_location get_ifc_locus(const an_ifc_stmt_return &universal);
 
 extern a_boolean validate(const an_ifc_stmt_return      &universal,
                           const an_ifc_validation_trace *parent);
@@ -8916,22 +17718,23 @@ Functions for interacting with IFC StmtSwitch nodes.
 
 extern a_boolean has_ifc_body(const an_ifc_stmt_switch &universal);
 
-extern an_ifc_stmt_index get_ifc_body(const an_ifc_stmt_switch &universal);
+template<>
+an_ifc_stmt_index get_ifc_body(const an_ifc_stmt_switch &universal);
 
 extern a_boolean has_ifc_condition(const an_ifc_stmt_switch &universal);
 
-extern an_ifc_expr_index get_ifc_condition(
-                                          const an_ifc_stmt_switch &universal);
+template<>
+an_ifc_expr_index get_ifc_condition(const an_ifc_stmt_switch &universal);
 
 extern a_boolean has_ifc_initialization(const an_ifc_stmt_switch &universal);
 
-extern an_ifc_stmt_index get_ifc_initialization(
-                                          const an_ifc_stmt_switch &universal);
+template<>
+an_ifc_stmt_index get_ifc_initialization(const an_ifc_stmt_switch &universal);
 
 extern a_boolean has_ifc_locus(const an_ifc_stmt_switch &universal);
 
-extern an_ifc_source_location get_ifc_locus(
-                                          const an_ifc_stmt_switch &universal);
+template<>
+an_ifc_source_location get_ifc_locus(const an_ifc_stmt_switch &universal);
 
 extern a_boolean validate(const an_ifc_stmt_switch      &universal,
                           const an_ifc_validation_trace *parent);
@@ -8964,12 +17767,13 @@ Functions for interacting with IFC StmtVariableDecl nodes.
 
 extern a_boolean has_ifc_decl(const an_ifc_stmt_variable_decl &universal);
 
-extern an_ifc_decl_index get_ifc_decl(
-                                   const an_ifc_stmt_variable_decl &universal);
+template<>
+an_ifc_decl_index get_ifc_decl(const an_ifc_stmt_variable_decl &universal);
 
 extern a_boolean has_ifc_locus(const an_ifc_stmt_variable_decl &universal);
 
-extern an_ifc_source_location get_ifc_locus(
+template<>
+an_ifc_source_location get_ifc_locus(
                                    const an_ifc_stmt_variable_decl &universal);
 
 extern a_boolean validate(const an_ifc_stmt_variable_decl &universal,
@@ -9004,16 +17808,18 @@ Functions for interacting with IFC StmtWhile nodes.
 
 extern a_boolean has_ifc_body(const an_ifc_stmt_while &universal);
 
-extern an_ifc_stmt_index get_ifc_body(const an_ifc_stmt_while &universal);
+template<>
+an_ifc_stmt_index get_ifc_body(const an_ifc_stmt_while &universal);
 
 extern a_boolean has_ifc_condition(const an_ifc_stmt_while &universal);
 
-extern an_ifc_stmt_index get_ifc_condition(const an_ifc_stmt_while &universal);
+template<>
+an_ifc_stmt_index get_ifc_condition(const an_ifc_stmt_while &universal);
 
 extern a_boolean has_ifc_locus(const an_ifc_stmt_while &universal);
 
-extern an_ifc_source_location get_ifc_locus(
-                                           const an_ifc_stmt_while &universal);
+template<>
+an_ifc_source_location get_ifc_locus(const an_ifc_stmt_while &universal);
 
 extern a_boolean validate(const an_ifc_stmt_while       &universal,
                           const an_ifc_validation_trace *parent);
@@ -9047,37 +17853,43 @@ Functions for interacting with IFC SyntaxAccessSpecifier nodes.
 extern a_boolean has_ifc_access(
                               const an_ifc_syntax_access_specifier &universal);
 
-extern an_ifc_keyword_syntax get_ifc_access(
+template<>
+an_ifc_keyword_syntax get_ifc_access(
                               const an_ifc_syntax_access_specifier &universal);
 
 extern a_boolean has_ifc_comma(
                               const an_ifc_syntax_access_specifier &universal);
 
-extern an_ifc_source_location get_ifc_comma(
+template<>
+an_ifc_source_location get_ifc_comma(
                               const an_ifc_syntax_access_specifier &universal);
 
 extern a_boolean has_ifc_designator(
                               const an_ifc_syntax_access_specifier &universal);
 
-extern an_ifc_expr_index get_ifc_designator(
+template<>
+an_ifc_expr_index get_ifc_designator(
                               const an_ifc_syntax_access_specifier &universal);
 
 extern a_boolean has_ifc_locus(
                               const an_ifc_syntax_access_specifier &universal);
 
-extern an_ifc_source_location get_ifc_locus(
+template<>
+an_ifc_source_location get_ifc_locus(
                               const an_ifc_syntax_access_specifier &universal);
 
 extern a_boolean has_ifc_virtual_kw(
                               const an_ifc_syntax_access_specifier &universal);
 
-extern an_ifc_source_location get_ifc_virtual_kw(
+template<>
+an_ifc_source_location get_ifc_virtual_kw(
                               const an_ifc_syntax_access_specifier &universal);
 
 extern a_boolean has_ifc_virtual_kw2(
                               const an_ifc_syntax_access_specifier &universal);
 
-extern an_ifc_source_location get_ifc_virtual_kw2(
+template<>
+an_ifc_source_location get_ifc_virtual_kw2(
                               const an_ifc_syntax_access_specifier &universal);
 
 extern a_boolean validate(const an_ifc_syntax_access_specifier &universal,
@@ -9114,31 +17926,36 @@ Functions for interacting with IFC SyntaxAliasDeclaration nodes.
 extern a_boolean has_ifc_aliasee(
                              const an_ifc_syntax_alias_declaration &universal);
 
-extern an_ifc_syntax_index get_ifc_aliasee(
+template<>
+an_ifc_syntax_index get_ifc_aliasee(
                              const an_ifc_syntax_alias_declaration &universal);
 
 extern a_boolean has_ifc_equal(
                              const an_ifc_syntax_alias_declaration &universal);
 
-extern an_ifc_source_location get_ifc_equal(
+template<>
+an_ifc_source_location get_ifc_equal(
                              const an_ifc_syntax_alias_declaration &universal);
 
 extern a_boolean has_ifc_locus(
                              const an_ifc_syntax_alias_declaration &universal);
 
-extern an_ifc_source_location get_ifc_locus(
+template<>
+an_ifc_source_location get_ifc_locus(
                              const an_ifc_syntax_alias_declaration &universal);
 
 extern a_boolean has_ifc_name(
                              const an_ifc_syntax_alias_declaration &universal);
 
-extern an_ifc_expr_index get_ifc_name(
+template<>
+an_ifc_expr_index get_ifc_name(
                              const an_ifc_syntax_alias_declaration &universal);
 
 extern a_boolean has_ifc_semicolon(
                              const an_ifc_syntax_alias_declaration &universal);
 
-extern an_ifc_source_location get_ifc_semicolon(
+template<>
+an_ifc_source_location get_ifc_semicolon(
                              const an_ifc_syntax_alias_declaration &universal);
 
 extern a_boolean validate(const an_ifc_syntax_alias_declaration &universal,
@@ -9174,22 +17991,24 @@ Functions for interacting with IFC SyntaxAlignas nodes.
 
 extern a_boolean has_ifc_left_paren(const an_ifc_syntax_alignas &universal);
 
-extern an_ifc_source_location get_ifc_left_paren(
+template<>
+an_ifc_source_location get_ifc_left_paren(
                                        const an_ifc_syntax_alignas &universal);
 
 extern a_boolean has_ifc_locus(const an_ifc_syntax_alignas &universal);
 
-extern an_ifc_source_location get_ifc_locus(
-                                       const an_ifc_syntax_alignas &universal);
+template<>
+an_ifc_source_location get_ifc_locus(const an_ifc_syntax_alignas &universal);
 
 extern a_boolean has_ifc_operand(const an_ifc_syntax_alignas &universal);
 
-extern an_ifc_syntax_index get_ifc_operand(
-                                       const an_ifc_syntax_alignas &universal);
+template<>
+an_ifc_syntax_index get_ifc_operand(const an_ifc_syntax_alignas &universal);
 
 extern a_boolean has_ifc_right_paren(const an_ifc_syntax_alignas &universal);
 
-extern an_ifc_source_location get_ifc_right_paren(
+template<>
+an_ifc_source_location get_ifc_right_paren(
                                        const an_ifc_syntax_alignas &universal);
 
 extern a_boolean validate(const an_ifc_syntax_alignas   &universal,
@@ -9224,19 +18043,22 @@ Functions for interacting with IFC SyntaxArrayDeclarator nodes.
 extern a_boolean has_ifc_bound(
                               const an_ifc_syntax_array_declarator &universal);
 
-extern an_ifc_expr_index get_ifc_bound(
+template<>
+an_ifc_expr_index get_ifc_bound(
                               const an_ifc_syntax_array_declarator &universal);
 
 extern a_boolean has_ifc_left_bracket(
                               const an_ifc_syntax_array_declarator &universal);
 
-extern an_ifc_source_location get_ifc_left_bracket(
+template<>
+an_ifc_source_location get_ifc_left_bracket(
                               const an_ifc_syntax_array_declarator &universal);
 
 extern a_boolean has_ifc_right_bracket(
                               const an_ifc_syntax_array_declarator &universal);
 
-extern an_ifc_source_location get_ifc_right_bracket(
+template<>
+an_ifc_source_location get_ifc_right_bracket(
                               const an_ifc_syntax_array_declarator &universal);
 
 extern a_boolean validate(const an_ifc_syntax_array_declarator &universal,
@@ -9272,24 +18094,26 @@ Functions for interacting with IFC SyntaxArrayIndex nodes.
 
 extern a_boolean has_ifc_array(const an_ifc_syntax_array_index &universal);
 
-extern an_ifc_expr_index get_ifc_array(
-                                   const an_ifc_syntax_array_index &universal);
+template<>
+an_ifc_expr_index get_ifc_array(const an_ifc_syntax_array_index &universal);
 
 extern a_boolean has_ifc_index(const an_ifc_syntax_array_index &universal);
 
-extern an_ifc_expr_index get_ifc_index(
-                                   const an_ifc_syntax_array_index &universal);
+template<>
+an_ifc_expr_index get_ifc_index(const an_ifc_syntax_array_index &universal);
 
 extern a_boolean has_ifc_left_bracket(
                                    const an_ifc_syntax_array_index &universal);
 
-extern an_ifc_source_location get_ifc_left_bracket(
+template<>
+an_ifc_source_location get_ifc_left_bracket(
                                    const an_ifc_syntax_array_index &universal);
 
 extern a_boolean has_ifc_right_bracket(
                                    const an_ifc_syntax_array_index &universal);
 
-extern an_ifc_source_location get_ifc_right_bracket(
+template<>
+an_ifc_source_location get_ifc_right_bracket(
                                    const an_ifc_syntax_array_index &universal);
 
 extern a_boolean validate(const an_ifc_syntax_array_index &universal,
@@ -9325,13 +18149,15 @@ Functions for interacting with IFC SyntaxArrayOrFunctionDeclarator nodes.
 extern a_boolean has_ifc_declarator(
                   const an_ifc_syntax_array_or_function_declarator &universal);
 
-extern an_ifc_syntax_index get_ifc_declarator(
+template<>
+an_ifc_syntax_index get_ifc_declarator(
                   const an_ifc_syntax_array_or_function_declarator &universal);
 
 extern a_boolean has_ifc_next(
                   const an_ifc_syntax_array_or_function_declarator &universal);
 
-extern an_ifc_syntax_index get_ifc_next(
+template<>
+an_ifc_syntax_index get_ifc_next(
                   const an_ifc_syntax_array_or_function_declarator &universal);
 
 extern a_boolean validate(
@@ -9370,12 +18196,14 @@ Functions for interacting with IFC SyntaxAsmStatement nodes.
 
 extern a_boolean has_ifc_locus(const an_ifc_syntax_asm_statement &universal);
 
-extern an_ifc_source_location get_ifc_locus(
+template<>
+an_ifc_source_location get_ifc_locus(
                                  const an_ifc_syntax_asm_statement &universal);
 
 extern a_boolean has_ifc_tokens(const an_ifc_syntax_asm_statement &universal);
 
-extern an_ifc_sentence_index get_ifc_tokens(
+template<>
+an_ifc_sentence_index get_ifc_tokens(
                                  const an_ifc_syntax_asm_statement &universal);
 
 extern a_boolean validate(const an_ifc_syntax_asm_statement &universal,
@@ -9411,33 +18239,36 @@ Functions for interacting with IFC SyntaxAttribute nodes.
 extern a_boolean has_ifc_argument_clause(
                                      const an_ifc_syntax_attribute &universal);
 
-extern an_ifc_syntax_index get_ifc_argument_clause(
+template<>
+an_ifc_syntax_index get_ifc_argument_clause(
                                      const an_ifc_syntax_attribute &universal);
 
 extern a_boolean has_ifc_colons(const an_ifc_syntax_attribute &universal);
 
-extern an_ifc_source_location get_ifc_colons(
+template<>
+an_ifc_source_location get_ifc_colons(
                                      const an_ifc_syntax_attribute &universal);
 
 extern a_boolean has_ifc_comma(const an_ifc_syntax_attribute &universal);
 
-extern an_ifc_source_location get_ifc_comma(
-                                     const an_ifc_syntax_attribute &universal);
+template<>
+an_ifc_source_location get_ifc_comma(const an_ifc_syntax_attribute &universal);
 
 extern a_boolean has_ifc_expander(const an_ifc_syntax_attribute &universal);
 
-extern an_ifc_source_location get_ifc_expander(
+template<>
+an_ifc_source_location get_ifc_expander(
                                      const an_ifc_syntax_attribute &universal);
 
 extern a_boolean has_ifc_name(const an_ifc_syntax_attribute &universal);
 
-extern an_ifc_expr_index get_ifc_name(
-                                     const an_ifc_syntax_attribute &universal);
+template<>
+an_ifc_expr_index get_ifc_name(const an_ifc_syntax_attribute &universal);
 
 extern a_boolean has_ifc_scope(const an_ifc_syntax_attribute &universal);
 
-extern an_ifc_expr_index get_ifc_scope(
-                                     const an_ifc_syntax_attribute &universal);
+template<>
+an_ifc_expr_index get_ifc_scope(const an_ifc_syntax_attribute &universal);
 
 extern a_boolean validate(const an_ifc_syntax_attribute &universal,
                           const an_ifc_validation_trace *parent);
@@ -9471,19 +18302,22 @@ Functions for interacting with IFC SyntaxAttributeArgumentClause nodes.
 extern a_boolean has_ifc_left_paren(
                      const an_ifc_syntax_attribute_argument_clause &universal);
 
-extern an_ifc_source_location get_ifc_left_paren(
+template<>
+an_ifc_source_location get_ifc_left_paren(
                      const an_ifc_syntax_attribute_argument_clause &universal);
 
 extern a_boolean has_ifc_right_paren(
                      const an_ifc_syntax_attribute_argument_clause &universal);
 
-extern an_ifc_source_location get_ifc_right_paren(
+template<>
+an_ifc_source_location get_ifc_right_paren(
                      const an_ifc_syntax_attribute_argument_clause &universal);
 
 extern a_boolean has_ifc_tokens(
                      const an_ifc_syntax_attribute_argument_clause &universal);
 
-extern an_ifc_sentence_index get_ifc_tokens(
+template<>
+an_ifc_sentence_index get_ifc_tokens(
                      const an_ifc_syntax_attribute_argument_clause &universal);
 
 extern a_boolean validate(
@@ -9521,37 +18355,43 @@ Functions for interacting with IFC SyntaxAttributeSpecifier nodes.
 extern a_boolean has_ifc_attributes(
                            const an_ifc_syntax_attribute_specifier &universal);
 
-extern an_ifc_syntax_index get_ifc_attributes(
+template<>
+an_ifc_syntax_index get_ifc_attributes(
                            const an_ifc_syntax_attribute_specifier &universal);
 
 extern a_boolean has_ifc_left_paren_1(
                            const an_ifc_syntax_attribute_specifier &universal);
 
-extern an_ifc_source_location get_ifc_left_paren_1(
+template<>
+an_ifc_source_location get_ifc_left_paren_1(
                            const an_ifc_syntax_attribute_specifier &universal);
 
 extern a_boolean has_ifc_left_paren_2(
                            const an_ifc_syntax_attribute_specifier &universal);
 
-extern an_ifc_source_location get_ifc_left_paren_2(
+template<>
+an_ifc_source_location get_ifc_left_paren_2(
                            const an_ifc_syntax_attribute_specifier &universal);
 
 extern a_boolean has_ifc_prefix(
                            const an_ifc_syntax_attribute_specifier &universal);
 
-extern an_ifc_syntax_index get_ifc_prefix(
+template<>
+an_ifc_syntax_index get_ifc_prefix(
                            const an_ifc_syntax_attribute_specifier &universal);
 
 extern a_boolean has_ifc_right_paren_1(
                            const an_ifc_syntax_attribute_specifier &universal);
 
-extern an_ifc_source_location get_ifc_right_paren_1(
+template<>
+an_ifc_source_location get_ifc_right_paren_1(
                            const an_ifc_syntax_attribute_specifier &universal);
 
 extern a_boolean has_ifc_right_paren_2(
                            const an_ifc_syntax_attribute_specifier &universal);
 
-extern an_ifc_source_location get_ifc_right_paren_2(
+template<>
+an_ifc_source_location get_ifc_right_paren_2(
                            const an_ifc_syntax_attribute_specifier &universal);
 
 extern a_boolean validate(const an_ifc_syntax_attribute_specifier &universal,
@@ -9588,7 +18428,8 @@ Functions for interacting with IFC SyntaxAttributeSpecifierSeq nodes.
 extern a_boolean has_ifc_attributes(
                        const an_ifc_syntax_attribute_specifier_seq &universal);
 
-extern an_ifc_syntax_index get_ifc_attributes(
+template<>
+an_ifc_syntax_index get_ifc_attributes(
                        const an_ifc_syntax_attribute_specifier_seq &universal);
 
 extern a_boolean validate(
@@ -9626,13 +18467,15 @@ Functions for interacting with IFC SyntaxAttributeUsingPrefix nodes.
 extern a_boolean has_ifc_locus(
                         const an_ifc_syntax_attribute_using_prefix &universal);
 
-extern an_ifc_source_location get_ifc_locus(
+template<>
+an_ifc_source_location get_ifc_locus(
                         const an_ifc_syntax_attribute_using_prefix &universal);
 
 extern a_boolean has_ifc_scope(
                         const an_ifc_syntax_attribute_using_prefix &universal);
 
-extern an_ifc_source_location get_ifc_scope(
+template<>
+an_ifc_source_location get_ifc_scope(
                         const an_ifc_syntax_attribute_using_prefix &universal);
 
 extern a_boolean validate(
@@ -9670,19 +18513,22 @@ Functions for interacting with IFC SyntaxAttributedDeclaration nodes.
 extern a_boolean has_ifc_attributes(
                         const an_ifc_syntax_attributed_declaration &universal);
 
-extern an_ifc_syntax_index get_ifc_attributes(
+template<>
+an_ifc_syntax_index get_ifc_attributes(
                         const an_ifc_syntax_attributed_declaration &universal);
 
 extern a_boolean has_ifc_decl(
                         const an_ifc_syntax_attributed_declaration &universal);
 
-extern an_ifc_syntax_index get_ifc_decl(
+template<>
+an_ifc_syntax_index get_ifc_decl(
                         const an_ifc_syntax_attributed_declaration &universal);
 
 extern a_boolean has_ifc_locus(
                         const an_ifc_syntax_attributed_declaration &universal);
 
-extern an_ifc_source_location get_ifc_locus(
+template<>
+an_ifc_source_location get_ifc_locus(
                         const an_ifc_syntax_attributed_declaration &universal);
 
 extern a_boolean validate(
@@ -9720,19 +18566,22 @@ Functions for interacting with IFC SyntaxAttributedStatement nodes.
 extern a_boolean has_ifc_attributes(
                           const an_ifc_syntax_attributed_statement &universal);
 
-extern an_ifc_syntax_index get_ifc_attributes(
+template<>
+an_ifc_syntax_index get_ifc_attributes(
                           const an_ifc_syntax_attributed_statement &universal);
 
 extern a_boolean has_ifc_pragma(
                           const an_ifc_syntax_attributed_statement &universal);
 
-extern an_ifc_sentence_index get_ifc_pragma(
+template<>
+an_ifc_sentence_index get_ifc_pragma(
                           const an_ifc_syntax_attributed_statement &universal);
 
 extern a_boolean has_ifc_stmt(
                           const an_ifc_syntax_attributed_statement &universal);
 
-extern an_ifc_syntax_index get_ifc_stmt(
+template<>
+an_ifc_syntax_index get_ifc_stmt(
                           const an_ifc_syntax_attributed_statement &universal);
 
 extern a_boolean validate(const an_ifc_syntax_attributed_statement &universal,
@@ -9768,12 +18617,14 @@ Functions for interacting with IFC SyntaxBaseSpecifier nodes.
 
 extern a_boolean has_ifc_access(const an_ifc_syntax_base_specifier &universal);
 
-extern an_ifc_keyword_syntax get_ifc_access(
+template<>
+an_ifc_keyword_syntax get_ifc_access(
                                 const an_ifc_syntax_base_specifier &universal);
 
 extern a_boolean has_ifc_colon(const an_ifc_syntax_base_specifier &universal);
 
-extern an_ifc_source_location get_ifc_colon(
+template<>
+an_ifc_source_location get_ifc_colon(
                                 const an_ifc_syntax_base_specifier &universal);
 
 extern a_boolean validate(const an_ifc_syntax_base_specifier &universal,
@@ -9810,13 +18661,15 @@ Functions for interacting with IFC SyntaxBaseSpecifierList nodes.
 extern a_boolean has_ifc_base_specifiers(
                            const an_ifc_syntax_base_specifier_list &universal);
 
-extern an_ifc_syntax_index get_ifc_base_specifiers(
+template<>
+an_ifc_syntax_index get_ifc_base_specifiers(
                            const an_ifc_syntax_base_specifier_list &universal);
 
 extern a_boolean has_ifc_colon(
                            const an_ifc_syntax_base_specifier_list &universal);
 
-extern an_ifc_source_location get_ifc_colon(
+template<>
+an_ifc_source_location get_ifc_colon(
                            const an_ifc_syntax_base_specifier_list &universal);
 
 extern a_boolean validate(const an_ifc_syntax_base_specifier_list &universal,
@@ -9853,55 +18706,64 @@ Functions for interacting with IFC SyntaxBinaryFoldExpression nodes.
 extern a_boolean has_ifc_direction(
                         const an_ifc_syntax_binary_fold_expression &universal);
 
-extern an_ifc_fold_direction_sort get_ifc_direction(
+template<>
+an_ifc_fold_direction_sort get_ifc_direction(
                         const an_ifc_syntax_binary_fold_expression &universal);
 
 extern a_boolean has_ifc_dyad(
                         const an_ifc_syntax_binary_fold_expression &universal);
 
-extern an_ifc_dyadic_operator_sort get_ifc_dyad(
+template<>
+an_ifc_dyadic_operator_sort get_ifc_dyad(
                         const an_ifc_syntax_binary_fold_expression &universal);
 
 extern a_boolean has_ifc_ellipsis(
                         const an_ifc_syntax_binary_fold_expression &universal);
 
-extern an_ifc_source_location get_ifc_ellipsis(
+template<>
+an_ifc_source_location get_ifc_ellipsis(
                         const an_ifc_syntax_binary_fold_expression &universal);
 
 extern a_boolean has_ifc_glyph_loci_1(
                         const an_ifc_syntax_binary_fold_expression &universal);
 
-extern an_ifc_source_location get_ifc_glyph_loci_1(
+template<>
+an_ifc_source_location get_ifc_glyph_loci_1(
                         const an_ifc_syntax_binary_fold_expression &universal);
 
 extern a_boolean has_ifc_glyph_loci_2(
                         const an_ifc_syntax_binary_fold_expression &universal);
 
-extern an_ifc_source_location get_ifc_glyph_loci_2(
+template<>
+an_ifc_source_location get_ifc_glyph_loci_2(
                         const an_ifc_syntax_binary_fold_expression &universal);
 
 extern a_boolean has_ifc_locus(
                         const an_ifc_syntax_binary_fold_expression &universal);
 
-extern an_ifc_source_location get_ifc_locus(
+template<>
+an_ifc_source_location get_ifc_locus(
                         const an_ifc_syntax_binary_fold_expression &universal);
 
 extern a_boolean has_ifc_operand_1(
                         const an_ifc_syntax_binary_fold_expression &universal);
 
-extern an_ifc_expr_index get_ifc_operand_1(
+template<>
+an_ifc_expr_index get_ifc_operand_1(
                         const an_ifc_syntax_binary_fold_expression &universal);
 
 extern a_boolean has_ifc_operand_2(
                         const an_ifc_syntax_binary_fold_expression &universal);
 
-extern an_ifc_expr_index get_ifc_operand_2(
+template<>
+an_ifc_expr_index get_ifc_operand_2(
                         const an_ifc_syntax_binary_fold_expression &universal);
 
 extern a_boolean has_ifc_right_paren(
                         const an_ifc_syntax_binary_fold_expression &universal);
 
-extern an_ifc_source_location get_ifc_right_paren(
+template<>
+an_ifc_source_location get_ifc_right_paren(
                         const an_ifc_syntax_binary_fold_expression &universal);
 
 extern a_boolean validate(
@@ -9938,13 +18800,15 @@ Functions for interacting with IFC SyntaxBreakStatement nodes.
 
 extern a_boolean has_ifc_break(const an_ifc_syntax_break_statement &universal);
 
-extern an_ifc_source_location get_ifc_break(
+template<>
+an_ifc_source_location get_ifc_break(
                                const an_ifc_syntax_break_statement &universal);
 
 extern a_boolean has_ifc_semicolon(
                                const an_ifc_syntax_break_statement &universal);
 
-extern an_ifc_source_location get_ifc_semicolon(
+template<>
+an_ifc_source_location get_ifc_semicolon(
                                const an_ifc_syntax_break_statement &universal);
 
 extern a_boolean validate(const an_ifc_syntax_break_statement &universal,
@@ -9981,17 +18845,19 @@ Functions for interacting with IFC SyntaxCaptureDefault nodes.
 extern a_boolean has_ifc_by_ref(
                                const an_ifc_syntax_capture_default &universal);
 
-extern an_ifc_bool get_ifc_by_ref(
-                               const an_ifc_syntax_capture_default &universal);
+template<>
+an_ifc_bool get_ifc_by_ref(const an_ifc_syntax_capture_default &universal);
 
 extern a_boolean has_ifc_comma(const an_ifc_syntax_capture_default &universal);
 
-extern an_ifc_source_location get_ifc_comma(
+template<>
+an_ifc_source_location get_ifc_comma(
                                const an_ifc_syntax_capture_default &universal);
 
 extern a_boolean has_ifc_locus(const an_ifc_syntax_capture_default &universal);
 
-extern an_ifc_source_location get_ifc_locus(
+template<>
+an_ifc_source_location get_ifc_locus(
                                const an_ifc_syntax_capture_default &universal);
 
 extern a_boolean validate(const an_ifc_syntax_capture_default &universal,
@@ -10027,36 +18893,41 @@ Functions for interacting with IFC SyntaxClassSpecifier nodes.
 
 extern a_boolean has_ifc_bases(const an_ifc_syntax_class_specifier &universal);
 
-extern an_ifc_syntax_index get_ifc_bases(
+template<>
+an_ifc_syntax_index get_ifc_bases(
                                const an_ifc_syntax_class_specifier &universal);
 
 extern a_boolean has_ifc_class_key(
                                const an_ifc_syntax_class_specifier &universal);
 
-extern an_ifc_keyword_syntax get_ifc_class_key(
+template<>
+an_ifc_keyword_syntax get_ifc_class_key(
                                const an_ifc_syntax_class_specifier &universal);
 
 extern a_boolean has_ifc_left_paren(
                                const an_ifc_syntax_class_specifier &universal);
 
-extern an_ifc_syntax_index get_ifc_left_paren(
+template<>
+an_ifc_syntax_index get_ifc_left_paren(
                                const an_ifc_syntax_class_specifier &universal);
 
 extern a_boolean has_ifc_members(
                                const an_ifc_syntax_class_specifier &universal);
 
-extern an_ifc_syntax_index get_ifc_members(
+template<>
+an_ifc_syntax_index get_ifc_members(
                                const an_ifc_syntax_class_specifier &universal);
 
 extern a_boolean has_ifc_name(const an_ifc_syntax_class_specifier &universal);
 
-extern an_ifc_expr_index get_ifc_name(
-                               const an_ifc_syntax_class_specifier &universal);
+template<>
+an_ifc_expr_index get_ifc_name(const an_ifc_syntax_class_specifier &universal);
 
 extern a_boolean has_ifc_right_paren(
                                const an_ifc_syntax_class_specifier &universal);
 
-extern an_ifc_syntax_index get_ifc_right_paren(
+template<>
+an_ifc_syntax_index get_ifc_right_paren(
                                const an_ifc_syntax_class_specifier &universal);
 
 extern a_boolean validate(const an_ifc_syntax_class_specifier &universal,
@@ -10093,31 +18964,36 @@ Functions for interacting with IFC SyntaxCompoundRequirement nodes.
 extern a_boolean has_ifc_condition(
                           const an_ifc_syntax_compound_requirement &universal);
 
-extern an_ifc_expr_index get_ifc_condition(
+template<>
+an_ifc_expr_index get_ifc_condition(
                           const an_ifc_syntax_compound_requirement &universal);
 
 extern a_boolean has_ifc_constraint(
                           const an_ifc_syntax_compound_requirement &universal);
 
-extern an_ifc_expr_index get_ifc_constraint(
+template<>
+an_ifc_expr_index get_ifc_constraint(
                           const an_ifc_syntax_compound_requirement &universal);
 
 extern a_boolean has_ifc_locus(
                           const an_ifc_syntax_compound_requirement &universal);
 
-extern an_ifc_source_location get_ifc_locus(
+template<>
+an_ifc_source_location get_ifc_locus(
                           const an_ifc_syntax_compound_requirement &universal);
 
 extern a_boolean has_ifc_noexcept_loc(
                           const an_ifc_syntax_compound_requirement &universal);
 
-extern an_ifc_source_location get_ifc_noexcept_loc(
+template<>
+an_ifc_source_location get_ifc_noexcept_loc(
                           const an_ifc_syntax_compound_requirement &universal);
 
 extern a_boolean has_ifc_right_curly(
                           const an_ifc_syntax_compound_requirement &universal);
 
-extern an_ifc_source_location get_ifc_right_curly(
+template<>
+an_ifc_source_location get_ifc_right_curly(
                           const an_ifc_syntax_compound_requirement &universal);
 
 extern a_boolean validate(const an_ifc_syntax_compound_requirement &universal,
@@ -10154,25 +19030,29 @@ Functions for interacting with IFC SyntaxCompoundStatement nodes.
 extern a_boolean has_ifc_left_curly(
                             const an_ifc_syntax_compound_statement &universal);
 
-extern an_ifc_source_location get_ifc_left_curly(
+template<>
+an_ifc_source_location get_ifc_left_curly(
                             const an_ifc_syntax_compound_statement &universal);
 
 extern a_boolean has_ifc_pragam(
                             const an_ifc_syntax_compound_statement &universal);
 
-extern an_ifc_sentence_index get_ifc_pragam(
+template<>
+an_ifc_sentence_index get_ifc_pragam(
                             const an_ifc_syntax_compound_statement &universal);
 
 extern a_boolean has_ifc_right_curly(
                             const an_ifc_syntax_compound_statement &universal);
 
-extern an_ifc_source_location get_ifc_right_curly(
+template<>
+an_ifc_source_location get_ifc_right_curly(
                             const an_ifc_syntax_compound_statement &universal);
 
 extern a_boolean has_ifc_stmts(
                             const an_ifc_syntax_compound_statement &universal);
 
-extern an_ifc_syntax_index get_ifc_stmts(
+template<>
+an_ifc_syntax_index get_ifc_stmts(
                             const an_ifc_syntax_compound_statement &universal);
 
 extern a_boolean validate(const an_ifc_syntax_compound_statement &universal,
@@ -10209,43 +19089,50 @@ Functions for interacting with IFC SyntaxConceptDefinition nodes.
 extern a_boolean has_ifc_concept_keyword(
                             const an_ifc_syntax_concept_definition &universal);
 
-extern an_ifc_source_location get_ifc_concept_keyword(
+template<>
+an_ifc_source_location get_ifc_concept_keyword(
                             const an_ifc_syntax_concept_definition &universal);
 
 extern a_boolean has_ifc_equal(
                             const an_ifc_syntax_concept_definition &universal);
 
-extern an_ifc_source_location get_ifc_equal(
+template<>
+an_ifc_source_location get_ifc_equal(
                             const an_ifc_syntax_concept_definition &universal);
 
 extern a_boolean has_ifc_initializer(
                             const an_ifc_syntax_concept_definition &universal);
 
-extern an_ifc_expr_index get_ifc_initializer(
+template<>
+an_ifc_expr_index get_ifc_initializer(
                             const an_ifc_syntax_concept_definition &universal);
 
 extern a_boolean has_ifc_locus(
                             const an_ifc_syntax_concept_definition &universal);
 
-extern an_ifc_source_location get_ifc_locus(
+template<>
+an_ifc_source_location get_ifc_locus(
                             const an_ifc_syntax_concept_definition &universal);
 
 extern a_boolean has_ifc_name(
                             const an_ifc_syntax_concept_definition &universal);
 
-extern an_ifc_text_offset get_ifc_name(
+template<>
+an_ifc_text_offset get_ifc_name(
                             const an_ifc_syntax_concept_definition &universal);
 
 extern a_boolean has_ifc_parameters(
                             const an_ifc_syntax_concept_definition &universal);
 
-extern an_ifc_syntax_index get_ifc_parameters(
+template<>
+an_ifc_syntax_index get_ifc_parameters(
                             const an_ifc_syntax_concept_definition &universal);
 
 extern a_boolean has_ifc_semicolon(
                             const an_ifc_syntax_concept_definition &universal);
 
-extern an_ifc_source_location get_ifc_semicolon(
+template<>
+an_ifc_source_location get_ifc_semicolon(
                             const an_ifc_syntax_concept_definition &universal);
 
 extern a_boolean validate(const an_ifc_syntax_concept_definition &universal,
@@ -10282,19 +19169,22 @@ Functions for interacting with IFC SyntaxConditionDeclaration nodes.
 extern a_boolean has_ifc_decl_specifier(
                          const an_ifc_syntax_condition_declaration &universal);
 
-extern an_ifc_syntax_index get_ifc_decl_specifier(
+template<>
+an_ifc_syntax_index get_ifc_decl_specifier(
                          const an_ifc_syntax_condition_declaration &universal);
 
 extern a_boolean has_ifc_initializaerion(
                          const an_ifc_syntax_condition_declaration &universal);
 
-extern an_ifc_syntax_index get_ifc_initializaerion(
+template<>
+an_ifc_syntax_index get_ifc_initializaerion(
                          const an_ifc_syntax_condition_declaration &universal);
 
 extern a_boolean has_ifc_locus(
                          const an_ifc_syntax_condition_declaration &universal);
 
-extern an_ifc_source_location get_ifc_locus(
+template<>
+an_ifc_source_location get_ifc_locus(
                          const an_ifc_syntax_condition_declaration &universal);
 
 extern a_boolean validate(
@@ -10332,13 +19222,15 @@ Functions for interacting with IFC SyntaxContinueStatement nodes.
 extern a_boolean has_ifc_continue(
                             const an_ifc_syntax_continue_statement &universal);
 
-extern an_ifc_source_location get_ifc_continue(
+template<>
+an_ifc_source_location get_ifc_continue(
                             const an_ifc_syntax_continue_statement &universal);
 
 extern a_boolean has_ifc_semicolon(
                             const an_ifc_syntax_continue_statement &universal);
 
-extern an_ifc_source_location get_ifc_semicolon(
+template<>
+an_ifc_source_location get_ifc_semicolon(
                             const an_ifc_syntax_continue_statement &universal);
 
 extern a_boolean validate(const an_ifc_syntax_continue_statement &universal,
@@ -10375,13 +19267,15 @@ Functions for interacting with IFC SyntaxCtorInitializer nodes.
 extern a_boolean has_ifc_colon(
                               const an_ifc_syntax_ctor_initializer &universal);
 
-extern an_ifc_source_location get_ifc_colon(
+template<>
+an_ifc_source_location get_ifc_colon(
                               const an_ifc_syntax_ctor_initializer &universal);
 
 extern a_boolean has_ifc_initializers(
                               const an_ifc_syntax_ctor_initializer &universal);
 
-extern an_ifc_syntax_index get_ifc_initializers(
+template<>
+an_ifc_syntax_index get_ifc_initializers(
                               const an_ifc_syntax_ctor_initializer &universal);
 
 extern a_boolean validate(const an_ifc_syntax_ctor_initializer &universal,
@@ -10418,43 +19312,50 @@ Functions for interacting with IFC SyntaxDeclSpecifierSeq nodes.
 extern a_boolean has_ifc_declspec(
                             const an_ifc_syntax_decl_specifier_seq &universal);
 
-extern an_ifc_sentence_index get_ifc_declspec(
+template<>
+an_ifc_sentence_index get_ifc_declspec(
                             const an_ifc_syntax_decl_specifier_seq &universal);
 
 extern a_boolean has_ifc_explicit_kw(
                             const an_ifc_syntax_decl_specifier_seq &universal);
 
-extern an_ifc_syntax_index get_ifc_explicit_kw(
+template<>
+an_ifc_syntax_index get_ifc_explicit_kw(
                             const an_ifc_syntax_decl_specifier_seq &universal);
 
 extern a_boolean has_ifc_locus(
                             const an_ifc_syntax_decl_specifier_seq &universal);
 
-extern an_ifc_source_location get_ifc_locus(
+template<>
+an_ifc_source_location get_ifc_locus(
                             const an_ifc_syntax_decl_specifier_seq &universal);
 
 extern a_boolean has_ifc_qualifiers(
                             const an_ifc_syntax_decl_specifier_seq &universal);
 
-extern an_ifc_qualifier_bitfield get_ifc_qualifiers(
+template<>
+an_ifc_qualifier_bitfield get_ifc_qualifiers(
                             const an_ifc_syntax_decl_specifier_seq &universal);
 
 extern a_boolean has_ifc_storage_class(
                             const an_ifc_syntax_decl_specifier_seq &universal);
 
-extern an_ifc_storage_class get_ifc_storage_class(
+template<>
+an_ifc_storage_class get_ifc_storage_class(
                             const an_ifc_syntax_decl_specifier_seq &universal);
 
 extern a_boolean has_ifc_type(
                             const an_ifc_syntax_decl_specifier_seq &universal);
 
-extern an_ifc_type_index get_ifc_type(
+template<>
+an_ifc_type_index get_ifc_type(
                             const an_ifc_syntax_decl_specifier_seq &universal);
 
 extern a_boolean has_ifc_type_name(
                             const an_ifc_syntax_decl_specifier_seq &universal);
 
-extern an_ifc_syntax_index get_ifc_type_name(
+template<>
+an_ifc_syntax_index get_ifc_type_name(
                             const an_ifc_syntax_decl_specifier_seq &universal);
 
 extern a_boolean validate(const an_ifc_syntax_decl_specifier_seq &universal,
@@ -10491,13 +19392,15 @@ Functions for interacting with IFC SyntaxDeclarationStatement nodes.
 extern a_boolean has_ifc_decl(
                          const an_ifc_syntax_declaration_statement &universal);
 
-extern an_ifc_syntax_index get_ifc_decl(
+template<>
+an_ifc_syntax_index get_ifc_decl(
                          const an_ifc_syntax_declaration_statement &universal);
 
 extern a_boolean has_ifc_pragma(
                          const an_ifc_syntax_declaration_statement &universal);
 
-extern an_ifc_sentence_index get_ifc_pragma(
+template<>
+an_ifc_sentence_index get_ifc_pragma(
                          const an_ifc_syntax_declaration_statement &universal);
 
 extern a_boolean validate(
@@ -10535,59 +19438,68 @@ Functions for interacting with IFC SyntaxDeclarator nodes.
 extern a_boolean has_ifc_array_or_function(
                                     const an_ifc_syntax_declarator &universal);
 
-extern an_ifc_syntax_index get_ifc_array_or_function(
+template<>
+an_ifc_syntax_index get_ifc_array_or_function(
                                     const an_ifc_syntax_declarator &universal);
 
 extern a_boolean has_ifc_callable(const an_ifc_syntax_declarator &universal);
 
-extern an_ifc_bool get_ifc_callable(const an_ifc_syntax_declarator &universal);
+template<>
+an_ifc_bool get_ifc_callable(const an_ifc_syntax_declarator &universal);
 
 extern a_boolean has_ifc_convention(const an_ifc_syntax_declarator &universal);
 
-extern an_ifc_calling_convention_sort get_ifc_convention(
+template<>
+an_ifc_calling_convention_sort get_ifc_convention(
                                     const an_ifc_syntax_declarator &universal);
 
 extern a_boolean has_ifc_ellipsis(const an_ifc_syntax_declarator &universal);
 
-extern an_ifc_source_location get_ifc_ellipsis(
+template<>
+an_ifc_source_location get_ifc_ellipsis(
                                     const an_ifc_syntax_declarator &universal);
 
 extern a_boolean has_ifc_locus(const an_ifc_syntax_declarator &universal);
 
-extern an_ifc_source_location get_ifc_locus(
+template<>
+an_ifc_source_location get_ifc_locus(
                                     const an_ifc_syntax_declarator &universal);
 
 extern a_boolean has_ifc_name(const an_ifc_syntax_declarator &universal);
 
-extern an_ifc_expr_index get_ifc_name(
-                                    const an_ifc_syntax_declarator &universal);
+template<>
+an_ifc_expr_index get_ifc_name(const an_ifc_syntax_declarator &universal);
 
 extern a_boolean has_ifc_parenthesized(
                                     const an_ifc_syntax_declarator &universal);
 
-extern an_ifc_syntax_index get_ifc_parenthesized(
+template<>
+an_ifc_syntax_index get_ifc_parenthesized(
                                     const an_ifc_syntax_declarator &universal);
 
 extern a_boolean has_ifc_pointer(const an_ifc_syntax_declarator &universal);
 
-extern an_ifc_syntax_index get_ifc_pointer(
-                                    const an_ifc_syntax_declarator &universal);
+template<>
+an_ifc_syntax_index get_ifc_pointer(const an_ifc_syntax_declarator &universal);
 
 extern a_boolean has_ifc_qualifiers(const an_ifc_syntax_declarator &universal);
 
-extern an_ifc_qualifier_bitfield get_ifc_qualifiers(
+template<>
+an_ifc_qualifier_bitfield get_ifc_qualifiers(
                                     const an_ifc_syntax_declarator &universal);
 
 extern a_boolean has_ifc_trailing_target(
                                     const an_ifc_syntax_declarator &universal);
 
-extern an_ifc_syntax_index get_ifc_trailing_target(
+template<>
+an_ifc_syntax_index get_ifc_trailing_target(
                                     const an_ifc_syntax_declarator &universal);
 
 extern a_boolean has_ifc_virtual_specifiers(
                                     const an_ifc_syntax_declarator &universal);
 
-extern an_ifc_syntax_index get_ifc_virtual_specifiers(
+template<>
+an_ifc_syntax_index get_ifc_virtual_specifiers(
                                     const an_ifc_syntax_declarator &universal);
 
 extern a_boolean validate(const an_ifc_syntax_declarator &universal,
@@ -10623,25 +19535,29 @@ Functions for interacting with IFC SyntaxDecltypeSpecifier nodes.
 extern a_boolean has_ifc_decltype_keyword(
                             const an_ifc_syntax_decltype_specifier &universal);
 
-extern an_ifc_source_location get_ifc_decltype_keyword(
+template<>
+an_ifc_source_location get_ifc_decltype_keyword(
                             const an_ifc_syntax_decltype_specifier &universal);
 
 extern a_boolean has_ifc_expr(
                             const an_ifc_syntax_decltype_specifier &universal);
 
-extern an_ifc_expr_index get_ifc_expr(
+template<>
+an_ifc_expr_index get_ifc_expr(
                             const an_ifc_syntax_decltype_specifier &universal);
 
 extern a_boolean has_ifc_left_paren(
                             const an_ifc_syntax_decltype_specifier &universal);
 
-extern an_ifc_source_location get_ifc_left_paren(
+template<>
+an_ifc_source_location get_ifc_left_paren(
                             const an_ifc_syntax_decltype_specifier &universal);
 
 extern a_boolean has_ifc_right_paren(
                             const an_ifc_syntax_decltype_specifier &universal);
 
-extern an_ifc_source_location get_ifc_right_paren(
+template<>
+an_ifc_source_location get_ifc_right_paren(
                             const an_ifc_syntax_decltype_specifier &universal);
 
 extern a_boolean validate(const an_ifc_syntax_decltype_specifier &universal,
@@ -10678,36 +19594,42 @@ Functions for interacting with IFC SyntaxDoWhileStatement nodes.
 extern a_boolean has_ifc_body(
                             const an_ifc_syntax_do_while_statement &universal);
 
-extern an_ifc_syntax_index get_ifc_body(
+template<>
+an_ifc_syntax_index get_ifc_body(
                             const an_ifc_syntax_do_while_statement &universal);
 
 extern a_boolean has_ifc_condition(
                             const an_ifc_syntax_do_while_statement &universal);
 
-extern an_ifc_expr_index get_ifc_condition(
+template<>
+an_ifc_expr_index get_ifc_condition(
                             const an_ifc_syntax_do_while_statement &universal);
 
 extern a_boolean has_ifc_do(const an_ifc_syntax_do_while_statement &universal);
 
-extern an_ifc_source_location get_ifc_do(
+template<>
+an_ifc_source_location get_ifc_do(
                             const an_ifc_syntax_do_while_statement &universal);
 
 extern a_boolean has_ifc_pragma(
                             const an_ifc_syntax_do_while_statement &universal);
 
-extern an_ifc_sentence_index get_ifc_pragma(
+template<>
+an_ifc_sentence_index get_ifc_pragma(
                             const an_ifc_syntax_do_while_statement &universal);
 
 extern a_boolean has_ifc_semicolon(
                             const an_ifc_syntax_do_while_statement &universal);
 
-extern an_ifc_source_location get_ifc_semicolon(
+template<>
+an_ifc_source_location get_ifc_semicolon(
                             const an_ifc_syntax_do_while_statement &universal);
 
 extern a_boolean has_ifc_while(
                             const an_ifc_syntax_do_while_statement &universal);
 
-extern an_ifc_source_location get_ifc_while(
+template<>
+an_ifc_source_location get_ifc_while(
                             const an_ifc_syntax_do_while_statement &universal);
 
 extern a_boolean validate(const an_ifc_syntax_do_while_statement &universal,
@@ -10744,31 +19666,36 @@ Functions for interacting with IFC SyntaxDynamicExceptionSpec nodes.
 extern a_boolean has_ifc_expander(
                         const an_ifc_syntax_dynamic_exception_spec &universal);
 
-extern an_ifc_source_location get_ifc_expander(
+template<>
+an_ifc_source_location get_ifc_expander(
                         const an_ifc_syntax_dynamic_exception_spec &universal);
 
 extern a_boolean has_ifc_left_paren(
                         const an_ifc_syntax_dynamic_exception_spec &universal);
 
-extern an_ifc_source_location get_ifc_left_paren(
+template<>
+an_ifc_source_location get_ifc_left_paren(
                         const an_ifc_syntax_dynamic_exception_spec &universal);
 
 extern a_boolean has_ifc_right_paren(
                         const an_ifc_syntax_dynamic_exception_spec &universal);
 
-extern an_ifc_source_location get_ifc_right_paren(
+template<>
+an_ifc_source_location get_ifc_right_paren(
                         const an_ifc_syntax_dynamic_exception_spec &universal);
 
 extern a_boolean has_ifc_throw(
                         const an_ifc_syntax_dynamic_exception_spec &universal);
 
-extern an_ifc_source_location get_ifc_throw(
+template<>
+an_ifc_source_location get_ifc_throw(
                         const an_ifc_syntax_dynamic_exception_spec &universal);
 
 extern a_boolean has_ifc_type_list(
                         const an_ifc_syntax_dynamic_exception_spec &universal);
 
-extern an_ifc_syntax_index get_ifc_type_list(
+template<>
+an_ifc_syntax_index get_ifc_type_list(
                         const an_ifc_syntax_dynamic_exception_spec &universal);
 
 extern a_boolean validate(
@@ -10805,7 +19732,8 @@ Functions for interacting with IFC SyntaxEmptyStatement nodes.
 
 extern a_boolean has_ifc_locus(const an_ifc_syntax_empty_statement &universal);
 
-extern an_ifc_source_location get_ifc_locus(
+template<>
+an_ifc_source_location get_ifc_locus(
                                const an_ifc_syntax_empty_statement &universal);
 
 extern a_boolean validate(const an_ifc_syntax_empty_statement &universal,
@@ -10841,46 +19769,53 @@ Functions for interacting with IFC SyntaxEnumSpecifier nodes.
 
 extern a_boolean has_ifc_base(const an_ifc_syntax_enum_specifier &universal);
 
-extern an_ifc_syntax_index get_ifc_base(
+template<>
+an_ifc_syntax_index get_ifc_base(
                                 const an_ifc_syntax_enum_specifier &universal);
 
 extern a_boolean has_ifc_class_key(
                                 const an_ifc_syntax_enum_specifier &universal);
 
-extern an_ifc_keyword_syntax get_ifc_class_key(
+template<>
+an_ifc_keyword_syntax get_ifc_class_key(
                                 const an_ifc_syntax_enum_specifier &universal);
 
 extern a_boolean has_ifc_colon(const an_ifc_syntax_enum_specifier &universal);
 
-extern an_ifc_source_location get_ifc_colon(
+template<>
+an_ifc_source_location get_ifc_colon(
                                 const an_ifc_syntax_enum_specifier &universal);
 
 extern a_boolean has_ifc_enumerators(
                                 const an_ifc_syntax_enum_specifier &universal);
 
-extern an_ifc_syntax_index get_ifc_enumerators(
+template<>
+an_ifc_syntax_index get_ifc_enumerators(
                                 const an_ifc_syntax_enum_specifier &universal);
 
 extern a_boolean has_ifc_left_brace(
                                 const an_ifc_syntax_enum_specifier &universal);
 
-extern an_ifc_source_location get_ifc_left_brace(
+template<>
+an_ifc_source_location get_ifc_left_brace(
                                 const an_ifc_syntax_enum_specifier &universal);
 
 extern a_boolean has_ifc_locus(const an_ifc_syntax_enum_specifier &universal);
 
-extern an_ifc_source_location get_ifc_locus(
+template<>
+an_ifc_source_location get_ifc_locus(
                                 const an_ifc_syntax_enum_specifier &universal);
 
 extern a_boolean has_ifc_name(const an_ifc_syntax_enum_specifier &universal);
 
-extern an_ifc_expr_index get_ifc_name(
-                                const an_ifc_syntax_enum_specifier &universal);
+template<>
+an_ifc_expr_index get_ifc_name(const an_ifc_syntax_enum_specifier &universal);
 
 extern a_boolean has_ifc_right_brace(
                                 const an_ifc_syntax_enum_specifier &universal);
 
-extern an_ifc_source_location get_ifc_right_brace(
+template<>
+an_ifc_source_location get_ifc_right_brace(
                                 const an_ifc_syntax_enum_specifier &universal);
 
 extern a_boolean validate(const an_ifc_syntax_enum_specifier &universal,
@@ -10917,31 +19852,36 @@ Functions for interacting with IFC SyntaxEnumeratorDefinition nodes.
 extern a_boolean has_ifc_comma(
                          const an_ifc_syntax_enumerator_definition &universal);
 
-extern an_ifc_source_location get_ifc_comma(
+template<>
+an_ifc_source_location get_ifc_comma(
                          const an_ifc_syntax_enumerator_definition &universal);
 
 extern a_boolean has_ifc_equal(
                          const an_ifc_syntax_enumerator_definition &universal);
 
-extern an_ifc_source_location get_ifc_equal(
+template<>
+an_ifc_source_location get_ifc_equal(
                          const an_ifc_syntax_enumerator_definition &universal);
 
 extern a_boolean has_ifc_initializer(
                          const an_ifc_syntax_enumerator_definition &universal);
 
-extern an_ifc_expr_index get_ifc_initializer(
+template<>
+an_ifc_expr_index get_ifc_initializer(
                          const an_ifc_syntax_enumerator_definition &universal);
 
 extern a_boolean has_ifc_locus(
                          const an_ifc_syntax_enumerator_definition &universal);
 
-extern an_ifc_source_location get_ifc_locus(
+template<>
+an_ifc_source_location get_ifc_locus(
                          const an_ifc_syntax_enumerator_definition &universal);
 
 extern a_boolean has_ifc_name(
                          const an_ifc_syntax_enumerator_definition &universal);
 
-extern an_ifc_text_offset get_ifc_name(
+template<>
+an_ifc_text_offset get_ifc_name(
                          const an_ifc_syntax_enumerator_definition &universal);
 
 extern a_boolean validate(
@@ -10979,25 +19919,29 @@ Functions for interacting with IFC SyntaxExceptionDeclaration nodes.
 extern a_boolean has_ifc_declarator(
                          const an_ifc_syntax_exception_declaration &universal);
 
-extern an_ifc_syntax_index get_ifc_declarator(
+template<>
+an_ifc_syntax_index get_ifc_declarator(
                          const an_ifc_syntax_exception_declaration &universal);
 
 extern a_boolean has_ifc_ellipsis(
                          const an_ifc_syntax_exception_declaration &universal);
 
-extern an_ifc_source_location get_ifc_ellipsis(
+template<>
+an_ifc_source_location get_ifc_ellipsis(
                          const an_ifc_syntax_exception_declaration &universal);
 
 extern a_boolean has_ifc_locus(
                          const an_ifc_syntax_exception_declaration &universal);
 
-extern an_ifc_source_location get_ifc_locus(
+template<>
+an_ifc_source_location get_ifc_locus(
                          const an_ifc_syntax_exception_declaration &universal);
 
 extern a_boolean has_ifc_type_specifiers(
                          const an_ifc_syntax_exception_declaration &universal);
 
-extern an_ifc_syntax_index get_ifc_type_specifiers(
+template<>
+an_ifc_syntax_index get_ifc_type_specifiers(
                          const an_ifc_syntax_exception_declaration &universal);
 
 extern a_boolean validate(
@@ -11035,25 +19979,29 @@ Functions for interacting with IFC SyntaxExplicitSpecifier nodes.
 extern a_boolean has_ifc_condition(
                             const an_ifc_syntax_explicit_specifier &universal);
 
-extern an_ifc_expr_index get_ifc_condition(
+template<>
+an_ifc_expr_index get_ifc_condition(
                             const an_ifc_syntax_explicit_specifier &universal);
 
 extern a_boolean has_ifc_left_paren(
                             const an_ifc_syntax_explicit_specifier &universal);
 
-extern an_ifc_source_location get_ifc_left_paren(
+template<>
+an_ifc_source_location get_ifc_left_paren(
                             const an_ifc_syntax_explicit_specifier &universal);
 
 extern a_boolean has_ifc_locus(
                             const an_ifc_syntax_explicit_specifier &universal);
 
-extern an_ifc_source_location get_ifc_locus(
+template<>
+an_ifc_source_location get_ifc_locus(
                             const an_ifc_syntax_explicit_specifier &universal);
 
 extern a_boolean has_ifc_right_paren(
                             const an_ifc_syntax_explicit_specifier &universal);
 
-extern an_ifc_source_location get_ifc_right_paren(
+template<>
+an_ifc_source_location get_ifc_right_paren(
                             const an_ifc_syntax_explicit_specifier &universal);
 
 extern a_boolean validate(const an_ifc_syntax_explicit_specifier &universal,
@@ -11089,7 +20037,8 @@ Functions for interacting with IFC SyntaxExpression nodes.
 
 extern a_boolean has_ifc_expression(const an_ifc_syntax_expression &universal);
 
-extern an_ifc_expr_index get_ifc_expression(
+template<>
+an_ifc_expr_index get_ifc_expression(
                                     const an_ifc_syntax_expression &universal);
 
 extern a_boolean validate(const an_ifc_syntax_expression &universal,
@@ -11125,19 +20074,22 @@ Functions for interacting with IFC SyntaxExpressionStatement nodes.
 extern a_boolean has_ifc_expr(
                           const an_ifc_syntax_expression_statement &universal);
 
-extern an_ifc_expr_index get_ifc_expr(
+template<>
+an_ifc_expr_index get_ifc_expr(
                           const an_ifc_syntax_expression_statement &universal);
 
 extern a_boolean has_ifc_pragma(
                           const an_ifc_syntax_expression_statement &universal);
 
-extern an_ifc_sentence_index get_ifc_pragma(
+template<>
+an_ifc_sentence_index get_ifc_pragma(
                           const an_ifc_syntax_expression_statement &universal);
 
 extern a_boolean has_ifc_semicolon(
                           const an_ifc_syntax_expression_statement &universal);
 
-extern an_ifc_source_location get_ifc_semicolon(
+template<>
+an_ifc_source_location get_ifc_semicolon(
                           const an_ifc_syntax_expression_statement &universal);
 
 extern a_boolean validate(const an_ifc_syntax_expression_statement &universal,
@@ -11174,13 +20126,15 @@ Functions for interacting with IFC SyntaxForRangeDeclaration nodes.
 extern a_boolean has_ifc_declarator(
                          const an_ifc_syntax_for_range_declaration &universal);
 
-extern an_ifc_syntax_index get_ifc_declarator(
+template<>
+an_ifc_syntax_index get_ifc_declarator(
                          const an_ifc_syntax_for_range_declaration &universal);
 
 extern a_boolean has_ifc_specifiers(
                          const an_ifc_syntax_for_range_declaration &universal);
 
-extern an_ifc_syntax_index get_ifc_specifiers(
+template<>
+an_ifc_syntax_index get_ifc_specifiers(
                          const an_ifc_syntax_for_range_declaration &universal);
 
 extern a_boolean validate(
@@ -11217,53 +20171,61 @@ Functions for interacting with IFC SyntaxForStatement nodes.
 
 extern a_boolean has_ifc_body(const an_ifc_syntax_for_statement &universal);
 
-extern an_ifc_syntax_index get_ifc_body(
-                                 const an_ifc_syntax_for_statement &universal);
+template<>
+an_ifc_syntax_index get_ifc_body(const an_ifc_syntax_for_statement &universal);
 
 extern a_boolean has_ifc_condition(
                                  const an_ifc_syntax_for_statement &universal);
 
-extern an_ifc_expr_index get_ifc_condition(
+template<>
+an_ifc_expr_index get_ifc_condition(
                                  const an_ifc_syntax_for_statement &universal);
 
 extern a_boolean has_ifc_continuation(
                                  const an_ifc_syntax_for_statement &universal);
 
-extern an_ifc_expr_index get_ifc_continuation(
+template<>
+an_ifc_expr_index get_ifc_continuation(
                                  const an_ifc_syntax_for_statement &universal);
 
 extern a_boolean has_ifc_for(const an_ifc_syntax_for_statement &universal);
 
-extern an_ifc_source_location get_ifc_for(
+template<>
+an_ifc_source_location get_ifc_for(
                                  const an_ifc_syntax_for_statement &universal);
 
 extern a_boolean has_ifc_initialization(
                                  const an_ifc_syntax_for_statement &universal);
 
-extern an_ifc_syntax_index get_ifc_initialization(
+template<>
+an_ifc_syntax_index get_ifc_initialization(
                                  const an_ifc_syntax_for_statement &universal);
 
 extern a_boolean has_ifc_left_paren(
                                  const an_ifc_syntax_for_statement &universal);
 
-extern an_ifc_source_location get_ifc_left_paren(
+template<>
+an_ifc_source_location get_ifc_left_paren(
                                  const an_ifc_syntax_for_statement &universal);
 
 extern a_boolean has_ifc_pragma(const an_ifc_syntax_for_statement &universal);
 
-extern an_ifc_sentence_index get_ifc_pragma(
+template<>
+an_ifc_sentence_index get_ifc_pragma(
                                  const an_ifc_syntax_for_statement &universal);
 
 extern a_boolean has_ifc_right_paren(
                                  const an_ifc_syntax_for_statement &universal);
 
-extern an_ifc_source_location get_ifc_right_paren(
+template<>
+an_ifc_source_location get_ifc_right_paren(
                                  const an_ifc_syntax_for_statement &universal);
 
 extern a_boolean has_ifc_semicolon(
                                  const an_ifc_syntax_for_statement &universal);
 
-extern an_ifc_source_location get_ifc_semicolon(
+template<>
+an_ifc_source_location get_ifc_semicolon(
                                  const an_ifc_syntax_for_statement &universal);
 
 extern a_boolean validate(const an_ifc_syntax_for_statement &universal,
@@ -11298,36 +20260,42 @@ Functions for interacting with IFC SyntaxFunctionBody nodes.
 
 extern a_boolean has_ifc_assign(const an_ifc_syntax_function_body &universal);
 
-extern an_ifc_source_location get_ifc_assign(
+template<>
+an_ifc_source_location get_ifc_assign(
                                  const an_ifc_syntax_function_body &universal);
 
 extern a_boolean has_ifc_generate(
                                  const an_ifc_syntax_function_body &universal);
 
-extern an_ifc_keyword_syntax get_ifc_generate(
+template<>
+an_ifc_keyword_syntax get_ifc_generate(
                                  const an_ifc_syntax_function_body &universal);
 
 extern a_boolean has_ifc_initializers(
                                  const an_ifc_syntax_function_body &universal);
 
-extern an_ifc_syntax_index get_ifc_initializers(
+template<>
+an_ifc_syntax_index get_ifc_initializers(
                                  const an_ifc_syntax_function_body &universal);
 
 extern a_boolean has_ifc_semicolon(
                                  const an_ifc_syntax_function_body &universal);
 
-extern an_ifc_source_location get_ifc_semicolon(
+template<>
+an_ifc_source_location get_ifc_semicolon(
                                  const an_ifc_syntax_function_body &universal);
 
 extern a_boolean has_ifc_stmts(const an_ifc_syntax_function_body &universal);
 
-extern an_ifc_syntax_index get_ifc_stmts(
+template<>
+an_ifc_syntax_index get_ifc_stmts(
                                  const an_ifc_syntax_function_body &universal);
 
 extern a_boolean has_ifc_try_block(
                                  const an_ifc_syntax_function_body &universal);
 
-extern an_ifc_syntax_index get_ifc_try_block(
+template<>
+an_ifc_syntax_index get_ifc_try_block(
                                  const an_ifc_syntax_function_body &universal);
 
 extern a_boolean validate(const an_ifc_syntax_function_body &universal,
@@ -11363,25 +20331,29 @@ Functions for interacting with IFC SyntaxFunctionDeclarator nodes.
 extern a_boolean has_ifc_eh_spec(
                            const an_ifc_syntax_function_declarator &universal);
 
-extern an_ifc_syntax_index get_ifc_eh_spec(
+template<>
+an_ifc_syntax_index get_ifc_eh_spec(
                            const an_ifc_syntax_function_declarator &universal);
 
 extern a_boolean has_ifc_left_paren(
                            const an_ifc_syntax_function_declarator &universal);
 
-extern an_ifc_source_location get_ifc_left_paren(
+template<>
+an_ifc_source_location get_ifc_left_paren(
                            const an_ifc_syntax_function_declarator &universal);
 
 extern a_boolean has_ifc_parameters(
                            const an_ifc_syntax_function_declarator &universal);
 
-extern an_ifc_syntax_index get_ifc_parameters(
+template<>
+an_ifc_syntax_index get_ifc_parameters(
                            const an_ifc_syntax_function_declarator &universal);
 
 extern a_boolean has_ifc_right_paren(
                            const an_ifc_syntax_function_declarator &universal);
 
-extern an_ifc_source_location get_ifc_right_paren(
+template<>
+an_ifc_source_location get_ifc_right_paren(
                            const an_ifc_syntax_function_declarator &universal);
 
 extern a_boolean validate(const an_ifc_syntax_function_declarator &universal,
@@ -11418,37 +20390,43 @@ Functions for interacting with IFC SyntaxFunctionDefinition nodes.
 extern a_boolean has_ifc_assign(
                            const an_ifc_syntax_function_definition &universal);
 
-extern an_ifc_source_location get_ifc_assign(
+template<>
+an_ifc_source_location get_ifc_assign(
                            const an_ifc_syntax_function_definition &universal);
 
 extern a_boolean has_ifc_initializers(
                            const an_ifc_syntax_function_definition &universal);
 
-extern an_ifc_syntax_index get_ifc_initializers(
+template<>
+an_ifc_syntax_index get_ifc_initializers(
                            const an_ifc_syntax_function_definition &universal);
 
 extern a_boolean has_ifc_semicolon(
                            const an_ifc_syntax_function_definition &universal);
 
-extern an_ifc_source_location get_ifc_semicolon(
+template<>
+an_ifc_source_location get_ifc_semicolon(
                            const an_ifc_syntax_function_definition &universal);
 
 extern a_boolean has_ifc_stmts(
                            const an_ifc_syntax_function_definition &universal);
 
-extern an_ifc_syntax_index get_ifc_stmts(
+template<>
+an_ifc_syntax_index get_ifc_stmts(
                            const an_ifc_syntax_function_definition &universal);
 
 extern a_boolean has_ifc_synthesis(
                            const an_ifc_syntax_function_definition &universal);
 
-extern an_ifc_keyword_syntax get_ifc_synthesis(
+template<>
+an_ifc_keyword_syntax get_ifc_synthesis(
                            const an_ifc_syntax_function_definition &universal);
 
 extern a_boolean has_ifc_try_block(
                            const an_ifc_syntax_function_definition &universal);
 
-extern an_ifc_syntax_index get_ifc_try_block(
+template<>
+an_ifc_syntax_index get_ifc_try_block(
                            const an_ifc_syntax_function_definition &universal);
 
 extern a_boolean validate(const an_ifc_syntax_function_definition &universal,
@@ -11485,19 +20463,22 @@ Functions for interacting with IFC SyntaxFunctionTryBlock nodes.
 extern a_boolean has_ifc_body(
                             const an_ifc_syntax_function_try_block &universal);
 
-extern an_ifc_syntax_index get_ifc_body(
+template<>
+an_ifc_syntax_index get_ifc_body(
                             const an_ifc_syntax_function_try_block &universal);
 
 extern a_boolean has_ifc_handlers(
                             const an_ifc_syntax_function_try_block &universal);
 
-extern an_ifc_syntax_index get_ifc_handlers(
+template<>
+an_ifc_syntax_index get_ifc_handlers(
                             const an_ifc_syntax_function_try_block &universal);
 
 extern a_boolean has_ifc_initializers(
                             const an_ifc_syntax_function_try_block &universal);
 
-extern an_ifc_syntax_index get_ifc_initializers(
+template<>
+an_ifc_syntax_index get_ifc_initializers(
                             const an_ifc_syntax_function_try_block &universal);
 
 extern a_boolean validate(const an_ifc_syntax_function_try_block &universal,
@@ -11533,28 +20514,33 @@ Functions for interacting with IFC SyntaxGotoStatement nodes.
 
 extern a_boolean has_ifc_label(const an_ifc_syntax_goto_statement &universal);
 
-extern an_ifc_source_location get_ifc_label(
+template<>
+an_ifc_source_location get_ifc_label(
                                 const an_ifc_syntax_goto_statement &universal);
 
 extern a_boolean has_ifc_locus(const an_ifc_syntax_goto_statement &universal);
 
-extern an_ifc_source_location get_ifc_locus(
+template<>
+an_ifc_source_location get_ifc_locus(
                                 const an_ifc_syntax_goto_statement &universal);
 
 extern a_boolean has_ifc_pragma(const an_ifc_syntax_goto_statement &universal);
 
-extern an_ifc_sentence_index get_ifc_pragma(
+template<>
+an_ifc_sentence_index get_ifc_pragma(
                                 const an_ifc_syntax_goto_statement &universal);
 
 extern a_boolean has_ifc_semicolon(
                                 const an_ifc_syntax_goto_statement &universal);
 
-extern an_ifc_source_location get_ifc_semicolon(
+template<>
+an_ifc_source_location get_ifc_semicolon(
                                 const an_ifc_syntax_goto_statement &universal);
 
 extern a_boolean has_ifc_target(const an_ifc_syntax_goto_statement &universal);
 
-extern an_ifc_text_offset get_ifc_target(
+template<>
+an_ifc_text_offset get_ifc_target(
                                 const an_ifc_syntax_goto_statement &universal);
 
 extern a_boolean validate(const an_ifc_syntax_goto_statement &universal,
@@ -11590,32 +20576,34 @@ Functions for interacting with IFC SyntaxHandler nodes.
 
 extern a_boolean has_ifc_body(const an_ifc_syntax_handler &universal);
 
-extern an_ifc_syntax_index get_ifc_body(
-                                       const an_ifc_syntax_handler &universal);
+template<>
+an_ifc_syntax_index get_ifc_body(const an_ifc_syntax_handler &universal);
 
 extern a_boolean has_ifc_catch(const an_ifc_syntax_handler &universal);
 
-extern an_ifc_source_location get_ifc_catch(
-                                       const an_ifc_syntax_handler &universal);
+template<>
+an_ifc_source_location get_ifc_catch(const an_ifc_syntax_handler &universal);
 
 extern a_boolean has_ifc_exception(const an_ifc_syntax_handler &universal);
 
-extern an_ifc_syntax_index get_ifc_exception(
-                                       const an_ifc_syntax_handler &universal);
+template<>
+an_ifc_syntax_index get_ifc_exception(const an_ifc_syntax_handler &universal);
 
 extern a_boolean has_ifc_left_paren(const an_ifc_syntax_handler &universal);
 
-extern an_ifc_source_location get_ifc_left_paren(
+template<>
+an_ifc_source_location get_ifc_left_paren(
                                        const an_ifc_syntax_handler &universal);
 
 extern a_boolean has_ifc_pragma(const an_ifc_syntax_handler &universal);
 
-extern an_ifc_sentence_index get_ifc_pragma(
-                                       const an_ifc_syntax_handler &universal);
+template<>
+an_ifc_sentence_index get_ifc_pragma(const an_ifc_syntax_handler &universal);
 
 extern a_boolean has_ifc_right_paren(const an_ifc_syntax_handler &universal);
 
-extern an_ifc_source_location get_ifc_right_paren(
+template<>
+an_ifc_source_location get_ifc_right_paren(
                                        const an_ifc_syntax_handler &universal);
 
 extern a_boolean validate(const an_ifc_syntax_handler   &universal,
@@ -11649,7 +20637,8 @@ Functions for interacting with IFC SyntaxHandlerSeq nodes.
 
 extern a_boolean has_ifc_handlers(const an_ifc_syntax_handler_seq &universal);
 
-extern an_ifc_syntax_index get_ifc_handlers(
+template<>
+an_ifc_syntax_index get_ifc_handlers(
                                    const an_ifc_syntax_handler_seq &universal);
 
 extern a_boolean validate(const an_ifc_syntax_handler_seq &universal,
@@ -11685,46 +20674,52 @@ Functions for interacting with IFC SyntaxIfStatement nodes.
 extern a_boolean has_ifc_alternative(
                                   const an_ifc_syntax_if_statement &universal);
 
-extern an_ifc_syntax_index get_ifc_alternative(
+template<>
+an_ifc_syntax_index get_ifc_alternative(
                                   const an_ifc_syntax_if_statement &universal);
 
 extern a_boolean has_ifc_condition(
                                   const an_ifc_syntax_if_statement &universal);
 
-extern an_ifc_index get_ifc_condition(
-                                  const an_ifc_syntax_if_statement &universal);
+template<>
+an_ifc_index get_ifc_condition(const an_ifc_syntax_if_statement &universal);
 
 extern a_boolean has_ifc_consequence(
                                   const an_ifc_syntax_if_statement &universal);
 
-extern an_ifc_syntax_index get_ifc_consequence(
+template<>
+an_ifc_syntax_index get_ifc_consequence(
                                   const an_ifc_syntax_if_statement &universal);
 
 extern a_boolean has_ifc_constexpr(
                                   const an_ifc_syntax_if_statement &universal);
 
-extern an_ifc_source_location get_ifc_constexpr(
+template<>
+an_ifc_source_location get_ifc_constexpr(
                                   const an_ifc_syntax_if_statement &universal);
 
 extern a_boolean has_ifc_else(const an_ifc_syntax_if_statement &universal);
 
-extern an_ifc_source_location get_ifc_else(
+template<>
+an_ifc_source_location get_ifc_else(
                                   const an_ifc_syntax_if_statement &universal);
 
 extern a_boolean has_ifc_if(const an_ifc_syntax_if_statement &universal);
 
-extern an_ifc_source_location get_ifc_if(
-                                  const an_ifc_syntax_if_statement &universal);
+template<>
+an_ifc_source_location get_ifc_if(const an_ifc_syntax_if_statement &universal);
 
 extern a_boolean has_ifc_initialization(
                                   const an_ifc_syntax_if_statement &universal);
 
-extern an_ifc_syntax_index get_ifc_initialization(
+template<>
+an_ifc_syntax_index get_ifc_initialization(
                                   const an_ifc_syntax_if_statement &universal);
 
 extern a_boolean has_ifc_pragma(const an_ifc_syntax_if_statement &universal);
 
-extern an_ifc_sentence_index get_ifc_pragma(
+template<>
+an_ifc_sentence_index get_ifc_pragma(
                                   const an_ifc_syntax_if_statement &universal);
 
 extern a_boolean validate(const an_ifc_syntax_if_statement &universal,
@@ -11760,29 +20755,33 @@ Functions for interacting with IFC SyntaxInitCapture nodes.
 extern a_boolean has_ifc_ampersand(
                                   const an_ifc_syntax_init_capture &universal);
 
-extern an_ifc_source_location get_ifc_ampersand(
+template<>
+an_ifc_source_location get_ifc_ampersand(
                                   const an_ifc_syntax_init_capture &universal);
 
 extern a_boolean has_ifc_comma(const an_ifc_syntax_init_capture &universal);
 
-extern an_ifc_source_location get_ifc_comma(
+template<>
+an_ifc_source_location get_ifc_comma(
                                   const an_ifc_syntax_init_capture &universal);
 
 extern a_boolean has_ifc_expander(const an_ifc_syntax_init_capture &universal);
 
-extern an_ifc_source_location get_ifc_expander(
+template<>
+an_ifc_source_location get_ifc_expander(
                                   const an_ifc_syntax_init_capture &universal);
 
 extern a_boolean has_ifc_initializer(
                                   const an_ifc_syntax_init_capture &universal);
 
-extern an_ifc_expr_index get_ifc_initializer(
+template<>
+an_ifc_expr_index get_ifc_initializer(
                                   const an_ifc_syntax_init_capture &universal);
 
 extern a_boolean has_ifc_name(const an_ifc_syntax_init_capture &universal);
 
-extern an_ifc_expr_index get_ifc_name(
-                                  const an_ifc_syntax_init_capture &universal);
+template<>
+an_ifc_expr_index get_ifc_name(const an_ifc_syntax_init_capture &universal);
 
 extern a_boolean validate(const an_ifc_syntax_init_capture &universal,
                           const an_ifc_validation_trace    *parent);
@@ -11816,25 +20815,29 @@ Functions for interacting with IFC SyntaxInitDeclarator nodes.
 
 extern a_boolean has_ifc_comma(const an_ifc_syntax_init_declarator &universal);
 
-extern an_ifc_source_location get_ifc_comma(
+template<>
+an_ifc_source_location get_ifc_comma(
                                const an_ifc_syntax_init_declarator &universal);
 
 extern a_boolean has_ifc_constraint(
                                const an_ifc_syntax_init_declarator &universal);
 
-extern an_ifc_syntax_index get_ifc_constraint(
+template<>
+an_ifc_syntax_index get_ifc_constraint(
                                const an_ifc_syntax_init_declarator &universal);
 
 extern a_boolean has_ifc_declarator(
                                const an_ifc_syntax_init_declarator &universal);
 
-extern an_ifc_syntax_index get_ifc_declarator(
+template<>
+an_ifc_syntax_index get_ifc_declarator(
                                const an_ifc_syntax_init_declarator &universal);
 
 extern a_boolean has_ifc_initializer(
                                const an_ifc_syntax_init_declarator &universal);
 
-extern an_ifc_expr_index get_ifc_initializer(
+template<>
+an_ifc_expr_index get_ifc_initializer(
                                const an_ifc_syntax_init_declarator &universal);
 
 extern a_boolean validate(const an_ifc_syntax_init_declarator &universal,
@@ -11870,12 +20873,14 @@ Functions for interacting with IFC SyntaxInitStatement nodes.
 
 extern a_boolean has_ifc_init(const an_ifc_syntax_init_statement &universal);
 
-extern an_ifc_syntax_index get_ifc_init(
+template<>
+an_ifc_syntax_index get_ifc_init(
                                 const an_ifc_syntax_init_statement &universal);
 
 extern a_boolean has_ifc_pragma(const an_ifc_syntax_init_statement &universal);
 
-extern an_ifc_sentence_index get_ifc_pragma(
+template<>
+an_ifc_sentence_index get_ifc_pragma(
                                 const an_ifc_syntax_init_statement &universal);
 
 extern a_boolean validate(const an_ifc_syntax_init_statement &universal,
@@ -11912,31 +20917,36 @@ Functions for interacting with IFC SyntaxLabeledStatement nodes.
 extern a_boolean has_ifc_label(
                              const an_ifc_syntax_labeled_statement &universal);
 
-extern an_ifc_expr_index get_ifc_label(
+template<>
+an_ifc_expr_index get_ifc_label(
                              const an_ifc_syntax_labeled_statement &universal);
 
 extern a_boolean has_ifc_locus(
                              const an_ifc_syntax_labeled_statement &universal);
 
-extern an_ifc_keyword_sort get_ifc_locus(
+template<>
+an_ifc_keyword_sort get_ifc_locus(
                              const an_ifc_syntax_labeled_statement &universal);
 
 extern a_boolean has_ifc_pragma(
                              const an_ifc_syntax_labeled_statement &universal);
 
-extern an_ifc_sentence_index get_ifc_pragma(
+template<>
+an_ifc_sentence_index get_ifc_pragma(
                              const an_ifc_syntax_labeled_statement &universal);
 
 extern a_boolean has_ifc_sort(
                              const an_ifc_syntax_labeled_statement &universal);
 
-extern an_ifc_label_sort get_ifc_sort(
+template<>
+an_ifc_label_sort get_ifc_sort(
                              const an_ifc_syntax_labeled_statement &universal);
 
 extern a_boolean has_ifc_stmt(
                              const an_ifc_syntax_labeled_statement &universal);
 
-extern an_ifc_syntax_index get_ifc_stmt(
+template<>
+an_ifc_syntax_index get_ifc_stmt(
                              const an_ifc_syntax_labeled_statement &universal);
 
 extern a_boolean validate(const an_ifc_syntax_labeled_statement &universal,
@@ -11973,43 +20983,50 @@ Functions for interacting with IFC SyntaxLambdaDeclarator nodes.
 extern a_boolean has_ifc_eh_spec(
                              const an_ifc_syntax_lambda_declarator &universal);
 
-extern an_ifc_syntax_index get_ifc_eh_spec(
+template<>
+an_ifc_syntax_index get_ifc_eh_spec(
                              const an_ifc_syntax_lambda_declarator &universal);
 
 extern a_boolean has_ifc_expander(
                              const an_ifc_syntax_lambda_declarator &universal);
 
-extern an_ifc_source_location get_ifc_expander(
+template<>
+an_ifc_source_location get_ifc_expander(
                              const an_ifc_syntax_lambda_declarator &universal);
 
 extern a_boolean has_ifc_left_paren(
                              const an_ifc_syntax_lambda_declarator &universal);
 
-extern an_ifc_source_location get_ifc_left_paren(
+template<>
+an_ifc_source_location get_ifc_left_paren(
                              const an_ifc_syntax_lambda_declarator &universal);
 
 extern a_boolean has_ifc_modifier(
                              const an_ifc_syntax_lambda_declarator &universal);
 
-extern an_ifc_keyword_sort get_ifc_modifier(
+template<>
+an_ifc_keyword_sort get_ifc_modifier(
                              const an_ifc_syntax_lambda_declarator &universal);
 
 extern a_boolean has_ifc_parameters(
                              const an_ifc_syntax_lambda_declarator &universal);
 
-extern an_ifc_syntax_index get_ifc_parameters(
+template<>
+an_ifc_syntax_index get_ifc_parameters(
                              const an_ifc_syntax_lambda_declarator &universal);
 
 extern a_boolean has_ifc_right_paren(
                              const an_ifc_syntax_lambda_declarator &universal);
 
-extern an_ifc_source_location get_ifc_right_paren(
+template<>
+an_ifc_source_location get_ifc_right_paren(
                              const an_ifc_syntax_lambda_declarator &universal);
 
 extern a_boolean has_ifc_trailing_target(
                              const an_ifc_syntax_lambda_declarator &universal);
 
-extern an_ifc_syntax_index get_ifc_trailing_target(
+template<>
+an_ifc_syntax_index get_ifc_trailing_target(
                              const an_ifc_syntax_lambda_declarator &universal);
 
 extern a_boolean validate(const an_ifc_syntax_lambda_declarator &universal,
@@ -12046,19 +21063,22 @@ Functions for interacting with IFC SyntaxLambdaIntroducer nodes.
 extern a_boolean has_ifc_captures(
                              const an_ifc_syntax_lambda_introducer &universal);
 
-extern an_ifc_syntax_index get_ifc_captures(
+template<>
+an_ifc_syntax_index get_ifc_captures(
                              const an_ifc_syntax_lambda_introducer &universal);
 
 extern a_boolean has_ifc_left_bracket(
                              const an_ifc_syntax_lambda_introducer &universal);
 
-extern an_ifc_source_location get_ifc_left_bracket(
+template<>
+an_ifc_source_location get_ifc_left_bracket(
                              const an_ifc_syntax_lambda_introducer &universal);
 
 extern a_boolean has_ifc_right_bracket(
                              const an_ifc_syntax_lambda_introducer &universal);
 
-extern an_ifc_source_location get_ifc_right_bracket(
+template<>
+an_ifc_source_location get_ifc_right_bracket(
                              const an_ifc_syntax_lambda_introducer &universal);
 
 extern a_boolean validate(const an_ifc_syntax_lambda_introducer &universal,
@@ -12094,25 +21114,29 @@ Functions for interacting with IFC SyntaxMemInitializer nodes.
 
 extern a_boolean has_ifc_comma(const an_ifc_syntax_mem_initializer &universal);
 
-extern an_ifc_source_location get_ifc_comma(
+template<>
+an_ifc_source_location get_ifc_comma(
                                const an_ifc_syntax_mem_initializer &universal);
 
 extern a_boolean has_ifc_expander(
                                const an_ifc_syntax_mem_initializer &universal);
 
-extern an_ifc_source_location get_ifc_expander(
+template<>
+an_ifc_source_location get_ifc_expander(
                                const an_ifc_syntax_mem_initializer &universal);
 
 extern a_boolean has_ifc_initializer(
                                const an_ifc_syntax_mem_initializer &universal);
 
-extern an_ifc_expr_index get_ifc_initializer(
+template<>
+an_ifc_expr_index get_ifc_initializer(
                                const an_ifc_syntax_mem_initializer &universal);
 
 extern a_boolean has_ifc_member(
                                const an_ifc_syntax_mem_initializer &universal);
 
-extern an_ifc_expr_index get_ifc_member(
+template<>
+an_ifc_expr_index get_ifc_member(
                                const an_ifc_syntax_mem_initializer &universal);
 
 extern a_boolean validate(const an_ifc_syntax_mem_initializer &universal,
@@ -12149,19 +21173,22 @@ Functions for interacting with IFC SyntaxMemberDeclaration nodes.
 extern a_boolean has_ifc_decl_specifiers(
                             const an_ifc_syntax_member_declaration &universal);
 
-extern an_ifc_syntax_index get_ifc_decl_specifiers(
+template<>
+an_ifc_syntax_index get_ifc_decl_specifiers(
                             const an_ifc_syntax_member_declaration &universal);
 
 extern a_boolean has_ifc_declarations(
                             const an_ifc_syntax_member_declaration &universal);
 
-extern an_ifc_syntax_index get_ifc_declarations(
+template<>
+an_ifc_syntax_index get_ifc_declarations(
                             const an_ifc_syntax_member_declaration &universal);
 
 extern a_boolean has_ifc_semicolon(
                             const an_ifc_syntax_member_declaration &universal);
 
-extern an_ifc_source_location get_ifc_semicolon(
+template<>
+an_ifc_source_location get_ifc_semicolon(
                             const an_ifc_syntax_member_declaration &universal);
 
 extern a_boolean validate(const an_ifc_syntax_member_declaration &universal,
@@ -12198,43 +21225,50 @@ Functions for interacting with IFC SyntaxMemberDeclarator nodes.
 extern a_boolean has_ifc_bitwidth(
                              const an_ifc_syntax_member_declarator &universal);
 
-extern an_ifc_expr_index get_ifc_bitwidth(
+template<>
+an_ifc_expr_index get_ifc_bitwidth(
                              const an_ifc_syntax_member_declarator &universal);
 
 extern a_boolean has_ifc_colon(
                              const an_ifc_syntax_member_declarator &universal);
 
-extern an_ifc_source_location get_ifc_colon(
+template<>
+an_ifc_source_location get_ifc_colon(
                              const an_ifc_syntax_member_declarator &universal);
 
 extern a_boolean has_ifc_comma(
                              const an_ifc_syntax_member_declarator &universal);
 
-extern an_ifc_source_location get_ifc_comma(
+template<>
+an_ifc_source_location get_ifc_comma(
                              const an_ifc_syntax_member_declarator &universal);
 
 extern a_boolean has_ifc_constraint(
                              const an_ifc_syntax_member_declarator &universal);
 
-extern an_ifc_syntax_index get_ifc_constraint(
+template<>
+an_ifc_syntax_index get_ifc_constraint(
                              const an_ifc_syntax_member_declarator &universal);
 
 extern a_boolean has_ifc_declarator(
                              const an_ifc_syntax_member_declarator &universal);
 
-extern an_ifc_syntax_index get_ifc_declarator(
+template<>
+an_ifc_syntax_index get_ifc_declarator(
                              const an_ifc_syntax_member_declarator &universal);
 
 extern a_boolean has_ifc_initializer(
                              const an_ifc_syntax_member_declarator &universal);
 
-extern an_ifc_expr_index get_ifc_initializer(
+template<>
+an_ifc_expr_index get_ifc_initializer(
                              const an_ifc_syntax_member_declarator &universal);
 
 extern a_boolean has_ifc_locus(
                              const an_ifc_syntax_member_declarator &universal);
 
-extern an_ifc_source_location get_ifc_locus(
+template<>
+an_ifc_source_location get_ifc_locus(
                              const an_ifc_syntax_member_declarator &universal);
 
 extern a_boolean validate(const an_ifc_syntax_member_declarator &universal,
@@ -12271,7 +21305,8 @@ Functions for interacting with IFC SyntaxMemberFunctionDeclaration nodes.
 extern a_boolean has_ifc_definition(
                    const an_ifc_syntax_member_function_declaration &universal);
 
-extern an_ifc_syntax_index get_ifc_definition(
+template<>
+an_ifc_syntax_index get_ifc_definition(
                    const an_ifc_syntax_member_function_declaration &universal);
 
 extern a_boolean validate(
@@ -12311,7 +21346,8 @@ Functions for interacting with IFC SyntaxMemberSpecification nodes.
 extern a_boolean has_ifc_member_declarations(
                           const an_ifc_syntax_member_specification &universal);
 
-extern an_ifc_syntax_index get_ifc_member_declarations(
+template<>
+an_ifc_syntax_index get_ifc_member_declarations(
                           const an_ifc_syntax_member_specification &universal);
 
 extern a_boolean validate(const an_ifc_syntax_member_specification &universal,
@@ -12348,31 +21384,36 @@ Functions for interacting with IFC SyntaxNamespaceAliasDefinition nodes.
 extern a_boolean has_ifc_assign(
                     const an_ifc_syntax_namespace_alias_definition &universal);
 
-extern an_ifc_source_location get_ifc_assign(
+template<>
+an_ifc_source_location get_ifc_assign(
                     const an_ifc_syntax_namespace_alias_definition &universal);
 
 extern a_boolean has_ifc_name(
                     const an_ifc_syntax_namespace_alias_definition &universal);
 
-extern an_ifc_expr_index get_ifc_name(
+template<>
+an_ifc_expr_index get_ifc_name(
                     const an_ifc_syntax_namespace_alias_definition &universal);
 
 extern a_boolean has_ifc_namespace_kw(
                     const an_ifc_syntax_namespace_alias_definition &universal);
 
-extern an_ifc_source_location get_ifc_namespace_kw(
+template<>
+an_ifc_source_location get_ifc_namespace_kw(
                     const an_ifc_syntax_namespace_alias_definition &universal);
 
 extern a_boolean has_ifc_semicolon(
                     const an_ifc_syntax_namespace_alias_definition &universal);
 
-extern an_ifc_source_location get_ifc_semicolon(
+template<>
+an_ifc_source_location get_ifc_semicolon(
                     const an_ifc_syntax_namespace_alias_definition &universal);
 
 extern a_boolean has_ifc_target(
                     const an_ifc_syntax_namespace_alias_definition &universal);
 
-extern an_ifc_expr_index get_ifc_target(
+template<>
+an_ifc_expr_index get_ifc_target(
                     const an_ifc_syntax_namespace_alias_definition &universal);
 
 extern a_boolean validate(
@@ -12410,13 +21451,15 @@ Functions for interacting with IFC SyntaxNestedRequirement nodes.
 extern a_boolean has_ifc_condition(
                             const an_ifc_syntax_nested_requirement &universal);
 
-extern an_ifc_expr_index get_ifc_condition(
+template<>
+an_ifc_expr_index get_ifc_condition(
                             const an_ifc_syntax_nested_requirement &universal);
 
 extern a_boolean has_ifc_locus(
                             const an_ifc_syntax_nested_requirement &universal);
 
-extern an_ifc_source_location get_ifc_locus(
+template<>
+an_ifc_source_location get_ifc_locus(
                             const an_ifc_syntax_nested_requirement &universal);
 
 extern a_boolean validate(const an_ifc_syntax_nested_requirement &universal,
@@ -12453,7 +21496,8 @@ Functions for interacting with IFC SyntaxNewDeclarator nodes.
 extern a_boolean has_ifc_declarator(
                                 const an_ifc_syntax_new_declarator &universal);
 
-extern an_ifc_syntax_index get_ifc_declarator(
+template<>
+an_ifc_syntax_index get_ifc_declarator(
                                 const an_ifc_syntax_new_declarator &universal);
 
 extern a_boolean validate(const an_ifc_syntax_new_declarator &universal,
@@ -12490,25 +21534,29 @@ Functions for interacting with IFC SyntaxNoexceptSpecification nodes.
 extern a_boolean has_ifc_expr(
                         const an_ifc_syntax_noexcept_specification &universal);
 
-extern an_ifc_syntax_index get_ifc_expr(
+template<>
+an_ifc_syntax_index get_ifc_expr(
                         const an_ifc_syntax_noexcept_specification &universal);
 
 extern a_boolean has_ifc_left_paren(
                         const an_ifc_syntax_noexcept_specification &universal);
 
-extern an_ifc_source_location get_ifc_left_paren(
+template<>
+an_ifc_source_location get_ifc_left_paren(
                         const an_ifc_syntax_noexcept_specification &universal);
 
 extern a_boolean has_ifc_locus(
                         const an_ifc_syntax_noexcept_specification &universal);
 
-extern an_ifc_source_location get_ifc_locus(
+template<>
+an_ifc_source_location get_ifc_locus(
                         const an_ifc_syntax_noexcept_specification &universal);
 
 extern a_boolean has_ifc_right_paren(
                         const an_ifc_syntax_noexcept_specification &universal);
 
-extern an_ifc_source_location get_ifc_right_paren(
+template<>
+an_ifc_source_location get_ifc_right_paren(
                         const an_ifc_syntax_noexcept_specification &universal);
 
 extern a_boolean validate(
@@ -12546,19 +21594,22 @@ Functions for interacting with IFC SyntaxNonTypeTemplateArgument nodes.
 extern a_boolean has_ifc_argument(
                     const an_ifc_syntax_non_type_template_argument &universal);
 
-extern an_ifc_expr_index get_ifc_argument(
+template<>
+an_ifc_expr_index get_ifc_argument(
                     const an_ifc_syntax_non_type_template_argument &universal);
 
 extern a_boolean has_ifc_comma(
                     const an_ifc_syntax_non_type_template_argument &universal);
 
-extern an_ifc_source_location get_ifc_comma(
+template<>
+an_ifc_source_location get_ifc_comma(
                     const an_ifc_syntax_non_type_template_argument &universal);
 
 extern a_boolean has_ifc_ellipsis(
                     const an_ifc_syntax_non_type_template_argument &universal);
 
-extern an_ifc_source_location get_ifc_ellipsis(
+template<>
+an_ifc_source_location get_ifc_ellipsis(
                     const an_ifc_syntax_non_type_template_argument &universal);
 
 extern a_boolean validate(
@@ -12596,31 +21647,36 @@ Functions for interacting with IFC SyntaxParameterDeclarator nodes.
 extern a_boolean has_ifc_decl_specifiers(
                           const an_ifc_syntax_parameter_declarator &universal);
 
-extern an_ifc_syntax_index get_ifc_decl_specifiers(
+template<>
+an_ifc_syntax_index get_ifc_decl_specifiers(
                           const an_ifc_syntax_parameter_declarator &universal);
 
 extern a_boolean has_ifc_declarator(
                           const an_ifc_syntax_parameter_declarator &universal);
 
-extern an_ifc_syntax_index get_ifc_declarator(
+template<>
+an_ifc_syntax_index get_ifc_declarator(
                           const an_ifc_syntax_parameter_declarator &universal);
 
 extern a_boolean has_ifc_default_expr(
                           const an_ifc_syntax_parameter_declarator &universal);
 
-extern an_ifc_expr_index get_ifc_default_expr(
+template<>
+an_ifc_expr_index get_ifc_default_expr(
                           const an_ifc_syntax_parameter_declarator &universal);
 
 extern a_boolean has_ifc_locus(
                           const an_ifc_syntax_parameter_declarator &universal);
 
-extern an_ifc_source_location get_ifc_locus(
+template<>
+an_ifc_source_location get_ifc_locus(
                           const an_ifc_syntax_parameter_declarator &universal);
 
 extern a_boolean has_ifc_sort(
                           const an_ifc_syntax_parameter_declarator &universal);
 
-extern an_ifc_parameter_sort get_ifc_sort(
+template<>
+an_ifc_parameter_sort get_ifc_sort(
                           const an_ifc_syntax_parameter_declarator &universal);
 
 extern a_boolean validate(const an_ifc_syntax_parameter_declarator &universal,
@@ -12657,25 +21713,29 @@ Functions for interacting with IFC SyntaxPlaceholderTypeSpecifier nodes.
 extern a_boolean has_ifc_basis(
                     const an_ifc_syntax_placeholder_type_specifier &universal);
 
-extern an_ifc_type_basis_sort get_ifc_basis(
+template<>
+an_ifc_type_basis_sort get_ifc_basis(
                     const an_ifc_syntax_placeholder_type_specifier &universal);
 
 extern a_boolean has_ifc_constraint(
                     const an_ifc_syntax_placeholder_type_specifier &universal);
 
-extern an_ifc_expr_index get_ifc_constraint(
+template<>
+an_ifc_expr_index get_ifc_constraint(
                     const an_ifc_syntax_placeholder_type_specifier &universal);
 
 extern a_boolean has_ifc_keyword(
                     const an_ifc_syntax_placeholder_type_specifier &universal);
 
-extern an_ifc_source_location get_ifc_keyword(
+template<>
+an_ifc_source_location get_ifc_keyword(
                     const an_ifc_syntax_placeholder_type_specifier &universal);
 
 extern a_boolean has_ifc_locus(
                     const an_ifc_syntax_placeholder_type_specifier &universal);
 
-extern an_ifc_source_location get_ifc_locus(
+template<>
+an_ifc_source_location get_ifc_locus(
                     const an_ifc_syntax_placeholder_type_specifier &universal);
 
 extern a_boolean validate(
@@ -12713,43 +21773,50 @@ Functions for interacting with IFC SyntaxPointerDeclarator nodes.
 extern a_boolean has_ifc_callable(
                             const an_ifc_syntax_pointer_declarator &universal);
 
-extern an_ifc_bool get_ifc_callable(
+template<>
+an_ifc_bool get_ifc_callable(
                             const an_ifc_syntax_pointer_declarator &universal);
 
 extern a_boolean has_ifc_convention(
                             const an_ifc_syntax_pointer_declarator &universal);
 
-extern an_ifc_calling_convention_sort get_ifc_convention(
+template<>
+an_ifc_calling_convention_sort get_ifc_convention(
                             const an_ifc_syntax_pointer_declarator &universal);
 
 extern a_boolean has_ifc_locus(
                             const an_ifc_syntax_pointer_declarator &universal);
 
-extern an_ifc_source_location get_ifc_locus(
+template<>
+an_ifc_source_location get_ifc_locus(
                             const an_ifc_syntax_pointer_declarator &universal);
 
 extern a_boolean has_ifc_next(
                             const an_ifc_syntax_pointer_declarator &universal);
 
-extern an_ifc_syntax_index get_ifc_next(
+template<>
+an_ifc_syntax_index get_ifc_next(
                             const an_ifc_syntax_pointer_declarator &universal);
 
 extern a_boolean has_ifc_qualifiers(
                             const an_ifc_syntax_pointer_declarator &universal);
 
-extern an_ifc_qualifier_bitfield get_ifc_qualifiers(
+template<>
+an_ifc_qualifier_bitfield get_ifc_qualifiers(
                             const an_ifc_syntax_pointer_declarator &universal);
 
 extern a_boolean has_ifc_sort(
                             const an_ifc_syntax_pointer_declarator &universal);
 
-extern an_ifc_pointer_declarator_sort get_ifc_sort(
+template<>
+an_ifc_pointer_declarator_sort get_ifc_sort(
                             const an_ifc_syntax_pointer_declarator &universal);
 
 extern a_boolean has_ifc_whole(
                             const an_ifc_syntax_pointer_declarator &universal);
 
-extern an_ifc_syntax_index get_ifc_whole(
+template<>
+an_ifc_syntax_index get_ifc_whole(
                             const an_ifc_syntax_pointer_declarator &universal);
 
 extern a_boolean validate(const an_ifc_syntax_pointer_declarator &universal,
@@ -12786,55 +21853,64 @@ Functions for interacting with IFC SyntaxRangeBasedForStatement nodes.
 extern a_boolean has_ifc_body(
                      const an_ifc_syntax_range_based_for_statement &universal);
 
-extern an_ifc_syntax_index get_ifc_body(
+template<>
+an_ifc_syntax_index get_ifc_body(
                      const an_ifc_syntax_range_based_for_statement &universal);
 
 extern a_boolean has_ifc_colon(
                      const an_ifc_syntax_range_based_for_statement &universal);
 
-extern an_ifc_source_location get_ifc_colon(
+template<>
+an_ifc_source_location get_ifc_colon(
                      const an_ifc_syntax_range_based_for_statement &universal);
 
 extern a_boolean has_ifc_decl(
                      const an_ifc_syntax_range_based_for_statement &universal);
 
-extern an_ifc_syntax_index get_ifc_decl(
+template<>
+an_ifc_syntax_index get_ifc_decl(
                      const an_ifc_syntax_range_based_for_statement &universal);
 
 extern a_boolean has_ifc_for(
                      const an_ifc_syntax_range_based_for_statement &universal);
 
-extern an_ifc_source_location get_ifc_for(
+template<>
+an_ifc_source_location get_ifc_for(
                      const an_ifc_syntax_range_based_for_statement &universal);
 
 extern a_boolean has_ifc_init(
                      const an_ifc_syntax_range_based_for_statement &universal);
 
-extern an_ifc_syntax_index get_ifc_init(
+template<>
+an_ifc_syntax_index get_ifc_init(
                      const an_ifc_syntax_range_based_for_statement &universal);
 
 extern a_boolean has_ifc_initializer(
                      const an_ifc_syntax_range_based_for_statement &universal);
 
-extern an_ifc_syntax_index get_ifc_initializer(
+template<>
+an_ifc_syntax_index get_ifc_initializer(
                      const an_ifc_syntax_range_based_for_statement &universal);
 
 extern a_boolean has_ifc_left_paren(
                      const an_ifc_syntax_range_based_for_statement &universal);
 
-extern an_ifc_source_location get_ifc_left_paren(
+template<>
+an_ifc_source_location get_ifc_left_paren(
                      const an_ifc_syntax_range_based_for_statement &universal);
 
 extern a_boolean has_ifc_pragma(
                      const an_ifc_syntax_range_based_for_statement &universal);
 
-extern an_ifc_sentence_index get_ifc_pragma(
+template<>
+an_ifc_sentence_index get_ifc_pragma(
                      const an_ifc_syntax_range_based_for_statement &universal);
 
 extern a_boolean has_ifc_right_paren(
                      const an_ifc_syntax_range_based_for_statement &universal);
 
-extern an_ifc_source_location get_ifc_right_paren(
+template<>
+an_ifc_source_location get_ifc_right_paren(
                      const an_ifc_syntax_range_based_for_statement &universal);
 
 extern a_boolean validate(
@@ -12872,19 +21948,22 @@ Functions for interacting with IFC SyntaxRequirementBody nodes.
 extern a_boolean has_ifc_locus(
                               const an_ifc_syntax_requirement_body &universal);
 
-extern an_ifc_source_location get_ifc_locus(
+template<>
+an_ifc_source_location get_ifc_locus(
                               const an_ifc_syntax_requirement_body &universal);
 
 extern a_boolean has_ifc_requirements(
                               const an_ifc_syntax_requirement_body &universal);
 
-extern an_ifc_syntax_index get_ifc_requirements(
+template<>
+an_ifc_syntax_index get_ifc_requirements(
                               const an_ifc_syntax_requirement_body &universal);
 
 extern a_boolean has_ifc_right_curly(
                               const an_ifc_syntax_requirement_body &universal);
 
-extern an_ifc_source_location get_ifc_right_curly(
+template<>
+an_ifc_source_location get_ifc_right_curly(
                               const an_ifc_syntax_requirement_body &universal);
 
 extern a_boolean validate(const an_ifc_syntax_requirement_body &universal,
@@ -12921,12 +22000,14 @@ Functions for interacting with IFC SyntaxRequiresClause nodes.
 extern a_boolean has_ifc_condition(
                                const an_ifc_syntax_requires_clause &universal);
 
-extern an_ifc_expr_index get_ifc_condition(
+template<>
+an_ifc_expr_index get_ifc_condition(
                                const an_ifc_syntax_requires_clause &universal);
 
 extern a_boolean has_ifc_locus(const an_ifc_syntax_requires_clause &universal);
 
-extern an_ifc_source_location get_ifc_locus(
+template<>
+an_ifc_source_location get_ifc_locus(
                                const an_ifc_syntax_requires_clause &universal);
 
 extern a_boolean validate(const an_ifc_syntax_requires_clause &universal,
@@ -12962,30 +22043,35 @@ Functions for interacting with IFC SyntaxReturnStatement nodes.
 
 extern a_boolean has_ifc_expr(const an_ifc_syntax_return_statement &universal);
 
-extern an_ifc_expr_index get_ifc_expr(
+template<>
+an_ifc_expr_index get_ifc_expr(
                               const an_ifc_syntax_return_statement &universal);
 
 extern a_boolean has_ifc_pragma(
                               const an_ifc_syntax_return_statement &universal);
 
-extern an_ifc_sentence_index get_ifc_pragma(
+template<>
+an_ifc_sentence_index get_ifc_pragma(
                               const an_ifc_syntax_return_statement &universal);
 
 extern a_boolean has_ifc_return(
                               const an_ifc_syntax_return_statement &universal);
 
-extern an_ifc_source_location get_ifc_return(
+template<>
+an_ifc_source_location get_ifc_return(
                               const an_ifc_syntax_return_statement &universal);
 
 extern a_boolean has_ifc_semicolon(
                               const an_ifc_syntax_return_statement &universal);
 
-extern an_ifc_source_location get_ifc_semicolon(
+template<>
+an_ifc_source_location get_ifc_semicolon(
                               const an_ifc_syntax_return_statement &universal);
 
 extern a_boolean has_ifc_sort(const an_ifc_syntax_return_statement &universal);
 
-extern an_ifc_return_sort get_ifc_sort(
+template<>
+an_ifc_return_sort get_ifc_sort(
                               const an_ifc_syntax_return_statement &universal);
 
 extern a_boolean validate(const an_ifc_syntax_return_statement &universal,
@@ -13021,28 +22107,31 @@ Functions for interacting with IFC SyntaxSEHExcept nodes.
 
 extern a_boolean has_ifc_body(const an_ifc_syntax_seh_except &universal);
 
-extern an_ifc_syntax_index get_ifc_body(
-                                    const an_ifc_syntax_seh_except &universal);
+template<>
+an_ifc_syntax_index get_ifc_body(const an_ifc_syntax_seh_except &universal);
 
 extern a_boolean has_ifc_condition(const an_ifc_syntax_seh_except &universal);
 
-extern an_ifc_expr_index get_ifc_condition(
-                                    const an_ifc_syntax_seh_except &universal);
+template<>
+an_ifc_expr_index get_ifc_condition(const an_ifc_syntax_seh_except &universal);
 
 extern a_boolean has_ifc_except_kw(const an_ifc_syntax_seh_except &universal);
 
-extern an_ifc_source_location get_ifc_except_kw(
+template<>
+an_ifc_source_location get_ifc_except_kw(
                                     const an_ifc_syntax_seh_except &universal);
 
 extern a_boolean has_ifc_left_paren(const an_ifc_syntax_seh_except &universal);
 
-extern an_ifc_source_location get_ifc_left_paren(
+template<>
+an_ifc_source_location get_ifc_left_paren(
                                     const an_ifc_syntax_seh_except &universal);
 
 extern a_boolean has_ifc_right_paren(
                                     const an_ifc_syntax_seh_except &universal);
 
-extern an_ifc_source_location get_ifc_right_paren(
+template<>
+an_ifc_source_location get_ifc_right_paren(
                                     const an_ifc_syntax_seh_except &universal);
 
 extern a_boolean validate(const an_ifc_syntax_seh_except &universal,
@@ -13077,13 +22166,14 @@ Functions for interacting with IFC SyntaxSEHFinally nodes.
 
 extern a_boolean has_ifc_body(const an_ifc_syntax_seh_finally &universal);
 
-extern an_ifc_syntax_index get_ifc_body(
-                                   const an_ifc_syntax_seh_finally &universal);
+template<>
+an_ifc_syntax_index get_ifc_body(const an_ifc_syntax_seh_finally &universal);
 
 extern a_boolean has_ifc_finally_kw(
                                    const an_ifc_syntax_seh_finally &universal);
 
-extern an_ifc_source_location get_ifc_finally_kw(
+template<>
+an_ifc_source_location get_ifc_finally_kw(
                                    const an_ifc_syntax_seh_finally &universal);
 
 extern a_boolean validate(const an_ifc_syntax_seh_finally &universal,
@@ -13118,12 +22208,14 @@ Functions for interacting with IFC SyntaxSEHLeave nodes.
 
 extern a_boolean has_ifc_leave_kw(const an_ifc_syntax_seh_leave &universal);
 
-extern an_ifc_source_location get_ifc_leave_kw(
+template<>
+an_ifc_source_location get_ifc_leave_kw(
                                      const an_ifc_syntax_seh_leave &universal);
 
 extern a_boolean has_ifc_semicolon(const an_ifc_syntax_seh_leave &universal);
 
-extern an_ifc_source_location get_ifc_semicolon(
+template<>
+an_ifc_source_location get_ifc_semicolon(
                                      const an_ifc_syntax_seh_leave &universal);
 
 extern a_boolean validate(const an_ifc_syntax_seh_leave &universal,
@@ -13157,18 +22249,18 @@ Functions for interacting with IFC SyntaxSEHTry nodes.
 
 extern a_boolean has_ifc_body(const an_ifc_syntax_seh_try &universal);
 
-extern an_ifc_syntax_index get_ifc_body(
-                                       const an_ifc_syntax_seh_try &universal);
+template<>
+an_ifc_syntax_index get_ifc_body(const an_ifc_syntax_seh_try &universal);
 
 extern a_boolean has_ifc_handler(const an_ifc_syntax_seh_try &universal);
 
-extern an_ifc_syntax_index get_ifc_handler(
-                                       const an_ifc_syntax_seh_try &universal);
+template<>
+an_ifc_syntax_index get_ifc_handler(const an_ifc_syntax_seh_try &universal);
 
 extern a_boolean has_ifc_try_kw(const an_ifc_syntax_seh_try &universal);
 
-extern an_ifc_source_location get_ifc_try_kw(
-                                       const an_ifc_syntax_seh_try &universal);
+template<>
+an_ifc_source_location get_ifc_try_kw(const an_ifc_syntax_seh_try &universal);
 
 extern a_boolean validate(const an_ifc_syntax_seh_try   &universal,
                           const an_ifc_validation_trace *parent);
@@ -13202,24 +22294,27 @@ Functions for interacting with IFC SyntaxSimpleCapture nodes.
 extern a_boolean has_ifc_ampersand(
                                 const an_ifc_syntax_simple_capture &universal);
 
-extern an_ifc_source_location get_ifc_ampersand(
+template<>
+an_ifc_source_location get_ifc_ampersand(
                                 const an_ifc_syntax_simple_capture &universal);
 
 extern a_boolean has_ifc_comma(const an_ifc_syntax_simple_capture &universal);
 
-extern an_ifc_source_location get_ifc_comma(
+template<>
+an_ifc_source_location get_ifc_comma(
                                 const an_ifc_syntax_simple_capture &universal);
 
 extern a_boolean has_ifc_expander(
                                 const an_ifc_syntax_simple_capture &universal);
 
-extern an_ifc_source_location get_ifc_expander(
+template<>
+an_ifc_source_location get_ifc_expander(
                                 const an_ifc_syntax_simple_capture &universal);
 
 extern a_boolean has_ifc_name(const an_ifc_syntax_simple_capture &universal);
 
-extern an_ifc_expr_index get_ifc_name(
-                                const an_ifc_syntax_simple_capture &universal);
+template<>
+an_ifc_expr_index get_ifc_name(const an_ifc_syntax_simple_capture &universal);
 
 extern a_boolean validate(const an_ifc_syntax_simple_capture &universal,
                           const an_ifc_validation_trace      *parent);
@@ -13255,25 +22350,29 @@ Functions for interacting with IFC SyntaxSimpleDeclaration nodes.
 extern a_boolean has_ifc_decl_specifiers(
                             const an_ifc_syntax_simple_declaration &universal);
 
-extern an_ifc_syntax_index get_ifc_decl_specifiers(
+template<>
+an_ifc_syntax_index get_ifc_decl_specifiers(
                             const an_ifc_syntax_simple_declaration &universal);
 
 extern a_boolean has_ifc_declarators(
                             const an_ifc_syntax_simple_declaration &universal);
 
-extern an_ifc_syntax_index get_ifc_declarators(
+template<>
+an_ifc_syntax_index get_ifc_declarators(
                             const an_ifc_syntax_simple_declaration &universal);
 
 extern a_boolean has_ifc_locus(
                             const an_ifc_syntax_simple_declaration &universal);
 
-extern an_ifc_source_location get_ifc_locus(
+template<>
+an_ifc_source_location get_ifc_locus(
                             const an_ifc_syntax_simple_declaration &universal);
 
 extern a_boolean has_ifc_semicolon(
                             const an_ifc_syntax_simple_declaration &universal);
 
-extern an_ifc_source_location get_ifc_semicolon(
+template<>
+an_ifc_source_location get_ifc_semicolon(
                             const an_ifc_syntax_simple_declaration &universal);
 
 extern a_boolean validate(const an_ifc_syntax_simple_declaration &universal,
@@ -13310,13 +22409,15 @@ Functions for interacting with IFC SyntaxSimpleRequirement nodes.
 extern a_boolean has_ifc_condition(
                             const an_ifc_syntax_simple_requirement &universal);
 
-extern an_ifc_expr_index get_ifc_condition(
+template<>
+an_ifc_expr_index get_ifc_condition(
                             const an_ifc_syntax_simple_requirement &universal);
 
 extern a_boolean has_ifc_locus(
                             const an_ifc_syntax_simple_requirement &universal);
 
-extern an_ifc_source_location get_ifc_locus(
+template<>
+an_ifc_source_location get_ifc_locus(
                             const an_ifc_syntax_simple_requirement &universal);
 
 extern a_boolean validate(const an_ifc_syntax_simple_requirement &universal,
@@ -13353,19 +22454,22 @@ Functions for interacting with IFC SyntaxSimpleTypeSpecifier nodes.
 extern a_boolean has_ifc_expr(
                          const an_ifc_syntax_simple_type_specifier &universal);
 
-extern an_ifc_expr_index get_ifc_expr(
+template<>
+an_ifc_expr_index get_ifc_expr(
                          const an_ifc_syntax_simple_type_specifier &universal);
 
 extern a_boolean has_ifc_locus(
                          const an_ifc_syntax_simple_type_specifier &universal);
 
-extern an_ifc_source_location get_ifc_locus(
+template<>
+an_ifc_source_location get_ifc_locus(
                          const an_ifc_syntax_simple_type_specifier &universal);
 
 extern a_boolean has_ifc_type(
                          const an_ifc_syntax_simple_type_specifier &universal);
 
-extern an_ifc_type_index get_ifc_type(
+template<>
+an_ifc_type_index get_ifc_type(
                          const an_ifc_syntax_simple_type_specifier &universal);
 
 extern a_boolean validate(
@@ -13402,7 +22506,8 @@ Functions for interacting with IFC SyntaxStatementSeq nodes.
 
 extern a_boolean has_ifc_stmts(const an_ifc_syntax_statement_seq &universal);
 
-extern an_ifc_syntax_index get_ifc_stmts(
+template<>
+an_ifc_syntax_index get_ifc_stmts(
                                  const an_ifc_syntax_statement_seq &universal);
 
 extern a_boolean validate(const an_ifc_syntax_statement_seq &universal,
@@ -13438,43 +22543,50 @@ Functions for interacting with IFC SyntaxStaticAssertDeclaration nodes.
 extern a_boolean has_ifc_comma(
                      const an_ifc_syntax_static_assert_declaration &universal);
 
-extern an_ifc_source_location get_ifc_comma(
+template<>
+an_ifc_source_location get_ifc_comma(
                      const an_ifc_syntax_static_assert_declaration &universal);
 
 extern a_boolean has_ifc_condition(
                      const an_ifc_syntax_static_assert_declaration &universal);
 
-extern an_ifc_expr_index get_ifc_condition(
+template<>
+an_ifc_expr_index get_ifc_condition(
                      const an_ifc_syntax_static_assert_declaration &universal);
 
 extern a_boolean has_ifc_left_paren(
                      const an_ifc_syntax_static_assert_declaration &universal);
 
-extern an_ifc_source_location get_ifc_left_paren(
+template<>
+an_ifc_source_location get_ifc_left_paren(
                      const an_ifc_syntax_static_assert_declaration &universal);
 
 extern a_boolean has_ifc_locus(
                      const an_ifc_syntax_static_assert_declaration &universal);
 
-extern an_ifc_source_location get_ifc_locus(
+template<>
+an_ifc_source_location get_ifc_locus(
                      const an_ifc_syntax_static_assert_declaration &universal);
 
 extern a_boolean has_ifc_message(
                      const an_ifc_syntax_static_assert_declaration &universal);
 
-extern an_ifc_expr_index get_ifc_message(
+template<>
+an_ifc_expr_index get_ifc_message(
                      const an_ifc_syntax_static_assert_declaration &universal);
 
 extern a_boolean has_ifc_right_paren(
                      const an_ifc_syntax_static_assert_declaration &universal);
 
-extern an_ifc_source_location get_ifc_right_paren(
+template<>
+an_ifc_source_location get_ifc_right_paren(
                      const an_ifc_syntax_static_assert_declaration &universal);
 
 extern a_boolean has_ifc_semicolon(
                      const an_ifc_syntax_static_assert_declaration &universal);
 
-extern an_ifc_source_location get_ifc_semicolon(
+template<>
+an_ifc_source_location get_ifc_semicolon(
                      const an_ifc_syntax_static_assert_declaration &universal);
 
 extern a_boolean validate(
@@ -13512,31 +22624,36 @@ Functions for interacting with IFC SyntaxStructuredBindingDeclaration nodes.
 extern a_boolean has_ifc_initializer(
                 const an_ifc_syntax_structured_binding_declaration &universal);
 
-extern an_ifc_expr_index get_ifc_initializer(
+template<>
+an_ifc_expr_index get_ifc_initializer(
                 const an_ifc_syntax_structured_binding_declaration &universal);
 
 extern a_boolean has_ifc_locus(
                 const an_ifc_syntax_structured_binding_declaration &universal);
 
-extern an_ifc_source_location get_ifc_locus(
+template<>
+an_ifc_source_location get_ifc_locus(
                 const an_ifc_syntax_structured_binding_declaration &universal);
 
 extern a_boolean has_ifc_names(
                 const an_ifc_syntax_structured_binding_declaration &universal);
 
-extern an_ifc_syntax_index get_ifc_names(
+template<>
+an_ifc_syntax_index get_ifc_names(
                 const an_ifc_syntax_structured_binding_declaration &universal);
 
 extern a_boolean has_ifc_ref(
                 const an_ifc_syntax_structured_binding_declaration &universal);
 
-extern an_ifc_source_location get_ifc_ref(
+template<>
+an_ifc_source_location get_ifc_ref(
                 const an_ifc_syntax_structured_binding_declaration &universal);
 
 extern a_boolean has_ifc_specifiers(
                 const an_ifc_syntax_structured_binding_declaration &universal);
 
-extern an_ifc_syntax_index get_ifc_specifiers(
+template<>
+an_ifc_syntax_index get_ifc_specifiers(
                 const an_ifc_syntax_structured_binding_declaration &universal);
 
 extern a_boolean validate(
@@ -13576,13 +22693,15 @@ Functions for interacting with IFC SyntaxStructuredBindingIdentifier nodes.
 extern a_boolean has_ifc_comma(
                  const an_ifc_syntax_structured_binding_identifier &universal);
 
-extern an_ifc_source_location get_ifc_comma(
+template<>
+an_ifc_source_location get_ifc_comma(
                  const an_ifc_syntax_structured_binding_identifier &universal);
 
 extern a_boolean has_ifc_name(
                  const an_ifc_syntax_structured_binding_identifier &universal);
 
-extern an_ifc_expr_index get_ifc_name(
+template<>
+an_ifc_expr_index get_ifc_name(
                  const an_ifc_syntax_structured_binding_identifier &universal);
 
 extern a_boolean validate(
@@ -13621,8 +22740,8 @@ Functions for interacting with IFC SyntaxSuper nodes.
 
 extern a_boolean has_ifc_locus(const an_ifc_syntax_super &universal);
 
-extern an_ifc_source_location get_ifc_locus(
-                                         const an_ifc_syntax_super &universal);
+template<>
+an_ifc_source_location get_ifc_locus(const an_ifc_syntax_super &universal);
 
 extern a_boolean validate(const an_ifc_syntax_super     &universal,
                           const an_ifc_validation_trace *parent);
@@ -13655,30 +22774,35 @@ Functions for interacting with IFC SyntaxSwitchStatement nodes.
 
 extern a_boolean has_ifc_body(const an_ifc_syntax_switch_statement &universal);
 
-extern an_ifc_syntax_index get_ifc_body(
+template<>
+an_ifc_syntax_index get_ifc_body(
                               const an_ifc_syntax_switch_statement &universal);
 
 extern a_boolean has_ifc_condition(
                               const an_ifc_syntax_switch_statement &universal);
 
-extern an_ifc_syntax_index get_ifc_condition(
+template<>
+an_ifc_syntax_index get_ifc_condition(
                               const an_ifc_syntax_switch_statement &universal);
 
 extern a_boolean has_ifc_init(const an_ifc_syntax_switch_statement &universal);
 
-extern an_ifc_syntax_index get_ifc_init(
+template<>
+an_ifc_syntax_index get_ifc_init(
                               const an_ifc_syntax_switch_statement &universal);
 
 extern a_boolean has_ifc_pragma(
                               const an_ifc_syntax_switch_statement &universal);
 
-extern an_ifc_sentence_index get_ifc_pragma(
+template<>
+an_ifc_sentence_index get_ifc_pragma(
                               const an_ifc_syntax_switch_statement &universal);
 
 extern a_boolean has_ifc_switch(
                               const an_ifc_syntax_switch_statement &universal);
 
-extern an_ifc_source_location get_ifc_switch(
+template<>
+an_ifc_source_location get_ifc_switch(
                               const an_ifc_syntax_switch_statement &universal);
 
 extern a_boolean validate(const an_ifc_syntax_switch_statement &universal,
@@ -13715,19 +22839,22 @@ Functions for interacting with IFC SyntaxTemplateArgumentList nodes.
 extern a_boolean has_ifc_arguments(
                         const an_ifc_syntax_template_argument_list &universal);
 
-extern an_ifc_syntax_index get_ifc_arguments(
+template<>
+an_ifc_syntax_index get_ifc_arguments(
                         const an_ifc_syntax_template_argument_list &universal);
 
 extern a_boolean has_ifc_left_angle(
                         const an_ifc_syntax_template_argument_list &universal);
 
-extern an_ifc_source_location get_ifc_left_angle(
+template<>
+an_ifc_source_location get_ifc_left_angle(
                         const an_ifc_syntax_template_argument_list &universal);
 
 extern a_boolean has_ifc_right_angle(
                         const an_ifc_syntax_template_argument_list &universal);
 
-extern an_ifc_source_location get_ifc_right_angle(
+template<>
+an_ifc_source_location get_ifc_right_angle(
                         const an_ifc_syntax_template_argument_list &universal);
 
 extern a_boolean validate(
@@ -13765,19 +22892,22 @@ Functions for interacting with IFC SyntaxTemplateDeclaration nodes.
 extern a_boolean has_ifc_locus(
                           const an_ifc_syntax_template_declaration &universal);
 
-extern an_ifc_source_location get_ifc_locus(
+template<>
+an_ifc_source_location get_ifc_locus(
                           const an_ifc_syntax_template_declaration &universal);
 
 extern a_boolean has_ifc_parameters(
                           const an_ifc_syntax_template_declaration &universal);
 
-extern an_ifc_syntax_index get_ifc_parameters(
+template<>
+an_ifc_syntax_index get_ifc_parameters(
                           const an_ifc_syntax_template_declaration &universal);
 
 extern a_boolean has_ifc_subject(
                           const an_ifc_syntax_template_declaration &universal);
 
-extern an_ifc_syntax_index get_ifc_subject(
+template<>
+an_ifc_syntax_index get_ifc_subject(
                           const an_ifc_syntax_template_declaration &universal);
 
 extern a_boolean validate(const an_ifc_syntax_template_declaration &universal,
@@ -13813,28 +22943,31 @@ Functions for interacting with IFC SyntaxTemplateId nodes.
 
 extern a_boolean has_ifc_arguments(const an_ifc_syntax_template_id &universal);
 
-extern an_ifc_syntax_index get_ifc_arguments(
+template<>
+an_ifc_syntax_index get_ifc_arguments(
                                    const an_ifc_syntax_template_id &universal);
 
 extern a_boolean has_ifc_locus(const an_ifc_syntax_template_id &universal);
 
-extern an_ifc_source_location get_ifc_locus(
+template<>
+an_ifc_source_location get_ifc_locus(
                                    const an_ifc_syntax_template_id &universal);
 
 extern a_boolean has_ifc_name(const an_ifc_syntax_template_id &universal);
 
-extern an_ifc_syntax_index get_ifc_name(
-                                   const an_ifc_syntax_template_id &universal);
+template<>
+an_ifc_syntax_index get_ifc_name(const an_ifc_syntax_template_id &universal);
 
 extern a_boolean has_ifc_symbol(const an_ifc_syntax_template_id &universal);
 
-extern an_ifc_expr_index get_ifc_symbol(
-                                   const an_ifc_syntax_template_id &universal);
+template<>
+an_ifc_expr_index get_ifc_symbol(const an_ifc_syntax_template_id &universal);
 
 extern a_boolean has_ifc_template_kw(
                                    const an_ifc_syntax_template_id &universal);
 
-extern an_ifc_source_location get_ifc_template_kw(
+template<>
+an_ifc_source_location get_ifc_template_kw(
                                    const an_ifc_syntax_template_id &universal);
 
 extern a_boolean validate(const an_ifc_syntax_template_id &universal,
@@ -13870,25 +23003,29 @@ Functions for interacting with IFC SyntaxTemplateParameterList nodes.
 extern a_boolean has_ifc_clause(
                        const an_ifc_syntax_template_parameter_list &universal);
 
-extern an_ifc_syntax_index get_ifc_clause(
+template<>
+an_ifc_syntax_index get_ifc_clause(
                        const an_ifc_syntax_template_parameter_list &universal);
 
 extern a_boolean has_ifc_left_angle(
                        const an_ifc_syntax_template_parameter_list &universal);
 
-extern an_ifc_source_location get_ifc_left_angle(
+template<>
+an_ifc_source_location get_ifc_left_angle(
                        const an_ifc_syntax_template_parameter_list &universal);
 
 extern a_boolean has_ifc_parameters(
                        const an_ifc_syntax_template_parameter_list &universal);
 
-extern an_ifc_syntax_index get_ifc_parameters(
+template<>
+an_ifc_syntax_index get_ifc_parameters(
                        const an_ifc_syntax_template_parameter_list &universal);
 
 extern a_boolean has_ifc_right_angle(
                        const an_ifc_syntax_template_parameter_list &universal);
 
-extern an_ifc_source_location get_ifc_right_angle(
+template<>
+an_ifc_source_location get_ifc_right_angle(
                        const an_ifc_syntax_template_parameter_list &universal);
 
 extern a_boolean validate(
@@ -13926,43 +23063,50 @@ Functions for interacting with IFC SyntaxTemplateTemplateParameter nodes.
 extern a_boolean has_ifc_argument(
                    const an_ifc_syntax_template_template_parameter &universal);
 
-extern an_ifc_syntax_index get_ifc_argument(
+template<>
+an_ifc_syntax_index get_ifc_argument(
                    const an_ifc_syntax_template_template_parameter &universal);
 
 extern a_boolean has_ifc_comma(
                    const an_ifc_syntax_template_template_parameter &universal);
 
-extern an_ifc_source_location get_ifc_comma(
+template<>
+an_ifc_source_location get_ifc_comma(
                    const an_ifc_syntax_template_template_parameter &universal);
 
 extern a_boolean has_ifc_ellipsis(
                    const an_ifc_syntax_template_template_parameter &universal);
 
-extern an_ifc_source_location get_ifc_ellipsis(
+template<>
+an_ifc_source_location get_ifc_ellipsis(
                    const an_ifc_syntax_template_template_parameter &universal);
 
 extern a_boolean has_ifc_key(
                    const an_ifc_syntax_template_template_parameter &universal);
 
-extern an_ifc_keyword_syntax get_ifc_key(
+template<>
+an_ifc_keyword_syntax get_ifc_key(
                    const an_ifc_syntax_template_template_parameter &universal);
 
 extern a_boolean has_ifc_locus(
                    const an_ifc_syntax_template_template_parameter &universal);
 
-extern an_ifc_source_location get_ifc_locus(
+template<>
+an_ifc_source_location get_ifc_locus(
                    const an_ifc_syntax_template_template_parameter &universal);
 
 extern a_boolean has_ifc_name(
                    const an_ifc_syntax_template_template_parameter &universal);
 
-extern an_ifc_text_offset get_ifc_name(
+template<>
+an_ifc_text_offset get_ifc_name(
                    const an_ifc_syntax_template_template_parameter &universal);
 
 extern a_boolean has_ifc_parameters(
                    const an_ifc_syntax_template_template_parameter &universal);
 
-extern an_ifc_syntax_index get_ifc_parameters(
+template<>
+an_ifc_syntax_index get_ifc_parameters(
                    const an_ifc_syntax_template_template_parameter &universal);
 
 extern a_boolean validate(
@@ -14001,17 +23145,20 @@ Functions for interacting with IFC SyntaxThisCapture nodes.
 
 extern a_boolean has_ifc_asterisk(const an_ifc_syntax_this_capture &universal);
 
-extern an_ifc_source_location get_ifc_asterisk(
+template<>
+an_ifc_source_location get_ifc_asterisk(
                                   const an_ifc_syntax_this_capture &universal);
 
 extern a_boolean has_ifc_comma(const an_ifc_syntax_this_capture &universal);
 
-extern an_ifc_source_location get_ifc_comma(
+template<>
+an_ifc_source_location get_ifc_comma(
                                   const an_ifc_syntax_this_capture &universal);
 
 extern a_boolean has_ifc_locus(const an_ifc_syntax_this_capture &universal);
 
-extern an_ifc_source_location get_ifc_locus(
+template<>
+an_ifc_source_location get_ifc_locus(
                                   const an_ifc_syntax_this_capture &universal);
 
 extern a_boolean validate(const an_ifc_syntax_this_capture &universal,
@@ -14047,13 +23194,15 @@ Functions for interacting with IFC SyntaxTrailingReturnType nodes.
 extern a_boolean has_ifc_arrow(
                           const an_ifc_syntax_trailing_return_type &universal);
 
-extern an_ifc_source_location get_ifc_arrow(
+template<>
+an_ifc_source_location get_ifc_arrow(
                           const an_ifc_syntax_trailing_return_type &universal);
 
 extern a_boolean has_ifc_target(
                           const an_ifc_syntax_trailing_return_type &universal);
 
-extern an_ifc_syntax_index get_ifc_target(
+template<>
+an_ifc_syntax_index get_ifc_target(
                           const an_ifc_syntax_trailing_return_type &universal);
 
 extern a_boolean validate(const an_ifc_syntax_trailing_return_type &universal,
@@ -14089,23 +23238,23 @@ Functions for interacting with IFC SyntaxTryBlock nodes.
 
 extern a_boolean has_ifc_body(const an_ifc_syntax_try_block &universal);
 
-extern an_ifc_syntax_index get_ifc_body(
-                                     const an_ifc_syntax_try_block &universal);
+template<>
+an_ifc_syntax_index get_ifc_body(const an_ifc_syntax_try_block &universal);
 
 extern a_boolean has_ifc_handlers(const an_ifc_syntax_try_block &universal);
 
-extern an_ifc_syntax_index get_ifc_handlers(
-                                     const an_ifc_syntax_try_block &universal);
+template<>
+an_ifc_syntax_index get_ifc_handlers(const an_ifc_syntax_try_block &universal);
 
 extern a_boolean has_ifc_pragma(const an_ifc_syntax_try_block &universal);
 
-extern an_ifc_sentence_index get_ifc_pragma(
-                                     const an_ifc_syntax_try_block &universal);
+template<>
+an_ifc_sentence_index get_ifc_pragma(const an_ifc_syntax_try_block &universal);
 
 extern a_boolean has_ifc_try(const an_ifc_syntax_try_block &universal);
 
-extern an_ifc_source_location get_ifc_try(
-                                     const an_ifc_syntax_try_block &universal);
+template<>
+an_ifc_source_location get_ifc_try(const an_ifc_syntax_try_block &universal);
 
 extern a_boolean validate(const an_ifc_syntax_try_block &universal,
                           const an_ifc_validation_trace *parent);
@@ -14138,12 +23287,13 @@ Functions for interacting with IFC SyntaxTuple nodes.
 
 extern a_boolean has_ifc_cardinality(const an_ifc_syntax_tuple &universal);
 
-extern an_ifc_cardinality get_ifc_cardinality(
-                                         const an_ifc_syntax_tuple &universal);
+template<>
+an_ifc_cardinality get_ifc_cardinality(const an_ifc_syntax_tuple &universal);
 
 extern a_boolean has_ifc_start(const an_ifc_syntax_tuple &universal);
 
-extern an_ifc_index get_ifc_start(const an_ifc_syntax_tuple &universal);
+template<>
+an_ifc_index get_ifc_start(const an_ifc_syntax_tuple &universal);
 
 extern a_boolean validate(const an_ifc_syntax_tuple     &universal,
                           const an_ifc_validation_trace *parent);
@@ -14177,18 +23327,20 @@ Functions for interacting with IFC SyntaxTypeId nodes.
 extern a_boolean has_ifc_abstract_declarator(
                                        const an_ifc_syntax_type_id &universal);
 
-extern an_ifc_syntax_index get_ifc_abstract_declarator(
+template<>
+an_ifc_syntax_index get_ifc_abstract_declarator(
                                        const an_ifc_syntax_type_id &universal);
 
 extern a_boolean has_ifc_locus(const an_ifc_syntax_type_id &universal);
 
-extern an_ifc_source_location get_ifc_locus(
-                                       const an_ifc_syntax_type_id &universal);
+template<>
+an_ifc_source_location get_ifc_locus(const an_ifc_syntax_type_id &universal);
 
 extern a_boolean has_ifc_type_specifier(
                                        const an_ifc_syntax_type_id &universal);
 
-extern an_ifc_syntax_index get_ifc_type_specifier(
+template<>
+an_ifc_syntax_index get_ifc_type_specifier(
                                        const an_ifc_syntax_type_id &universal);
 
 extern a_boolean validate(const an_ifc_syntax_type_id   &universal,
@@ -14223,13 +23375,15 @@ Functions for interacting with IFC SyntaxTypeIdListElement nodes.
 extern a_boolean has_ifc_ellipsis(
                           const an_ifc_syntax_type_id_list_element &universal);
 
-extern an_ifc_source_location get_ifc_ellipsis(
+template<>
+an_ifc_source_location get_ifc_ellipsis(
                           const an_ifc_syntax_type_id_list_element &universal);
 
 extern a_boolean has_ifc_type_id(
                           const an_ifc_syntax_type_id_list_element &universal);
 
-extern an_ifc_syntax_index get_ifc_type_id(
+template<>
+an_ifc_syntax_index get_ifc_type_id(
                           const an_ifc_syntax_type_id_list_element &universal);
 
 extern a_boolean validate(const an_ifc_syntax_type_id_list_element &universal,
@@ -14266,12 +23420,14 @@ Functions for interacting with IFC SyntaxTypeRequirement nodes.
 extern a_boolean has_ifc_locus(
                               const an_ifc_syntax_type_requirement &universal);
 
-extern an_ifc_source_location get_ifc_locus(
+template<>
+an_ifc_source_location get_ifc_locus(
                               const an_ifc_syntax_type_requirement &universal);
 
 extern a_boolean has_ifc_type(const an_ifc_syntax_type_requirement &universal);
 
-extern an_ifc_expr_index get_ifc_type(
+template<>
+an_ifc_expr_index get_ifc_type(
                               const an_ifc_syntax_type_requirement &universal);
 
 extern a_boolean validate(const an_ifc_syntax_type_requirement &universal,
@@ -14308,31 +23464,36 @@ Functions for interacting with IFC SyntaxTypeSpecifierSeq nodes.
 extern a_boolean has_ifc_locus(
                             const an_ifc_syntax_type_specifier_seq &universal);
 
-extern an_ifc_source_location get_ifc_locus(
+template<>
+an_ifc_source_location get_ifc_locus(
                             const an_ifc_syntax_type_specifier_seq &universal);
 
 extern a_boolean has_ifc_qualifiers(
                             const an_ifc_syntax_type_specifier_seq &universal);
 
-extern an_ifc_qualifier_bitfield get_ifc_qualifiers(
+template<>
+an_ifc_qualifier_bitfield get_ifc_qualifiers(
                             const an_ifc_syntax_type_specifier_seq &universal);
 
 extern a_boolean has_ifc_type(
                             const an_ifc_syntax_type_specifier_seq &universal);
 
-extern an_ifc_type_index get_ifc_type(
+template<>
+an_ifc_type_index get_ifc_type(
                             const an_ifc_syntax_type_specifier_seq &universal);
 
 extern a_boolean has_ifc_type_name(
                             const an_ifc_syntax_type_specifier_seq &universal);
 
-extern an_ifc_syntax_index get_ifc_type_name(
+template<>
+an_ifc_syntax_index get_ifc_type_name(
                             const an_ifc_syntax_type_specifier_seq &universal);
 
 extern a_boolean has_ifc_unhashed(
                             const an_ifc_syntax_type_specifier_seq &universal);
 
-extern an_ifc_bool get_ifc_unhashed(
+template<>
+an_ifc_bool get_ifc_unhashed(
                             const an_ifc_syntax_type_specifier_seq &universal);
 
 extern a_boolean validate(const an_ifc_syntax_type_specifier_seq &universal,
@@ -14369,19 +23530,22 @@ Functions for interacting with IFC SyntaxTypeTemplateArgument nodes.
 extern a_boolean has_ifc_argument(
                         const an_ifc_syntax_type_template_argument &universal);
 
-extern an_ifc_syntax_index get_ifc_argument(
+template<>
+an_ifc_syntax_index get_ifc_argument(
                         const an_ifc_syntax_type_template_argument &universal);
 
 extern a_boolean has_ifc_comma(
                         const an_ifc_syntax_type_template_argument &universal);
 
-extern an_ifc_source_location get_ifc_comma(
+template<>
+an_ifc_source_location get_ifc_comma(
                         const an_ifc_syntax_type_template_argument &universal);
 
 extern a_boolean has_ifc_ellipsis(
                         const an_ifc_syntax_type_template_argument &universal);
 
-extern an_ifc_source_location get_ifc_ellipsis(
+template<>
+an_ifc_source_location get_ifc_ellipsis(
                         const an_ifc_syntax_type_template_argument &universal);
 
 extern a_boolean validate(
@@ -14419,31 +23583,36 @@ Functions for interacting with IFC SyntaxTypeTemplateParameter nodes.
 extern a_boolean has_ifc_argument(
                        const an_ifc_syntax_type_template_parameter &universal);
 
-extern an_ifc_syntax_index get_ifc_argument(
+template<>
+an_ifc_syntax_index get_ifc_argument(
                        const an_ifc_syntax_type_template_parameter &universal);
 
 extern a_boolean has_ifc_constraint(
                        const an_ifc_syntax_type_template_parameter &universal);
 
-extern an_ifc_syntax_index get_ifc_constraint(
+template<>
+an_ifc_syntax_index get_ifc_constraint(
                        const an_ifc_syntax_type_template_parameter &universal);
 
 extern a_boolean has_ifc_ellipsis(
                        const an_ifc_syntax_type_template_parameter &universal);
 
-extern an_ifc_source_location get_ifc_ellipsis(
+template<>
+an_ifc_source_location get_ifc_ellipsis(
                        const an_ifc_syntax_type_template_parameter &universal);
 
 extern a_boolean has_ifc_locus(
                        const an_ifc_syntax_type_template_parameter &universal);
 
-extern an_ifc_source_location get_ifc_locus(
+template<>
+an_ifc_source_location get_ifc_locus(
                        const an_ifc_syntax_type_template_parameter &universal);
 
 extern a_boolean has_ifc_name(
                        const an_ifc_syntax_type_template_parameter &universal);
 
-extern an_ifc_text_offset get_ifc_name(
+template<>
+an_ifc_text_offset get_ifc_name(
                        const an_ifc_syntax_type_template_parameter &universal);
 
 extern a_boolean validate(
@@ -14481,19 +23650,22 @@ Functions for interacting with IFC SyntaxTypeTraitIntrinsic nodes.
 extern a_boolean has_ifc_arguments(
                           const an_ifc_syntax_type_trait_intrinsic &universal);
 
-extern an_ifc_syntax_index get_ifc_arguments(
+template<>
+an_ifc_syntax_index get_ifc_arguments(
                           const an_ifc_syntax_type_trait_intrinsic &universal);
 
 extern a_boolean has_ifc_intrinsic(
                           const an_ifc_syntax_type_trait_intrinsic &universal);
 
-extern an_ifc_operator_category get_ifc_intrinsic(
+template<>
+an_ifc_operator_category get_ifc_intrinsic(
                           const an_ifc_syntax_type_trait_intrinsic &universal);
 
 extern a_boolean has_ifc_locus(
                           const an_ifc_syntax_type_trait_intrinsic &universal);
 
-extern an_ifc_source_location get_ifc_locus(
+template<>
+an_ifc_source_location get_ifc_locus(
                           const an_ifc_syntax_type_trait_intrinsic &universal);
 
 extern a_boolean validate(const an_ifc_syntax_type_trait_intrinsic &universal,
@@ -14530,43 +23702,50 @@ Functions for interacting with IFC SyntaxUnaryFoldExpression nodes.
 extern a_boolean has_ifc_direction(
                          const an_ifc_syntax_unary_fold_expression &universal);
 
-extern an_ifc_fold_direction_sort get_ifc_direction(
+template<>
+an_ifc_fold_direction_sort get_ifc_direction(
                          const an_ifc_syntax_unary_fold_expression &universal);
 
 extern a_boolean has_ifc_dyad(
                          const an_ifc_syntax_unary_fold_expression &universal);
 
-extern an_ifc_dyadic_operator_sort get_ifc_dyad(
+template<>
+an_ifc_dyadic_operator_sort get_ifc_dyad(
                          const an_ifc_syntax_unary_fold_expression &universal);
 
 extern a_boolean has_ifc_ellipsis(
                          const an_ifc_syntax_unary_fold_expression &universal);
 
-extern an_ifc_source_location get_ifc_ellipsis(
+template<>
+an_ifc_source_location get_ifc_ellipsis(
                          const an_ifc_syntax_unary_fold_expression &universal);
 
 extern a_boolean has_ifc_glyph_locus(
                          const an_ifc_syntax_unary_fold_expression &universal);
 
-extern an_ifc_source_location get_ifc_glyph_locus(
+template<>
+an_ifc_source_location get_ifc_glyph_locus(
                          const an_ifc_syntax_unary_fold_expression &universal);
 
 extern a_boolean has_ifc_locus(
                          const an_ifc_syntax_unary_fold_expression &universal);
 
-extern an_ifc_source_location get_ifc_locus(
+template<>
+an_ifc_source_location get_ifc_locus(
                          const an_ifc_syntax_unary_fold_expression &universal);
 
 extern a_boolean has_ifc_operand(
                          const an_ifc_syntax_unary_fold_expression &universal);
 
-extern an_ifc_expr_index get_ifc_operand(
+template<>
+an_ifc_expr_index get_ifc_operand(
                          const an_ifc_syntax_unary_fold_expression &universal);
 
 extern a_boolean has_ifc_right_paren(
                          const an_ifc_syntax_unary_fold_expression &universal);
 
-extern an_ifc_source_location get_ifc_right_paren(
+template<>
+an_ifc_source_location get_ifc_right_paren(
                          const an_ifc_syntax_unary_fold_expression &universal);
 
 extern a_boolean validate(
@@ -14604,19 +23783,22 @@ Functions for interacting with IFC SyntaxUsingDeclaration nodes.
 extern a_boolean has_ifc_declarators(
                              const an_ifc_syntax_using_declaration &universal);
 
-extern an_ifc_syntax_index get_ifc_declarators(
+template<>
+an_ifc_syntax_index get_ifc_declarators(
                              const an_ifc_syntax_using_declaration &universal);
 
 extern a_boolean has_ifc_keyword(
                              const an_ifc_syntax_using_declaration &universal);
 
-extern an_ifc_source_location get_ifc_keyword(
+template<>
+an_ifc_source_location get_ifc_keyword(
                              const an_ifc_syntax_using_declaration &universal);
 
 extern a_boolean has_ifc_semicolon(
                              const an_ifc_syntax_using_declaration &universal);
 
-extern an_ifc_source_location get_ifc_semicolon(
+template<>
+an_ifc_source_location get_ifc_semicolon(
                              const an_ifc_syntax_using_declaration &universal);
 
 extern a_boolean validate(const an_ifc_syntax_using_declaration &universal,
@@ -14653,25 +23835,29 @@ Functions for interacting with IFC SyntaxUsingDeclarator nodes.
 extern a_boolean has_ifc_comma(
                               const an_ifc_syntax_using_declarator &universal);
 
-extern an_ifc_source_location get_ifc_comma(
+template<>
+an_ifc_source_location get_ifc_comma(
                               const an_ifc_syntax_using_declarator &universal);
 
 extern a_boolean has_ifc_expander(
                               const an_ifc_syntax_using_declarator &universal);
 
-extern an_ifc_source_location get_ifc_expander(
+template<>
+an_ifc_source_location get_ifc_expander(
                               const an_ifc_syntax_using_declarator &universal);
 
 extern a_boolean has_ifc_qualified_name(
                               const an_ifc_syntax_using_declarator &universal);
 
-extern an_ifc_expr_index get_ifc_qualified_name(
+template<>
+an_ifc_expr_index get_ifc_qualified_name(
                               const an_ifc_syntax_using_declarator &universal);
 
 extern a_boolean has_ifc_typename_kw(
                               const an_ifc_syntax_using_declarator &universal);
 
-extern an_ifc_source_location get_ifc_typename_kw(
+template<>
+an_ifc_source_location get_ifc_typename_kw(
                               const an_ifc_syntax_using_declarator &universal);
 
 extern a_boolean validate(const an_ifc_syntax_using_declarator &universal,
@@ -14708,25 +23894,29 @@ Functions for interacting with IFC SyntaxUsingDirective nodes.
 extern a_boolean has_ifc_namespace_kw(
                                const an_ifc_syntax_using_directive &universal);
 
-extern an_ifc_source_location get_ifc_namespace_kw(
+template<>
+an_ifc_source_location get_ifc_namespace_kw(
                                const an_ifc_syntax_using_directive &universal);
 
 extern a_boolean has_ifc_qualified_name(
                                const an_ifc_syntax_using_directive &universal);
 
-extern an_ifc_expr_index get_ifc_qualified_name(
+template<>
+an_ifc_expr_index get_ifc_qualified_name(
                                const an_ifc_syntax_using_directive &universal);
 
 extern a_boolean has_ifc_semicolon(
                                const an_ifc_syntax_using_directive &universal);
 
-extern an_ifc_source_location get_ifc_semicolon(
+template<>
+an_ifc_source_location get_ifc_semicolon(
                                const an_ifc_syntax_using_directive &universal);
 
 extern a_boolean has_ifc_using_kw(
                                const an_ifc_syntax_using_directive &universal);
 
-extern an_ifc_source_location get_ifc_using_kw(
+template<>
+an_ifc_source_location get_ifc_using_kw(
                                const an_ifc_syntax_using_directive &universal);
 
 extern a_boolean validate(const an_ifc_syntax_using_directive &universal,
@@ -14763,25 +23953,29 @@ Functions for interacting with IFC SyntaxUsingEnumDeclaration nodes.
 extern a_boolean has_ifc_enum_kw(
                         const an_ifc_syntax_using_enum_declaration &universal);
 
-extern an_ifc_source_location get_ifc_enum_kw(
+template<>
+an_ifc_source_location get_ifc_enum_kw(
                         const an_ifc_syntax_using_enum_declaration &universal);
 
 extern a_boolean has_ifc_name(
                         const an_ifc_syntax_using_enum_declaration &universal);
 
-extern an_ifc_expr_index get_ifc_name(
+template<>
+an_ifc_expr_index get_ifc_name(
                         const an_ifc_syntax_using_enum_declaration &universal);
 
 extern a_boolean has_ifc_semicolon(
                         const an_ifc_syntax_using_enum_declaration &universal);
 
-extern an_ifc_source_location get_ifc_semicolon(
+template<>
+an_ifc_source_location get_ifc_semicolon(
                         const an_ifc_syntax_using_enum_declaration &universal);
 
 extern a_boolean has_ifc_using_kw(
                         const an_ifc_syntax_using_enum_declaration &universal);
 
-extern an_ifc_source_location get_ifc_using_kw(
+template<>
+an_ifc_source_location get_ifc_using_kw(
                         const an_ifc_syntax_using_enum_declaration &universal);
 
 extern a_boolean validate(
@@ -14819,26 +24013,29 @@ Functions for interacting with IFC SyntaxVirtualSpecifierSeq nodes.
 extern a_boolean has_ifc_final_kw(
                          const an_ifc_syntax_virtual_specifier_seq &universal);
 
-extern an_ifc_source_location get_ifc_final_kw(
+template<>
+an_ifc_source_location get_ifc_final_kw(
                          const an_ifc_syntax_virtual_specifier_seq &universal);
 
 extern a_boolean has_ifc_locus(
                          const an_ifc_syntax_virtual_specifier_seq &universal);
 
-extern an_ifc_source_location get_ifc_locus(
+template<>
+an_ifc_source_location get_ifc_locus(
                          const an_ifc_syntax_virtual_specifier_seq &universal);
 
 extern a_boolean has_ifc_override_kw(
                          const an_ifc_syntax_virtual_specifier_seq &universal);
 
-extern an_ifc_source_location get_ifc_override_kw(
+template<>
+an_ifc_source_location get_ifc_override_kw(
                          const an_ifc_syntax_virtual_specifier_seq &universal);
 
 extern a_boolean has_ifc_pure(
                          const an_ifc_syntax_virtual_specifier_seq &universal);
 
-extern an_ifc_bool get_ifc_pure(
-                         const an_ifc_syntax_virtual_specifier_seq &universal);
+template<>
+an_ifc_bool get_ifc_pure(const an_ifc_syntax_virtual_specifier_seq &universal);
 
 extern a_boolean validate(
                          const an_ifc_syntax_virtual_specifier_seq &universal,
@@ -14874,24 +24071,28 @@ Functions for interacting with IFC SyntaxWhileStatement nodes.
 
 extern a_boolean has_ifc_body(const an_ifc_syntax_while_statement &universal);
 
-extern an_ifc_syntax_index get_ifc_body(
+template<>
+an_ifc_syntax_index get_ifc_body(
                                const an_ifc_syntax_while_statement &universal);
 
 extern a_boolean has_ifc_condition(
                                const an_ifc_syntax_while_statement &universal);
 
-extern an_ifc_expr_index get_ifc_condition(
+template<>
+an_ifc_expr_index get_ifc_condition(
                                const an_ifc_syntax_while_statement &universal);
 
 extern a_boolean has_ifc_pragma(
                                const an_ifc_syntax_while_statement &universal);
 
-extern an_ifc_sentence_index get_ifc_pragma(
+template<>
+an_ifc_sentence_index get_ifc_pragma(
                                const an_ifc_syntax_while_statement &universal);
 
 extern a_boolean has_ifc_while(const an_ifc_syntax_while_statement &universal);
 
-extern an_ifc_source_location get_ifc_while(
+template<>
+an_ifc_source_location get_ifc_while(
                                const an_ifc_syntax_while_statement &universal);
 
 extern a_boolean validate(const an_ifc_syntax_while_statement &universal,
@@ -14927,18 +24128,20 @@ Functions for interacting with IFC TraitAliasTemplate nodes.
 
 extern a_boolean has_ifc_decl(const an_ifc_trait_alias_template &universal);
 
-extern an_ifc_decl_index get_ifc_decl(
-                                 const an_ifc_trait_alias_template &universal);
+template<>
+an_ifc_decl_index get_ifc_decl(const an_ifc_trait_alias_template &universal);
 
 extern a_boolean has_ifc_encoded_decl(
                                  const an_ifc_trait_alias_template &universal);
 
-extern an_ifc_encoded_decl_index get_ifc_encoded_decl(
+template<>
+an_ifc_encoded_decl_index get_ifc_encoded_decl(
                                  const an_ifc_trait_alias_template &universal);
 
 extern a_boolean has_ifc_trait(const an_ifc_trait_alias_template &universal);
 
-extern an_ifc_syntax_index get_ifc_trait(
+template<>
+an_ifc_syntax_index get_ifc_trait(
                                  const an_ifc_trait_alias_template &universal);
 
 extern a_boolean validate(const an_ifc_trait_alias_template &universal,
@@ -14973,17 +24176,19 @@ Functions for interacting with IFC TraitAttribute nodes.
 
 extern a_boolean has_ifc_decl(const an_ifc_trait_attribute &universal);
 
-extern an_ifc_decl_index get_ifc_decl(const an_ifc_trait_attribute &universal);
+template<>
+an_ifc_decl_index get_ifc_decl(const an_ifc_trait_attribute &universal);
 
 extern a_boolean has_ifc_encoded_decl(const an_ifc_trait_attribute &universal);
 
-extern an_ifc_encoded_decl_index get_ifc_encoded_decl(
+template<>
+an_ifc_encoded_decl_index get_ifc_encoded_decl(
                                       const an_ifc_trait_attribute &universal);
 
 extern a_boolean has_ifc_trait(const an_ifc_trait_attribute &universal);
 
-extern an_ifc_attr_index get_ifc_trait(
-                                      const an_ifc_trait_attribute &universal);
+template<>
+an_ifc_attr_index get_ifc_trait(const an_ifc_trait_attribute &universal);
 
 extern a_boolean validate(const an_ifc_trait_attribute  &universal,
                           const an_ifc_validation_trace *parent);
@@ -15016,19 +24221,20 @@ Functions for interacting with IFC TraitDeductionGuide nodes.
 
 extern a_boolean has_ifc_decl(const an_ifc_trait_deduction_guide &universal);
 
-extern an_ifc_decl_index get_ifc_decl(
-                                const an_ifc_trait_deduction_guide &universal);
+template<>
+an_ifc_decl_index get_ifc_decl(const an_ifc_trait_deduction_guide &universal);
 
 extern a_boolean has_ifc_encoded_decl(
                                 const an_ifc_trait_deduction_guide &universal);
 
-extern an_ifc_encoded_decl_index get_ifc_encoded_decl(
+template<>
+an_ifc_encoded_decl_index get_ifc_encoded_decl(
                                 const an_ifc_trait_deduction_guide &universal);
 
 extern a_boolean has_ifc_trait(const an_ifc_trait_deduction_guide &universal);
 
-extern an_ifc_decl_index get_ifc_trait(
-                                const an_ifc_trait_deduction_guide &universal);
+template<>
+an_ifc_decl_index get_ifc_trait(const an_ifc_trait_deduction_guide &universal);
 
 extern a_boolean validate(const an_ifc_trait_deduction_guide &universal,
                           const an_ifc_validation_trace      *parent);
@@ -15063,19 +24269,20 @@ Functions for interacting with IFC TraitDeprecated nodes.
 
 extern a_boolean has_ifc_decl(const an_ifc_trait_deprecated &universal);
 
-extern an_ifc_decl_index get_ifc_decl(
-                                     const an_ifc_trait_deprecated &universal);
+template<>
+an_ifc_decl_index get_ifc_decl(const an_ifc_trait_deprecated &universal);
 
 extern a_boolean has_ifc_encoded_decl(
                                      const an_ifc_trait_deprecated &universal);
 
-extern an_ifc_encoded_decl_index get_ifc_encoded_decl(
+template<>
+an_ifc_encoded_decl_index get_ifc_encoded_decl(
                                      const an_ifc_trait_deprecated &universal);
 
 extern a_boolean has_ifc_trait(const an_ifc_trait_deprecated &universal);
 
-extern an_ifc_text_offset get_ifc_trait(
-                                     const an_ifc_trait_deprecated &universal);
+template<>
+an_ifc_text_offset get_ifc_trait(const an_ifc_trait_deprecated &universal);
 
 extern a_boolean validate(const an_ifc_trait_deprecated &universal,
                           const an_ifc_validation_trace *parent);
@@ -15108,16 +24315,19 @@ Functions for interacting with IFC TraitFriend nodes.
 
 extern a_boolean has_ifc_decl(const an_ifc_trait_friend &universal);
 
-extern an_ifc_decl_index get_ifc_decl(const an_ifc_trait_friend &universal);
+template<>
+an_ifc_decl_index get_ifc_decl(const an_ifc_trait_friend &universal);
 
 extern a_boolean has_ifc_encoded_decl(const an_ifc_trait_friend &universal);
 
-extern an_ifc_encoded_decl_index get_ifc_encoded_decl(
+template<>
+an_ifc_encoded_decl_index get_ifc_encoded_decl(
                                          const an_ifc_trait_friend &universal);
 
 extern a_boolean has_ifc_trait(const an_ifc_trait_friend &universal);
 
-extern an_ifc_sequence get_ifc_trait(const an_ifc_trait_friend &universal);
+template<>
+an_ifc_sequence get_ifc_trait(const an_ifc_trait_friend &universal);
 
 extern a_boolean validate(const an_ifc_trait_friend     &universal,
                           const an_ifc_validation_trace *parent);
@@ -15151,31 +24361,36 @@ Functions for interacting with IFC TraitFunctionDefinition nodes.
 extern a_boolean has_ifc_body(
                             const an_ifc_trait_function_definition &universal);
 
-extern an_ifc_stmt_index get_ifc_body(
+template<>
+an_ifc_stmt_index get_ifc_body(
                             const an_ifc_trait_function_definition &universal);
 
 extern a_boolean has_ifc_decl(
                             const an_ifc_trait_function_definition &universal);
 
-extern an_ifc_decl_index get_ifc_decl(
+template<>
+an_ifc_decl_index get_ifc_decl(
                             const an_ifc_trait_function_definition &universal);
 
 extern a_boolean has_ifc_encoded_decl(
                             const an_ifc_trait_function_definition &universal);
 
-extern an_ifc_encoded_decl_index get_ifc_encoded_decl(
+template<>
+an_ifc_encoded_decl_index get_ifc_encoded_decl(
                             const an_ifc_trait_function_definition &universal);
 
 extern a_boolean has_ifc_initializers(
                             const an_ifc_trait_function_definition &universal);
 
-extern an_ifc_expr_index get_ifc_initializers(
+template<>
+an_ifc_expr_index get_ifc_initializers(
                             const an_ifc_trait_function_definition &universal);
 
 extern a_boolean has_ifc_parameters(
                             const an_ifc_trait_function_definition &universal);
 
-extern an_ifc_chart_index get_ifc_parameters(
+template<>
+an_ifc_chart_index get_ifc_parameters(
                             const an_ifc_trait_function_definition &universal);
 
 extern a_boolean validate(const an_ifc_trait_function_definition &universal,
@@ -15211,19 +24426,20 @@ Functions for interacting with IFC TraitMsvcDeclAttrs nodes.
 
 extern a_boolean has_ifc_decl(const an_ifc_trait_msvc_decl_attrs &universal);
 
-extern an_ifc_decl_index get_ifc_decl(
-                                const an_ifc_trait_msvc_decl_attrs &universal);
+template<>
+an_ifc_decl_index get_ifc_decl(const an_ifc_trait_msvc_decl_attrs &universal);
 
 extern a_boolean has_ifc_encoded_decl(
                                 const an_ifc_trait_msvc_decl_attrs &universal);
 
-extern an_ifc_encoded_decl_index get_ifc_encoded_decl(
+template<>
+an_ifc_encoded_decl_index get_ifc_encoded_decl(
                                 const an_ifc_trait_msvc_decl_attrs &universal);
 
 extern a_boolean has_ifc_trait(const an_ifc_trait_msvc_decl_attrs &universal);
 
-extern an_ifc_attr_index get_ifc_trait(
-                                const an_ifc_trait_msvc_decl_attrs &universal);
+template<>
+an_ifc_attr_index get_ifc_trait(const an_ifc_trait_msvc_decl_attrs &universal);
 
 extern a_boolean validate(const an_ifc_trait_msvc_decl_attrs &universal,
                           const an_ifc_validation_trace      *parent);
@@ -15258,19 +24474,21 @@ Functions for interacting with IFC TraitMsvcFuncParams nodes.
 
 extern a_boolean has_ifc_decl(const an_ifc_trait_msvc_func_params &universal);
 
-extern an_ifc_decl_index get_ifc_decl(
-                               const an_ifc_trait_msvc_func_params &universal);
+template<>
+an_ifc_decl_index get_ifc_decl(const an_ifc_trait_msvc_func_params &universal);
 
 extern a_boolean has_ifc_encoded_decl(
                                const an_ifc_trait_msvc_func_params &universal);
 
-extern an_ifc_encoded_decl_index get_ifc_encoded_decl(
+template<>
+an_ifc_encoded_decl_index get_ifc_encoded_decl(
                                const an_ifc_trait_msvc_func_params &universal);
 
 extern a_boolean has_ifc_params(
                                const an_ifc_trait_msvc_func_params &universal);
 
-extern an_ifc_chart_index get_ifc_params(
+template<>
+an_ifc_chart_index get_ifc_params(
                                const an_ifc_trait_msvc_func_params &universal);
 
 extern a_boolean validate(const an_ifc_trait_msvc_func_params &universal,
@@ -15306,16 +24524,19 @@ Functions for interacting with IFC TraitMsvcUuid nodes.
 
 extern a_boolean has_ifc_decl(const an_ifc_trait_msvc_uuid &universal);
 
-extern an_ifc_decl_index get_ifc_decl(const an_ifc_trait_msvc_uuid &universal);
+template<>
+an_ifc_decl_index get_ifc_decl(const an_ifc_trait_msvc_uuid &universal);
 
 extern a_boolean has_ifc_encoded_decl(const an_ifc_trait_msvc_uuid &universal);
 
-extern an_ifc_encoded_decl_index get_ifc_encoded_decl(
+template<>
+an_ifc_encoded_decl_index get_ifc_encoded_decl(
                                       const an_ifc_trait_msvc_uuid &universal);
 
 extern a_boolean has_ifc_uuid(const an_ifc_trait_msvc_uuid &universal);
 
-extern an_ifc_uuid get_ifc_uuid(const an_ifc_trait_msvc_uuid &universal);
+template<>
+an_ifc_uuid get_ifc_uuid(const an_ifc_trait_msvc_uuid &universal);
 
 extern a_boolean validate(const an_ifc_trait_msvc_uuid  &universal,
                           const an_ifc_validation_trace *parent);
@@ -15348,19 +24569,22 @@ Functions for interacting with IFC TraitMsvcVendorTrait nodes.
 
 extern a_boolean has_ifc_decl(const an_ifc_trait_msvc_vendor_trait &universal);
 
-extern an_ifc_decl_index get_ifc_decl(
+template<>
+an_ifc_decl_index get_ifc_decl(
                               const an_ifc_trait_msvc_vendor_trait &universal);
 
 extern a_boolean has_ifc_encoded_decl(
                               const an_ifc_trait_msvc_vendor_trait &universal);
 
-extern an_ifc_encoded_decl_index get_ifc_encoded_decl(
+template<>
+an_ifc_encoded_decl_index get_ifc_encoded_decl(
                               const an_ifc_trait_msvc_vendor_trait &universal);
 
 extern a_boolean has_ifc_trait(
                               const an_ifc_trait_msvc_vendor_trait &universal);
 
-extern an_ifc_msvc_traits_bitfield get_ifc_trait(
+template<>
+an_ifc_msvc_traits_bitfield get_ifc_trait(
                               const an_ifc_trait_msvc_vendor_trait &universal);
 
 extern a_boolean validate(const an_ifc_trait_msvc_vendor_trait &universal,
@@ -15396,17 +24620,19 @@ Functions for interacting with IFC TraitRequires nodes.
 
 extern a_boolean has_ifc_decl(const an_ifc_trait_requires &universal);
 
-extern an_ifc_decl_index get_ifc_decl(const an_ifc_trait_requires &universal);
+template<>
+an_ifc_decl_index get_ifc_decl(const an_ifc_trait_requires &universal);
 
 extern a_boolean has_ifc_encoded_decl(const an_ifc_trait_requires &universal);
 
-extern an_ifc_encoded_decl_index get_ifc_encoded_decl(
+template<>
+an_ifc_encoded_decl_index get_ifc_encoded_decl(
                                        const an_ifc_trait_requires &universal);
 
 extern a_boolean has_ifc_trait(const an_ifc_trait_requires &universal);
 
-extern an_ifc_syntax_index get_ifc_trait(
-                                       const an_ifc_trait_requires &universal);
+template<>
+an_ifc_syntax_index get_ifc_trait(const an_ifc_trait_requires &universal);
 
 extern a_boolean validate(const an_ifc_trait_requires   &universal,
                           const an_ifc_validation_trace *parent);
@@ -15439,19 +24665,20 @@ Functions for interacting with IFC TraitSpecialization nodes.
 
 extern a_boolean has_ifc_decl(const an_ifc_trait_specialization &universal);
 
-extern an_ifc_decl_index get_ifc_decl(
-                                 const an_ifc_trait_specialization &universal);
+template<>
+an_ifc_decl_index get_ifc_decl(const an_ifc_trait_specialization &universal);
 
 extern a_boolean has_ifc_encoded_decl(
                                  const an_ifc_trait_specialization &universal);
 
-extern an_ifc_encoded_decl_index get_ifc_encoded_decl(
+template<>
+an_ifc_encoded_decl_index get_ifc_encoded_decl(
                                  const an_ifc_trait_specialization &universal);
 
 extern a_boolean has_ifc_trait(const an_ifc_trait_specialization &universal);
 
-extern an_ifc_sequence get_ifc_trait(
-                                 const an_ifc_trait_specialization &universal);
+template<>
+an_ifc_sequence get_ifc_trait(const an_ifc_trait_specialization &universal);
 
 extern a_boolean validate(const an_ifc_trait_specialization &universal,
                           const an_ifc_validation_trace     *parent);
@@ -15485,11 +24712,13 @@ Functions for interacting with IFC TypeArray nodes.
 
 extern a_boolean has_ifc_element(const an_ifc_type_array &universal);
 
-extern an_ifc_type_index get_ifc_element(const an_ifc_type_array &universal);
+template<>
+an_ifc_type_index get_ifc_element(const an_ifc_type_array &universal);
 
 extern a_boolean has_ifc_extent(const an_ifc_type_array &universal);
 
-extern an_ifc_expr_index get_ifc_extent(const an_ifc_type_array &universal);
+template<>
+an_ifc_expr_index get_ifc_extent(const an_ifc_type_array &universal);
 
 extern a_boolean validate(const an_ifc_type_array       &universal,
                           const an_ifc_validation_trace *parent);
@@ -15522,19 +24751,23 @@ Functions for interacting with IFC TypeBase nodes.
 
 extern a_boolean has_ifc_access(const an_ifc_type_base &universal);
 
-extern an_ifc_access_sort get_ifc_access(const an_ifc_type_base &universal);
+template<>
+an_ifc_access_sort get_ifc_access(const an_ifc_type_base &universal);
 
 extern a_boolean has_ifc_pack_expanded(const an_ifc_type_base &universal);
 
-extern an_ifc_bool get_ifc_pack_expanded(const an_ifc_type_base &universal);
+template<>
+an_ifc_bool get_ifc_pack_expanded(const an_ifc_type_base &universal);
 
 extern a_boolean has_ifc_shared(const an_ifc_type_base &universal);
 
-extern an_ifc_bool get_ifc_shared(const an_ifc_type_base &universal);
+template<>
+an_ifc_bool get_ifc_shared(const an_ifc_type_base &universal);
 
 extern a_boolean has_ifc_type(const an_ifc_type_base &universal);
 
-extern an_ifc_type_index get_ifc_type(const an_ifc_type_base &universal);
+template<>
+an_ifc_type_index get_ifc_type(const an_ifc_type_base &universal);
 
 extern a_boolean validate(const an_ifc_type_base        &universal,
                           const an_ifc_validation_trace *parent);
@@ -15567,7 +24800,8 @@ Functions for interacting with IFC TypeDecltype nodes.
 
 extern a_boolean has_ifc_expr(const an_ifc_type_decltype &universal);
 
-extern an_ifc_syntax_index get_ifc_expr(const an_ifc_type_decltype &universal);
+template<>
+an_ifc_syntax_index get_ifc_expr(const an_ifc_type_decltype &universal);
 
 extern a_boolean validate(const an_ifc_type_decltype    &universal,
                           const an_ifc_validation_trace *parent);
@@ -15600,7 +24834,8 @@ Functions for interacting with IFC TypeDesignated nodes.
 
 extern a_boolean has_ifc_decl(const an_ifc_type_designated &universal);
 
-extern an_ifc_decl_index get_ifc_decl(const an_ifc_type_designated &universal);
+template<>
+an_ifc_decl_index get_ifc_decl(const an_ifc_type_designated &universal);
 
 extern a_boolean validate(const an_ifc_type_designated  &universal,
                           const an_ifc_validation_trace *parent);
@@ -15633,12 +24868,14 @@ Functions for interacting with IFC TypeExpansion nodes.
 
 extern a_boolean has_ifc_mode(const an_ifc_type_expansion &universal);
 
-extern an_ifc_expansion_mode_sort get_ifc_mode(
+template<>
+an_ifc_expansion_mode_sort get_ifc_mode(
                                        const an_ifc_type_expansion &universal);
 
 extern a_boolean has_ifc_pack(const an_ifc_type_expansion &universal);
 
-extern an_ifc_type_index get_ifc_pack(const an_ifc_type_expansion &universal);
+template<>
+an_ifc_type_index get_ifc_pack(const an_ifc_type_expansion &universal);
 
 extern a_boolean validate(const an_ifc_type_expansion   &universal,
                           const an_ifc_validation_trace *parent);
@@ -15671,11 +24908,13 @@ Functions for interacting with IFC TypeForall nodes.
 
 extern a_boolean has_ifc_chart(const an_ifc_type_forall &universal);
 
-extern an_ifc_chart_index get_ifc_chart(const an_ifc_type_forall &universal);
+template<>
+an_ifc_chart_index get_ifc_chart(const an_ifc_type_forall &universal);
 
 extern a_boolean has_ifc_subject(const an_ifc_type_forall &universal);
 
-extern an_ifc_type_index get_ifc_subject(const an_ifc_type_forall &universal);
+template<>
+an_ifc_type_index get_ifc_subject(const an_ifc_type_forall &universal);
 
 extern a_boolean validate(const an_ifc_type_forall      &universal,
                           const an_ifc_validation_trace *parent);
@@ -15708,25 +24947,30 @@ Functions for interacting with IFC TypeFunction nodes.
 
 extern a_boolean has_ifc_convention(const an_ifc_type_function &universal);
 
-extern an_ifc_calling_convention_sort get_ifc_convention(
+template<>
+an_ifc_calling_convention_sort get_ifc_convention(
                                         const an_ifc_type_function &universal);
 
 extern a_boolean has_ifc_eh_spec(const an_ifc_type_function &universal);
 
-extern an_ifc_noexcept_specification get_ifc_eh_spec(
+template<>
+an_ifc_noexcept_specification get_ifc_eh_spec(
                                         const an_ifc_type_function &universal);
 
 extern a_boolean has_ifc_source(const an_ifc_type_function &universal);
 
-extern an_ifc_type_index get_ifc_source(const an_ifc_type_function &universal);
+template<>
+an_ifc_type_index get_ifc_source(const an_ifc_type_function &universal);
 
 extern a_boolean has_ifc_target(const an_ifc_type_function &universal);
 
-extern an_ifc_type_index get_ifc_target(const an_ifc_type_function &universal);
+template<>
+an_ifc_type_index get_ifc_target(const an_ifc_type_function &universal);
 
 extern a_boolean has_ifc_traits(const an_ifc_type_function &universal);
 
-extern an_ifc_function_type_traits_bitfield get_ifc_traits(
+template<>
+an_ifc_function_type_traits_bitfield get_ifc_traits(
                                         const an_ifc_type_function &universal);
 
 extern a_boolean validate(const an_ifc_type_function    &universal,
@@ -15760,18 +25004,19 @@ Functions for interacting with IFC TypeFundamental nodes.
 
 extern a_boolean has_ifc_basis(const an_ifc_type_fundamental &universal);
 
-extern an_ifc_type_basis_sort get_ifc_basis(
-                                     const an_ifc_type_fundamental &universal);
+template<>
+an_ifc_type_basis_sort get_ifc_basis(const an_ifc_type_fundamental &universal);
 
 extern a_boolean has_ifc_precision(const an_ifc_type_fundamental &universal);
 
-extern an_ifc_type_precision_sort get_ifc_precision(
+template<>
+an_ifc_type_precision_sort get_ifc_precision(
                                      const an_ifc_type_fundamental &universal);
 
 extern a_boolean has_ifc_sign(const an_ifc_type_fundamental &universal);
 
-extern an_ifc_type_sign_sort get_ifc_sign(
-                                     const an_ifc_type_fundamental &universal);
+template<>
+an_ifc_type_sign_sort get_ifc_sign(const an_ifc_type_fundamental &universal);
 
 extern a_boolean validate(const an_ifc_type_fundamental &universal,
                           const an_ifc_validation_trace *parent);
@@ -15805,7 +25050,8 @@ Functions for interacting with IFC TypeLvalueReference nodes.
 extern a_boolean has_ifc_referee(
                                 const an_ifc_type_lvalue_reference &universal);
 
-extern an_ifc_type_index get_ifc_referee(
+template<>
+an_ifc_type_index get_ifc_referee(
                                 const an_ifc_type_lvalue_reference &universal);
 
 extern a_boolean validate(const an_ifc_type_lvalue_reference &universal,
@@ -15841,29 +25087,35 @@ Functions for interacting with IFC TypeMethod nodes.
 
 extern a_boolean has_ifc_convention(const an_ifc_type_method &universal);
 
-extern an_ifc_calling_convention_sort get_ifc_convention(
+template<>
+an_ifc_calling_convention_sort get_ifc_convention(
                                           const an_ifc_type_method &universal);
 
 extern a_boolean has_ifc_eh_spec(const an_ifc_type_method &universal);
 
-extern an_ifc_noexcept_specification get_ifc_eh_spec(
+template<>
+an_ifc_noexcept_specification get_ifc_eh_spec(
                                           const an_ifc_type_method &universal);
 
 extern a_boolean has_ifc_scope(const an_ifc_type_method &universal);
 
-extern an_ifc_type_index get_ifc_scope(const an_ifc_type_method &universal);
+template<>
+an_ifc_type_index get_ifc_scope(const an_ifc_type_method &universal);
 
 extern a_boolean has_ifc_source(const an_ifc_type_method &universal);
 
-extern an_ifc_type_index get_ifc_source(const an_ifc_type_method &universal);
+template<>
+an_ifc_type_index get_ifc_source(const an_ifc_type_method &universal);
 
 extern a_boolean has_ifc_target(const an_ifc_type_method &universal);
 
-extern an_ifc_type_index get_ifc_target(const an_ifc_type_method &universal);
+template<>
+an_ifc_type_index get_ifc_target(const an_ifc_type_method &universal);
 
 extern a_boolean has_ifc_traits(const an_ifc_type_method &universal);
 
-extern an_ifc_function_type_traits_bitfield get_ifc_traits(
+template<>
+an_ifc_function_type_traits_bitfield get_ifc_traits(
                                           const an_ifc_type_method &universal);
 
 extern a_boolean validate(const an_ifc_type_method      &universal,
@@ -15897,17 +25149,18 @@ Functions for interacting with IFC TypePlaceholder nodes.
 
 extern a_boolean has_ifc_basis(const an_ifc_type_placeholder &universal);
 
-extern an_ifc_type_basis_sort get_ifc_basis(
-                                     const an_ifc_type_placeholder &universal);
+template<>
+an_ifc_type_basis_sort get_ifc_basis(const an_ifc_type_placeholder &universal);
 
 extern a_boolean has_ifc_constraint(const an_ifc_type_placeholder &universal);
 
-extern an_ifc_expr_index get_ifc_constraint(
-                                     const an_ifc_type_placeholder &universal);
+template<>
+an_ifc_expr_index get_ifc_constraint(const an_ifc_type_placeholder &universal);
 
 extern a_boolean has_ifc_elaboration(const an_ifc_type_placeholder &universal);
 
-extern an_ifc_type_index get_ifc_elaboration(
+template<>
+an_ifc_type_index get_ifc_elaboration(
                                      const an_ifc_type_placeholder &universal);
 
 extern a_boolean validate(const an_ifc_type_placeholder &universal,
@@ -15941,7 +25194,8 @@ Functions for interacting with IFC TypePointer nodes.
 
 extern a_boolean has_ifc_pointee(const an_ifc_type_pointer &universal);
 
-extern an_ifc_type_index get_ifc_pointee(const an_ifc_type_pointer &universal);
+template<>
+an_ifc_type_index get_ifc_pointee(const an_ifc_type_pointer &universal);
 
 extern a_boolean validate(const an_ifc_type_pointer     &universal,
                           const an_ifc_validation_trace *parent);
@@ -15975,12 +25229,14 @@ Functions for interacting with IFC TypePointerToMember nodes.
 extern a_boolean has_ifc_member(
                                const an_ifc_type_pointer_to_member &universal);
 
-extern an_ifc_type_index get_ifc_member(
+template<>
+an_ifc_type_index get_ifc_member(
                                const an_ifc_type_pointer_to_member &universal);
 
 extern a_boolean has_ifc_scope(const an_ifc_type_pointer_to_member &universal);
 
-extern an_ifc_type_index get_ifc_scope(
+template<>
+an_ifc_type_index get_ifc_scope(
                                const an_ifc_type_pointer_to_member &universal);
 
 extern a_boolean validate(const an_ifc_type_pointer_to_member &universal,
@@ -16016,13 +25272,14 @@ Functions for interacting with IFC TypeQualified nodes.
 
 extern a_boolean has_ifc_qualifiers(const an_ifc_type_qualified &universal);
 
-extern an_ifc_qualifier_bitfield get_ifc_qualifiers(
+template<>
+an_ifc_qualifier_bitfield get_ifc_qualifiers(
                                        const an_ifc_type_qualified &universal);
 
 extern a_boolean has_ifc_unqualified(const an_ifc_type_qualified &universal);
 
-extern an_ifc_type_index get_ifc_unqualified(
-                                       const an_ifc_type_qualified &universal);
+template<>
+an_ifc_type_index get_ifc_unqualified(const an_ifc_type_qualified &universal);
 
 extern a_boolean validate(const an_ifc_type_qualified   &universal,
                           const an_ifc_validation_trace *parent);
@@ -16056,7 +25313,8 @@ Functions for interacting with IFC TypeRvalueReference nodes.
 extern a_boolean has_ifc_referee(
                                 const an_ifc_type_rvalue_reference &universal);
 
-extern an_ifc_type_index get_ifc_referee(
+template<>
+an_ifc_type_index get_ifc_referee(
                                 const an_ifc_type_rvalue_reference &universal);
 
 extern a_boolean validate(const an_ifc_type_rvalue_reference &universal,
@@ -16092,7 +25350,8 @@ Functions for interacting with IFC TypeSyntactic nodes.
 
 extern a_boolean has_ifc_expr(const an_ifc_type_syntactic &universal);
 
-extern an_ifc_expr_index get_ifc_expr(const an_ifc_type_syntactic &universal);
+template<>
+an_ifc_expr_index get_ifc_expr(const an_ifc_type_syntactic &universal);
 
 extern a_boolean validate(const an_ifc_type_syntactic   &universal,
                           const an_ifc_validation_trace *parent);
@@ -16125,8 +25384,8 @@ Functions for interacting with IFC TypeSyntaxTree nodes.
 
 extern a_boolean has_ifc_syntax(const an_ifc_type_syntax_tree &universal);
 
-extern an_ifc_syntax_index get_ifc_syntax(
-                                     const an_ifc_type_syntax_tree &universal);
+template<>
+an_ifc_syntax_index get_ifc_syntax(const an_ifc_type_syntax_tree &universal);
 
 extern a_boolean validate(const an_ifc_type_syntax_tree &universal,
                           const an_ifc_validation_trace *parent);
@@ -16159,17 +25418,20 @@ Functions for interacting with IFC TypeTor nodes.
 
 extern a_boolean has_ifc_convention(const an_ifc_type_tor &universal);
 
-extern an_ifc_calling_convention_sort get_ifc_convention(
+template<>
+an_ifc_calling_convention_sort get_ifc_convention(
                                              const an_ifc_type_tor &universal);
 
 extern a_boolean has_ifc_eh_spec(const an_ifc_type_tor &universal);
 
-extern an_ifc_noexcept_specification get_ifc_eh_spec(
+template<>
+an_ifc_noexcept_specification get_ifc_eh_spec(
                                              const an_ifc_type_tor &universal);
 
 extern a_boolean has_ifc_source(const an_ifc_type_tor &universal);
 
-extern an_ifc_type_index get_ifc_source(const an_ifc_type_tor &universal);
+template<>
+an_ifc_type_index get_ifc_source(const an_ifc_type_tor &universal);
 
 extern a_boolean validate(const an_ifc_type_tor         &universal,
                           const an_ifc_validation_trace *parent);
@@ -16202,12 +25464,13 @@ Functions for interacting with IFC TypeTuple nodes.
 
 extern a_boolean has_ifc_cardinality(const an_ifc_type_tuple &universal);
 
-extern an_ifc_cardinality get_ifc_cardinality(
-                                           const an_ifc_type_tuple &universal);
+template<>
+an_ifc_cardinality get_ifc_cardinality(const an_ifc_type_tuple &universal);
 
 extern a_boolean has_ifc_start(const an_ifc_type_tuple &universal);
 
-extern an_ifc_index get_ifc_start(const an_ifc_type_tuple &universal);
+template<>
+an_ifc_index get_ifc_start(const an_ifc_type_tuple &universal);
 
 extern a_boolean validate(const an_ifc_type_tuple       &universal,
                           const an_ifc_validation_trace *parent);
@@ -16240,7 +25503,8 @@ Functions for interacting with IFC TypeTypename nodes.
 
 extern a_boolean has_ifc_path(const an_ifc_type_typename &universal);
 
-extern an_ifc_expr_index get_ifc_path(const an_ifc_type_typename &universal);
+template<>
+an_ifc_expr_index get_ifc_path(const an_ifc_type_typename &universal);
 
 extern a_boolean validate(const an_ifc_type_typename    &universal,
                           const an_ifc_validation_trace *parent);
@@ -16273,7 +25537,8 @@ Functions for interacting with IFC TypeUnaligned nodes.
 
 extern a_boolean has_ifc_type(const an_ifc_type_unaligned &universal);
 
-extern an_ifc_type_index get_ifc_type(const an_ifc_type_unaligned &universal);
+template<>
+an_ifc_type_index get_ifc_type(const an_ifc_type_unaligned &universal);
 
 extern a_boolean validate(const an_ifc_type_unaligned   &universal,
                           const an_ifc_validation_trace *parent);

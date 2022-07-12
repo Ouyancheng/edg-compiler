@@ -56,6 +56,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_keyword_syntax &universal)
 /*
 Given the universal representation of KeywordSyntax, return the universal
@@ -100,6 +101,7 @@ otherwise, return FALSE.
 }  /* has_ifc_value */
 
 
+template<>
 an_ifc_keyword_sort get_ifc_value(const an_ifc_keyword_syntax &universal)
 /*
 Given the universal representation of KeywordSyntax, return the universal
@@ -145,6 +147,7 @@ otherwise, return FALSE.
 }  /* has_ifc_owner */
 
 
+template<>
 an_ifc_text_offset get_ifc_owner(const an_ifc_module_reference &universal)
 /*
 Given the universal representation of ModuleReference, return the universal
@@ -185,6 +188,7 @@ otherwise, return FALSE.
 }  /* has_ifc_partition */
 
 
+template<>
 an_ifc_text_offset get_ifc_partition(const an_ifc_module_reference &universal)
 /*
 Given the universal representation of ModuleReference, return the universal
@@ -230,6 +234,7 @@ otherwise, return FALSE.
 }  /* has_ifc_category */
 
 
+template<>
 an_ifc_word_category get_ifc_category(const an_ifc_nestable_word &universal)
 /*
 Given the universal representation of NestableWord, return the universal
@@ -294,6 +299,7 @@ otherwise, return FALSE.
 }  /* has_ifc_index */
 
 
+template<>
 an_ifc_index get_ifc_index(const an_ifc_nestable_word &universal)
 /*
 Given the universal representation of NestableWord, return the universal
@@ -334,6 +340,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_nestable_word &universal)
 /*
 Given the universal representation of NestableWord, return the universal
@@ -378,6 +385,7 @@ otherwise, return FALSE.
 }  /* has_ifc_sort */
 
 
+template<>
 an_ifc_word_sort get_ifc_sort(const an_ifc_nestable_word &universal)
 /*
 Given the universal representation of NestableWord, return the universal
@@ -418,6 +426,7 @@ otherwise, return FALSE.
 }  /* has_ifc_value */
 
 
+template<>
 an_ifc_u16 get_ifc_value(const an_ifc_nestable_word &universal)
 /*
 Given the universal representation of NestableWord, return the universal
@@ -463,6 +472,7 @@ otherwise, return FALSE.
 }  /* has_ifc_sort */
 
 
+template<>
 an_ifc_noexcept_sort get_ifc_sort(
                                 const an_ifc_noexcept_specification &universal)
 /*
@@ -504,6 +514,7 @@ otherwise, return FALSE.
 }  /* has_ifc_words */
 
 
+template<>
 an_ifc_sentence_index get_ifc_words(
                                 const an_ifc_noexcept_specification &universal)
 /*
@@ -550,6 +561,7 @@ otherwise, return FALSE.
 }  /* has_ifc_attributes */
 
 
+template<>
 an_ifc_sentence_index get_ifc_attributes(
                                   const an_ifc_parameterized_entity &universal)
 /*
@@ -591,6 +603,7 @@ otherwise, return FALSE.
 }  /* has_ifc_body */
 
 
+template<>
 an_ifc_sentence_index get_ifc_body(
                                   const an_ifc_parameterized_entity &universal)
 /*
@@ -632,6 +645,7 @@ otherwise, return FALSE.
 }  /* has_ifc_decl */
 
 
+template<>
 an_ifc_decl_index get_ifc_decl(const an_ifc_parameterized_entity &universal)
 /*
 Given the universal representation of ParameterizedEntity, return the universal
@@ -685,6 +699,7 @@ otherwise, return FALSE.
 }  /* has_ifc_head */
 
 
+template<>
 an_ifc_sentence_index get_ifc_head(
                                   const an_ifc_parameterized_entity &universal)
 /*
@@ -731,6 +746,7 @@ otherwise, return FALSE.
 }  /* has_ifc_cardinality */
 
 
+template<>
 an_ifc_cardinality get_ifc_cardinality(const an_ifc_sequence &universal)
 /*
 Given the universal representation of Sequence, return the universal
@@ -771,6 +787,7 @@ otherwise, return FALSE.
 }  /* has_ifc_start */
 
 
+template<>
 an_ifc_index get_ifc_start(const an_ifc_sequence &universal)
 /*
 Given the universal representation of Sequence, return the universal
@@ -815,6 +832,7 @@ otherwise, return FALSE.
 }  /* has_ifc_column */
 
 
+template<>
 an_ifc_column get_ifc_column(const an_ifc_source_location &universal)
 /*
 Given the universal representation of SourceLocation, return the universal
@@ -855,6 +873,7 @@ otherwise, return FALSE.
 }  /* has_ifc_line */
 
 
+template<>
 an_ifc_line_index get_ifc_line(const an_ifc_source_location &universal)
 /*
 Given the universal representation of SourceLocation, return the universal
@@ -900,6 +919,7 @@ otherwise, return FALSE.
 }  /* has_ifc_abi */
 
 
+template<>
 an_ifc_abi get_ifc_abi(const an_ifc_file_header &universal)
 /*
 Given the universal representation of FileHeader, return the universal
@@ -939,6 +959,7 @@ otherwise, return FALSE.
 }  /* has_ifc_arch */
 
 
+template<>
 an_ifc_architecture_sort get_ifc_arch(const an_ifc_file_header &universal)
 /*
 Given the universal representation of FileHeader, return the universal
@@ -979,6 +1000,7 @@ otherwise, return FALSE.
 }  /* has_ifc_checksum */
 
 
+template<>
 an_ifc_sha256 get_ifc_checksum(const an_ifc_file_header &universal)
 /*
 Given the universal representation of FileHeader, return the universal
@@ -1023,6 +1045,7 @@ otherwise, return FALSE.
 }  /* has_ifc_dialect */
 
 
+template<>
 an_ifc_language_version get_ifc_dialect(const an_ifc_file_header &universal)
 /*
 Given the universal representation of FileHeader, return the universal
@@ -1064,6 +1087,7 @@ otherwise, return FALSE.
 }  /* has_ifc_global_scope */
 
 
+template<>
 an_ifc_scope_index get_ifc_global_scope(const an_ifc_file_header &universal)
 /*
 Given the universal representation of FileHeader, return the universal
@@ -1104,6 +1128,7 @@ otherwise, return FALSE.
 }  /* has_ifc_internal */
 
 
+template<>
 an_ifc_bool get_ifc_internal(const an_ifc_file_header &universal)
 /*
 Given the universal representation of FileHeader, return the universal
@@ -1144,6 +1169,7 @@ Return TRUE if the given universal representation has the field
 }  /* has_ifc_major_version */
 
 
+template<>
 an_ifc_version get_ifc_major_version(const an_ifc_file_header &universal)
 /*
 Given the universal representation of FileHeader, return the universal
@@ -1184,6 +1210,7 @@ Return TRUE if the given universal representation has the field
 }  /* has_ifc_minor_version */
 
 
+template<>
 an_ifc_version get_ifc_minor_version(const an_ifc_file_header &universal)
 /*
 Given the universal representation of FileHeader, return the universal
@@ -1224,6 +1251,7 @@ Return TRUE if the given universal representation has the field
 }  /* has_ifc_partition_count */
 
 
+template<>
 an_ifc_cardinality get_ifc_partition_count(const an_ifc_file_header &universal)
 /*
 Given the universal representation of FileHeader, return the universal
@@ -1264,6 +1292,7 @@ otherwise, return FALSE.
 }  /* has_ifc_src_path */
 
 
+template<>
 an_ifc_text_offset get_ifc_src_path(const an_ifc_file_header &universal)
 /*
 Given the universal representation of FileHeader, return the universal
@@ -1304,6 +1333,7 @@ Return TRUE if the given universal representation has the field
 }  /* has_ifc_string_table_bytes */
 
 
+template<>
 an_ifc_byte_offset get_ifc_string_table_bytes(
                                            const an_ifc_file_header &universal)
 /*
@@ -1346,6 +1376,7 @@ Return TRUE if the given universal representation has the field
 }  /* has_ifc_string_table_size */
 
 
+template<>
 an_ifc_cardinality get_ifc_string_table_size(
                                            const an_ifc_file_header &universal)
 /*
@@ -1388,6 +1419,7 @@ otherwise, return FALSE.
 }  /* has_ifc_toc */
 
 
+template<>
 an_ifc_byte_offset get_ifc_toc(const an_ifc_file_header &universal)
 /*
 Given the universal representation of FileHeader, return the universal
@@ -1428,6 +1460,7 @@ otherwise, return FALSE.
 }  /* has_ifc_unit */
 
 
+template<>
 an_ifc_unit_index get_ifc_unit(const an_ifc_file_header &universal)
 /*
 Given the universal representation of FileHeader, return the universal
@@ -1473,6 +1506,7 @@ otherwise, return FALSE.
 }  /* has_ifc_cardinality */
 
 
+template<>
 an_ifc_cardinality get_ifc_cardinality(const an_ifc_partition &universal)
 /*
 Given the universal representation of Partition, return the universal
@@ -1513,6 +1547,7 @@ otherwise, return FALSE.
 }  /* has_ifc_entry_size */
 
 
+template<>
 an_ifc_entity_size get_ifc_entry_size(const an_ifc_partition &universal)
 /*
 Given the universal representation of Partition, return the universal
@@ -1553,6 +1588,7 @@ otherwise, return FALSE.
 }  /* has_ifc_name */
 
 
+template<>
 an_ifc_text_offset get_ifc_name(const an_ifc_partition &universal)
 /*
 Given the universal representation of Partition, return the universal
@@ -1593,6 +1629,7 @@ otherwise, return FALSE.
 }  /* has_ifc_offset */
 
 
+template<>
 an_ifc_byte_offset get_ifc_offset(const an_ifc_partition &universal)
 /*
 Given the universal representation of Partition, return the universal
@@ -1638,6 +1675,7 @@ otherwise, return FALSE.
 }  /* has_ifc_word */
 
 
+template<>
 an_ifc_nestable_word get_ifc_word(const an_ifc_attr_basic &universal)
 /*
 Given the universal representation of AttrBasic, return the universal
@@ -1687,6 +1725,7 @@ otherwise, return FALSE.
 }  /* has_ifc_arguments */
 
 
+template<>
 an_ifc_attr_index get_ifc_arguments(const an_ifc_attr_called &universal)
 /*
 Given the universal representation of AttrCalled, return the universal
@@ -1727,6 +1766,7 @@ otherwise, return FALSE.
 }  /* has_ifc_function */
 
 
+template<>
 an_ifc_attr_index get_ifc_function(const an_ifc_attr_called &universal)
 /*
 Given the universal representation of AttrCalled, return the universal
@@ -1772,6 +1812,7 @@ otherwise, return FALSE.
 }  /* has_ifc_expression */
 
 
+template<>
 an_ifc_expr_index get_ifc_expression(const an_ifc_attr_elaborated &universal)
 /*
 Given the universal representation of AttrElaborated, return the universal
@@ -1817,6 +1858,7 @@ otherwise, return FALSE.
 }  /* has_ifc_operand */
 
 
+template<>
 an_ifc_attr_index get_ifc_operand(const an_ifc_attr_expanded &universal)
 /*
 Given the universal representation of AttrExpanded, return the universal
@@ -1862,6 +1904,7 @@ otherwise, return FALSE.
 }  /* has_ifc_factor */
 
 
+template<>
 an_ifc_nestable_word get_ifc_factor(const an_ifc_attr_factored &universal)
 /*
 Given the universal representation of AttrFactored, return the universal
@@ -1907,6 +1950,7 @@ otherwise, return FALSE.
 }  /* has_ifc_terms */
 
 
+template<>
 an_ifc_attr_index get_ifc_terms(const an_ifc_attr_factored &universal)
 /*
 Given the universal representation of AttrFactored, return the universal
@@ -1952,6 +1996,7 @@ otherwise, return FALSE.
 }  /* has_ifc_attribute */
 
 
+template<>
 an_ifc_attr_index get_ifc_attribute(const an_ifc_attr_labeled &universal)
 /*
 Given the universal representation of AttrLabeled, return the universal
@@ -1992,6 +2037,7 @@ otherwise, return FALSE.
 }  /* has_ifc_label */
 
 
+template<>
 an_ifc_nestable_word get_ifc_label(const an_ifc_attr_labeled &universal)
 /*
 Given the universal representation of AttrLabeled, return the universal
@@ -2042,6 +2088,7 @@ otherwise, return FALSE.
 }  /* has_ifc_member */
 
 
+template<>
 an_ifc_nestable_word get_ifc_member(const an_ifc_attr_scoped &universal)
 /*
 Given the universal representation of AttrScoped, return the universal
@@ -2087,6 +2134,7 @@ otherwise, return FALSE.
 }  /* has_ifc_scope */
 
 
+template<>
 an_ifc_nestable_word get_ifc_scope(const an_ifc_attr_scoped &universal)
 /*
 Given the universal representation of AttrScoped, return the universal
@@ -2137,6 +2185,7 @@ otherwise, return FALSE.
 }  /* has_ifc_cardinality */
 
 
+template<>
 an_ifc_cardinality get_ifc_cardinality(const an_ifc_attr_tuple &universal)
 /*
 Given the universal representation of AttrTuple, return the universal
@@ -2177,6 +2226,7 @@ otherwise, return FALSE.
 }  /* has_ifc_start */
 
 
+template<>
 an_ifc_index get_ifc_start(const an_ifc_attr_tuple &universal)
 /*
 Given the universal representation of AttrTuple, return the universal
@@ -2222,6 +2272,7 @@ otherwise, return FALSE.
 }  /* has_ifc_cardinality */
 
 
+template<>
 an_ifc_cardinality get_ifc_cardinality(
                                       const an_ifc_chart_multilevel &universal)
 /*
@@ -2263,6 +2314,7 @@ otherwise, return FALSE.
 }  /* has_ifc_start */
 
 
+template<>
 an_ifc_index get_ifc_start(const an_ifc_chart_multilevel &universal)
 /*
 Given the universal representation of ChartMultilevel, return the universal
@@ -2308,6 +2360,7 @@ otherwise, return FALSE.
 }  /* has_ifc_cardinality */
 
 
+template<>
 an_ifc_cardinality get_ifc_cardinality(const an_ifc_chart_unilevel &universal)
 /*
 Given the universal representation of ChartUnilevel, return the universal
@@ -2348,6 +2401,7 @@ otherwise, return FALSE.
 }  /* has_ifc_constraint */
 
 
+template<>
 an_ifc_expr_index get_ifc_constraint(const an_ifc_chart_unilevel &universal)
 /*
 Given the universal representation of ChartUnilevel, return the universal
@@ -2388,6 +2442,7 @@ otherwise, return FALSE.
 }  /* has_ifc_start */
 
 
+template<>
 an_ifc_index get_ifc_start(const an_ifc_chart_unilevel &universal)
 /*
 Given the universal representation of ChartUnilevel, return the universal
@@ -2433,6 +2488,7 @@ otherwise, return FALSE.
 }  /* has_ifc_value */
 
 
+template<>
 an_ifc_ieeele_float get_ifc_value(const an_ifc_const_f64 &universal)
 /*
 Given the universal representation of ConstF64, return the universal
@@ -2481,6 +2537,7 @@ otherwise, return FALSE.
 }  /* has_ifc_value */
 
 
+template<>
 an_ifc_u64 get_ifc_value(const an_ifc_const_i64 &universal)
 /*
 Given the universal representation of ConstI64, return the universal
@@ -2525,6 +2582,7 @@ otherwise, return FALSE.
 }  /* has_ifc_length */
 
 
+template<>
 an_ifc_cardinality get_ifc_length(const an_ifc_const_str &universal)
 /*
 Given the universal representation of ConstStr, return the universal
@@ -2565,6 +2623,7 @@ otherwise, return FALSE.
 }  /* has_ifc_start */
 
 
+template<>
 an_ifc_text_offset get_ifc_start(const an_ifc_const_str &universal)
 /*
 Given the universal representation of ConstStr, return the universal
@@ -2605,6 +2664,7 @@ otherwise, return FALSE.
 }  /* has_ifc_suffix */
 
 
+template<>
 an_ifc_text_offset get_ifc_suffix(const an_ifc_const_str &universal)
 /*
 Given the universal representation of ConstStr, return the universal
@@ -2650,6 +2710,7 @@ otherwise, return FALSE.
 }  /* has_ifc_access */
 
 
+template<>
 an_ifc_access_sort get_ifc_access(const an_ifc_decl_alias &universal)
 /*
 Given the universal representation of DeclAlias, return the universal
@@ -2690,6 +2751,7 @@ otherwise, return FALSE.
 }  /* has_ifc_aliasee */
 
 
+template<>
 an_ifc_type_index get_ifc_aliasee(const an_ifc_decl_alias &universal)
 /*
 Given the universal representation of DeclAlias, return the universal
@@ -2730,6 +2792,7 @@ otherwise, return FALSE.
 }  /* has_ifc_home_scope */
 
 
+template<>
 an_ifc_decl_index get_ifc_home_scope(const an_ifc_decl_alias &universal)
 /*
 Given the universal representation of DeclAlias, return the universal
@@ -2827,6 +2890,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_decl_alias &universal)
 /*
 Given the universal representation of DeclAlias, return the universal
@@ -2871,6 +2935,7 @@ otherwise, return FALSE.
 }  /* has_ifc_name */
 
 
+template<>
 an_ifc_text_offset get_ifc_name(const an_ifc_decl_alias &universal)
 /*
 Given the universal representation of DeclAlias, return the universal
@@ -2911,6 +2976,7 @@ otherwise, return FALSE.
 }  /* has_ifc_specifiers */
 
 
+template<>
 an_ifc_basic_specifiers_bitfield get_ifc_specifiers(
                                             const an_ifc_decl_alias &universal)
 /*
@@ -2953,6 +3019,7 @@ otherwise, return FALSE.
 }  /* has_ifc_type */
 
 
+template<>
 an_ifc_type_index get_ifc_type(const an_ifc_decl_alias &universal)
 /*
 Given the universal representation of DeclAlias, return the universal
@@ -2998,6 +3065,7 @@ otherwise, return FALSE.
 }  /* has_ifc_access */
 
 
+template<>
 an_ifc_access_sort get_ifc_access(const an_ifc_decl_bitfield &universal)
 /*
 Given the universal representation of DeclBitfield, return the universal
@@ -3038,6 +3106,7 @@ otherwise, return FALSE.
 }  /* has_ifc_home_scope */
 
 
+template<>
 an_ifc_decl_index get_ifc_home_scope(const an_ifc_decl_bitfield &universal)
 /*
 Given the universal representation of DeclBitfield, return the universal
@@ -3135,6 +3204,7 @@ otherwise, return FALSE.
 }  /* has_ifc_initializer */
 
 
+template<>
 an_ifc_expr_index get_ifc_initializer(const an_ifc_decl_bitfield &universal)
 /*
 Given the universal representation of DeclBitfield, return the universal
@@ -3175,6 +3245,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_decl_bitfield &universal)
 /*
 Given the universal representation of DeclBitfield, return the universal
@@ -3219,6 +3290,7 @@ otherwise, return FALSE.
 }  /* has_ifc_name */
 
 
+template<>
 an_ifc_text_offset get_ifc_name(const an_ifc_decl_bitfield &universal)
 /*
 Given the universal representation of DeclBitfield, return the universal
@@ -3259,6 +3331,7 @@ otherwise, return FALSE.
 }  /* has_ifc_properties */
 
 
+template<>
 an_ifc_reachable_properties_bitfield get_ifc_properties(
                                          const an_ifc_decl_bitfield &universal)
 /*
@@ -3301,6 +3374,7 @@ otherwise, return FALSE.
 }  /* has_ifc_specifiers */
 
 
+template<>
 an_ifc_basic_specifiers_bitfield get_ifc_specifiers(
                                          const an_ifc_decl_bitfield &universal)
 /*
@@ -3343,6 +3417,7 @@ otherwise, return FALSE.
 }  /* has_ifc_traits */
 
 
+template<>
 an_ifc_object_traits_bitfield get_ifc_traits(
                                          const an_ifc_decl_bitfield &universal)
 /*
@@ -3385,6 +3460,7 @@ otherwise, return FALSE.
 }  /* has_ifc_type */
 
 
+template<>
 an_ifc_type_index get_ifc_type(const an_ifc_decl_bitfield &universal)
 /*
 Given the universal representation of DeclBitfield, return the universal
@@ -3425,6 +3501,7 @@ otherwise, return FALSE.
 }  /* has_ifc_width */
 
 
+template<>
 an_ifc_expr_index get_ifc_width(const an_ifc_decl_bitfield &universal)
 /*
 Given the universal representation of DeclBitfield, return the universal
@@ -3470,6 +3547,7 @@ otherwise, return FALSE.
 }  /* has_ifc_access */
 
 
+template<>
 an_ifc_access_sort get_ifc_access(const an_ifc_decl_concept &universal)
 /*
 Given the universal representation of DeclConcept, return the universal
@@ -3510,6 +3588,7 @@ otherwise, return FALSE.
 }  /* has_ifc_body */
 
 
+template<>
 an_ifc_sentence_index get_ifc_body(const an_ifc_decl_concept &universal)
 /*
 Given the universal representation of DeclConcept, return the universal
@@ -3550,6 +3629,7 @@ otherwise, return FALSE.
 }  /* has_ifc_chart */
 
 
+template<>
 an_ifc_chart_index get_ifc_chart(const an_ifc_decl_concept &universal)
 /*
 Given the universal representation of DeclConcept, return the universal
@@ -3590,6 +3670,7 @@ otherwise, return FALSE.
 }  /* has_ifc_constraint */
 
 
+template<>
 an_ifc_expr_index get_ifc_constraint(const an_ifc_decl_concept &universal)
 /*
 Given the universal representation of DeclConcept, return the universal
@@ -3630,6 +3711,7 @@ otherwise, return FALSE.
 }  /* has_ifc_head */
 
 
+template<>
 an_ifc_sentence_index get_ifc_head(const an_ifc_decl_concept &universal)
 /*
 Given the universal representation of DeclConcept, return the universal
@@ -3670,6 +3752,7 @@ otherwise, return FALSE.
 }  /* has_ifc_home_scope */
 
 
+template<>
 an_ifc_decl_index get_ifc_home_scope(const an_ifc_decl_concept &universal)
 /*
 Given the universal representation of DeclConcept, return the universal
@@ -3767,6 +3850,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_decl_concept &universal)
 /*
 Given the universal representation of DeclConcept, return the universal
@@ -3811,6 +3895,7 @@ otherwise, return FALSE.
 }  /* has_ifc_name */
 
 
+template<>
 an_ifc_text_offset get_ifc_name(const an_ifc_decl_concept &universal)
 /*
 Given the universal representation of DeclConcept, return the universal
@@ -3851,6 +3936,7 @@ otherwise, return FALSE.
 }  /* has_ifc_specifiers */
 
 
+template<>
 an_ifc_basic_specifiers_bitfield get_ifc_specifiers(
                                           const an_ifc_decl_concept &universal)
 /*
@@ -3893,6 +3979,7 @@ otherwise, return FALSE.
 }  /* has_ifc_type */
 
 
+template<>
 an_ifc_type_index get_ifc_type(const an_ifc_decl_concept &universal)
 /*
 Given the universal representation of DeclConcept, return the universal
@@ -3933,6 +4020,7 @@ otherwise, return FALSE.
 }  /* has_ifc_unknown */
 
 
+template<>
 an_ifc_u16 get_ifc_unknown(const an_ifc_decl_concept &universal)
 /*
 Given the universal representation of DeclConcept, return the universal
@@ -3978,6 +4066,7 @@ otherwise, return FALSE.
 }  /* has_ifc_access */
 
 
+template<>
 an_ifc_access_sort get_ifc_access(const an_ifc_decl_constructor &universal)
 /*
 Given the universal representation of DeclConstructor, return the universal
@@ -4018,6 +4107,7 @@ otherwise, return FALSE.
 }  /* has_ifc_chart */
 
 
+template<>
 an_ifc_chart_index get_ifc_chart(const an_ifc_decl_constructor &universal)
 /*
 Given the universal representation of DeclConstructor, return the universal
@@ -4058,6 +4148,7 @@ otherwise, return FALSE.
 }  /* has_ifc_home_scope */
 
 
+template<>
 an_ifc_decl_index get_ifc_home_scope(const an_ifc_decl_constructor &universal)
 /*
 Given the universal representation of DeclConstructor, return the universal
@@ -4155,6 +4246,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_decl_constructor &universal)
 /*
 Given the universal representation of DeclConstructor, return the universal
@@ -4199,6 +4291,7 @@ otherwise, return FALSE.
 }  /* has_ifc_name */
 
 
+template<>
 an_ifc_name_index get_ifc_name(const an_ifc_decl_constructor &universal)
 /*
 Given the universal representation of DeclConstructor, return the universal
@@ -4276,6 +4369,7 @@ otherwise, return FALSE.
 }  /* has_ifc_properties */
 
 
+template<>
 an_ifc_reachable_properties_bitfield get_ifc_properties(
                                       const an_ifc_decl_constructor &universal)
 /*
@@ -4318,6 +4412,7 @@ otherwise, return FALSE.
 }  /* has_ifc_specifiers */
 
 
+template<>
 an_ifc_basic_specifiers_bitfield get_ifc_specifiers(
                                       const an_ifc_decl_constructor &universal)
 /*
@@ -4360,6 +4455,7 @@ otherwise, return FALSE.
 }  /* has_ifc_traits */
 
 
+template<>
 an_ifc_function_traits_bitfield get_ifc_traits(
                                       const an_ifc_decl_constructor &universal)
 /*
@@ -4402,6 +4498,7 @@ otherwise, return FALSE.
 }  /* has_ifc_type */
 
 
+template<>
 an_ifc_type_index get_ifc_type(const an_ifc_decl_constructor &universal)
 /*
 Given the universal representation of DeclConstructor, return the universal
@@ -4447,6 +4544,7 @@ otherwise, return FALSE.
 }  /* has_ifc_home_scope */
 
 
+template<>
 an_ifc_decl_index get_ifc_home_scope(
                                   const an_ifc_decl_deduction_guide &universal)
 /*
@@ -4545,6 +4643,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(
                                   const an_ifc_decl_deduction_guide &universal)
 /*
@@ -4590,6 +4689,7 @@ otherwise, return FALSE.
 }  /* has_ifc_name */
 
 
+template<>
 an_ifc_text_offset get_ifc_name(const an_ifc_decl_deduction_guide &universal)
 /*
 Given the universal representation of DeclDeductionGuide, return the universal
@@ -4630,6 +4730,7 @@ otherwise, return FALSE.
 }  /* has_ifc_source */
 
 
+template<>
 an_ifc_chart_index get_ifc_source(const an_ifc_decl_deduction_guide &universal)
 /*
 Given the universal representation of DeclDeductionGuide, return the universal
@@ -4670,6 +4771,7 @@ otherwise, return FALSE.
 }  /* has_ifc_specifiers */
 
 
+template<>
 an_ifc_basic_specifiers_bitfield get_ifc_specifiers(
                                   const an_ifc_decl_deduction_guide &universal)
 /*
@@ -4712,6 +4814,7 @@ otherwise, return FALSE.
 }  /* has_ifc_target */
 
 
+template<>
 an_ifc_expr_index get_ifc_target(const an_ifc_decl_deduction_guide &universal)
 /*
 Given the universal representation of DeclDeductionGuide, return the universal
@@ -4752,6 +4855,7 @@ otherwise, return FALSE.
 }  /* has_ifc_traits */
 
 
+template<>
 an_ifc_guide_traits_bitfield get_ifc_traits(
                                   const an_ifc_decl_deduction_guide &universal)
 /*
@@ -4799,6 +4903,7 @@ otherwise, return FALSE.
 }  /* has_ifc_access */
 
 
+template<>
 an_ifc_access_sort get_ifc_access(const an_ifc_decl_destructor &universal)
 /*
 Given the universal representation of DeclDestructor, return the universal
@@ -4839,6 +4944,7 @@ otherwise, return FALSE.
 }  /* has_ifc_convention */
 
 
+template<>
 an_ifc_calling_convention_sort get_ifc_convention(
                                        const an_ifc_decl_destructor &universal)
 /*
@@ -4880,6 +4986,7 @@ otherwise, return FALSE.
 }  /* has_ifc_eh_spec */
 
 
+template<>
 an_ifc_noexcept_specification get_ifc_eh_spec(
                                        const an_ifc_decl_destructor &universal)
 /*
@@ -4927,6 +5034,7 @@ otherwise, return FALSE.
 }  /* has_ifc_home_scope */
 
 
+template<>
 an_ifc_decl_index get_ifc_home_scope(const an_ifc_decl_destructor &universal)
 /*
 Given the universal representation of DeclDestructor, return the universal
@@ -5024,6 +5132,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_decl_destructor &universal)
 /*
 Given the universal representation of DeclDestructor, return the universal
@@ -5068,6 +5177,7 @@ otherwise, return FALSE.
 }  /* has_ifc_name */
 
 
+template<>
 an_ifc_name_index get_ifc_name(const an_ifc_decl_destructor &universal)
 /*
 Given the universal representation of DeclDestructor, return the universal
@@ -5145,6 +5255,7 @@ otherwise, return FALSE.
 }  /* has_ifc_properties */
 
 
+template<>
 an_ifc_reachable_properties_bitfield get_ifc_properties(
                                        const an_ifc_decl_destructor &universal)
 /*
@@ -5187,6 +5298,7 @@ otherwise, return FALSE.
 }  /* has_ifc_specifiers */
 
 
+template<>
 an_ifc_basic_specifiers_bitfield get_ifc_specifiers(
                                        const an_ifc_decl_destructor &universal)
 /*
@@ -5229,6 +5341,7 @@ otherwise, return FALSE.
 }  /* has_ifc_traits */
 
 
+template<>
 an_ifc_function_traits_bitfield get_ifc_traits(
                                        const an_ifc_decl_destructor &universal)
 /*
@@ -5276,6 +5389,7 @@ otherwise, return FALSE.
 }  /* has_ifc_access */
 
 
+template<>
 an_ifc_access_sort get_ifc_access(const an_ifc_decl_enumeration &universal)
 /*
 Given the universal representation of DeclEnumeration, return the universal
@@ -5316,6 +5430,7 @@ otherwise, return FALSE.
 }  /* has_ifc_alignment */
 
 
+template<>
 an_ifc_expr_index get_ifc_alignment(const an_ifc_decl_enumeration &universal)
 /*
 Given the universal representation of DeclEnumeration, return the universal
@@ -5356,6 +5471,7 @@ otherwise, return FALSE.
 }  /* has_ifc_base */
 
 
+template<>
 an_ifc_type_index get_ifc_base(const an_ifc_decl_enumeration &universal)
 /*
 Given the universal representation of DeclEnumeration, return the universal
@@ -5396,6 +5512,7 @@ otherwise, return FALSE.
 }  /* has_ifc_home_scope */
 
 
+template<>
 an_ifc_decl_index get_ifc_home_scope(const an_ifc_decl_enumeration &universal)
 /*
 Given the universal representation of DeclEnumeration, return the universal
@@ -5493,6 +5610,7 @@ otherwise, return FALSE.
 }  /* has_ifc_initializer */
 
 
+template<>
 an_ifc_sequence get_ifc_initializer(const an_ifc_decl_enumeration &universal)
 /*
 Given the universal representation of DeclEnumeration, return the universal
@@ -5538,6 +5656,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_decl_enumeration &universal)
 /*
 Given the universal representation of DeclEnumeration, return the universal
@@ -5582,6 +5701,7 @@ otherwise, return FALSE.
 }  /* has_ifc_name */
 
 
+template<>
 an_ifc_text_offset get_ifc_name(const an_ifc_decl_enumeration &universal)
 /*
 Given the universal representation of DeclEnumeration, return the universal
@@ -5622,6 +5742,7 @@ otherwise, return FALSE.
 }  /* has_ifc_properties */
 
 
+template<>
 an_ifc_reachable_properties_bitfield get_ifc_properties(
                                       const an_ifc_decl_enumeration &universal)
 /*
@@ -5664,6 +5785,7 @@ otherwise, return FALSE.
 }  /* has_ifc_specifiers */
 
 
+template<>
 an_ifc_basic_specifiers_bitfield get_ifc_specifiers(
                                       const an_ifc_decl_enumeration &universal)
 /*
@@ -5706,6 +5828,7 @@ otherwise, return FALSE.
 }  /* has_ifc_type */
 
 
+template<>
 an_ifc_type_index get_ifc_type(const an_ifc_decl_enumeration &universal)
 /*
 Given the universal representation of DeclEnumeration, return the universal
@@ -5751,6 +5874,7 @@ otherwise, return FALSE.
 }  /* has_ifc_access */
 
 
+template<>
 an_ifc_access_sort get_ifc_access(const an_ifc_decl_enumerator &universal)
 /*
 Given the universal representation of DeclEnumerator, return the universal
@@ -5791,6 +5915,7 @@ otherwise, return FALSE.
 }  /* has_ifc_home_scope */
 
 
+template<>
 an_ifc_decl_index get_ifc_home_scope(const an_ifc_decl_enumerator &universal)
 /*
 Given the universal representation of DeclEnumerator, return the universal
@@ -5942,6 +6067,7 @@ otherwise, return FALSE.
 }  /* has_ifc_initializer */
 
 
+template<>
 an_ifc_expr_index get_ifc_initializer(const an_ifc_decl_enumerator &universal)
 /*
 Given the universal representation of DeclEnumerator, return the universal
@@ -5982,6 +6108,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_decl_enumerator &universal)
 /*
 Given the universal representation of DeclEnumerator, return the universal
@@ -6026,6 +6153,7 @@ otherwise, return FALSE.
 }  /* has_ifc_name */
 
 
+template<>
 an_ifc_text_offset get_ifc_name(const an_ifc_decl_enumerator &universal)
 /*
 Given the universal representation of DeclEnumerator, return the universal
@@ -6066,6 +6194,7 @@ otherwise, return FALSE.
 }  /* has_ifc_specifiers */
 
 
+template<>
 an_ifc_basic_specifiers_bitfield get_ifc_specifiers(
                                        const an_ifc_decl_enumerator &universal)
 /*
@@ -6108,6 +6237,7 @@ otherwise, return FALSE.
 }  /* has_ifc_type */
 
 
+template<>
 an_ifc_type_index get_ifc_type(const an_ifc_decl_enumerator &universal)
 /*
 Given the universal representation of DeclEnumerator, return the universal
@@ -6153,6 +6283,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_decl_expansion &universal)
 /*
 Given the universal representation of DeclExpansion, return the universal
@@ -6197,6 +6328,7 @@ otherwise, return FALSE.
 }  /* has_ifc_operand */
 
 
+template<>
 an_ifc_decl_index get_ifc_operand(const an_ifc_decl_expansion &universal)
 /*
 Given the universal representation of DeclExpansion, return the universal
@@ -6257,6 +6389,7 @@ otherwise, return FALSE.
 }  /* has_ifc_decl */
 
 
+template<>
 an_ifc_decl_index get_ifc_decl(
                            const an_ifc_decl_explicit_instantiation &universal)
 /*
@@ -6300,6 +6433,7 @@ otherwise, return FALSE.
 }  /* has_ifc_form */
 
 
+template<>
 an_ifc_form_spec_index get_ifc_form(
                            const an_ifc_decl_explicit_instantiation &universal)
 /*
@@ -6348,6 +6482,7 @@ otherwise, return FALSE.
 }  /* has_ifc_decl */
 
 
+template<>
 an_ifc_decl_index get_ifc_decl(
                           const an_ifc_decl_explicit_specialization &universal)
 /*
@@ -6391,6 +6526,7 @@ otherwise, return FALSE.
 }  /* has_ifc_form */
 
 
+template<>
 an_ifc_form_spec_index get_ifc_form(
                           const an_ifc_decl_explicit_specialization &universal)
 /*
@@ -6437,6 +6573,7 @@ otherwise, return FALSE.
 }  /* has_ifc_access */
 
 
+template<>
 an_ifc_access_sort get_ifc_access(const an_ifc_decl_field &universal)
 /*
 Given the universal representation of DeclField, return the universal
@@ -6477,6 +6614,7 @@ otherwise, return FALSE.
 }  /* has_ifc_alignment */
 
 
+template<>
 an_ifc_expr_index get_ifc_alignment(const an_ifc_decl_field &universal)
 /*
 Given the universal representation of DeclField, return the universal
@@ -6517,6 +6655,7 @@ otherwise, return FALSE.
 }  /* has_ifc_home_scope */
 
 
+template<>
 an_ifc_decl_index get_ifc_home_scope(const an_ifc_decl_field &universal)
 /*
 Given the universal representation of DeclField, return the universal
@@ -6614,6 +6753,7 @@ otherwise, return FALSE.
 }  /* has_ifc_initializer */
 
 
+template<>
 an_ifc_expr_index get_ifc_initializer(const an_ifc_decl_field &universal)
 /*
 Given the universal representation of DeclField, return the universal
@@ -6654,6 +6794,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_decl_field &universal)
 /*
 Given the universal representation of DeclField, return the universal
@@ -6698,6 +6839,7 @@ otherwise, return FALSE.
 }  /* has_ifc_name */
 
 
+template<>
 an_ifc_text_offset get_ifc_name(const an_ifc_decl_field &universal)
 /*
 Given the universal representation of DeclField, return the universal
@@ -6738,6 +6880,7 @@ otherwise, return FALSE.
 }  /* has_ifc_properties */
 
 
+template<>
 an_ifc_reachable_properties_bitfield get_ifc_properties(
                                             const an_ifc_decl_field &universal)
 /*
@@ -6780,6 +6923,7 @@ otherwise, return FALSE.
 }  /* has_ifc_specifiers */
 
 
+template<>
 an_ifc_basic_specifiers_bitfield get_ifc_specifiers(
                                             const an_ifc_decl_field &universal)
 /*
@@ -6822,6 +6966,7 @@ otherwise, return FALSE.
 }  /* has_ifc_traits */
 
 
+template<>
 an_ifc_object_traits_bitfield get_ifc_traits(
                                             const an_ifc_decl_field &universal)
 /*
@@ -6864,6 +7009,7 @@ otherwise, return FALSE.
 }  /* has_ifc_type */
 
 
+template<>
 an_ifc_type_index get_ifc_type(const an_ifc_decl_field &universal)
 /*
 Given the universal representation of DeclField, return the universal
@@ -6909,6 +7055,7 @@ otherwise, return FALSE.
 }  /* has_ifc_entity */
 
 
+template<>
 an_ifc_expr_index get_ifc_entity(const an_ifc_decl_friend &universal)
 /*
 Given the universal representation of DeclFriend, return the universal
@@ -6954,6 +7101,7 @@ otherwise, return FALSE.
 }  /* has_ifc_access */
 
 
+template<>
 an_ifc_access_sort get_ifc_access(const an_ifc_decl_function &universal)
 /*
 Given the universal representation of DeclFunction, return the universal
@@ -6994,6 +7142,7 @@ otherwise, return FALSE.
 }  /* has_ifc_chart */
 
 
+template<>
 an_ifc_chart_index get_ifc_chart(const an_ifc_decl_function &universal)
 /*
 Given the universal representation of DeclFunction, return the universal
@@ -7034,6 +7183,7 @@ otherwise, return FALSE.
 }  /* has_ifc_home_scope */
 
 
+template<>
 an_ifc_decl_index get_ifc_home_scope(const an_ifc_decl_function &universal)
 /*
 Given the universal representation of DeclFunction, return the universal
@@ -7131,6 +7281,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_decl_function &universal)
 /*
 Given the universal representation of DeclFunction, return the universal
@@ -7175,6 +7326,7 @@ otherwise, return FALSE.
 }  /* has_ifc_name */
 
 
+template<>
 an_ifc_name_index get_ifc_name(const an_ifc_decl_function &universal)
 /*
 Given the universal representation of DeclFunction, return the universal
@@ -7215,6 +7367,7 @@ otherwise, return FALSE.
 }  /* has_ifc_properties */
 
 
+template<>
 an_ifc_reachable_properties_bitfield get_ifc_properties(
                                          const an_ifc_decl_function &universal)
 /*
@@ -7257,6 +7410,7 @@ otherwise, return FALSE.
 }  /* has_ifc_specifiers */
 
 
+template<>
 an_ifc_basic_specifiers_bitfield get_ifc_specifiers(
                                          const an_ifc_decl_function &universal)
 /*
@@ -7299,6 +7453,7 @@ otherwise, return FALSE.
 }  /* has_ifc_traits */
 
 
+template<>
 an_ifc_function_traits_bitfield get_ifc_traits(
                                          const an_ifc_decl_function &universal)
 /*
@@ -7341,6 +7496,7 @@ otherwise, return FALSE.
 }  /* has_ifc_type */
 
 
+template<>
 an_ifc_type_index get_ifc_type(const an_ifc_decl_function &universal)
 /*
 Given the universal representation of DeclFunction, return the universal
@@ -7386,6 +7542,7 @@ otherwise, return FALSE.
 }  /* has_ifc_access */
 
 
+template<>
 an_ifc_access_sort get_ifc_access(
                             const an_ifc_decl_inherited_constructor &universal)
 /*
@@ -7427,6 +7584,7 @@ otherwise, return FALSE.
 }  /* has_ifc_base_ctor */
 
 
+template<>
 an_ifc_decl_index get_ifc_base_ctor(
                             const an_ifc_decl_inherited_constructor &universal)
 /*
@@ -7481,6 +7639,7 @@ otherwise, return FALSE.
 }  /* has_ifc_chart */
 
 
+template<>
 an_ifc_chart_index get_ifc_chart(
                             const an_ifc_decl_inherited_constructor &universal)
 /*
@@ -7523,6 +7682,7 @@ otherwise, return FALSE.
 }  /* has_ifc_home_scope */
 
 
+template<>
 an_ifc_decl_index get_ifc_home_scope(
                             const an_ifc_decl_inherited_constructor &universal)
 /*
@@ -7621,6 +7781,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(
                             const an_ifc_decl_inherited_constructor &universal)
 /*
@@ -7666,6 +7827,7 @@ otherwise, return FALSE.
 }  /* has_ifc_name */
 
 
+template<>
 an_ifc_text_offset get_ifc_name(
                             const an_ifc_decl_inherited_constructor &universal)
 /*
@@ -7708,6 +7870,7 @@ otherwise, return FALSE.
 }  /* has_ifc_specifiers */
 
 
+template<>
 an_ifc_basic_specifiers_bitfield get_ifc_specifiers(
                             const an_ifc_decl_inherited_constructor &universal)
 /*
@@ -7750,6 +7913,7 @@ otherwise, return FALSE.
 }  /* has_ifc_traits */
 
 
+template<>
 an_ifc_function_traits_bitfield get_ifc_traits(
                             const an_ifc_decl_inherited_constructor &universal)
 /*
@@ -7792,6 +7956,7 @@ otherwise, return FALSE.
 }  /* has_ifc_type */
 
 
+template<>
 an_ifc_type_index get_ifc_type(
                             const an_ifc_decl_inherited_constructor &universal)
 /*
@@ -7838,6 +8003,7 @@ otherwise, return FALSE.
 }  /* has_ifc_access */
 
 
+template<>
 an_ifc_access_sort get_ifc_access(const an_ifc_decl_intrinsic &universal)
 /*
 Given the universal representation of DeclIntrinsic, return the universal
@@ -7878,6 +8044,7 @@ otherwise, return FALSE.
 }  /* has_ifc_home_scope */
 
 
+template<>
 an_ifc_decl_index get_ifc_home_scope(const an_ifc_decl_intrinsic &universal)
 /*
 Given the universal representation of DeclIntrinsic, return the universal
@@ -7975,6 +8142,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_decl_intrinsic &universal)
 /*
 Given the universal representation of DeclIntrinsic, return the universal
@@ -8019,6 +8187,7 @@ otherwise, return FALSE.
 }  /* has_ifc_name */
 
 
+template<>
 an_ifc_text_offset get_ifc_name(const an_ifc_decl_intrinsic &universal)
 /*
 Given the universal representation of DeclIntrinsic, return the universal
@@ -8059,6 +8228,7 @@ otherwise, return FALSE.
 }  /* has_ifc_specifiers */
 
 
+template<>
 an_ifc_basic_specifiers_bitfield get_ifc_specifiers(
                                         const an_ifc_decl_intrinsic &universal)
 /*
@@ -8101,6 +8271,7 @@ otherwise, return FALSE.
 }  /* has_ifc_type */
 
 
+template<>
 an_ifc_type_index get_ifc_type(const an_ifc_decl_intrinsic &universal)
 /*
 Given the universal representation of DeclIntrinsic, return the universal
@@ -8146,6 +8317,7 @@ otherwise, return FALSE.
 }  /* has_ifc_access */
 
 
+template<>
 an_ifc_access_sort get_ifc_access(const an_ifc_decl_method &universal)
 /*
 Given the universal representation of DeclMethod, return the universal
@@ -8186,6 +8358,7 @@ otherwise, return FALSE.
 }  /* has_ifc_chart */
 
 
+template<>
 an_ifc_chart_index get_ifc_chart(const an_ifc_decl_method &universal)
 /*
 Given the universal representation of DeclMethod, return the universal
@@ -8226,6 +8399,7 @@ otherwise, return FALSE.
 }  /* has_ifc_home_scope */
 
 
+template<>
 an_ifc_decl_index get_ifc_home_scope(const an_ifc_decl_method &universal)
 /*
 Given the universal representation of DeclMethod, return the universal
@@ -8323,6 +8497,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_decl_method &universal)
 /*
 Given the universal representation of DeclMethod, return the universal
@@ -8367,6 +8542,7 @@ otherwise, return FALSE.
 }  /* has_ifc_name */
 
 
+template<>
 an_ifc_name_index get_ifc_name(const an_ifc_decl_method &universal)
 /*
 Given the universal representation of DeclMethod, return the universal
@@ -8407,6 +8583,7 @@ otherwise, return FALSE.
 }  /* has_ifc_properties */
 
 
+template<>
 an_ifc_reachable_properties_bitfield get_ifc_properties(
                                            const an_ifc_decl_method &universal)
 /*
@@ -8449,6 +8626,7 @@ otherwise, return FALSE.
 }  /* has_ifc_specifiers */
 
 
+template<>
 an_ifc_basic_specifiers_bitfield get_ifc_specifiers(
                                            const an_ifc_decl_method &universal)
 /*
@@ -8491,6 +8669,7 @@ otherwise, return FALSE.
 }  /* has_ifc_traits */
 
 
+template<>
 an_ifc_function_traits_bitfield get_ifc_traits(
                                            const an_ifc_decl_method &universal)
 /*
@@ -8533,6 +8712,7 @@ otherwise, return FALSE.
 }  /* has_ifc_type */
 
 
+template<>
 an_ifc_type_index get_ifc_type(const an_ifc_decl_method &universal)
 /*
 Given the universal representation of DeclMethod, return the universal
@@ -8578,6 +8758,7 @@ otherwise, return FALSE.
 }  /* has_ifc_ID */
 
 
+template<>
 an_ifc_text_offset get_ifc_ID(const an_ifc_decl_output_segment &universal)
 /*
 Given the universal representation of DeclOutputSegment, return the universal
@@ -8618,6 +8799,7 @@ otherwise, return FALSE.
 }  /* has_ifc_name */
 
 
+template<>
 an_ifc_text_offset get_ifc_name(const an_ifc_decl_output_segment &universal)
 /*
 Given the universal representation of DeclOutputSegment, return the universal
@@ -8658,6 +8840,7 @@ otherwise, return FALSE.
 }  /* has_ifc_traits */
 
 
+template<>
 an_ifc_segment_traits get_ifc_traits(
                                    const an_ifc_decl_output_segment &universal)
 /*
@@ -8699,6 +8882,7 @@ otherwise, return FALSE.
 }  /* has_ifc_type */
 
 
+template<>
 an_ifc_segment_type get_ifc_type(const an_ifc_decl_output_segment &universal)
 /*
 Given the universal representation of DeclOutputSegment, return the universal
@@ -8744,6 +8928,7 @@ otherwise, return FALSE.
 }  /* has_ifc_constraint */
 
 
+template<>
 an_ifc_expr_index get_ifc_constraint(const an_ifc_decl_parameter &universal)
 /*
 Given the universal representation of DeclParameter, return the universal
@@ -8784,6 +8969,7 @@ otherwise, return FALSE.
 }  /* has_ifc_initializer */
 
 
+template<>
 an_ifc_expr_index get_ifc_initializer(const an_ifc_decl_parameter &universal)
 /*
 Given the universal representation of DeclParameter, return the universal
@@ -8824,6 +9010,7 @@ otherwise, return FALSE.
 }  /* has_ifc_level */
 
 
+template<>
 an_ifc_parameter_level get_ifc_level(const an_ifc_decl_parameter &universal)
 /*
 Given the universal representation of DeclParameter, return the universal
@@ -8864,6 +9051,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_decl_parameter &universal)
 /*
 Given the universal representation of DeclParameter, return the universal
@@ -8908,6 +9096,7 @@ otherwise, return FALSE.
 }  /* has_ifc_name */
 
 
+template<>
 an_ifc_text_offset get_ifc_name(const an_ifc_decl_parameter &universal)
 /*
 Given the universal representation of DeclParameter, return the universal
@@ -8948,6 +9137,7 @@ otherwise, return FALSE.
 }  /* has_ifc_pack */
 
 
+template<>
 an_ifc_bool get_ifc_pack(const an_ifc_decl_parameter &universal)
 /*
 Given the universal representation of DeclParameter, return the universal
@@ -8988,6 +9178,7 @@ otherwise, return FALSE.
 }  /* has_ifc_position */
 
 
+template<>
 an_ifc_parameter_position get_ifc_position(
                                         const an_ifc_decl_parameter &universal)
 /*
@@ -9030,6 +9221,7 @@ otherwise, return FALSE.
 }  /* has_ifc_properties */
 
 
+template<>
 an_ifc_reachable_properties_bitfield get_ifc_properties(
                                         const an_ifc_decl_parameter &universal)
 /*
@@ -9072,6 +9264,7 @@ otherwise, return FALSE.
 }  /* has_ifc_sort */
 
 
+template<>
 an_ifc_parameter_sort get_ifc_sort(const an_ifc_decl_parameter &universal)
 /*
 Given the universal representation of DeclParameter, return the universal
@@ -9112,6 +9305,7 @@ otherwise, return FALSE.
 }  /* has_ifc_type */
 
 
+template<>
 an_ifc_type_index get_ifc_type(const an_ifc_decl_parameter &universal)
 /*
 Given the universal representation of DeclParameter, return the universal
@@ -9157,6 +9351,7 @@ otherwise, return FALSE.
 }  /* has_ifc_access */
 
 
+template<>
 an_ifc_access_sort get_ifc_access(
                            const an_ifc_decl_partial_specialization &universal)
 /*
@@ -9198,6 +9393,7 @@ otherwise, return FALSE.
 }  /* has_ifc_chart */
 
 
+template<>
 an_ifc_chart_index get_ifc_chart(
                            const an_ifc_decl_partial_specialization &universal)
 /*
@@ -9239,6 +9435,7 @@ otherwise, return FALSE.
 }  /* has_ifc_entity */
 
 
+template<>
 an_ifc_parameterized_entity get_ifc_entity(
                            const an_ifc_decl_partial_specialization &universal)
 /*
@@ -9286,6 +9483,7 @@ otherwise, return FALSE.
 }  /* has_ifc_form */
 
 
+template<>
 an_ifc_form_spec_index get_ifc_form(
                            const an_ifc_decl_partial_specialization &universal)
 /*
@@ -9328,6 +9526,7 @@ otherwise, return FALSE.
 }  /* has_ifc_home_scope */
 
 
+template<>
 an_ifc_decl_index get_ifc_home_scope(
                            const an_ifc_decl_partial_specialization &universal)
 /*
@@ -9414,6 +9613,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(
                            const an_ifc_decl_partial_specialization &universal)
 /*
@@ -9459,6 +9659,7 @@ otherwise, return FALSE.
 }  /* has_ifc_name */
 
 
+template<>
 an_ifc_name_index get_ifc_name(
                            const an_ifc_decl_partial_specialization &universal)
 /*
@@ -9546,6 +9747,7 @@ otherwise, return FALSE.
 }  /* has_ifc_properties */
 
 
+template<>
 an_ifc_reachable_properties_bitfield get_ifc_properties(
                            const an_ifc_decl_partial_specialization &universal)
 /*
@@ -9589,6 +9791,7 @@ otherwise, return FALSE.
 }  /* has_ifc_specifiers */
 
 
+template<>
 an_ifc_basic_specifiers_bitfield get_ifc_specifiers(
                            const an_ifc_decl_partial_specialization &universal)
 /*
@@ -9636,6 +9839,7 @@ otherwise, return FALSE.
 }  /* has_ifc_getter */
 
 
+template<>
 an_ifc_text_offset get_ifc_getter(const an_ifc_decl_property &universal)
 /*
 Given the universal representation of DeclProperty, return the universal
@@ -9676,6 +9880,7 @@ otherwise, return FALSE.
 }  /* has_ifc_member */
 
 
+template<>
 an_ifc_decl_index get_ifc_member(const an_ifc_decl_property &universal)
 /*
 Given the universal representation of DeclProperty, return the universal
@@ -9729,6 +9934,7 @@ otherwise, return FALSE.
 }  /* has_ifc_setter */
 
 
+template<>
 an_ifc_text_offset get_ifc_setter(const an_ifc_decl_property &universal)
 /*
 Given the universal representation of DeclProperty, return the universal
@@ -9774,6 +9980,7 @@ otherwise, return FALSE.
 }  /* has_ifc_index */
 
 
+template<>
 an_ifc_decl_index get_ifc_index(const an_ifc_decl_reference &universal)
 /*
 Given the universal representation of DeclReference, return the universal
@@ -9831,6 +10038,7 @@ otherwise, return FALSE.
 }  /* has_ifc_local_index */
 
 
+template<>
 an_ifc_decl_foreign_index get_ifc_local_index(
                                         const an_ifc_decl_reference &universal)
 /*
@@ -9873,6 +10081,7 @@ otherwise, return FALSE.
 }  /* has_ifc_unit */
 
 
+template<>
 an_ifc_module_reference get_ifc_unit(const an_ifc_decl_reference &universal)
 /*
 Given the universal representation of DeclReference, return the universal
@@ -9922,6 +10131,7 @@ otherwise, return FALSE.
 }  /* has_ifc_access */
 
 
+template<>
 an_ifc_access_sort get_ifc_access(const an_ifc_decl_scope &universal)
 /*
 Given the universal representation of DeclScope, return the universal
@@ -9962,6 +10172,7 @@ otherwise, return FALSE.
 }  /* has_ifc_alignment */
 
 
+template<>
 an_ifc_expr_index get_ifc_alignment(const an_ifc_decl_scope &universal)
 /*
 Given the universal representation of DeclScope, return the universal
@@ -10002,6 +10213,7 @@ otherwise, return FALSE.
 }  /* has_ifc_base */
 
 
+template<>
 an_ifc_type_index get_ifc_base(const an_ifc_decl_scope &universal)
 /*
 Given the universal representation of DeclScope, return the universal
@@ -10042,6 +10254,7 @@ otherwise, return FALSE.
 }  /* has_ifc_home_scope */
 
 
+template<>
 an_ifc_decl_index get_ifc_home_scope(const an_ifc_decl_scope &universal)
 /*
 Given the universal representation of DeclScope, return the universal
@@ -10139,6 +10352,7 @@ otherwise, return FALSE.
 }  /* has_ifc_initializer */
 
 
+template<>
 an_ifc_scope_index get_ifc_initializer(const an_ifc_decl_scope &universal)
 /*
 Given the universal representation of DeclScope, return the universal
@@ -10179,6 +10393,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_decl_scope &universal)
 /*
 Given the universal representation of DeclScope, return the universal
@@ -10223,6 +10438,7 @@ otherwise, return FALSE.
 }  /* has_ifc_name */
 
 
+template<>
 an_ifc_name_index get_ifc_name(const an_ifc_decl_scope &universal)
 /*
 Given the universal representation of DeclScope, return the universal
@@ -10263,6 +10479,7 @@ otherwise, return FALSE.
 }  /* has_ifc_pack_size */
 
 
+template<>
 an_ifc_pack_size get_ifc_pack_size(const an_ifc_decl_scope &universal)
 /*
 Given the universal representation of DeclScope, return the universal
@@ -10303,6 +10520,7 @@ otherwise, return FALSE.
 }  /* has_ifc_properties */
 
 
+template<>
 an_ifc_reachable_properties_bitfield get_ifc_properties(
                                             const an_ifc_decl_scope &universal)
 /*
@@ -10345,6 +10563,7 @@ otherwise, return FALSE.
 }  /* has_ifc_specifiers */
 
 
+template<>
 an_ifc_basic_specifiers_bitfield get_ifc_specifiers(
                                             const an_ifc_decl_scope &universal)
 /*
@@ -10387,6 +10606,7 @@ otherwise, return FALSE.
 }  /* has_ifc_traits */
 
 
+template<>
 an_ifc_scope_traits_bitfield get_ifc_traits(const an_ifc_decl_scope &universal)
 /*
 Given the universal representation of DeclScope, return the universal
@@ -10428,6 +10648,7 @@ otherwise, return FALSE.
 }  /* has_ifc_type */
 
 
+template<>
 an_ifc_type_index get_ifc_type(const an_ifc_decl_scope &universal)
 /*
 Given the universal representation of DeclScope, return the universal
@@ -10473,6 +10694,7 @@ otherwise, return FALSE.
 }  /* has_ifc_decl */
 
 
+template<>
 an_ifc_decl_index get_ifc_decl(const an_ifc_decl_specialization &universal)
 /*
 Given the universal representation of DeclSpecialization, return the universal
@@ -10513,6 +10735,7 @@ otherwise, return FALSE.
 }  /* has_ifc_form */
 
 
+template<>
 an_ifc_form_spec_index get_ifc_form(
                                    const an_ifc_decl_specialization &universal)
 /*
@@ -10554,6 +10777,7 @@ otherwise, return FALSE.
 }  /* has_ifc_home_scope */
 
 
+template<>
 an_ifc_decl_index get_ifc_home_scope(
                                    const an_ifc_decl_specialization &universal)
 /*
@@ -10597,6 +10821,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(
                                    const an_ifc_decl_specialization &universal)
 /*
@@ -10640,6 +10865,7 @@ otherwise, return FALSE.
 }  /* has_ifc_name */
 
 
+template<>
 an_ifc_name_index get_ifc_name(const an_ifc_decl_specialization &universal)
 /*
 Given the universal representation of DeclSpecialization, return the universal
@@ -10695,6 +10921,7 @@ otherwise, return FALSE.
 }  /* has_ifc_sort */
 
 
+template<>
 an_ifc_specialization_sort get_ifc_sort(
                                    const an_ifc_decl_specialization &universal)
 /*
@@ -10741,6 +10968,7 @@ otherwise, return FALSE.
 }  /* has_ifc_access */
 
 
+template<>
 an_ifc_access_sort get_ifc_access(const an_ifc_decl_template &universal)
 /*
 Given the universal representation of DeclTemplate, return the universal
@@ -10781,6 +11009,7 @@ otherwise, return FALSE.
 }  /* has_ifc_chart */
 
 
+template<>
 an_ifc_chart_index get_ifc_chart(const an_ifc_decl_template &universal)
 /*
 Given the universal representation of DeclTemplate, return the universal
@@ -10821,6 +11050,7 @@ otherwise, return FALSE.
 }  /* has_ifc_entity */
 
 
+template<>
 an_ifc_parameterized_entity get_ifc_entity(
                                          const an_ifc_decl_template &universal)
 /*
@@ -10868,6 +11098,7 @@ otherwise, return FALSE.
 }  /* has_ifc_home_scope */
 
 
+template<>
 an_ifc_decl_index get_ifc_home_scope(const an_ifc_decl_template &universal)
 /*
 Given the universal representation of DeclTemplate, return the universal
@@ -10965,6 +11196,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_decl_template &universal)
 /*
 Given the universal representation of DeclTemplate, return the universal
@@ -11009,6 +11241,7 @@ otherwise, return FALSE.
 }  /* has_ifc_name */
 
 
+template<>
 an_ifc_name_index get_ifc_name(const an_ifc_decl_template &universal)
 /*
 Given the universal representation of DeclTemplate, return the universal
@@ -11186,6 +11419,7 @@ otherwise, return FALSE.
 }  /* has_ifc_properties */
 
 
+template<>
 an_ifc_reachable_properties_bitfield get_ifc_properties(
                                          const an_ifc_decl_template &universal)
 /*
@@ -11228,6 +11462,7 @@ otherwise, return FALSE.
 }  /* has_ifc_specifiers */
 
 
+template<>
 an_ifc_basic_specifiers_bitfield get_ifc_specifiers(
                                          const an_ifc_decl_template &universal)
 /*
@@ -11270,6 +11505,7 @@ otherwise, return FALSE.
 }  /* has_ifc_type */
 
 
+template<>
 an_ifc_type_index get_ifc_type(const an_ifc_decl_template &universal)
 /*
 Given the universal representation of DeclTemplate, return the universal
@@ -11315,6 +11551,7 @@ otherwise, return FALSE.
 }  /* has_ifc_chart */
 
 
+template<>
 an_ifc_chart_index get_ifc_chart(const an_ifc_decl_temploid &universal)
 /*
 Given the universal representation of DeclTemploid, return the universal
@@ -11355,6 +11592,7 @@ otherwise, return FALSE.
 }  /* has_ifc_entity */
 
 
+template<>
 an_ifc_parameterized_entity get_ifc_entity(
                                          const an_ifc_decl_temploid &universal)
 /*
@@ -11402,6 +11640,7 @@ otherwise, return FALSE.
 }  /* has_ifc_properties */
 
 
+template<>
 an_ifc_reachable_properties_bitfield get_ifc_properties(
                                          const an_ifc_decl_temploid &universal)
 /*
@@ -11449,6 +11688,7 @@ otherwise, return FALSE.
 }  /* has_ifc_cardinality */
 
 
+template<>
 an_ifc_cardinality get_ifc_cardinality(const an_ifc_decl_tuple &universal)
 /*
 Given the universal representation of DeclTuple, return the universal
@@ -11489,6 +11729,7 @@ otherwise, return FALSE.
 }  /* has_ifc_start */
 
 
+template<>
 an_ifc_index get_ifc_start(const an_ifc_decl_tuple &universal)
 /*
 Given the universal representation of DeclTuple, return the universal
@@ -11534,6 +11775,7 @@ otherwise, return FALSE.
 }  /* has_ifc_access */
 
 
+template<>
 an_ifc_access_sort get_ifc_access(
                                 const an_ifc_decl_using_declaration &universal)
 /*
@@ -11575,6 +11817,7 @@ otherwise, return FALSE.
 }  /* has_ifc_hidden */
 
 
+template<>
 an_ifc_bool get_ifc_hidden(const an_ifc_decl_using_declaration &universal)
 /*
 Given the universal representation of DeclUsingDeclaration, return the
@@ -11615,6 +11858,7 @@ otherwise, return FALSE.
 }  /* has_ifc_home_scope */
 
 
+template<>
 an_ifc_decl_index get_ifc_home_scope(
                                 const an_ifc_decl_using_declaration &universal)
 /*
@@ -11713,6 +11957,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(
                                 const an_ifc_decl_using_declaration &universal)
 /*
@@ -11758,6 +12003,7 @@ otherwise, return FALSE.
 }  /* has_ifc_name */
 
 
+template<>
 an_ifc_text_offset get_ifc_name(const an_ifc_decl_using_declaration &universal)
 /*
 Given the universal representation of DeclUsingDeclaration, return the
@@ -11798,6 +12044,7 @@ otherwise, return FALSE.
 }  /* has_ifc_name2 */
 
 
+template<>
 an_ifc_text_offset get_ifc_name2(
                                 const an_ifc_decl_using_declaration &universal)
 /*
@@ -11839,6 +12086,7 @@ otherwise, return FALSE.
 }  /* has_ifc_parent */
 
 
+template<>
 an_ifc_expr_index get_ifc_parent(
                                 const an_ifc_decl_using_declaration &universal)
 /*
@@ -11880,6 +12128,7 @@ otherwise, return FALSE.
 }  /* has_ifc_resolution */
 
 
+template<>
 an_ifc_decl_index get_ifc_resolution(
                                 const an_ifc_decl_using_declaration &universal)
 /*
@@ -11934,6 +12183,7 @@ otherwise, return FALSE.
 }  /* has_ifc_specifiers */
 
 
+template<>
 an_ifc_basic_specifiers_bitfield get_ifc_specifiers(
                                 const an_ifc_decl_using_declaration &universal)
 /*
@@ -11981,6 +12231,7 @@ otherwise, return FALSE.
 }  /* has_ifc_access */
 
 
+template<>
 an_ifc_access_sort get_ifc_access(const an_ifc_decl_variable &universal)
 /*
 Given the universal representation of DeclVariable, return the universal
@@ -12021,6 +12272,7 @@ otherwise, return FALSE.
 }  /* has_ifc_alignment */
 
 
+template<>
 an_ifc_expr_index get_ifc_alignment(const an_ifc_decl_variable &universal)
 /*
 Given the universal representation of DeclVariable, return the universal
@@ -12061,6 +12313,7 @@ otherwise, return FALSE.
 }  /* has_ifc_home_scope */
 
 
+template<>
 an_ifc_decl_index get_ifc_home_scope(const an_ifc_decl_variable &universal)
 /*
 Given the universal representation of DeclVariable, return the universal
@@ -12158,6 +12411,7 @@ otherwise, return FALSE.
 }  /* has_ifc_initializer */
 
 
+template<>
 an_ifc_expr_index get_ifc_initializer(const an_ifc_decl_variable &universal)
 /*
 Given the universal representation of DeclVariable, return the universal
@@ -12198,6 +12452,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_decl_variable &universal)
 /*
 Given the universal representation of DeclVariable, return the universal
@@ -12242,6 +12497,7 @@ otherwise, return FALSE.
 }  /* has_ifc_name */
 
 
+template<>
 an_ifc_name_index get_ifc_name(const an_ifc_decl_variable &universal)
 /*
 Given the universal representation of DeclVariable, return the universal
@@ -12282,6 +12538,7 @@ otherwise, return FALSE.
 }  /* has_ifc_properties */
 
 
+template<>
 an_ifc_reachable_properties_bitfield get_ifc_properties(
                                          const an_ifc_decl_variable &universal)
 /*
@@ -12324,6 +12581,7 @@ otherwise, return FALSE.
 }  /* has_ifc_specifiers */
 
 
+template<>
 an_ifc_basic_specifiers_bitfield get_ifc_specifiers(
                                          const an_ifc_decl_variable &universal)
 /*
@@ -12366,6 +12624,7 @@ otherwise, return FALSE.
 }  /* has_ifc_traits */
 
 
+template<>
 an_ifc_object_traits_bitfield get_ifc_traits(
                                          const an_ifc_decl_variable &universal)
 /*
@@ -12408,6 +12667,7 @@ otherwise, return FALSE.
 }  /* has_ifc_type */
 
 
+template<>
 an_ifc_type_index get_ifc_type(const an_ifc_decl_variable &universal)
 /*
 Given the universal representation of DeclVariable, return the universal
@@ -12453,6 +12713,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_expr_alignof &universal)
 /*
 Given the universal representation of ExprAlignof, return the universal
@@ -12497,6 +12758,7 @@ otherwise, return FALSE.
 }  /* has_ifc_operand */
 
 
+template<>
 an_ifc_syntax_index get_ifc_operand(const an_ifc_expr_alignof &universal)
 /*
 Given the universal representation of ExprAlignof, return the universal
@@ -12537,6 +12799,7 @@ otherwise, return FALSE.
 }  /* has_ifc_type */
 
 
+template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_alignof &universal)
 /*
 Given the universal representation of ExprAlignof, return the universal
@@ -12582,6 +12845,7 @@ otherwise, return FALSE.
 }  /* has_ifc_element_type */
 
 
+template<>
 an_ifc_type_index get_ifc_element_type(
                                       const an_ifc_expr_array_value &universal)
 /*
@@ -12623,6 +12887,7 @@ otherwise, return FALSE.
 }  /* has_ifc_elements */
 
 
+template<>
 an_ifc_expr_index get_ifc_elements(const an_ifc_expr_array_value &universal)
 /*
 Given the universal representation of ExprArrayValue, return the universal
@@ -12663,6 +12928,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_expr_array_value &universal)
 /*
 Given the universal representation of ExprArrayValue, return the universal
@@ -12707,6 +12973,7 @@ otherwise, return FALSE.
 }  /* has_ifc_type */
 
 
+template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_array_value &universal)
 /*
 Given the universal representation of ExprArrayValue, return the universal
@@ -12752,6 +13019,7 @@ otherwise, return FALSE.
 }  /* has_ifc_equal */
 
 
+template<>
 an_ifc_source_location get_ifc_equal(
                                const an_ifc_expr_assign_initializer &universal)
 /*
@@ -12797,6 +13065,7 @@ otherwise, return FALSE.
 }  /* has_ifc_initializer */
 
 
+template<>
 an_ifc_expr_index get_ifc_initializer(
                                const an_ifc_expr_assign_initializer &universal)
 /*
@@ -12843,6 +13112,7 @@ Return TRUE if the given universal representation has the field
 }  /* has_ifc_associativity */
 
 
+template<>
 an_ifc_associativity get_ifc_associativity(
                                       const an_ifc_expr_binary_fold &universal)
 /*
@@ -12884,6 +13154,7 @@ otherwise, return FALSE.
 }  /* has_ifc_left */
 
 
+template<>
 an_ifc_expr_index get_ifc_left(const an_ifc_expr_binary_fold &universal)
 /*
 Given the universal representation of ExprBinaryFold, return the universal
@@ -12924,6 +13195,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_expr_binary_fold &universal)
 /*
 Given the universal representation of ExprBinaryFold, return the universal
@@ -12968,6 +13240,7 @@ otherwise, return FALSE.
 }  /* has_ifc_operation */
 
 
+template<>
 an_ifc_dyadic_operator_sort get_ifc_operation(
                                       const an_ifc_expr_binary_fold &universal)
 /*
@@ -13009,6 +13282,7 @@ otherwise, return FALSE.
 }  /* has_ifc_right */
 
 
+template<>
 an_ifc_expr_index get_ifc_right(const an_ifc_expr_binary_fold &universal)
 /*
 Given the universal representation of ExprBinaryFold, return the universal
@@ -13049,6 +13323,7 @@ otherwise, return FALSE.
 }  /* has_ifc_type */
 
 
+template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_binary_fold &universal)
 /*
 Given the universal representation of ExprBinaryFold, return the universal
@@ -13094,6 +13369,7 @@ otherwise, return FALSE.
 }  /* has_ifc_arguments */
 
 
+template<>
 an_ifc_expr_index get_ifc_arguments(const an_ifc_expr_call &universal)
 /*
 Given the universal representation of ExprCall, return the universal
@@ -13134,6 +13410,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_expr_call &universal)
 /*
 Given the universal representation of ExprCall, return the universal
@@ -13178,6 +13455,7 @@ otherwise, return FALSE.
 }  /* has_ifc_operation */
 
 
+template<>
 an_ifc_expr_index get_ifc_operation(const an_ifc_expr_call &universal)
 /*
 Given the universal representation of ExprCall, return the universal
@@ -13218,6 +13496,7 @@ otherwise, return FALSE.
 }  /* has_ifc_type */
 
 
+template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_call &universal)
 /*
 Given the universal representation of ExprCall, return the universal
@@ -13263,6 +13542,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_expr_cast &universal)
 /*
 Given the universal representation of ExprCast, return the universal
@@ -13307,6 +13587,7 @@ otherwise, return FALSE.
 }  /* has_ifc_op */
 
 
+template<>
 an_ifc_dyadic_operator_sort get_ifc_op(const an_ifc_expr_cast &universal)
 /*
 Given the universal representation of ExprCast, return the universal
@@ -13347,6 +13628,7 @@ otherwise, return FALSE.
 }  /* has_ifc_source */
 
 
+template<>
 an_ifc_expr_index get_ifc_source(const an_ifc_expr_cast &universal)
 /*
 Given the universal representation of ExprCast, return the universal
@@ -13387,6 +13669,7 @@ otherwise, return FALSE.
 }  /* has_ifc_target */
 
 
+template<>
 an_ifc_type_index get_ifc_target(const an_ifc_expr_cast &universal)
 /*
 Given the universal representation of ExprCast, return the universal
@@ -13427,6 +13710,7 @@ otherwise, return FALSE.
 }  /* has_ifc_type */
 
 
+template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_cast &universal)
 /*
 Given the universal representation of ExprCast, return the universal
@@ -13472,6 +13756,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(
                                   const an_ifc_expr_compound_string &universal)
 /*
@@ -13517,6 +13802,7 @@ otherwise, return FALSE.
 }  /* has_ifc_prefix */
 
 
+template<>
 an_ifc_text_offset get_ifc_prefix(const an_ifc_expr_compound_string &universal)
 /*
 Given the universal representation of ExprCompoundString, return the universal
@@ -13557,6 +13843,7 @@ otherwise, return FALSE.
 }  /* has_ifc_string */
 
 
+template<>
 an_ifc_expr_index get_ifc_string(const an_ifc_expr_compound_string &universal)
 /*
 Given the universal representation of ExprCompoundString, return the universal
@@ -13597,6 +13884,7 @@ otherwise, return FALSE.
 }  /* has_ifc_type */
 
 
+template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_compound_string &universal)
 /*
 Given the universal representation of ExprCompoundString, return the universal
@@ -13642,6 +13930,7 @@ otherwise, return FALSE.
 }  /* has_ifc_expr */
 
 
+template<>
 an_ifc_expr_index get_ifc_expr(const an_ifc_expr_condition &universal)
 /*
 Given the universal representation of ExprCondition, return the universal
@@ -13682,6 +13971,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_expr_condition &universal)
 /*
 Given the universal representation of ExprCondition, return the universal
@@ -13726,6 +14016,7 @@ otherwise, return FALSE.
 }  /* has_ifc_type */
 
 
+template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_condition &universal)
 /*
 Given the universal representation of ExprCondition, return the universal
@@ -13772,6 +14063,7 @@ otherwise, return FALSE.
 }  /* has_ifc_initializer */
 
 
+template<>
 an_ifc_expr_index get_ifc_initializer(
                            const an_ifc_expr_designated_initializer &universal)
 /*
@@ -13813,6 +14105,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(
                            const an_ifc_expr_designated_initializer &universal)
 /*
@@ -13858,6 +14151,7 @@ otherwise, return FALSE.
 }  /* has_ifc_member */
 
 
+template<>
 an_ifc_text_offset get_ifc_member(
                            const an_ifc_expr_designated_initializer &universal)
 /*
@@ -13899,6 +14193,7 @@ otherwise, return FALSE.
 }  /* has_ifc_type */
 
 
+template<>
 an_ifc_type_index get_ifc_type(
                            const an_ifc_expr_designated_initializer &universal)
 /*
@@ -13945,6 +14240,7 @@ otherwise, return FALSE.
 }  /* has_ifc_cleanup */
 
 
+template<>
 an_ifc_destructor_sort get_ifc_cleanup(
                                   const an_ifc_expr_destructor_call &universal)
 /*
@@ -13987,6 +14283,7 @@ Return TRUE if the given universal representation has the field
 }  /* has_ifc_decltype_specifier */
 
 
+template<>
 an_ifc_syntax_index get_ifc_decltype_specifier(
                                   const an_ifc_expr_destructor_call &universal)
 /*
@@ -14029,6 +14326,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(
                                   const an_ifc_expr_destructor_call &universal)
 /*
@@ -14074,6 +14372,7 @@ otherwise, return FALSE.
 }  /* has_ifc_name */
 
 
+template<>
 an_ifc_expr_index get_ifc_name(const an_ifc_expr_destructor_call &universal)
 /*
 Given the universal representation of ExprDestructorCall, return the universal
@@ -14114,6 +14413,7 @@ otherwise, return FALSE.
 }  /* has_ifc_type */
 
 
+template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_destructor_call &universal)
 /*
 Given the universal representation of ExprDestructorCall, return the universal
@@ -14159,6 +14459,7 @@ otherwise, return FALSE.
 }  /* has_ifc_argument_0 */
 
 
+template<>
 an_ifc_expr_index get_ifc_argument_0(const an_ifc_expr_dyad &universal)
 /*
 Given the universal representation of ExprDyad, return the universal
@@ -14199,6 +14500,7 @@ otherwise, return FALSE.
 }  /* has_ifc_argument_1 */
 
 
+template<>
 an_ifc_expr_index get_ifc_argument_1(const an_ifc_expr_dyad &universal)
 /*
 Given the universal representation of ExprDyad, return the universal
@@ -14239,6 +14541,7 @@ otherwise, return FALSE.
 }  /* has_ifc_assoc */
 
 
+template<>
 an_ifc_dyadic_operator_sort get_ifc_assoc(const an_ifc_expr_dyad &universal)
 /*
 Given the universal representation of ExprDyad, return the universal
@@ -14279,6 +14582,7 @@ otherwise, return FALSE.
 }  /* has_ifc_impl */
 
 
+template<>
 an_ifc_decl_index get_ifc_impl(const an_ifc_expr_dyad &universal)
 /*
 Given the universal representation of ExprDyad, return the universal
@@ -14332,6 +14636,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_expr_dyad &universal)
 /*
 Given the universal representation of ExprDyad, return the universal
@@ -14376,6 +14681,7 @@ otherwise, return FALSE.
 }  /* has_ifc_type */
 
 
+template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_dyad &universal)
 /*
 Given the universal representation of ExprDyad, return the universal
@@ -14421,6 +14727,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(
                                  const an_ifc_expr_dynamic_dispatch &universal)
 /*
@@ -14466,6 +14773,7 @@ otherwise, return FALSE.
 }  /* has_ifc_pivot */
 
 
+template<>
 an_ifc_expr_index get_ifc_pivot(const an_ifc_expr_dynamic_dispatch &universal)
 /*
 Given the universal representation of ExprDynamicDispatch, return the universal
@@ -14506,6 +14814,7 @@ otherwise, return FALSE.
 }  /* has_ifc_type */
 
 
+template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_dynamic_dispatch &universal)
 /*
 Given the universal representation of ExprDynamicDispatch, return the universal
@@ -14551,6 +14860,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_expr_empty &universal)
 /*
 Given the universal representation of ExprEmpty, return the universal
@@ -14595,6 +14905,7 @@ otherwise, return FALSE.
 }  /* has_ifc_type */
 
 
+template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_empty &universal)
 /*
 Given the universal representation of ExprEmpty, return the universal
@@ -14640,6 +14951,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_expr_expansion &universal)
 /*
 Given the universal representation of ExprExpansion, return the universal
@@ -14684,6 +14996,7 @@ otherwise, return FALSE.
 }  /* has_ifc_operand */
 
 
+template<>
 an_ifc_expr_index get_ifc_operand(const an_ifc_expr_expansion &universal)
 /*
 Given the universal representation of ExprExpansion, return the universal
@@ -14724,6 +15037,7 @@ otherwise, return FALSE.
 }  /* has_ifc_type */
 
 
+template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_expansion &universal)
 /*
 Given the universal representation of ExprExpansion, return the universal
@@ -14769,6 +15083,7 @@ otherwise, return FALSE.
 }  /* has_ifc_contents */
 
 
+template<>
 an_ifc_expr_index get_ifc_contents(
                                   const an_ifc_expr_expression_list &universal)
 /*
@@ -14810,6 +15125,7 @@ otherwise, return FALSE.
 }  /* has_ifc_delimiter */
 
 
+template<>
 an_ifc_delimiter_sort get_ifc_delimiter(
                                   const an_ifc_expr_expression_list &universal)
 /*
@@ -14851,6 +15167,7 @@ otherwise, return FALSE.
 }  /* has_ifc_left */
 
 
+template<>
 an_ifc_source_location get_ifc_left(
                                   const an_ifc_expr_expression_list &universal)
 /*
@@ -14896,6 +15213,7 @@ otherwise, return FALSE.
 }  /* has_ifc_right */
 
 
+template<>
 an_ifc_source_location get_ifc_right(
                                   const an_ifc_expr_expression_list &universal)
 /*
@@ -14946,6 +15264,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(
                                   const an_ifc_expr_function_string &universal)
 /*
@@ -14991,6 +15310,7 @@ otherwise, return FALSE.
 }  /* has_ifc_macro */
 
 
+template<>
 an_ifc_text_offset get_ifc_macro(const an_ifc_expr_function_string &universal)
 /*
 Given the universal representation of ExprFunctionString, return the universal
@@ -15031,6 +15351,7 @@ otherwise, return FALSE.
 }  /* has_ifc_type */
 
 
+template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_function_string &universal)
 /*
 Given the universal representation of ExprFunctionString, return the universal
@@ -15077,6 +15398,7 @@ otherwise, return FALSE.
 }  /* has_ifc_inheritance */
 
 
+template<>
 an_ifc_expr_index get_ifc_inheritance(
                              const an_ifc_expr_hierarchy_conversion &universal)
 /*
@@ -15118,6 +15440,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(
                              const an_ifc_expr_hierarchy_conversion &universal)
 /*
@@ -15163,6 +15486,7 @@ otherwise, return FALSE.
 }  /* has_ifc_op */
 
 
+template<>
 an_ifc_dyadic_operator_sort get_ifc_op(
                              const an_ifc_expr_hierarchy_conversion &universal)
 /*
@@ -15204,6 +15528,7 @@ otherwise, return FALSE.
 }  /* has_ifc_override */
 
 
+template<>
 an_ifc_expr_index get_ifc_override(
                              const an_ifc_expr_hierarchy_conversion &universal)
 /*
@@ -15245,6 +15570,7 @@ otherwise, return FALSE.
 }  /* has_ifc_source */
 
 
+template<>
 an_ifc_expr_index get_ifc_source(
                              const an_ifc_expr_hierarchy_conversion &universal)
 /*
@@ -15286,6 +15612,7 @@ otherwise, return FALSE.
 }  /* has_ifc_target */
 
 
+template<>
 an_ifc_type_index get_ifc_target(
                              const an_ifc_expr_hierarchy_conversion &universal)
 /*
@@ -15327,6 +15654,7 @@ otherwise, return FALSE.
 }  /* has_ifc_type */
 
 
+template<>
 an_ifc_type_index get_ifc_type(
                              const an_ifc_expr_hierarchy_conversion &universal)
 /*
@@ -15373,6 +15701,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(
                                  const an_ifc_expr_inheritance_path &universal)
 /*
@@ -15418,6 +15747,7 @@ otherwise, return FALSE.
 }  /* has_ifc_path */
 
 
+template<>
 an_ifc_expr_index get_ifc_path(const an_ifc_expr_inheritance_path &universal)
 /*
 Given the universal representation of ExprInheritancePath, return the universal
@@ -15458,6 +15788,7 @@ otherwise, return FALSE.
 }  /* has_ifc_type */
 
 
+template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_inheritance_path &universal)
 /*
 Given the universal representation of ExprInheritancePath, return the universal
@@ -15503,6 +15834,7 @@ otherwise, return FALSE.
 }  /* has_ifc_expr */
 
 
+template<>
 an_ifc_expr_index get_ifc_expr(const an_ifc_expr_initializer &universal)
 /*
 Given the universal representation of ExprInitializer, return the universal
@@ -15543,6 +15875,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_expr_initializer &universal)
 /*
 Given the universal representation of ExprInitializer, return the universal
@@ -15587,6 +15920,7 @@ otherwise, return FALSE.
 }  /* has_ifc_sort */
 
 
+template<>
 an_ifc_initializer_sort get_ifc_sort(const an_ifc_expr_initializer &universal)
 /*
 Given the universal representation of ExprInitializer, return the universal
@@ -15627,6 +15961,7 @@ otherwise, return FALSE.
 }  /* has_ifc_type */
 
 
+template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_initializer &universal)
 /*
 Given the universal representation of ExprInitializer, return the universal
@@ -15672,6 +16007,7 @@ otherwise, return FALSE.
 }  /* has_ifc_elements */
 
 
+template<>
 an_ifc_expr_index get_ifc_elements(
                                  const an_ifc_expr_initializer_list &universal)
 /*
@@ -15713,6 +16049,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(
                                  const an_ifc_expr_initializer_list &universal)
 /*
@@ -15758,6 +16095,7 @@ otherwise, return FALSE.
 }  /* has_ifc_type */
 
 
+template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_initializer_list &universal)
 /*
 Given the universal representation of ExprInitializerList, return the universal
@@ -15803,6 +16141,7 @@ otherwise, return FALSE.
 }  /* has_ifc_body */
 
 
+template<>
 an_ifc_syntax_index get_ifc_body(const an_ifc_expr_lambda &universal)
 /*
 Given the universal representation of ExprLambda, return the universal
@@ -15843,6 +16182,7 @@ otherwise, return FALSE.
 }  /* has_ifc_constraint */
 
 
+template<>
 an_ifc_syntax_index get_ifc_constraint(const an_ifc_expr_lambda &universal)
 /*
 Given the universal representation of ExprLambda, return the universal
@@ -15883,6 +16223,7 @@ otherwise, return FALSE.
 }  /* has_ifc_declarator */
 
 
+template<>
 an_ifc_syntax_index get_ifc_declarator(const an_ifc_expr_lambda &universal)
 /*
 Given the universal representation of ExprLambda, return the universal
@@ -15923,6 +16264,7 @@ otherwise, return FALSE.
 }  /* has_ifc_introducer */
 
 
+template<>
 an_ifc_syntax_index get_ifc_introducer(const an_ifc_expr_lambda &universal)
 /*
 Given the universal representation of ExprLambda, return the universal
@@ -15963,6 +16305,7 @@ Return TRUE if the given universal representation has the field
 }  /* has_ifc_template_parameters */
 
 
+template<>
 an_ifc_syntax_index get_ifc_template_parameters(
                                            const an_ifc_expr_lambda &universal)
 /*
@@ -16010,6 +16353,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_expr_literal &universal)
 /*
 Given the universal representation of ExprLiteral, return the universal
@@ -16054,6 +16398,7 @@ otherwise, return FALSE.
 }  /* has_ifc_type */
 
 
+template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_literal &universal)
 /*
 Given the universal representation of ExprLiteral, return the universal
@@ -16094,6 +16439,7 @@ otherwise, return FALSE.
 }  /* has_ifc_value */
 
 
+template<>
 an_ifc_lit_index get_ifc_value(const an_ifc_expr_literal &universal)
 /*
 Given the universal representation of ExprLiteral, return the universal
@@ -16139,6 +16485,7 @@ otherwise, return FALSE.
 }  /* has_ifc_enclosing */
 
 
+template<>
 an_ifc_type_index get_ifc_enclosing(const an_ifc_expr_member_access &universal)
 /*
 Given the universal representation of ExprMemberAccess, return the universal
@@ -16179,6 +16526,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(
                                     const an_ifc_expr_member_access &universal)
 /*
@@ -16224,6 +16572,7 @@ otherwise, return FALSE.
 }  /* has_ifc_name */
 
 
+template<>
 an_ifc_text_offset get_ifc_name(const an_ifc_expr_member_access &universal)
 /*
 Given the universal representation of ExprMemberAccess, return the universal
@@ -16264,6 +16613,7 @@ otherwise, return FALSE.
 }  /* has_ifc_offset */
 
 
+template<>
 an_ifc_expr_index get_ifc_offset(const an_ifc_expr_member_access &universal)
 /*
 Given the universal representation of ExprMemberAccess, return the universal
@@ -16304,6 +16654,7 @@ otherwise, return FALSE.
 }  /* has_ifc_type */
 
 
+template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_member_access &universal)
 /*
 Given the universal representation of ExprMemberAccess, return the universal
@@ -16349,6 +16700,7 @@ otherwise, return FALSE.
 }  /* has_ifc_base */
 
 
+template<>
 an_ifc_type_index get_ifc_base(const an_ifc_expr_member_initializer &universal)
 /*
 Given the universal representation of ExprMemberInitializer, return the
@@ -16389,6 +16741,7 @@ otherwise, return FALSE.
 }  /* has_ifc_initializer */
 
 
+template<>
 an_ifc_expr_index get_ifc_initializer(
                                const an_ifc_expr_member_initializer &universal)
 /*
@@ -16430,6 +16783,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(
                                const an_ifc_expr_member_initializer &universal)
 /*
@@ -16475,6 +16829,7 @@ otherwise, return FALSE.
 }  /* has_ifc_member */
 
 
+template<>
 an_ifc_decl_index get_ifc_member(
                                const an_ifc_expr_member_initializer &universal)
 /*
@@ -16529,6 +16884,7 @@ otherwise, return FALSE.
 }  /* has_ifc_type */
 
 
+template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_member_initializer &universal)
 /*
 Given the universal representation of ExprMemberInitializer, return the
@@ -16574,6 +16930,7 @@ otherwise, return FALSE.
 }  /* has_ifc_argument */
 
 
+template<>
 an_ifc_expr_index get_ifc_argument(const an_ifc_expr_monad &universal)
 /*
 Given the universal representation of ExprMonad, return the universal
@@ -16614,6 +16971,7 @@ otherwise, return FALSE.
 }  /* has_ifc_assoc */
 
 
+template<>
 an_ifc_monadic_operator_sort get_ifc_assoc(const an_ifc_expr_monad &universal)
 /*
 Given the universal representation of ExprMonad, return the universal
@@ -16654,6 +17012,7 @@ otherwise, return FALSE.
 }  /* has_ifc_impl */
 
 
+template<>
 an_ifc_decl_index get_ifc_impl(const an_ifc_expr_monad &universal)
 /*
 Given the universal representation of ExprMonad, return the universal
@@ -16707,6 +17066,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_expr_monad &universal)
 /*
 Given the universal representation of ExprMonad, return the universal
@@ -16751,6 +17111,7 @@ otherwise, return FALSE.
 }  /* has_ifc_type */
 
 
+template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_monad &universal)
 /*
 Given the universal representation of ExprMonad, return the universal
@@ -16796,6 +17157,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_expr_named_decl &universal)
 /*
 Given the universal representation of ExprNamedDecl, return the universal
@@ -16840,6 +17202,7 @@ otherwise, return FALSE.
 }  /* has_ifc_resolution */
 
 
+template<>
 an_ifc_decl_index get_ifc_resolution(const an_ifc_expr_named_decl &universal)
 /*
 Given the universal representation of ExprNamedDecl, return the universal
@@ -16893,6 +17256,7 @@ otherwise, return FALSE.
 }  /* has_ifc_type */
 
 
+template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_named_decl &universal)
 /*
 Given the universal representation of ExprNamedDecl, return the universal
@@ -16938,6 +17302,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_expr_nullptr &universal)
 /*
 Given the universal representation of ExprNullptr, return the universal
@@ -16982,6 +17347,7 @@ otherwise, return FALSE.
 }  /* has_ifc_type */
 
 
+template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_nullptr &universal)
 /*
 Given the universal representation of ExprNullptr, return the universal
@@ -17028,6 +17394,7 @@ otherwise, return FALSE.
 }  /* has_ifc_arguments */
 
 
+template<>
 an_ifc_expr_index get_ifc_arguments(
                         const an_ifc_expr_packed_template_arguments &universal)
 /*
@@ -17069,6 +17436,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(
                         const an_ifc_expr_packed_template_arguments &universal)
 /*
@@ -17114,6 +17482,7 @@ otherwise, return FALSE.
 }  /* has_ifc_type */
 
 
+template<>
 an_ifc_type_index get_ifc_type(
                         const an_ifc_expr_packed_template_arguments &universal)
 /*
@@ -17160,6 +17529,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_expr_path &universal)
 /*
 Given the universal representation of ExprPath, return the universal
@@ -17204,6 +17574,7 @@ otherwise, return FALSE.
 }  /* has_ifc_member */
 
 
+template<>
 an_ifc_expr_index get_ifc_member(const an_ifc_expr_path &universal)
 /*
 Given the universal representation of ExprPath, return the universal
@@ -17244,6 +17615,7 @@ otherwise, return FALSE.
 }  /* has_ifc_scope */
 
 
+template<>
 an_ifc_expr_index get_ifc_scope(const an_ifc_expr_path &universal)
 /*
 Given the universal representation of ExprPath, return the universal
@@ -17284,6 +17656,7 @@ otherwise, return FALSE.
 }  /* has_ifc_type */
 
 
+template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_path &universal)
 /*
 Given the universal representation of ExprPath, return the universal
@@ -17329,6 +17702,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_expr_placeholder &universal)
 /*
 Given the universal representation of ExprPlaceholder, return the universal
@@ -17373,6 +17747,7 @@ otherwise, return FALSE.
 }  /* has_ifc_type */
 
 
+template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_placeholder &universal)
 /*
 Given the universal representation of ExprPlaceholder, return the universal
@@ -17418,6 +17793,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_expr_pointer &universal)
 /*
 Given the universal representation of ExprPointer, return the universal
@@ -17468,6 +17844,7 @@ Return TRUE if the given universal representation has the field
 }  /* has_ifc_base_subobjects */
 
 
+template<>
 an_ifc_expr_index get_ifc_base_subobjects(
                                const an_ifc_expr_product_type_value &universal)
 /*
@@ -17509,6 +17886,7 @@ otherwise, return FALSE.
 }  /* has_ifc_class_decl */
 
 
+template<>
 an_ifc_type_index get_ifc_class_decl(
                                const an_ifc_expr_product_type_value &universal)
 /*
@@ -17550,6 +17928,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(
                                const an_ifc_expr_product_type_value &universal)
 /*
@@ -17595,6 +17974,7 @@ otherwise, return FALSE.
 }  /* has_ifc_members */
 
 
+template<>
 an_ifc_expr_index get_ifc_members(
                                const an_ifc_expr_product_type_value &universal)
 /*
@@ -17636,6 +18016,7 @@ otherwise, return FALSE.
 }  /* has_ifc_type */
 
 
+template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_product_type_value &universal)
 /*
 Given the universal representation of ExprProductTypeValue, return the
@@ -17681,6 +18062,7 @@ otherwise, return FALSE.
 }  /* has_ifc_ctor_call */
 
 
+template<>
 an_ifc_expr_index get_ifc_ctor_call(const an_ifc_expr_push_state &universal)
 /*
 Given the universal representation of ExprPushState, return the universal
@@ -17721,6 +18103,7 @@ otherwise, return FALSE.
 }  /* has_ifc_dtor_call */
 
 
+template<>
 an_ifc_expr_index get_ifc_dtor_call(const an_ifc_expr_push_state &universal)
 /*
 Given the universal representation of ExprPushState, return the universal
@@ -17761,6 +18144,7 @@ otherwise, return FALSE.
 }  /* has_ifc_flags */
 
 
+template<>
 an_ifc_eh_flags get_ifc_flags(const an_ifc_expr_push_state &universal)
 /*
 Given the universal representation of ExprPushState, return the universal
@@ -17801,6 +18185,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_expr_push_state &universal)
 /*
 Given the universal representation of ExprPushState, return the universal
@@ -17845,6 +18230,7 @@ otherwise, return FALSE.
 }  /* has_ifc_type */
 
 
+template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_push_state &universal)
 /*
 Given the universal representation of ExprPushState, return the universal
@@ -17890,6 +18276,7 @@ otherwise, return FALSE.
 }  /* has_ifc_elements */
 
 
+template<>
 an_ifc_expr_index get_ifc_elements(const an_ifc_expr_qualified_name &universal)
 /*
 Given the universal representation of ExprQualifiedName, return the universal
@@ -17930,6 +18317,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(
                                    const an_ifc_expr_qualified_name &universal)
 /*
@@ -17975,6 +18363,7 @@ otherwise, return FALSE.
 }  /* has_ifc_type */
 
 
+template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_qualified_name &universal)
 /*
 Given the universal representation of ExprQualifiedName, return the universal
@@ -18015,6 +18404,7 @@ Return TRUE if the given universal representation has the field
 }  /* has_ifc_typename_keyword */
 
 
+template<>
 an_ifc_source_location get_ifc_typename_keyword(
                                    const an_ifc_expr_qualified_name &universal)
 /*
@@ -18066,6 +18456,7 @@ otherwise, return FALSE.
 }  /* has_ifc_address */
 
 
+template<>
 an_ifc_expr_index get_ifc_address(const an_ifc_expr_read &universal)
 /*
 Given the universal representation of ExprRead, return the universal
@@ -18106,6 +18497,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_expr_read &universal)
 /*
 Given the universal representation of ExprRead, return the universal
@@ -18150,6 +18542,7 @@ otherwise, return FALSE.
 }  /* has_ifc_sort */
 
 
+template<>
 an_ifc_read_conversion_sort get_ifc_sort(const an_ifc_expr_read &universal)
 /*
 Given the universal representation of ExprRead, return the universal
@@ -18190,6 +18583,7 @@ otherwise, return FALSE.
 }  /* has_ifc_type */
 
 
+template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_read &universal)
 /*
 Given the universal representation of ExprRead, return the universal
@@ -18235,6 +18629,7 @@ otherwise, return FALSE.
 }  /* has_ifc_body */
 
 
+template<>
 an_ifc_syntax_index get_ifc_body(const an_ifc_expr_requires &universal)
 /*
 Given the universal representation of ExprRequires, return the universal
@@ -18275,6 +18670,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_expr_requires &universal)
 /*
 Given the universal representation of ExprRequires, return the universal
@@ -18319,6 +18715,7 @@ otherwise, return FALSE.
 }  /* has_ifc_parameters */
 
 
+template<>
 an_ifc_syntax_index get_ifc_parameters(const an_ifc_expr_requires &universal)
 /*
 Given the universal representation of ExprRequires, return the universal
@@ -18359,6 +18756,7 @@ otherwise, return FALSE.
 }  /* has_ifc_type */
 
 
+template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_requires &universal)
 /*
 Given the universal representation of ExprRequires, return the universal
@@ -18404,6 +18802,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(
                                 const an_ifc_expr_simple_identifier &universal)
 /*
@@ -18449,6 +18848,7 @@ otherwise, return FALSE.
 }  /* has_ifc_name */
 
 
+template<>
 an_ifc_name_index get_ifc_name(const an_ifc_expr_simple_identifier &universal)
 /*
 Given the universal representation of ExprSimpleIdentifier, return the
@@ -18489,6 +18889,7 @@ otherwise, return FALSE.
 }  /* has_ifc_type */
 
 
+template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_simple_identifier &universal)
 /*
 Given the universal representation of ExprSimpleIdentifier, return the
@@ -18534,6 +18935,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_expr_sizeof_type &universal)
 /*
 Given the universal representation of ExprSizeofType, return the universal
@@ -18578,6 +18980,7 @@ otherwise, return FALSE.
 }  /* has_ifc_operand */
 
 
+template<>
 an_ifc_type_index get_ifc_operand(const an_ifc_expr_sizeof_type &universal)
 /*
 Given the universal representation of ExprSizeofType, return the universal
@@ -18618,6 +19021,7 @@ otherwise, return FALSE.
 }  /* has_ifc_type */
 
 
+template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_sizeof_type &universal)
 /*
 Given the universal representation of ExprSizeofType, return the universal
@@ -18663,6 +19067,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_expr_string &universal)
 /*
 Given the universal representation of ExprString, return the universal
@@ -18707,6 +19112,7 @@ otherwise, return FALSE.
 }  /* has_ifc_string_index */
 
 
+template<>
 an_ifc_string_index get_ifc_string_index(const an_ifc_expr_string &universal)
 /*
 Given the universal representation of ExprString, return the universal
@@ -18747,6 +19153,7 @@ otherwise, return FALSE.
 }  /* has_ifc_type */
 
 
+template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_string &universal)
 /*
 Given the universal representation of ExprString, return the universal
@@ -18792,6 +19199,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(
                                   const an_ifc_expr_string_sequence &universal)
 /*
@@ -18837,6 +19245,7 @@ otherwise, return FALSE.
 }  /* has_ifc_strings */
 
 
+template<>
 an_ifc_expr_index get_ifc_strings(const an_ifc_expr_string_sequence &universal)
 /*
 Given the universal representation of ExprStringSequence, return the universal
@@ -18877,6 +19286,7 @@ otherwise, return FALSE.
 }  /* has_ifc_type */
 
 
+template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_string_sequence &universal)
 /*
 Given the universal representation of ExprStringSequence, return the universal
@@ -18922,6 +19332,7 @@ otherwise, return FALSE.
 }  /* has_ifc_value */
 
 
+template<>
 an_ifc_expr_index get_ifc_value(const an_ifc_expr_subobject_value &universal)
 /*
 Given the universal representation of ExprSubobjectValue, return the universal
@@ -18967,6 +19378,7 @@ otherwise, return FALSE.
 }  /* has_ifc_discriminant */
 
 
+template<>
 an_ifc_active_member get_ifc_discriminant(
                                    const an_ifc_expr_sum_type_value &universal)
 /*
@@ -19008,6 +19420,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(
                                    const an_ifc_expr_sum_type_value &universal)
 /*
@@ -19053,6 +19466,7 @@ otherwise, return FALSE.
 }  /* has_ifc_type */
 
 
+template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_sum_type_value &universal)
 /*
 Given the universal representation of ExprSumTypeValue, return the universal
@@ -19093,6 +19507,7 @@ otherwise, return FALSE.
 }  /* has_ifc_value */
 
 
+template<>
 an_ifc_expr_index get_ifc_value(const an_ifc_expr_sum_type_value &universal)
 /*
 Given the universal representation of ExprSumTypeValue, return the universal
@@ -19133,6 +19548,7 @@ otherwise, return FALSE.
 }  /* has_ifc_variant */
 
 
+template<>
 an_ifc_decl_index get_ifc_variant(const an_ifc_expr_sum_type_value &universal)
 /*
 Given the universal representation of ExprSumTypeValue, return the universal
@@ -19191,6 +19607,7 @@ otherwise, return FALSE.
 }  /* has_ifc_syntax */
 
 
+template<>
 an_ifc_syntax_index get_ifc_syntax(const an_ifc_expr_syntax_tree &universal)
 /*
 Given the universal representation of ExprSyntaxTree, return the universal
@@ -19236,6 +19653,7 @@ otherwise, return FALSE.
 }  /* has_ifc_arguments */
 
 
+template<>
 an_ifc_expr_index get_ifc_arguments(const an_ifc_expr_template_id &universal)
 /*
 Given the universal representation of ExprTemplateId, return the universal
@@ -19276,6 +19694,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_expr_template_id &universal)
 /*
 Given the universal representation of ExprTemplateId, return the universal
@@ -19320,6 +19739,7 @@ otherwise, return FALSE.
 }  /* has_ifc_primary */
 
 
+template<>
 an_ifc_expr_index get_ifc_primary(const an_ifc_expr_template_id &universal)
 /*
 Given the universal representation of ExprTemplateId, return the universal
@@ -19360,6 +19780,7 @@ otherwise, return FALSE.
 }  /* has_ifc_type */
 
 
+template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_template_id &universal)
 /*
 Given the universal representation of ExprTemplateId, return the universal
@@ -19405,6 +19826,7 @@ otherwise, return FALSE.
 }  /* has_ifc_arguments */
 
 
+template<>
 an_ifc_expr_index get_ifc_arguments(
                                const an_ifc_expr_template_reference &universal)
 /*
@@ -19446,6 +19868,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(
                                const an_ifc_expr_template_reference &universal)
 /*
@@ -19491,6 +19914,7 @@ otherwise, return FALSE.
 }  /* has_ifc_member_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_member_locus(
                                const an_ifc_expr_template_reference &universal)
 /*
@@ -19537,6 +19961,7 @@ otherwise, return FALSE.
 }  /* has_ifc_member_name */
 
 
+template<>
 an_ifc_name_index get_ifc_member_name(
                                const an_ifc_expr_template_reference &universal)
 /*
@@ -19578,6 +20003,7 @@ otherwise, return FALSE.
 }  /* has_ifc_scope */
 
 
+template<>
 an_ifc_type_index get_ifc_scope(
                                const an_ifc_expr_template_reference &universal)
 /*
@@ -19619,6 +20045,7 @@ otherwise, return FALSE.
 }  /* has_ifc_type */
 
 
+template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_template_reference &universal)
 /*
 Given the universal representation of ExprTemplateReference, return the
@@ -19664,6 +20091,7 @@ otherwise, return FALSE.
 }  /* has_ifc_id */
 
 
+template<>
 an_ifc_unique_id get_ifc_id(const an_ifc_expr_temporary &universal)
 /*
 Given the universal representation of ExprTemporary, return the universal
@@ -19704,6 +20132,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_expr_temporary &universal)
 /*
 Given the universal representation of ExprTemporary, return the universal
@@ -19748,6 +20177,7 @@ otherwise, return FALSE.
 }  /* has_ifc_type */
 
 
+template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_temporary &universal)
 /*
 Given the universal representation of ExprTemporary, return the universal
@@ -19793,6 +20223,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_expr_this &universal)
 /*
 Given the universal representation of ExprThis, return the universal
@@ -19837,6 +20268,7 @@ otherwise, return FALSE.
 }  /* has_ifc_type */
 
 
+template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_this &universal)
 /*
 Given the universal representation of ExprThis, return the universal
@@ -19882,6 +20314,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_expr_tokens &universal)
 /*
 Given the universal representation of ExprTokens, return the universal
@@ -19926,6 +20359,7 @@ otherwise, return FALSE.
 }  /* has_ifc_type */
 
 
+template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_tokens &universal)
 /*
 Given the universal representation of ExprTokens, return the universal
@@ -19966,6 +20400,7 @@ otherwise, return FALSE.
 }  /* has_ifc_words */
 
 
+template<>
 an_ifc_sentence_index get_ifc_words(const an_ifc_expr_tokens &universal)
 /*
 Given the universal representation of ExprTokens, return the universal
@@ -20011,6 +20446,7 @@ otherwise, return FALSE.
 }  /* has_ifc_argument_0 */
 
 
+template<>
 an_ifc_expr_index get_ifc_argument_0(const an_ifc_expr_triad &universal)
 /*
 Given the universal representation of ExprTriad, return the universal
@@ -20051,6 +20487,7 @@ otherwise, return FALSE.
 }  /* has_ifc_argument_1 */
 
 
+template<>
 an_ifc_expr_index get_ifc_argument_1(const an_ifc_expr_triad &universal)
 /*
 Given the universal representation of ExprTriad, return the universal
@@ -20091,6 +20528,7 @@ otherwise, return FALSE.
 }  /* has_ifc_argument_2 */
 
 
+template<>
 an_ifc_expr_index get_ifc_argument_2(const an_ifc_expr_triad &universal)
 /*
 Given the universal representation of ExprTriad, return the universal
@@ -20131,6 +20569,7 @@ otherwise, return FALSE.
 }  /* has_ifc_assoc */
 
 
+template<>
 an_ifc_triadic_operator_sort get_ifc_assoc(const an_ifc_expr_triad &universal)
 /*
 Given the universal representation of ExprTriad, return the universal
@@ -20171,6 +20610,7 @@ otherwise, return FALSE.
 }  /* has_ifc_impl */
 
 
+template<>
 an_ifc_decl_index get_ifc_impl(const an_ifc_expr_triad &universal)
 /*
 Given the universal representation of ExprTriad, return the universal
@@ -20224,6 +20664,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_expr_triad &universal)
 /*
 Given the universal representation of ExprTriad, return the universal
@@ -20268,6 +20709,7 @@ otherwise, return FALSE.
 }  /* has_ifc_type */
 
 
+template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_triad &universal)
 /*
 Given the universal representation of ExprTriad, return the universal
@@ -20313,6 +20755,7 @@ otherwise, return FALSE.
 }  /* has_ifc_cardinality */
 
 
+template<>
 an_ifc_cardinality get_ifc_cardinality(const an_ifc_expr_tuple &universal)
 /*
 Given the universal representation of ExprTuple, return the universal
@@ -20353,6 +20796,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_expr_tuple &universal)
 /*
 Given the universal representation of ExprTuple, return the universal
@@ -20397,6 +20841,7 @@ otherwise, return FALSE.
 }  /* has_ifc_start */
 
 
+template<>
 an_ifc_index get_ifc_start(const an_ifc_expr_tuple &universal)
 /*
 Given the universal representation of ExprTuple, return the universal
@@ -20437,6 +20882,7 @@ otherwise, return FALSE.
 }  /* has_ifc_type */
 
 
+template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_tuple &universal)
 /*
 Given the universal representation of ExprTuple, return the universal
@@ -20482,6 +20928,7 @@ otherwise, return FALSE.
 }  /* has_ifc_denotation */
 
 
+template<>
 an_ifc_type_index get_ifc_denotation(const an_ifc_expr_type &universal)
 /*
 Given the universal representation of ExprType, return the universal
@@ -20522,6 +20969,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_expr_type &universal)
 /*
 Given the universal representation of ExprType, return the universal
@@ -20566,6 +21014,7 @@ otherwise, return FALSE.
 }  /* has_ifc_type */
 
 
+template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_type &universal)
 /*
 Given the universal representation of ExprType, return the universal
@@ -20611,6 +21060,7 @@ otherwise, return FALSE.
 }  /* has_ifc_arguments */
 
 
+template<>
 an_ifc_type_index get_ifc_arguments(
                              const an_ifc_expr_type_trait_intrinsic &universal)
 /*
@@ -20652,6 +21102,7 @@ otherwise, return FALSE.
 }  /* has_ifc_intrinsic */
 
 
+template<>
 an_ifc_operator_category get_ifc_intrinsic(
                              const an_ifc_expr_type_trait_intrinsic &universal)
 /*
@@ -20693,6 +21144,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(
                              const an_ifc_expr_type_trait_intrinsic &universal)
 /*
@@ -20738,6 +21190,7 @@ otherwise, return FALSE.
 }  /* has_ifc_type */
 
 
+template<>
 an_ifc_type_index get_ifc_type(
                              const an_ifc_expr_type_trait_intrinsic &universal)
 /*
@@ -20784,6 +21237,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_expr_typeid &universal)
 /*
 Given the universal representation of ExprTypeid, return the universal
@@ -20828,6 +21282,7 @@ otherwise, return FALSE.
 }  /* has_ifc_operand */
 
 
+template<>
 an_ifc_type_index get_ifc_operand(const an_ifc_expr_typeid &universal)
 /*
 Given the universal representation of ExprTypeid, return the universal
@@ -20868,6 +21323,7 @@ otherwise, return FALSE.
 }  /* has_ifc_type */
 
 
+template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_typeid &universal)
 /*
 Given the universal representation of ExprTypeid, return the universal
@@ -20913,6 +21369,7 @@ Return TRUE if the given universal representation has the field
 }  /* has_ifc_associativity */
 
 
+template<>
 an_ifc_associativity get_ifc_associativity(
                                        const an_ifc_expr_unary_fold &universal)
 /*
@@ -20954,6 +21411,7 @@ otherwise, return FALSE.
 }  /* has_ifc_expr */
 
 
+template<>
 an_ifc_expr_index get_ifc_expr(const an_ifc_expr_unary_fold &universal)
 /*
 Given the universal representation of ExprUnaryFold, return the universal
@@ -20994,6 +21452,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_expr_unary_fold &universal)
 /*
 Given the universal representation of ExprUnaryFold, return the universal
@@ -21038,6 +21497,7 @@ otherwise, return FALSE.
 }  /* has_ifc_operation */
 
 
+template<>
 an_ifc_dyadic_operator_sort get_ifc_operation(
                                        const an_ifc_expr_unary_fold &universal)
 /*
@@ -21079,6 +21539,7 @@ otherwise, return FALSE.
 }  /* has_ifc_type */
 
 
+template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_unary_fold &universal)
 /*
 Given the universal representation of ExprUnaryFold, return the universal
@@ -21124,6 +21585,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(
                                    const an_ifc_expr_unqualified_id &universal)
 /*
@@ -21169,6 +21631,7 @@ otherwise, return FALSE.
 }  /* has_ifc_name */
 
 
+template<>
 an_ifc_name_index get_ifc_name(const an_ifc_expr_unqualified_id &universal)
 /*
 Given the universal representation of ExprUnqualifiedId, return the universal
@@ -21209,6 +21672,7 @@ otherwise, return FALSE.
 }  /* has_ifc_resolution */
 
 
+template<>
 an_ifc_expr_index get_ifc_resolution(
                                    const an_ifc_expr_unqualified_id &universal)
 /*
@@ -21250,6 +21714,7 @@ Return TRUE if the given universal representation has the field
 }  /* has_ifc_template_keyword */
 
 
+template<>
 an_ifc_source_location get_ifc_template_keyword(
                                    const an_ifc_expr_unqualified_id &universal)
 /*
@@ -21296,6 +21761,7 @@ otherwise, return FALSE.
 }  /* has_ifc_type */
 
 
+template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_unqualified_id &universal)
 /*
 Given the universal representation of ExprUnqualifiedId, return the universal
@@ -21341,6 +21807,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(
                                     const an_ifc_expr_unresolved_id &universal)
 /*
@@ -21386,6 +21853,7 @@ otherwise, return FALSE.
 }  /* has_ifc_name */
 
 
+template<>
 an_ifc_name_index get_ifc_name(const an_ifc_expr_unresolved_id &universal)
 /*
 Given the universal representation of ExprUnresolvedId, return the universal
@@ -21426,6 +21894,7 @@ otherwise, return FALSE.
 }  /* has_ifc_type */
 
 
+template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_unresolved_id &universal)
 /*
 Given the universal representation of ExprUnresolvedId, return the universal
@@ -21472,6 +21941,7 @@ otherwise, return FALSE.
 }  /* has_ifc_function */
 
 
+template<>
 an_ifc_decl_index get_ifc_function(
                       const an_ifc_expr_virtual_function_conversion &universal)
 /*
@@ -21527,6 +21997,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(
                       const an_ifc_expr_virtual_function_conversion &universal)
 /*
@@ -21573,6 +22044,7 @@ otherwise, return FALSE.
 }  /* has_ifc_type */
 
 
+template<>
 an_ifc_type_index get_ifc_type(
                       const an_ifc_expr_virtual_function_conversion &universal)
 /*
@@ -21619,6 +22091,7 @@ otherwise, return FALSE.
 }  /* has_ifc_first */
 
 
+template<>
 an_ifc_form_index get_ifc_first(const an_ifc_form_catenate &universal)
 /*
 Given the universal representation of FormCatenate, return the universal
@@ -21659,6 +22132,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_form_catenate &universal)
 /*
 Given the universal representation of FormCatenate, return the universal
@@ -21703,6 +22177,7 @@ otherwise, return FALSE.
 }  /* has_ifc_second */
 
 
+template<>
 an_ifc_form_index get_ifc_second(const an_ifc_form_catenate &universal)
 /*
 Given the universal representation of FormCatenate, return the universal
@@ -21748,6 +22223,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_form_character &universal)
 /*
 Given the universal representation of FormCharacter, return the universal
@@ -21792,6 +22268,7 @@ otherwise, return FALSE.
 }  /* has_ifc_spelling */
 
 
+template<>
 an_ifc_text_offset get_ifc_spelling(const an_ifc_form_character &universal)
 /*
 Given the universal representation of FormCharacter, return the universal
@@ -21837,6 +22314,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_form_header &universal)
 /*
 Given the universal representation of FormHeader, return the universal
@@ -21881,6 +22359,7 @@ otherwise, return FALSE.
 }  /* has_ifc_spelling */
 
 
+template<>
 an_ifc_text_offset get_ifc_spelling(const an_ifc_form_header &universal)
 /*
 Given the universal representation of FormHeader, return the universal
@@ -21926,6 +22405,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_form_identifier &universal)
 /*
 Given the universal representation of FormIdentifier, return the universal
@@ -21970,6 +22450,7 @@ otherwise, return FALSE.
 }  /* has_ifc_spelling */
 
 
+template<>
 an_ifc_text_offset get_ifc_spelling(const an_ifc_form_identifier &universal)
 /*
 Given the universal representation of FormIdentifier, return the universal
@@ -22015,6 +22496,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_form_junk &universal)
 /*
 Given the universal representation of FormJunk, return the universal
@@ -22059,6 +22541,7 @@ otherwise, return FALSE.
 }  /* has_ifc_spelling */
 
 
+template<>
 an_ifc_text_offset get_ifc_spelling(const an_ifc_form_junk &universal)
 /*
 Given the universal representation of FormJunk, return the universal
@@ -22104,6 +22587,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_form_keyword &universal)
 /*
 Given the universal representation of FormKeyword, return the universal
@@ -22148,6 +22632,7 @@ otherwise, return FALSE.
 }  /* has_ifc_spelling */
 
 
+template<>
 an_ifc_text_offset get_ifc_spelling(const an_ifc_form_keyword &universal)
 /*
 Given the universal representation of FormKeyword, return the universal
@@ -22193,6 +22678,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_form_number &universal)
 /*
 Given the universal representation of FormNumber, return the universal
@@ -22237,6 +22723,7 @@ otherwise, return FALSE.
 }  /* has_ifc_spelling */
 
 
+template<>
 an_ifc_text_offset get_ifc_spelling(const an_ifc_form_number &universal)
 /*
 Given the universal representation of FormNumber, return the universal
@@ -22282,6 +22769,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_form_operator &universal)
 /*
 Given the universal representation of FormOperator, return the universal
@@ -22326,6 +22814,7 @@ otherwise, return FALSE.
 }  /* has_ifc_op */
 
 
+template<>
 an_ifc_form_operator_sort get_ifc_op(const an_ifc_form_operator &universal)
 /*
 Given the universal representation of FormOperator, return the universal
@@ -22367,6 +22856,7 @@ otherwise, return FALSE.
 }  /* has_ifc_spelling */
 
 
+template<>
 an_ifc_text_offset get_ifc_spelling(const an_ifc_form_operator &universal)
 /*
 Given the universal representation of FormOperator, return the universal
@@ -22412,6 +22902,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_form_parameter &universal)
 /*
 Given the universal representation of FormParameter, return the universal
@@ -22456,6 +22947,7 @@ otherwise, return FALSE.
 }  /* has_ifc_spelling */
 
 
+template<>
 an_ifc_text_offset get_ifc_spelling(const an_ifc_form_parameter &universal)
 /*
 Given the universal representation of FormParameter, return the universal
@@ -22501,6 +22993,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(
                                     const an_ifc_form_parenthesized &universal)
 /*
@@ -22546,6 +23039,7 @@ otherwise, return FALSE.
 }  /* has_ifc_operand */
 
 
+template<>
 an_ifc_form_index get_ifc_operand(const an_ifc_form_parenthesized &universal)
 /*
 Given the universal representation of FormParenthesized, return the universal
@@ -22591,6 +23085,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_form_pragma &universal)
 /*
 Given the universal representation of FormPragma, return the universal
@@ -22635,6 +23130,7 @@ otherwise, return FALSE.
 }  /* has_ifc_operand */
 
 
+template<>
 an_ifc_form_index get_ifc_operand(const an_ifc_form_pragma &universal)
 /*
 Given the universal representation of FormPragma, return the universal
@@ -22680,6 +23176,7 @@ otherwise, return FALSE.
 }  /* has_ifc_arguments */
 
 
+template<>
 an_ifc_expr_index get_ifc_arguments(const an_ifc_form_spec &universal)
 /*
 Given the universal representation of FormSpec, return the universal
@@ -22720,6 +23217,7 @@ Return TRUE if the given universal representation has the field
 }  /* has_ifc_primary_template */
 
 
+template<>
 an_ifc_decl_index get_ifc_primary_template(const an_ifc_form_spec &universal)
 /*
 Given the universal representation of FormSpec, return the universal
@@ -22778,6 +23276,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_form_string &universal)
 /*
 Given the universal representation of FormString, return the universal
@@ -22822,6 +23321,7 @@ otherwise, return FALSE.
 }  /* has_ifc_spelling */
 
 
+template<>
 an_ifc_text_offset get_ifc_spelling(const an_ifc_form_string &universal)
 /*
 Given the universal representation of FormString, return the universal
@@ -22867,6 +23367,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_form_stringize &universal)
 /*
 Given the universal representation of FormStringize, return the universal
@@ -22911,6 +23412,7 @@ otherwise, return FALSE.
 }  /* has_ifc_operand */
 
 
+template<>
 an_ifc_form_index get_ifc_operand(const an_ifc_form_stringize &universal)
 /*
 Given the universal representation of FormStringize, return the universal
@@ -22956,6 +23458,7 @@ otherwise, return FALSE.
 }  /* has_ifc_cardinality */
 
 
+template<>
 an_ifc_cardinality get_ifc_cardinality(const an_ifc_form_tuple &universal)
 /*
 Given the universal representation of FormTuple, return the universal
@@ -22996,6 +23499,7 @@ otherwise, return FALSE.
 }  /* has_ifc_start */
 
 
+template<>
 an_ifc_index get_ifc_start(const an_ifc_form_tuple &universal)
 /*
 Given the universal representation of FormTuple, return the universal
@@ -23041,6 +23545,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_form_whitespace &universal)
 /*
 Given the universal representation of FormWhitespace, return the universal
@@ -23090,6 +23595,7 @@ otherwise, return FALSE.
 }  /* has_ifc_value */
 
 
+template<>
 an_ifc_attr_index get_ifc_value(const an_ifc_heap_attr &universal)
 /*
 Given the universal representation of HeapAttr, return the universal
@@ -23135,6 +23641,7 @@ otherwise, return FALSE.
 }  /* has_ifc_value */
 
 
+template<>
 an_ifc_chart_index get_ifc_value(const an_ifc_heap_chart &universal)
 /*
 Given the universal representation of HeapChart, return the universal
@@ -23180,6 +23687,7 @@ otherwise, return FALSE.
 }  /* has_ifc_value */
 
 
+template<>
 an_ifc_decl_index get_ifc_value(const an_ifc_heap_decl &universal)
 /*
 Given the universal representation of HeapDecl, return the universal
@@ -23238,6 +23746,7 @@ otherwise, return FALSE.
 }  /* has_ifc_value */
 
 
+template<>
 an_ifc_expr_index get_ifc_value(const an_ifc_heap_expr &universal)
 /*
 Given the universal representation of HeapExpr, return the universal
@@ -23283,6 +23792,7 @@ otherwise, return FALSE.
 }  /* has_ifc_value */
 
 
+template<>
 an_ifc_form_index get_ifc_value(const an_ifc_heap_form &universal)
 /*
 Given the universal representation of HeapForm, return the universal
@@ -23328,6 +23838,7 @@ otherwise, return FALSE.
 }  /* has_ifc_value */
 
 
+template<>
 an_ifc_form_index get_ifc_value(const an_ifc_heap_pp_form &universal)
 /*
 Given the universal representation of HeapPPForm, return the universal
@@ -23373,6 +23884,7 @@ otherwise, return FALSE.
 }  /* has_ifc_value */
 
 
+template<>
 an_ifc_stmt_index get_ifc_value(const an_ifc_heap_stmt &universal)
 /*
 Given the universal representation of HeapStmt, return the universal
@@ -23418,6 +23930,7 @@ otherwise, return FALSE.
 }  /* has_ifc_value */
 
 
+template<>
 an_ifc_syntax_index get_ifc_value(const an_ifc_heap_syntax &universal)
 /*
 Given the universal representation of HeapSyntax, return the universal
@@ -23463,6 +23976,7 @@ otherwise, return FALSE.
 }  /* has_ifc_value */
 
 
+template<>
 an_ifc_type_index get_ifc_value(const an_ifc_heap_type &universal)
 /*
 Given the universal representation of HeapType, return the universal
@@ -23508,6 +24022,7 @@ Return TRUE if the given universal representation has the field
 }  /* has_ifc_arity_variadic */
 
 
+template<>
 an_ifc_variadic_arity get_ifc_arity_variadic(
                                    const an_ifc_macro_function_like &universal)
 /*
@@ -23554,6 +24069,7 @@ otherwise, return FALSE.
 }  /* has_ifc_body */
 
 
+template<>
 an_ifc_form_index get_ifc_body(const an_ifc_macro_function_like &universal)
 /*
 Given the universal representation of MacroFunctionLike, return the universal
@@ -23594,6 +24110,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(
                                    const an_ifc_macro_function_like &universal)
 /*
@@ -23639,6 +24156,7 @@ otherwise, return FALSE.
 }  /* has_ifc_name */
 
 
+template<>
 an_ifc_text_offset get_ifc_name(const an_ifc_macro_function_like &universal)
 /*
 Given the universal representation of MacroFunctionLike, return the universal
@@ -23679,6 +24197,7 @@ otherwise, return FALSE.
 }  /* has_ifc_parameters */
 
 
+template<>
 an_ifc_form_index get_ifc_parameters(
                                    const an_ifc_macro_function_like &universal)
 /*
@@ -23725,6 +24244,7 @@ otherwise, return FALSE.
 }  /* has_ifc_body */
 
 
+template<>
 an_ifc_form_index get_ifc_body(const an_ifc_macro_object_like &universal)
 /*
 Given the universal representation of MacroObjectLike, return the universal
@@ -23765,6 +24285,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_macro_object_like &universal)
 /*
 Given the universal representation of MacroObjectLike, return the universal
@@ -23809,6 +24330,7 @@ otherwise, return FALSE.
 }  /* has_ifc_name */
 
 
+template<>
 an_ifc_text_offset get_ifc_name(const an_ifc_macro_object_like &universal)
 /*
 Given the universal representation of MacroObjectLike, return the universal
@@ -23854,6 +24376,7 @@ otherwise, return FALSE.
 }  /* has_ifc_reference */
 
 
+template<>
 an_ifc_module_reference get_ifc_reference(
                                const an_ifc_module_export_reference &universal)
 /*
@@ -23904,6 +24427,7 @@ otherwise, return FALSE.
 }  /* has_ifc_reference */
 
 
+template<>
 an_ifc_module_reference get_ifc_reference(
                                const an_ifc_module_import_reference &universal)
 /*
@@ -23954,6 +24478,7 @@ otherwise, return FALSE.
 }  /* has_ifc_encoded */
 
 
+template<>
 an_ifc_text_offset get_ifc_encoded(const an_ifc_name_conversion &universal)
 /*
 Given the universal representation of NameConversion, return the universal
@@ -23994,6 +24519,7 @@ otherwise, return FALSE.
 }  /* has_ifc_target */
 
 
+template<>
 an_ifc_type_index get_ifc_target(const an_ifc_name_conversion &universal)
 /*
 Given the universal representation of NameConversion, return the universal
@@ -24039,6 +24565,7 @@ Return TRUE if the given universal representation has the field
 }  /* has_ifc_primary_template */
 
 
+template<>
 an_ifc_decl_index get_ifc_primary_template(const an_ifc_name_guide &universal)
 /*
 Given the universal representation of NameGuide, return the universal
@@ -24097,6 +24624,7 @@ otherwise, return FALSE.
 }  /* has_ifc_encoded */
 
 
+template<>
 an_ifc_text_offset get_ifc_encoded(const an_ifc_name_literal &universal)
 /*
 Given the universal representation of NameLiteral, return the universal
@@ -24142,6 +24670,7 @@ otherwise, return FALSE.
 }  /* has_ifc_encoded */
 
 
+template<>
 an_ifc_text_offset get_ifc_encoded(const an_ifc_name_operator &universal)
 /*
 Given the universal representation of NameOperator, return the universal
@@ -24182,6 +24711,7 @@ otherwise, return FALSE.
 }  /* has_ifc_operator */
 
 
+template<>
 an_ifc_operator_category get_ifc_operator(
                                          const an_ifc_name_operator &universal)
 /*
@@ -24228,6 +24758,7 @@ otherwise, return FALSE.
 }  /* has_ifc_guard */
 
 
+template<>
 an_ifc_text_offset get_ifc_guard(const an_ifc_name_source_file &universal)
 /*
 Given the universal representation of NameSourceFile, return the universal
@@ -24268,6 +24799,7 @@ otherwise, return FALSE.
 }  /* has_ifc_path */
 
 
+template<>
 an_ifc_text_offset get_ifc_path(const an_ifc_name_source_file &universal)
 /*
 Given the universal representation of NameSourceFile, return the universal
@@ -24313,6 +24845,7 @@ otherwise, return FALSE.
 }  /* has_ifc_arguments */
 
 
+template<>
 an_ifc_expr_index get_ifc_arguments(
                                    const an_ifc_name_specialization &universal)
 /*
@@ -24354,6 +24887,7 @@ otherwise, return FALSE.
 }  /* has_ifc_primary */
 
 
+template<>
 an_ifc_name_index get_ifc_primary(const an_ifc_name_specialization &universal)
 /*
 Given the universal representation of NameSpecialization, return the universal
@@ -24399,6 +24933,7 @@ otherwise, return FALSE.
 }  /* has_ifc_name */
 
 
+template<>
 an_ifc_name_index get_ifc_name(const an_ifc_name_template &universal)
 /*
 Given the universal representation of NameTemplate, return the universal
@@ -24444,6 +24979,7 @@ otherwise, return FALSE.
 }  /* has_ifc_cardinality */
 
 
+template<>
 an_ifc_cardinality get_ifc_cardinality(
                                       const an_ifc_scope_descriptor &universal)
 /*
@@ -24485,6 +25021,7 @@ otherwise, return FALSE.
 }  /* has_ifc_start */
 
 
+template<>
 an_ifc_index get_ifc_start(const an_ifc_scope_descriptor &universal)
 /*
 Given the universal representation of ScopeDescriptor, return the universal
@@ -24530,6 +25067,7 @@ otherwise, return FALSE.
 }  /* has_ifc_index */
 
 
+template<>
 an_ifc_decl_index get_ifc_index(const an_ifc_scope_member &universal)
 /*
 Given the universal representation of ScopeMember, return the universal
@@ -24588,6 +25126,7 @@ otherwise, return FALSE.
 }  /* has_ifc_file */
 
 
+template<>
 an_ifc_name_index get_ifc_file(const an_ifc_source_line &universal)
 /*
 Given the universal representation of SourceLine, return the universal
@@ -24628,6 +25167,7 @@ otherwise, return FALSE.
 }  /* has_ifc_line */
 
 
+template<>
 an_ifc_line_number get_ifc_line(const an_ifc_source_line &universal)
 /*
 Given the universal representation of SourceLine, return the universal
@@ -24673,6 +25213,7 @@ otherwise, return FALSE.
 }  /* has_ifc_cardinality */
 
 
+template<>
 an_ifc_cardinality get_ifc_cardinality(const an_ifc_source_sentence &universal)
 /*
 Given the universal representation of SourceSentence, return the universal
@@ -24713,6 +25254,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_source_sentence &universal)
 /*
 Given the universal representation of SourceSentence, return the universal
@@ -24757,6 +25299,7 @@ otherwise, return FALSE.
 }  /* has_ifc_start */
 
 
+template<>
 an_ifc_index get_ifc_start(const an_ifc_source_sentence &universal)
 /*
 Given the universal representation of SourceSentence, return the universal
@@ -24802,6 +25345,7 @@ otherwise, return FALSE.
 }  /* has_ifc_category */
 
 
+template<>
 an_ifc_word_category get_ifc_category(const an_ifc_source_word &universal)
 /*
 Given the universal representation of SourceWord, return the universal
@@ -24865,6 +25409,7 @@ otherwise, return FALSE.
 }  /* has_ifc_index */
 
 
+template<>
 an_ifc_index get_ifc_index(const an_ifc_source_word &universal)
 /*
 Given the universal representation of SourceWord, return the universal
@@ -24905,6 +25450,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_source_word &universal)
 /*
 Given the universal representation of SourceWord, return the universal
@@ -24949,6 +25495,7 @@ otherwise, return FALSE.
 }  /* has_ifc_sort */
 
 
+template<>
 an_ifc_word_sort get_ifc_sort(const an_ifc_source_word &universal)
 /*
 Given the universal representation of SourceWord, return the universal
@@ -24989,6 +25536,7 @@ otherwise, return FALSE.
 }  /* has_ifc_value */
 
 
+template<>
 an_ifc_u16 get_ifc_value(const an_ifc_source_word &universal)
 /*
 Given the universal representation of SourceWord, return the universal
@@ -25033,6 +25581,7 @@ otherwise, return FALSE.
 }  /* has_ifc_cardinality */
 
 
+template<>
 an_ifc_cardinality get_ifc_cardinality(const an_ifc_stmt_block &universal)
 /*
 Given the universal representation of StmtBlock, return the universal
@@ -25073,6 +25622,7 @@ otherwise, return FALSE.
 }  /* has_ifc_start */
 
 
+template<>
 an_ifc_index get_ifc_start(const an_ifc_stmt_block &universal)
 /*
 Given the universal representation of StmtBlock, return the universal
@@ -25118,6 +25668,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_stmt_break &universal)
 /*
 Given the universal representation of StmtBreak, return the universal
@@ -25167,6 +25718,7 @@ otherwise, return FALSE.
 }  /* has_ifc_expr */
 
 
+template<>
 an_ifc_expr_index get_ifc_expr(const an_ifc_stmt_case &universal)
 /*
 Given the universal representation of StmtCase, return the universal
@@ -25207,6 +25759,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_stmt_case &universal)
 /*
 Given the universal representation of StmtCase, return the universal
@@ -25256,6 +25809,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_stmt_continue &universal)
 /*
 Given the universal representation of StmtContinue, return the universal
@@ -25305,6 +25859,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_stmt_default &universal)
 /*
 Given the universal representation of StmtDefault, return the universal
@@ -25354,6 +25909,7 @@ otherwise, return FALSE.
 }  /* has_ifc_body */
 
 
+template<>
 an_ifc_stmt_index get_ifc_body(const an_ifc_stmt_do_while &universal)
 /*
 Given the universal representation of StmtDoWhile, return the universal
@@ -25394,6 +25950,7 @@ otherwise, return FALSE.
 }  /* has_ifc_condition */
 
 
+template<>
 an_ifc_stmt_index get_ifc_condition(const an_ifc_stmt_do_while &universal)
 /*
 Given the universal representation of StmtDoWhile, return the universal
@@ -25434,6 +25991,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_stmt_do_while &universal)
 /*
 Given the universal representation of StmtDoWhile, return the universal
@@ -25483,6 +26041,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_stmt_empty &universal)
 /*
 Given the universal representation of StmtEmpty, return the universal
@@ -25532,6 +26091,7 @@ otherwise, return FALSE.
 }  /* has_ifc_operand */
 
 
+template<>
 an_ifc_stmt_index get_ifc_operand(const an_ifc_stmt_expansion &universal)
 /*
 Given the universal representation of StmtExpansion, return the universal
@@ -25577,6 +26137,7 @@ otherwise, return FALSE.
 }  /* has_ifc_expr */
 
 
+template<>
 an_ifc_expr_index get_ifc_expr(const an_ifc_stmt_expression &universal)
 /*
 Given the universal representation of StmtExpression, return the universal
@@ -25617,6 +26178,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_stmt_expression &universal)
 /*
 Given the universal representation of StmtExpression, return the universal
@@ -25666,6 +26228,7 @@ otherwise, return FALSE.
 }  /* has_ifc_body */
 
 
+template<>
 an_ifc_stmt_index get_ifc_body(const an_ifc_stmt_for &universal)
 /*
 Given the universal representation of StmtFor, return the universal
@@ -25706,6 +26269,7 @@ otherwise, return FALSE.
 }  /* has_ifc_condition */
 
 
+template<>
 an_ifc_stmt_index get_ifc_condition(const an_ifc_stmt_for &universal)
 /*
 Given the universal representation of StmtFor, return the universal
@@ -25746,6 +26310,7 @@ otherwise, return FALSE.
 }  /* has_ifc_continuation */
 
 
+template<>
 an_ifc_stmt_index get_ifc_continuation(const an_ifc_stmt_for &universal)
 /*
 Given the universal representation of StmtFor, return the universal
@@ -25786,6 +26351,7 @@ Return TRUE if the given universal representation has the field
 }  /* has_ifc_initialization */
 
 
+template<>
 an_ifc_stmt_index get_ifc_initialization(const an_ifc_stmt_for &universal)
 /*
 Given the universal representation of StmtFor, return the universal
@@ -25826,6 +26392,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_stmt_for &universal)
 /*
 Given the universal representation of StmtFor, return the universal
@@ -25876,6 +26443,7 @@ otherwise, return FALSE.
 }  /* has_ifc_alternative */
 
 
+template<>
 an_ifc_stmt_index get_ifc_alternative(const an_ifc_stmt_if &universal)
 /*
 Given the universal representation of StmtIf, return the universal
@@ -25916,6 +26484,7 @@ otherwise, return FALSE.
 }  /* has_ifc_condition */
 
 
+template<>
 an_ifc_stmt_index get_ifc_condition(const an_ifc_stmt_if &universal)
 /*
 Given the universal representation of StmtIf, return the universal
@@ -25956,6 +26525,7 @@ otherwise, return FALSE.
 }  /* has_ifc_consequence */
 
 
+template<>
 an_ifc_stmt_index get_ifc_consequence(const an_ifc_stmt_if &universal)
 /*
 Given the universal representation of StmtIf, return the universal
@@ -25996,6 +26566,7 @@ Return TRUE if the given universal representation has the field
 }  /* has_ifc_initialization */
 
 
+template<>
 an_ifc_stmt_index get_ifc_initialization(const an_ifc_stmt_if &universal)
 /*
 Given the universal representation of StmtIf, return the universal
@@ -26036,6 +26607,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_stmt_if &universal)
 /*
 Given the universal representation of StmtIf, return the universal
@@ -26085,6 +26657,7 @@ otherwise, return FALSE.
 }  /* has_ifc_expr */
 
 
+template<>
 an_ifc_expr_index get_ifc_expr(const an_ifc_stmt_return &universal)
 /*
 Given the universal representation of StmtReturn, return the universal
@@ -26125,6 +26698,7 @@ Return TRUE if the given universal representation has the field
 }  /* has_ifc_expression_type */
 
 
+template<>
 an_ifc_type_index get_ifc_expression_type(const an_ifc_stmt_return &universal)
 /*
 Given the universal representation of StmtReturn, return the universal
@@ -26165,6 +26739,7 @@ Return TRUE if the given universal representation has the field
 }  /* has_ifc_function_type */
 
 
+template<>
 an_ifc_type_index get_ifc_function_type(const an_ifc_stmt_return &universal)
 /*
 Given the universal representation of StmtReturn, return the universal
@@ -26205,6 +26780,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_stmt_return &universal)
 /*
 Given the universal representation of StmtReturn, return the universal
@@ -26255,6 +26831,7 @@ otherwise, return FALSE.
 }  /* has_ifc_body */
 
 
+template<>
 an_ifc_stmt_index get_ifc_body(const an_ifc_stmt_switch &universal)
 /*
 Given the universal representation of StmtSwitch, return the universal
@@ -26295,6 +26872,7 @@ otherwise, return FALSE.
 }  /* has_ifc_condition */
 
 
+template<>
 an_ifc_expr_index get_ifc_condition(const an_ifc_stmt_switch &universal)
 /*
 Given the universal representation of StmtSwitch, return the universal
@@ -26335,6 +26913,7 @@ Return TRUE if the given universal representation has the field
 }  /* has_ifc_initialization */
 
 
+template<>
 an_ifc_stmt_index get_ifc_initialization(const an_ifc_stmt_switch &universal)
 /*
 Given the universal representation of StmtSwitch, return the universal
@@ -26375,6 +26954,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_stmt_switch &universal)
 /*
 Given the universal representation of StmtSwitch, return the universal
@@ -26425,6 +27005,7 @@ otherwise, return FALSE.
 }  /* has_ifc_decl */
 
 
+template<>
 an_ifc_decl_index get_ifc_decl(const an_ifc_stmt_variable_decl &universal)
 /*
 Given the universal representation of StmtVariableDecl, return the universal
@@ -26478,6 +27059,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(
                                     const an_ifc_stmt_variable_decl &universal)
 /*
@@ -26528,6 +27110,7 @@ otherwise, return FALSE.
 }  /* has_ifc_body */
 
 
+template<>
 an_ifc_stmt_index get_ifc_body(const an_ifc_stmt_while &universal)
 /*
 Given the universal representation of StmtWhile, return the universal
@@ -26568,6 +27151,7 @@ otherwise, return FALSE.
 }  /* has_ifc_condition */
 
 
+template<>
 an_ifc_stmt_index get_ifc_condition(const an_ifc_stmt_while &universal)
 /*
 Given the universal representation of StmtWhile, return the universal
@@ -26608,6 +27192,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_stmt_while &universal)
 /*
 Given the universal representation of StmtWhile, return the universal
@@ -26657,6 +27242,7 @@ otherwise, return FALSE.
 }  /* has_ifc_access */
 
 
+template<>
 an_ifc_keyword_syntax get_ifc_access(
                                const an_ifc_syntax_access_specifier &universal)
 /*
@@ -26703,6 +27289,7 @@ otherwise, return FALSE.
 }  /* has_ifc_comma */
 
 
+template<>
 an_ifc_source_location get_ifc_comma(
                                const an_ifc_syntax_access_specifier &universal)
 /*
@@ -26749,6 +27336,7 @@ otherwise, return FALSE.
 }  /* has_ifc_designator */
 
 
+template<>
 an_ifc_expr_index get_ifc_designator(
                                const an_ifc_syntax_access_specifier &universal)
 /*
@@ -26790,6 +27378,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(
                                const an_ifc_syntax_access_specifier &universal)
 /*
@@ -26836,6 +27425,7 @@ otherwise, return FALSE.
 }  /* has_ifc_virtual_kw */
 
 
+template<>
 an_ifc_source_location get_ifc_virtual_kw(
                                const an_ifc_syntax_access_specifier &universal)
 /*
@@ -26882,6 +27472,7 @@ otherwise, return FALSE.
 }  /* has_ifc_virtual_kw2 */
 
 
+template<>
 an_ifc_source_location get_ifc_virtual_kw2(
                                const an_ifc_syntax_access_specifier &universal)
 /*
@@ -26933,6 +27524,7 @@ otherwise, return FALSE.
 }  /* has_ifc_aliasee */
 
 
+template<>
 an_ifc_syntax_index get_ifc_aliasee(
                               const an_ifc_syntax_alias_declaration &universal)
 /*
@@ -26974,6 +27566,7 @@ otherwise, return FALSE.
 }  /* has_ifc_equal */
 
 
+template<>
 an_ifc_source_location get_ifc_equal(
                               const an_ifc_syntax_alias_declaration &universal)
 /*
@@ -27020,6 +27613,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(
                               const an_ifc_syntax_alias_declaration &universal)
 /*
@@ -27065,6 +27659,7 @@ otherwise, return FALSE.
 }  /* has_ifc_name */
 
 
+template<>
 an_ifc_expr_index get_ifc_name(
                               const an_ifc_syntax_alias_declaration &universal)
 /*
@@ -27106,6 +27701,7 @@ otherwise, return FALSE.
 }  /* has_ifc_semicolon */
 
 
+template<>
 an_ifc_source_location get_ifc_semicolon(
                               const an_ifc_syntax_alias_declaration &universal)
 /*
@@ -27157,6 +27753,7 @@ otherwise, return FALSE.
 }  /* has_ifc_left_paren */
 
 
+template<>
 an_ifc_source_location get_ifc_left_paren(
                                         const an_ifc_syntax_alignas &universal)
 /*
@@ -27203,6 +27800,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_syntax_alignas &universal)
 /*
 Given the universal representation of SyntaxAlignas, return the universal
@@ -27247,6 +27845,7 @@ otherwise, return FALSE.
 }  /* has_ifc_operand */
 
 
+template<>
 an_ifc_syntax_index get_ifc_operand(const an_ifc_syntax_alignas &universal)
 /*
 Given the universal representation of SyntaxAlignas, return the universal
@@ -27287,6 +27886,7 @@ otherwise, return FALSE.
 }  /* has_ifc_right_paren */
 
 
+template<>
 an_ifc_source_location get_ifc_right_paren(
                                         const an_ifc_syntax_alignas &universal)
 /*
@@ -27338,6 +27938,7 @@ otherwise, return FALSE.
 }  /* has_ifc_bound */
 
 
+template<>
 an_ifc_expr_index get_ifc_bound(
                                const an_ifc_syntax_array_declarator &universal)
 /*
@@ -27379,6 +27980,7 @@ otherwise, return FALSE.
 }  /* has_ifc_left_bracket */
 
 
+template<>
 an_ifc_source_location get_ifc_left_bracket(
                                const an_ifc_syntax_array_declarator &universal)
 /*
@@ -27425,6 +28027,7 @@ Return TRUE if the given universal representation has the field
 }  /* has_ifc_right_bracket */
 
 
+template<>
 an_ifc_source_location get_ifc_right_bracket(
                                const an_ifc_syntax_array_declarator &universal)
 /*
@@ -27476,6 +28079,7 @@ otherwise, return FALSE.
 }  /* has_ifc_array */
 
 
+template<>
 an_ifc_expr_index get_ifc_array(const an_ifc_syntax_array_index &universal)
 /*
 Given the universal representation of SyntaxArrayIndex, return the universal
@@ -27516,6 +28120,7 @@ otherwise, return FALSE.
 }  /* has_ifc_index */
 
 
+template<>
 an_ifc_expr_index get_ifc_index(const an_ifc_syntax_array_index &universal)
 /*
 Given the universal representation of SyntaxArrayIndex, return the universal
@@ -27556,6 +28161,7 @@ otherwise, return FALSE.
 }  /* has_ifc_left_bracket */
 
 
+template<>
 an_ifc_source_location get_ifc_left_bracket(
                                     const an_ifc_syntax_array_index &universal)
 /*
@@ -27601,6 +28207,7 @@ Return TRUE if the given universal representation has the field
 }  /* has_ifc_right_bracket */
 
 
+template<>
 an_ifc_source_location get_ifc_right_bracket(
                                     const an_ifc_syntax_array_index &universal)
 /*
@@ -27653,6 +28260,7 @@ otherwise, return FALSE.
 }  /* has_ifc_declarator */
 
 
+template<>
 an_ifc_syntax_index get_ifc_declarator(
                    const an_ifc_syntax_array_or_function_declarator &universal)
 /*
@@ -27695,6 +28303,7 @@ otherwise, return FALSE.
 }  /* has_ifc_next */
 
 
+template<>
 an_ifc_syntax_index get_ifc_next(
                    const an_ifc_syntax_array_or_function_declarator &universal)
 /*
@@ -27741,6 +28350,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(
                                   const an_ifc_syntax_asm_statement &universal)
 /*
@@ -27786,6 +28396,7 @@ otherwise, return FALSE.
 }  /* has_ifc_tokens */
 
 
+template<>
 an_ifc_sentence_index get_ifc_tokens(
                                   const an_ifc_syntax_asm_statement &universal)
 /*
@@ -27832,6 +28443,7 @@ Return TRUE if the given universal representation has the field
 }  /* has_ifc_argument_clause */
 
 
+template<>
 an_ifc_syntax_index get_ifc_argument_clause(
                                       const an_ifc_syntax_attribute &universal)
 /*
@@ -27873,6 +28485,7 @@ otherwise, return FALSE.
 }  /* has_ifc_colons */
 
 
+template<>
 an_ifc_source_location get_ifc_colons(const an_ifc_syntax_attribute &universal)
 /*
 Given the universal representation of SyntaxAttribute, return the universal
@@ -27918,6 +28531,7 @@ otherwise, return FALSE.
 }  /* has_ifc_comma */
 
 
+template<>
 an_ifc_source_location get_ifc_comma(const an_ifc_syntax_attribute &universal)
 /*
 Given the universal representation of SyntaxAttribute, return the universal
@@ -27963,6 +28577,7 @@ otherwise, return FALSE.
 }  /* has_ifc_expander */
 
 
+template<>
 an_ifc_source_location get_ifc_expander(
                                       const an_ifc_syntax_attribute &universal)
 /*
@@ -28009,6 +28624,7 @@ otherwise, return FALSE.
 }  /* has_ifc_name */
 
 
+template<>
 an_ifc_expr_index get_ifc_name(const an_ifc_syntax_attribute &universal)
 /*
 Given the universal representation of SyntaxAttribute, return the universal
@@ -28049,6 +28665,7 @@ otherwise, return FALSE.
 }  /* has_ifc_scope */
 
 
+template<>
 an_ifc_expr_index get_ifc_scope(const an_ifc_syntax_attribute &universal)
 /*
 Given the universal representation of SyntaxAttribute, return the universal
@@ -28095,6 +28712,7 @@ otherwise, return FALSE.
 }  /* has_ifc_left_paren */
 
 
+template<>
 an_ifc_source_location get_ifc_left_paren(
                       const an_ifc_syntax_attribute_argument_clause &universal)
 /*
@@ -28141,6 +28759,7 @@ otherwise, return FALSE.
 }  /* has_ifc_right_paren */
 
 
+template<>
 an_ifc_source_location get_ifc_right_paren(
                       const an_ifc_syntax_attribute_argument_clause &universal)
 /*
@@ -28188,6 +28807,7 @@ otherwise, return FALSE.
 }  /* has_ifc_tokens */
 
 
+template<>
 an_ifc_sentence_index get_ifc_tokens(
                       const an_ifc_syntax_attribute_argument_clause &universal)
 /*
@@ -28235,6 +28855,7 @@ otherwise, return FALSE.
 }  /* has_ifc_attributes */
 
 
+template<>
 an_ifc_syntax_index get_ifc_attributes(
                             const an_ifc_syntax_attribute_specifier &universal)
 /*
@@ -28277,6 +28898,7 @@ otherwise, return FALSE.
 }  /* has_ifc_left_paren_1 */
 
 
+template<>
 an_ifc_source_location get_ifc_left_paren_1(
                             const an_ifc_syntax_attribute_specifier &universal)
 /*
@@ -28323,6 +28945,7 @@ otherwise, return FALSE.
 }  /* has_ifc_left_paren_2 */
 
 
+template<>
 an_ifc_source_location get_ifc_left_paren_2(
                             const an_ifc_syntax_attribute_specifier &universal)
 /*
@@ -28369,6 +28992,7 @@ otherwise, return FALSE.
 }  /* has_ifc_prefix */
 
 
+template<>
 an_ifc_syntax_index get_ifc_prefix(
                             const an_ifc_syntax_attribute_specifier &universal)
 /*
@@ -28411,6 +29035,7 @@ Return TRUE if the given universal representation has the field
 }  /* has_ifc_right_paren_1 */
 
 
+template<>
 an_ifc_source_location get_ifc_right_paren_1(
                             const an_ifc_syntax_attribute_specifier &universal)
 /*
@@ -28458,6 +29083,7 @@ Return TRUE if the given universal representation has the field
 }  /* has_ifc_right_paren_2 */
 
 
+template<>
 an_ifc_source_location get_ifc_right_paren_2(
                             const an_ifc_syntax_attribute_specifier &universal)
 /*
@@ -28510,6 +29136,7 @@ otherwise, return FALSE.
 }  /* has_ifc_attributes */
 
 
+template<>
 an_ifc_syntax_index get_ifc_attributes(
                         const an_ifc_syntax_attribute_specifier_seq &universal)
 /*
@@ -28556,6 +29183,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(
                          const an_ifc_syntax_attribute_using_prefix &universal)
 /*
@@ -28601,6 +29229,7 @@ otherwise, return FALSE.
 }  /* has_ifc_scope */
 
 
+template<>
 an_ifc_source_location get_ifc_scope(
                          const an_ifc_syntax_attribute_using_prefix &universal)
 /*
@@ -28652,6 +29281,7 @@ otherwise, return FALSE.
 }  /* has_ifc_attributes */
 
 
+template<>
 an_ifc_syntax_index get_ifc_attributes(
                          const an_ifc_syntax_attributed_declaration &universal)
 /*
@@ -28693,6 +29323,7 @@ otherwise, return FALSE.
 }  /* has_ifc_decl */
 
 
+template<>
 an_ifc_syntax_index get_ifc_decl(
                          const an_ifc_syntax_attributed_declaration &universal)
 /*
@@ -28734,6 +29365,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(
                          const an_ifc_syntax_attributed_declaration &universal)
 /*
@@ -28785,6 +29417,7 @@ otherwise, return FALSE.
 }  /* has_ifc_attributes */
 
 
+template<>
 an_ifc_syntax_index get_ifc_attributes(
                            const an_ifc_syntax_attributed_statement &universal)
 /*
@@ -28826,6 +29459,7 @@ otherwise, return FALSE.
 }  /* has_ifc_pragma */
 
 
+template<>
 an_ifc_sentence_index get_ifc_pragma(
                            const an_ifc_syntax_attributed_statement &universal)
 /*
@@ -28867,6 +29501,7 @@ otherwise, return FALSE.
 }  /* has_ifc_stmt */
 
 
+template<>
 an_ifc_syntax_index get_ifc_stmt(
                            const an_ifc_syntax_attributed_statement &universal)
 /*
@@ -28913,6 +29548,7 @@ otherwise, return FALSE.
 }  /* has_ifc_access */
 
 
+template<>
 an_ifc_keyword_syntax get_ifc_access(
                                  const an_ifc_syntax_base_specifier &universal)
 /*
@@ -28959,6 +29595,7 @@ otherwise, return FALSE.
 }  /* has_ifc_colon */
 
 
+template<>
 an_ifc_source_location get_ifc_colon(
                                  const an_ifc_syntax_base_specifier &universal)
 /*
@@ -29011,6 +29648,7 @@ Return TRUE if the given universal representation has the field
 }  /* has_ifc_base_specifiers */
 
 
+template<>
 an_ifc_syntax_index get_ifc_base_specifiers(
                             const an_ifc_syntax_base_specifier_list &universal)
 /*
@@ -29052,6 +29690,7 @@ otherwise, return FALSE.
 }  /* has_ifc_colon */
 
 
+template<>
 an_ifc_source_location get_ifc_colon(
                             const an_ifc_syntax_base_specifier_list &universal)
 /*
@@ -29103,6 +29742,7 @@ otherwise, return FALSE.
 }  /* has_ifc_direction */
 
 
+template<>
 an_ifc_fold_direction_sort get_ifc_direction(
                          const an_ifc_syntax_binary_fold_expression &universal)
 /*
@@ -29144,6 +29784,7 @@ otherwise, return FALSE.
 }  /* has_ifc_dyad */
 
 
+template<>
 an_ifc_dyadic_operator_sort get_ifc_dyad(
                          const an_ifc_syntax_binary_fold_expression &universal)
 /*
@@ -29186,6 +29827,7 @@ otherwise, return FALSE.
 }  /* has_ifc_ellipsis */
 
 
+template<>
 an_ifc_source_location get_ifc_ellipsis(
                          const an_ifc_syntax_binary_fold_expression &universal)
 /*
@@ -29233,6 +29875,7 @@ otherwise, return FALSE.
 }  /* has_ifc_glyph_loci_1 */
 
 
+template<>
 an_ifc_source_location get_ifc_glyph_loci_1(
                          const an_ifc_syntax_binary_fold_expression &universal)
 /*
@@ -29280,6 +29923,7 @@ otherwise, return FALSE.
 }  /* has_ifc_glyph_loci_2 */
 
 
+template<>
 an_ifc_source_location get_ifc_glyph_loci_2(
                          const an_ifc_syntax_binary_fold_expression &universal)
 /*
@@ -29326,6 +29970,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(
                          const an_ifc_syntax_binary_fold_expression &universal)
 /*
@@ -29373,6 +30018,7 @@ otherwise, return FALSE.
 }  /* has_ifc_operand_1 */
 
 
+template<>
 an_ifc_expr_index get_ifc_operand_1(
                          const an_ifc_syntax_binary_fold_expression &universal)
 /*
@@ -29415,6 +30061,7 @@ otherwise, return FALSE.
 }  /* has_ifc_operand_2 */
 
 
+template<>
 an_ifc_expr_index get_ifc_operand_2(
                          const an_ifc_syntax_binary_fold_expression &universal)
 /*
@@ -29457,6 +30104,7 @@ otherwise, return FALSE.
 }  /* has_ifc_right_paren */
 
 
+template<>
 an_ifc_source_location get_ifc_right_paren(
                          const an_ifc_syntax_binary_fold_expression &universal)
 /*
@@ -29508,6 +30156,7 @@ otherwise, return FALSE.
 }  /* has_ifc_break */
 
 
+template<>
 an_ifc_source_location get_ifc_break(
                                 const an_ifc_syntax_break_statement &universal)
 /*
@@ -29553,6 +30202,7 @@ otherwise, return FALSE.
 }  /* has_ifc_semicolon */
 
 
+template<>
 an_ifc_source_location get_ifc_semicolon(
                                 const an_ifc_syntax_break_statement &universal)
 /*
@@ -29603,6 +30253,7 @@ otherwise, return FALSE.
 }  /* has_ifc_by_ref */
 
 
+template<>
 an_ifc_bool get_ifc_by_ref(const an_ifc_syntax_capture_default &universal)
 /*
 Given the universal representation of SyntaxCaptureDefault, return the
@@ -29643,6 +30294,7 @@ otherwise, return FALSE.
 }  /* has_ifc_comma */
 
 
+template<>
 an_ifc_source_location get_ifc_comma(
                                 const an_ifc_syntax_capture_default &universal)
 /*
@@ -29688,6 +30340,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(
                                 const an_ifc_syntax_capture_default &universal)
 /*
@@ -29738,6 +30391,7 @@ otherwise, return FALSE.
 }  /* has_ifc_bases */
 
 
+template<>
 an_ifc_syntax_index get_ifc_bases(
                                 const an_ifc_syntax_class_specifier &universal)
 /*
@@ -29779,6 +30433,7 @@ otherwise, return FALSE.
 }  /* has_ifc_class_key */
 
 
+template<>
 an_ifc_keyword_syntax get_ifc_class_key(
                                 const an_ifc_syntax_class_specifier &universal)
 /*
@@ -29825,6 +30480,7 @@ otherwise, return FALSE.
 }  /* has_ifc_left_paren */
 
 
+template<>
 an_ifc_syntax_index get_ifc_left_paren(
                                 const an_ifc_syntax_class_specifier &universal)
 /*
@@ -29866,6 +30522,7 @@ otherwise, return FALSE.
 }  /* has_ifc_members */
 
 
+template<>
 an_ifc_syntax_index get_ifc_members(
                                 const an_ifc_syntax_class_specifier &universal)
 /*
@@ -29907,6 +30564,7 @@ otherwise, return FALSE.
 }  /* has_ifc_name */
 
 
+template<>
 an_ifc_expr_index get_ifc_name(const an_ifc_syntax_class_specifier &universal)
 /*
 Given the universal representation of SyntaxClassSpecifier, return the
@@ -29947,6 +30605,7 @@ otherwise, return FALSE.
 }  /* has_ifc_right_paren */
 
 
+template<>
 an_ifc_syntax_index get_ifc_right_paren(
                                 const an_ifc_syntax_class_specifier &universal)
 /*
@@ -29994,6 +30653,7 @@ otherwise, return FALSE.
 }  /* has_ifc_condition */
 
 
+template<>
 an_ifc_expr_index get_ifc_condition(
                            const an_ifc_syntax_compound_requirement &universal)
 /*
@@ -30036,6 +30696,7 @@ otherwise, return FALSE.
 }  /* has_ifc_constraint */
 
 
+template<>
 an_ifc_expr_index get_ifc_constraint(
                            const an_ifc_syntax_compound_requirement &universal)
 /*
@@ -30077,6 +30738,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(
                            const an_ifc_syntax_compound_requirement &universal)
 /*
@@ -30123,6 +30785,7 @@ otherwise, return FALSE.
 }  /* has_ifc_noexcept_loc */
 
 
+template<>
 an_ifc_source_location get_ifc_noexcept_loc(
                            const an_ifc_syntax_compound_requirement &universal)
 /*
@@ -30170,6 +30833,7 @@ otherwise, return FALSE.
 }  /* has_ifc_right_curly */
 
 
+template<>
 an_ifc_source_location get_ifc_right_curly(
                            const an_ifc_syntax_compound_requirement &universal)
 /*
@@ -30221,6 +30885,7 @@ otherwise, return FALSE.
 }  /* has_ifc_left_curly */
 
 
+template<>
 an_ifc_source_location get_ifc_left_curly(
                              const an_ifc_syntax_compound_statement &universal)
 /*
@@ -30266,6 +30931,7 @@ otherwise, return FALSE.
 }  /* has_ifc_pragam */
 
 
+template<>
 an_ifc_sentence_index get_ifc_pragam(
                              const an_ifc_syntax_compound_statement &universal)
 /*
@@ -30308,6 +30974,7 @@ otherwise, return FALSE.
 }  /* has_ifc_right_curly */
 
 
+template<>
 an_ifc_source_location get_ifc_right_curly(
                              const an_ifc_syntax_compound_statement &universal)
 /*
@@ -30354,6 +31021,7 @@ otherwise, return FALSE.
 }  /* has_ifc_stmts */
 
 
+template<>
 an_ifc_syntax_index get_ifc_stmts(
                              const an_ifc_syntax_compound_statement &universal)
 /*
@@ -30401,6 +31069,7 @@ Return TRUE if the given universal representation has the field
 }  /* has_ifc_concept_keyword */
 
 
+template<>
 an_ifc_source_location get_ifc_concept_keyword(
                              const an_ifc_syntax_concept_definition &universal)
 /*
@@ -30447,6 +31116,7 @@ otherwise, return FALSE.
 }  /* has_ifc_equal */
 
 
+template<>
 an_ifc_source_location get_ifc_equal(
                              const an_ifc_syntax_concept_definition &universal)
 /*
@@ -30494,6 +31164,7 @@ otherwise, return FALSE.
 }  /* has_ifc_initializer */
 
 
+template<>
 an_ifc_expr_index get_ifc_initializer(
                              const an_ifc_syntax_concept_definition &universal)
 /*
@@ -30535,6 +31206,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(
                              const an_ifc_syntax_concept_definition &universal)
 /*
@@ -30580,6 +31252,7 @@ otherwise, return FALSE.
 }  /* has_ifc_name */
 
 
+template<>
 an_ifc_text_offset get_ifc_name(
                              const an_ifc_syntax_concept_definition &universal)
 /*
@@ -30621,6 +31294,7 @@ otherwise, return FALSE.
 }  /* has_ifc_parameters */
 
 
+template<>
 an_ifc_syntax_index get_ifc_parameters(
                              const an_ifc_syntax_concept_definition &universal)
 /*
@@ -30662,6 +31336,7 @@ otherwise, return FALSE.
 }  /* has_ifc_semicolon */
 
 
+template<>
 an_ifc_source_location get_ifc_semicolon(
                              const an_ifc_syntax_concept_definition &universal)
 /*
@@ -30714,6 +31389,7 @@ Return TRUE if the given universal representation has the field
 }  /* has_ifc_decl_specifier */
 
 
+template<>
 an_ifc_syntax_index get_ifc_decl_specifier(
                           const an_ifc_syntax_condition_declaration &universal)
 /*
@@ -30756,6 +31432,7 @@ Return TRUE if the given universal representation has the field
 }  /* has_ifc_initializaerion */
 
 
+template<>
 an_ifc_syntax_index get_ifc_initializaerion(
                           const an_ifc_syntax_condition_declaration &universal)
 /*
@@ -30797,6 +31474,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(
                           const an_ifc_syntax_condition_declaration &universal)
 /*
@@ -30847,6 +31525,7 @@ otherwise, return FALSE.
 }  /* has_ifc_continue */
 
 
+template<>
 an_ifc_source_location get_ifc_continue(
                              const an_ifc_syntax_continue_statement &universal)
 /*
@@ -30892,6 +31571,7 @@ otherwise, return FALSE.
 }  /* has_ifc_semicolon */
 
 
+template<>
 an_ifc_source_location get_ifc_semicolon(
                              const an_ifc_syntax_continue_statement &universal)
 /*
@@ -30942,6 +31622,7 @@ otherwise, return FALSE.
 }  /* has_ifc_colon */
 
 
+template<>
 an_ifc_source_location get_ifc_colon(
                                const an_ifc_syntax_ctor_initializer &universal)
 /*
@@ -30987,6 +31668,7 @@ otherwise, return FALSE.
 }  /* has_ifc_initializers */
 
 
+template<>
 an_ifc_syntax_index get_ifc_initializers(
                                const an_ifc_syntax_ctor_initializer &universal)
 /*
@@ -31033,6 +31715,7 @@ otherwise, return FALSE.
 }  /* has_ifc_declspec */
 
 
+template<>
 an_ifc_sentence_index get_ifc_declspec(
                              const an_ifc_syntax_decl_specifier_seq &universal)
 /*
@@ -31075,6 +31758,7 @@ otherwise, return FALSE.
 }  /* has_ifc_explicit_kw */
 
 
+template<>
 an_ifc_syntax_index get_ifc_explicit_kw(
                              const an_ifc_syntax_decl_specifier_seq &universal)
 /*
@@ -31116,6 +31800,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(
                              const an_ifc_syntax_decl_specifier_seq &universal)
 /*
@@ -31161,6 +31846,7 @@ otherwise, return FALSE.
 }  /* has_ifc_qualifiers */
 
 
+template<>
 an_ifc_qualifier_bitfield get_ifc_qualifiers(
                              const an_ifc_syntax_decl_specifier_seq &universal)
 /*
@@ -31204,6 +31890,7 @@ Return TRUE if the given universal representation has the field
 }  /* has_ifc_storage_class */
 
 
+template<>
 an_ifc_storage_class get_ifc_storage_class(
                              const an_ifc_syntax_decl_specifier_seq &universal)
 /*
@@ -31250,6 +31937,7 @@ otherwise, return FALSE.
 }  /* has_ifc_type */
 
 
+template<>
 an_ifc_type_index get_ifc_type(
                              const an_ifc_syntax_decl_specifier_seq &universal)
 /*
@@ -31291,6 +31979,7 @@ otherwise, return FALSE.
 }  /* has_ifc_type_name */
 
 
+template<>
 an_ifc_syntax_index get_ifc_type_name(
                              const an_ifc_syntax_decl_specifier_seq &universal)
 /*
@@ -31337,6 +32026,7 @@ otherwise, return FALSE.
 }  /* has_ifc_decl */
 
 
+template<>
 an_ifc_syntax_index get_ifc_decl(
                           const an_ifc_syntax_declaration_statement &universal)
 /*
@@ -31378,6 +32068,7 @@ otherwise, return FALSE.
 }  /* has_ifc_pragma */
 
 
+template<>
 an_ifc_sentence_index get_ifc_pragma(
                           const an_ifc_syntax_declaration_statement &universal)
 /*
@@ -31424,6 +32115,7 @@ Return TRUE if the given universal representation has the field
 }  /* has_ifc_array_or_function */
 
 
+template<>
 an_ifc_syntax_index get_ifc_array_or_function(
                                      const an_ifc_syntax_declarator &universal)
 /*
@@ -31466,6 +32158,7 @@ otherwise, return FALSE.
 }  /* has_ifc_callable */
 
 
+template<>
 an_ifc_bool get_ifc_callable(const an_ifc_syntax_declarator &universal)
 /*
 Given the universal representation of SyntaxDeclarator, return the universal
@@ -31506,6 +32199,7 @@ otherwise, return FALSE.
 }  /* has_ifc_convention */
 
 
+template<>
 an_ifc_calling_convention_sort get_ifc_convention(
                                      const an_ifc_syntax_declarator &universal)
 /*
@@ -31547,6 +32241,7 @@ otherwise, return FALSE.
 }  /* has_ifc_ellipsis */
 
 
+template<>
 an_ifc_source_location get_ifc_ellipsis(
                                      const an_ifc_syntax_declarator &universal)
 /*
@@ -31593,6 +32288,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_syntax_declarator &universal)
 /*
 Given the universal representation of SyntaxDeclarator, return the universal
@@ -31638,6 +32334,7 @@ otherwise, return FALSE.
 }  /* has_ifc_name */
 
 
+template<>
 an_ifc_expr_index get_ifc_name(const an_ifc_syntax_declarator &universal)
 /*
 Given the universal representation of SyntaxDeclarator, return the universal
@@ -31678,6 +32375,7 @@ Return TRUE if the given universal representation has the field
 }  /* has_ifc_parenthesized */
 
 
+template<>
 an_ifc_syntax_index get_ifc_parenthesized(
                                      const an_ifc_syntax_declarator &universal)
 /*
@@ -31719,6 +32417,7 @@ otherwise, return FALSE.
 }  /* has_ifc_pointer */
 
 
+template<>
 an_ifc_syntax_index get_ifc_pointer(const an_ifc_syntax_declarator &universal)
 /*
 Given the universal representation of SyntaxDeclarator, return the universal
@@ -31759,6 +32458,7 @@ otherwise, return FALSE.
 }  /* has_ifc_qualifiers */
 
 
+template<>
 an_ifc_qualifier_bitfield get_ifc_qualifiers(
                                      const an_ifc_syntax_declarator &universal)
 /*
@@ -31801,6 +32501,7 @@ Return TRUE if the given universal representation has the field
 }  /* has_ifc_trailing_target */
 
 
+template<>
 an_ifc_syntax_index get_ifc_trailing_target(
                                      const an_ifc_syntax_declarator &universal)
 /*
@@ -31842,6 +32543,7 @@ Return TRUE if the given universal representation has the field
 }  /* has_ifc_virtual_specifiers */
 
 
+template<>
 an_ifc_syntax_index get_ifc_virtual_specifiers(
                                      const an_ifc_syntax_declarator &universal)
 /*
@@ -31890,6 +32592,7 @@ Return TRUE if the given universal representation has the field
 }  /* has_ifc_decltype_keyword */
 
 
+template<>
 an_ifc_source_location get_ifc_decltype_keyword(
                              const an_ifc_syntax_decltype_specifier &universal)
 /*
@@ -31935,6 +32638,7 @@ otherwise, return FALSE.
 }  /* has_ifc_expr */
 
 
+template<>
 an_ifc_expr_index get_ifc_expr(
                              const an_ifc_syntax_decltype_specifier &universal)
 /*
@@ -31976,6 +32680,7 @@ otherwise, return FALSE.
 }  /* has_ifc_left_paren */
 
 
+template<>
 an_ifc_source_location get_ifc_left_paren(
                              const an_ifc_syntax_decltype_specifier &universal)
 /*
@@ -32023,6 +32728,7 @@ otherwise, return FALSE.
 }  /* has_ifc_right_paren */
 
 
+template<>
 an_ifc_source_location get_ifc_right_paren(
                              const an_ifc_syntax_decltype_specifier &universal)
 /*
@@ -32074,6 +32780,7 @@ otherwise, return FALSE.
 }  /* has_ifc_body */
 
 
+template<>
 an_ifc_syntax_index get_ifc_body(
                              const an_ifc_syntax_do_while_statement &universal)
 /*
@@ -32115,6 +32822,7 @@ otherwise, return FALSE.
 }  /* has_ifc_condition */
 
 
+template<>
 an_ifc_expr_index get_ifc_condition(
                              const an_ifc_syntax_do_while_statement &universal)
 /*
@@ -32156,6 +32864,7 @@ otherwise, return FALSE.
 }  /* has_ifc_do */
 
 
+template<>
 an_ifc_source_location get_ifc_do(
                              const an_ifc_syntax_do_while_statement &universal)
 /*
@@ -32202,6 +32911,7 @@ otherwise, return FALSE.
 }  /* has_ifc_pragma */
 
 
+template<>
 an_ifc_sentence_index get_ifc_pragma(
                              const an_ifc_syntax_do_while_statement &universal)
 /*
@@ -32243,6 +32953,7 @@ otherwise, return FALSE.
 }  /* has_ifc_semicolon */
 
 
+template<>
 an_ifc_source_location get_ifc_semicolon(
                              const an_ifc_syntax_do_while_statement &universal)
 /*
@@ -32289,6 +33000,7 @@ otherwise, return FALSE.
 }  /* has_ifc_while */
 
 
+template<>
 an_ifc_source_location get_ifc_while(
                              const an_ifc_syntax_do_while_statement &universal)
 /*
@@ -32341,6 +33053,7 @@ otherwise, return FALSE.
 }  /* has_ifc_expander */
 
 
+template<>
 an_ifc_source_location get_ifc_expander(
                          const an_ifc_syntax_dynamic_exception_spec &universal)
 /*
@@ -32388,6 +33101,7 @@ otherwise, return FALSE.
 }  /* has_ifc_left_paren */
 
 
+template<>
 an_ifc_source_location get_ifc_left_paren(
                          const an_ifc_syntax_dynamic_exception_spec &universal)
 /*
@@ -32435,6 +33149,7 @@ otherwise, return FALSE.
 }  /* has_ifc_right_paren */
 
 
+template<>
 an_ifc_source_location get_ifc_right_paren(
                          const an_ifc_syntax_dynamic_exception_spec &universal)
 /*
@@ -32481,6 +33196,7 @@ otherwise, return FALSE.
 }  /* has_ifc_throw */
 
 
+template<>
 an_ifc_source_location get_ifc_throw(
                          const an_ifc_syntax_dynamic_exception_spec &universal)
 /*
@@ -32527,6 +33243,7 @@ otherwise, return FALSE.
 }  /* has_ifc_type_list */
 
 
+template<>
 an_ifc_syntax_index get_ifc_type_list(
                          const an_ifc_syntax_dynamic_exception_spec &universal)
 /*
@@ -32573,6 +33290,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(
                                 const an_ifc_syntax_empty_statement &universal)
 /*
@@ -32623,6 +33341,7 @@ otherwise, return FALSE.
 }  /* has_ifc_base */
 
 
+template<>
 an_ifc_syntax_index get_ifc_base(const an_ifc_syntax_enum_specifier &universal)
 /*
 Given the universal representation of SyntaxEnumSpecifier, return the universal
@@ -32663,6 +33382,7 @@ otherwise, return FALSE.
 }  /* has_ifc_class_key */
 
 
+template<>
 an_ifc_keyword_syntax get_ifc_class_key(
                                  const an_ifc_syntax_enum_specifier &universal)
 /*
@@ -32709,6 +33429,7 @@ otherwise, return FALSE.
 }  /* has_ifc_colon */
 
 
+template<>
 an_ifc_source_location get_ifc_colon(
                                  const an_ifc_syntax_enum_specifier &universal)
 /*
@@ -32755,6 +33476,7 @@ otherwise, return FALSE.
 }  /* has_ifc_enumerators */
 
 
+template<>
 an_ifc_syntax_index get_ifc_enumerators(
                                  const an_ifc_syntax_enum_specifier &universal)
 /*
@@ -32796,6 +33518,7 @@ otherwise, return FALSE.
 }  /* has_ifc_left_brace */
 
 
+template<>
 an_ifc_source_location get_ifc_left_brace(
                                  const an_ifc_syntax_enum_specifier &universal)
 /*
@@ -32842,6 +33565,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(
                                  const an_ifc_syntax_enum_specifier &universal)
 /*
@@ -32888,6 +33612,7 @@ otherwise, return FALSE.
 }  /* has_ifc_name */
 
 
+template<>
 an_ifc_expr_index get_ifc_name(const an_ifc_syntax_enum_specifier &universal)
 /*
 Given the universal representation of SyntaxEnumSpecifier, return the universal
@@ -32928,6 +33653,7 @@ otherwise, return FALSE.
 }  /* has_ifc_right_brace */
 
 
+template<>
 an_ifc_source_location get_ifc_right_brace(
                                  const an_ifc_syntax_enum_specifier &universal)
 /*
@@ -32979,6 +33705,7 @@ otherwise, return FALSE.
 }  /* has_ifc_comma */
 
 
+template<>
 an_ifc_source_location get_ifc_comma(
                           const an_ifc_syntax_enumerator_definition &universal)
 /*
@@ -33025,6 +33752,7 @@ otherwise, return FALSE.
 }  /* has_ifc_equal */
 
 
+template<>
 an_ifc_source_location get_ifc_equal(
                           const an_ifc_syntax_enumerator_definition &universal)
 /*
@@ -33072,6 +33800,7 @@ otherwise, return FALSE.
 }  /* has_ifc_initializer */
 
 
+template<>
 an_ifc_expr_index get_ifc_initializer(
                           const an_ifc_syntax_enumerator_definition &universal)
 /*
@@ -33113,6 +33842,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(
                           const an_ifc_syntax_enumerator_definition &universal)
 /*
@@ -33158,6 +33888,7 @@ otherwise, return FALSE.
 }  /* has_ifc_name */
 
 
+template<>
 an_ifc_text_offset get_ifc_name(
                           const an_ifc_syntax_enumerator_definition &universal)
 /*
@@ -33205,6 +33936,7 @@ otherwise, return FALSE.
 }  /* has_ifc_declarator */
 
 
+template<>
 an_ifc_syntax_index get_ifc_declarator(
                           const an_ifc_syntax_exception_declaration &universal)
 /*
@@ -33247,6 +33979,7 @@ otherwise, return FALSE.
 }  /* has_ifc_ellipsis */
 
 
+template<>
 an_ifc_source_location get_ifc_ellipsis(
                           const an_ifc_syntax_exception_declaration &universal)
 /*
@@ -33293,6 +34026,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(
                           const an_ifc_syntax_exception_declaration &universal)
 /*
@@ -33339,6 +34073,7 @@ Return TRUE if the given universal representation has the field
 }  /* has_ifc_type_specifiers */
 
 
+template<>
 an_ifc_syntax_index get_ifc_type_specifiers(
                           const an_ifc_syntax_exception_declaration &universal)
 /*
@@ -33385,6 +34120,7 @@ otherwise, return FALSE.
 }  /* has_ifc_condition */
 
 
+template<>
 an_ifc_expr_index get_ifc_condition(
                              const an_ifc_syntax_explicit_specifier &universal)
 /*
@@ -33426,6 +34162,7 @@ otherwise, return FALSE.
 }  /* has_ifc_left_paren */
 
 
+template<>
 an_ifc_source_location get_ifc_left_paren(
                              const an_ifc_syntax_explicit_specifier &universal)
 /*
@@ -33472,6 +34209,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(
                              const an_ifc_syntax_explicit_specifier &universal)
 /*
@@ -33518,6 +34256,7 @@ otherwise, return FALSE.
 }  /* has_ifc_right_paren */
 
 
+template<>
 an_ifc_source_location get_ifc_right_paren(
                              const an_ifc_syntax_explicit_specifier &universal)
 /*
@@ -33569,6 +34308,7 @@ otherwise, return FALSE.
 }  /* has_ifc_expression */
 
 
+template<>
 an_ifc_expr_index get_ifc_expression(const an_ifc_syntax_expression &universal)
 /*
 Given the universal representation of SyntaxExpression, return the universal
@@ -33614,6 +34354,7 @@ otherwise, return FALSE.
 }  /* has_ifc_expr */
 
 
+template<>
 an_ifc_expr_index get_ifc_expr(
                            const an_ifc_syntax_expression_statement &universal)
 /*
@@ -33655,6 +34396,7 @@ otherwise, return FALSE.
 }  /* has_ifc_pragma */
 
 
+template<>
 an_ifc_sentence_index get_ifc_pragma(
                            const an_ifc_syntax_expression_statement &universal)
 /*
@@ -33697,6 +34439,7 @@ otherwise, return FALSE.
 }  /* has_ifc_semicolon */
 
 
+template<>
 an_ifc_source_location get_ifc_semicolon(
                            const an_ifc_syntax_expression_statement &universal)
 /*
@@ -33748,6 +34491,7 @@ otherwise, return FALSE.
 }  /* has_ifc_declarator */
 
 
+template<>
 an_ifc_syntax_index get_ifc_declarator(
                           const an_ifc_syntax_for_range_declaration &universal)
 /*
@@ -33790,6 +34534,7 @@ otherwise, return FALSE.
 }  /* has_ifc_specifiers */
 
 
+template<>
 an_ifc_syntax_index get_ifc_specifiers(
                           const an_ifc_syntax_for_range_declaration &universal)
 /*
@@ -33836,6 +34581,7 @@ otherwise, return FALSE.
 }  /* has_ifc_body */
 
 
+template<>
 an_ifc_syntax_index get_ifc_body(const an_ifc_syntax_for_statement &universal)
 /*
 Given the universal representation of SyntaxForStatement, return the universal
@@ -33876,6 +34622,7 @@ otherwise, return FALSE.
 }  /* has_ifc_condition */
 
 
+template<>
 an_ifc_expr_index get_ifc_condition(
                                   const an_ifc_syntax_for_statement &universal)
 /*
@@ -33917,6 +34664,7 @@ otherwise, return FALSE.
 }  /* has_ifc_continuation */
 
 
+template<>
 an_ifc_expr_index get_ifc_continuation(
                                   const an_ifc_syntax_for_statement &universal)
 /*
@@ -33958,6 +34706,7 @@ otherwise, return FALSE.
 }  /* has_ifc_for */
 
 
+template<>
 an_ifc_source_location get_ifc_for(
                                   const an_ifc_syntax_for_statement &universal)
 /*
@@ -34004,6 +34753,7 @@ Return TRUE if the given universal representation has the field
 }  /* has_ifc_initialization */
 
 
+template<>
 an_ifc_syntax_index get_ifc_initialization(
                                   const an_ifc_syntax_for_statement &universal)
 /*
@@ -34045,6 +34795,7 @@ otherwise, return FALSE.
 }  /* has_ifc_left_paren */
 
 
+template<>
 an_ifc_source_location get_ifc_left_paren(
                                   const an_ifc_syntax_for_statement &universal)
 /*
@@ -34091,6 +34842,7 @@ otherwise, return FALSE.
 }  /* has_ifc_pragma */
 
 
+template<>
 an_ifc_sentence_index get_ifc_pragma(
                                   const an_ifc_syntax_for_statement &universal)
 /*
@@ -34132,6 +34884,7 @@ otherwise, return FALSE.
 }  /* has_ifc_right_paren */
 
 
+template<>
 an_ifc_source_location get_ifc_right_paren(
                                   const an_ifc_syntax_for_statement &universal)
 /*
@@ -34178,6 +34931,7 @@ otherwise, return FALSE.
 }  /* has_ifc_semicolon */
 
 
+template<>
 an_ifc_source_location get_ifc_semicolon(
                                   const an_ifc_syntax_for_statement &universal)
 /*
@@ -34229,6 +34983,7 @@ otherwise, return FALSE.
 }  /* has_ifc_assign */
 
 
+template<>
 an_ifc_source_location get_ifc_assign(
                                   const an_ifc_syntax_function_body &universal)
 /*
@@ -34275,6 +35030,7 @@ otherwise, return FALSE.
 }  /* has_ifc_generate */
 
 
+template<>
 an_ifc_keyword_syntax get_ifc_generate(
                                   const an_ifc_syntax_function_body &universal)
 /*
@@ -34321,6 +35077,7 @@ otherwise, return FALSE.
 }  /* has_ifc_initializers */
 
 
+template<>
 an_ifc_syntax_index get_ifc_initializers(
                                   const an_ifc_syntax_function_body &universal)
 /*
@@ -34362,6 +35119,7 @@ otherwise, return FALSE.
 }  /* has_ifc_semicolon */
 
 
+template<>
 an_ifc_source_location get_ifc_semicolon(
                                   const an_ifc_syntax_function_body &universal)
 /*
@@ -34408,6 +35166,7 @@ otherwise, return FALSE.
 }  /* has_ifc_stmts */
 
 
+template<>
 an_ifc_syntax_index get_ifc_stmts(const an_ifc_syntax_function_body &universal)
 /*
 Given the universal representation of SyntaxFunctionBody, return the universal
@@ -34448,6 +35207,7 @@ otherwise, return FALSE.
 }  /* has_ifc_try_block */
 
 
+template<>
 an_ifc_syntax_index get_ifc_try_block(
                                   const an_ifc_syntax_function_body &universal)
 /*
@@ -34494,6 +35254,7 @@ otherwise, return FALSE.
 }  /* has_ifc_eh_spec */
 
 
+template<>
 an_ifc_syntax_index get_ifc_eh_spec(
                             const an_ifc_syntax_function_declarator &universal)
 /*
@@ -34536,6 +35297,7 @@ otherwise, return FALSE.
 }  /* has_ifc_left_paren */
 
 
+template<>
 an_ifc_source_location get_ifc_left_paren(
                             const an_ifc_syntax_function_declarator &universal)
 /*
@@ -34582,6 +35344,7 @@ otherwise, return FALSE.
 }  /* has_ifc_parameters */
 
 
+template<>
 an_ifc_syntax_index get_ifc_parameters(
                             const an_ifc_syntax_function_declarator &universal)
 /*
@@ -34624,6 +35387,7 @@ otherwise, return FALSE.
 }  /* has_ifc_right_paren */
 
 
+template<>
 an_ifc_source_location get_ifc_right_paren(
                             const an_ifc_syntax_function_declarator &universal)
 /*
@@ -34675,6 +35439,7 @@ otherwise, return FALSE.
 }  /* has_ifc_assign */
 
 
+template<>
 an_ifc_source_location get_ifc_assign(
                             const an_ifc_syntax_function_definition &universal)
 /*
@@ -34722,6 +35487,7 @@ otherwise, return FALSE.
 }  /* has_ifc_initializers */
 
 
+template<>
 an_ifc_syntax_index get_ifc_initializers(
                             const an_ifc_syntax_function_definition &universal)
 /*
@@ -34763,6 +35529,7 @@ otherwise, return FALSE.
 }  /* has_ifc_semicolon */
 
 
+template<>
 an_ifc_source_location get_ifc_semicolon(
                             const an_ifc_syntax_function_definition &universal)
 /*
@@ -34809,6 +35576,7 @@ otherwise, return FALSE.
 }  /* has_ifc_stmts */
 
 
+template<>
 an_ifc_syntax_index get_ifc_stmts(
                             const an_ifc_syntax_function_definition &universal)
 /*
@@ -34850,6 +35618,7 @@ otherwise, return FALSE.
 }  /* has_ifc_synthesis */
 
 
+template<>
 an_ifc_keyword_syntax get_ifc_synthesis(
                             const an_ifc_syntax_function_definition &universal)
 /*
@@ -34896,6 +35665,7 @@ otherwise, return FALSE.
 }  /* has_ifc_try_block */
 
 
+template<>
 an_ifc_syntax_index get_ifc_try_block(
                             const an_ifc_syntax_function_definition &universal)
 /*
@@ -34942,6 +35712,7 @@ otherwise, return FALSE.
 }  /* has_ifc_body */
 
 
+template<>
 an_ifc_syntax_index get_ifc_body(
                              const an_ifc_syntax_function_try_block &universal)
 /*
@@ -34983,6 +35754,7 @@ otherwise, return FALSE.
 }  /* has_ifc_handlers */
 
 
+template<>
 an_ifc_syntax_index get_ifc_handlers(
                              const an_ifc_syntax_function_try_block &universal)
 /*
@@ -35025,6 +35797,7 @@ otherwise, return FALSE.
 }  /* has_ifc_initializers */
 
 
+template<>
 an_ifc_syntax_index get_ifc_initializers(
                              const an_ifc_syntax_function_try_block &universal)
 /*
@@ -35071,6 +35844,7 @@ otherwise, return FALSE.
 }  /* has_ifc_label */
 
 
+template<>
 an_ifc_source_location get_ifc_label(
                                  const an_ifc_syntax_goto_statement &universal)
 /*
@@ -35117,6 +35891,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(
                                  const an_ifc_syntax_goto_statement &universal)
 /*
@@ -35162,6 +35937,7 @@ otherwise, return FALSE.
 }  /* has_ifc_pragma */
 
 
+template<>
 an_ifc_sentence_index get_ifc_pragma(
                                  const an_ifc_syntax_goto_statement &universal)
 /*
@@ -35203,6 +35979,7 @@ otherwise, return FALSE.
 }  /* has_ifc_semicolon */
 
 
+template<>
 an_ifc_source_location get_ifc_semicolon(
                                  const an_ifc_syntax_goto_statement &universal)
 /*
@@ -35249,6 +36026,7 @@ otherwise, return FALSE.
 }  /* has_ifc_target */
 
 
+template<>
 an_ifc_text_offset get_ifc_target(
                                  const an_ifc_syntax_goto_statement &universal)
 /*
@@ -35295,6 +36073,7 @@ otherwise, return FALSE.
 }  /* has_ifc_body */
 
 
+template<>
 an_ifc_syntax_index get_ifc_body(const an_ifc_syntax_handler &universal)
 /*
 Given the universal representation of SyntaxHandler, return the universal
@@ -35335,6 +36114,7 @@ otherwise, return FALSE.
 }  /* has_ifc_catch */
 
 
+template<>
 an_ifc_source_location get_ifc_catch(const an_ifc_syntax_handler &universal)
 /*
 Given the universal representation of SyntaxHandler, return the universal
@@ -35380,6 +36160,7 @@ otherwise, return FALSE.
 }  /* has_ifc_exception */
 
 
+template<>
 an_ifc_syntax_index get_ifc_exception(const an_ifc_syntax_handler &universal)
 /*
 Given the universal representation of SyntaxHandler, return the universal
@@ -35420,6 +36201,7 @@ otherwise, return FALSE.
 }  /* has_ifc_left_paren */
 
 
+template<>
 an_ifc_source_location get_ifc_left_paren(
                                         const an_ifc_syntax_handler &universal)
 /*
@@ -35466,6 +36248,7 @@ otherwise, return FALSE.
 }  /* has_ifc_pragma */
 
 
+template<>
 an_ifc_sentence_index get_ifc_pragma(const an_ifc_syntax_handler &universal)
 /*
 Given the universal representation of SyntaxHandler, return the universal
@@ -35506,6 +36289,7 @@ otherwise, return FALSE.
 }  /* has_ifc_right_paren */
 
 
+template<>
 an_ifc_source_location get_ifc_right_paren(
                                         const an_ifc_syntax_handler &universal)
 /*
@@ -35557,6 +36341,7 @@ otherwise, return FALSE.
 }  /* has_ifc_handlers */
 
 
+template<>
 an_ifc_syntax_index get_ifc_handlers(
                                     const an_ifc_syntax_handler_seq &universal)
 /*
@@ -35603,6 +36388,7 @@ otherwise, return FALSE.
 }  /* has_ifc_alternative */
 
 
+template<>
 an_ifc_syntax_index get_ifc_alternative(
                                    const an_ifc_syntax_if_statement &universal)
 /*
@@ -35644,6 +36430,7 @@ otherwise, return FALSE.
 }  /* has_ifc_condition */
 
 
+template<>
 an_ifc_index get_ifc_condition(const an_ifc_syntax_if_statement &universal)
 /*
 Given the universal representation of SyntaxIfStatement, return the universal
@@ -35684,6 +36471,7 @@ otherwise, return FALSE.
 }  /* has_ifc_consequence */
 
 
+template<>
 an_ifc_syntax_index get_ifc_consequence(
                                    const an_ifc_syntax_if_statement &universal)
 /*
@@ -35725,6 +36513,7 @@ otherwise, return FALSE.
 }  /* has_ifc_constexpr */
 
 
+template<>
 an_ifc_source_location get_ifc_constexpr(
                                    const an_ifc_syntax_if_statement &universal)
 /*
@@ -35771,6 +36560,7 @@ otherwise, return FALSE.
 }  /* has_ifc_else */
 
 
+template<>
 an_ifc_source_location get_ifc_else(
                                    const an_ifc_syntax_if_statement &universal)
 /*
@@ -35817,6 +36607,7 @@ otherwise, return FALSE.
 }  /* has_ifc_if */
 
 
+template<>
 an_ifc_source_location get_ifc_if(const an_ifc_syntax_if_statement &universal)
 /*
 Given the universal representation of SyntaxIfStatement, return the universal
@@ -35862,6 +36653,7 @@ Return TRUE if the given universal representation has the field
 }  /* has_ifc_initialization */
 
 
+template<>
 an_ifc_syntax_index get_ifc_initialization(
                                    const an_ifc_syntax_if_statement &universal)
 /*
@@ -35903,6 +36695,7 @@ otherwise, return FALSE.
 }  /* has_ifc_pragma */
 
 
+template<>
 an_ifc_sentence_index get_ifc_pragma(
                                    const an_ifc_syntax_if_statement &universal)
 /*
@@ -35949,6 +36742,7 @@ otherwise, return FALSE.
 }  /* has_ifc_ampersand */
 
 
+template<>
 an_ifc_source_location get_ifc_ampersand(
                                    const an_ifc_syntax_init_capture &universal)
 /*
@@ -35995,6 +36789,7 @@ otherwise, return FALSE.
 }  /* has_ifc_comma */
 
 
+template<>
 an_ifc_source_location get_ifc_comma(
                                    const an_ifc_syntax_init_capture &universal)
 /*
@@ -36041,6 +36836,7 @@ otherwise, return FALSE.
 }  /* has_ifc_expander */
 
 
+template<>
 an_ifc_source_location get_ifc_expander(
                                    const an_ifc_syntax_init_capture &universal)
 /*
@@ -36086,6 +36882,7 @@ otherwise, return FALSE.
 }  /* has_ifc_initializer */
 
 
+template<>
 an_ifc_expr_index get_ifc_initializer(
                                    const an_ifc_syntax_init_capture &universal)
 /*
@@ -36127,6 +36924,7 @@ otherwise, return FALSE.
 }  /* has_ifc_name */
 
 
+template<>
 an_ifc_expr_index get_ifc_name(const an_ifc_syntax_init_capture &universal)
 /*
 Given the universal representation of SyntaxInitCapture, return the universal
@@ -36172,6 +36970,7 @@ otherwise, return FALSE.
 }  /* has_ifc_comma */
 
 
+template<>
 an_ifc_source_location get_ifc_comma(
                                 const an_ifc_syntax_init_declarator &universal)
 /*
@@ -36218,6 +37017,7 @@ otherwise, return FALSE.
 }  /* has_ifc_constraint */
 
 
+template<>
 an_ifc_syntax_index get_ifc_constraint(
                                 const an_ifc_syntax_init_declarator &universal)
 /*
@@ -36259,6 +37059,7 @@ otherwise, return FALSE.
 }  /* has_ifc_declarator */
 
 
+template<>
 an_ifc_syntax_index get_ifc_declarator(
                                 const an_ifc_syntax_init_declarator &universal)
 /*
@@ -36300,6 +37101,7 @@ otherwise, return FALSE.
 }  /* has_ifc_initializer */
 
 
+template<>
 an_ifc_expr_index get_ifc_initializer(
                                 const an_ifc_syntax_init_declarator &universal)
 /*
@@ -36346,6 +37148,7 @@ otherwise, return FALSE.
 }  /* has_ifc_init */
 
 
+template<>
 an_ifc_syntax_index get_ifc_init(const an_ifc_syntax_init_statement &universal)
 /*
 Given the universal representation of SyntaxInitStatement, return the universal
@@ -36386,6 +37189,7 @@ otherwise, return FALSE.
 }  /* has_ifc_pragma */
 
 
+template<>
 an_ifc_sentence_index get_ifc_pragma(
                                  const an_ifc_syntax_init_statement &universal)
 /*
@@ -36432,6 +37236,7 @@ otherwise, return FALSE.
 }  /* has_ifc_label */
 
 
+template<>
 an_ifc_expr_index get_ifc_label(
                               const an_ifc_syntax_labeled_statement &universal)
 /*
@@ -36473,6 +37278,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_keyword_sort get_ifc_locus(
                               const an_ifc_syntax_labeled_statement &universal)
 /*
@@ -36514,6 +37320,7 @@ otherwise, return FALSE.
 }  /* has_ifc_pragma */
 
 
+template<>
 an_ifc_sentence_index get_ifc_pragma(
                               const an_ifc_syntax_labeled_statement &universal)
 /*
@@ -36555,6 +37362,7 @@ otherwise, return FALSE.
 }  /* has_ifc_sort */
 
 
+template<>
 an_ifc_label_sort get_ifc_sort(
                               const an_ifc_syntax_labeled_statement &universal)
 /*
@@ -36596,6 +37404,7 @@ otherwise, return FALSE.
 }  /* has_ifc_stmt */
 
 
+template<>
 an_ifc_syntax_index get_ifc_stmt(
                               const an_ifc_syntax_labeled_statement &universal)
 /*
@@ -36642,6 +37451,7 @@ otherwise, return FALSE.
 }  /* has_ifc_eh_spec */
 
 
+template<>
 an_ifc_syntax_index get_ifc_eh_spec(
                               const an_ifc_syntax_lambda_declarator &universal)
 /*
@@ -36683,6 +37493,7 @@ otherwise, return FALSE.
 }  /* has_ifc_expander */
 
 
+template<>
 an_ifc_source_location get_ifc_expander(
                               const an_ifc_syntax_lambda_declarator &universal)
 /*
@@ -36729,6 +37540,7 @@ otherwise, return FALSE.
 }  /* has_ifc_left_paren */
 
 
+template<>
 an_ifc_source_location get_ifc_left_paren(
                               const an_ifc_syntax_lambda_declarator &universal)
 /*
@@ -36775,6 +37587,7 @@ otherwise, return FALSE.
 }  /* has_ifc_modifier */
 
 
+template<>
 an_ifc_keyword_sort get_ifc_modifier(
                               const an_ifc_syntax_lambda_declarator &universal)
 /*
@@ -36816,6 +37629,7 @@ otherwise, return FALSE.
 }  /* has_ifc_parameters */
 
 
+template<>
 an_ifc_syntax_index get_ifc_parameters(
                               const an_ifc_syntax_lambda_declarator &universal)
 /*
@@ -36857,6 +37671,7 @@ otherwise, return FALSE.
 }  /* has_ifc_right_paren */
 
 
+template<>
 an_ifc_source_location get_ifc_right_paren(
                               const an_ifc_syntax_lambda_declarator &universal)
 /*
@@ -36904,6 +37719,7 @@ Return TRUE if the given universal representation has the field
 }  /* has_ifc_trailing_target */
 
 
+template<>
 an_ifc_syntax_index get_ifc_trailing_target(
                               const an_ifc_syntax_lambda_declarator &universal)
 /*
@@ -36950,6 +37766,7 @@ otherwise, return FALSE.
 }  /* has_ifc_captures */
 
 
+template<>
 an_ifc_syntax_index get_ifc_captures(
                               const an_ifc_syntax_lambda_introducer &universal)
 /*
@@ -36992,6 +37809,7 @@ otherwise, return FALSE.
 }  /* has_ifc_left_bracket */
 
 
+template<>
 an_ifc_source_location get_ifc_left_bracket(
                               const an_ifc_syntax_lambda_introducer &universal)
 /*
@@ -37038,6 +37856,7 @@ Return TRUE if the given universal representation has the field
 }  /* has_ifc_right_bracket */
 
 
+template<>
 an_ifc_source_location get_ifc_right_bracket(
                               const an_ifc_syntax_lambda_introducer &universal)
 /*
@@ -37089,6 +37908,7 @@ otherwise, return FALSE.
 }  /* has_ifc_comma */
 
 
+template<>
 an_ifc_source_location get_ifc_comma(
                                 const an_ifc_syntax_mem_initializer &universal)
 /*
@@ -37135,6 +37955,7 @@ otherwise, return FALSE.
 }  /* has_ifc_expander */
 
 
+template<>
 an_ifc_source_location get_ifc_expander(
                                 const an_ifc_syntax_mem_initializer &universal)
 /*
@@ -37180,6 +38001,7 @@ otherwise, return FALSE.
 }  /* has_ifc_initializer */
 
 
+template<>
 an_ifc_expr_index get_ifc_initializer(
                                 const an_ifc_syntax_mem_initializer &universal)
 /*
@@ -37221,6 +38043,7 @@ otherwise, return FALSE.
 }  /* has_ifc_member */
 
 
+template<>
 an_ifc_expr_index get_ifc_member(
                                 const an_ifc_syntax_mem_initializer &universal)
 /*
@@ -37268,6 +38091,7 @@ Return TRUE if the given universal representation has the field
 }  /* has_ifc_decl_specifiers */
 
 
+template<>
 an_ifc_syntax_index get_ifc_decl_specifiers(
                              const an_ifc_syntax_member_declaration &universal)
 /*
@@ -37310,6 +38134,7 @@ otherwise, return FALSE.
 }  /* has_ifc_declarations */
 
 
+template<>
 an_ifc_syntax_index get_ifc_declarations(
                              const an_ifc_syntax_member_declaration &universal)
 /*
@@ -37351,6 +38176,7 @@ otherwise, return FALSE.
 }  /* has_ifc_semicolon */
 
 
+template<>
 an_ifc_source_location get_ifc_semicolon(
                              const an_ifc_syntax_member_declaration &universal)
 /*
@@ -37401,6 +38227,7 @@ otherwise, return FALSE.
 }  /* has_ifc_bitwidth */
 
 
+template<>
 an_ifc_expr_index get_ifc_bitwidth(
                               const an_ifc_syntax_member_declarator &universal)
 /*
@@ -37442,6 +38269,7 @@ otherwise, return FALSE.
 }  /* has_ifc_colon */
 
 
+template<>
 an_ifc_source_location get_ifc_colon(
                               const an_ifc_syntax_member_declarator &universal)
 /*
@@ -37488,6 +38316,7 @@ otherwise, return FALSE.
 }  /* has_ifc_comma */
 
 
+template<>
 an_ifc_source_location get_ifc_comma(
                               const an_ifc_syntax_member_declarator &universal)
 /*
@@ -37534,6 +38363,7 @@ otherwise, return FALSE.
 }  /* has_ifc_constraint */
 
 
+template<>
 an_ifc_syntax_index get_ifc_constraint(
                               const an_ifc_syntax_member_declarator &universal)
 /*
@@ -37575,6 +38405,7 @@ otherwise, return FALSE.
 }  /* has_ifc_declarator */
 
 
+template<>
 an_ifc_syntax_index get_ifc_declarator(
                               const an_ifc_syntax_member_declarator &universal)
 /*
@@ -37616,6 +38447,7 @@ otherwise, return FALSE.
 }  /* has_ifc_initializer */
 
 
+template<>
 an_ifc_expr_index get_ifc_initializer(
                               const an_ifc_syntax_member_declarator &universal)
 /*
@@ -37657,6 +38489,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(
                               const an_ifc_syntax_member_declarator &universal)
 /*
@@ -37709,6 +38542,7 @@ otherwise, return FALSE.
 }  /* has_ifc_definition */
 
 
+template<>
 an_ifc_syntax_index get_ifc_definition(
                     const an_ifc_syntax_member_function_declaration &universal)
 /*
@@ -37756,6 +38590,7 @@ Return TRUE if the given universal representation has the field
 }  /* has_ifc_member_declarations */
 
 
+template<>
 an_ifc_syntax_index get_ifc_member_declarations(
                            const an_ifc_syntax_member_specification &universal)
 /*
@@ -37804,6 +38639,7 @@ otherwise, return FALSE.
 }  /* has_ifc_assign */
 
 
+template<>
 an_ifc_source_location get_ifc_assign(
                      const an_ifc_syntax_namespace_alias_definition &universal)
 /*
@@ -37851,6 +38687,7 @@ otherwise, return FALSE.
 }  /* has_ifc_name */
 
 
+template<>
 an_ifc_expr_index get_ifc_name(
                      const an_ifc_syntax_namespace_alias_definition &universal)
 /*
@@ -37893,6 +38730,7 @@ otherwise, return FALSE.
 }  /* has_ifc_namespace_kw */
 
 
+template<>
 an_ifc_source_location get_ifc_namespace_kw(
                      const an_ifc_syntax_namespace_alias_definition &universal)
 /*
@@ -37939,6 +38777,7 @@ otherwise, return FALSE.
 }  /* has_ifc_semicolon */
 
 
+template<>
 an_ifc_source_location get_ifc_semicolon(
                      const an_ifc_syntax_namespace_alias_definition &universal)
 /*
@@ -37986,6 +38825,7 @@ otherwise, return FALSE.
 }  /* has_ifc_target */
 
 
+template<>
 an_ifc_expr_index get_ifc_target(
                      const an_ifc_syntax_namespace_alias_definition &universal)
 /*
@@ -38032,6 +38872,7 @@ otherwise, return FALSE.
 }  /* has_ifc_condition */
 
 
+template<>
 an_ifc_expr_index get_ifc_condition(
                              const an_ifc_syntax_nested_requirement &universal)
 /*
@@ -38073,6 +38914,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(
                              const an_ifc_syntax_nested_requirement &universal)
 /*
@@ -38123,6 +38965,7 @@ otherwise, return FALSE.
 }  /* has_ifc_declarator */
 
 
+template<>
 an_ifc_syntax_index get_ifc_declarator(
                                  const an_ifc_syntax_new_declarator &universal)
 /*
@@ -38169,6 +39012,7 @@ otherwise, return FALSE.
 }  /* has_ifc_expr */
 
 
+template<>
 an_ifc_syntax_index get_ifc_expr(
                          const an_ifc_syntax_noexcept_specification &universal)
 /*
@@ -38211,6 +39055,7 @@ otherwise, return FALSE.
 }  /* has_ifc_left_paren */
 
 
+template<>
 an_ifc_source_location get_ifc_left_paren(
                          const an_ifc_syntax_noexcept_specification &universal)
 /*
@@ -38257,6 +39102,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(
                          const an_ifc_syntax_noexcept_specification &universal)
 /*
@@ -38303,6 +39149,7 @@ otherwise, return FALSE.
 }  /* has_ifc_right_paren */
 
 
+template<>
 an_ifc_source_location get_ifc_right_paren(
                          const an_ifc_syntax_noexcept_specification &universal)
 /*
@@ -38355,6 +39202,7 @@ otherwise, return FALSE.
 }  /* has_ifc_argument */
 
 
+template<>
 an_ifc_expr_index get_ifc_argument(
                      const an_ifc_syntax_non_type_template_argument &universal)
 /*
@@ -38397,6 +39245,7 @@ otherwise, return FALSE.
 }  /* has_ifc_comma */
 
 
+template<>
 an_ifc_source_location get_ifc_comma(
                      const an_ifc_syntax_non_type_template_argument &universal)
 /*
@@ -38444,6 +39293,7 @@ otherwise, return FALSE.
 }  /* has_ifc_ellipsis */
 
 
+template<>
 an_ifc_source_location get_ifc_ellipsis(
                      const an_ifc_syntax_non_type_template_argument &universal)
 /*
@@ -38495,6 +39345,7 @@ Return TRUE if the given universal representation has the field
 }  /* has_ifc_decl_specifiers */
 
 
+template<>
 an_ifc_syntax_index get_ifc_decl_specifiers(
                            const an_ifc_syntax_parameter_declarator &universal)
 /*
@@ -38537,6 +39388,7 @@ otherwise, return FALSE.
 }  /* has_ifc_declarator */
 
 
+template<>
 an_ifc_syntax_index get_ifc_declarator(
                            const an_ifc_syntax_parameter_declarator &universal)
 /*
@@ -38579,6 +39431,7 @@ otherwise, return FALSE.
 }  /* has_ifc_default_expr */
 
 
+template<>
 an_ifc_expr_index get_ifc_default_expr(
                            const an_ifc_syntax_parameter_declarator &universal)
 /*
@@ -38620,6 +39473,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(
                            const an_ifc_syntax_parameter_declarator &universal)
 /*
@@ -38666,6 +39520,7 @@ otherwise, return FALSE.
 }  /* has_ifc_sort */
 
 
+template<>
 an_ifc_parameter_sort get_ifc_sort(
                            const an_ifc_syntax_parameter_declarator &universal)
 /*
@@ -38713,6 +39568,7 @@ otherwise, return FALSE.
 }  /* has_ifc_basis */
 
 
+template<>
 an_ifc_type_basis_sort get_ifc_basis(
                      const an_ifc_syntax_placeholder_type_specifier &universal)
 /*
@@ -38755,6 +39611,7 @@ otherwise, return FALSE.
 }  /* has_ifc_constraint */
 
 
+template<>
 an_ifc_expr_index get_ifc_constraint(
                      const an_ifc_syntax_placeholder_type_specifier &universal)
 /*
@@ -38797,6 +39654,7 @@ otherwise, return FALSE.
 }  /* has_ifc_keyword */
 
 
+template<>
 an_ifc_source_location get_ifc_keyword(
                      const an_ifc_syntax_placeholder_type_specifier &universal)
 /*
@@ -38843,6 +39701,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(
                      const an_ifc_syntax_placeholder_type_specifier &universal)
 /*
@@ -38894,6 +39753,7 @@ otherwise, return FALSE.
 }  /* has_ifc_callable */
 
 
+template<>
 an_ifc_bool get_ifc_callable(const an_ifc_syntax_pointer_declarator &universal)
 /*
 Given the universal representation of SyntaxPointerDeclarator, return the
@@ -38934,6 +39794,7 @@ otherwise, return FALSE.
 }  /* has_ifc_convention */
 
 
+template<>
 an_ifc_calling_convention_sort get_ifc_convention(
                              const an_ifc_syntax_pointer_declarator &universal)
 /*
@@ -38975,6 +39836,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(
                              const an_ifc_syntax_pointer_declarator &universal)
 /*
@@ -39020,6 +39882,7 @@ otherwise, return FALSE.
 }  /* has_ifc_next */
 
 
+template<>
 an_ifc_syntax_index get_ifc_next(
                              const an_ifc_syntax_pointer_declarator &universal)
 /*
@@ -39061,6 +39924,7 @@ otherwise, return FALSE.
 }  /* has_ifc_qualifiers */
 
 
+template<>
 an_ifc_qualifier_bitfield get_ifc_qualifiers(
                              const an_ifc_syntax_pointer_declarator &universal)
 /*
@@ -39103,6 +39967,7 @@ otherwise, return FALSE.
 }  /* has_ifc_sort */
 
 
+template<>
 an_ifc_pointer_declarator_sort get_ifc_sort(
                              const an_ifc_syntax_pointer_declarator &universal)
 /*
@@ -39144,6 +40009,7 @@ otherwise, return FALSE.
 }  /* has_ifc_whole */
 
 
+template<>
 an_ifc_syntax_index get_ifc_whole(
                              const an_ifc_syntax_pointer_declarator &universal)
 /*
@@ -39191,6 +40057,7 @@ otherwise, return FALSE.
 }  /* has_ifc_body */
 
 
+template<>
 an_ifc_syntax_index get_ifc_body(
                       const an_ifc_syntax_range_based_for_statement &universal)
 /*
@@ -39233,6 +40100,7 @@ otherwise, return FALSE.
 }  /* has_ifc_colon */
 
 
+template<>
 an_ifc_source_location get_ifc_colon(
                       const an_ifc_syntax_range_based_for_statement &universal)
 /*
@@ -39280,6 +40148,7 @@ otherwise, return FALSE.
 }  /* has_ifc_decl */
 
 
+template<>
 an_ifc_syntax_index get_ifc_decl(
                       const an_ifc_syntax_range_based_for_statement &universal)
 /*
@@ -39321,6 +40190,7 @@ otherwise, return FALSE.
 }  /* has_ifc_for */
 
 
+template<>
 an_ifc_source_location get_ifc_for(
                       const an_ifc_syntax_range_based_for_statement &universal)
 /*
@@ -39368,6 +40238,7 @@ otherwise, return FALSE.
 }  /* has_ifc_init */
 
 
+template<>
 an_ifc_syntax_index get_ifc_init(
                       const an_ifc_syntax_range_based_for_statement &universal)
 /*
@@ -39410,6 +40281,7 @@ otherwise, return FALSE.
 }  /* has_ifc_initializer */
 
 
+template<>
 an_ifc_syntax_index get_ifc_initializer(
                       const an_ifc_syntax_range_based_for_statement &universal)
 /*
@@ -39452,6 +40324,7 @@ otherwise, return FALSE.
 }  /* has_ifc_left_paren */
 
 
+template<>
 an_ifc_source_location get_ifc_left_paren(
                       const an_ifc_syntax_range_based_for_statement &universal)
 /*
@@ -39499,6 +40372,7 @@ otherwise, return FALSE.
 }  /* has_ifc_pragma */
 
 
+template<>
 an_ifc_sentence_index get_ifc_pragma(
                       const an_ifc_syntax_range_based_for_statement &universal)
 /*
@@ -39541,6 +40415,7 @@ otherwise, return FALSE.
 }  /* has_ifc_right_paren */
 
 
+template<>
 an_ifc_source_location get_ifc_right_paren(
                       const an_ifc_syntax_range_based_for_statement &universal)
 /*
@@ -39592,6 +40467,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(
                                const an_ifc_syntax_requirement_body &universal)
 /*
@@ -39637,6 +40513,7 @@ otherwise, return FALSE.
 }  /* has_ifc_requirements */
 
 
+template<>
 an_ifc_syntax_index get_ifc_requirements(
                                const an_ifc_syntax_requirement_body &universal)
 /*
@@ -39678,6 +40555,7 @@ otherwise, return FALSE.
 }  /* has_ifc_right_curly */
 
 
+template<>
 an_ifc_source_location get_ifc_right_curly(
                                const an_ifc_syntax_requirement_body &universal)
 /*
@@ -39729,6 +40607,7 @@ otherwise, return FALSE.
 }  /* has_ifc_condition */
 
 
+template<>
 an_ifc_expr_index get_ifc_condition(
                                 const an_ifc_syntax_requires_clause &universal)
 /*
@@ -39770,6 +40649,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(
                                 const an_ifc_syntax_requires_clause &universal)
 /*
@@ -39820,6 +40700,7 @@ otherwise, return FALSE.
 }  /* has_ifc_expr */
 
 
+template<>
 an_ifc_expr_index get_ifc_expr(const an_ifc_syntax_return_statement &universal)
 /*
 Given the universal representation of SyntaxReturnStatement, return the
@@ -39860,6 +40741,7 @@ otherwise, return FALSE.
 }  /* has_ifc_pragma */
 
 
+template<>
 an_ifc_sentence_index get_ifc_pragma(
                                const an_ifc_syntax_return_statement &universal)
 /*
@@ -39901,6 +40783,7 @@ otherwise, return FALSE.
 }  /* has_ifc_return */
 
 
+template<>
 an_ifc_source_location get_ifc_return(
                                const an_ifc_syntax_return_statement &universal)
 /*
@@ -39946,6 +40829,7 @@ otherwise, return FALSE.
 }  /* has_ifc_semicolon */
 
 
+template<>
 an_ifc_source_location get_ifc_semicolon(
                                const an_ifc_syntax_return_statement &universal)
 /*
@@ -39992,6 +40876,7 @@ otherwise, return FALSE.
 }  /* has_ifc_sort */
 
 
+template<>
 an_ifc_return_sort get_ifc_sort(
                                const an_ifc_syntax_return_statement &universal)
 /*
@@ -40038,6 +40923,7 @@ otherwise, return FALSE.
 }  /* has_ifc_body */
 
 
+template<>
 an_ifc_syntax_index get_ifc_body(const an_ifc_syntax_seh_except &universal)
 /*
 Given the universal representation of SyntaxSEHExcept, return the universal
@@ -40078,6 +40964,7 @@ otherwise, return FALSE.
 }  /* has_ifc_condition */
 
 
+template<>
 an_ifc_expr_index get_ifc_condition(const an_ifc_syntax_seh_except &universal)
 /*
 Given the universal representation of SyntaxSEHExcept, return the universal
@@ -40118,6 +41005,7 @@ otherwise, return FALSE.
 }  /* has_ifc_except_kw */
 
 
+template<>
 an_ifc_source_location get_ifc_except_kw(
                                      const an_ifc_syntax_seh_except &universal)
 /*
@@ -40163,6 +41051,7 @@ otherwise, return FALSE.
 }  /* has_ifc_left_paren */
 
 
+template<>
 an_ifc_source_location get_ifc_left_paren(
                                      const an_ifc_syntax_seh_except &universal)
 /*
@@ -40209,6 +41098,7 @@ otherwise, return FALSE.
 }  /* has_ifc_right_paren */
 
 
+template<>
 an_ifc_source_location get_ifc_right_paren(
                                      const an_ifc_syntax_seh_except &universal)
 /*
@@ -40260,6 +41150,7 @@ otherwise, return FALSE.
 }  /* has_ifc_body */
 
 
+template<>
 an_ifc_syntax_index get_ifc_body(const an_ifc_syntax_seh_finally &universal)
 /*
 Given the universal representation of SyntaxSEHFinally, return the universal
@@ -40300,6 +41191,7 @@ otherwise, return FALSE.
 }  /* has_ifc_finally_kw */
 
 
+template<>
 an_ifc_source_location get_ifc_finally_kw(
                                     const an_ifc_syntax_seh_finally &universal)
 /*
@@ -40350,6 +41242,7 @@ otherwise, return FALSE.
 }  /* has_ifc_leave_kw */
 
 
+template<>
 an_ifc_source_location get_ifc_leave_kw(
                                       const an_ifc_syntax_seh_leave &universal)
 /*
@@ -40395,6 +41288,7 @@ otherwise, return FALSE.
 }  /* has_ifc_semicolon */
 
 
+template<>
 an_ifc_source_location get_ifc_semicolon(
                                       const an_ifc_syntax_seh_leave &universal)
 /*
@@ -40445,6 +41339,7 @@ otherwise, return FALSE.
 }  /* has_ifc_body */
 
 
+template<>
 an_ifc_syntax_index get_ifc_body(const an_ifc_syntax_seh_try &universal)
 /*
 Given the universal representation of SyntaxSEHTry, return the universal
@@ -40485,6 +41380,7 @@ otherwise, return FALSE.
 }  /* has_ifc_handler */
 
 
+template<>
 an_ifc_syntax_index get_ifc_handler(const an_ifc_syntax_seh_try &universal)
 /*
 Given the universal representation of SyntaxSEHTry, return the universal
@@ -40525,6 +41421,7 @@ otherwise, return FALSE.
 }  /* has_ifc_try_kw */
 
 
+template<>
 an_ifc_source_location get_ifc_try_kw(const an_ifc_syntax_seh_try &universal)
 /*
 Given the universal representation of SyntaxSEHTry, return the universal
@@ -40574,6 +41471,7 @@ otherwise, return FALSE.
 }  /* has_ifc_ampersand */
 
 
+template<>
 an_ifc_source_location get_ifc_ampersand(
                                  const an_ifc_syntax_simple_capture &universal)
 /*
@@ -40619,6 +41517,7 @@ otherwise, return FALSE.
 }  /* has_ifc_comma */
 
 
+template<>
 an_ifc_source_location get_ifc_comma(
                                  const an_ifc_syntax_simple_capture &universal)
 /*
@@ -40665,6 +41564,7 @@ otherwise, return FALSE.
 }  /* has_ifc_expander */
 
 
+template<>
 an_ifc_source_location get_ifc_expander(
                                  const an_ifc_syntax_simple_capture &universal)
 /*
@@ -40711,6 +41611,7 @@ otherwise, return FALSE.
 }  /* has_ifc_name */
 
 
+template<>
 an_ifc_expr_index get_ifc_name(const an_ifc_syntax_simple_capture &universal)
 /*
 Given the universal representation of SyntaxSimpleCapture, return the universal
@@ -40757,6 +41658,7 @@ Return TRUE if the given universal representation has the field
 }  /* has_ifc_decl_specifiers */
 
 
+template<>
 an_ifc_syntax_index get_ifc_decl_specifiers(
                              const an_ifc_syntax_simple_declaration &universal)
 /*
@@ -40799,6 +41701,7 @@ otherwise, return FALSE.
 }  /* has_ifc_declarators */
 
 
+template<>
 an_ifc_syntax_index get_ifc_declarators(
                              const an_ifc_syntax_simple_declaration &universal)
 /*
@@ -40840,6 +41743,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(
                              const an_ifc_syntax_simple_declaration &universal)
 /*
@@ -40885,6 +41789,7 @@ otherwise, return FALSE.
 }  /* has_ifc_semicolon */
 
 
+template<>
 an_ifc_source_location get_ifc_semicolon(
                              const an_ifc_syntax_simple_declaration &universal)
 /*
@@ -40936,6 +41841,7 @@ otherwise, return FALSE.
 }  /* has_ifc_condition */
 
 
+template<>
 an_ifc_expr_index get_ifc_condition(
                              const an_ifc_syntax_simple_requirement &universal)
 /*
@@ -40977,6 +41883,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(
                              const an_ifc_syntax_simple_requirement &universal)
 /*
@@ -41027,6 +41934,7 @@ otherwise, return FALSE.
 }  /* has_ifc_expr */
 
 
+template<>
 an_ifc_expr_index get_ifc_expr(
                           const an_ifc_syntax_simple_type_specifier &universal)
 /*
@@ -41068,6 +41976,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(
                           const an_ifc_syntax_simple_type_specifier &universal)
 /*
@@ -41113,6 +42022,7 @@ otherwise, return FALSE.
 }  /* has_ifc_type */
 
 
+template<>
 an_ifc_type_index get_ifc_type(
                           const an_ifc_syntax_simple_type_specifier &universal)
 /*
@@ -41159,6 +42069,7 @@ otherwise, return FALSE.
 }  /* has_ifc_stmts */
 
 
+template<>
 an_ifc_syntax_index get_ifc_stmts(const an_ifc_syntax_statement_seq &universal)
 /*
 Given the universal representation of SyntaxStatementSeq, return the universal
@@ -41205,6 +42116,7 @@ otherwise, return FALSE.
 }  /* has_ifc_comma */
 
 
+template<>
 an_ifc_source_location get_ifc_comma(
                       const an_ifc_syntax_static_assert_declaration &universal)
 /*
@@ -41252,6 +42164,7 @@ otherwise, return FALSE.
 }  /* has_ifc_condition */
 
 
+template<>
 an_ifc_expr_index get_ifc_condition(
                       const an_ifc_syntax_static_assert_declaration &universal)
 /*
@@ -41294,6 +42207,7 @@ otherwise, return FALSE.
 }  /* has_ifc_left_paren */
 
 
+template<>
 an_ifc_source_location get_ifc_left_paren(
                       const an_ifc_syntax_static_assert_declaration &universal)
 /*
@@ -41341,6 +42255,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(
                       const an_ifc_syntax_static_assert_declaration &universal)
 /*
@@ -41387,6 +42302,7 @@ otherwise, return FALSE.
 }  /* has_ifc_message */
 
 
+template<>
 an_ifc_expr_index get_ifc_message(
                       const an_ifc_syntax_static_assert_declaration &universal)
 /*
@@ -41429,6 +42345,7 @@ otherwise, return FALSE.
 }  /* has_ifc_right_paren */
 
 
+template<>
 an_ifc_source_location get_ifc_right_paren(
                       const an_ifc_syntax_static_assert_declaration &universal)
 /*
@@ -41476,6 +42393,7 @@ otherwise, return FALSE.
 }  /* has_ifc_semicolon */
 
 
+template<>
 an_ifc_source_location get_ifc_semicolon(
                       const an_ifc_syntax_static_assert_declaration &universal)
 /*
@@ -41528,6 +42446,7 @@ otherwise, return FALSE.
 }  /* has_ifc_initializer */
 
 
+template<>
 an_ifc_expr_index get_ifc_initializer(
                  const an_ifc_syntax_structured_binding_declaration &universal)
 /*
@@ -41570,6 +42489,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(
                  const an_ifc_syntax_structured_binding_declaration &universal)
 /*
@@ -41616,6 +42536,7 @@ otherwise, return FALSE.
 }  /* has_ifc_names */
 
 
+template<>
 an_ifc_syntax_index get_ifc_names(
                  const an_ifc_syntax_structured_binding_declaration &universal)
 /*
@@ -41658,6 +42579,7 @@ otherwise, return FALSE.
 }  /* has_ifc_ref */
 
 
+template<>
 an_ifc_source_location get_ifc_ref(
                  const an_ifc_syntax_structured_binding_declaration &universal)
 /*
@@ -41704,6 +42626,7 @@ otherwise, return FALSE.
 }  /* has_ifc_specifiers */
 
 
+template<>
 an_ifc_syntax_index get_ifc_specifiers(
                  const an_ifc_syntax_structured_binding_declaration &universal)
 /*
@@ -41751,6 +42674,7 @@ otherwise, return FALSE.
 }  /* has_ifc_comma */
 
 
+template<>
 an_ifc_source_location get_ifc_comma(
                   const an_ifc_syntax_structured_binding_identifier &universal)
 /*
@@ -41797,6 +42721,7 @@ otherwise, return FALSE.
 }  /* has_ifc_name */
 
 
+template<>
 an_ifc_expr_index get_ifc_name(
                   const an_ifc_syntax_structured_binding_identifier &universal)
 /*
@@ -41843,6 +42768,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_syntax_super &universal)
 /*
 Given the universal representation of SyntaxSuper, return the universal
@@ -41892,6 +42818,7 @@ otherwise, return FALSE.
 }  /* has_ifc_body */
 
 
+template<>
 an_ifc_syntax_index get_ifc_body(
                                const an_ifc_syntax_switch_statement &universal)
 /*
@@ -41933,6 +42860,7 @@ otherwise, return FALSE.
 }  /* has_ifc_condition */
 
 
+template<>
 an_ifc_syntax_index get_ifc_condition(
                                const an_ifc_syntax_switch_statement &universal)
 /*
@@ -41974,6 +42902,7 @@ otherwise, return FALSE.
 }  /* has_ifc_init */
 
 
+template<>
 an_ifc_syntax_index get_ifc_init(
                                const an_ifc_syntax_switch_statement &universal)
 /*
@@ -42015,6 +42944,7 @@ otherwise, return FALSE.
 }  /* has_ifc_pragma */
 
 
+template<>
 an_ifc_sentence_index get_ifc_pragma(
                                const an_ifc_syntax_switch_statement &universal)
 /*
@@ -42056,6 +42986,7 @@ otherwise, return FALSE.
 }  /* has_ifc_switch */
 
 
+template<>
 an_ifc_source_location get_ifc_switch(
                                const an_ifc_syntax_switch_statement &universal)
 /*
@@ -42108,6 +43039,7 @@ otherwise, return FALSE.
 }  /* has_ifc_arguments */
 
 
+template<>
 an_ifc_syntax_index get_ifc_arguments(
                          const an_ifc_syntax_template_argument_list &universal)
 /*
@@ -42150,6 +43082,7 @@ otherwise, return FALSE.
 }  /* has_ifc_left_angle */
 
 
+template<>
 an_ifc_source_location get_ifc_left_angle(
                          const an_ifc_syntax_template_argument_list &universal)
 /*
@@ -42196,6 +43129,7 @@ otherwise, return FALSE.
 }  /* has_ifc_right_angle */
 
 
+template<>
 an_ifc_source_location get_ifc_right_angle(
                          const an_ifc_syntax_template_argument_list &universal)
 /*
@@ -42247,6 +43181,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(
                            const an_ifc_syntax_template_declaration &universal)
 /*
@@ -42293,6 +43228,7 @@ otherwise, return FALSE.
 }  /* has_ifc_parameters */
 
 
+template<>
 an_ifc_syntax_index get_ifc_parameters(
                            const an_ifc_syntax_template_declaration &universal)
 /*
@@ -42334,6 +43270,7 @@ otherwise, return FALSE.
 }  /* has_ifc_subject */
 
 
+template<>
 an_ifc_syntax_index get_ifc_subject(
                            const an_ifc_syntax_template_declaration &universal)
 /*
@@ -42380,6 +43317,7 @@ otherwise, return FALSE.
 }  /* has_ifc_arguments */
 
 
+template<>
 an_ifc_syntax_index get_ifc_arguments(
                                     const an_ifc_syntax_template_id &universal)
 /*
@@ -42421,6 +43359,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(
                                     const an_ifc_syntax_template_id &universal)
 /*
@@ -42467,6 +43406,7 @@ otherwise, return FALSE.
 }  /* has_ifc_name */
 
 
+template<>
 an_ifc_syntax_index get_ifc_name(const an_ifc_syntax_template_id &universal)
 /*
 Given the universal representation of SyntaxTemplateId, return the universal
@@ -42507,6 +43447,7 @@ otherwise, return FALSE.
 }  /* has_ifc_symbol */
 
 
+template<>
 an_ifc_expr_index get_ifc_symbol(const an_ifc_syntax_template_id &universal)
 /*
 Given the universal representation of SyntaxTemplateId, return the universal
@@ -42547,6 +43488,7 @@ otherwise, return FALSE.
 }  /* has_ifc_template_kw */
 
 
+template<>
 an_ifc_source_location get_ifc_template_kw(
                                     const an_ifc_syntax_template_id &universal)
 /*
@@ -42599,6 +43541,7 @@ otherwise, return FALSE.
 }  /* has_ifc_clause */
 
 
+template<>
 an_ifc_syntax_index get_ifc_clause(
                         const an_ifc_syntax_template_parameter_list &universal)
 /*
@@ -42641,6 +43584,7 @@ otherwise, return FALSE.
 }  /* has_ifc_left_angle */
 
 
+template<>
 an_ifc_source_location get_ifc_left_angle(
                         const an_ifc_syntax_template_parameter_list &universal)
 /*
@@ -42687,6 +43631,7 @@ otherwise, return FALSE.
 }  /* has_ifc_parameters */
 
 
+template<>
 an_ifc_syntax_index get_ifc_parameters(
                         const an_ifc_syntax_template_parameter_list &universal)
 /*
@@ -42729,6 +43674,7 @@ otherwise, return FALSE.
 }  /* has_ifc_right_angle */
 
 
+template<>
 an_ifc_source_location get_ifc_right_angle(
                         const an_ifc_syntax_template_parameter_list &universal)
 /*
@@ -42781,6 +43727,7 @@ otherwise, return FALSE.
 }  /* has_ifc_argument */
 
 
+template<>
 an_ifc_syntax_index get_ifc_argument(
                     const an_ifc_syntax_template_template_parameter &universal)
 /*
@@ -42823,6 +43770,7 @@ otherwise, return FALSE.
 }  /* has_ifc_comma */
 
 
+template<>
 an_ifc_source_location get_ifc_comma(
                     const an_ifc_syntax_template_template_parameter &universal)
 /*
@@ -42870,6 +43818,7 @@ otherwise, return FALSE.
 }  /* has_ifc_ellipsis */
 
 
+template<>
 an_ifc_source_location get_ifc_ellipsis(
                     const an_ifc_syntax_template_template_parameter &universal)
 /*
@@ -42917,6 +43866,7 @@ otherwise, return FALSE.
 }  /* has_ifc_key */
 
 
+template<>
 an_ifc_keyword_syntax get_ifc_key(
                     const an_ifc_syntax_template_template_parameter &universal)
 /*
@@ -42964,6 +43914,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(
                     const an_ifc_syntax_template_template_parameter &universal)
 /*
@@ -43011,6 +43962,7 @@ otherwise, return FALSE.
 }  /* has_ifc_name */
 
 
+template<>
 an_ifc_text_offset get_ifc_name(
                     const an_ifc_syntax_template_template_parameter &universal)
 /*
@@ -43053,6 +44005,7 @@ otherwise, return FALSE.
 }  /* has_ifc_parameters */
 
 
+template<>
 an_ifc_syntax_index get_ifc_parameters(
                     const an_ifc_syntax_template_template_parameter &universal)
 /*
@@ -43099,6 +44052,7 @@ otherwise, return FALSE.
 }  /* has_ifc_asterisk */
 
 
+template<>
 an_ifc_source_location get_ifc_asterisk(
                                    const an_ifc_syntax_this_capture &universal)
 /*
@@ -43144,6 +44098,7 @@ otherwise, return FALSE.
 }  /* has_ifc_comma */
 
 
+template<>
 an_ifc_source_location get_ifc_comma(
                                    const an_ifc_syntax_this_capture &universal)
 /*
@@ -43190,6 +44145,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(
                                    const an_ifc_syntax_this_capture &universal)
 /*
@@ -43240,6 +44196,7 @@ otherwise, return FALSE.
 }  /* has_ifc_arrow */
 
 
+template<>
 an_ifc_source_location get_ifc_arrow(
                            const an_ifc_syntax_trailing_return_type &universal)
 /*
@@ -43285,6 +44242,7 @@ otherwise, return FALSE.
 }  /* has_ifc_target */
 
 
+template<>
 an_ifc_syntax_index get_ifc_target(
                            const an_ifc_syntax_trailing_return_type &universal)
 /*
@@ -43331,6 +44289,7 @@ otherwise, return FALSE.
 }  /* has_ifc_body */
 
 
+template<>
 an_ifc_syntax_index get_ifc_body(const an_ifc_syntax_try_block &universal)
 /*
 Given the universal representation of SyntaxTryBlock, return the universal
@@ -43371,6 +44330,7 @@ otherwise, return FALSE.
 }  /* has_ifc_handlers */
 
 
+template<>
 an_ifc_syntax_index get_ifc_handlers(const an_ifc_syntax_try_block &universal)
 /*
 Given the universal representation of SyntaxTryBlock, return the universal
@@ -43411,6 +44371,7 @@ otherwise, return FALSE.
 }  /* has_ifc_pragma */
 
 
+template<>
 an_ifc_sentence_index get_ifc_pragma(const an_ifc_syntax_try_block &universal)
 /*
 Given the universal representation of SyntaxTryBlock, return the universal
@@ -43451,6 +44412,7 @@ otherwise, return FALSE.
 }  /* has_ifc_try */
 
 
+template<>
 an_ifc_source_location get_ifc_try(const an_ifc_syntax_try_block &universal)
 /*
 Given the universal representation of SyntaxTryBlock, return the universal
@@ -43501,6 +44463,7 @@ otherwise, return FALSE.
 }  /* has_ifc_cardinality */
 
 
+template<>
 an_ifc_cardinality get_ifc_cardinality(const an_ifc_syntax_tuple &universal)
 /*
 Given the universal representation of SyntaxTuple, return the universal
@@ -43541,6 +44504,7 @@ otherwise, return FALSE.
 }  /* has_ifc_start */
 
 
+template<>
 an_ifc_index get_ifc_start(const an_ifc_syntax_tuple &universal)
 /*
 Given the universal representation of SyntaxTuple, return the universal
@@ -43586,6 +44550,7 @@ Return TRUE if the given universal representation has the field
 }  /* has_ifc_abstract_declarator */
 
 
+template<>
 an_ifc_syntax_index get_ifc_abstract_declarator(
                                         const an_ifc_syntax_type_id &universal)
 /*
@@ -43628,6 +44593,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_syntax_type_id &universal)
 /*
 Given the universal representation of SyntaxTypeId, return the universal
@@ -43672,6 +44638,7 @@ Return TRUE if the given universal representation has the field
 }  /* has_ifc_type_specifier */
 
 
+template<>
 an_ifc_syntax_index get_ifc_type_specifier(
                                         const an_ifc_syntax_type_id &universal)
 /*
@@ -43718,6 +44685,7 @@ otherwise, return FALSE.
 }  /* has_ifc_ellipsis */
 
 
+template<>
 an_ifc_source_location get_ifc_ellipsis(
                            const an_ifc_syntax_type_id_list_element &universal)
 /*
@@ -43763,6 +44731,7 @@ otherwise, return FALSE.
 }  /* has_ifc_type_id */
 
 
+template<>
 an_ifc_syntax_index get_ifc_type_id(
                            const an_ifc_syntax_type_id_list_element &universal)
 /*
@@ -43809,6 +44778,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(
                                const an_ifc_syntax_type_requirement &universal)
 /*
@@ -43854,6 +44824,7 @@ otherwise, return FALSE.
 }  /* has_ifc_type */
 
 
+template<>
 an_ifc_expr_index get_ifc_type(const an_ifc_syntax_type_requirement &universal)
 /*
 Given the universal representation of SyntaxTypeRequirement, return the
@@ -43899,6 +44870,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(
                              const an_ifc_syntax_type_specifier_seq &universal)
 /*
@@ -43944,6 +44916,7 @@ otherwise, return FALSE.
 }  /* has_ifc_qualifiers */
 
 
+template<>
 an_ifc_qualifier_bitfield get_ifc_qualifiers(
                              const an_ifc_syntax_type_specifier_seq &universal)
 /*
@@ -43986,6 +44959,7 @@ otherwise, return FALSE.
 }  /* has_ifc_type */
 
 
+template<>
 an_ifc_type_index get_ifc_type(
                              const an_ifc_syntax_type_specifier_seq &universal)
 /*
@@ -44027,6 +45001,7 @@ otherwise, return FALSE.
 }  /* has_ifc_type_name */
 
 
+template<>
 an_ifc_syntax_index get_ifc_type_name(
                              const an_ifc_syntax_type_specifier_seq &universal)
 /*
@@ -44068,6 +45043,7 @@ otherwise, return FALSE.
 }  /* has_ifc_unhashed */
 
 
+template<>
 an_ifc_bool get_ifc_unhashed(const an_ifc_syntax_type_specifier_seq &universal)
 /*
 Given the universal representation of SyntaxTypeSpecifierSeq, return the
@@ -44114,6 +45090,7 @@ otherwise, return FALSE.
 }  /* has_ifc_argument */
 
 
+template<>
 an_ifc_syntax_index get_ifc_argument(
                          const an_ifc_syntax_type_template_argument &universal)
 /*
@@ -44155,6 +45132,7 @@ otherwise, return FALSE.
 }  /* has_ifc_comma */
 
 
+template<>
 an_ifc_source_location get_ifc_comma(
                          const an_ifc_syntax_type_template_argument &universal)
 /*
@@ -44202,6 +45180,7 @@ otherwise, return FALSE.
 }  /* has_ifc_ellipsis */
 
 
+template<>
 an_ifc_source_location get_ifc_ellipsis(
                          const an_ifc_syntax_type_template_argument &universal)
 /*
@@ -44253,6 +45232,7 @@ otherwise, return FALSE.
 }  /* has_ifc_argument */
 
 
+template<>
 an_ifc_syntax_index get_ifc_argument(
                         const an_ifc_syntax_type_template_parameter &universal)
 /*
@@ -44295,6 +45275,7 @@ otherwise, return FALSE.
 }  /* has_ifc_constraint */
 
 
+template<>
 an_ifc_syntax_index get_ifc_constraint(
                         const an_ifc_syntax_type_template_parameter &universal)
 /*
@@ -44337,6 +45318,7 @@ otherwise, return FALSE.
 }  /* has_ifc_ellipsis */
 
 
+template<>
 an_ifc_source_location get_ifc_ellipsis(
                         const an_ifc_syntax_type_template_parameter &universal)
 /*
@@ -44383,6 +45365,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(
                         const an_ifc_syntax_type_template_parameter &universal)
 /*
@@ -44429,6 +45412,7 @@ otherwise, return FALSE.
 }  /* has_ifc_name */
 
 
+template<>
 an_ifc_text_offset get_ifc_name(
                         const an_ifc_syntax_type_template_parameter &universal)
 /*
@@ -44476,6 +45460,7 @@ otherwise, return FALSE.
 }  /* has_ifc_arguments */
 
 
+template<>
 an_ifc_syntax_index get_ifc_arguments(
                            const an_ifc_syntax_type_trait_intrinsic &universal)
 /*
@@ -44518,6 +45503,7 @@ otherwise, return FALSE.
 }  /* has_ifc_intrinsic */
 
 
+template<>
 an_ifc_operator_category get_ifc_intrinsic(
                            const an_ifc_syntax_type_trait_intrinsic &universal)
 /*
@@ -44559,6 +45545,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(
                            const an_ifc_syntax_type_trait_intrinsic &universal)
 /*
@@ -44610,6 +45597,7 @@ otherwise, return FALSE.
 }  /* has_ifc_direction */
 
 
+template<>
 an_ifc_fold_direction_sort get_ifc_direction(
                           const an_ifc_syntax_unary_fold_expression &universal)
 /*
@@ -44651,6 +45639,7 @@ otherwise, return FALSE.
 }  /* has_ifc_dyad */
 
 
+template<>
 an_ifc_dyadic_operator_sort get_ifc_dyad(
                           const an_ifc_syntax_unary_fold_expression &universal)
 /*
@@ -44693,6 +45682,7 @@ otherwise, return FALSE.
 }  /* has_ifc_ellipsis */
 
 
+template<>
 an_ifc_source_location get_ifc_ellipsis(
                           const an_ifc_syntax_unary_fold_expression &universal)
 /*
@@ -44740,6 +45730,7 @@ otherwise, return FALSE.
 }  /* has_ifc_glyph_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_glyph_locus(
                           const an_ifc_syntax_unary_fold_expression &universal)
 /*
@@ -44786,6 +45777,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(
                           const an_ifc_syntax_unary_fold_expression &universal)
 /*
@@ -44832,6 +45824,7 @@ otherwise, return FALSE.
 }  /* has_ifc_operand */
 
 
+template<>
 an_ifc_expr_index get_ifc_operand(
                           const an_ifc_syntax_unary_fold_expression &universal)
 /*
@@ -44874,6 +45867,7 @@ otherwise, return FALSE.
 }  /* has_ifc_right_paren */
 
 
+template<>
 an_ifc_source_location get_ifc_right_paren(
                           const an_ifc_syntax_unary_fold_expression &universal)
 /*
@@ -44925,6 +45919,7 @@ otherwise, return FALSE.
 }  /* has_ifc_declarators */
 
 
+template<>
 an_ifc_syntax_index get_ifc_declarators(
                               const an_ifc_syntax_using_declaration &universal)
 /*
@@ -44966,6 +45961,7 @@ otherwise, return FALSE.
 }  /* has_ifc_keyword */
 
 
+template<>
 an_ifc_source_location get_ifc_keyword(
                               const an_ifc_syntax_using_declaration &universal)
 /*
@@ -45011,6 +46007,7 @@ otherwise, return FALSE.
 }  /* has_ifc_semicolon */
 
 
+template<>
 an_ifc_source_location get_ifc_semicolon(
                               const an_ifc_syntax_using_declaration &universal)
 /*
@@ -45062,6 +46059,7 @@ otherwise, return FALSE.
 }  /* has_ifc_comma */
 
 
+template<>
 an_ifc_source_location get_ifc_comma(
                                const an_ifc_syntax_using_declarator &universal)
 /*
@@ -45108,6 +46106,7 @@ otherwise, return FALSE.
 }  /* has_ifc_expander */
 
 
+template<>
 an_ifc_source_location get_ifc_expander(
                                const an_ifc_syntax_using_declarator &universal)
 /*
@@ -45155,6 +46154,7 @@ Return TRUE if the given universal representation has the field
 }  /* has_ifc_qualified_name */
 
 
+template<>
 an_ifc_expr_index get_ifc_qualified_name(
                                const an_ifc_syntax_using_declarator &universal)
 /*
@@ -45196,6 +46196,7 @@ otherwise, return FALSE.
 }  /* has_ifc_typename_kw */
 
 
+template<>
 an_ifc_source_location get_ifc_typename_kw(
                                const an_ifc_syntax_using_declarator &universal)
 /*
@@ -45246,6 +46247,7 @@ otherwise, return FALSE.
 }  /* has_ifc_namespace_kw */
 
 
+template<>
 an_ifc_source_location get_ifc_namespace_kw(
                                 const an_ifc_syntax_using_directive &universal)
 /*
@@ -45293,6 +46295,7 @@ Return TRUE if the given universal representation has the field
 }  /* has_ifc_qualified_name */
 
 
+template<>
 an_ifc_expr_index get_ifc_qualified_name(
                                 const an_ifc_syntax_using_directive &universal)
 /*
@@ -45334,6 +46337,7 @@ otherwise, return FALSE.
 }  /* has_ifc_semicolon */
 
 
+template<>
 an_ifc_source_location get_ifc_semicolon(
                                 const an_ifc_syntax_using_directive &universal)
 /*
@@ -45380,6 +46384,7 @@ otherwise, return FALSE.
 }  /* has_ifc_using_kw */
 
 
+template<>
 an_ifc_source_location get_ifc_using_kw(
                                 const an_ifc_syntax_using_directive &universal)
 /*
@@ -45431,6 +46436,7 @@ otherwise, return FALSE.
 }  /* has_ifc_enum_kw */
 
 
+template<>
 an_ifc_source_location get_ifc_enum_kw(
                          const an_ifc_syntax_using_enum_declaration &universal)
 /*
@@ -45477,6 +46483,7 @@ otherwise, return FALSE.
 }  /* has_ifc_name */
 
 
+template<>
 an_ifc_expr_index get_ifc_name(
                          const an_ifc_syntax_using_enum_declaration &universal)
 /*
@@ -45519,6 +46526,7 @@ otherwise, return FALSE.
 }  /* has_ifc_semicolon */
 
 
+template<>
 an_ifc_source_location get_ifc_semicolon(
                          const an_ifc_syntax_using_enum_declaration &universal)
 /*
@@ -45566,6 +46574,7 @@ otherwise, return FALSE.
 }  /* has_ifc_using_kw */
 
 
+template<>
 an_ifc_source_location get_ifc_using_kw(
                          const an_ifc_syntax_using_enum_declaration &universal)
 /*
@@ -45617,6 +46626,7 @@ otherwise, return FALSE.
 }  /* has_ifc_final_kw */
 
 
+template<>
 an_ifc_source_location get_ifc_final_kw(
                           const an_ifc_syntax_virtual_specifier_seq &universal)
 /*
@@ -45662,6 +46672,7 @@ otherwise, return FALSE.
 }  /* has_ifc_locus */
 
 
+template<>
 an_ifc_source_location get_ifc_locus(
                           const an_ifc_syntax_virtual_specifier_seq &universal)
 /*
@@ -45708,6 +46719,7 @@ otherwise, return FALSE.
 }  /* has_ifc_override_kw */
 
 
+template<>
 an_ifc_source_location get_ifc_override_kw(
                           const an_ifc_syntax_virtual_specifier_seq &universal)
 /*
@@ -45754,6 +46766,7 @@ otherwise, return FALSE.
 }  /* has_ifc_pure */
 
 
+template<>
 an_ifc_bool get_ifc_pure(const an_ifc_syntax_virtual_specifier_seq &universal)
 /*
 Given the universal representation of SyntaxVirtualSpecifierSeq, return the
@@ -45799,6 +46812,7 @@ otherwise, return FALSE.
 }  /* has_ifc_body */
 
 
+template<>
 an_ifc_syntax_index get_ifc_body(
                                 const an_ifc_syntax_while_statement &universal)
 /*
@@ -45840,6 +46854,7 @@ otherwise, return FALSE.
 }  /* has_ifc_condition */
 
 
+template<>
 an_ifc_expr_index get_ifc_condition(
                                 const an_ifc_syntax_while_statement &universal)
 /*
@@ -45881,6 +46896,7 @@ otherwise, return FALSE.
 }  /* has_ifc_pragma */
 
 
+template<>
 an_ifc_sentence_index get_ifc_pragma(
                                 const an_ifc_syntax_while_statement &universal)
 /*
@@ -45922,6 +46938,7 @@ otherwise, return FALSE.
 }  /* has_ifc_while */
 
 
+template<>
 an_ifc_source_location get_ifc_while(
                                 const an_ifc_syntax_while_statement &universal)
 /*
@@ -45973,6 +46990,7 @@ otherwise, return FALSE.
 }  /* has_ifc_decl */
 
 
+template<>
 an_ifc_decl_index get_ifc_decl(const an_ifc_trait_alias_template &universal)
 /*
 Given the universal representation of TraitAliasTemplate, return the universal
@@ -46026,6 +47044,7 @@ otherwise, return FALSE.
 }  /* has_ifc_encoded_decl */
 
 
+template<>
 an_ifc_encoded_decl_index get_ifc_encoded_decl(
                                   const an_ifc_trait_alias_template &universal)
 /*
@@ -46090,6 +47109,7 @@ otherwise, return FALSE.
 }  /* has_ifc_trait */
 
 
+template<>
 an_ifc_syntax_index get_ifc_trait(const an_ifc_trait_alias_template &universal)
 /*
 Given the universal representation of TraitAliasTemplate, return the universal
@@ -46135,6 +47155,7 @@ otherwise, return FALSE.
 }  /* has_ifc_decl */
 
 
+template<>
 an_ifc_decl_index get_ifc_decl(const an_ifc_trait_attribute &universal)
 /*
 Given the universal representation of TraitAttribute, return the universal
@@ -46188,6 +47209,7 @@ otherwise, return FALSE.
 }  /* has_ifc_encoded_decl */
 
 
+template<>
 an_ifc_encoded_decl_index get_ifc_encoded_decl(
                                        const an_ifc_trait_attribute &universal)
 /*
@@ -46252,6 +47274,7 @@ otherwise, return FALSE.
 }  /* has_ifc_trait */
 
 
+template<>
 an_ifc_attr_index get_ifc_trait(const an_ifc_trait_attribute &universal)
 /*
 Given the universal representation of TraitAttribute, return the universal
@@ -46297,6 +47320,7 @@ otherwise, return FALSE.
 }  /* has_ifc_decl */
 
 
+template<>
 an_ifc_decl_index get_ifc_decl(const an_ifc_trait_deduction_guide &universal)
 /*
 Given the universal representation of TraitDeductionGuide, return the universal
@@ -46350,6 +47374,7 @@ otherwise, return FALSE.
 }  /* has_ifc_encoded_decl */
 
 
+template<>
 an_ifc_encoded_decl_index get_ifc_encoded_decl(
                                  const an_ifc_trait_deduction_guide &universal)
 /*
@@ -46414,6 +47439,7 @@ otherwise, return FALSE.
 }  /* has_ifc_trait */
 
 
+template<>
 an_ifc_decl_index get_ifc_trait(const an_ifc_trait_deduction_guide &universal)
 /*
 Given the universal representation of TraitDeductionGuide, return the universal
@@ -46472,6 +47498,7 @@ otherwise, return FALSE.
 }  /* has_ifc_decl */
 
 
+template<>
 an_ifc_decl_index get_ifc_decl(const an_ifc_trait_deprecated &universal)
 /*
 Given the universal representation of TraitDeprecated, return the universal
@@ -46525,6 +47552,7 @@ otherwise, return FALSE.
 }  /* has_ifc_encoded_decl */
 
 
+template<>
 an_ifc_encoded_decl_index get_ifc_encoded_decl(
                                       const an_ifc_trait_deprecated &universal)
 /*
@@ -46589,6 +47617,7 @@ otherwise, return FALSE.
 }  /* has_ifc_trait */
 
 
+template<>
 an_ifc_text_offset get_ifc_trait(const an_ifc_trait_deprecated &universal)
 /*
 Given the universal representation of TraitDeprecated, return the universal
@@ -46634,6 +47663,7 @@ otherwise, return FALSE.
 }  /* has_ifc_decl */
 
 
+template<>
 an_ifc_decl_index get_ifc_decl(const an_ifc_trait_friend &universal)
 /*
 Given the universal representation of TraitFriend, return the universal
@@ -46687,6 +47717,7 @@ otherwise, return FALSE.
 }  /* has_ifc_encoded_decl */
 
 
+template<>
 an_ifc_encoded_decl_index get_ifc_encoded_decl(
                                           const an_ifc_trait_friend &universal)
 /*
@@ -46751,6 +47782,7 @@ otherwise, return FALSE.
 }  /* has_ifc_trait */
 
 
+template<>
 an_ifc_sequence get_ifc_trait(const an_ifc_trait_friend &universal)
 /*
 Given the universal representation of TraitFriend, return the universal
@@ -46799,6 +47831,7 @@ otherwise, return FALSE.
 }  /* has_ifc_body */
 
 
+template<>
 an_ifc_stmt_index get_ifc_body(
                              const an_ifc_trait_function_definition &universal)
 /*
@@ -46840,6 +47873,7 @@ otherwise, return FALSE.
 }  /* has_ifc_decl */
 
 
+template<>
 an_ifc_decl_index get_ifc_decl(
                              const an_ifc_trait_function_definition &universal)
 /*
@@ -46895,6 +47929,7 @@ otherwise, return FALSE.
 }  /* has_ifc_encoded_decl */
 
 
+template<>
 an_ifc_encoded_decl_index get_ifc_encoded_decl(
                              const an_ifc_trait_function_definition &universal)
 /*
@@ -46960,6 +47995,7 @@ otherwise, return FALSE.
 }  /* has_ifc_initializers */
 
 
+template<>
 an_ifc_expr_index get_ifc_initializers(
                              const an_ifc_trait_function_definition &universal)
 /*
@@ -47001,6 +48037,7 @@ otherwise, return FALSE.
 }  /* has_ifc_parameters */
 
 
+template<>
 an_ifc_chart_index get_ifc_parameters(
                              const an_ifc_trait_function_definition &universal)
 /*
@@ -47047,6 +48084,7 @@ otherwise, return FALSE.
 }  /* has_ifc_decl */
 
 
+template<>
 an_ifc_decl_index get_ifc_decl(const an_ifc_trait_msvc_decl_attrs &universal)
 /*
 Given the universal representation of TraitMsvcDeclAttrs, return the universal
@@ -47100,6 +48138,7 @@ otherwise, return FALSE.
 }  /* has_ifc_encoded_decl */
 
 
+template<>
 an_ifc_encoded_decl_index get_ifc_encoded_decl(
                                  const an_ifc_trait_msvc_decl_attrs &universal)
 /*
@@ -47164,6 +48203,7 @@ otherwise, return FALSE.
 }  /* has_ifc_trait */
 
 
+template<>
 an_ifc_attr_index get_ifc_trait(const an_ifc_trait_msvc_decl_attrs &universal)
 /*
 Given the universal representation of TraitMsvcDeclAttrs, return the universal
@@ -47209,6 +48249,7 @@ otherwise, return FALSE.
 }  /* has_ifc_decl */
 
 
+template<>
 an_ifc_decl_index get_ifc_decl(const an_ifc_trait_msvc_func_params &universal)
 /*
 Given the universal representation of TraitMsvcFuncParams, return the universal
@@ -47262,6 +48303,7 @@ otherwise, return FALSE.
 }  /* has_ifc_encoded_decl */
 
 
+template<>
 an_ifc_encoded_decl_index get_ifc_encoded_decl(
                                 const an_ifc_trait_msvc_func_params &universal)
 /*
@@ -47326,6 +48368,7 @@ otherwise, return FALSE.
 }  /* has_ifc_params */
 
 
+template<>
 an_ifc_chart_index get_ifc_params(
                                 const an_ifc_trait_msvc_func_params &universal)
 /*
@@ -47372,6 +48415,7 @@ otherwise, return FALSE.
 }  /* has_ifc_decl */
 
 
+template<>
 an_ifc_decl_index get_ifc_decl(const an_ifc_trait_msvc_uuid &universal)
 /*
 Given the universal representation of TraitMsvcUuid, return the universal
@@ -47425,6 +48469,7 @@ otherwise, return FALSE.
 }  /* has_ifc_encoded_decl */
 
 
+template<>
 an_ifc_encoded_decl_index get_ifc_encoded_decl(
                                        const an_ifc_trait_msvc_uuid &universal)
 /*
@@ -47489,6 +48534,7 @@ otherwise, return FALSE.
 }  /* has_ifc_uuid */
 
 
+template<>
 an_ifc_uuid get_ifc_uuid(const an_ifc_trait_msvc_uuid &universal)
 /*
 Given the universal representation of TraitMsvcUuid, return the universal
@@ -47537,6 +48583,7 @@ otherwise, return FALSE.
 }  /* has_ifc_decl */
 
 
+template<>
 an_ifc_decl_index get_ifc_decl(const an_ifc_trait_msvc_vendor_trait &universal)
 /*
 Given the universal representation of TraitMsvcVendorTrait, return the
@@ -47590,6 +48637,7 @@ otherwise, return FALSE.
 }  /* has_ifc_encoded_decl */
 
 
+template<>
 an_ifc_encoded_decl_index get_ifc_encoded_decl(
                                const an_ifc_trait_msvc_vendor_trait &universal)
 /*
@@ -47654,6 +48702,7 @@ otherwise, return FALSE.
 }  /* has_ifc_trait */
 
 
+template<>
 an_ifc_msvc_traits_bitfield get_ifc_trait(
                                const an_ifc_trait_msvc_vendor_trait &universal)
 /*
@@ -47701,6 +48750,7 @@ otherwise, return FALSE.
 }  /* has_ifc_decl */
 
 
+template<>
 an_ifc_decl_index get_ifc_decl(const an_ifc_trait_requires &universal)
 /*
 Given the universal representation of TraitRequires, return the universal
@@ -47754,6 +48804,7 @@ otherwise, return FALSE.
 }  /* has_ifc_encoded_decl */
 
 
+template<>
 an_ifc_encoded_decl_index get_ifc_encoded_decl(
                                         const an_ifc_trait_requires &universal)
 /*
@@ -47818,6 +48869,7 @@ otherwise, return FALSE.
 }  /* has_ifc_trait */
 
 
+template<>
 an_ifc_syntax_index get_ifc_trait(const an_ifc_trait_requires &universal)
 /*
 Given the universal representation of TraitRequires, return the universal
@@ -47863,6 +48915,7 @@ otherwise, return FALSE.
 }  /* has_ifc_decl */
 
 
+template<>
 an_ifc_decl_index get_ifc_decl(const an_ifc_trait_specialization &universal)
 /*
 Given the universal representation of TraitSpecialization, return the universal
@@ -47916,6 +48969,7 @@ otherwise, return FALSE.
 }  /* has_ifc_encoded_decl */
 
 
+template<>
 an_ifc_encoded_decl_index get_ifc_encoded_decl(
                                   const an_ifc_trait_specialization &universal)
 /*
@@ -47980,6 +49034,7 @@ otherwise, return FALSE.
 }  /* has_ifc_trait */
 
 
+template<>
 an_ifc_sequence get_ifc_trait(const an_ifc_trait_specialization &universal)
 /*
 Given the universal representation of TraitSpecialization, return the universal
@@ -48029,6 +49084,7 @@ otherwise, return FALSE.
 }  /* has_ifc_element */
 
 
+template<>
 an_ifc_type_index get_ifc_element(const an_ifc_type_array &universal)
 /*
 Given the universal representation of TypeArray, return the universal
@@ -48069,6 +49125,7 @@ otherwise, return FALSE.
 }  /* has_ifc_extent */
 
 
+template<>
 an_ifc_expr_index get_ifc_extent(const an_ifc_type_array &universal)
 /*
 Given the universal representation of TypeArray, return the universal
@@ -48114,6 +49171,7 @@ otherwise, return FALSE.
 }  /* has_ifc_access */
 
 
+template<>
 an_ifc_access_sort get_ifc_access(const an_ifc_type_base &universal)
 /*
 Given the universal representation of TypeBase, return the universal
@@ -48154,6 +49212,7 @@ Return TRUE if the given universal representation has the field
 }  /* has_ifc_pack_expanded */
 
 
+template<>
 an_ifc_bool get_ifc_pack_expanded(const an_ifc_type_base &universal)
 /*
 Given the universal representation of TypeBase, return the universal
@@ -48194,6 +49253,7 @@ otherwise, return FALSE.
 }  /* has_ifc_shared */
 
 
+template<>
 an_ifc_bool get_ifc_shared(const an_ifc_type_base &universal)
 /*
 Given the universal representation of TypeBase, return the universal
@@ -48233,6 +49293,7 @@ otherwise, return FALSE.
 }  /* has_ifc_type */
 
 
+template<>
 an_ifc_type_index get_ifc_type(const an_ifc_type_base &universal)
 /*
 Given the universal representation of TypeBase, return the universal
@@ -48278,6 +49339,7 @@ otherwise, return FALSE.
 }  /* has_ifc_expr */
 
 
+template<>
 an_ifc_syntax_index get_ifc_expr(const an_ifc_type_decltype &universal)
 /*
 Given the universal representation of TypeDecltype, return the universal
@@ -48323,6 +49385,7 @@ otherwise, return FALSE.
 }  /* has_ifc_decl */
 
 
+template<>
 an_ifc_decl_index get_ifc_decl(const an_ifc_type_designated &universal)
 /*
 Given the universal representation of TypeDesignated, return the universal
@@ -48381,6 +49444,7 @@ otherwise, return FALSE.
 }  /* has_ifc_mode */
 
 
+template<>
 an_ifc_expansion_mode_sort get_ifc_mode(const an_ifc_type_expansion &universal)
 /*
 Given the universal representation of TypeExpansion, return the universal
@@ -48421,6 +49485,7 @@ otherwise, return FALSE.
 }  /* has_ifc_pack */
 
 
+template<>
 an_ifc_type_index get_ifc_pack(const an_ifc_type_expansion &universal)
 /*
 Given the universal representation of TypeExpansion, return the universal
@@ -48466,6 +49531,7 @@ otherwise, return FALSE.
 }  /* has_ifc_chart */
 
 
+template<>
 an_ifc_chart_index get_ifc_chart(const an_ifc_type_forall &universal)
 /*
 Given the universal representation of TypeForall, return the universal
@@ -48506,6 +49572,7 @@ otherwise, return FALSE.
 }  /* has_ifc_subject */
 
 
+template<>
 an_ifc_type_index get_ifc_subject(const an_ifc_type_forall &universal)
 /*
 Given the universal representation of TypeForall, return the universal
@@ -48551,6 +49618,7 @@ otherwise, return FALSE.
 }  /* has_ifc_convention */
 
 
+template<>
 an_ifc_calling_convention_sort get_ifc_convention(
                                          const an_ifc_type_function &universal)
 /*
@@ -48592,6 +49660,7 @@ otherwise, return FALSE.
 }  /* has_ifc_eh_spec */
 
 
+template<>
 an_ifc_noexcept_specification get_ifc_eh_spec(
                                          const an_ifc_type_function &universal)
 /*
@@ -48638,6 +49707,7 @@ otherwise, return FALSE.
 }  /* has_ifc_source */
 
 
+template<>
 an_ifc_type_index get_ifc_source(const an_ifc_type_function &universal)
 /*
 Given the universal representation of TypeFunction, return the universal
@@ -48678,6 +49748,7 @@ otherwise, return FALSE.
 }  /* has_ifc_target */
 
 
+template<>
 an_ifc_type_index get_ifc_target(const an_ifc_type_function &universal)
 /*
 Given the universal representation of TypeFunction, return the universal
@@ -48718,6 +49789,7 @@ otherwise, return FALSE.
 }  /* has_ifc_traits */
 
 
+template<>
 an_ifc_function_type_traits_bitfield get_ifc_traits(
                                          const an_ifc_type_function &universal)
 /*
@@ -48765,6 +49837,7 @@ otherwise, return FALSE.
 }  /* has_ifc_basis */
 
 
+template<>
 an_ifc_type_basis_sort get_ifc_basis(const an_ifc_type_fundamental &universal)
 /*
 Given the universal representation of TypeFundamental, return the universal
@@ -48805,6 +49878,7 @@ otherwise, return FALSE.
 }  /* has_ifc_precision */
 
 
+template<>
 an_ifc_type_precision_sort get_ifc_precision(
                                       const an_ifc_type_fundamental &universal)
 /*
@@ -48846,6 +49920,7 @@ otherwise, return FALSE.
 }  /* has_ifc_sign */
 
 
+template<>
 an_ifc_type_sign_sort get_ifc_sign(const an_ifc_type_fundamental &universal)
 /*
 Given the universal representation of TypeFundamental, return the universal
@@ -48891,6 +49966,7 @@ otherwise, return FALSE.
 }  /* has_ifc_referee */
 
 
+template<>
 an_ifc_type_index get_ifc_referee(
                                  const an_ifc_type_lvalue_reference &universal)
 /*
@@ -48937,6 +50013,7 @@ otherwise, return FALSE.
 }  /* has_ifc_convention */
 
 
+template<>
 an_ifc_calling_convention_sort get_ifc_convention(
                                            const an_ifc_type_method &universal)
 /*
@@ -48978,6 +50055,7 @@ otherwise, return FALSE.
 }  /* has_ifc_eh_spec */
 
 
+template<>
 an_ifc_noexcept_specification get_ifc_eh_spec(
                                            const an_ifc_type_method &universal)
 /*
@@ -49025,6 +50103,7 @@ otherwise, return FALSE.
 }  /* has_ifc_scope */
 
 
+template<>
 an_ifc_type_index get_ifc_scope(const an_ifc_type_method &universal)
 /*
 Given the universal representation of TypeMethod, return the universal
@@ -49065,6 +50144,7 @@ otherwise, return FALSE.
 }  /* has_ifc_source */
 
 
+template<>
 an_ifc_type_index get_ifc_source(const an_ifc_type_method &universal)
 /*
 Given the universal representation of TypeMethod, return the universal
@@ -49105,6 +50185,7 @@ otherwise, return FALSE.
 }  /* has_ifc_target */
 
 
+template<>
 an_ifc_type_index get_ifc_target(const an_ifc_type_method &universal)
 /*
 Given the universal representation of TypeMethod, return the universal
@@ -49145,6 +50226,7 @@ otherwise, return FALSE.
 }  /* has_ifc_traits */
 
 
+template<>
 an_ifc_function_type_traits_bitfield get_ifc_traits(
                                            const an_ifc_type_method &universal)
 /*
@@ -49192,6 +50274,7 @@ otherwise, return FALSE.
 }  /* has_ifc_basis */
 
 
+template<>
 an_ifc_type_basis_sort get_ifc_basis(const an_ifc_type_placeholder &universal)
 /*
 Given the universal representation of TypePlaceholder, return the universal
@@ -49232,6 +50315,7 @@ otherwise, return FALSE.
 }  /* has_ifc_constraint */
 
 
+template<>
 an_ifc_expr_index get_ifc_constraint(const an_ifc_type_placeholder &universal)
 /*
 Given the universal representation of TypePlaceholder, return the universal
@@ -49272,6 +50356,7 @@ otherwise, return FALSE.
 }  /* has_ifc_elaboration */
 
 
+template<>
 an_ifc_type_index get_ifc_elaboration(const an_ifc_type_placeholder &universal)
 /*
 Given the universal representation of TypePlaceholder, return the universal
@@ -49317,6 +50402,7 @@ otherwise, return FALSE.
 }  /* has_ifc_pointee */
 
 
+template<>
 an_ifc_type_index get_ifc_pointee(const an_ifc_type_pointer &universal)
 /*
 Given the universal representation of TypePointer, return the universal
@@ -49362,6 +50448,7 @@ otherwise, return FALSE.
 }  /* has_ifc_member */
 
 
+template<>
 an_ifc_type_index get_ifc_member(
                                 const an_ifc_type_pointer_to_member &universal)
 /*
@@ -49403,6 +50490,7 @@ otherwise, return FALSE.
 }  /* has_ifc_scope */
 
 
+template<>
 an_ifc_type_index get_ifc_scope(const an_ifc_type_pointer_to_member &universal)
 /*
 Given the universal representation of TypePointerToMember, return the universal
@@ -49448,6 +50536,7 @@ otherwise, return FALSE.
 }  /* has_ifc_qualifiers */
 
 
+template<>
 an_ifc_qualifier_bitfield get_ifc_qualifiers(
                                         const an_ifc_type_qualified &universal)
 /*
@@ -49490,6 +50579,7 @@ otherwise, return FALSE.
 }  /* has_ifc_unqualified */
 
 
+template<>
 an_ifc_type_index get_ifc_unqualified(const an_ifc_type_qualified &universal)
 /*
 Given the universal representation of TypeQualified, return the universal
@@ -49535,6 +50625,7 @@ otherwise, return FALSE.
 }  /* has_ifc_referee */
 
 
+template<>
 an_ifc_type_index get_ifc_referee(
                                  const an_ifc_type_rvalue_reference &universal)
 /*
@@ -49581,6 +50672,7 @@ otherwise, return FALSE.
 }  /* has_ifc_expr */
 
 
+template<>
 an_ifc_expr_index get_ifc_expr(const an_ifc_type_syntactic &universal)
 /*
 Given the universal representation of TypeSyntactic, return the universal
@@ -49626,6 +50718,7 @@ otherwise, return FALSE.
 }  /* has_ifc_syntax */
 
 
+template<>
 an_ifc_syntax_index get_ifc_syntax(const an_ifc_type_syntax_tree &universal)
 /*
 Given the universal representation of TypeSyntaxTree, return the universal
@@ -49671,6 +50764,7 @@ otherwise, return FALSE.
 }  /* has_ifc_convention */
 
 
+template<>
 an_ifc_calling_convention_sort get_ifc_convention(
                                               const an_ifc_type_tor &universal)
 /*
@@ -49712,6 +50806,7 @@ otherwise, return FALSE.
 }  /* has_ifc_eh_spec */
 
 
+template<>
 an_ifc_noexcept_specification get_ifc_eh_spec(const an_ifc_type_tor &universal)
 /*
 Given the universal representation of TypeTor, return the universal
@@ -49757,6 +50852,7 @@ otherwise, return FALSE.
 }  /* has_ifc_source */
 
 
+template<>
 an_ifc_type_index get_ifc_source(const an_ifc_type_tor &universal)
 /*
 Given the universal representation of TypeTor, return the universal
@@ -49802,6 +50898,7 @@ otherwise, return FALSE.
 }  /* has_ifc_cardinality */
 
 
+template<>
 an_ifc_cardinality get_ifc_cardinality(const an_ifc_type_tuple &universal)
 /*
 Given the universal representation of TypeTuple, return the universal
@@ -49842,6 +50939,7 @@ otherwise, return FALSE.
 }  /* has_ifc_start */
 
 
+template<>
 an_ifc_index get_ifc_start(const an_ifc_type_tuple &universal)
 /*
 Given the universal representation of TypeTuple, return the universal
@@ -49887,6 +50985,7 @@ otherwise, return FALSE.
 }  /* has_ifc_path */
 
 
+template<>
 an_ifc_expr_index get_ifc_path(const an_ifc_type_typename &universal)
 /*
 Given the universal representation of TypeTypename, return the universal
@@ -49932,6 +51031,7 @@ otherwise, return FALSE.
 }  /* has_ifc_type */
 
 
+template<>
 an_ifc_type_index get_ifc_type(const an_ifc_type_unaligned &universal)
 /*
 Given the universal representation of TypeUnaligned, return the universal
