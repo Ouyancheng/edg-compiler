@@ -166,6 +166,10 @@ struct an_ifc_module : public a_module_interface {
 			/* Flag to indicate the namespace portion of the
 			   current nested name specifier has already been
 			   cached and must not be recached. */
+  a_boolean	suppress_friend_token = FALSE;
+			/* Flag to indicate that a "friend" keyword should be
+			   suppressed (typically because the friendship is
+			   handled at a higher level). */
   /* FIXME: This is module specific, should it not be, or should we use a
     structure that's module specific.  It seems very redundant to have a module
     pointer for every entry in this map. */
@@ -326,10 +330,10 @@ public:
                         an_ifc_type_index            base,
                         an_ifc_scope_index           scope,
                         const an_ifc_source_location &locus);
-  void cache_type_first_pass(a_token_cache_ptr            cache,
+  void cache_type_first_part(a_token_cache_ptr            cache,
                              an_ifc_type_index            type,
                              const an_ifc_source_location &locus);
-  void cache_type_second_pass(a_token_cache_ptr            cache,
+  void cache_type_second_part(a_token_cache_ptr            cache,
                               an_ifc_type_index            type,
                               const an_ifc_source_location &locus);
   void cache_type(a_token_cache_ptr            cache,
@@ -672,6 +676,8 @@ extern a_dynamic_init_ptr load_variable_init_from_ifc_module(
 
 extern void record_pending_ifc_function_body(a_routine_ptr     rp,
                                              an_ifc_decl_index decl_idx);
+
+extern a_symbol_ptr load_ifc_friend_entity_ref(an_ifc_expr_index  expr_idx);
 
 extern void ifc_modules_one_time_init();
 

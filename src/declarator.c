@@ -6349,7 +6349,16 @@ declared entity is known to not be a function.
     }  /* if */
     if (locator_for_curr_id.is_qualified_name) {
       if (locator_for_curr_id.is_class_member) {
-        if (!(input_flags & DI_IS_FRIEND_DECL) || microsoft_bugs) {
+        if (scope_is(&scope_stack_top(), sck_template_declaration) &&
+            scope_is(&scope_stack_top()-1, sck_class_struct_union) &&
+            (&scope_stack_top()-1)->assoc_type
+                                  ->source_corresp.module_entity != NULL &&
+            (&scope_stack_top()-1)->assoc_type ==
+                                  qualifier_class_type(locator_for_curr_id)) {
+          /* Member function templates generated from IFC files may have a
+             superfluous qualifier. */
+          clear_qualifier_from_locator(&locator_for_curr_id);
+        } else if (!(input_flags & DI_IS_FRIEND_DECL) || microsoft_bugs) {
           /* If this declaration appears in the immediate context of a class
              definition and the current token is an identifier representing
              the name of the current class, see if this is a qualified name

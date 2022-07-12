@@ -1008,6 +1008,11 @@ enum a_token_kind : unsigned short {
                             /* Generated when reading an IFC file to indicate
                                that the declaration for a variable has an
                                initializer that hasn't yet been processed. */
+  tok_ifc_entity_ref,
+                            /* Generated when reading an IFC file to represent
+                               a reference to another IFC entity (the
+                               associated index should be transferred to type
+                               an_ifc_expr_index). */
   tok_unimplemented         /* Token used to indicate keywords that are not
                                yet implemented. */,
   tok_last_complex_token = tok_unimplemented,
@@ -1461,6 +1466,7 @@ EXTERN a_const_char
    "cli typeid",
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
    "decltype construct", "pending IFC body", "pending IFC var init",
+   "IFC entity ref",
    "unimplemented",
    "[", "]", "(", ")", ".", "->", "++", "--", "&", "*", "+", "-",
    "~", "!", "/", "%", "<<", ">>", "<", ">", "<=", ">=", "==", "!=", "<=>",

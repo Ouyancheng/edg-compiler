@@ -10929,7 +10929,7 @@ information (if available; it may be NULL).
 #endif /* DEBUG */
     }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-    if (!for_friend_template) {
+    if (!for_friend_template && !source_sequence_entries_disallowed) {
       /* Find the source sequence entry corresponding to this friend
          declaration (there is no such entry if the friendship is generated
          from a friend template declaration). */
@@ -29344,6 +29344,35 @@ class type.  Check that dps->type is a valid type for such a declaration.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+static void process_ifc_friend_ref(a_decl_parse_state  *dps,
+                                   a_type_ptr          enclosing_class)
+/*
+We have run into two-token sequence of the form
+	friend <ifc-entity-ref>
+where <ifc-entity-ref> is a placeholder token detected with ifc_entity_ref_next
+(which set dps->sym to the referenced friend entity).  Record the associated
+friendship and consume the two tokens.
+*/
+{
+  a_symbol_ptr  sym = dps->sym;
+
+  if (sym == NULL) {
+    /* Something went wrong while reading the IFC file.  That doesn't always
+       translate to an error. */
+  } else if (is_class_struct_union_symbol(sym)) {
+    decl_friend_class(enclosing_class, sym->variant.class_struct_union.type,
+                      /*for_friend_template=*/FALSE,
+                      (a_decl_pos_block*)NULL);
+  } else if (is_simple_function_symbol(sym)) {
+    update_friend_function_info(sym->variant.routine.ptr, enclosing_class);
+  }  /* if */
+  /* Skip over "friend" and the tok_ifc_entity_ref that follows. */
+  (void)get_token();
+  (void)get_token();
+  discard_curr_construct_pragmas();
+}  /* process_ifc_friend_ref */
+
+
 static a_symbol_ptr class_member_declaration(
              a_class_def_state_ptr              class_state,
              a_tmpl_decl_state_ptr              templ_state,
@@ -29421,7 +29450,10 @@ block of information that is provided if this is a member template declaration.
     dps->marked_as_gnu_extension = TRUE;
   }  /* if */
 #endif /*GNU_EXTENSIONS_ALLOWED */
-  if (!dps->is_lambda) {
+  if (curr_token == tok_friend && ifc_entity_ref_next(&dps->sym)) {
+    process_ifc_friend_ref(dps, class_type);
+    goto next_declaration;
+  } else if (!dps->is_lambda) {
     /* Normal case: Scan attributes and declaration specifiers. */
     if (!C_mode() && !is_member_template && !is_member_template_rescan) {
       /* Start caching the current declaration in case it turns out to be a

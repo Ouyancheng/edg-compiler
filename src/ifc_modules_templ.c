@@ -411,6 +411,8 @@ INST_CONSTRUCT_NODE(an_ifc_trait_msvc_func_params_storage,
                     an_ifc_partition_kind_index)
 INST_CONSTRUCT_NODE(an_ifc_trait_msvc_vendor_trait_storage,
                     an_ifc_partition_kind_index)
+INST_CONSTRUCT_NODE(an_ifc_trait_friend_storage,
+                    an_ifc_partition_kind_index)
 INST_CONSTRUCT_NODE(an_ifc_trait_specialization_storage,
                     an_ifc_partition_kind_index)
 
@@ -482,6 +484,8 @@ INST_CONSTRUCT_NODE_UN(an_ifc_trait_msvc_decl_attrs_storage,
 INST_CONSTRUCT_NODE_UN(an_ifc_trait_msvc_func_params_storage,
                        an_ifc_partition_kind_index)
 INST_CONSTRUCT_NODE_UN(an_ifc_trait_msvc_vendor_trait_storage,
+                       an_ifc_partition_kind_index)
+INST_CONSTRUCT_NODE_UN(an_ifc_trait_friend_storage,
                        an_ifc_partition_kind_index)
 INST_CONSTRUCT_NODE_UN(an_ifc_trait_specialization_storage,
                        an_ifc_partition_kind_index)

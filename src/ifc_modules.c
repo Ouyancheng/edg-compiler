@@ -2092,6 +2092,149 @@ to be needed later on.
 }  /* record_pending_ifc_function_body */
 
 
+static a_symbol_ptr symbol_for_decl_index(an_ifc_decl_index  decl_idx)
+/*
+Return the symbol associated with the declaration corresponding to decl_idx.
+Return NULL if none if found.
+*/
+{
+  a_symbol_ptr  result = NULL;
+  a_boolean     load_ifc_entry = FALSE; 
+
+  if (result != NULL) {
+    /* We found the symbol above. */
+  } else if (decl_idx.sort == ifc_ds_decl_template) {
+    /* Non-member templates can be loaded from IFC. */
+    if (!scope_is(get_home_scope(decl_idx), sck_class_struct_union)) {
+      load_ifc_entry = TRUE;
+    }  /* if */
+  } else if (decl_idx.sort != ifc_ds_decl_method &&
+             decl_idx.sort != ifc_ds_decl_constructor &&
+             decl_idx.sort != ifc_ds_decl_destructor &&
+             decl_idx.sort != ifc_ds_decl_field &&
+             decl_idx.sort != ifc_ds_decl_bitfield &&
+             decl_idx.sort != ifc_ds_decl_property) {
+    load_ifc_entry = TRUE;
+  }  /* if */
+  if (load_ifc_entry) {
+    /* Resolve the IFC declaration index to a front end symbol. */
+    a_source_correspondence  *scp;
+    a_module_entity          *mep;
+    an_ifc_module            *mod = decl_idx.mod;
+    mep = mod->get_ifc_module_entity_ptr(decl_idx);
+    if (mep->entity.ptr == NULL) {
+      mod->process_ifc_declaration(mep, /*defer=*/FALSE, (a_type_ptr)NULL);
+    }  /* if */
+    /* Note that source_corresp_for_il_entry returns NULL for iek_none. */
+    scp = source_corresp_for_il_entry(mep->entity.ptr, mep->entity.kind);
+    if (scp != NULL) {
+      result = (a_symbol_ptr)scp->assoc_info;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* symbol_for_decl_index */
+
+
+static
+a_symbol_ptr load_ifc_entity_ref(an_ifc_expr_index  expr_idx)
+/*
+Load the entity referred to by expr_idx (currently, this handles a "named
+declaration" or a "template id") and return a symbol entry for it.  If any
+error occurs, return NULL.
+*/
+{
+  a_symbol_ptr  result = NULL;
+
+  switch (expr_idx.sort) {
+    case ifc_es_expr_named_decl:
+      { Opt<an_ifc_expr_named_decl> opt_named_decl;
+        construct_node(&opt_named_decl, expr_idx);
+        if (!opt_named_decl.has_value()) goto invalid;
+
+        an_ifc_expr_named_decl named_decl = *opt_named_decl;
+        an_ifc_decl_index      resolution = get_ifc_resolution(named_decl);
+        result = symbol_for_decl_index(resolution);
+      }
+      break;
+    case ifc_es_expr_template_id:
+      { a_symbol_ptr                  templ_sym = NULL;
+        Opt<an_ifc_expr_template_id>  opt_template_id;
+        construct_node(&opt_template_id, expr_idx);
+        if (!opt_template_id.has_value()) goto invalid;
+
+        /* Obtain the primary template and resolve it to a front end symbol. */
+        an_ifc_expr_template_id  template_id = *opt_template_id;
+        an_ifc_expr_index        primary = get_ifc_primary(template_id);
+        a_source_position        pos;
+        an_ifc_module            *mod = primary.mod;
+        mod->source_position_from_locus(&pos, get_ifc_locus(template_id));
+        templ_sym = load_ifc_entity_ref(primary);
+        if (templ_sym == NULL) goto invalid;
+
+        /* Construct a token cache with the template arguments. */
+        a_token_cache       arg_cache;
+        a_template_arg_ptr  t_args = NULL;
+        an_ifc_expr_index   args = get_ifc_arguments(template_id);
+        a_boolean           err = FALSE;
+        long                first_defaulted_arg = -1;
+        clear_token_cache(&arg_cache, /*reusable=*/FALSE);
+        if (!is_null_index(args)) {
+          mod->cache_expr(&arg_cache, args);
+        }  /* if */
+        cache_token(&arg_cache, tok_gt, &pos);
+        terminate_token_cache(&arg_cache);
+        rescan_cached_tokens(&arg_cache);
+        t_args = scan_template_argument_list(templ_sym,
+                                             /*type_constraint=*/FALSE, &err,
+                                             GID_NO_OPTIONS, 
+                                             &first_defaulted_arg);
+        required_token(tok_gt, ec_exp_gt);
+        if (curr_token == tok_end_of_source) {
+          /* Run off the cache. */
+          (void)get_token();
+        }  /* if */
+        /* Apply the template argument list to the template symbol to obtain
+           an instance symbol. */
+        if (is_class_template_symbol(templ_sym)) {
+          result = find_template_class(templ_sym, &t_args,
+                                       /*any_prototype_allowed=*/FALSE,
+                                       (a_symbol_ptr)NULL,
+                                       /*instantiate_nonreal=*/FALSE,
+                                       /*do_not_create=*/FALSE,
+                                       /*in_substitution=*/FALSE);
+        } else if (symbol_is(templ_sym, sk_function_template)) {
+          result = find_template_function(templ_sym, &t_args,
+                                          /*explicit_arg_list_present=*/TRUE,
+                                          &pos);
+        } else {
+          /* FIXME: Handle other template kinds. */
+          goto invalid;
+        }  /* if */
+      }
+      break;
+    default:
+      expr_idx.mod->issue_unsupported_node_diag(
+                                        "ExprIndex entity", &error_position);
+      break;
+  }  /* switch */
+invalid:
+  return result;
+}  /* load_ifc_entity_ref */
+
+
+a_symbol_ptr load_ifc_friend_entity_ref(an_ifc_expr_index  expr_idx)
+/*
+A wrapper for load_ifc_entity_ref that also temporarily suspends the emission
+of the "friend" keyword.
+*/
+{
+  an_ifc_module           *mod = expr_idx.mod;
+  Value_saver<a_boolean>  suppression(&mod->suppress_friend_token, TRUE);
+
+  return load_ifc_entity_ref(expr_idx);
+}  /* load_ifc_friend_entity_ref */
+
+
 void an_ifc_module::cache_statement(a_token_cache_ptr         cache,
                                     an_ifc_stmt_index         stmt_idx,
                   /* Defaulted: */  a_cache_statement_option  options)
@@ -4536,30 +4679,6 @@ is handled by not caching any tokens.
 }  /* cache_scope */
 
 
-static void cache_class_definition(an_ifc_module           *mod,
-                                   a_token_cache_ptr       cache,
-                                   const an_ifc_decl_scope &decl)
-/*
-Add the tokens corresponding to the given class definition (decl) to cache.
-The cached tokens are suitable for parsing with scan_class_definition (i.e.,
-the first token is a colon introducing base classes or a left brace introducing
-the member declarations).
-*/
-{
-  an_ifc_source_location locus = get_ifc_locus(decl);
-  an_ifc_type_index      base = get_ifc_base(decl);
-  a_source_position      pos;
-
-  mod->source_position_from_locus(&pos, locus);
-  if (!is_null_index(base)) {
-    cache_token(cache, tok_colon, &pos);
-    mod->cache_type(cache, base, locus);
-  }  /* if */
-  cache_scope(mod, cache, get_ifc_initializer(decl), locus);
-  cache_token(cache, tok_semicolon, &pos);
-}  /* cache_class_definition */
-
-
 void an_ifc_module::complete_definition_of_module_class(
                                                        a_module_entity_ptr mep)
 /*
@@ -4569,8 +4688,9 @@ Complete the definition of the class referred to by mep (if needed).
   a_diagnostic_suppression diag_suppress(&this->suppressed_diagnostics,
                                          !display_module_import_diagnostics);
   Opt<an_ifc_decl_scope>   opt_ids;
+  an_ifc_decl_index        decl_idx = decl_index_of(mep);
 
-  construct_node(&opt_ids, decl_index_of(mep));
+  construct_node(&opt_ids, decl_idx);
   /* FIXME: Error handling could be improved here. */
   if (opt_ids.has_value()) {
     an_ifc_decl_scope  ids = *opt_ids;
@@ -4589,15 +4709,53 @@ Complete the definition of the class referred to by mep (if needed).
       a_module_scope_push_kind scope_push_status = mspk_unattempted;
       a_curr_token_preserver   guard;
       a_ms_mode_parse          tmp_ms_parse(this);
+      an_ifc_source_location   locus;
 
       push_module_declaration_context(mep->scope, &scope_push_status);
-      source_position_from_locus(&error_position, get_ifc_locus(ids));
+      locus = get_ifc_locus(ids);
+      source_position_from_locus(&error_position, locus);
       clear_token_cache(&cache, /*reusable=*/FALSE);
-      cache_class_definition(this, &cache, ids);
-      terminate_token_cache(&cache);
+      {
+        an_ifc_type_index  base = get_ifc_base(ids);
+        if (!is_null_index(base)) {
+          /* There are base classes: Cache source code for them. */
+          cache_token(&cache, tok_colon, &error_position);
+          this->cache_type(&cache, base, locus);
+        }  /* if */
+        an_ifc_scope_index  class_members = get_ifc_initializer(ids);
+        if (class_members != 0) {
+          cache_token(&cache, tok_lbrace, &error_position);
+          /* Emit ordinary members: */
+          auto cache_member = [this, &cache](const an_ifc_scope_member  &ism) {
+            this->cache_decl(&cache, get_ifc_index(ism));
+          };
+          traverse_scope_members(class_members, cache_member);
+          /* Check if there are friends. */
+          Opt<an_ifc_trait_friend>  opt_friends;
+          find_trait(&opt_friends, decl_idx);
+          if (opt_friends.has_value()) {
+            /* Emit the friend declarations: */
+            Opt<an_ifc_sequence>  friends = get_ifc_trait(*opt_friends);
+            if (friends.has_value()) {
+              this->traverse_scope_member_sequence(*friends,
+                [this, &cache, &cache_member](const an_ifc_scope_member &ism) {
+                  cache_member(ism);
+                });
+            }  /* if */
+          }  /* if */
+          cache_token(&cache, tok_rbrace, &error_position);
+        }  /* if */
+        cache_token(&cache, tok_semicolon, &error_position);
+        terminate_token_cache(&cache);
+      }
 #if DEBUG
       if (db_flag_is_set("ms_ifc_token_def")) {
-        fprintf(f_debug, "Reconstituted class definition:\n");
+        fprintf(f_debug, "Reconstituted class definition: ");
+        if (unmangled_name_of(&class_type->source_corresp) != NULL) {
+          fprintf(f_debug, "%s",
+                  unmangled_name_of(&class_type->source_corresp));
+        }  /* if */
+        fprintf(f_debug, "\n");
         db_tokens(&cache);
         fprintf(f_debug, "\n---------------------\n");
       }  /* if */
@@ -5117,11 +5275,11 @@ Process a sequence (seq) of IFC scope member declarations.
     /* Get the associated IFC module entity pointer, and then use it to process
        this scope member via process_ifc_declaration. */
     a_module_entity_ptr dmep = get_ifc_module_entity_ptr(get_ifc_index(ism));
-    process_ifc_declaration(dmep, /*defer=*/FALSE, (a_type_ptr)NULL);
+    this->process_ifc_declaration(dmep, /*defer=*/FALSE, (a_type_ptr)NULL);
   };
 
   /* Iterate over the sequence calling decl_consumer for each element. */
-  traverse_scope_member_sequence(seq, decl_consumer);
+  this->traverse_scope_member_sequence(seq, decl_consumer);
 }  /* process_scope_member_sequence */
 
 
@@ -8815,7 +8973,13 @@ Sentence containing keyword.
       cache_token(cache, tok_for, &pos);
       break;
     case ifc_sks_friend:
-      cache_token(cache, tok_friend, &pos);
+      if (this->suppress_friend_token) {
+        /* Do not cache the "friend" keyword.  (Friends are loaded via class
+           traits and the keyword will presumably already have been emitted
+           when the trait is processed as part of the class definition). */
+      } else {
+        cache_token(cache, tok_friend, &pos);
+      }  /* if */
       break;
     case ifc_sks_generic:
       cache_token(cache, tok_c11_generic, &pos);
@@ -10041,14 +10205,14 @@ Finally, locus is the location of the given scope decl.
 }  /* cache_scope_decl */
 
 
-void an_ifc_module::cache_type_first_pass(a_token_cache_ptr            cache,
+void an_ifc_module::cache_type_first_part(a_token_cache_ptr            cache,
                                           an_ifc_type_index            type,
                                           const an_ifc_source_location &locus)
 /*
 Add the tokens to cache corresponding to the portion of the given type that
 precedes an identifier.  locus is the source location of the entity referring
 to the type.  This routine will often need to be called in concert with
-cache_type_second_pass, which will cache tokens corresponding to the portion
+cache_type_second_part, which will cache tokens corresponding to the portion
 of type that follows an identifier.  For example:
 
    ~v~ This routine caches this portion of the type
@@ -10291,7 +10455,7 @@ this is needed.
         }  /* if */
 
         an_ifc_type_expansion ite = *opt_ite;
-        cache_type_first_pass(cache, get_ifc_pack(ite), locus);
+        cache_type_first_part(cache, get_ifc_pack(ite), locus);
         cache_token(cache, tok_ellipsis, &pos);
       }
       break;
@@ -10305,7 +10469,7 @@ this is needed.
 
         an_ifc_type_pointer itp = *opt_itp;
         an_ifc_type_index   pointee = get_ifc_pointee(itp);
-        cache_type_first_pass(cache, pointee, locus);
+        cache_type_first_part(cache, pointee, locus);
         if (pointee.sort != ifc_ts_type_pointer_to_member) {
           /* The tok_star will already have been cached if the pointee is a
              pointer-to-member. */
@@ -10354,7 +10518,7 @@ this is needed.
         }  /* if */
 
         an_ifc_type_lvalue_reference itlr = *opt_itlr;
-        cache_type_first_pass(cache, get_ifc_referee(itlr), locus);
+        cache_type_first_part(cache, get_ifc_referee(itlr), locus);
         cache_token(cache, tok_ampersand, &pos);
       }
       break;
@@ -10367,7 +10531,7 @@ this is needed.
         }  /* if */
 
         an_ifc_type_rvalue_reference itrr = *opt_itrr;
-        cache_type_first_pass(cache, get_ifc_referee(itrr), locus);
+        cache_type_first_part(cache, get_ifc_referee(itrr), locus);
         cache_token(cache, tok_and_and, &pos);
       }
       break;
@@ -10396,7 +10560,7 @@ this is needed.
         if (!opt_ita.has_value()) {
           goto invalid;
         }  /* if */
-        cache_type_first_pass(cache, get_ifc_element(*opt_ita), locus);
+        cache_type_first_part(cache, get_ifc_element(*opt_ita), locus);
       }
       break;
     case ifc_ts_type_typename:
@@ -10420,7 +10584,7 @@ this is needed.
 
         an_ifc_type_qualified     itq = *opt_itq;
         an_ifc_qualifier_bitfield qualifiers = get_ifc_qualifiers(itq);
-        cache_type_first_pass(cache, get_ifc_unqualified(itq), locus);
+        cache_type_first_part(cache, get_ifc_unqualified(itq), locus);
         if (test_bitmask<ifc_qb_const>(qualifiers)) {
           cache_token(cache, tok_const, &pos);
         }  /* if */
@@ -10541,17 +10705,17 @@ this is needed.
     default_is_unexpected_str("Unexpected TypeSort");
   }  /* switch */
 invalid:;
-}  /* cache_type_first_pass */
+}  /* cache_type_first_part */
 
 
-void an_ifc_module::cache_type_second_pass(a_token_cache_ptr            cache,
+void an_ifc_module::cache_type_second_part(a_token_cache_ptr            cache,
                                            an_ifc_type_index            type,
                                            const an_ifc_source_location &locus)
 /*
 Add the tokens to cache corresponding to the portion of the given type that
 follows an identifier.  locus is the source location of the entity referring
 to the type.  This routine will often need to be called in concert with
-cache_type_first_pass, which will cache tokens corresponding to the portion
+cache_type_first_part, which will cache tokens corresponding to the portion
 of type that precedes an identifier.  For example:
 
           ~v~ This routine caches this portion of the type
@@ -10582,7 +10746,7 @@ this is needed.
         if (!opt_itp.has_value()) {
           goto invalid;
         }  /* if */
-        cache_type_second_pass(cache, get_ifc_pointee(*opt_itp), locus);
+        cache_type_second_part(cache, get_ifc_pointee(*opt_itp), locus);
       }
       break;
     case ifc_ts_type_pointer_to_member:
@@ -10623,7 +10787,7 @@ this is needed.
         if (!opt_itlr.has_value()) {
           goto invalid;
         }  /* if */
-        cache_type_second_pass(cache, get_ifc_referee(*opt_itlr), locus);
+        cache_type_second_part(cache, get_ifc_referee(*opt_itlr), locus);
       }
       break;
     case ifc_ts_type_rvalue_reference:
@@ -10633,7 +10797,7 @@ this is needed.
         if (!opt_itrr.has_value()) {
           goto invalid;
         }  /* if */
-        cache_type_second_pass(cache, get_ifc_referee(*opt_itrr), locus);
+        cache_type_second_part(cache, get_ifc_referee(*opt_itrr), locus);
       }
       break;
     case ifc_ts_type_function:
@@ -10671,7 +10835,7 @@ this is needed.
           cache_expr(cache, extent);
         }  /* if */
         cache_token(cache, tok_rbracket, &pos);
-        cache_type_second_pass(cache, get_ifc_element(ita), locus);
+        cache_type_second_part(cache, get_ifc_element(ita), locus);
       }
       break;
     case ifc_ts_type_qualified:
@@ -10681,7 +10845,7 @@ this is needed.
         if (!opt_itq.has_value()) {
           goto invalid;
         }  /* if */
-        cache_type_second_pass(cache, get_ifc_unqualified(*opt_itq), locus);
+        cache_type_second_part(cache, get_ifc_unqualified(*opt_itq), locus);
       }
       break;
     case ifc_ts_type_expansion:
@@ -10691,7 +10855,7 @@ this is needed.
         if (!opt_ite.has_value()) {
           goto invalid;
         }  /* if */
-        cache_type_second_pass(cache, get_ifc_pack(*opt_ite), locus);
+        cache_type_second_part(cache, get_ifc_pack(*opt_ite), locus);
       }
       break;
     case ifc_ts_type_fundamental:
@@ -10711,7 +10875,7 @@ this is needed.
     default_is_unexpected_str("Unexpected TypeSort");
   }  /* switch */
 invalid:;
-}  /* cache_type_second_pass */
+}  /* cache_type_second_part */
 
 
 void an_ifc_module::cache_type(a_token_cache_ptr            cache,
@@ -10722,12 +10886,12 @@ Add the tokens to cache corresponding to the given type.  locus is the source
 location of the entity referring to the type.  This routine should only be
 called when there is no identifier portion involved and therefore both the
 preceding and following portions of the type can be immediately cached.  If
-there is an identifier portion involved, cache_type_first_pass and
-cache_type_second_pass should be used instead.
+there is an identifier portion involved, cache_type_first_part and
+cache_type_second_part should be used instead.
 */
 {
-  cache_type_first_pass(cache, type, locus);
-  cache_type_second_pass(cache, type, locus);
+  cache_type_first_part(cache, type, locus);
+  cache_type_second_part(cache, type, locus);
 }  /* cache_type */
 
 
@@ -11715,9 +11879,9 @@ initializer can be consistently cached via a ScopeIndex.
      decl-specifier-seq. */
   cache_object_traits(cache, traits, &pos);
   /* Cache the name surrounded by the respective type qualifiers. */
-  cache_type_first_pass(cache, type, locus);
+  cache_type_first_part(cache, type, locus);
   cache_name_fn(&pos);
-  cache_type_second_pass(cache, type, locus);
+  cache_type_second_part(cache, type, locus);
   /* Cache the variable with if any. */
   if (!is_null_index(width)) {
     cache_token(cache, tok_colon, &pos);
@@ -12848,7 +13012,7 @@ Add the tokens corresponding to the given declaration (decl) to cache.
             }
             break;
           case ifc_ps_non_type:
-            cache_type_first_pass(cache, type, locus);
+            cache_type_first_part(cache, type, locus);
             need_second_pass = TRUE;
             break;
           case ifc_ps_template:
@@ -12876,7 +13040,7 @@ Add the tokens corresponding to the given declaration (decl) to cache.
           cache_identifier(cache, get_string_at_offset(name), &pos);
         }  /* if */
         if (need_second_pass) {
-          cache_type_second_pass(cache, type, locus);
+          cache_type_second_part(cache, type, locus);
         }  /* if */
         if (!is_null_index(initializer) && !suppress_default_arguments) {
           cache_token(cache, tok_assign, &pos);
@@ -13283,8 +13447,34 @@ Add the tokens corresponding to the given declaration (decl) to cache.
       issue_unsupported_node_diag("DeclSort::UsingDirective", &error_position);
       break;
     case ifc_ds_decl_friend:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("DeclSort::Friend", &error_position);
+      /* A friend declaration.  IFC encodes the friend as an expression that
+         refers to the friend entity (normally, ifc_es_expr_named_decl or
+         ifc_es_expr_template_id).  Rather than trying to reconstruct a friend
+         declaration that resolves to the construct, we record the IFC
+         expression information for latter processing by class member
+         declaration parsing.  The pseudo-declaration is of the form
+              friend <ifc-entity-ref> ;
+         where ifc-entity-ref is a pseudo-token that carries the IFC expression
+         index. */
+      { Opt<an_ifc_decl_friend> opt_df;
+        construct_node(&opt_df, decl);
+        if (!opt_df.has_value()) goto invalid;
+
+        an_ifc_decl_friend friend_decl = *opt_df;
+        an_ifc_expr_index  friend_id = get_ifc_entity(friend_decl);
+        if (has_ifc_locus(decl)) {
+          source_position_from_locus(&pos, get_ifc_locus(decl));
+        } else {
+          pos = null_source_position;
+        }  /* if */
+        cache_token(cache, tok_friend, &pos);
+        cache_token(cache, tok_ifc_entity_ref, &null_source_position);
+        cache->last_token->extra_info_kind = teik_ifc_index;
+        cache->last_token->variant.ifc_index = {friend_id.sort,
+                                                friend_id.value,
+                                                friend_id.mod};
+        cache_token(cache, tok_semicolon, &null_source_position);
+      }
       break;
     case ifc_ds_decl_expansion:
       /* FIXME: Currently unsupported. */
@@ -15544,12 +15734,13 @@ nested-name-specifier to cache.  pos is the position of the qualified-id this
 nested-name-specifier is part of.
 */
 {
-  a_module_entity_ptr mep = get_ifc_module_entity_ptr(decl);
+  a_module_entity_ptr mep = this->get_ifc_module_entity_ptr(decl);
+
   if (mep->scope == NULL) {
     /* Load the module entity pointer scope if not already processed. */
     mep->scope = get_home_scope(decl);
   }  /* if */
-  cache_scope_as_nested_name_specifier(cache, mep->scope, pos);
+  this->cache_scope_as_nested_name_specifier(cache, mep->scope, pos);
 }  /* cache_nested_name_specifier_from_decl */
 
 

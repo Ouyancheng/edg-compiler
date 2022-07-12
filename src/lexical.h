@@ -318,6 +318,7 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
    (an_opname_kind)onk_none,          /* tok_decltype_construct */
    (an_opname_kind)onk_none,          /* tok_pending_ifc_func_body */
    (an_opname_kind)onk_none,          /* tok_pending_ifc_var_init */
+   (an_opname_kind)onk_none,          /* tok_ifc_entity_ref */
    (an_opname_kind)onk_none,          /* tok_unimplemented */
    (an_opname_kind)onk_subscript,     /* operator[] starts with tok_lbracket */
    (an_opname_kind)onk_none,          /* tok_rbracket */
@@ -2681,6 +2682,8 @@ extern void unget_token(void);
 
 extern a_boolean pending_ifc_func_body_next(a_symbol_ptr  rout_sym);
 
+extern a_boolean ifc_entity_ref_next(a_symbol_ptr  *p_sym);
+
 extern a_symbol_ptr coalesce_template_class_reference
 			(a_symbol_ptr		   template_symbol,
 			 an_identifier_options_set options,
@@ -3078,11 +3081,19 @@ extern void push_stop_token_stack(void);
 extern void pop_stop_token_stack(void);
 extern void push_lexical_state_stack(void);
 extern void pop_lexical_state_stack(void);
+
 extern a_template_ptr scan_template_template_argument(
 				a_template_ptr		param_template,
 				a_source_position	*err_pos,
                                 a_boolean		is_default,
                                 a_boolean		dependent_default);
+
+a_template_arg_ptr scan_template_argument_list(
+                              a_symbol_ptr              template_sym,
+                              a_boolean                 type_constraint,
+                              a_boolean                 *any_errors,
+                              an_identifier_options_set options,
+                              long                      *first_defaulted_arg);
 
 extern a_template_arg_ptr scan_concept_arg_list(a_symbol_ptr template_sym,
                                                 a_boolean    type_constraint,
