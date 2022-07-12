@@ -9974,6 +9974,11 @@ template<typename an_ifc_Node_type>
 extern an_ifc_sentence_index get_ifc_words(
                                    const an_ifc_Node_type &universal) = delete;
 
+
+template<typename an_ifc_Node_type>
+extern a_boolean validate(const an_ifc_Node_type        &universal,
+                          const an_ifc_validation_trace *parent) = delete;
+
 /*
 Functions for interacting with IFC KeywordSyntax nodes.
 */
@@ -9988,8 +9993,9 @@ extern a_boolean has_ifc_value(const an_ifc_keyword_syntax &universal);
 template<>
 an_ifc_keyword_sort get_ifc_value(const an_ifc_keyword_syntax &universal);
 
-extern a_boolean validate(const an_ifc_keyword_syntax   &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_keyword_syntax   &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_keyword_syntax &universal, unsigned indent);
@@ -10011,8 +10017,9 @@ extern a_boolean has_ifc_partition(const an_ifc_module_reference &universal);
 template<>
 an_ifc_text_offset get_ifc_partition(const an_ifc_module_reference &universal);
 
-extern a_boolean validate(const an_ifc_module_reference &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_module_reference &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_module_reference &universal, unsigned indent);
@@ -10049,8 +10056,9 @@ extern a_boolean has_ifc_value(const an_ifc_nestable_word &universal);
 template<>
 an_ifc_u16 get_ifc_value(const an_ifc_nestable_word &universal);
 
-extern a_boolean validate(const an_ifc_nestable_word    &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_nestable_word    &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_nestable_word &universal, unsigned indent);
@@ -10074,8 +10082,9 @@ template<>
 an_ifc_sentence_index get_ifc_words(
                                const an_ifc_noexcept_specification &universal);
 
-extern a_boolean validate(const an_ifc_noexcept_specification &universal,
-                          const an_ifc_validation_trace       *parent);
+template<>
+a_boolean validate(const an_ifc_noexcept_specification &universal,
+                   const an_ifc_validation_trace       *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_noexcept_specification &universal,
@@ -10112,8 +10121,9 @@ template<>
 an_ifc_sentence_index get_ifc_head(
                                  const an_ifc_parameterized_entity &universal);
 
-extern a_boolean validate(const an_ifc_parameterized_entity &universal,
-                          const an_ifc_validation_trace     *parent);
+template<>
+a_boolean validate(const an_ifc_parameterized_entity &universal,
+                   const an_ifc_validation_trace     *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_parameterized_entity &universal,
@@ -10136,8 +10146,9 @@ extern a_boolean has_ifc_start(const an_ifc_sequence &universal);
 template<>
 an_ifc_index get_ifc_start(const an_ifc_sequence &universal);
 
-extern a_boolean validate(const an_ifc_sequence         &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_sequence         &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_sequence &universal, unsigned indent);
@@ -10159,8 +10170,9 @@ extern a_boolean has_ifc_line(const an_ifc_source_location &universal);
 template<>
 an_ifc_line_index get_ifc_line(const an_ifc_source_location &universal);
 
-extern a_boolean validate(const an_ifc_source_location  &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_source_location  &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_source_location &universal, unsigned indent);
@@ -10247,8 +10259,9 @@ extern a_boolean has_ifc_unit(const an_ifc_file_header &universal);
 template<>
 an_ifc_unit_index get_ifc_unit(const an_ifc_file_header &universal);
 
-extern a_boolean validate(const an_ifc_file_header      &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_file_header      &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_file_header &universal, unsigned indent);
@@ -10286,8 +10299,9 @@ extern a_boolean has_ifc_offset(const an_ifc_partition &universal);
 template<>
 an_ifc_byte_offset get_ifc_offset(const an_ifc_partition &universal);
 
-extern a_boolean validate(const an_ifc_partition        &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_partition        &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_partition &universal, unsigned indent);
@@ -10310,8 +10324,9 @@ extern a_boolean has_ifc_word(const an_ifc_attr_basic &universal);
 template<>
 an_ifc_nestable_word get_ifc_word(const an_ifc_attr_basic &universal);
 
-extern a_boolean validate(const an_ifc_attr_basic       &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_attr_basic       &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_attr_basic &universal, unsigned indent);
@@ -10349,8 +10364,9 @@ extern a_boolean has_ifc_function(const an_ifc_attr_called &universal);
 template<>
 an_ifc_attr_index get_ifc_function(const an_ifc_attr_called &universal);
 
-extern a_boolean validate(const an_ifc_attr_called      &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_attr_called      &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_attr_called &universal, unsigned indent);
@@ -10383,8 +10399,9 @@ extern a_boolean has_ifc_expression(const an_ifc_attr_elaborated &universal);
 template<>
 an_ifc_expr_index get_ifc_expression(const an_ifc_attr_elaborated &universal);
 
-extern a_boolean validate(const an_ifc_attr_elaborated  &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_attr_elaborated  &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_attr_elaborated &universal, unsigned indent);
@@ -10417,8 +10434,9 @@ extern a_boolean has_ifc_operand(const an_ifc_attr_expanded &universal);
 template<>
 an_ifc_attr_index get_ifc_operand(const an_ifc_attr_expanded &universal);
 
-extern a_boolean validate(const an_ifc_attr_expanded    &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_attr_expanded    &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_attr_expanded &universal, unsigned indent);
@@ -10456,8 +10474,9 @@ extern a_boolean has_ifc_terms(const an_ifc_attr_factored &universal);
 template<>
 an_ifc_attr_index get_ifc_terms(const an_ifc_attr_factored &universal);
 
-extern a_boolean validate(const an_ifc_attr_factored    &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_attr_factored    &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_attr_factored &universal, unsigned indent);
@@ -10495,8 +10514,9 @@ extern a_boolean has_ifc_label(const an_ifc_attr_labeled &universal);
 template<>
 an_ifc_nestable_word get_ifc_label(const an_ifc_attr_labeled &universal);
 
-extern a_boolean validate(const an_ifc_attr_labeled     &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_attr_labeled     &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_attr_labeled &universal, unsigned indent);
@@ -10534,8 +10554,9 @@ extern a_boolean has_ifc_scope(const an_ifc_attr_scoped &universal);
 template<>
 an_ifc_nestable_word get_ifc_scope(const an_ifc_attr_scoped &universal);
 
-extern a_boolean validate(const an_ifc_attr_scoped      &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_attr_scoped      &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_attr_scoped &universal, unsigned indent);
@@ -10573,8 +10594,9 @@ extern a_boolean has_ifc_start(const an_ifc_attr_tuple &universal);
 template<>
 an_ifc_index get_ifc_start(const an_ifc_attr_tuple &universal);
 
-extern a_boolean validate(const an_ifc_attr_tuple       &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_attr_tuple       &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_attr_tuple &universal, unsigned indent);
@@ -10613,8 +10635,9 @@ extern a_boolean has_ifc_start(const an_ifc_chart_multilevel &universal);
 template<>
 an_ifc_index get_ifc_start(const an_ifc_chart_multilevel &universal);
 
-extern a_boolean validate(const an_ifc_chart_multilevel &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_chart_multilevel &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_chart_multilevel &universal, unsigned indent);
@@ -10657,8 +10680,9 @@ extern a_boolean has_ifc_start(const an_ifc_chart_unilevel &universal);
 template<>
 an_ifc_index get_ifc_start(const an_ifc_chart_unilevel &universal);
 
-extern a_boolean validate(const an_ifc_chart_unilevel   &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_chart_unilevel   &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_chart_unilevel &universal, unsigned indent);
@@ -10691,8 +10715,9 @@ extern a_boolean has_ifc_value(const an_ifc_const_f64 &universal);
 template<>
 an_ifc_ieeele_float get_ifc_value(const an_ifc_const_f64 &universal);
 
-extern a_boolean validate(const an_ifc_const_f64        &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_const_f64        &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_const_f64 &universal, unsigned indent);
@@ -10725,8 +10750,9 @@ extern a_boolean has_ifc_value(const an_ifc_const_i64 &universal);
 template<>
 an_ifc_u64 get_ifc_value(const an_ifc_const_i64 &universal);
 
-extern a_boolean validate(const an_ifc_const_i64        &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_const_i64        &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_const_i64 &universal, unsigned indent);
@@ -10769,8 +10795,9 @@ extern a_boolean has_ifc_suffix(const an_ifc_const_str &universal);
 template<>
 an_ifc_text_offset get_ifc_suffix(const an_ifc_const_str &universal);
 
-extern a_boolean validate(const an_ifc_const_str        &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_const_str        &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_const_str &universal, unsigned indent);
@@ -10834,8 +10861,9 @@ extern a_boolean has_ifc_type(const an_ifc_decl_alias &universal);
 template<>
 an_ifc_type_index get_ifc_type(const an_ifc_decl_alias &universal);
 
-extern a_boolean validate(const an_ifc_decl_alias       &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_decl_alias       &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_decl_alias &universal, unsigned indent);
@@ -10916,8 +10944,9 @@ extern a_boolean has_ifc_width(const an_ifc_decl_bitfield &universal);
 template<>
 an_ifc_expr_index get_ifc_width(const an_ifc_decl_bitfield &universal);
 
-extern a_boolean validate(const an_ifc_decl_bitfield    &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_decl_bitfield    &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_decl_bitfield &universal, unsigned indent);
@@ -11001,8 +11030,9 @@ extern a_boolean has_ifc_unknown(const an_ifc_decl_concept &universal);
 template<>
 an_ifc_u16 get_ifc_unknown(const an_ifc_decl_concept &universal);
 
-extern a_boolean validate(const an_ifc_decl_concept     &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_decl_concept     &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_decl_concept &universal, unsigned indent);
@@ -11078,8 +11108,9 @@ extern a_boolean has_ifc_type(const an_ifc_decl_constructor &universal);
 template<>
 an_ifc_type_index get_ifc_type(const an_ifc_decl_constructor &universal);
 
-extern a_boolean validate(const an_ifc_decl_constructor &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_decl_constructor &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_decl_constructor &universal, unsigned indent);
@@ -11149,8 +11180,9 @@ template<>
 an_ifc_guide_traits_bitfield get_ifc_traits(
                                  const an_ifc_decl_deduction_guide &universal);
 
-extern a_boolean validate(const an_ifc_decl_deduction_guide &universal,
-                          const an_ifc_validation_trace     *parent);
+template<>
+a_boolean validate(const an_ifc_decl_deduction_guide &universal,
+                   const an_ifc_validation_trace     *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_decl_deduction_guide &universal,
@@ -11229,8 +11261,9 @@ template<>
 an_ifc_function_traits_bitfield get_ifc_traits(
                                       const an_ifc_decl_destructor &universal);
 
-extern a_boolean validate(const an_ifc_decl_destructor  &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_decl_destructor  &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_decl_destructor &universal, unsigned indent);
@@ -11310,8 +11343,9 @@ extern a_boolean has_ifc_type(const an_ifc_decl_enumeration &universal);
 template<>
 an_ifc_type_index get_ifc_type(const an_ifc_decl_enumeration &universal);
 
-extern a_boolean validate(const an_ifc_decl_enumeration &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_decl_enumeration &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_decl_enumeration &universal, unsigned indent);
@@ -11375,8 +11409,9 @@ extern a_boolean has_ifc_type(const an_ifc_decl_enumerator &universal);
 template<>
 an_ifc_type_index get_ifc_type(const an_ifc_decl_enumerator &universal);
 
-extern a_boolean validate(const an_ifc_decl_enumerator  &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_decl_enumerator  &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_decl_enumerator &universal, unsigned indent);
@@ -11414,8 +11449,9 @@ extern a_boolean has_ifc_operand(const an_ifc_decl_expansion &universal);
 template<>
 an_ifc_decl_index get_ifc_operand(const an_ifc_decl_expansion &universal);
 
-extern a_boolean validate(const an_ifc_decl_expansion   &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_decl_expansion   &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_decl_expansion &universal, unsigned indent);
@@ -11457,8 +11493,9 @@ template<>
 an_ifc_form_spec_index get_ifc_form(
                           const an_ifc_decl_explicit_instantiation &universal);
 
-extern a_boolean validate(const an_ifc_decl_explicit_instantiation &universal,
-                          const an_ifc_validation_trace            *parent);
+template<>
+a_boolean validate(const an_ifc_decl_explicit_instantiation &universal,
+                   const an_ifc_validation_trace            *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_decl_explicit_instantiation &universal,
@@ -11502,9 +11539,9 @@ template<>
 an_ifc_form_spec_index get_ifc_form(
                          const an_ifc_decl_explicit_specialization &universal);
 
-extern a_boolean validate(
-                         const an_ifc_decl_explicit_specialization &universal,
-                         const an_ifc_validation_trace             *parent);
+template<>
+a_boolean validate(const an_ifc_decl_explicit_specialization &universal,
+                   const an_ifc_validation_trace             *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_decl_explicit_specialization &universal,
@@ -11587,8 +11624,9 @@ extern a_boolean has_ifc_type(const an_ifc_decl_field &universal);
 template<>
 an_ifc_type_index get_ifc_type(const an_ifc_decl_field &universal);
 
-extern a_boolean validate(const an_ifc_decl_field       &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_decl_field       &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_decl_field &universal, unsigned indent);
@@ -11621,8 +11659,9 @@ extern a_boolean has_ifc_entity(const an_ifc_decl_friend &universal);
 template<>
 an_ifc_expr_index get_ifc_entity(const an_ifc_decl_friend &universal);
 
-extern a_boolean validate(const an_ifc_decl_friend      &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_decl_friend      &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_decl_friend &universal, unsigned indent);
@@ -11698,8 +11737,9 @@ extern a_boolean has_ifc_type(const an_ifc_decl_function &universal);
 template<>
 an_ifc_type_index get_ifc_type(const an_ifc_decl_function &universal);
 
-extern a_boolean validate(const an_ifc_decl_function    &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_decl_function    &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_decl_function &universal, unsigned indent);
@@ -11790,8 +11830,9 @@ template<>
 an_ifc_type_index get_ifc_type(
                            const an_ifc_decl_inherited_constructor &universal);
 
-extern a_boolean validate(const an_ifc_decl_inherited_constructor &universal,
-                          const an_ifc_validation_trace           *parent);
+template<>
+a_boolean validate(const an_ifc_decl_inherited_constructor &universal,
+                   const an_ifc_validation_trace           *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_decl_inherited_constructor &universal,
@@ -11852,8 +11893,9 @@ extern a_boolean has_ifc_type(const an_ifc_decl_intrinsic &universal);
 template<>
 an_ifc_type_index get_ifc_type(const an_ifc_decl_intrinsic &universal);
 
-extern a_boolean validate(const an_ifc_decl_intrinsic   &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_decl_intrinsic   &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_decl_intrinsic &universal, unsigned indent);
@@ -11929,8 +11971,9 @@ extern a_boolean has_ifc_type(const an_ifc_decl_method &universal);
 template<>
 an_ifc_type_index get_ifc_type(const an_ifc_decl_method &universal);
 
-extern a_boolean validate(const an_ifc_decl_method      &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_decl_method      &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_decl_method &universal, unsigned indent);
@@ -11979,8 +12022,9 @@ extern a_boolean has_ifc_type(const an_ifc_decl_output_segment &universal);
 template<>
 an_ifc_segment_type get_ifc_type(const an_ifc_decl_output_segment &universal);
 
-extern a_boolean validate(const an_ifc_decl_output_segment &universal,
-                          const an_ifc_validation_trace    *parent);
+template<>
+a_boolean validate(const an_ifc_decl_output_segment &universal,
+                   const an_ifc_validation_trace    *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_decl_output_segment &universal,
@@ -12061,8 +12105,9 @@ extern a_boolean has_ifc_type(const an_ifc_decl_parameter &universal);
 template<>
 an_ifc_type_index get_ifc_type(const an_ifc_decl_parameter &universal);
 
-extern a_boolean validate(const an_ifc_decl_parameter   &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_decl_parameter   &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_decl_parameter &universal, unsigned indent);
@@ -12153,8 +12198,9 @@ template<>
 an_ifc_basic_specifiers_bitfield get_ifc_specifiers(
                           const an_ifc_decl_partial_specialization &universal);
 
-extern a_boolean validate(const an_ifc_decl_partial_specialization &universal,
-                          const an_ifc_validation_trace            *parent);
+template<>
+a_boolean validate(const an_ifc_decl_partial_specialization &universal,
+                   const an_ifc_validation_trace            *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_decl_partial_specialization &universal,
@@ -12199,8 +12245,9 @@ extern a_boolean has_ifc_setter(const an_ifc_decl_property &universal);
 template<>
 an_ifc_text_offset get_ifc_setter(const an_ifc_decl_property &universal);
 
-extern a_boolean validate(const an_ifc_decl_property    &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_decl_property    &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_decl_property &universal, unsigned indent);
@@ -12244,8 +12291,9 @@ extern a_boolean has_ifc_unit(const an_ifc_decl_reference &universal);
 template<>
 an_ifc_module_reference get_ifc_unit(const an_ifc_decl_reference &universal);
 
-extern a_boolean validate(const an_ifc_decl_reference   &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_decl_reference   &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_decl_reference &universal, unsigned indent);
@@ -12336,8 +12384,9 @@ extern a_boolean has_ifc_type(const an_ifc_decl_scope &universal);
 template<>
 an_ifc_type_index get_ifc_type(const an_ifc_decl_scope &universal);
 
-extern a_boolean validate(const an_ifc_decl_scope       &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_decl_scope       &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_decl_scope &universal, unsigned indent);
@@ -12400,8 +12449,9 @@ template<>
 an_ifc_specialization_sort get_ifc_sort(
                                   const an_ifc_decl_specialization &universal);
 
-extern a_boolean validate(const an_ifc_decl_specialization &universal,
-                          const an_ifc_validation_trace    *parent);
+template<>
+a_boolean validate(const an_ifc_decl_specialization &universal,
+                   const an_ifc_validation_trace    *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_decl_specialization &universal,
@@ -12478,8 +12528,9 @@ extern a_boolean has_ifc_type(const an_ifc_decl_template &universal);
 template<>
 an_ifc_type_index get_ifc_type(const an_ifc_decl_template &universal);
 
-extern a_boolean validate(const an_ifc_decl_template    &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_decl_template    &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_decl_template &universal, unsigned indent);
@@ -12524,8 +12575,9 @@ template<>
 an_ifc_reachable_properties_bitfield get_ifc_properties(
                                         const an_ifc_decl_temploid &universal);
 
-extern a_boolean validate(const an_ifc_decl_temploid    &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_decl_temploid    &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_decl_temploid &universal, unsigned indent);
@@ -12563,8 +12615,9 @@ extern a_boolean has_ifc_start(const an_ifc_decl_tuple &universal);
 template<>
 an_ifc_index get_ifc_start(const an_ifc_decl_tuple &universal);
 
-extern a_boolean validate(const an_ifc_decl_tuple       &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_decl_tuple       &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_decl_tuple &universal, unsigned indent);
@@ -12651,8 +12704,9 @@ template<>
 an_ifc_basic_specifiers_bitfield get_ifc_specifiers(
                                const an_ifc_decl_using_declaration &universal);
 
-extern a_boolean validate(const an_ifc_decl_using_declaration &universal,
-                          const an_ifc_validation_trace       *parent);
+template<>
+a_boolean validate(const an_ifc_decl_using_declaration &universal,
+                   const an_ifc_validation_trace       *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_decl_using_declaration &universal,
@@ -12735,8 +12789,9 @@ extern a_boolean has_ifc_type(const an_ifc_decl_variable &universal);
 template<>
 an_ifc_type_index get_ifc_type(const an_ifc_decl_variable &universal);
 
-extern a_boolean validate(const an_ifc_decl_variable    &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_decl_variable    &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_decl_variable &universal, unsigned indent);
@@ -12779,8 +12834,9 @@ extern a_boolean has_ifc_type(const an_ifc_expr_alignof &universal);
 template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_alignof &universal);
 
-extern a_boolean validate(const an_ifc_expr_alignof     &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_expr_alignof     &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_expr_alignof &universal, unsigned indent);
@@ -12830,8 +12886,9 @@ extern a_boolean has_ifc_type(const an_ifc_expr_array_value &universal);
 template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_array_value &universal);
 
-extern a_boolean validate(const an_ifc_expr_array_value &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_expr_array_value &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_expr_array_value &universal, unsigned indent);
@@ -12873,8 +12930,9 @@ template<>
 an_ifc_expr_index get_ifc_initializer(
                               const an_ifc_expr_assign_initializer &universal);
 
-extern a_boolean validate(const an_ifc_expr_assign_initializer &universal,
-                          const an_ifc_validation_trace        *parent);
+template<>
+a_boolean validate(const an_ifc_expr_assign_initializer &universal,
+                   const an_ifc_validation_trace        *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_expr_assign_initializer &universal,
@@ -12937,8 +12995,9 @@ extern a_boolean has_ifc_type(const an_ifc_expr_binary_fold &universal);
 template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_binary_fold &universal);
 
-extern a_boolean validate(const an_ifc_expr_binary_fold &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_expr_binary_fold &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_expr_binary_fold &universal, unsigned indent);
@@ -12986,8 +13045,9 @@ extern a_boolean has_ifc_type(const an_ifc_expr_call &universal);
 template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_call &universal);
 
-extern a_boolean validate(const an_ifc_expr_call        &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_expr_call        &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_expr_call &universal, unsigned indent);
@@ -13040,8 +13100,9 @@ extern a_boolean has_ifc_type(const an_ifc_expr_cast &universal);
 template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_cast &universal);
 
-extern a_boolean validate(const an_ifc_expr_cast        &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_expr_cast        &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_expr_cast &universal, unsigned indent);
@@ -13091,8 +13152,9 @@ extern a_boolean has_ifc_type(const an_ifc_expr_compound_string &universal);
 template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_compound_string &universal);
 
-extern a_boolean validate(const an_ifc_expr_compound_string &universal,
-                          const an_ifc_validation_trace     *parent);
+template<>
+a_boolean validate(const an_ifc_expr_compound_string &universal,
+                   const an_ifc_validation_trace     *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_expr_compound_string &universal,
@@ -13136,8 +13198,9 @@ extern a_boolean has_ifc_type(const an_ifc_expr_condition &universal);
 template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_condition &universal);
 
-extern a_boolean validate(const an_ifc_expr_condition   &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_expr_condition   &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_expr_condition &universal, unsigned indent);
@@ -13193,8 +13256,9 @@ template<>
 an_ifc_type_index get_ifc_type(
                           const an_ifc_expr_designated_initializer &universal);
 
-extern a_boolean validate(const an_ifc_expr_designated_initializer &universal,
-                          const an_ifc_validation_trace            *parent);
+template<>
+a_boolean validate(const an_ifc_expr_designated_initializer &universal,
+                   const an_ifc_validation_trace            *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_expr_designated_initializer &universal,
@@ -13253,8 +13317,9 @@ extern a_boolean has_ifc_type(const an_ifc_expr_destructor_call &universal);
 template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_destructor_call &universal);
 
-extern a_boolean validate(const an_ifc_expr_destructor_call &universal,
-                          const an_ifc_validation_trace     *parent);
+template<>
+a_boolean validate(const an_ifc_expr_destructor_call &universal,
+                   const an_ifc_validation_trace     *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_expr_destructor_call &universal,
@@ -13313,8 +13378,9 @@ extern a_boolean has_ifc_type(const an_ifc_expr_dyad &universal);
 template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_dyad &universal);
 
-extern a_boolean validate(const an_ifc_expr_dyad        &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_expr_dyad        &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_expr_dyad &universal, unsigned indent);
@@ -13358,8 +13424,9 @@ extern a_boolean has_ifc_type(const an_ifc_expr_dynamic_dispatch &universal);
 template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_dynamic_dispatch &universal);
 
-extern a_boolean validate(const an_ifc_expr_dynamic_dispatch &universal,
-                          const an_ifc_validation_trace      *parent);
+template<>
+a_boolean validate(const an_ifc_expr_dynamic_dispatch &universal,
+                   const an_ifc_validation_trace      *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_expr_dynamic_dispatch &universal,
@@ -13399,8 +13466,9 @@ extern a_boolean has_ifc_type(const an_ifc_expr_empty &universal);
 template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_empty &universal);
 
-extern a_boolean validate(const an_ifc_expr_empty       &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_expr_empty       &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_expr_empty &universal, unsigned indent);
@@ -13443,8 +13511,9 @@ extern a_boolean has_ifc_type(const an_ifc_expr_expansion &universal);
 template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_expansion &universal);
 
-extern a_boolean validate(const an_ifc_expr_expansion   &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_expr_expansion   &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_expr_expansion &universal, unsigned indent);
@@ -13498,8 +13567,9 @@ template<>
 an_ifc_source_location get_ifc_right(
                                  const an_ifc_expr_expression_list &universal);
 
-extern a_boolean validate(const an_ifc_expr_expression_list &universal,
-                          const an_ifc_validation_trace     *parent);
+template<>
+a_boolean validate(const an_ifc_expr_expression_list &universal,
+                   const an_ifc_validation_trace     *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_expr_expression_list &universal,
@@ -13544,8 +13614,9 @@ extern a_boolean has_ifc_type(const an_ifc_expr_function_string &universal);
 template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_function_string &universal);
 
-extern a_boolean validate(const an_ifc_expr_function_string &universal,
-                          const an_ifc_validation_trace     *parent);
+template<>
+a_boolean validate(const an_ifc_expr_function_string &universal,
+                   const an_ifc_validation_trace     *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_expr_function_string &universal,
@@ -13622,8 +13693,9 @@ template<>
 an_ifc_type_index get_ifc_type(
                             const an_ifc_expr_hierarchy_conversion &universal);
 
-extern a_boolean validate(const an_ifc_expr_hierarchy_conversion &universal,
-                          const an_ifc_validation_trace          *parent);
+template<>
+a_boolean validate(const an_ifc_expr_hierarchy_conversion &universal,
+                   const an_ifc_validation_trace          *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_expr_hierarchy_conversion &universal,
@@ -13669,8 +13741,9 @@ extern a_boolean has_ifc_type(const an_ifc_expr_inheritance_path &universal);
 template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_inheritance_path &universal);
 
-extern a_boolean validate(const an_ifc_expr_inheritance_path &universal,
-                          const an_ifc_validation_trace      *parent);
+template<>
+a_boolean validate(const an_ifc_expr_inheritance_path &universal,
+                   const an_ifc_validation_trace      *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_expr_inheritance_path &universal,
@@ -13720,8 +13793,9 @@ extern a_boolean has_ifc_type(const an_ifc_expr_initializer &universal);
 template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_initializer &universal);
 
-extern a_boolean validate(const an_ifc_expr_initializer &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_expr_initializer &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_expr_initializer &universal, unsigned indent);
@@ -13767,8 +13841,9 @@ extern a_boolean has_ifc_type(const an_ifc_expr_initializer_list &universal);
 template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_initializer_list &universal);
 
-extern a_boolean validate(const an_ifc_expr_initializer_list &universal,
-                          const an_ifc_validation_trace      *parent);
+template<>
+a_boolean validate(const an_ifc_expr_initializer_list &universal,
+                   const an_ifc_validation_trace      *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_expr_initializer_list &universal,
@@ -13825,8 +13900,9 @@ template<>
 an_ifc_syntax_index get_ifc_template_parameters(
                                           const an_ifc_expr_lambda &universal);
 
-extern a_boolean validate(const an_ifc_expr_lambda      &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_expr_lambda      &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_expr_lambda &universal, unsigned indent);
@@ -13869,8 +13945,9 @@ extern a_boolean has_ifc_value(const an_ifc_expr_literal &universal);
 template<>
 an_ifc_lit_index get_ifc_value(const an_ifc_expr_literal &universal);
 
-extern a_boolean validate(const an_ifc_expr_literal     &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_expr_literal     &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_expr_literal &universal, unsigned indent);
@@ -13925,8 +14002,9 @@ extern a_boolean has_ifc_type(const an_ifc_expr_member_access &universal);
 template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_member_access &universal);
 
-extern a_boolean validate(const an_ifc_expr_member_access &universal,
-                          const an_ifc_validation_trace   *parent);
+template<>
+a_boolean validate(const an_ifc_expr_member_access &universal,
+                   const an_ifc_validation_trace   *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_expr_member_access &universal,
@@ -13988,8 +14066,9 @@ template<>
 an_ifc_type_index get_ifc_type(
                               const an_ifc_expr_member_initializer &universal);
 
-extern a_boolean validate(const an_ifc_expr_member_initializer &universal,
-                          const an_ifc_validation_trace        *parent);
+template<>
+a_boolean validate(const an_ifc_expr_member_initializer &universal,
+                   const an_ifc_validation_trace        *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_expr_member_initializer &universal,
@@ -14044,8 +14123,9 @@ extern a_boolean has_ifc_type(const an_ifc_expr_monad &universal);
 template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_monad &universal);
 
-extern a_boolean validate(const an_ifc_expr_monad       &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_expr_monad       &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_expr_monad &universal, unsigned indent);
@@ -14088,8 +14168,9 @@ extern a_boolean has_ifc_type(const an_ifc_expr_named_decl &universal);
 template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_named_decl &universal);
 
-extern a_boolean validate(const an_ifc_expr_named_decl  &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_expr_named_decl  &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_expr_named_decl &universal, unsigned indent);
@@ -14127,8 +14208,9 @@ extern a_boolean has_ifc_type(const an_ifc_expr_nullptr &universal);
 template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_nullptr &universal);
 
-extern a_boolean validate(const an_ifc_expr_nullptr     &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_expr_nullptr     &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_expr_nullptr &universal, unsigned indent);
@@ -14177,9 +14259,9 @@ template<>
 an_ifc_type_index get_ifc_type(
                        const an_ifc_expr_packed_template_arguments &universal);
 
-extern a_boolean validate(
-                       const an_ifc_expr_packed_template_arguments &universal,
-                       const an_ifc_validation_trace               *parent);
+template<>
+a_boolean validate(const an_ifc_expr_packed_template_arguments &universal,
+                   const an_ifc_validation_trace               *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_expr_packed_template_arguments &universal,
@@ -14229,8 +14311,9 @@ extern a_boolean has_ifc_type(const an_ifc_expr_path &universal);
 template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_path &universal);
 
-extern a_boolean validate(const an_ifc_expr_path        &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_expr_path        &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_expr_path &universal, unsigned indent);
@@ -14268,8 +14351,9 @@ extern a_boolean has_ifc_type(const an_ifc_expr_placeholder &universal);
 template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_placeholder &universal);
 
-extern a_boolean validate(const an_ifc_expr_placeholder &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_expr_placeholder &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_expr_placeholder &universal, unsigned indent);
@@ -14302,8 +14386,9 @@ extern a_boolean has_ifc_locus(const an_ifc_expr_pointer &universal);
 template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_expr_pointer &universal);
 
-extern a_boolean validate(const an_ifc_expr_pointer     &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_expr_pointer     &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_expr_pointer &universal, unsigned indent);
@@ -14365,8 +14450,9 @@ template<>
 an_ifc_type_index get_ifc_type(
                               const an_ifc_expr_product_type_value &universal);
 
-extern a_boolean validate(const an_ifc_expr_product_type_value &universal,
-                          const an_ifc_validation_trace        *parent);
+template<>
+a_boolean validate(const an_ifc_expr_product_type_value &universal,
+                   const an_ifc_validation_trace        *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_expr_product_type_value &universal,
@@ -14421,8 +14507,9 @@ extern a_boolean has_ifc_type(const an_ifc_expr_push_state &universal);
 template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_push_state &universal);
 
-extern a_boolean validate(const an_ifc_expr_push_state  &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_expr_push_state  &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_expr_push_state &universal, unsigned indent);
@@ -14474,8 +14561,9 @@ template<>
 an_ifc_source_location get_ifc_typename_keyword(
                                   const an_ifc_expr_qualified_name &universal);
 
-extern a_boolean validate(const an_ifc_expr_qualified_name &universal,
-                          const an_ifc_validation_trace    *parent);
+template<>
+a_boolean validate(const an_ifc_expr_qualified_name &universal,
+                   const an_ifc_validation_trace    *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_expr_qualified_name &universal,
@@ -14524,8 +14612,9 @@ extern a_boolean has_ifc_type(const an_ifc_expr_read &universal);
 template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_read &universal);
 
-extern a_boolean validate(const an_ifc_expr_read        &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_expr_read        &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_expr_read &universal, unsigned indent);
@@ -14573,8 +14662,9 @@ extern a_boolean has_ifc_type(const an_ifc_expr_requires &universal);
 template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_requires &universal);
 
-extern a_boolean validate(const an_ifc_expr_requires    &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_expr_requires    &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_expr_requires &universal, unsigned indent);
@@ -14618,8 +14708,9 @@ extern a_boolean has_ifc_type(const an_ifc_expr_simple_identifier &universal);
 template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_simple_identifier &universal);
 
-extern a_boolean validate(const an_ifc_expr_simple_identifier &universal,
-                          const an_ifc_validation_trace       *parent);
+template<>
+a_boolean validate(const an_ifc_expr_simple_identifier &universal,
+                   const an_ifc_validation_trace       *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_expr_simple_identifier &universal,
@@ -14664,8 +14755,9 @@ extern a_boolean has_ifc_type(const an_ifc_expr_sizeof_type &universal);
 template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_sizeof_type &universal);
 
-extern a_boolean validate(const an_ifc_expr_sizeof_type &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_expr_sizeof_type &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_expr_sizeof_type &universal, unsigned indent);
@@ -14708,8 +14800,9 @@ extern a_boolean has_ifc_type(const an_ifc_expr_string &universal);
 template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_string &universal);
 
-extern a_boolean validate(const an_ifc_expr_string      &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_expr_string      &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_expr_string &universal, unsigned indent);
@@ -14754,8 +14847,9 @@ extern a_boolean has_ifc_type(const an_ifc_expr_string_sequence &universal);
 template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_string_sequence &universal);
 
-extern a_boolean validate(const an_ifc_expr_string_sequence &universal,
-                          const an_ifc_validation_trace     *parent);
+template<>
+a_boolean validate(const an_ifc_expr_string_sequence &universal,
+                   const an_ifc_validation_trace     *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_expr_string_sequence &universal,
@@ -14789,8 +14883,9 @@ extern a_boolean has_ifc_value(const an_ifc_expr_subobject_value &universal);
 template<>
 an_ifc_expr_index get_ifc_value(const an_ifc_expr_subobject_value &universal);
 
-extern a_boolean validate(const an_ifc_expr_subobject_value &universal,
-                          const an_ifc_validation_trace     *parent);
+template<>
+a_boolean validate(const an_ifc_expr_subobject_value &universal,
+                   const an_ifc_validation_trace     *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_expr_subobject_value &universal,
@@ -14847,8 +14942,9 @@ extern a_boolean has_ifc_variant(const an_ifc_expr_sum_type_value &universal);
 template<>
 an_ifc_decl_index get_ifc_variant(const an_ifc_expr_sum_type_value &universal);
 
-extern a_boolean validate(const an_ifc_expr_sum_type_value &universal,
-                          const an_ifc_validation_trace    *parent);
+template<>
+a_boolean validate(const an_ifc_expr_sum_type_value &universal,
+                   const an_ifc_validation_trace    *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_expr_sum_type_value &universal,
@@ -14882,8 +14978,9 @@ extern a_boolean has_ifc_syntax(const an_ifc_expr_syntax_tree &universal);
 template<>
 an_ifc_syntax_index get_ifc_syntax(const an_ifc_expr_syntax_tree &universal);
 
-extern a_boolean validate(const an_ifc_expr_syntax_tree &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_expr_syntax_tree &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_expr_syntax_tree &universal, unsigned indent);
@@ -14931,8 +15028,9 @@ extern a_boolean has_ifc_type(const an_ifc_expr_template_id &universal);
 template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_template_id &universal);
 
-extern a_boolean validate(const an_ifc_expr_template_id &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_expr_template_id &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_expr_template_id &universal, unsigned indent);
@@ -15001,8 +15099,9 @@ template<>
 an_ifc_type_index get_ifc_type(
                               const an_ifc_expr_template_reference &universal);
 
-extern a_boolean validate(const an_ifc_expr_template_reference &universal,
-                          const an_ifc_validation_trace        *parent);
+template<>
+a_boolean validate(const an_ifc_expr_template_reference &universal,
+                   const an_ifc_validation_trace        *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_expr_template_reference &universal,
@@ -15047,8 +15146,9 @@ extern a_boolean has_ifc_type(const an_ifc_expr_temporary &universal);
 template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_temporary &universal);
 
-extern a_boolean validate(const an_ifc_expr_temporary   &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_expr_temporary   &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_expr_temporary &universal, unsigned indent);
@@ -15086,8 +15186,9 @@ extern a_boolean has_ifc_type(const an_ifc_expr_this &universal);
 template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_this &universal);
 
-extern a_boolean validate(const an_ifc_expr_this        &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_expr_this        &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_expr_this &universal, unsigned indent);
@@ -15130,8 +15231,9 @@ extern a_boolean has_ifc_words(const an_ifc_expr_tokens &universal);
 template<>
 an_ifc_sentence_index get_ifc_words(const an_ifc_expr_tokens &universal);
 
-extern a_boolean validate(const an_ifc_expr_tokens      &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_expr_tokens      &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_expr_tokens &universal, unsigned indent);
@@ -15194,8 +15296,9 @@ extern a_boolean has_ifc_type(const an_ifc_expr_triad &universal);
 template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_triad &universal);
 
-extern a_boolean validate(const an_ifc_expr_triad       &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_expr_triad       &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_expr_triad &universal, unsigned indent);
@@ -15243,8 +15346,9 @@ extern a_boolean has_ifc_type(const an_ifc_expr_tuple &universal);
 template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_tuple &universal);
 
-extern a_boolean validate(const an_ifc_expr_tuple       &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_expr_tuple       &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_expr_tuple &universal, unsigned indent);
@@ -15287,8 +15391,9 @@ extern a_boolean has_ifc_type(const an_ifc_expr_type &universal);
 template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_type &universal);
 
-extern a_boolean validate(const an_ifc_expr_type        &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_expr_type        &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_expr_type &universal, unsigned indent);
@@ -15344,8 +15449,9 @@ template<>
 an_ifc_type_index get_ifc_type(
                             const an_ifc_expr_type_trait_intrinsic &universal);
 
-extern a_boolean validate(const an_ifc_expr_type_trait_intrinsic &universal,
-                          const an_ifc_validation_trace          *parent);
+template<>
+a_boolean validate(const an_ifc_expr_type_trait_intrinsic &universal,
+                   const an_ifc_validation_trace          *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_expr_type_trait_intrinsic &universal,
@@ -15390,8 +15496,9 @@ extern a_boolean has_ifc_type(const an_ifc_expr_typeid &universal);
 template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_typeid &universal);
 
-extern a_boolean validate(const an_ifc_expr_typeid      &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_expr_typeid      &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_expr_typeid &universal, unsigned indent);
@@ -15447,8 +15554,9 @@ extern a_boolean has_ifc_type(const an_ifc_expr_unary_fold &universal);
 template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_unary_fold &universal);
 
-extern a_boolean validate(const an_ifc_expr_unary_fold  &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_expr_unary_fold  &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_expr_unary_fold &universal, unsigned indent);
@@ -15506,8 +15614,9 @@ extern a_boolean has_ifc_type(const an_ifc_expr_unqualified_id &universal);
 template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_unqualified_id &universal);
 
-extern a_boolean validate(const an_ifc_expr_unqualified_id &universal,
-                          const an_ifc_validation_trace    *parent);
+template<>
+a_boolean validate(const an_ifc_expr_unqualified_id &universal,
+                   const an_ifc_validation_trace    *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_expr_unqualified_id &universal,
@@ -15552,8 +15661,9 @@ extern a_boolean has_ifc_type(const an_ifc_expr_unresolved_id &universal);
 template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_unresolved_id &universal);
 
-extern a_boolean validate(const an_ifc_expr_unresolved_id &universal,
-                          const an_ifc_validation_trace   *parent);
+template<>
+a_boolean validate(const an_ifc_expr_unresolved_id &universal,
+                   const an_ifc_validation_trace   *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_expr_unresolved_id &universal,
@@ -15603,9 +15713,9 @@ template<>
 an_ifc_type_index get_ifc_type(
                      const an_ifc_expr_virtual_function_conversion &universal);
 
-extern a_boolean validate(
-                     const an_ifc_expr_virtual_function_conversion &universal,
-                     const an_ifc_validation_trace                 *parent);
+template<>
+a_boolean validate(const an_ifc_expr_virtual_function_conversion &universal,
+                   const an_ifc_validation_trace                 *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_expr_virtual_function_conversion &universal,
@@ -15650,8 +15760,9 @@ extern a_boolean has_ifc_second(const an_ifc_form_catenate &universal);
 template<>
 an_ifc_form_index get_ifc_second(const an_ifc_form_catenate &universal);
 
-extern a_boolean validate(const an_ifc_form_catenate    &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_form_catenate    &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_form_catenate &universal, unsigned indent);
@@ -15689,8 +15800,9 @@ extern a_boolean has_ifc_spelling(const an_ifc_form_character &universal);
 template<>
 an_ifc_text_offset get_ifc_spelling(const an_ifc_form_character &universal);
 
-extern a_boolean validate(const an_ifc_form_character   &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_form_character   &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_form_character &universal, unsigned indent);
@@ -15728,8 +15840,9 @@ extern a_boolean has_ifc_spelling(const an_ifc_form_header &universal);
 template<>
 an_ifc_text_offset get_ifc_spelling(const an_ifc_form_header &universal);
 
-extern a_boolean validate(const an_ifc_form_header      &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_form_header      &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_form_header &universal, unsigned indent);
@@ -15767,8 +15880,9 @@ extern a_boolean has_ifc_spelling(const an_ifc_form_identifier &universal);
 template<>
 an_ifc_text_offset get_ifc_spelling(const an_ifc_form_identifier &universal);
 
-extern a_boolean validate(const an_ifc_form_identifier  &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_form_identifier  &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_form_identifier &universal, unsigned indent);
@@ -15806,8 +15920,9 @@ extern a_boolean has_ifc_spelling(const an_ifc_form_junk &universal);
 template<>
 an_ifc_text_offset get_ifc_spelling(const an_ifc_form_junk &universal);
 
-extern a_boolean validate(const an_ifc_form_junk        &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_form_junk        &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_form_junk &universal, unsigned indent);
@@ -15845,8 +15960,9 @@ extern a_boolean has_ifc_spelling(const an_ifc_form_keyword &universal);
 template<>
 an_ifc_text_offset get_ifc_spelling(const an_ifc_form_keyword &universal);
 
-extern a_boolean validate(const an_ifc_form_keyword     &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_form_keyword     &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_form_keyword &universal, unsigned indent);
@@ -15884,8 +16000,9 @@ extern a_boolean has_ifc_spelling(const an_ifc_form_number &universal);
 template<>
 an_ifc_text_offset get_ifc_spelling(const an_ifc_form_number &universal);
 
-extern a_boolean validate(const an_ifc_form_number      &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_form_number      &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_form_number &universal, unsigned indent);
@@ -15928,8 +16045,9 @@ extern a_boolean has_ifc_spelling(const an_ifc_form_operator &universal);
 template<>
 an_ifc_text_offset get_ifc_spelling(const an_ifc_form_operator &universal);
 
-extern a_boolean validate(const an_ifc_form_operator    &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_form_operator    &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_form_operator &universal, unsigned indent);
@@ -15967,8 +16085,9 @@ extern a_boolean has_ifc_spelling(const an_ifc_form_parameter &universal);
 template<>
 an_ifc_text_offset get_ifc_spelling(const an_ifc_form_parameter &universal);
 
-extern a_boolean validate(const an_ifc_form_parameter   &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_form_parameter   &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_form_parameter &universal, unsigned indent);
@@ -16007,8 +16126,9 @@ extern a_boolean has_ifc_operand(const an_ifc_form_parenthesized &universal);
 template<>
 an_ifc_form_index get_ifc_operand(const an_ifc_form_parenthesized &universal);
 
-extern a_boolean validate(const an_ifc_form_parenthesized &universal,
-                          const an_ifc_validation_trace   *parent);
+template<>
+a_boolean validate(const an_ifc_form_parenthesized &universal,
+                   const an_ifc_validation_trace   *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_form_parenthesized &universal,
@@ -16047,8 +16167,9 @@ extern a_boolean has_ifc_operand(const an_ifc_form_pragma &universal);
 template<>
 an_ifc_form_index get_ifc_operand(const an_ifc_form_pragma &universal);
 
-extern a_boolean validate(const an_ifc_form_pragma      &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_form_pragma      &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_form_pragma &universal, unsigned indent);
@@ -16086,8 +16207,9 @@ extern a_boolean has_ifc_primary_template(const an_ifc_form_spec &universal);
 template<>
 an_ifc_decl_index get_ifc_primary_template(const an_ifc_form_spec &universal);
 
-extern a_boolean validate(const an_ifc_form_spec        &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_form_spec        &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_form_spec &universal, unsigned indent);
@@ -16125,8 +16247,9 @@ extern a_boolean has_ifc_spelling(const an_ifc_form_string &universal);
 template<>
 an_ifc_text_offset get_ifc_spelling(const an_ifc_form_string &universal);
 
-extern a_boolean validate(const an_ifc_form_string      &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_form_string      &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_form_string &universal, unsigned indent);
@@ -16164,8 +16287,9 @@ extern a_boolean has_ifc_operand(const an_ifc_form_stringize &universal);
 template<>
 an_ifc_form_index get_ifc_operand(const an_ifc_form_stringize &universal);
 
-extern a_boolean validate(const an_ifc_form_stringize   &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_form_stringize   &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_form_stringize &universal, unsigned indent);
@@ -16203,8 +16327,9 @@ extern a_boolean has_ifc_start(const an_ifc_form_tuple &universal);
 template<>
 an_ifc_index get_ifc_start(const an_ifc_form_tuple &universal);
 
-extern a_boolean validate(const an_ifc_form_tuple       &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_form_tuple       &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_form_tuple &universal, unsigned indent);
@@ -16237,8 +16362,9 @@ extern a_boolean has_ifc_locus(const an_ifc_form_whitespace &universal);
 template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_form_whitespace &universal);
 
-extern a_boolean validate(const an_ifc_form_whitespace  &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_form_whitespace  &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_form_whitespace &universal, unsigned indent);
@@ -16271,8 +16397,9 @@ extern a_boolean has_ifc_value(const an_ifc_heap_attr &universal);
 template<>
 an_ifc_attr_index get_ifc_value(const an_ifc_heap_attr &universal);
 
-extern a_boolean validate(const an_ifc_heap_attr        &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_heap_attr        &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_heap_attr &universal, unsigned indent);
@@ -16305,8 +16432,9 @@ extern a_boolean has_ifc_value(const an_ifc_heap_chart &universal);
 template<>
 an_ifc_chart_index get_ifc_value(const an_ifc_heap_chart &universal);
 
-extern a_boolean validate(const an_ifc_heap_chart       &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_heap_chart       &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_heap_chart &universal, unsigned indent);
@@ -16339,8 +16467,9 @@ extern a_boolean has_ifc_value(const an_ifc_heap_decl &universal);
 template<>
 an_ifc_decl_index get_ifc_value(const an_ifc_heap_decl &universal);
 
-extern a_boolean validate(const an_ifc_heap_decl        &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_heap_decl        &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_heap_decl &universal, unsigned indent);
@@ -16373,8 +16502,9 @@ extern a_boolean has_ifc_value(const an_ifc_heap_expr &universal);
 template<>
 an_ifc_expr_index get_ifc_value(const an_ifc_heap_expr &universal);
 
-extern a_boolean validate(const an_ifc_heap_expr        &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_heap_expr        &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_heap_expr &universal, unsigned indent);
@@ -16407,8 +16537,9 @@ extern a_boolean has_ifc_value(const an_ifc_heap_form &universal);
 template<>
 an_ifc_form_index get_ifc_value(const an_ifc_heap_form &universal);
 
-extern a_boolean validate(const an_ifc_heap_form        &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_heap_form        &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_heap_form &universal, unsigned indent);
@@ -16441,8 +16572,9 @@ extern a_boolean has_ifc_value(const an_ifc_heap_pp_form &universal);
 template<>
 an_ifc_form_index get_ifc_value(const an_ifc_heap_pp_form &universal);
 
-extern a_boolean validate(const an_ifc_heap_pp_form     &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_heap_pp_form     &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_heap_pp_form &universal, unsigned indent);
@@ -16475,8 +16607,9 @@ extern a_boolean has_ifc_value(const an_ifc_heap_stmt &universal);
 template<>
 an_ifc_stmt_index get_ifc_value(const an_ifc_heap_stmt &universal);
 
-extern a_boolean validate(const an_ifc_heap_stmt        &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_heap_stmt        &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_heap_stmt &universal, unsigned indent);
@@ -16509,8 +16642,9 @@ extern a_boolean has_ifc_value(const an_ifc_heap_syntax &universal);
 template<>
 an_ifc_syntax_index get_ifc_value(const an_ifc_heap_syntax &universal);
 
-extern a_boolean validate(const an_ifc_heap_syntax      &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_heap_syntax      &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_heap_syntax &universal, unsigned indent);
@@ -16543,8 +16677,9 @@ extern a_boolean has_ifc_value(const an_ifc_heap_type &universal);
 template<>
 an_ifc_type_index get_ifc_value(const an_ifc_heap_type &universal);
 
-extern a_boolean validate(const an_ifc_heap_type        &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_heap_type        &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_heap_type &universal, unsigned indent);
@@ -16602,8 +16737,9 @@ template<>
 an_ifc_form_index get_ifc_parameters(
                                   const an_ifc_macro_function_like &universal);
 
-extern a_boolean validate(const an_ifc_macro_function_like &universal,
-                          const an_ifc_validation_trace    *parent);
+template<>
+a_boolean validate(const an_ifc_macro_function_like &universal,
+                   const an_ifc_validation_trace    *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_macro_function_like &universal,
@@ -16648,8 +16784,9 @@ extern a_boolean has_ifc_name(const an_ifc_macro_object_like &universal);
 template<>
 an_ifc_text_offset get_ifc_name(const an_ifc_macro_object_like &universal);
 
-extern a_boolean validate(const an_ifc_macro_object_like &universal,
-                          const an_ifc_validation_trace  *parent);
+template<>
+a_boolean validate(const an_ifc_macro_object_like &universal,
+                   const an_ifc_validation_trace  *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_macro_object_like &universal,
@@ -16685,8 +16822,9 @@ template<>
 an_ifc_module_reference get_ifc_reference(
                               const an_ifc_module_export_reference &universal);
 
-extern a_boolean validate(const an_ifc_module_export_reference &universal,
-                          const an_ifc_validation_trace        *parent);
+template<>
+a_boolean validate(const an_ifc_module_export_reference &universal,
+                   const an_ifc_validation_trace        *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_module_export_reference &universal,
@@ -16723,8 +16861,9 @@ template<>
 an_ifc_module_reference get_ifc_reference(
                               const an_ifc_module_import_reference &universal);
 
-extern a_boolean validate(const an_ifc_module_import_reference &universal,
-                          const an_ifc_validation_trace        *parent);
+template<>
+a_boolean validate(const an_ifc_module_import_reference &universal,
+                   const an_ifc_validation_trace        *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_module_import_reference &universal,
@@ -16764,8 +16903,9 @@ extern a_boolean has_ifc_target(const an_ifc_name_conversion &universal);
 template<>
 an_ifc_type_index get_ifc_target(const an_ifc_name_conversion &universal);
 
-extern a_boolean validate(const an_ifc_name_conversion  &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_name_conversion  &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_name_conversion &universal, unsigned indent);
@@ -16798,8 +16938,9 @@ extern a_boolean has_ifc_primary_template(const an_ifc_name_guide &universal);
 template<>
 an_ifc_decl_index get_ifc_primary_template(const an_ifc_name_guide &universal);
 
-extern a_boolean validate(const an_ifc_name_guide       &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_name_guide       &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_name_guide &universal, unsigned indent);
@@ -16832,8 +16973,9 @@ extern a_boolean has_ifc_encoded(const an_ifc_name_literal &universal);
 template<>
 an_ifc_text_offset get_ifc_encoded(const an_ifc_name_literal &universal);
 
-extern a_boolean validate(const an_ifc_name_literal     &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_name_literal     &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_name_literal &universal, unsigned indent);
@@ -16872,8 +17014,9 @@ template<>
 an_ifc_operator_category get_ifc_operator(
                                         const an_ifc_name_operator &universal);
 
-extern a_boolean validate(const an_ifc_name_operator    &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_name_operator    &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_name_operator &universal, unsigned indent);
@@ -16911,8 +17054,9 @@ extern a_boolean has_ifc_path(const an_ifc_name_source_file &universal);
 template<>
 an_ifc_text_offset get_ifc_path(const an_ifc_name_source_file &universal);
 
-extern a_boolean validate(const an_ifc_name_source_file &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_name_source_file &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_name_source_file &universal, unsigned indent);
@@ -16952,8 +17096,9 @@ extern a_boolean has_ifc_primary(const an_ifc_name_specialization &universal);
 template<>
 an_ifc_name_index get_ifc_primary(const an_ifc_name_specialization &universal);
 
-extern a_boolean validate(const an_ifc_name_specialization &universal,
-                          const an_ifc_validation_trace    *parent);
+template<>
+a_boolean validate(const an_ifc_name_specialization &universal,
+                   const an_ifc_validation_trace    *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_name_specialization &universal,
@@ -16987,8 +17132,9 @@ extern a_boolean has_ifc_name(const an_ifc_name_template &universal);
 template<>
 an_ifc_name_index get_ifc_name(const an_ifc_name_template &universal);
 
-extern a_boolean validate(const an_ifc_name_template    &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_name_template    &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_name_template &universal, unsigned indent);
@@ -17027,8 +17173,9 @@ extern a_boolean has_ifc_start(const an_ifc_scope_descriptor &universal);
 template<>
 an_ifc_index get_ifc_start(const an_ifc_scope_descriptor &universal);
 
-extern a_boolean validate(const an_ifc_scope_descriptor &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_scope_descriptor &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_scope_descriptor &universal, unsigned indent);
@@ -17061,8 +17208,9 @@ extern a_boolean has_ifc_index(const an_ifc_scope_member &universal);
 template<>
 an_ifc_decl_index get_ifc_index(const an_ifc_scope_member &universal);
 
-extern a_boolean validate(const an_ifc_scope_member     &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_scope_member     &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_scope_member &universal, unsigned indent);
@@ -17100,8 +17248,9 @@ extern a_boolean has_ifc_line(const an_ifc_source_line &universal);
 template<>
 an_ifc_line_number get_ifc_line(const an_ifc_source_line &universal);
 
-extern a_boolean validate(const an_ifc_source_line      &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_source_line      &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_source_line &universal, unsigned indent);
@@ -17145,8 +17294,9 @@ extern a_boolean has_ifc_start(const an_ifc_source_sentence &universal);
 template<>
 an_ifc_index get_ifc_start(const an_ifc_source_sentence &universal);
 
-extern a_boolean validate(const an_ifc_source_sentence  &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_source_sentence  &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_source_sentence &universal, unsigned indent);
@@ -17199,8 +17349,9 @@ extern a_boolean has_ifc_value(const an_ifc_source_word &universal);
 template<>
 an_ifc_u16 get_ifc_value(const an_ifc_source_word &universal);
 
-extern a_boolean validate(const an_ifc_source_word      &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_source_word      &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_source_word &universal, unsigned indent);
@@ -17238,8 +17389,9 @@ extern a_boolean has_ifc_start(const an_ifc_stmt_block &universal);
 template<>
 an_ifc_index get_ifc_start(const an_ifc_stmt_block &universal);
 
-extern a_boolean validate(const an_ifc_stmt_block       &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_stmt_block       &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_stmt_block &universal, unsigned indent);
@@ -17272,8 +17424,9 @@ extern a_boolean has_ifc_locus(const an_ifc_stmt_break &universal);
 template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_stmt_break &universal);
 
-extern a_boolean validate(const an_ifc_stmt_break       &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_stmt_break       &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_stmt_break &universal, unsigned indent);
@@ -17311,8 +17464,9 @@ extern a_boolean has_ifc_locus(const an_ifc_stmt_case &universal);
 template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_stmt_case &universal);
 
-extern a_boolean validate(const an_ifc_stmt_case        &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_stmt_case        &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_stmt_case &universal, unsigned indent);
@@ -17345,8 +17499,9 @@ extern a_boolean has_ifc_locus(const an_ifc_stmt_continue &universal);
 template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_stmt_continue &universal);
 
-extern a_boolean validate(const an_ifc_stmt_continue    &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_stmt_continue    &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_stmt_continue &universal, unsigned indent);
@@ -17379,8 +17534,9 @@ extern a_boolean has_ifc_locus(const an_ifc_stmt_default &universal);
 template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_stmt_default &universal);
 
-extern a_boolean validate(const an_ifc_stmt_default     &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_stmt_default     &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_stmt_default &universal, unsigned indent);
@@ -17423,8 +17579,9 @@ extern a_boolean has_ifc_locus(const an_ifc_stmt_do_while &universal);
 template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_stmt_do_while &universal);
 
-extern a_boolean validate(const an_ifc_stmt_do_while    &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_stmt_do_while    &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_stmt_do_while &universal, unsigned indent);
@@ -17457,8 +17614,9 @@ extern a_boolean has_ifc_locus(const an_ifc_stmt_empty &universal);
 template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_stmt_empty &universal);
 
-extern a_boolean validate(const an_ifc_stmt_empty       &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_stmt_empty       &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_stmt_empty &universal, unsigned indent);
@@ -17491,8 +17649,9 @@ extern a_boolean has_ifc_operand(const an_ifc_stmt_expansion &universal);
 template<>
 an_ifc_stmt_index get_ifc_operand(const an_ifc_stmt_expansion &universal);
 
-extern a_boolean validate(const an_ifc_stmt_expansion   &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_stmt_expansion   &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_stmt_expansion &universal, unsigned indent);
@@ -17530,8 +17689,9 @@ extern a_boolean has_ifc_locus(const an_ifc_stmt_expression &universal);
 template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_stmt_expression &universal);
 
-extern a_boolean validate(const an_ifc_stmt_expression  &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_stmt_expression  &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_stmt_expression &universal, unsigned indent);
@@ -17584,8 +17744,9 @@ extern a_boolean has_ifc_locus(const an_ifc_stmt_for &universal);
 template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_stmt_for &universal);
 
-extern a_boolean validate(const an_ifc_stmt_for         &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_stmt_for         &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_stmt_for &universal, unsigned indent);
@@ -17638,8 +17799,9 @@ extern a_boolean has_ifc_locus(const an_ifc_stmt_if &universal);
 template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_stmt_if &universal);
 
-extern a_boolean validate(const an_ifc_stmt_if          &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_stmt_if          &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_stmt_if &universal, unsigned indent);
@@ -17687,8 +17849,9 @@ extern a_boolean has_ifc_locus(const an_ifc_stmt_return &universal);
 template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_stmt_return &universal);
 
-extern a_boolean validate(const an_ifc_stmt_return      &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_stmt_return      &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_stmt_return &universal, unsigned indent);
@@ -17736,8 +17899,9 @@ extern a_boolean has_ifc_locus(const an_ifc_stmt_switch &universal);
 template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_stmt_switch &universal);
 
-extern a_boolean validate(const an_ifc_stmt_switch      &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_stmt_switch      &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_stmt_switch &universal, unsigned indent);
@@ -17776,8 +17940,9 @@ template<>
 an_ifc_source_location get_ifc_locus(
                                    const an_ifc_stmt_variable_decl &universal);
 
-extern a_boolean validate(const an_ifc_stmt_variable_decl &universal,
-                          const an_ifc_validation_trace   *parent);
+template<>
+a_boolean validate(const an_ifc_stmt_variable_decl &universal,
+                   const an_ifc_validation_trace   *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_stmt_variable_decl &universal,
@@ -17821,8 +17986,9 @@ extern a_boolean has_ifc_locus(const an_ifc_stmt_while &universal);
 template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_stmt_while &universal);
 
-extern a_boolean validate(const an_ifc_stmt_while       &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_stmt_while       &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_stmt_while &universal, unsigned indent);
@@ -17892,8 +18058,9 @@ template<>
 an_ifc_source_location get_ifc_virtual_kw2(
                               const an_ifc_syntax_access_specifier &universal);
 
-extern a_boolean validate(const an_ifc_syntax_access_specifier &universal,
-                          const an_ifc_validation_trace        *parent);
+template<>
+a_boolean validate(const an_ifc_syntax_access_specifier &universal,
+                   const an_ifc_validation_trace        *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_syntax_access_specifier &universal,
@@ -17958,8 +18125,9 @@ template<>
 an_ifc_source_location get_ifc_semicolon(
                              const an_ifc_syntax_alias_declaration &universal);
 
-extern a_boolean validate(const an_ifc_syntax_alias_declaration &universal,
-                          const an_ifc_validation_trace         *parent);
+template<>
+a_boolean validate(const an_ifc_syntax_alias_declaration &universal,
+                   const an_ifc_validation_trace         *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_syntax_alias_declaration &universal,
@@ -18011,8 +18179,9 @@ template<>
 an_ifc_source_location get_ifc_right_paren(
                                        const an_ifc_syntax_alignas &universal);
 
-extern a_boolean validate(const an_ifc_syntax_alignas   &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_syntax_alignas   &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_syntax_alignas &universal, unsigned indent);
@@ -18061,8 +18230,9 @@ template<>
 an_ifc_source_location get_ifc_right_bracket(
                               const an_ifc_syntax_array_declarator &universal);
 
-extern a_boolean validate(const an_ifc_syntax_array_declarator &universal,
-                          const an_ifc_validation_trace        *parent);
+template<>
+a_boolean validate(const an_ifc_syntax_array_declarator &universal,
+                   const an_ifc_validation_trace        *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_syntax_array_declarator &universal,
@@ -18116,8 +18286,9 @@ template<>
 an_ifc_source_location get_ifc_right_bracket(
                                    const an_ifc_syntax_array_index &universal);
 
-extern a_boolean validate(const an_ifc_syntax_array_index &universal,
-                          const an_ifc_validation_trace   *parent);
+template<>
+a_boolean validate(const an_ifc_syntax_array_index &universal,
+                   const an_ifc_validation_trace   *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_syntax_array_index &universal,
@@ -18160,7 +18331,8 @@ template<>
 an_ifc_syntax_index get_ifc_next(
                   const an_ifc_syntax_array_or_function_declarator &universal);
 
-extern a_boolean validate(
+template<>
+a_boolean validate(
                   const an_ifc_syntax_array_or_function_declarator &universal,
                   const an_ifc_validation_trace                    *parent);
 
@@ -18206,8 +18378,9 @@ template<>
 an_ifc_sentence_index get_ifc_tokens(
                                  const an_ifc_syntax_asm_statement &universal);
 
-extern a_boolean validate(const an_ifc_syntax_asm_statement &universal,
-                          const an_ifc_validation_trace     *parent);
+template<>
+a_boolean validate(const an_ifc_syntax_asm_statement &universal,
+                   const an_ifc_validation_trace     *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_syntax_asm_statement &universal,
@@ -18270,8 +18443,9 @@ extern a_boolean has_ifc_scope(const an_ifc_syntax_attribute &universal);
 template<>
 an_ifc_expr_index get_ifc_scope(const an_ifc_syntax_attribute &universal);
 
-extern a_boolean validate(const an_ifc_syntax_attribute &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_syntax_attribute &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_syntax_attribute &universal, unsigned indent);
@@ -18320,9 +18494,9 @@ template<>
 an_ifc_sentence_index get_ifc_tokens(
                      const an_ifc_syntax_attribute_argument_clause &universal);
 
-extern a_boolean validate(
-                     const an_ifc_syntax_attribute_argument_clause &universal,
-                     const an_ifc_validation_trace                 *parent);
+template<>
+a_boolean validate(const an_ifc_syntax_attribute_argument_clause &universal,
+                   const an_ifc_validation_trace                 *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_syntax_attribute_argument_clause &universal,
@@ -18394,8 +18568,9 @@ template<>
 an_ifc_source_location get_ifc_right_paren_2(
                            const an_ifc_syntax_attribute_specifier &universal);
 
-extern a_boolean validate(const an_ifc_syntax_attribute_specifier &universal,
-                          const an_ifc_validation_trace           *parent);
+template<>
+a_boolean validate(const an_ifc_syntax_attribute_specifier &universal,
+                   const an_ifc_validation_trace           *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_syntax_attribute_specifier &universal,
@@ -18432,9 +18607,9 @@ template<>
 an_ifc_syntax_index get_ifc_attributes(
                        const an_ifc_syntax_attribute_specifier_seq &universal);
 
-extern a_boolean validate(
-                       const an_ifc_syntax_attribute_specifier_seq &universal,
-                       const an_ifc_validation_trace               *parent);
+template<>
+a_boolean validate(const an_ifc_syntax_attribute_specifier_seq &universal,
+                   const an_ifc_validation_trace               *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_syntax_attribute_specifier_seq &universal,
@@ -18478,9 +18653,9 @@ template<>
 an_ifc_source_location get_ifc_scope(
                         const an_ifc_syntax_attribute_using_prefix &universal);
 
-extern a_boolean validate(
-                        const an_ifc_syntax_attribute_using_prefix &universal,
-                        const an_ifc_validation_trace              *parent);
+template<>
+a_boolean validate(const an_ifc_syntax_attribute_using_prefix &universal,
+                   const an_ifc_validation_trace              *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_syntax_attribute_using_prefix &universal,
@@ -18531,9 +18706,9 @@ template<>
 an_ifc_source_location get_ifc_locus(
                         const an_ifc_syntax_attributed_declaration &universal);
 
-extern a_boolean validate(
-                        const an_ifc_syntax_attributed_declaration &universal,
-                        const an_ifc_validation_trace              *parent);
+template<>
+a_boolean validate(const an_ifc_syntax_attributed_declaration &universal,
+                   const an_ifc_validation_trace              *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_syntax_attributed_declaration &universal,
@@ -18584,8 +18759,9 @@ template<>
 an_ifc_syntax_index get_ifc_stmt(
                           const an_ifc_syntax_attributed_statement &universal);
 
-extern a_boolean validate(const an_ifc_syntax_attributed_statement &universal,
-                          const an_ifc_validation_trace            *parent);
+template<>
+a_boolean validate(const an_ifc_syntax_attributed_statement &universal,
+                   const an_ifc_validation_trace            *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_syntax_attributed_statement &universal,
@@ -18627,8 +18803,9 @@ template<>
 an_ifc_source_location get_ifc_colon(
                                 const an_ifc_syntax_base_specifier &universal);
 
-extern a_boolean validate(const an_ifc_syntax_base_specifier &universal,
-                          const an_ifc_validation_trace      *parent);
+template<>
+a_boolean validate(const an_ifc_syntax_base_specifier &universal,
+                   const an_ifc_validation_trace      *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_syntax_base_specifier &universal,
@@ -18672,8 +18849,9 @@ template<>
 an_ifc_source_location get_ifc_colon(
                            const an_ifc_syntax_base_specifier_list &universal);
 
-extern a_boolean validate(const an_ifc_syntax_base_specifier_list &universal,
-                          const an_ifc_validation_trace           *parent);
+template<>
+a_boolean validate(const an_ifc_syntax_base_specifier_list &universal,
+                   const an_ifc_validation_trace           *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_syntax_base_specifier_list &universal,
@@ -18766,9 +18944,9 @@ template<>
 an_ifc_source_location get_ifc_right_paren(
                         const an_ifc_syntax_binary_fold_expression &universal);
 
-extern a_boolean validate(
-                        const an_ifc_syntax_binary_fold_expression &universal,
-                        const an_ifc_validation_trace              *parent);
+template<>
+a_boolean validate(const an_ifc_syntax_binary_fold_expression &universal,
+                   const an_ifc_validation_trace              *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_syntax_binary_fold_expression &universal,
@@ -18811,8 +18989,9 @@ template<>
 an_ifc_source_location get_ifc_semicolon(
                                const an_ifc_syntax_break_statement &universal);
 
-extern a_boolean validate(const an_ifc_syntax_break_statement &universal,
-                          const an_ifc_validation_trace       *parent);
+template<>
+a_boolean validate(const an_ifc_syntax_break_statement &universal,
+                   const an_ifc_validation_trace       *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_syntax_break_statement &universal,
@@ -18860,8 +19039,9 @@ template<>
 an_ifc_source_location get_ifc_locus(
                                const an_ifc_syntax_capture_default &universal);
 
-extern a_boolean validate(const an_ifc_syntax_capture_default &universal,
-                          const an_ifc_validation_trace       *parent);
+template<>
+a_boolean validate(const an_ifc_syntax_capture_default &universal,
+                   const an_ifc_validation_trace       *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_syntax_capture_default &universal,
@@ -18930,8 +19110,9 @@ template<>
 an_ifc_syntax_index get_ifc_right_paren(
                                const an_ifc_syntax_class_specifier &universal);
 
-extern a_boolean validate(const an_ifc_syntax_class_specifier &universal,
-                          const an_ifc_validation_trace       *parent);
+template<>
+a_boolean validate(const an_ifc_syntax_class_specifier &universal,
+                   const an_ifc_validation_trace       *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_syntax_class_specifier &universal,
@@ -18996,8 +19177,9 @@ template<>
 an_ifc_source_location get_ifc_right_curly(
                           const an_ifc_syntax_compound_requirement &universal);
 
-extern a_boolean validate(const an_ifc_syntax_compound_requirement &universal,
-                          const an_ifc_validation_trace            *parent);
+template<>
+a_boolean validate(const an_ifc_syntax_compound_requirement &universal,
+                   const an_ifc_validation_trace            *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_syntax_compound_requirement &universal,
@@ -19055,8 +19237,9 @@ template<>
 an_ifc_syntax_index get_ifc_stmts(
                             const an_ifc_syntax_compound_statement &universal);
 
-extern a_boolean validate(const an_ifc_syntax_compound_statement &universal,
-                          const an_ifc_validation_trace          *parent);
+template<>
+a_boolean validate(const an_ifc_syntax_compound_statement &universal,
+                   const an_ifc_validation_trace          *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_syntax_compound_statement &universal,
@@ -19135,8 +19318,9 @@ template<>
 an_ifc_source_location get_ifc_semicolon(
                             const an_ifc_syntax_concept_definition &universal);
 
-extern a_boolean validate(const an_ifc_syntax_concept_definition &universal,
-                          const an_ifc_validation_trace          *parent);
+template<>
+a_boolean validate(const an_ifc_syntax_concept_definition &universal,
+                   const an_ifc_validation_trace          *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_syntax_concept_definition &universal,
@@ -19187,9 +19371,9 @@ template<>
 an_ifc_source_location get_ifc_locus(
                          const an_ifc_syntax_condition_declaration &universal);
 
-extern a_boolean validate(
-                         const an_ifc_syntax_condition_declaration &universal,
-                         const an_ifc_validation_trace             *parent);
+template<>
+a_boolean validate(const an_ifc_syntax_condition_declaration &universal,
+                   const an_ifc_validation_trace             *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_syntax_condition_declaration &universal,
@@ -19233,8 +19417,9 @@ template<>
 an_ifc_source_location get_ifc_semicolon(
                             const an_ifc_syntax_continue_statement &universal);
 
-extern a_boolean validate(const an_ifc_syntax_continue_statement &universal,
-                          const an_ifc_validation_trace          *parent);
+template<>
+a_boolean validate(const an_ifc_syntax_continue_statement &universal,
+                   const an_ifc_validation_trace          *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_syntax_continue_statement &universal,
@@ -19278,8 +19463,9 @@ template<>
 an_ifc_syntax_index get_ifc_initializers(
                               const an_ifc_syntax_ctor_initializer &universal);
 
-extern a_boolean validate(const an_ifc_syntax_ctor_initializer &universal,
-                          const an_ifc_validation_trace        *parent);
+template<>
+a_boolean validate(const an_ifc_syntax_ctor_initializer &universal,
+                   const an_ifc_validation_trace        *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_syntax_ctor_initializer &universal,
@@ -19358,8 +19544,9 @@ template<>
 an_ifc_syntax_index get_ifc_type_name(
                             const an_ifc_syntax_decl_specifier_seq &universal);
 
-extern a_boolean validate(const an_ifc_syntax_decl_specifier_seq &universal,
-                          const an_ifc_validation_trace          *parent);
+template<>
+a_boolean validate(const an_ifc_syntax_decl_specifier_seq &universal,
+                   const an_ifc_validation_trace          *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_syntax_decl_specifier_seq &universal,
@@ -19403,9 +19590,9 @@ template<>
 an_ifc_sentence_index get_ifc_pragma(
                          const an_ifc_syntax_declaration_statement &universal);
 
-extern a_boolean validate(
-                         const an_ifc_syntax_declaration_statement &universal,
-                         const an_ifc_validation_trace             *parent);
+template<>
+a_boolean validate(const an_ifc_syntax_declaration_statement &universal,
+                   const an_ifc_validation_trace             *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_syntax_declaration_statement &universal,
@@ -19502,8 +19689,9 @@ template<>
 an_ifc_syntax_index get_ifc_virtual_specifiers(
                                     const an_ifc_syntax_declarator &universal);
 
-extern a_boolean validate(const an_ifc_syntax_declarator &universal,
-                          const an_ifc_validation_trace  *parent);
+template<>
+a_boolean validate(const an_ifc_syntax_declarator &universal,
+                   const an_ifc_validation_trace  *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_syntax_declarator &universal,
@@ -19560,8 +19748,9 @@ template<>
 an_ifc_source_location get_ifc_right_paren(
                             const an_ifc_syntax_decltype_specifier &universal);
 
-extern a_boolean validate(const an_ifc_syntax_decltype_specifier &universal,
-                          const an_ifc_validation_trace          *parent);
+template<>
+a_boolean validate(const an_ifc_syntax_decltype_specifier &universal,
+                   const an_ifc_validation_trace          *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_syntax_decltype_specifier &universal,
@@ -19632,8 +19821,9 @@ template<>
 an_ifc_source_location get_ifc_while(
                             const an_ifc_syntax_do_while_statement &universal);
 
-extern a_boolean validate(const an_ifc_syntax_do_while_statement &universal,
-                          const an_ifc_validation_trace          *parent);
+template<>
+a_boolean validate(const an_ifc_syntax_do_while_statement &universal,
+                   const an_ifc_validation_trace          *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_syntax_do_while_statement &universal,
@@ -19698,9 +19888,9 @@ template<>
 an_ifc_syntax_index get_ifc_type_list(
                         const an_ifc_syntax_dynamic_exception_spec &universal);
 
-extern a_boolean validate(
-                        const an_ifc_syntax_dynamic_exception_spec &universal,
-                        const an_ifc_validation_trace              *parent);
+template<>
+a_boolean validate(const an_ifc_syntax_dynamic_exception_spec &universal,
+                   const an_ifc_validation_trace              *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_syntax_dynamic_exception_spec &universal,
@@ -19736,8 +19926,9 @@ template<>
 an_ifc_source_location get_ifc_locus(
                                const an_ifc_syntax_empty_statement &universal);
 
-extern a_boolean validate(const an_ifc_syntax_empty_statement &universal,
-                          const an_ifc_validation_trace       *parent);
+template<>
+a_boolean validate(const an_ifc_syntax_empty_statement &universal,
+                   const an_ifc_validation_trace       *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_syntax_empty_statement &universal,
@@ -19818,8 +20009,9 @@ template<>
 an_ifc_source_location get_ifc_right_brace(
                                 const an_ifc_syntax_enum_specifier &universal);
 
-extern a_boolean validate(const an_ifc_syntax_enum_specifier &universal,
-                          const an_ifc_validation_trace      *parent);
+template<>
+a_boolean validate(const an_ifc_syntax_enum_specifier &universal,
+                   const an_ifc_validation_trace      *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_syntax_enum_specifier &universal,
@@ -19884,9 +20076,9 @@ template<>
 an_ifc_text_offset get_ifc_name(
                          const an_ifc_syntax_enumerator_definition &universal);
 
-extern a_boolean validate(
-                         const an_ifc_syntax_enumerator_definition &universal,
-                         const an_ifc_validation_trace             *parent);
+template<>
+a_boolean validate(const an_ifc_syntax_enumerator_definition &universal,
+                   const an_ifc_validation_trace             *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_syntax_enumerator_definition &universal,
@@ -19944,9 +20136,9 @@ template<>
 an_ifc_syntax_index get_ifc_type_specifiers(
                          const an_ifc_syntax_exception_declaration &universal);
 
-extern a_boolean validate(
-                         const an_ifc_syntax_exception_declaration &universal,
-                         const an_ifc_validation_trace             *parent);
+template<>
+a_boolean validate(const an_ifc_syntax_exception_declaration &universal,
+                   const an_ifc_validation_trace             *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_syntax_exception_declaration &universal,
@@ -20004,8 +20196,9 @@ template<>
 an_ifc_source_location get_ifc_right_paren(
                             const an_ifc_syntax_explicit_specifier &universal);
 
-extern a_boolean validate(const an_ifc_syntax_explicit_specifier &universal,
-                          const an_ifc_validation_trace          *parent);
+template<>
+a_boolean validate(const an_ifc_syntax_explicit_specifier &universal,
+                   const an_ifc_validation_trace          *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_syntax_explicit_specifier &universal,
@@ -20041,8 +20234,9 @@ template<>
 an_ifc_expr_index get_ifc_expression(
                                     const an_ifc_syntax_expression &universal);
 
-extern a_boolean validate(const an_ifc_syntax_expression &universal,
-                          const an_ifc_validation_trace  *parent);
+template<>
+a_boolean validate(const an_ifc_syntax_expression &universal,
+                   const an_ifc_validation_trace  *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_syntax_expression &universal,
@@ -20092,8 +20286,9 @@ template<>
 an_ifc_source_location get_ifc_semicolon(
                           const an_ifc_syntax_expression_statement &universal);
 
-extern a_boolean validate(const an_ifc_syntax_expression_statement &universal,
-                          const an_ifc_validation_trace            *parent);
+template<>
+a_boolean validate(const an_ifc_syntax_expression_statement &universal,
+                   const an_ifc_validation_trace            *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_syntax_expression_statement &universal,
@@ -20137,9 +20332,9 @@ template<>
 an_ifc_syntax_index get_ifc_specifiers(
                          const an_ifc_syntax_for_range_declaration &universal);
 
-extern a_boolean validate(
-                         const an_ifc_syntax_for_range_declaration &universal,
-                         const an_ifc_validation_trace             *parent);
+template<>
+a_boolean validate(const an_ifc_syntax_for_range_declaration &universal,
+                   const an_ifc_validation_trace             *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_syntax_for_range_declaration &universal,
@@ -20228,8 +20423,9 @@ template<>
 an_ifc_source_location get_ifc_semicolon(
                                  const an_ifc_syntax_for_statement &universal);
 
-extern a_boolean validate(const an_ifc_syntax_for_statement &universal,
-                          const an_ifc_validation_trace     *parent);
+template<>
+a_boolean validate(const an_ifc_syntax_for_statement &universal,
+                   const an_ifc_validation_trace     *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_syntax_for_statement &universal,
@@ -20298,8 +20494,9 @@ template<>
 an_ifc_syntax_index get_ifc_try_block(
                                  const an_ifc_syntax_function_body &universal);
 
-extern a_boolean validate(const an_ifc_syntax_function_body &universal,
-                          const an_ifc_validation_trace     *parent);
+template<>
+a_boolean validate(const an_ifc_syntax_function_body &universal,
+                   const an_ifc_validation_trace     *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_syntax_function_body &universal,
@@ -20356,8 +20553,9 @@ template<>
 an_ifc_source_location get_ifc_right_paren(
                            const an_ifc_syntax_function_declarator &universal);
 
-extern a_boolean validate(const an_ifc_syntax_function_declarator &universal,
-                          const an_ifc_validation_trace           *parent);
+template<>
+a_boolean validate(const an_ifc_syntax_function_declarator &universal,
+                   const an_ifc_validation_trace           *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_syntax_function_declarator &universal,
@@ -20429,8 +20627,9 @@ template<>
 an_ifc_syntax_index get_ifc_try_block(
                            const an_ifc_syntax_function_definition &universal);
 
-extern a_boolean validate(const an_ifc_syntax_function_definition &universal,
-                          const an_ifc_validation_trace           *parent);
+template<>
+a_boolean validate(const an_ifc_syntax_function_definition &universal,
+                   const an_ifc_validation_trace           *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_syntax_function_definition &universal,
@@ -20481,8 +20680,9 @@ template<>
 an_ifc_syntax_index get_ifc_initializers(
                             const an_ifc_syntax_function_try_block &universal);
 
-extern a_boolean validate(const an_ifc_syntax_function_try_block &universal,
-                          const an_ifc_validation_trace          *parent);
+template<>
+a_boolean validate(const an_ifc_syntax_function_try_block &universal,
+                   const an_ifc_validation_trace          *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_syntax_function_try_block &universal,
@@ -20543,8 +20743,9 @@ template<>
 an_ifc_text_offset get_ifc_target(
                                 const an_ifc_syntax_goto_statement &universal);
 
-extern a_boolean validate(const an_ifc_syntax_goto_statement &universal,
-                          const an_ifc_validation_trace      *parent);
+template<>
+a_boolean validate(const an_ifc_syntax_goto_statement &universal,
+                   const an_ifc_validation_trace      *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_syntax_goto_statement &universal,
@@ -20606,8 +20807,9 @@ template<>
 an_ifc_source_location get_ifc_right_paren(
                                        const an_ifc_syntax_handler &universal);
 
-extern a_boolean validate(const an_ifc_syntax_handler   &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_syntax_handler   &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_syntax_handler &universal, unsigned indent);
@@ -20641,8 +20843,9 @@ template<>
 an_ifc_syntax_index get_ifc_handlers(
                                    const an_ifc_syntax_handler_seq &universal);
 
-extern a_boolean validate(const an_ifc_syntax_handler_seq &universal,
-                          const an_ifc_validation_trace   *parent);
+template<>
+a_boolean validate(const an_ifc_syntax_handler_seq &universal,
+                   const an_ifc_validation_trace   *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_syntax_handler_seq &universal,
@@ -20722,8 +20925,9 @@ template<>
 an_ifc_sentence_index get_ifc_pragma(
                                   const an_ifc_syntax_if_statement &universal);
 
-extern a_boolean validate(const an_ifc_syntax_if_statement &universal,
-                          const an_ifc_validation_trace    *parent);
+template<>
+a_boolean validate(const an_ifc_syntax_if_statement &universal,
+                   const an_ifc_validation_trace    *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_syntax_if_statement &universal,
@@ -20783,8 +20987,9 @@ extern a_boolean has_ifc_name(const an_ifc_syntax_init_capture &universal);
 template<>
 an_ifc_expr_index get_ifc_name(const an_ifc_syntax_init_capture &universal);
 
-extern a_boolean validate(const an_ifc_syntax_init_capture &universal,
-                          const an_ifc_validation_trace    *parent);
+template<>
+a_boolean validate(const an_ifc_syntax_init_capture &universal,
+                   const an_ifc_validation_trace    *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_syntax_init_capture &universal,
@@ -20840,8 +21045,9 @@ template<>
 an_ifc_expr_index get_ifc_initializer(
                                const an_ifc_syntax_init_declarator &universal);
 
-extern a_boolean validate(const an_ifc_syntax_init_declarator &universal,
-                          const an_ifc_validation_trace       *parent);
+template<>
+a_boolean validate(const an_ifc_syntax_init_declarator &universal,
+                   const an_ifc_validation_trace       *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_syntax_init_declarator &universal,
@@ -20883,8 +21089,9 @@ template<>
 an_ifc_sentence_index get_ifc_pragma(
                                 const an_ifc_syntax_init_statement &universal);
 
-extern a_boolean validate(const an_ifc_syntax_init_statement &universal,
-                          const an_ifc_validation_trace      *parent);
+template<>
+a_boolean validate(const an_ifc_syntax_init_statement &universal,
+                   const an_ifc_validation_trace      *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_syntax_init_statement &universal,
@@ -20949,8 +21156,9 @@ template<>
 an_ifc_syntax_index get_ifc_stmt(
                              const an_ifc_syntax_labeled_statement &universal);
 
-extern a_boolean validate(const an_ifc_syntax_labeled_statement &universal,
-                          const an_ifc_validation_trace         *parent);
+template<>
+a_boolean validate(const an_ifc_syntax_labeled_statement &universal,
+                   const an_ifc_validation_trace         *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_syntax_labeled_statement &universal,
@@ -21029,8 +21237,9 @@ template<>
 an_ifc_syntax_index get_ifc_trailing_target(
                              const an_ifc_syntax_lambda_declarator &universal);
 
-extern a_boolean validate(const an_ifc_syntax_lambda_declarator &universal,
-                          const an_ifc_validation_trace         *parent);
+template<>
+a_boolean validate(const an_ifc_syntax_lambda_declarator &universal,
+                   const an_ifc_validation_trace         *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_syntax_lambda_declarator &universal,
@@ -21081,8 +21290,9 @@ template<>
 an_ifc_source_location get_ifc_right_bracket(
                              const an_ifc_syntax_lambda_introducer &universal);
 
-extern a_boolean validate(const an_ifc_syntax_lambda_introducer &universal,
-                          const an_ifc_validation_trace         *parent);
+template<>
+a_boolean validate(const an_ifc_syntax_lambda_introducer &universal,
+                   const an_ifc_validation_trace         *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_syntax_lambda_introducer &universal,
@@ -21139,8 +21349,9 @@ template<>
 an_ifc_expr_index get_ifc_member(
                                const an_ifc_syntax_mem_initializer &universal);
 
-extern a_boolean validate(const an_ifc_syntax_mem_initializer &universal,
-                          const an_ifc_validation_trace       *parent);
+template<>
+a_boolean validate(const an_ifc_syntax_mem_initializer &universal,
+                   const an_ifc_validation_trace       *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_syntax_mem_initializer &universal,
@@ -21191,8 +21402,9 @@ template<>
 an_ifc_source_location get_ifc_semicolon(
                             const an_ifc_syntax_member_declaration &universal);
 
-extern a_boolean validate(const an_ifc_syntax_member_declaration &universal,
-                          const an_ifc_validation_trace          *parent);
+template<>
+a_boolean validate(const an_ifc_syntax_member_declaration &universal,
+                   const an_ifc_validation_trace          *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_syntax_member_declaration &universal,
@@ -21271,8 +21483,9 @@ template<>
 an_ifc_source_location get_ifc_locus(
                              const an_ifc_syntax_member_declarator &universal);
 
-extern a_boolean validate(const an_ifc_syntax_member_declarator &universal,
-                          const an_ifc_validation_trace         *parent);
+template<>
+a_boolean validate(const an_ifc_syntax_member_declarator &universal,
+                   const an_ifc_validation_trace         *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_syntax_member_declarator &universal,
@@ -21309,8 +21522,8 @@ template<>
 an_ifc_syntax_index get_ifc_definition(
                    const an_ifc_syntax_member_function_declaration &universal);
 
-extern a_boolean validate(
-                   const an_ifc_syntax_member_function_declaration &universal,
+template<>
+a_boolean validate(const an_ifc_syntax_member_function_declaration &universal,
                    const an_ifc_validation_trace                   *parent);
 
 #if DEBUG
@@ -21350,8 +21563,9 @@ template<>
 an_ifc_syntax_index get_ifc_member_declarations(
                           const an_ifc_syntax_member_specification &universal);
 
-extern a_boolean validate(const an_ifc_syntax_member_specification &universal,
-                          const an_ifc_validation_trace            *parent);
+template<>
+a_boolean validate(const an_ifc_syntax_member_specification &universal,
+                   const an_ifc_validation_trace            *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_syntax_member_specification &universal,
@@ -21416,9 +21630,9 @@ template<>
 an_ifc_expr_index get_ifc_target(
                     const an_ifc_syntax_namespace_alias_definition &universal);
 
-extern a_boolean validate(
-                    const an_ifc_syntax_namespace_alias_definition &universal,
-                    const an_ifc_validation_trace                  *parent);
+template<>
+a_boolean validate(const an_ifc_syntax_namespace_alias_definition &universal,
+                   const an_ifc_validation_trace                  *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_syntax_namespace_alias_definition &universal,
@@ -21462,8 +21676,9 @@ template<>
 an_ifc_source_location get_ifc_locus(
                             const an_ifc_syntax_nested_requirement &universal);
 
-extern a_boolean validate(const an_ifc_syntax_nested_requirement &universal,
-                          const an_ifc_validation_trace          *parent);
+template<>
+a_boolean validate(const an_ifc_syntax_nested_requirement &universal,
+                   const an_ifc_validation_trace          *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_syntax_nested_requirement &universal,
@@ -21500,8 +21715,9 @@ template<>
 an_ifc_syntax_index get_ifc_declarator(
                                 const an_ifc_syntax_new_declarator &universal);
 
-extern a_boolean validate(const an_ifc_syntax_new_declarator &universal,
-                          const an_ifc_validation_trace      *parent);
+template<>
+a_boolean validate(const an_ifc_syntax_new_declarator &universal,
+                   const an_ifc_validation_trace      *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_syntax_new_declarator &universal,
@@ -21559,9 +21775,9 @@ template<>
 an_ifc_source_location get_ifc_right_paren(
                         const an_ifc_syntax_noexcept_specification &universal);
 
-extern a_boolean validate(
-                        const an_ifc_syntax_noexcept_specification &universal,
-                        const an_ifc_validation_trace              *parent);
+template<>
+a_boolean validate(const an_ifc_syntax_noexcept_specification &universal,
+                   const an_ifc_validation_trace              *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_syntax_noexcept_specification &universal,
@@ -21612,9 +21828,9 @@ template<>
 an_ifc_source_location get_ifc_ellipsis(
                     const an_ifc_syntax_non_type_template_argument &universal);
 
-extern a_boolean validate(
-                    const an_ifc_syntax_non_type_template_argument &universal,
-                    const an_ifc_validation_trace                  *parent);
+template<>
+a_boolean validate(const an_ifc_syntax_non_type_template_argument &universal,
+                   const an_ifc_validation_trace                  *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_syntax_non_type_template_argument &universal,
@@ -21679,8 +21895,9 @@ template<>
 an_ifc_parameter_sort get_ifc_sort(
                           const an_ifc_syntax_parameter_declarator &universal);
 
-extern a_boolean validate(const an_ifc_syntax_parameter_declarator &universal,
-                          const an_ifc_validation_trace            *parent);
+template<>
+a_boolean validate(const an_ifc_syntax_parameter_declarator &universal,
+                   const an_ifc_validation_trace            *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_syntax_parameter_declarator &universal,
@@ -21738,9 +21955,9 @@ template<>
 an_ifc_source_location get_ifc_locus(
                     const an_ifc_syntax_placeholder_type_specifier &universal);
 
-extern a_boolean validate(
-                    const an_ifc_syntax_placeholder_type_specifier &universal,
-                    const an_ifc_validation_trace                  *parent);
+template<>
+a_boolean validate(const an_ifc_syntax_placeholder_type_specifier &universal,
+                   const an_ifc_validation_trace                  *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_syntax_placeholder_type_specifier &universal,
@@ -21819,8 +22036,9 @@ template<>
 an_ifc_syntax_index get_ifc_whole(
                             const an_ifc_syntax_pointer_declarator &universal);
 
-extern a_boolean validate(const an_ifc_syntax_pointer_declarator &universal,
-                          const an_ifc_validation_trace          *parent);
+template<>
+a_boolean validate(const an_ifc_syntax_pointer_declarator &universal,
+                   const an_ifc_validation_trace          *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_syntax_pointer_declarator &universal,
@@ -21913,9 +22131,9 @@ template<>
 an_ifc_source_location get_ifc_right_paren(
                      const an_ifc_syntax_range_based_for_statement &universal);
 
-extern a_boolean validate(
-                     const an_ifc_syntax_range_based_for_statement &universal,
-                     const an_ifc_validation_trace                 *parent);
+template<>
+a_boolean validate(const an_ifc_syntax_range_based_for_statement &universal,
+                   const an_ifc_validation_trace                 *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_syntax_range_based_for_statement &universal,
@@ -21966,8 +22184,9 @@ template<>
 an_ifc_source_location get_ifc_right_curly(
                               const an_ifc_syntax_requirement_body &universal);
 
-extern a_boolean validate(const an_ifc_syntax_requirement_body &universal,
-                          const an_ifc_validation_trace        *parent);
+template<>
+a_boolean validate(const an_ifc_syntax_requirement_body &universal,
+                   const an_ifc_validation_trace        *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_syntax_requirement_body &universal,
@@ -22010,8 +22229,9 @@ template<>
 an_ifc_source_location get_ifc_locus(
                                const an_ifc_syntax_requires_clause &universal);
 
-extern a_boolean validate(const an_ifc_syntax_requires_clause &universal,
-                          const an_ifc_validation_trace       *parent);
+template<>
+a_boolean validate(const an_ifc_syntax_requires_clause &universal,
+                   const an_ifc_validation_trace       *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_syntax_requires_clause &universal,
@@ -22074,8 +22294,9 @@ template<>
 an_ifc_return_sort get_ifc_sort(
                               const an_ifc_syntax_return_statement &universal);
 
-extern a_boolean validate(const an_ifc_syntax_return_statement &universal,
-                          const an_ifc_validation_trace        *parent);
+template<>
+a_boolean validate(const an_ifc_syntax_return_statement &universal,
+                   const an_ifc_validation_trace        *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_syntax_return_statement &universal,
@@ -22134,8 +22355,9 @@ template<>
 an_ifc_source_location get_ifc_right_paren(
                                     const an_ifc_syntax_seh_except &universal);
 
-extern a_boolean validate(const an_ifc_syntax_seh_except &universal,
-                          const an_ifc_validation_trace  *parent);
+template<>
+a_boolean validate(const an_ifc_syntax_seh_except &universal,
+                   const an_ifc_validation_trace  *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_syntax_seh_except &universal,
@@ -22176,8 +22398,9 @@ template<>
 an_ifc_source_location get_ifc_finally_kw(
                                    const an_ifc_syntax_seh_finally &universal);
 
-extern a_boolean validate(const an_ifc_syntax_seh_finally &universal,
-                          const an_ifc_validation_trace   *parent);
+template<>
+a_boolean validate(const an_ifc_syntax_seh_finally &universal,
+                   const an_ifc_validation_trace   *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_syntax_seh_finally &universal,
@@ -22218,8 +22441,9 @@ template<>
 an_ifc_source_location get_ifc_semicolon(
                                      const an_ifc_syntax_seh_leave &universal);
 
-extern a_boolean validate(const an_ifc_syntax_seh_leave &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_syntax_seh_leave &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_syntax_seh_leave &universal, unsigned indent);
@@ -22262,8 +22486,9 @@ extern a_boolean has_ifc_try_kw(const an_ifc_syntax_seh_try &universal);
 template<>
 an_ifc_source_location get_ifc_try_kw(const an_ifc_syntax_seh_try &universal);
 
-extern a_boolean validate(const an_ifc_syntax_seh_try   &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_syntax_seh_try   &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_syntax_seh_try &universal, unsigned indent);
@@ -22316,8 +22541,9 @@ extern a_boolean has_ifc_name(const an_ifc_syntax_simple_capture &universal);
 template<>
 an_ifc_expr_index get_ifc_name(const an_ifc_syntax_simple_capture &universal);
 
-extern a_boolean validate(const an_ifc_syntax_simple_capture &universal,
-                          const an_ifc_validation_trace      *parent);
+template<>
+a_boolean validate(const an_ifc_syntax_simple_capture &universal,
+                   const an_ifc_validation_trace      *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_syntax_simple_capture &universal,
@@ -22375,8 +22601,9 @@ template<>
 an_ifc_source_location get_ifc_semicolon(
                             const an_ifc_syntax_simple_declaration &universal);
 
-extern a_boolean validate(const an_ifc_syntax_simple_declaration &universal,
-                          const an_ifc_validation_trace          *parent);
+template<>
+a_boolean validate(const an_ifc_syntax_simple_declaration &universal,
+                   const an_ifc_validation_trace          *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_syntax_simple_declaration &universal,
@@ -22420,8 +22647,9 @@ template<>
 an_ifc_source_location get_ifc_locus(
                             const an_ifc_syntax_simple_requirement &universal);
 
-extern a_boolean validate(const an_ifc_syntax_simple_requirement &universal,
-                          const an_ifc_validation_trace          *parent);
+template<>
+a_boolean validate(const an_ifc_syntax_simple_requirement &universal,
+                   const an_ifc_validation_trace          *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_syntax_simple_requirement &universal,
@@ -22472,9 +22700,9 @@ template<>
 an_ifc_type_index get_ifc_type(
                          const an_ifc_syntax_simple_type_specifier &universal);
 
-extern a_boolean validate(
-                         const an_ifc_syntax_simple_type_specifier &universal,
-                         const an_ifc_validation_trace             *parent);
+template<>
+a_boolean validate(const an_ifc_syntax_simple_type_specifier &universal,
+                   const an_ifc_validation_trace             *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_syntax_simple_type_specifier &universal,
@@ -22510,8 +22738,9 @@ template<>
 an_ifc_syntax_index get_ifc_stmts(
                                  const an_ifc_syntax_statement_seq &universal);
 
-extern a_boolean validate(const an_ifc_syntax_statement_seq &universal,
-                          const an_ifc_validation_trace     *parent);
+template<>
+a_boolean validate(const an_ifc_syntax_statement_seq &universal,
+                   const an_ifc_validation_trace     *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_syntax_statement_seq &universal,
@@ -22589,9 +22818,9 @@ template<>
 an_ifc_source_location get_ifc_semicolon(
                      const an_ifc_syntax_static_assert_declaration &universal);
 
-extern a_boolean validate(
-                     const an_ifc_syntax_static_assert_declaration &universal,
-                     const an_ifc_validation_trace                 *parent);
+template<>
+a_boolean validate(const an_ifc_syntax_static_assert_declaration &universal,
+                   const an_ifc_validation_trace                 *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_syntax_static_assert_declaration &universal,
@@ -22656,7 +22885,8 @@ template<>
 an_ifc_syntax_index get_ifc_specifiers(
                 const an_ifc_syntax_structured_binding_declaration &universal);
 
-extern a_boolean validate(
+template<>
+a_boolean validate(
                 const an_ifc_syntax_structured_binding_declaration &universal,
                 const an_ifc_validation_trace                      *parent);
 
@@ -22704,7 +22934,8 @@ template<>
 an_ifc_expr_index get_ifc_name(
                  const an_ifc_syntax_structured_binding_identifier &universal);
 
-extern a_boolean validate(
+template<>
+a_boolean validate(
                  const an_ifc_syntax_structured_binding_identifier &universal,
                  const an_ifc_validation_trace                     *parent);
 
@@ -22743,8 +22974,9 @@ extern a_boolean has_ifc_locus(const an_ifc_syntax_super &universal);
 template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_syntax_super &universal);
 
-extern a_boolean validate(const an_ifc_syntax_super     &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_syntax_super     &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_syntax_super &universal, unsigned indent);
@@ -22805,8 +23037,9 @@ template<>
 an_ifc_source_location get_ifc_switch(
                               const an_ifc_syntax_switch_statement &universal);
 
-extern a_boolean validate(const an_ifc_syntax_switch_statement &universal,
-                          const an_ifc_validation_trace        *parent);
+template<>
+a_boolean validate(const an_ifc_syntax_switch_statement &universal,
+                   const an_ifc_validation_trace        *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_syntax_switch_statement &universal,
@@ -22857,9 +23090,9 @@ template<>
 an_ifc_source_location get_ifc_right_angle(
                         const an_ifc_syntax_template_argument_list &universal);
 
-extern a_boolean validate(
-                        const an_ifc_syntax_template_argument_list &universal,
-                        const an_ifc_validation_trace              *parent);
+template<>
+a_boolean validate(const an_ifc_syntax_template_argument_list &universal,
+                   const an_ifc_validation_trace              *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_syntax_template_argument_list &universal,
@@ -22910,8 +23143,9 @@ template<>
 an_ifc_syntax_index get_ifc_subject(
                           const an_ifc_syntax_template_declaration &universal);
 
-extern a_boolean validate(const an_ifc_syntax_template_declaration &universal,
-                          const an_ifc_validation_trace            *parent);
+template<>
+a_boolean validate(const an_ifc_syntax_template_declaration &universal,
+                   const an_ifc_validation_trace            *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_syntax_template_declaration &universal,
@@ -22970,8 +23204,9 @@ template<>
 an_ifc_source_location get_ifc_template_kw(
                                    const an_ifc_syntax_template_id &universal);
 
-extern a_boolean validate(const an_ifc_syntax_template_id &universal,
-                          const an_ifc_validation_trace   *parent);
+template<>
+a_boolean validate(const an_ifc_syntax_template_id &universal,
+                   const an_ifc_validation_trace   *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_syntax_template_id &universal,
@@ -23028,9 +23263,9 @@ template<>
 an_ifc_source_location get_ifc_right_angle(
                        const an_ifc_syntax_template_parameter_list &universal);
 
-extern a_boolean validate(
-                       const an_ifc_syntax_template_parameter_list &universal,
-                       const an_ifc_validation_trace               *parent);
+template<>
+a_boolean validate(const an_ifc_syntax_template_parameter_list &universal,
+                   const an_ifc_validation_trace               *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_syntax_template_parameter_list &universal,
@@ -23109,8 +23344,8 @@ template<>
 an_ifc_syntax_index get_ifc_parameters(
                    const an_ifc_syntax_template_template_parameter &universal);
 
-extern a_boolean validate(
-                   const an_ifc_syntax_template_template_parameter &universal,
+template<>
+a_boolean validate(const an_ifc_syntax_template_template_parameter &universal,
                    const an_ifc_validation_trace                   *parent);
 
 #if DEBUG
@@ -23161,8 +23396,9 @@ template<>
 an_ifc_source_location get_ifc_locus(
                                   const an_ifc_syntax_this_capture &universal);
 
-extern a_boolean validate(const an_ifc_syntax_this_capture &universal,
-                          const an_ifc_validation_trace    *parent);
+template<>
+a_boolean validate(const an_ifc_syntax_this_capture &universal,
+                   const an_ifc_validation_trace    *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_syntax_this_capture &universal,
@@ -23205,8 +23441,9 @@ template<>
 an_ifc_syntax_index get_ifc_target(
                           const an_ifc_syntax_trailing_return_type &universal);
 
-extern a_boolean validate(const an_ifc_syntax_trailing_return_type &universal,
-                          const an_ifc_validation_trace            *parent);
+template<>
+a_boolean validate(const an_ifc_syntax_trailing_return_type &universal,
+                   const an_ifc_validation_trace            *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_syntax_trailing_return_type &universal,
@@ -23256,8 +23493,9 @@ extern a_boolean has_ifc_try(const an_ifc_syntax_try_block &universal);
 template<>
 an_ifc_source_location get_ifc_try(const an_ifc_syntax_try_block &universal);
 
-extern a_boolean validate(const an_ifc_syntax_try_block &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_syntax_try_block &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_syntax_try_block &universal, unsigned indent);
@@ -23295,8 +23533,9 @@ extern a_boolean has_ifc_start(const an_ifc_syntax_tuple &universal);
 template<>
 an_ifc_index get_ifc_start(const an_ifc_syntax_tuple &universal);
 
-extern a_boolean validate(const an_ifc_syntax_tuple     &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_syntax_tuple     &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_syntax_tuple &universal, unsigned indent);
@@ -23343,8 +23582,9 @@ template<>
 an_ifc_syntax_index get_ifc_type_specifier(
                                        const an_ifc_syntax_type_id &universal);
 
-extern a_boolean validate(const an_ifc_syntax_type_id   &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_syntax_type_id   &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_syntax_type_id &universal, unsigned indent);
@@ -23386,8 +23626,9 @@ template<>
 an_ifc_syntax_index get_ifc_type_id(
                           const an_ifc_syntax_type_id_list_element &universal);
 
-extern a_boolean validate(const an_ifc_syntax_type_id_list_element &universal,
-                          const an_ifc_validation_trace            *parent);
+template<>
+a_boolean validate(const an_ifc_syntax_type_id_list_element &universal,
+                   const an_ifc_validation_trace            *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_syntax_type_id_list_element &universal,
@@ -23430,8 +23671,9 @@ template<>
 an_ifc_expr_index get_ifc_type(
                               const an_ifc_syntax_type_requirement &universal);
 
-extern a_boolean validate(const an_ifc_syntax_type_requirement &universal,
-                          const an_ifc_validation_trace        *parent);
+template<>
+a_boolean validate(const an_ifc_syntax_type_requirement &universal,
+                   const an_ifc_validation_trace        *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_syntax_type_requirement &universal,
@@ -23496,8 +23738,9 @@ template<>
 an_ifc_bool get_ifc_unhashed(
                             const an_ifc_syntax_type_specifier_seq &universal);
 
-extern a_boolean validate(const an_ifc_syntax_type_specifier_seq &universal,
-                          const an_ifc_validation_trace          *parent);
+template<>
+a_boolean validate(const an_ifc_syntax_type_specifier_seq &universal,
+                   const an_ifc_validation_trace          *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_syntax_type_specifier_seq &universal,
@@ -23548,9 +23791,9 @@ template<>
 an_ifc_source_location get_ifc_ellipsis(
                         const an_ifc_syntax_type_template_argument &universal);
 
-extern a_boolean validate(
-                        const an_ifc_syntax_type_template_argument &universal,
-                        const an_ifc_validation_trace              *parent);
+template<>
+a_boolean validate(const an_ifc_syntax_type_template_argument &universal,
+                   const an_ifc_validation_trace              *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_syntax_type_template_argument &universal,
@@ -23615,9 +23858,9 @@ template<>
 an_ifc_text_offset get_ifc_name(
                        const an_ifc_syntax_type_template_parameter &universal);
 
-extern a_boolean validate(
-                       const an_ifc_syntax_type_template_parameter &universal,
-                       const an_ifc_validation_trace               *parent);
+template<>
+a_boolean validate(const an_ifc_syntax_type_template_parameter &universal,
+                   const an_ifc_validation_trace               *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_syntax_type_template_parameter &universal,
@@ -23668,8 +23911,9 @@ template<>
 an_ifc_source_location get_ifc_locus(
                           const an_ifc_syntax_type_trait_intrinsic &universal);
 
-extern a_boolean validate(const an_ifc_syntax_type_trait_intrinsic &universal,
-                          const an_ifc_validation_trace            *parent);
+template<>
+a_boolean validate(const an_ifc_syntax_type_trait_intrinsic &universal,
+                   const an_ifc_validation_trace            *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_syntax_type_trait_intrinsic &universal,
@@ -23748,9 +23992,9 @@ template<>
 an_ifc_source_location get_ifc_right_paren(
                          const an_ifc_syntax_unary_fold_expression &universal);
 
-extern a_boolean validate(
-                         const an_ifc_syntax_unary_fold_expression &universal,
-                         const an_ifc_validation_trace             *parent);
+template<>
+a_boolean validate(const an_ifc_syntax_unary_fold_expression &universal,
+                   const an_ifc_validation_trace             *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_syntax_unary_fold_expression &universal,
@@ -23801,8 +24045,9 @@ template<>
 an_ifc_source_location get_ifc_semicolon(
                              const an_ifc_syntax_using_declaration &universal);
 
-extern a_boolean validate(const an_ifc_syntax_using_declaration &universal,
-                          const an_ifc_validation_trace         *parent);
+template<>
+a_boolean validate(const an_ifc_syntax_using_declaration &universal,
+                   const an_ifc_validation_trace         *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_syntax_using_declaration &universal,
@@ -23860,8 +24105,9 @@ template<>
 an_ifc_source_location get_ifc_typename_kw(
                               const an_ifc_syntax_using_declarator &universal);
 
-extern a_boolean validate(const an_ifc_syntax_using_declarator &universal,
-                          const an_ifc_validation_trace        *parent);
+template<>
+a_boolean validate(const an_ifc_syntax_using_declarator &universal,
+                   const an_ifc_validation_trace        *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_syntax_using_declarator &universal,
@@ -23919,8 +24165,9 @@ template<>
 an_ifc_source_location get_ifc_using_kw(
                                const an_ifc_syntax_using_directive &universal);
 
-extern a_boolean validate(const an_ifc_syntax_using_directive &universal,
-                          const an_ifc_validation_trace       *parent);
+template<>
+a_boolean validate(const an_ifc_syntax_using_directive &universal,
+                   const an_ifc_validation_trace       *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_syntax_using_directive &universal,
@@ -23978,9 +24225,9 @@ template<>
 an_ifc_source_location get_ifc_using_kw(
                         const an_ifc_syntax_using_enum_declaration &universal);
 
-extern a_boolean validate(
-                        const an_ifc_syntax_using_enum_declaration &universal,
-                        const an_ifc_validation_trace              *parent);
+template<>
+a_boolean validate(const an_ifc_syntax_using_enum_declaration &universal,
+                   const an_ifc_validation_trace              *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_syntax_using_enum_declaration &universal,
@@ -24037,9 +24284,9 @@ extern a_boolean has_ifc_pure(
 template<>
 an_ifc_bool get_ifc_pure(const an_ifc_syntax_virtual_specifier_seq &universal);
 
-extern a_boolean validate(
-                         const an_ifc_syntax_virtual_specifier_seq &universal,
-                         const an_ifc_validation_trace             *parent);
+template<>
+a_boolean validate(const an_ifc_syntax_virtual_specifier_seq &universal,
+                   const an_ifc_validation_trace             *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_syntax_virtual_specifier_seq &universal,
@@ -24095,8 +24342,9 @@ template<>
 an_ifc_source_location get_ifc_while(
                                const an_ifc_syntax_while_statement &universal);
 
-extern a_boolean validate(const an_ifc_syntax_while_statement &universal,
-                          const an_ifc_validation_trace       *parent);
+template<>
+a_boolean validate(const an_ifc_syntax_while_statement &universal,
+                   const an_ifc_validation_trace       *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_syntax_while_statement &universal,
@@ -24144,8 +24392,9 @@ template<>
 an_ifc_syntax_index get_ifc_trait(
                                  const an_ifc_trait_alias_template &universal);
 
-extern a_boolean validate(const an_ifc_trait_alias_template &universal,
-                          const an_ifc_validation_trace     *parent);
+template<>
+a_boolean validate(const an_ifc_trait_alias_template &universal,
+                   const an_ifc_validation_trace     *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_trait_alias_template &universal,
@@ -24190,8 +24439,9 @@ extern a_boolean has_ifc_trait(const an_ifc_trait_attribute &universal);
 template<>
 an_ifc_attr_index get_ifc_trait(const an_ifc_trait_attribute &universal);
 
-extern a_boolean validate(const an_ifc_trait_attribute  &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_trait_attribute  &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_trait_attribute &universal, unsigned indent);
@@ -24236,8 +24486,9 @@ extern a_boolean has_ifc_trait(const an_ifc_trait_deduction_guide &universal);
 template<>
 an_ifc_decl_index get_ifc_trait(const an_ifc_trait_deduction_guide &universal);
 
-extern a_boolean validate(const an_ifc_trait_deduction_guide &universal,
-                          const an_ifc_validation_trace      *parent);
+template<>
+a_boolean validate(const an_ifc_trait_deduction_guide &universal,
+                   const an_ifc_validation_trace      *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_trait_deduction_guide &universal,
@@ -24284,8 +24535,9 @@ extern a_boolean has_ifc_trait(const an_ifc_trait_deprecated &universal);
 template<>
 an_ifc_text_offset get_ifc_trait(const an_ifc_trait_deprecated &universal);
 
-extern a_boolean validate(const an_ifc_trait_deprecated &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_trait_deprecated &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_trait_deprecated &universal, unsigned indent);
@@ -24329,8 +24581,9 @@ extern a_boolean has_ifc_trait(const an_ifc_trait_friend &universal);
 template<>
 an_ifc_sequence get_ifc_trait(const an_ifc_trait_friend &universal);
 
-extern a_boolean validate(const an_ifc_trait_friend     &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_trait_friend     &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_trait_friend &universal, unsigned indent);
@@ -24393,8 +24646,9 @@ template<>
 an_ifc_chart_index get_ifc_parameters(
                             const an_ifc_trait_function_definition &universal);
 
-extern a_boolean validate(const an_ifc_trait_function_definition &universal,
-                          const an_ifc_validation_trace          *parent);
+template<>
+a_boolean validate(const an_ifc_trait_function_definition &universal,
+                   const an_ifc_validation_trace          *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_trait_function_definition &universal,
@@ -24441,8 +24695,9 @@ extern a_boolean has_ifc_trait(const an_ifc_trait_msvc_decl_attrs &universal);
 template<>
 an_ifc_attr_index get_ifc_trait(const an_ifc_trait_msvc_decl_attrs &universal);
 
-extern a_boolean validate(const an_ifc_trait_msvc_decl_attrs &universal,
-                          const an_ifc_validation_trace      *parent);
+template<>
+a_boolean validate(const an_ifc_trait_msvc_decl_attrs &universal,
+                   const an_ifc_validation_trace      *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_trait_msvc_decl_attrs &universal,
@@ -24491,8 +24746,9 @@ template<>
 an_ifc_chart_index get_ifc_params(
                                const an_ifc_trait_msvc_func_params &universal);
 
-extern a_boolean validate(const an_ifc_trait_msvc_func_params &universal,
-                          const an_ifc_validation_trace       *parent);
+template<>
+a_boolean validate(const an_ifc_trait_msvc_func_params &universal,
+                   const an_ifc_validation_trace       *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_trait_msvc_func_params &universal,
@@ -24538,8 +24794,9 @@ extern a_boolean has_ifc_uuid(const an_ifc_trait_msvc_uuid &universal);
 template<>
 an_ifc_uuid get_ifc_uuid(const an_ifc_trait_msvc_uuid &universal);
 
-extern a_boolean validate(const an_ifc_trait_msvc_uuid  &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_trait_msvc_uuid  &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_trait_msvc_uuid &universal, unsigned indent);
@@ -24587,8 +24844,9 @@ template<>
 an_ifc_msvc_traits_bitfield get_ifc_trait(
                               const an_ifc_trait_msvc_vendor_trait &universal);
 
-extern a_boolean validate(const an_ifc_trait_msvc_vendor_trait &universal,
-                          const an_ifc_validation_trace        *parent);
+template<>
+a_boolean validate(const an_ifc_trait_msvc_vendor_trait &universal,
+                   const an_ifc_validation_trace        *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_trait_msvc_vendor_trait &universal,
@@ -24634,8 +24892,9 @@ extern a_boolean has_ifc_trait(const an_ifc_trait_requires &universal);
 template<>
 an_ifc_syntax_index get_ifc_trait(const an_ifc_trait_requires &universal);
 
-extern a_boolean validate(const an_ifc_trait_requires   &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_trait_requires   &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_trait_requires &universal, unsigned indent);
@@ -24680,8 +24939,9 @@ extern a_boolean has_ifc_trait(const an_ifc_trait_specialization &universal);
 template<>
 an_ifc_sequence get_ifc_trait(const an_ifc_trait_specialization &universal);
 
-extern a_boolean validate(const an_ifc_trait_specialization &universal,
-                          const an_ifc_validation_trace     *parent);
+template<>
+a_boolean validate(const an_ifc_trait_specialization &universal,
+                   const an_ifc_validation_trace     *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_trait_specialization &universal,
@@ -24720,8 +24980,9 @@ extern a_boolean has_ifc_extent(const an_ifc_type_array &universal);
 template<>
 an_ifc_expr_index get_ifc_extent(const an_ifc_type_array &universal);
 
-extern a_boolean validate(const an_ifc_type_array       &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_type_array       &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_type_array &universal, unsigned indent);
@@ -24769,8 +25030,9 @@ extern a_boolean has_ifc_type(const an_ifc_type_base &universal);
 template<>
 an_ifc_type_index get_ifc_type(const an_ifc_type_base &universal);
 
-extern a_boolean validate(const an_ifc_type_base        &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_type_base        &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_type_base &universal, unsigned indent);
@@ -24803,8 +25065,9 @@ extern a_boolean has_ifc_expr(const an_ifc_type_decltype &universal);
 template<>
 an_ifc_syntax_index get_ifc_expr(const an_ifc_type_decltype &universal);
 
-extern a_boolean validate(const an_ifc_type_decltype    &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_type_decltype    &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_type_decltype &universal, unsigned indent);
@@ -24837,8 +25100,9 @@ extern a_boolean has_ifc_decl(const an_ifc_type_designated &universal);
 template<>
 an_ifc_decl_index get_ifc_decl(const an_ifc_type_designated &universal);
 
-extern a_boolean validate(const an_ifc_type_designated  &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_type_designated  &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_type_designated &universal, unsigned indent);
@@ -24877,8 +25141,9 @@ extern a_boolean has_ifc_pack(const an_ifc_type_expansion &universal);
 template<>
 an_ifc_type_index get_ifc_pack(const an_ifc_type_expansion &universal);
 
-extern a_boolean validate(const an_ifc_type_expansion   &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_type_expansion   &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_type_expansion &universal, unsigned indent);
@@ -24916,8 +25181,9 @@ extern a_boolean has_ifc_subject(const an_ifc_type_forall &universal);
 template<>
 an_ifc_type_index get_ifc_subject(const an_ifc_type_forall &universal);
 
-extern a_boolean validate(const an_ifc_type_forall      &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_type_forall      &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_type_forall &universal, unsigned indent);
@@ -24973,8 +25239,9 @@ template<>
 an_ifc_function_type_traits_bitfield get_ifc_traits(
                                         const an_ifc_type_function &universal);
 
-extern a_boolean validate(const an_ifc_type_function    &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_type_function    &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_type_function &universal, unsigned indent);
@@ -25018,8 +25285,9 @@ extern a_boolean has_ifc_sign(const an_ifc_type_fundamental &universal);
 template<>
 an_ifc_type_sign_sort get_ifc_sign(const an_ifc_type_fundamental &universal);
 
-extern a_boolean validate(const an_ifc_type_fundamental &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_type_fundamental &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_type_fundamental &universal, unsigned indent);
@@ -25054,8 +25322,9 @@ template<>
 an_ifc_type_index get_ifc_referee(
                                 const an_ifc_type_lvalue_reference &universal);
 
-extern a_boolean validate(const an_ifc_type_lvalue_reference &universal,
-                          const an_ifc_validation_trace      *parent);
+template<>
+a_boolean validate(const an_ifc_type_lvalue_reference &universal,
+                   const an_ifc_validation_trace      *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_type_lvalue_reference &universal,
@@ -25118,8 +25387,9 @@ template<>
 an_ifc_function_type_traits_bitfield get_ifc_traits(
                                           const an_ifc_type_method &universal);
 
-extern a_boolean validate(const an_ifc_type_method      &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_type_method      &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_type_method &universal, unsigned indent);
@@ -25163,8 +25433,9 @@ template<>
 an_ifc_type_index get_ifc_elaboration(
                                      const an_ifc_type_placeholder &universal);
 
-extern a_boolean validate(const an_ifc_type_placeholder &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_type_placeholder &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_type_placeholder &universal, unsigned indent);
@@ -25197,8 +25468,9 @@ extern a_boolean has_ifc_pointee(const an_ifc_type_pointer &universal);
 template<>
 an_ifc_type_index get_ifc_pointee(const an_ifc_type_pointer &universal);
 
-extern a_boolean validate(const an_ifc_type_pointer     &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_type_pointer     &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_type_pointer &universal, unsigned indent);
@@ -25239,8 +25511,9 @@ template<>
 an_ifc_type_index get_ifc_scope(
                                const an_ifc_type_pointer_to_member &universal);
 
-extern a_boolean validate(const an_ifc_type_pointer_to_member &universal,
-                          const an_ifc_validation_trace       *parent);
+template<>
+a_boolean validate(const an_ifc_type_pointer_to_member &universal,
+                   const an_ifc_validation_trace       *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_type_pointer_to_member &universal,
@@ -25281,8 +25554,9 @@ extern a_boolean has_ifc_unqualified(const an_ifc_type_qualified &universal);
 template<>
 an_ifc_type_index get_ifc_unqualified(const an_ifc_type_qualified &universal);
 
-extern a_boolean validate(const an_ifc_type_qualified   &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_type_qualified   &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_type_qualified &universal, unsigned indent);
@@ -25317,8 +25591,9 @@ template<>
 an_ifc_type_index get_ifc_referee(
                                 const an_ifc_type_rvalue_reference &universal);
 
-extern a_boolean validate(const an_ifc_type_rvalue_reference &universal,
-                          const an_ifc_validation_trace      *parent);
+template<>
+a_boolean validate(const an_ifc_type_rvalue_reference &universal,
+                   const an_ifc_validation_trace      *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_type_rvalue_reference &universal,
@@ -25353,8 +25628,9 @@ extern a_boolean has_ifc_expr(const an_ifc_type_syntactic &universal);
 template<>
 an_ifc_expr_index get_ifc_expr(const an_ifc_type_syntactic &universal);
 
-extern a_boolean validate(const an_ifc_type_syntactic   &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_type_syntactic   &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_type_syntactic &universal, unsigned indent);
@@ -25387,8 +25663,9 @@ extern a_boolean has_ifc_syntax(const an_ifc_type_syntax_tree &universal);
 template<>
 an_ifc_syntax_index get_ifc_syntax(const an_ifc_type_syntax_tree &universal);
 
-extern a_boolean validate(const an_ifc_type_syntax_tree &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_type_syntax_tree &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_type_syntax_tree &universal, unsigned indent);
@@ -25433,8 +25710,9 @@ extern a_boolean has_ifc_source(const an_ifc_type_tor &universal);
 template<>
 an_ifc_type_index get_ifc_source(const an_ifc_type_tor &universal);
 
-extern a_boolean validate(const an_ifc_type_tor         &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_type_tor         &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_type_tor &universal, unsigned indent);
@@ -25472,8 +25750,9 @@ extern a_boolean has_ifc_start(const an_ifc_type_tuple &universal);
 template<>
 an_ifc_index get_ifc_start(const an_ifc_type_tuple &universal);
 
-extern a_boolean validate(const an_ifc_type_tuple       &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_type_tuple       &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_type_tuple &universal, unsigned indent);
@@ -25506,8 +25785,9 @@ extern a_boolean has_ifc_path(const an_ifc_type_typename &universal);
 template<>
 an_ifc_expr_index get_ifc_path(const an_ifc_type_typename &universal);
 
-extern a_boolean validate(const an_ifc_type_typename    &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_type_typename    &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_type_typename &universal, unsigned indent);
@@ -25540,8 +25820,9 @@ extern a_boolean has_ifc_type(const an_ifc_type_unaligned &universal);
 template<>
 an_ifc_type_index get_ifc_type(const an_ifc_type_unaligned &universal);
 
-extern a_boolean validate(const an_ifc_type_unaligned   &universal,
-                          const an_ifc_validation_trace *parent);
+template<>
+a_boolean validate(const an_ifc_type_unaligned   &universal,
+                   const an_ifc_validation_trace *parent);
 
 #if DEBUG
 extern void db_node(const an_ifc_type_unaligned &universal, unsigned indent);
