@@ -8007,7 +8007,11 @@ now be completed.
   a_type_ptr        func_type;
 
   check_assertion(dps->sym != NULL &&
-                  is_function_or_template_symbol(dps->sym));
+                  (is_function_or_template_symbol(dps->sym) ||
+                   (dps->sym->kind == sk_type &&
+                    (is_function_type(dps->sym->variant.type.ptr) ||
+                     is_pointer_to_function_type(
+                                               dps->sym->variant.type.ptr)))));
   func_type = underlying_function_type(dps->sym);
   ap = find_attribute(ak_warn_unused_result,
                       func_type->source_corresp.attributes);
