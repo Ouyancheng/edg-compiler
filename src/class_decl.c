@@ -19945,7 +19945,7 @@ be updated on return.
         err = TRUE;
       } else if (bit_field_size > max_size_allowed) {
         /* A warning in C++ and GNU C modes (prior to GNU version 3.4). */
-        char  buffer[8];
+        char  buffer[21];
         sprintf(buffer, "%lu", max_size_allowed);
         pos_st_warning(ec_extra_bits_ignored, &error_position, buffer);
         if (gcc_mode) {
