@@ -1,5 +1,15 @@
 Version 6.4
 
+7/12/22  [EDGcpfe/25423]
+Assertion failure in define_default_version_of_routine
+
+In configurations that use lowering and have the
+IA64_ABI_VARIANT_CTORS_AND_DTORS_RETURN_THIS configuration macro set to TRUE,
+an assertion failure in define_default_version_of_routine had occurred when
+lowering any deleting or delegating destructor.  This regression was introduced
+in version 5.0 by the changes for EDGcpfe/18957.
+
+
 7/12/22  [EDGcpfe/25412]
 Assertion failure in deferred_check_unused_result_attr
 
