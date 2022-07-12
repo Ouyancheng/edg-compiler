@@ -4840,13 +4840,16 @@ operator of a no-capture lambda.
     rtsp = routine->type->variant.routine.extra_info;
     new_rtsp = new_routine->type->variant.routine.extra_info;
 #if CHECKING
+#if IA64_ABI
     if (!(targ_ia64_abi_variant_ctors_and_dtors_return_this &&
-         routine->special_kind == (a_special_function_kind)sfk_destructor)) {
+         routine->special_kind == (a_special_function_kind)sfk_destructor))
+#endif /* IA64_ABI */
+    {
       /* The routine types must be similar.  They may differ in the number
          of parameters, but the return types and whether or not they return
-         their return value as a parameter should be identical.  (In
-         configurations where destructors return "this", the return types may
-         differ). */
+         their return value as a parameter should be identical.  (In some
+         IA-64 configurations where destructors return "this", the return types
+         may differ). */
       a_type_ptr orig_return_type = lowered_return_type_of(routine->type);
       a_type_ptr new_return_type = lowered_return_type_of(new_routine->type);
       check_assertion(il_identical_types(orig_return_type, new_return_type) &&
