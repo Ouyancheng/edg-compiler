@@ -34361,18 +34361,6 @@ For example:
   pop_stop_token_stack();
   /* Restore default argument fixups. */
   curr_default_args = saved_curr_default_args;
-  /* Remove unneeded captures. */
-  if (lambda != NULL) {
-    a_lambda_capture_ptr  *p_lcp = &lambda->capture_list;
-    while (*p_lcp != NULL) {
-      if ((*p_lcp)->field_pending) {
-        /* No capture was actually required.  Drop this capture. */
-        *p_lcp = (*p_lcp)->next;
-      } else {
-        p_lcp = &(*p_lcp)->next;
-      }  /* if */
-    }  /* while */
-  } /* if */
   return lambda;
 }  /* scan_lambda */
 
