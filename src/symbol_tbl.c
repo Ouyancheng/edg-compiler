@@ -9342,6 +9342,7 @@ Look up name in namespace std and return the symbol found, if any.
       /* If "std" hasn't been entered into the symbol table, make sure that
          it is entered now. */
       a_symbol_locator  loc;
+      clear_locator(&loc, &null_source_position);
       (void)find_symbol("std", (sizeof_t)strlen("std"), &loc);
       enter_symbol_for_namespace_std(&loc);
       /* Force a lookup of "std" to make sure that any lazily-loaded symbols
