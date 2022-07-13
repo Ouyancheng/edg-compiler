@@ -7685,9 +7685,10 @@ FIXME: what other expressions can we get here?
                                         (an_integer_kind)ik_unsigned_int);
               } else {
                 check_assertion(constant_type != NULL);
-                if (is_void_star_type(constant_type)) {
-                  /* Pointer literal, nullptr constant. */
-                  set_unsigned_integer_constant(cp, value, ik_unsigned_int);
+                if (is_pointer_type(constant_type)) {
+                  /* Pointer literal. */
+                  set_unsigned_integer_constant(cp, value,
+                                                targ_size_t_int_kind);
                 } else {
                   a_type_ptr stripped_type = skip_typerefs(constant_type);
                   check_assertion(stripped_type->kind ==
@@ -8155,23 +8156,27 @@ literals (see cache_bool_literal, cache_string_literal, and cache_ud_literal
 for those).
 */
 {
+  a_type_ptr   lit_type = lit_const->type;
   a_token_kind lit_kind;
 
-  if (is_floating_type(lit_const->type)) {
+  if (is_floating_type(lit_type)) {
     lit_kind = tok_float_constant;
 #if FIXED_POINT_ALLOWED
-  } else if (is_fixed_point_type(lit_const->type)) {
+  } else if (is_fixed_point_type(lit_type)) {
     lit_kind = tok_fixed_point_constant;
 #endif /* FIXED_POINT_ALLOWED */
-  } else if (is_character_type(lit_const->type)) {
+  } else if (is_character_type(lit_type)) {
     lit_kind = tok_char_constant;
-  } else if (is_integral_type(lit_const->type)) {
+  } else if (is_integral_type(lit_type) || is_pointer_type(lit_type)) {
+    /* When caching pointer literals, cast to the correct pointer type. */
+    if (is_pointer_type(lit_type)) {
+      cache_token(cache, tok_lparen, pos);
+      cache_resolved_type_token(cache, lit_type, pos);
+      cache_token(cache, tok_rparen, pos);
+    }  /* if */
     lit_kind = tok_int_constant;
-  } else if (is_void_star_type(lit_const->type)) {
-    /* Pointer literal, nullptr constant. */
-    lit_kind = tok_nullptr;
   } else {
-    check_assertion(is_error_type(lit_const->type));
+    check_assertion(is_fixed_point_type(lit_type) || is_error_type(lit_type));
     lit_kind = tok_error;
   }  /* if */
   cache_token(cache, lit_kind, pos);
