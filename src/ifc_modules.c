@@ -4601,8 +4601,8 @@ static a_boolean traverse_scope_member_range(
                                            a_Scope_member_consumer consumer)
 /*
 Traverse "cardinality" elements from the given scope member range from the
-starting position (start), in start's module.  Validate scope members are
-passed to the given consumer.  Upon completion of the traverse this function
+starting position (start), in start's module.  Validated scope members are
+passed to the given consumer.  Upon completion of the traversal this function
 returns TRUE if all elements were passed to the consumer; otherwise, returns
 FALSE.
 */
@@ -4919,9 +4919,9 @@ a_boolean an_ifc_module::init_string_table_and_header(
                                            a_boolean                issue_diag)
 /*
 Initialize a module header and string table for the given module import decl.
-If the initialization succeeds without error the value of issue_diag is ignore,
-and TRUE is returned.  Otherwise, if the initialization fails return FALSE, and
-issue diagnostics if issue_diag is TRUE.
+If the initialization succeeds without error the value of issue_diag is
+ignored, and TRUE is returned.  Otherwise, if the initialization fails return
+FALSE, and issue diagnostics if issue_diag is TRUE.
 */
 {
   a_boolean result = TRUE;
@@ -4996,6 +4996,7 @@ Find and return the IFC partition kind for the partition matching name.  If
 the partition could not be found, return ifc_pk_none.
 */
 {
+  an_ifc_partition_kind result = ifc_pk_none;
   /* Create a wrapped version of partition_name for comparisons. */
   an_ifc_partition_name partition_name{name};
   /* Provide a value function for retrieving the wrapped partition name at the
@@ -5006,7 +5007,6 @@ the partition could not be found, return ifc_pk_none.
   /* Get the partition map index (if any) for the given partition name. */
   ptrdiff_t partition_map_idx = bin_search(IFC_PARTITION_COUNT, partition_name,
                                            value_lambda);
-  an_ifc_partition_kind result = ifc_pk_none;
 
   /* If we have a matching partition map entry, return it, otherwise return
      null. */
@@ -5022,9 +5022,9 @@ a_boolean an_ifc_module::initialize_members_from_ifc_module_file(
                                            a_boolean                issue_diag)
 /*
 Initialize a module for the given module import decl.  If the initialization
-succeeds without error the value of issue_diag is ignore, and TRUE is returned.
-Otherwise, if the initialization fails return FALSE, and issue diagnostics if
-issue_diag is TRUE.
+succeeds without error the value of issue_diag is ignored, and TRUE is
+returned.  Otherwise, if the initialization fails return FALSE, and issue
+diagnostics if issue_diag is TRUE.
 */
 {
   a_module_ptr mod = midp->module_info;
@@ -5121,7 +5121,7 @@ issue_diag is TRUE.
           pos_st_num2_diagnostic(es_error, ec_ifc_partition_bad_entry_size,
                                  &midp->module_name_position,
                                  name_str, entry_size, expected_entry_size);
-          /* Invalid all elements of the partition, this stops processing of
+          /* Invalidate all elements of the partition; this stops processing of
              these partition elements without further diagnostics, and without
              ending further diagnostics. */
           invalidate_all_validation_bits(pp->format_validated, cardinality);
@@ -6397,8 +6397,8 @@ Returns the type that corresponds to the provided ExprSort::TemplateId in the
 module file.
 */
 {
-  a_type_ptr             result = NULL;
-  an_ifc_expr_index      primary = get_ifc_primary(templ_id);
+  a_type_ptr                  result = NULL;
+  an_ifc_expr_index           primary = get_ifc_primary(templ_id);
   Opt<an_ifc_expr_named_decl> opt_iend;
 
   construct_node(&opt_iend, primary);
@@ -15793,9 +15793,9 @@ variadic; otherwise, return FALSE.
 {
   a_boolean result = FALSE;
 
-  /* FIXME: This is an odd, we should refine this part of the spec with
-     Microsoft.  The endianness concerns/handling of the IFC seemingly compete
-     with the layout of this data. */
+  /* FIXME: This is odd, we should refine this part of the spec with Microsoft.
+     The endianness concerns/handling of the IFC seemingly compete with the
+     layout of this data. */
   static_assert(sizeof(an_ifc_variadic_arity_storage) == 4,
                 "Unexpected variadic arity storage size.");
   a_byte variadic_byte = (a_byte)((*arity.get_storage())[3]);
@@ -15867,8 +15867,8 @@ static void cache_form_spelling(a_token_cache_ptr            cache,
                                 const an_ifc_source_location &locus,
                                 an_ifc_text_offset           spelling)
 /*
-Given a cache, locus, and form spelling, cache the given preprocessed form to
-the cache at the source position specified by locus.
+Given a cache, locus, and form spelling, cache the given preprocessed form at
+the source position specified by locus.
 */
 {
   a_const_char      *str = get_string_at_offset(spelling);
@@ -16158,7 +16158,7 @@ inline an_ifc_type_index an_ifc_module::type_index_of(
                                              an_ifc_partition_kind partition,
                                              size_t                file_offset)
 /*
-Return the an_ifc_decl_index derived from the partition kind and file offset.
+Return the an_ifc_type_index derived from the partition kind and file offset.
 */
 {
   an_ifc_index_type part_index =
@@ -16247,7 +16247,8 @@ produce a more detailed contextual diagnostic.
 void invalid_partition(an_ifc_module                 *mod,
                        const an_ifc_validation_trace *trace)
 /*
-Emit a diagnostic for an encountered invalid partition.
+Given the associated module and validation trace, emit a diagnostic for an
+encountered invalid partition.
 */
 {
   a_diagnostic_ptr diag_ptr;
@@ -16265,8 +16266,9 @@ static void diag_undefined_partition(an_ifc_module                 *mod,
                                      an_ifc_partition_kind         part_kind,
                                      const an_ifc_validation_trace *trace)
 /*
-Handle failure and diagnostics for an encountered undefined
-partition.
+Given the associated module, encountered undefined partition kind, and
+validation trace, handle failure and diagnostics for an encountered undefined
+partition
 */
 {
   a_const_char     *part_name = get_partition_name_from_kind(part_kind);
@@ -16289,7 +16291,10 @@ static void diag_partition_position(
                                  size_t                        relative_offset,
                                  const an_ifc_validation_trace *trace)
 /*
-Handle failure and diagnostics for an encountered overflowing partition.
+Given the error code to diagnose with, the associated module module, partition
+kind, offset into the file, relative offset from the start of the partition,
+and validation trace, handle failure and diagnostics for an encountered
+overflowing partition.
 */
 {
   a_const_char     *part_name = get_partition_name_from_kind(part_kind);

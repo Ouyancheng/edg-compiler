@@ -201,7 +201,7 @@ INST_CONSTRUCT_NODE_FM(an_ifc_partition)
 template<typename an_ifc_Index_type>
 static a_boolean has_been_validated(an_ifc_Index_type idx)
 /*
-Return TRUE if this the element at the given index has already been validated.
+Return TRUE if the element at the given index has already been validated.
 */
 {
   /* Setup a bit mask that can be used to check the validated status of a
