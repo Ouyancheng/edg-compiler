@@ -21,7 +21,7 @@ first argument -- a change was made to that effect.  For example, with
 CTAD issue with variadic constructors
 
 Class template argument deduction (CTAD) could fail in some cases where
-class template constructor had a function parameter that was a pack
+a class template constructor had a function parameter that was a pack
 expansion.  Now fixed.
 
   template <class T> struct A {};
