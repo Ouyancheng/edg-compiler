@@ -70,8 +70,8 @@ Functions for interacting with IFC AccessSort sorts.
 
 a_const_char* str_for(an_ifc_access_sort universal)
 /*
-Given the universal representation of AccessSort, return the the textual name
-in the form a c-string.
+Given the universal representation of AccessSort, return the textual name in
+the form a c-string.
 */
 {
   a_const_char *result;
@@ -164,8 +164,8 @@ Functions for interacting with IFC ArchitectureSort sorts.
 
 a_const_char* str_for(an_ifc_architecture_sort universal)
 /*
-Given the universal representation of ArchitectureSort, return the the textual
-name in the form a c-string.
+Given the universal representation of ArchitectureSort, return the textual name
+in the form a c-string.
 */
 {
   a_const_char *result;
@@ -277,8 +277,8 @@ Functions for interacting with IFC AttrSort sorts.
 
 a_const_char* str_for(an_ifc_attr_sort universal)
 /*
-Given the universal representation of AttrSort, return the the textual name in
-the form a c-string.
+Given the universal representation of AttrSort, return the textual name in the
+form a c-string.
 */
 {
   a_const_char *result;
@@ -416,8 +416,8 @@ Functions for interacting with IFC CallingConventionSort sorts.
 
 a_const_char* str_for(an_ifc_calling_convention_sort universal)
 /*
-Given the universal representation of CallingConventionSort, return the the
-textual name in the form a c-string.
+Given the universal representation of CallingConventionSort, return the textual
+name in the form a c-string.
 */
 {
   a_const_char *result;
@@ -539,8 +539,8 @@ Functions for interacting with IFC ChartSort sorts.
 
 a_const_char* str_for(an_ifc_chart_sort universal)
 /*
-Given the universal representation of ChartSort, return the the textual name in
-the form a c-string.
+Given the universal representation of ChartSort, return the textual name in the
+form a c-string.
 */
 {
   a_const_char *result;
@@ -624,8 +624,8 @@ Functions for interacting with IFC DeclSort sorts.
 
 a_const_char* str_for(an_ifc_decl_sort universal)
 /*
-Given the universal representation of DeclSort, return the the textual name in
-the form a c-string.
+Given the universal representation of DeclSort, return the textual name in the
+form a c-string.
 */
 {
   a_const_char *result;
@@ -1184,8 +1184,8 @@ Functions for interacting with IFC DelimiterSort sorts.
 
 a_const_char* str_for(an_ifc_delimiter_sort universal)
 /*
-Given the universal representation of DelimiterSort, return the the textual
-name in the form a c-string.
+Given the universal representation of DelimiterSort, return the textual name in
+the form a c-string.
 */
 {
   a_const_char *result;
@@ -1269,8 +1269,8 @@ Functions for interacting with IFC DyadicOperatorSort sorts.
 
 a_const_char* str_for(an_ifc_dyadic_operator_sort universal)
 /*
-Given the universal representation of DyadicOperatorSort, return the the
-textual name in the form a c-string.
+Given the universal representation of DyadicOperatorSort, return the textual
+name in the form a c-string.
 */
 {
   a_const_char *result;
@@ -2125,7 +2125,7 @@ Functions for interacting with IFC ExpansionModeSort sorts.
 
 a_const_char* str_for(an_ifc_expansion_mode_sort universal)
 /*
-Given the universal representation of ExpansionModeSort, return the the textual
+Given the universal representation of ExpansionModeSort, return the textual
 name in the form a c-string.
 */
 {
@@ -2203,8 +2203,8 @@ Functions for interacting with IFC ExprSort sorts.
 
 a_const_char* str_for(an_ifc_expr_sort universal)
 /*
-Given the universal representation of ExprSort, return the the textual name in
-the form a c-string.
+Given the universal representation of ExprSort, return the textual name in the
+form a c-string.
 */
 {
   a_const_char *result;
@@ -2810,7 +2810,7 @@ Functions for interacting with IFC FoldDirectionSort sorts.
 
 a_const_char* str_for(an_ifc_fold_direction_sort universal)
 /*
-Given the universal representation of FoldDirectionSort, return the the textual
+Given the universal representation of FoldDirectionSort, return the textual
 name in the form a c-string.
 */
 {
@@ -2897,8 +2897,8 @@ Functions for interacting with IFC FormSort sorts.
 
 a_const_char* str_for(an_ifc_form_sort universal)
 /*
-Given the universal representation of FormSort, return the the textual name in
-the form a c-string.
+Given the universal representation of FormSort, return the textual name in the
+form a c-string.
 */
 {
   a_const_char *result;
@@ -3090,8 +3090,8 @@ Functions for interacting with IFC InitializerSort sorts.
 
 a_const_char* str_for(an_ifc_initializer_sort universal)
 /*
-Given the universal representation of InitializerSort, return the the textual
-name in the form a c-string.
+Given the universal representation of InitializerSort, return the textual name
+in the form a c-string.
 */
 {
   a_const_char *result;
@@ -3176,8 +3176,8 @@ Functions for interacting with IFC KeywordSort sorts.
 
 a_const_char* str_for(an_ifc_keyword_sort universal)
 /*
-Given the universal representation of KeywordSort, return the the textual name
-in the form a c-string.
+Given the universal representation of KeywordSort, return the textual name in
+the form a c-string.
 */
 {
   a_const_char *result;
@@ -3351,8 +3351,8 @@ Functions for interacting with IFC LabelSort sorts.
 
 a_const_char* str_for(an_ifc_label_sort universal)
 /*
-Given the universal representation of LabelSort, return the the textual name in
-the form a c-string.
+Given the universal representation of LabelSort, return the textual name in the
+form a c-string.
 */
 {
   a_const_char *result;
@@ -3445,8 +3445,8 @@ Functions for interacting with IFC LitSort sorts.
 
 a_const_char* str_for(an_ifc_lit_sort universal)
 /*
-Given the universal representation of LitSort, return the the textual name in
-the form a c-string.
+Given the universal representation of LitSort, return the textual name in the
+form a c-string.
 */
 {
   a_const_char *result;
@@ -3530,8 +3530,8 @@ Functions for interacting with IFC MacroSort sorts.
 
 a_const_char* str_for(an_ifc_macro_sort universal)
 /*
-Given the universal representation of MacroSort, return the the textual name in
-the form a c-string.
+Given the universal representation of MacroSort, return the textual name in the
+form a c-string.
 */
 {
   a_const_char *result;
@@ -3606,8 +3606,8 @@ Functions for interacting with IFC MonadicOperatorSort sorts.
 
 a_const_char* str_for(an_ifc_monadic_operator_sort universal)
 /*
-Given the universal representation of MonadicOperatorSort, return the the
-textual name in the form a c-string.
+Given the universal representation of MonadicOperatorSort, return the textual
+name in the form a c-string.
 */
 {
   a_const_char *result;
@@ -4386,8 +4386,8 @@ Functions for interacting with IFC NameSort sorts.
 
 a_const_char* str_for(an_ifc_name_sort universal)
 /*
-Given the universal representation of NameSort, return the the textual name in
-the form a c-string.
+Given the universal representation of NameSort, return the textual name in the
+form a c-string.
 */
 {
   a_const_char *result;
@@ -4516,8 +4516,8 @@ Functions for interacting with IFC NiladicOperatorSort sorts.
 
 a_const_char* str_for(an_ifc_niladic_operator_sort universal)
 /*
-Given the universal representation of NiladicOperatorSort, return the the
-textual name in the form a c-string.
+Given the universal representation of NiladicOperatorSort, return the textual
+name in the form a c-string.
 */
 {
   a_const_char *result;
@@ -4639,8 +4639,8 @@ Functions for interacting with IFC NoexceptSort sorts.
 
 a_const_char* str_for(an_ifc_noexcept_sort universal)
 /*
-Given the universal representation of NoexceptSort, return the the textual name
-in the form a c-string.
+Given the universal representation of NoexceptSort, return the textual name in
+the form a c-string.
 */
 {
   a_const_char *result;
@@ -4751,8 +4751,8 @@ Functions for interacting with IFC OperatorSort sorts.
 
 a_const_char* str_for(an_ifc_operator_sort universal)
 /*
-Given the universal representation of OperatorSort, return the the textual name
-in the form a c-string.
+Given the universal representation of OperatorSort, return the textual name in
+the form a c-string.
 */
 {
   a_const_char *result;
@@ -4863,8 +4863,8 @@ Functions for interacting with IFC ParameterSort sorts.
 
 a_const_char* str_for(an_ifc_parameter_sort universal)
 /*
-Given the universal representation of ParameterSort, return the the textual
-name in the form a c-string.
+Given the universal representation of ParameterSort, return the textual name in
+the form a c-string.
 */
 {
   a_const_char *result;
@@ -4957,8 +4957,8 @@ Functions for interacting with IFC PointerDeclaratorSort sorts.
 
 a_const_char* str_for(an_ifc_pointer_declarator_sort universal)
 /*
-Given the universal representation of PointerDeclaratorSort, return the the
-textual name in the form a c-string.
+Given the universal representation of PointerDeclaratorSort, return the textual
+name in the form a c-string.
 */
 {
   a_const_char *result;
@@ -5062,8 +5062,8 @@ Functions for interacting with IFC PragmaSort sorts.
 
 a_const_char* str_for(an_ifc_pragma_sort universal)
 /*
-Given the universal representation of PragmaSort, return the the textual name
-in the form a c-string.
+Given the universal representation of PragmaSort, return the textual name in
+the form a c-string.
 */
 {
   a_const_char *result;
@@ -5129,8 +5129,8 @@ Functions for interacting with IFC ReadConversionSort sorts.
 
 a_const_char* str_for(an_ifc_read_conversion_sort universal)
 /*
-Given the universal representation of ReadConversionSort, return the the
-textual name in the form a c-string.
+Given the universal representation of ReadConversionSort, return the textual
+name in the form a c-string.
 */
 {
   a_const_char *result;
@@ -5234,8 +5234,8 @@ Functions for interacting with IFC ReturnSort sorts.
 
 a_const_char* str_for(an_ifc_return_sort universal)
 /*
-Given the universal representation of ReturnSort, return the the textual name
-in the form a c-string.
+Given the universal representation of ReturnSort, return the textual name in
+the form a c-string.
 */
 {
   a_const_char *result;
@@ -5310,8 +5310,8 @@ Functions for interacting with IFC SourceDirectiveSort sorts.
 
 a_const_char* str_for(an_ifc_source_directive_sort universal)
 /*
-Given the universal representation of SourceDirectiveSort, return the the
-textual name in the form a c-string.
+Given the universal representation of SourceDirectiveSort, return the textual
+name in the form a c-string.
 */
 {
   a_const_char *result;
@@ -5892,8 +5892,8 @@ Functions for interacting with IFC SourceIdentifierSort sorts.
 
 a_const_char* str_for(an_ifc_source_identifier_sort universal)
 /*
-Given the universal representation of SourceIdentifierSort, return the the
-textual name in the form a c-string.
+Given the universal representation of SourceIdentifierSort, return the textual
+name in the form a c-string.
 */
 {
   a_const_char *result;
@@ -6024,7 +6024,7 @@ Functions for interacting with IFC SourceKeywordSort sorts.
 
 a_const_char* str_for(an_ifc_source_keyword_sort universal)
 /*
-Given the universal representation of SourceKeywordSort, return the the textual
+Given the universal representation of SourceKeywordSort, return the textual
 name in the form a c-string.
 */
 {
@@ -7770,7 +7770,7 @@ Functions for interacting with IFC SourceLiteralSort sorts.
 
 a_const_char* str_for(an_ifc_source_literal_sort universal)
 /*
-Given the universal representation of SourceLiteralSort, return the the textual
+Given the universal representation of SourceLiteralSort, return the textual
 name in the form a c-string.
 */
 {
@@ -7929,8 +7929,8 @@ Functions for interacting with IFC SourceOperatorSort sorts.
 
 a_const_char* str_for(an_ifc_source_operator_sort universal)
 /*
-Given the universal representation of SourceOperatorSort, return the the
-textual name in the form a c-string.
+Given the universal representation of SourceOperatorSort, return the textual
+name in the form a c-string.
 */
 {
   a_const_char *result;
@@ -8358,8 +8358,8 @@ Functions for interacting with IFC SourcePunctuatorSort sorts.
 
 a_const_char* str_for(an_ifc_source_punctuator_sort universal)
 /*
-Given the universal representation of SourcePunctuatorSort, return the the
-textual name in the form a c-string.
+Given the universal representation of SourcePunctuatorSort, return the textual
+name in the form a c-string.
 */
 {
   a_const_char *result;
@@ -8589,8 +8589,8 @@ Functions for interacting with IFC SpecializationSort sorts.
 
 a_const_char* str_for(an_ifc_specialization_sort universal)
 /*
-Given the universal representation of SpecializationSort, return the the
-textual name in the form a c-string.
+Given the universal representation of SpecializationSort, return the textual
+name in the form a c-string.
 */
 {
   a_const_char *result;
@@ -8676,8 +8676,8 @@ Functions for interacting with IFC StmtSort sorts.
 
 a_const_char* str_for(an_ifc_stmt_sort universal)
 /*
-Given the universal representation of StmtSort, return the the textual name in
-the form a c-string.
+Given the universal representation of StmtSort, return the textual name in the
+form a c-string.
 */
 {
   a_const_char *result;
@@ -8888,7 +8888,7 @@ Functions for interacting with IFC StorageInstructionOperatorSort sorts.
 a_const_char* str_for(an_ifc_storage_instruction_operator_sort universal)
 /*
 Given the universal representation of StorageInstructionOperatorSort, return
-the the textual name in the form a c-string.
+the textual name in the form a c-string.
 */
 {
   a_const_char *result;
@@ -9004,8 +9004,8 @@ Functions for interacting with IFC StringSort sorts.
 
 a_const_char* str_for(an_ifc_string_sort universal)
 /*
-Given the universal representation of StringSort, return the the textual name
-in the form a c-string.
+Given the universal representation of StringSort, return the textual name in
+the form a c-string.
 */
 {
   a_const_char *result;
@@ -9107,8 +9107,8 @@ Functions for interacting with IFC SyntaxSort sorts.
 
 a_const_char* str_for(an_ifc_syntax_sort universal)
 /*
-Given the universal representation of SyntaxSort, return the the textual name
-in the form a c-string.
+Given the universal representation of SyntaxSort, return the textual name in
+the form a c-string.
 */
 {
   a_const_char *result;
@@ -10155,8 +10155,8 @@ Functions for interacting with IFC TriadicOperatorSort sorts.
 
 a_const_char* str_for(an_ifc_triadic_operator_sort universal)
 /*
-Given the universal representation of TriadicOperatorSort, return the the
-textual name in the form a c-string.
+Given the universal representation of TriadicOperatorSort, return the textual
+name in the form a c-string.
 */
 {
   a_const_char *result;
@@ -10260,8 +10260,8 @@ Functions for interacting with IFC TypeBasisSort sorts.
 
 a_const_char* str_for(an_ifc_type_basis_sort universal)
 /*
-Given the universal representation of TypeBasisSort, return the the textual
-name in the form a c-string.
+Given the universal representation of TypeBasisSort, return the textual name in
+the form a c-string.
 */
 {
   a_const_char *result;
@@ -10534,7 +10534,7 @@ Functions for interacting with IFC TypePrecisionSort sorts.
 
 a_const_char* str_for(an_ifc_type_precision_sort universal)
 /*
-Given the universal representation of TypePrecisionSort, return the the textual
+Given the universal representation of TypePrecisionSort, return the textual
 name in the form a c-string.
 */
 {
@@ -10666,8 +10666,8 @@ Functions for interacting with IFC TypeSignSort sorts.
 
 a_const_char* str_for(an_ifc_type_sign_sort universal)
 /*
-Given the universal representation of TypeSignSort, return the the textual name
-in the form a c-string.
+Given the universal representation of TypeSignSort, return the textual name in
+the form a c-string.
 */
 {
   a_const_char *result;
@@ -10751,8 +10751,8 @@ Functions for interacting with IFC TypeSort sorts.
 
 a_const_char* str_for(an_ifc_type_sort universal)
 /*
-Given the universal representation of TypeSort, return the the textual name in
-the form a c-string.
+Given the universal representation of TypeSort, return the textual name in the
+form a c-string.
 */
 {
   a_const_char *result;
@@ -11007,8 +11007,8 @@ Functions for interacting with IFC UnitSort sorts.
 
 a_const_char* str_for(an_ifc_unit_sort universal)
 /*
-Given the universal representation of UnitSort, return the the textual name in
-the form a c-string.
+Given the universal representation of UnitSort, return the textual name in the
+form a c-string.
 */
 {
   a_const_char *result;
@@ -11110,8 +11110,8 @@ Functions for interacting with IFC VariadicOperatorSort sorts.
 
 a_const_char* str_for(an_ifc_variadic_operator_sort universal)
 /*
-Given the universal representation of VariadicOperatorSort, return the the
-textual name in the form a c-string.
+Given the universal representation of VariadicOperatorSort, return the textual
+name in the form a c-string.
 */
 {
   a_const_char *result;
@@ -11242,8 +11242,8 @@ Functions for interacting with IFC WordSort sorts.
 
 a_const_char* str_for(an_ifc_word_sort universal)
 /*
-Given the universal representation of WordSort, return the the textual name in
-the form a c-string.
+Given the universal representation of WordSort, return the textual name in the
+form a c-string.
 */
 {
   a_const_char *result;
@@ -31617,7 +31617,7 @@ Visitor functions for validating the nodes at a given index.
 
 a_boolean validate(an_ifc_decl_index idx)
 /*
-Given the DeclIndex, validate the associated node, return TRUE if the node's
+Given the DeclIndex, validate the associated node.  Return TRUE if the node's
 representation is valid; otherwise, return FALSE.
 */
 {
@@ -31850,7 +31850,7 @@ Visitor functions for retrieving access values from nodes on the DeclIndex.
 
 a_boolean has_ifc_access(an_ifc_decl_index idx)
 /*
-Given the DeclIndex, validate the associated node has the field "access".
+Given the DeclIndex, test whether the associated node has the field "access".
 Return TRUE if the node has the field "access"; otherwise, return FALSE.
 */
 {
@@ -32116,8 +32116,9 @@ Visitor functions for retrieving home_scope values from nodes on the DeclIndex.
 
 a_boolean has_ifc_home_scope(an_ifc_decl_index idx)
 /*
-Given the DeclIndex, validate the associated node has the field "home_scope".
-Return TRUE if the node has the field "home_scope"; otherwise, return FALSE.
+Given the DeclIndex, test whether the associated node has the field
+"home_scope".  Return TRUE if the node has the field "home_scope"; otherwise,
+return FALSE.
 */
 {
   an_ifc_module *mod = idx.mod;
@@ -32406,7 +32407,7 @@ Visitor functions for retrieving locus values from nodes on the DeclIndex.
 
 a_boolean has_ifc_locus(an_ifc_decl_index idx)
 /*
-Given the DeclIndex, validate the associated node has the field "locus".
+Given the DeclIndex, test whether the associated node has the field "locus".
 Return TRUE if the node has the field "locus"; otherwise, return FALSE.
 */
 {
@@ -32720,8 +32721,8 @@ Visitor functions for retrieving name values from nodes on the DeclIndex.
 
 a_boolean has_ifc_name(an_ifc_decl_index idx)
 /*
-Given the DeclIndex, validate the associated node has the field "name".  Return
-TRUE if the node has the field "name"; otherwise, return FALSE.
+Given the DeclIndex, test whether the associated node has the field "name".
+Return TRUE if the node has the field "name"; otherwise, return FALSE.
 */
 {
   an_ifc_module *mod = idx.mod;

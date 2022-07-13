@@ -1434,10 +1434,10 @@ Given the starting position of a node's storage, the offset into the storage of
 the field, and the field size, copy the field's bytes into result.
 
 node_start should be a pointer to the byte array representing the node's
-storage.  This will be added to the offset to get the start of field value's
-bytes.  This function guarantees even if the byte position is not an aligned
-representation of the desired type (a_Desired_type), so long as the result
-pointer points to aligned storage, the result will be properly aligned.
+storage.  This will be added to the offset to get the start of the field
+value's bytes.  This function guarantees even if the byte position is not an
+aligned representation of the desired type (a_Desired_type), so long as the
+result pointer points to aligned storage, the result will be properly aligned.
 
 This function is not a replacement for get_bytes and should NEVER be used with
 byte arrays that do not have the host's endianness.  The byte array pointed to

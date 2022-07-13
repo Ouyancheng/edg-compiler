@@ -117,7 +117,7 @@ representation of the field "value".
   an_ifc_keyword_sort_0_33 stage_0;
   an_ifc_keyword_sort      stage_1;
 
-  /* Copy the field (KeywordSyntax::value - KeywordSort) into version specific
+  /* Copy the field (KeywordSyntax::value - KeywordSort) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -164,7 +164,7 @@ representation of the field "owner".
   an_ifc_text_offset_0_33 stage_0;
   an_ifc_text_offset      stage_1;
 
-  /* Copy the field (ModuleReference::owner - TextOffset) into version specific
+  /* Copy the field (ModuleReference::owner - TextOffset) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -206,8 +206,8 @@ representation of the field "partition".
   an_ifc_text_offset_0_33 stage_0;
   an_ifc_text_offset      stage_1;
 
-  /* Copy the field (ModuleReference::partition - TextOffset) into version
-     specific storage. */
+  /* Copy the field (ModuleReference::partition - TextOffset) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
@@ -257,17 +257,17 @@ representation of the field "category".
   an_ifc_word_category_0_33 stage_4;
   an_ifc_word_category      stage_5;
 
-  /* Copy the field (NestableWord::index - Index) into version specific
+  /* Copy the field (NestableWord::index - Index) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-  /* Copy the field (NestableWord::value - u16) into version specific
+  /* Copy the field (NestableWord::value - u16) into version-specific
      storage. */
   static_assert(sizeof(stage_1) == 2,
                 "stage_1 is not properly sized storage!");
   copy_ifc_field(&stage_1, universal.get_storage(), /*offset=*/12);
-  /* Copy the field (NestableWord::sort - WordSort) into version specific
+  /* Copy the field (NestableWord::sort - WordSort) into version-specific
      storage. */
   static_assert(sizeof(stage_2) == 1,
                 "stage_2 is not properly sized storage!");
@@ -319,7 +319,7 @@ representation of the field "index".
   an_ifc_index_0_33 stage_0;
   an_ifc_index      stage_1;
 
-  /* Copy the field (NestableWord::index - Index) into version specific
+  /* Copy the field (NestableWord::index - Index) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -407,7 +407,7 @@ representation of the field "sort".
   an_ifc_word_sort_0_33 stage_0;
   an_ifc_word_sort      stage_1;
 
-  /* Copy the field (NestableWord::sort - WordSort) into version specific
+  /* Copy the field (NestableWord::sort - WordSort) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
@@ -449,7 +449,7 @@ representation of the field "value".
   an_ifc_u16_0_33 stage_0;
   an_ifc_u16      stage_1;
 
-  /* Copy the field (NestableWord::value - u16) into version specific
+  /* Copy the field (NestableWord::value - u16) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 2,
                 "stage_0 is not properly sized storage!");
@@ -497,8 +497,8 @@ universal representation of the field "sort".
   an_ifc_noexcept_sort_0_33 stage_0;
   an_ifc_noexcept_sort      stage_1;
 
-  /* Copy the field (NoexceptSpecification::sort - NoexceptSort) into version
-     specific storage. */
+  /* Copy the field (NoexceptSpecification::sort - NoexceptSort) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
@@ -540,8 +540,8 @@ universal representation of the field "words".
   an_ifc_sentence_index_0_33 stage_0;
   an_ifc_sentence_index      stage_1;
 
-  /* Copy the field (NoexceptSpecification::words - SentenceIndex) into version
-     specific storage. */
+  /* Copy the field (NoexceptSpecification::words - SentenceIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -589,7 +589,7 @@ representation of the field "attributes".
   an_ifc_sentence_index      stage_1;
 
   /* Copy the field (ParameterizedEntity::attributes - SentenceIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
@@ -631,8 +631,8 @@ representation of the field "body".
   an_ifc_sentence_index_0_33 stage_0;
   an_ifc_sentence_index      stage_1;
 
-  /* Copy the field (ParameterizedEntity::body - SentenceIndex) into version
-     specific storage. */
+  /* Copy the field (ParameterizedEntity::body - SentenceIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
@@ -674,8 +674,8 @@ representation of the field "decl".
     an_ifc_decl_index_0_41 stage_0;
     an_ifc_decl_index      stage_1;
 
-    /* Copy the field (ParameterizedEntity::decl - DeclIndex) into version
-       specific storage. */
+    /* Copy the field (ParameterizedEntity::decl - DeclIndex) into
+       version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -685,8 +685,8 @@ representation of the field "decl".
     an_ifc_decl_index_0_33 stage_0;
     an_ifc_decl_index      stage_1;
 
-    /* Copy the field (ParameterizedEntity::decl - DeclIndex) into version
-       specific storage. */
+    /* Copy the field (ParameterizedEntity::decl - DeclIndex) into
+       version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -729,8 +729,8 @@ representation of the field "head".
   an_ifc_sentence_index_0_33 stage_0;
   an_ifc_sentence_index      stage_1;
 
-  /* Copy the field (ParameterizedEntity::head - SentenceIndex) into version
-     specific storage. */
+  /* Copy the field (ParameterizedEntity::head - SentenceIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
@@ -776,7 +776,7 @@ representation of the field "cardinality".
   an_ifc_cardinality_0_33 stage_0;
   an_ifc_cardinality      stage_1;
 
-  /* Copy the field (Sequence::cardinality - Cardinality) into version specific
+  /* Copy the field (Sequence::cardinality - Cardinality) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -818,7 +818,7 @@ representation of the field "start".
   an_ifc_index_0_33 stage_0;
   an_ifc_index      stage_1;
 
-  /* Copy the field (Sequence::start - Index) into version specific storage. */
+  /* Copy the field (Sequence::start - Index) into version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -864,7 +864,7 @@ representation of the field "column".
   an_ifc_column_0_33 stage_0;
   an_ifc_column      stage_1;
 
-  /* Copy the field (SourceLocation::column - Column) into version specific
+  /* Copy the field (SourceLocation::column - Column) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -906,7 +906,7 @@ representation of the field "line".
   an_ifc_line_index_0_33 stage_0;
   an_ifc_line_index      stage_1;
 
-  /* Copy the field (SourceLocation::line - LineIndex) into version specific
+  /* Copy the field (SourceLocation::line - LineIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -953,7 +953,7 @@ representation of the field "abi".
   an_ifc_abi_0_33 stage_0;
   an_ifc_abi      stage_1;
 
-  /* Copy the field (FileHeader::abi - Abi) into version specific storage. */
+  /* Copy the field (FileHeader::abi - Abi) into version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/34);
@@ -994,7 +994,7 @@ representation of the field "arch".
   an_ifc_architecture_sort_0_33 stage_0;
   an_ifc_architecture_sort      stage_1;
 
-  /* Copy the field (FileHeader::arch - ArchitectureSort) into version specific
+  /* Copy the field (FileHeader::arch - ArchitectureSort) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
@@ -1082,8 +1082,8 @@ representation of the field "dialect".
   an_ifc_language_version_0_33 stage_0;
   an_ifc_language_version      stage_1;
 
-  /* Copy the field (FileHeader::dialect - LanguageVersion) into version
-     specific storage. */
+  /* Copy the field (FileHeader::dialect - LanguageVersion) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/36);
@@ -1125,8 +1125,8 @@ representation of the field "global_scope".
   an_ifc_scope_index_0_33 stage_0;
   an_ifc_scope_index      stage_1;
 
-  /* Copy the field (FileHeader::global_scope - ScopeIndex) into version
-     specific storage. */
+  /* Copy the field (FileHeader::global_scope - ScopeIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/56);
@@ -1167,7 +1167,7 @@ representation of the field "internal".
   an_ifc_bool_0_33 stage_0;
   an_ifc_bool      stage_1;
 
-  /* Copy the field (FileHeader::internal - bool) into version specific
+  /* Copy the field (FileHeader::internal - bool) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
@@ -1209,7 +1209,7 @@ representation of the field "major_version".
   an_ifc_version_0_33 stage_0;
   an_ifc_version      stage_1;
 
-  /* Copy the field (FileHeader::major_version - Version) into version specific
+  /* Copy the field (FileHeader::major_version - Version) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
@@ -1251,7 +1251,7 @@ representation of the field "minor_version".
   an_ifc_version_0_33 stage_0;
   an_ifc_version      stage_1;
 
-  /* Copy the field (FileHeader::minor_version - Version) into version specific
+  /* Copy the field (FileHeader::minor_version - Version) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
@@ -1293,8 +1293,8 @@ representation of the field "partition_count".
   an_ifc_cardinality_0_33 stage_0;
   an_ifc_cardinality      stage_1;
 
-  /* Copy the field (FileHeader::partition_count - Cardinality) into version
-     specific storage. */
+  /* Copy the field (FileHeader::partition_count - Cardinality) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/64);
@@ -1335,7 +1335,7 @@ representation of the field "src_path".
   an_ifc_text_offset_0_33 stage_0;
   an_ifc_text_offset      stage_1;
 
-  /* Copy the field (FileHeader::src_path - TextOffset) into version specific
+  /* Copy the field (FileHeader::src_path - TextOffset) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -1379,8 +1379,8 @@ representation of the field "string_table_bytes".
   an_ifc_byte_offset_0_33 stage_0;
   an_ifc_byte_offset      stage_1;
 
-  /* Copy the field (FileHeader::string_table_bytes - ByteOffset) into version
-     specific storage. */
+  /* Copy the field (FileHeader::string_table_bytes - ByteOffset) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/40);
@@ -1423,8 +1423,8 @@ representation of the field "string_table_size".
   an_ifc_cardinality_0_33 stage_0;
   an_ifc_cardinality      stage_1;
 
-  /* Copy the field (FileHeader::string_table_size - Cardinality) into version
-     specific storage. */
+  /* Copy the field (FileHeader::string_table_size - Cardinality) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/44);
@@ -1465,7 +1465,7 @@ representation of the field "toc".
   an_ifc_byte_offset_0_33 stage_0;
   an_ifc_byte_offset      stage_1;
 
-  /* Copy the field (FileHeader::toc - ByteOffset) into version specific
+  /* Copy the field (FileHeader::toc - ByteOffset) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -1507,7 +1507,7 @@ representation of the field "unit".
   an_ifc_unit_index_0_33 stage_0;
   an_ifc_unit_index      stage_1;
 
-  /* Copy the field (FileHeader::unit - UnitIndex) into version specific
+  /* Copy the field (FileHeader::unit - UnitIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -1554,8 +1554,8 @@ representation of the field "cardinality".
   an_ifc_cardinality_0_33 stage_0;
   an_ifc_cardinality      stage_1;
 
-  /* Copy the field (Partition::cardinality - Cardinality) into version
-     specific storage. */
+  /* Copy the field (Partition::cardinality - Cardinality) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
@@ -1596,7 +1596,7 @@ representation of the field "entry_size".
   an_ifc_entity_size_0_33 stage_0;
   an_ifc_entity_size      stage_1;
 
-  /* Copy the field (Partition::entry_size - EntitySize) into version specific
+  /* Copy the field (Partition::entry_size - EntitySize) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -1638,7 +1638,7 @@ representation of the field "name".
   an_ifc_text_offset_0_33 stage_0;
   an_ifc_text_offset      stage_1;
 
-  /* Copy the field (Partition::name - TextOffset) into version specific
+  /* Copy the field (Partition::name - TextOffset) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -1680,7 +1680,7 @@ representation of the field "offset".
   an_ifc_byte_offset_0_33 stage_0;
   an_ifc_byte_offset      stage_1;
 
-  /* Copy the field (Partition::offset - ByteOffset) into version specific
+  /* Copy the field (Partition::offset - ByteOffset) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -1778,7 +1778,7 @@ representation of the field "arguments".
   an_ifc_attr_index_0_33 stage_0;
   an_ifc_attr_index      stage_1;
 
-  /* Copy the field (AttrCalled::arguments - AttrIndex) into version specific
+  /* Copy the field (AttrCalled::arguments - AttrIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -1820,7 +1820,7 @@ representation of the field "function".
   an_ifc_attr_index_0_33 stage_0;
   an_ifc_attr_index      stage_1;
 
-  /* Copy the field (AttrCalled::function - AttrIndex) into version specific
+  /* Copy the field (AttrCalled::function - AttrIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -1867,8 +1867,8 @@ representation of the field "expression".
   an_ifc_expr_index_0_33 stage_0;
   an_ifc_expr_index      stage_1;
 
-  /* Copy the field (AttrElaborated::expression - ExprIndex) into version
-     specific storage. */
+  /* Copy the field (AttrElaborated::expression - ExprIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -1914,7 +1914,7 @@ representation of the field "operand".
   an_ifc_attr_index_0_33 stage_0;
   an_ifc_attr_index      stage_1;
 
-  /* Copy the field (AttrExpanded::operand - AttrIndex) into version specific
+  /* Copy the field (AttrExpanded::operand - AttrIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -2008,7 +2008,7 @@ representation of the field "terms".
   an_ifc_attr_index_0_33 stage_0;
   an_ifc_attr_index      stage_1;
 
-  /* Copy the field (AttrFactored::terms - AttrIndex) into version specific
+  /* Copy the field (AttrFactored::terms - AttrIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -2055,7 +2055,7 @@ representation of the field "attribute".
   an_ifc_attr_index_0_33 stage_0;
   an_ifc_attr_index      stage_1;
 
-  /* Copy the field (AttrLabeled::attribute - AttrIndex) into version specific
+  /* Copy the field (AttrLabeled::attribute - AttrIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -2248,8 +2248,8 @@ representation of the field "cardinality".
   an_ifc_cardinality_0_33 stage_0;
   an_ifc_cardinality      stage_1;
 
-  /* Copy the field (AttrTuple::cardinality - Cardinality) into version
-     specific storage. */
+  /* Copy the field (AttrTuple::cardinality - Cardinality) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
@@ -2290,7 +2290,7 @@ representation of the field "start".
   an_ifc_index_0_33 stage_0;
   an_ifc_index      stage_1;
 
-  /* Copy the field (AttrTuple::start - Index) into version specific
+  /* Copy the field (AttrTuple::start - Index) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -2338,8 +2338,8 @@ representation of the field "cardinality".
   an_ifc_cardinality_0_33 stage_0;
   an_ifc_cardinality      stage_1;
 
-  /* Copy the field (ChartMultilevel::cardinality - Cardinality) into version
-     specific storage. */
+  /* Copy the field (ChartMultilevel::cardinality - Cardinality) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
@@ -2380,7 +2380,7 @@ representation of the field "start".
   an_ifc_index_0_33 stage_0;
   an_ifc_index      stage_1;
 
-  /* Copy the field (ChartMultilevel::start - Index) into version specific
+  /* Copy the field (ChartMultilevel::start - Index) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -2427,8 +2427,8 @@ representation of the field "cardinality".
   an_ifc_cardinality_0_33 stage_0;
   an_ifc_cardinality      stage_1;
 
-  /* Copy the field (ChartUnilevel::cardinality - Cardinality) into version
-     specific storage. */
+  /* Copy the field (ChartUnilevel::cardinality - Cardinality) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
@@ -2469,8 +2469,8 @@ representation of the field "constraint".
   an_ifc_expr_index_0_33 stage_0;
   an_ifc_expr_index      stage_1;
 
-  /* Copy the field (ChartUnilevel::constraint - ExprIndex) into version
-     specific storage. */
+  /* Copy the field (ChartUnilevel::constraint - ExprIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
@@ -2511,7 +2511,7 @@ representation of the field "start".
   an_ifc_index_0_33 stage_0;
   an_ifc_index      stage_1;
 
-  /* Copy the field (ChartUnilevel::start - Index) into version specific
+  /* Copy the field (ChartUnilevel::start - Index) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -2608,7 +2608,7 @@ representation of the field "value".
   an_ifc_u64_0_33 stage_0;
   an_ifc_u64      stage_1;
 
-  /* Copy the field (ConstI64::value - u64) into version specific storage. */
+  /* Copy the field (ConstI64::value - u64) into version-specific storage. */
   static_assert(sizeof(stage_0) == 8,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -2654,7 +2654,7 @@ representation of the field "length".
   an_ifc_cardinality_0_33 stage_0;
   an_ifc_cardinality      stage_1;
 
-  /* Copy the field (ConstStr::length - Cardinality) into version specific
+  /* Copy the field (ConstStr::length - Cardinality) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -2696,7 +2696,7 @@ representation of the field "start".
   an_ifc_text_offset_0_33 stage_0;
   an_ifc_text_offset      stage_1;
 
-  /* Copy the field (ConstStr::start - TextOffset) into version specific
+  /* Copy the field (ConstStr::start - TextOffset) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -2738,7 +2738,7 @@ representation of the field "suffix".
   an_ifc_text_offset_0_33 stage_0;
   an_ifc_text_offset      stage_1;
 
-  /* Copy the field (ConstStr::suffix - TextOffset) into version specific
+  /* Copy the field (ConstStr::suffix - TextOffset) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -2785,7 +2785,7 @@ representation of the field "access".
   an_ifc_access_sort_0_33 stage_0;
   an_ifc_access_sort      stage_1;
 
-  /* Copy the field (DeclAlias::access - AccessSort) into version specific
+  /* Copy the field (DeclAlias::access - AccessSort) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
@@ -2827,7 +2827,7 @@ representation of the field "aliasee".
   an_ifc_type_index_0_33 stage_0;
   an_ifc_type_index      stage_1;
 
-  /* Copy the field (DeclAlias::aliasee - TypeIndex) into version specific
+  /* Copy the field (DeclAlias::aliasee - TypeIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -2872,7 +2872,7 @@ representation of the field "home_scope".
     a_boolean              stage_2;
     an_ifc_decl_index      stage_3;
 
-    /* Copy the field (DeclAlias::home_scope - DeclIndex) into version specific
+    /* Copy the field (DeclAlias::home_scope - DeclIndex) into version-specific
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
@@ -2890,8 +2890,8 @@ representation of the field "home_scope".
       an_ifc_decl_index_0_41     stage_3_3;
       an_ifc_decl_index          stage_3_4;
 
-      /* Copy the field (DeclAlias::home_scope - DeclIndex) into version
-         specific storage. */
+      /* Copy the field (DeclAlias::home_scope - DeclIndex) into
+         version-specific storage. */
       static_assert(sizeof(stage_3_0) == 4,
                     "stage_3_0 is not properly sized storage!");
       copy_ifc_field(&stage_3_0, universal.get_storage(), /*offset=*/16);
@@ -2901,8 +2901,8 @@ representation of the field "home_scope".
          validation).  Then, retrieve and return the desired value held by the
          field decl. */
       construct_node_unchecked(&stage_3_2, stage_3_1);
-      /* Copy the field (DeclSpecialization::decl - DeclIndex) into version
-         specific storage. */
+      /* Copy the field (DeclSpecialization::decl - DeclIndex) into
+         version-specific storage. */
       static_assert(sizeof(stage_3_3) == 4,
                     "stage_3_3 is not properly sized storage!");
       copy_ifc_field(&stage_3_3, stage_3_2.get_storage(), /*offset=*/4);
@@ -2912,8 +2912,8 @@ representation of the field "home_scope".
       an_ifc_decl_index_0_41 stage_3_0;
       an_ifc_decl_index      stage_3_1;
 
-      /* Copy the field (DeclAlias::home_scope - DeclIndex) into version
-         specific storage. */
+      /* Copy the field (DeclAlias::home_scope - DeclIndex) into
+         version-specific storage. */
       static_assert(sizeof(stage_3_0) == 4,
                     "stage_3_0 is not properly sized storage!");
       copy_ifc_field(&stage_3_0, universal.get_storage(), /*offset=*/16);
@@ -2925,7 +2925,7 @@ representation of the field "home_scope".
     an_ifc_decl_index_0_33 stage_0;
     an_ifc_decl_index      stage_1;
 
-    /* Copy the field (DeclAlias::home_scope - DeclIndex) into version specific
+    /* Copy the field (DeclAlias::home_scope - DeclIndex) into version-specific
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
@@ -3014,7 +3014,7 @@ representation of the field "name".
   an_ifc_text_offset_0_33 stage_0;
   an_ifc_text_offset      stage_1;
 
-  /* Copy the field (DeclAlias::name - TextOffset) into version specific
+  /* Copy the field (DeclAlias::name - TextOffset) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -3058,7 +3058,7 @@ representation of the field "specifiers".
   an_ifc_basic_specifiers_bitfield      stage_1;
 
   /* Copy the field (DeclAlias::specifiers - BasicSpecifiersBitfield) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24);
@@ -3100,7 +3100,7 @@ representation of the field "type".
   an_ifc_type_index_0_33 stage_0;
   an_ifc_type_index      stage_1;
 
-  /* Copy the field (DeclAlias::type - TypeIndex) into version specific
+  /* Copy the field (DeclAlias::type - TypeIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -3147,7 +3147,7 @@ representation of the field "access".
   an_ifc_access_sort_0_33 stage_0;
   an_ifc_access_sort      stage_1;
 
-  /* Copy the field (DeclBitfield::access - AccessSort) into version specific
+  /* Copy the field (DeclBitfield::access - AccessSort) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
@@ -3192,8 +3192,8 @@ representation of the field "home_scope".
     a_boolean              stage_2;
     an_ifc_decl_index      stage_3;
 
-    /* Copy the field (DeclBitfield::home_scope - DeclIndex) into version
-       specific storage. */
+    /* Copy the field (DeclBitfield::home_scope - DeclIndex) into
+       version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
@@ -3210,8 +3210,8 @@ representation of the field "home_scope".
       an_ifc_decl_index_0_41     stage_3_3;
       an_ifc_decl_index          stage_3_4;
 
-      /* Copy the field (DeclBitfield::home_scope - DeclIndex) into version
-         specific storage. */
+      /* Copy the field (DeclBitfield::home_scope - DeclIndex) into
+         version-specific storage. */
       static_assert(sizeof(stage_3_0) == 4,
                     "stage_3_0 is not properly sized storage!");
       copy_ifc_field(&stage_3_0, universal.get_storage(), /*offset=*/16);
@@ -3221,8 +3221,8 @@ representation of the field "home_scope".
          validation).  Then, retrieve and return the desired value held by the
          field decl. */
       construct_node_unchecked(&stage_3_2, stage_3_1);
-      /* Copy the field (DeclSpecialization::decl - DeclIndex) into version
-         specific storage. */
+      /* Copy the field (DeclSpecialization::decl - DeclIndex) into
+         version-specific storage. */
       static_assert(sizeof(stage_3_3) == 4,
                     "stage_3_3 is not properly sized storage!");
       copy_ifc_field(&stage_3_3, stage_3_2.get_storage(), /*offset=*/4);
@@ -3232,8 +3232,8 @@ representation of the field "home_scope".
       an_ifc_decl_index_0_41 stage_3_0;
       an_ifc_decl_index      stage_3_1;
 
-      /* Copy the field (DeclBitfield::home_scope - DeclIndex) into version
-         specific storage. */
+      /* Copy the field (DeclBitfield::home_scope - DeclIndex) into
+         version-specific storage. */
       static_assert(sizeof(stage_3_0) == 4,
                     "stage_3_0 is not properly sized storage!");
       copy_ifc_field(&stage_3_0, universal.get_storage(), /*offset=*/16);
@@ -3245,8 +3245,8 @@ representation of the field "home_scope".
     an_ifc_decl_index_0_33 stage_0;
     an_ifc_decl_index      stage_1;
 
-    /* Copy the field (DeclBitfield::home_scope - DeclIndex) into version
-       specific storage. */
+    /* Copy the field (DeclBitfield::home_scope - DeclIndex) into
+       version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
@@ -3288,8 +3288,8 @@ representation of the field "initializer".
   an_ifc_expr_index_0_33 stage_0;
   an_ifc_expr_index      stage_1;
 
-  /* Copy the field (DeclBitfield::initializer - ExprIndex) into version
-     specific storage. */
+  /* Copy the field (DeclBitfield::initializer - ExprIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24);
@@ -3376,7 +3376,7 @@ representation of the field "name".
   an_ifc_text_offset_0_33 stage_0;
   an_ifc_text_offset      stage_1;
 
-  /* Copy the field (DeclBitfield::name - TextOffset) into version specific
+  /* Copy the field (DeclBitfield::name - TextOffset) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -3420,7 +3420,7 @@ representation of the field "properties".
   an_ifc_reachable_properties_bitfield      stage_1;
 
   /* Copy the field (DeclBitfield::properties - ReachablePropertiesBitfield)
-     into version specific storage. */
+     into version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/31);
@@ -3464,7 +3464,7 @@ representation of the field "specifiers".
   an_ifc_basic_specifiers_bitfield      stage_1;
 
   /* Copy the field (DeclBitfield::specifiers - BasicSpecifiersBitfield) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/29);
@@ -3507,8 +3507,8 @@ representation of the field "traits".
   an_ifc_object_traits_bitfield_0_33 stage_0;
   an_ifc_object_traits_bitfield      stage_1;
 
-  /* Copy the field (DeclBitfield::traits - ObjectTraitsBitfield) into version
-     specific storage. */
+  /* Copy the field (DeclBitfield::traits - ObjectTraitsBitfield) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/28);
@@ -3550,7 +3550,7 @@ representation of the field "type".
   an_ifc_type_index_0_33 stage_0;
   an_ifc_type_index      stage_1;
 
-  /* Copy the field (DeclBitfield::type - TypeIndex) into version specific
+  /* Copy the field (DeclBitfield::type - TypeIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -3592,7 +3592,7 @@ representation of the field "width".
   an_ifc_expr_index_0_33 stage_0;
   an_ifc_expr_index      stage_1;
 
-  /* Copy the field (DeclBitfield::width - ExprIndex) into version specific
+  /* Copy the field (DeclBitfield::width - ExprIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -3639,7 +3639,7 @@ representation of the field "access".
   an_ifc_access_sort_0_33 stage_0;
   an_ifc_access_sort      stage_1;
 
-  /* Copy the field (DeclConcept::access - AccessSort) into version specific
+  /* Copy the field (DeclConcept::access - AccessSort) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
@@ -3681,7 +3681,7 @@ representation of the field "body".
   an_ifc_sentence_index_0_33 stage_0;
   an_ifc_sentence_index      stage_1;
 
-  /* Copy the field (DeclConcept::body - SentenceIndex) into version specific
+  /* Copy the field (DeclConcept::body - SentenceIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -3723,7 +3723,7 @@ representation of the field "chart".
   an_ifc_chart_index_0_33 stage_0;
   an_ifc_chart_index      stage_1;
 
-  /* Copy the field (DeclConcept::chart - ChartIndex) into version specific
+  /* Copy the field (DeclConcept::chart - ChartIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -3765,7 +3765,7 @@ representation of the field "constraint".
   an_ifc_expr_index_0_33 stage_0;
   an_ifc_expr_index      stage_1;
 
-  /* Copy the field (DeclConcept::constraint - ExprIndex) into version specific
+  /* Copy the field (DeclConcept::constraint - ExprIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -3807,7 +3807,7 @@ representation of the field "head".
   an_ifc_sentence_index_0_33 stage_0;
   an_ifc_sentence_index      stage_1;
 
-  /* Copy the field (DeclConcept::head - SentenceIndex) into version specific
+  /* Copy the field (DeclConcept::head - SentenceIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -3852,8 +3852,8 @@ representation of the field "home_scope".
     a_boolean              stage_2;
     an_ifc_decl_index      stage_3;
 
-    /* Copy the field (DeclConcept::home_scope - DeclIndex) into version
-       specific storage. */
+    /* Copy the field (DeclConcept::home_scope - DeclIndex) into
+       version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
@@ -3870,8 +3870,8 @@ representation of the field "home_scope".
       an_ifc_decl_index_0_41     stage_3_3;
       an_ifc_decl_index          stage_3_4;
 
-      /* Copy the field (DeclConcept::home_scope - DeclIndex) into version
-         specific storage. */
+      /* Copy the field (DeclConcept::home_scope - DeclIndex) into
+         version-specific storage. */
       static_assert(sizeof(stage_3_0) == 4,
                     "stage_3_0 is not properly sized storage!");
       copy_ifc_field(&stage_3_0, universal.get_storage(), /*offset=*/12);
@@ -3881,8 +3881,8 @@ representation of the field "home_scope".
          validation).  Then, retrieve and return the desired value held by the
          field decl. */
       construct_node_unchecked(&stage_3_2, stage_3_1);
-      /* Copy the field (DeclSpecialization::decl - DeclIndex) into version
-         specific storage. */
+      /* Copy the field (DeclSpecialization::decl - DeclIndex) into
+         version-specific storage. */
       static_assert(sizeof(stage_3_3) == 4,
                     "stage_3_3 is not properly sized storage!");
       copy_ifc_field(&stage_3_3, stage_3_2.get_storage(), /*offset=*/4);
@@ -3892,8 +3892,8 @@ representation of the field "home_scope".
       an_ifc_decl_index_0_41 stage_3_0;
       an_ifc_decl_index      stage_3_1;
 
-      /* Copy the field (DeclConcept::home_scope - DeclIndex) into version
-         specific storage. */
+      /* Copy the field (DeclConcept::home_scope - DeclIndex) into
+         version-specific storage. */
       static_assert(sizeof(stage_3_0) == 4,
                     "stage_3_0 is not properly sized storage!");
       copy_ifc_field(&stage_3_0, universal.get_storage(), /*offset=*/12);
@@ -3905,8 +3905,8 @@ representation of the field "home_scope".
     an_ifc_decl_index_0_33 stage_0;
     an_ifc_decl_index      stage_1;
 
-    /* Copy the field (DeclConcept::home_scope - DeclIndex) into version
-       specific storage. */
+    /* Copy the field (DeclConcept::home_scope - DeclIndex) into
+       version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
@@ -3994,7 +3994,7 @@ representation of the field "name".
   an_ifc_text_offset_0_33 stage_0;
   an_ifc_text_offset      stage_1;
 
-  /* Copy the field (DeclConcept::name - TextOffset) into version specific
+  /* Copy the field (DeclConcept::name - TextOffset) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -4038,7 +4038,7 @@ representation of the field "specifiers".
   an_ifc_basic_specifiers_bitfield      stage_1;
 
   /* Copy the field (DeclConcept::specifiers - BasicSpecifiersBitfield) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/28);
@@ -4080,7 +4080,7 @@ representation of the field "type".
   an_ifc_type_index_0_33 stage_0;
   an_ifc_type_index      stage_1;
 
-  /* Copy the field (DeclConcept::type - TypeIndex) into version specific
+  /* Copy the field (DeclConcept::type - TypeIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -4122,7 +4122,7 @@ representation of the field "unknown".
   an_ifc_u16_0_33 stage_0;
   an_ifc_u16      stage_1;
 
-  /* Copy the field (DeclConcept::unknown - u16) into version specific
+  /* Copy the field (DeclConcept::unknown - u16) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 2,
                 "stage_0 is not properly sized storage!");
@@ -4169,8 +4169,8 @@ representation of the field "access".
   an_ifc_access_sort_0_33 stage_0;
   an_ifc_access_sort      stage_1;
 
-  /* Copy the field (DeclConstructor::access - AccessSort) into version
-     specific storage. */
+  /* Copy the field (DeclConstructor::access - AccessSort) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/27);
@@ -4211,7 +4211,7 @@ representation of the field "chart".
   an_ifc_chart_index_0_33 stage_0;
   an_ifc_chart_index      stage_1;
 
-  /* Copy the field (DeclConstructor::chart - ChartIndex) into version specific
+  /* Copy the field (DeclConstructor::chart - ChartIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -4256,8 +4256,8 @@ representation of the field "home_scope".
     a_boolean              stage_2;
     an_ifc_decl_index      stage_3;
 
-    /* Copy the field (DeclConstructor::home_scope - DeclIndex) into version
-       specific storage. */
+    /* Copy the field (DeclConstructor::home_scope - DeclIndex) into
+       version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
@@ -4274,8 +4274,8 @@ representation of the field "home_scope".
       an_ifc_decl_index_0_41     stage_3_3;
       an_ifc_decl_index          stage_3_4;
 
-      /* Copy the field (DeclConstructor::home_scope - DeclIndex) into version
-         specific storage. */
+      /* Copy the field (DeclConstructor::home_scope - DeclIndex) into
+         version-specific storage. */
       static_assert(sizeof(stage_3_0) == 4,
                     "stage_3_0 is not properly sized storage!");
       copy_ifc_field(&stage_3_0, universal.get_storage(), /*offset=*/16);
@@ -4285,8 +4285,8 @@ representation of the field "home_scope".
          validation).  Then, retrieve and return the desired value held by the
          field decl. */
       construct_node_unchecked(&stage_3_2, stage_3_1);
-      /* Copy the field (DeclSpecialization::decl - DeclIndex) into version
-         specific storage. */
+      /* Copy the field (DeclSpecialization::decl - DeclIndex) into
+         version-specific storage. */
       static_assert(sizeof(stage_3_3) == 4,
                     "stage_3_3 is not properly sized storage!");
       copy_ifc_field(&stage_3_3, stage_3_2.get_storage(), /*offset=*/4);
@@ -4296,8 +4296,8 @@ representation of the field "home_scope".
       an_ifc_decl_index_0_41 stage_3_0;
       an_ifc_decl_index      stage_3_1;
 
-      /* Copy the field (DeclConstructor::home_scope - DeclIndex) into version
-         specific storage. */
+      /* Copy the field (DeclConstructor::home_scope - DeclIndex) into
+         version-specific storage. */
       static_assert(sizeof(stage_3_0) == 4,
                     "stage_3_0 is not properly sized storage!");
       copy_ifc_field(&stage_3_0, universal.get_storage(), /*offset=*/16);
@@ -4309,8 +4309,8 @@ representation of the field "home_scope".
     an_ifc_decl_index_0_33 stage_0;
     an_ifc_decl_index      stage_1;
 
-    /* Copy the field (DeclConstructor::home_scope - DeclIndex) into version
-       specific storage. */
+    /* Copy the field (DeclConstructor::home_scope - DeclIndex) into
+       version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
@@ -4401,8 +4401,8 @@ representation of the field "name".
     a_boolean              stage_2;
     an_ifc_name_index      stage_3;
 
-    /* Copy the field (DeclConstructor::home_scope - DeclIndex) into version
-       specific storage. */
+    /* Copy the field (DeclConstructor::home_scope - DeclIndex) into
+       version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
@@ -4417,8 +4417,8 @@ representation of the field "name".
       an_ifc_decl_index      stage_3_1;
       an_ifc_name_index      stage_3_2;
 
-      /* Copy the field (DeclConstructor::home_scope - DeclIndex) into version
-         specific storage. */
+      /* Copy the field (DeclConstructor::home_scope - DeclIndex) into
+         version-specific storage. */
       static_assert(sizeof(stage_3_0) == 4,
                     "stage_3_0 is not properly sized storage!");
       copy_ifc_field(&stage_3_0, universal.get_storage(), /*offset=*/16);
@@ -4479,7 +4479,7 @@ representation of the field "properties".
   an_ifc_reachable_properties_bitfield      stage_1;
 
   /* Copy the field (DeclConstructor::properties - ReachablePropertiesBitfield)
-     into version specific storage. */
+     into version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/28);
@@ -4523,7 +4523,7 @@ representation of the field "specifiers".
   an_ifc_basic_specifiers_bitfield      stage_1;
 
   /* Copy the field (DeclConstructor::specifiers - BasicSpecifiersBitfield)
-     into version specific storage. */
+     into version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/26);
@@ -4567,7 +4567,7 @@ representation of the field "traits".
   an_ifc_function_traits_bitfield      stage_1;
 
   /* Copy the field (DeclConstructor::traits - FunctionTraitsBitfield) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 2,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24);
@@ -4609,7 +4609,7 @@ representation of the field "type".
   an_ifc_type_index_0_33 stage_0;
   an_ifc_type_index      stage_1;
 
-  /* Copy the field (DeclConstructor::type - TypeIndex) into version specific
+  /* Copy the field (DeclConstructor::type - TypeIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -4660,8 +4660,8 @@ representation of the field "home_scope".
     a_boolean              stage_2;
     an_ifc_decl_index      stage_3;
 
-    /* Copy the field (DeclDeductionGuide::home_scope - DeclIndex) into version
-       specific storage. */
+    /* Copy the field (DeclDeductionGuide::home_scope - DeclIndex) into
+       version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
@@ -4679,7 +4679,7 @@ representation of the field "home_scope".
       an_ifc_decl_index          stage_3_4;
 
       /* Copy the field (DeclDeductionGuide::home_scope - DeclIndex) into
-         version specific storage. */
+         version-specific storage. */
       static_assert(sizeof(stage_3_0) == 4,
                     "stage_3_0 is not properly sized storage!");
       copy_ifc_field(&stage_3_0, universal.get_storage(), /*offset=*/12);
@@ -4689,8 +4689,8 @@ representation of the field "home_scope".
          validation).  Then, retrieve and return the desired value held by the
          field decl. */
       construct_node_unchecked(&stage_3_2, stage_3_1);
-      /* Copy the field (DeclSpecialization::decl - DeclIndex) into version
-         specific storage. */
+      /* Copy the field (DeclSpecialization::decl - DeclIndex) into
+         version-specific storage. */
       static_assert(sizeof(stage_3_3) == 4,
                     "stage_3_3 is not properly sized storage!");
       copy_ifc_field(&stage_3_3, stage_3_2.get_storage(), /*offset=*/4);
@@ -4701,7 +4701,7 @@ representation of the field "home_scope".
       an_ifc_decl_index      stage_3_1;
 
       /* Copy the field (DeclDeductionGuide::home_scope - DeclIndex) into
-         version specific storage. */
+         version-specific storage. */
       static_assert(sizeof(stage_3_0) == 4,
                     "stage_3_0 is not properly sized storage!");
       copy_ifc_field(&stage_3_0, universal.get_storage(), /*offset=*/12);
@@ -4713,8 +4713,8 @@ representation of the field "home_scope".
     an_ifc_decl_index_0_33 stage_0;
     an_ifc_decl_index      stage_1;
 
-    /* Copy the field (DeclDeductionGuide::home_scope - DeclIndex) into version
-       specific storage. */
+    /* Copy the field (DeclDeductionGuide::home_scope - DeclIndex) into
+       version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
@@ -4803,8 +4803,8 @@ representation of the field "name".
   an_ifc_text_offset_0_33 stage_0;
   an_ifc_text_offset      stage_1;
 
-  /* Copy the field (DeclDeductionGuide::name - TextOffset) into version
-     specific storage. */
+  /* Copy the field (DeclDeductionGuide::name - TextOffset) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -4845,8 +4845,8 @@ representation of the field "source".
   an_ifc_chart_index_0_33 stage_0;
   an_ifc_chart_index      stage_1;
 
-  /* Copy the field (DeclDeductionGuide::source - ChartIndex) into version
-     specific storage. */
+  /* Copy the field (DeclDeductionGuide::source - ChartIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
@@ -4889,7 +4889,7 @@ representation of the field "specifiers".
   an_ifc_basic_specifiers_bitfield      stage_1;
 
   /* Copy the field (DeclDeductionGuide::specifiers - BasicSpecifiersBitfield)
-     into version specific storage. */
+     into version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/25);
@@ -4931,8 +4931,8 @@ representation of the field "target".
   an_ifc_expr_index_0_33 stage_0;
   an_ifc_expr_index      stage_1;
 
-  /* Copy the field (DeclDeductionGuide::target - ExprIndex) into version
-     specific storage. */
+  /* Copy the field (DeclDeductionGuide::target - ExprIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
@@ -4975,7 +4975,7 @@ representation of the field "traits".
   an_ifc_guide_traits_bitfield      stage_1;
 
   /* Copy the field (DeclDeductionGuide::traits - GuideTraitsBitfield) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24);
@@ -5022,7 +5022,7 @@ representation of the field "access".
   an_ifc_access_sort_0_33 stage_0;
   an_ifc_access_sort      stage_1;
 
-  /* Copy the field (DeclDestructor::access - AccessSort) into version specific
+  /* Copy the field (DeclDestructor::access - AccessSort) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
@@ -5066,7 +5066,7 @@ representation of the field "convention".
   an_ifc_calling_convention_sort      stage_1;
 
   /* Copy the field (DeclDestructor::convention - CallingConventionSort) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/28);
@@ -5159,8 +5159,8 @@ representation of the field "home_scope".
     a_boolean              stage_2;
     an_ifc_decl_index      stage_3;
 
-    /* Copy the field (DeclDestructor::home_scope - DeclIndex) into version
-       specific storage. */
+    /* Copy the field (DeclDestructor::home_scope - DeclIndex) into
+       version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
@@ -5177,8 +5177,8 @@ representation of the field "home_scope".
       an_ifc_decl_index_0_41     stage_3_3;
       an_ifc_decl_index          stage_3_4;
 
-      /* Copy the field (DeclDestructor::home_scope - DeclIndex) into version
-         specific storage. */
+      /* Copy the field (DeclDestructor::home_scope - DeclIndex) into
+         version-specific storage. */
       static_assert(sizeof(stage_3_0) == 4,
                     "stage_3_0 is not properly sized storage!");
       copy_ifc_field(&stage_3_0, universal.get_storage(), /*offset=*/12);
@@ -5188,8 +5188,8 @@ representation of the field "home_scope".
          validation).  Then, retrieve and return the desired value held by the
          field decl. */
       construct_node_unchecked(&stage_3_2, stage_3_1);
-      /* Copy the field (DeclSpecialization::decl - DeclIndex) into version
-         specific storage. */
+      /* Copy the field (DeclSpecialization::decl - DeclIndex) into
+         version-specific storage. */
       static_assert(sizeof(stage_3_3) == 4,
                     "stage_3_3 is not properly sized storage!");
       copy_ifc_field(&stage_3_3, stage_3_2.get_storage(), /*offset=*/4);
@@ -5199,8 +5199,8 @@ representation of the field "home_scope".
       an_ifc_decl_index_0_41 stage_3_0;
       an_ifc_decl_index      stage_3_1;
 
-      /* Copy the field (DeclDestructor::home_scope - DeclIndex) into version
-         specific storage. */
+      /* Copy the field (DeclDestructor::home_scope - DeclIndex) into
+         version-specific storage. */
       static_assert(sizeof(stage_3_0) == 4,
                     "stage_3_0 is not properly sized storage!");
       copy_ifc_field(&stage_3_0, universal.get_storage(), /*offset=*/12);
@@ -5212,8 +5212,8 @@ representation of the field "home_scope".
     an_ifc_decl_index_0_33 stage_0;
     an_ifc_decl_index      stage_1;
 
-    /* Copy the field (DeclDestructor::home_scope - DeclIndex) into version
-       specific storage. */
+    /* Copy the field (DeclDestructor::home_scope - DeclIndex) into
+       version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
@@ -5304,8 +5304,8 @@ representation of the field "name".
     a_boolean              stage_2;
     an_ifc_name_index      stage_3;
 
-    /* Copy the field (DeclDestructor::home_scope - DeclIndex) into version
-       specific storage. */
+    /* Copy the field (DeclDestructor::home_scope - DeclIndex) into
+       version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
@@ -5320,8 +5320,8 @@ representation of the field "name".
       an_ifc_decl_index      stage_3_1;
       an_ifc_name_index      stage_3_2;
 
-      /* Copy the field (DeclDestructor::home_scope - DeclIndex) into version
-         specific storage. */
+      /* Copy the field (DeclDestructor::home_scope - DeclIndex) into
+         version-specific storage. */
       static_assert(sizeof(stage_3_0) == 4,
                     "stage_3_0 is not properly sized storage!");
       copy_ifc_field(&stage_3_0, universal.get_storage(), /*offset=*/12);
@@ -5382,7 +5382,7 @@ representation of the field "properties".
   an_ifc_reachable_properties_bitfield      stage_1;
 
   /* Copy the field (DeclDestructor::properties - ReachablePropertiesBitfield)
-     into version specific storage. */
+     into version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/29);
@@ -5426,7 +5426,7 @@ representation of the field "specifiers".
   an_ifc_basic_specifiers_bitfield      stage_1;
 
   /* Copy the field (DeclDestructor::specifiers - BasicSpecifiersBitfield) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/26);
@@ -5470,7 +5470,7 @@ representation of the field "traits".
   an_ifc_function_traits_bitfield      stage_1;
 
   /* Copy the field (DeclDestructor::traits - FunctionTraitsBitfield) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 2,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24);
@@ -5517,8 +5517,8 @@ representation of the field "access".
   an_ifc_access_sort_0_33 stage_0;
   an_ifc_access_sort      stage_1;
 
-  /* Copy the field (DeclEnumeration::access - AccessSort) into version
-     specific storage. */
+  /* Copy the field (DeclEnumeration::access - AccessSort) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/37);
@@ -5559,8 +5559,8 @@ representation of the field "alignment".
   an_ifc_expr_index_0_33 stage_0;
   an_ifc_expr_index      stage_1;
 
-  /* Copy the field (DeclEnumeration::alignment - ExprIndex) into version
-     specific storage. */
+  /* Copy the field (DeclEnumeration::alignment - ExprIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/32);
@@ -5601,7 +5601,7 @@ representation of the field "base".
   an_ifc_type_index_0_33 stage_0;
   an_ifc_type_index      stage_1;
 
-  /* Copy the field (DeclEnumeration::base - TypeIndex) into version specific
+  /* Copy the field (DeclEnumeration::base - TypeIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -5646,8 +5646,8 @@ representation of the field "home_scope".
     a_boolean              stage_2;
     an_ifc_decl_index      stage_3;
 
-    /* Copy the field (DeclEnumeration::home_scope - DeclIndex) into version
-       specific storage. */
+    /* Copy the field (DeclEnumeration::home_scope - DeclIndex) into
+       version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/28);
@@ -5664,8 +5664,8 @@ representation of the field "home_scope".
       an_ifc_decl_index_0_41     stage_3_3;
       an_ifc_decl_index          stage_3_4;
 
-      /* Copy the field (DeclEnumeration::home_scope - DeclIndex) into version
-         specific storage. */
+      /* Copy the field (DeclEnumeration::home_scope - DeclIndex) into
+         version-specific storage. */
       static_assert(sizeof(stage_3_0) == 4,
                     "stage_3_0 is not properly sized storage!");
       copy_ifc_field(&stage_3_0, universal.get_storage(), /*offset=*/28);
@@ -5675,8 +5675,8 @@ representation of the field "home_scope".
          validation).  Then, retrieve and return the desired value held by the
          field decl. */
       construct_node_unchecked(&stage_3_2, stage_3_1);
-      /* Copy the field (DeclSpecialization::decl - DeclIndex) into version
-         specific storage. */
+      /* Copy the field (DeclSpecialization::decl - DeclIndex) into
+         version-specific storage. */
       static_assert(sizeof(stage_3_3) == 4,
                     "stage_3_3 is not properly sized storage!");
       copy_ifc_field(&stage_3_3, stage_3_2.get_storage(), /*offset=*/4);
@@ -5686,8 +5686,8 @@ representation of the field "home_scope".
       an_ifc_decl_index_0_41 stage_3_0;
       an_ifc_decl_index      stage_3_1;
 
-      /* Copy the field (DeclEnumeration::home_scope - DeclIndex) into version
-         specific storage. */
+      /* Copy the field (DeclEnumeration::home_scope - DeclIndex) into
+         version-specific storage. */
       static_assert(sizeof(stage_3_0) == 4,
                     "stage_3_0 is not properly sized storage!");
       copy_ifc_field(&stage_3_0, universal.get_storage(), /*offset=*/28);
@@ -5699,8 +5699,8 @@ representation of the field "home_scope".
     an_ifc_decl_index_0_33 stage_0;
     an_ifc_decl_index      stage_1;
 
-    /* Copy the field (DeclEnumeration::home_scope - DeclIndex) into version
-       specific storage. */
+    /* Copy the field (DeclEnumeration::home_scope - DeclIndex) into
+       version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/28);
@@ -5835,7 +5835,7 @@ representation of the field "name".
   an_ifc_text_offset_0_33 stage_0;
   an_ifc_text_offset      stage_1;
 
-  /* Copy the field (DeclEnumeration::name - TextOffset) into version specific
+  /* Copy the field (DeclEnumeration::name - TextOffset) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -5879,7 +5879,7 @@ representation of the field "properties".
   an_ifc_reachable_properties_bitfield      stage_1;
 
   /* Copy the field (DeclEnumeration::properties - ReachablePropertiesBitfield)
-     into version specific storage. */
+     into version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/38);
@@ -5923,7 +5923,7 @@ representation of the field "specifiers".
   an_ifc_basic_specifiers_bitfield      stage_1;
 
   /* Copy the field (DeclEnumeration::specifiers - BasicSpecifiersBitfield)
-     into version specific storage. */
+     into version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/36);
@@ -5965,7 +5965,7 @@ representation of the field "type".
   an_ifc_type_index_0_33 stage_0;
   an_ifc_type_index      stage_1;
 
-  /* Copy the field (DeclEnumeration::type - TypeIndex) into version specific
+  /* Copy the field (DeclEnumeration::type - TypeIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -6012,7 +6012,7 @@ representation of the field "access".
   an_ifc_access_sort_0_33 stage_0;
   an_ifc_access_sort      stage_1;
 
-  /* Copy the field (DeclEnumerator::access - AccessSort) into version specific
+  /* Copy the field (DeclEnumerator::access - AccessSort) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
@@ -6060,7 +6060,7 @@ representation of the field "home_scope".
     a_boolean              stage_5;
     an_ifc_decl_index      stage_6;
 
-    /* Copy the field (DeclEnumerator::type - TypeIndex) into version specific
+    /* Copy the field (DeclEnumerator::type - TypeIndex) into version-specific
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
@@ -6070,7 +6070,7 @@ representation of the field "home_scope".
        TypeDesignated (the type tag should have been prechecked by validation).
        Then, retrieve and return the desired value held by the field decl. */
     construct_node_unchecked(&stage_2, stage_1);
-    /* Copy the field (TypeDesignated::decl - DeclIndex) into version specific
+    /* Copy the field (TypeDesignated::decl - DeclIndex) into version-specific
        storage. */
     static_assert(sizeof(stage_3) == 4,
                   "stage_3 is not properly sized storage!");
@@ -6091,8 +6091,8 @@ representation of the field "home_scope".
       an_ifc_decl_index_0_41     stage_6_6;
       an_ifc_decl_index          stage_6_7;
 
-      /* Copy the field (DeclEnumerator::type - TypeIndex) into version
-         specific storage. */
+      /* Copy the field (DeclEnumerator::type - TypeIndex) into
+         version-specific storage. */
       static_assert(sizeof(stage_6_0) == 4,
                     "stage_6_0 is not properly sized storage!");
       copy_ifc_field(&stage_6_0, universal.get_storage(), /*offset=*/12);
@@ -6102,8 +6102,8 @@ representation of the field "home_scope".
          validation).  Then, retrieve and return the desired value held by the
          field decl. */
       construct_node_unchecked(&stage_6_2, stage_6_1);
-      /* Copy the field (TypeDesignated::decl - DeclIndex) into version
-         specific storage. */
+      /* Copy the field (TypeDesignated::decl - DeclIndex) into
+         version-specific storage. */
       static_assert(sizeof(stage_6_3) == 4,
                     "stage_6_3 is not properly sized storage!");
       copy_ifc_field(&stage_6_3, stage_6_2.get_storage(), /*offset=*/0);
@@ -6113,8 +6113,8 @@ representation of the field "home_scope".
          validation).  Then, retrieve and return the desired value held by the
          field decl. */
       construct_node_unchecked(&stage_6_5, stage_6_4);
-      /* Copy the field (DeclSpecialization::decl - DeclIndex) into version
-         specific storage. */
+      /* Copy the field (DeclSpecialization::decl - DeclIndex) into
+         version-specific storage. */
       static_assert(sizeof(stage_6_6) == 4,
                     "stage_6_6 is not properly sized storage!");
       copy_ifc_field(&stage_6_6, stage_6_5.get_storage(), /*offset=*/4);
@@ -6127,8 +6127,8 @@ representation of the field "home_scope".
       an_ifc_decl_index_0_41 stage_6_3;
       an_ifc_decl_index      stage_6_4;
 
-      /* Copy the field (DeclEnumerator::type - TypeIndex) into version
-         specific storage. */
+      /* Copy the field (DeclEnumerator::type - TypeIndex) into
+         version-specific storage. */
       static_assert(sizeof(stage_6_0) == 4,
                     "stage_6_0 is not properly sized storage!");
       copy_ifc_field(&stage_6_0, universal.get_storage(), /*offset=*/12);
@@ -6138,8 +6138,8 @@ representation of the field "home_scope".
          validation).  Then, retrieve and return the desired value held by the
          field decl. */
       construct_node_unchecked(&stage_6_2, stage_6_1);
-      /* Copy the field (TypeDesignated::decl - DeclIndex) into version
-         specific storage. */
+      /* Copy the field (TypeDesignated::decl - DeclIndex) into
+         version-specific storage. */
       static_assert(sizeof(stage_6_3) == 4,
                     "stage_6_3 is not properly sized storage!");
       copy_ifc_field(&stage_6_3, stage_6_2.get_storage(), /*offset=*/0);
@@ -6154,7 +6154,7 @@ representation of the field "home_scope".
     an_ifc_decl_index_0_33 stage_3;
     an_ifc_decl_index      stage_4;
 
-    /* Copy the field (DeclEnumerator::type - TypeIndex) into version specific
+    /* Copy the field (DeclEnumerator::type - TypeIndex) into version-specific
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
@@ -6164,7 +6164,7 @@ representation of the field "home_scope".
        TypeDesignated (the type tag should have been prechecked by validation).
        Then, retrieve and return the desired value held by the field decl. */
     construct_node_unchecked(&stage_2, stage_1);
-    /* Copy the field (TypeDesignated::decl - DeclIndex) into version specific
+    /* Copy the field (TypeDesignated::decl - DeclIndex) into version-specific
        storage. */
     static_assert(sizeof(stage_3) == 4,
                   "stage_3 is not properly sized storage!");
@@ -6207,8 +6207,8 @@ representation of the field "initializer".
   an_ifc_expr_index_0_33 stage_0;
   an_ifc_expr_index      stage_1;
 
-  /* Copy the field (DeclEnumerator::initializer - ExprIndex) into version
-     specific storage. */
+  /* Copy the field (DeclEnumerator::initializer - ExprIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
@@ -6295,7 +6295,7 @@ representation of the field "name".
   an_ifc_text_offset_0_33 stage_0;
   an_ifc_text_offset      stage_1;
 
-  /* Copy the field (DeclEnumerator::name - TextOffset) into version specific
+  /* Copy the field (DeclEnumerator::name - TextOffset) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -6339,7 +6339,7 @@ representation of the field "specifiers".
   an_ifc_basic_specifiers_bitfield      stage_1;
 
   /* Copy the field (DeclEnumerator::specifiers - BasicSpecifiersBitfield) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
@@ -6381,7 +6381,7 @@ representation of the field "type".
   an_ifc_type_index_0_33 stage_0;
   an_ifc_type_index      stage_1;
 
-  /* Copy the field (DeclEnumerator::type - TypeIndex) into version specific
+  /* Copy the field (DeclEnumerator::type - TypeIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -6475,8 +6475,8 @@ representation of the field "operand".
     an_ifc_decl_index_0_41 stage_0;
     an_ifc_decl_index      stage_1;
 
-    /* Copy the field (DeclExpansion::operand - DeclIndex) into version
-       specific storage. */
+    /* Copy the field (DeclExpansion::operand - DeclIndex) into
+       version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -6486,8 +6486,8 @@ representation of the field "operand".
     an_ifc_decl_index_0_33 stage_0;
     an_ifc_decl_index      stage_1;
 
-    /* Copy the field (DeclExpansion::operand - DeclIndex) into version
-       specific storage. */
+    /* Copy the field (DeclExpansion::operand - DeclIndex) into
+       version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -6537,8 +6537,8 @@ universal representation of the field "decl".
   an_ifc_decl_index_0_33 stage_0;
   an_ifc_decl_index      stage_1;
 
-  /* Copy the field (DeclExplicitInstantiation::decl - DeclIndex) into version
-     specific storage. */
+  /* Copy the field (DeclExplicitInstantiation::decl - DeclIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
@@ -6583,7 +6583,7 @@ universal representation of the field "form".
   an_ifc_form_spec_index      stage_1;
 
   /* Copy the field (DeclExplicitInstantiation::form - FormSpecIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -6632,8 +6632,8 @@ universal representation of the field "decl".
   an_ifc_decl_index_0_33 stage_0;
   an_ifc_decl_index      stage_1;
 
-  /* Copy the field (DeclExplicitSpecialization::decl - DeclIndex) into version
-     specific storage. */
+  /* Copy the field (DeclExplicitSpecialization::decl - DeclIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
@@ -6678,7 +6678,7 @@ universal representation of the field "form".
   an_ifc_form_spec_index      stage_1;
 
   /* Copy the field (DeclExplicitSpecialization::form - FormSpecIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -6724,7 +6724,7 @@ representation of the field "access".
   an_ifc_access_sort_0_33 stage_0;
   an_ifc_access_sort      stage_1;
 
-  /* Copy the field (DeclField::access - AccessSort) into version specific
+  /* Copy the field (DeclField::access - AccessSort) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
@@ -6766,7 +6766,7 @@ representation of the field "alignment".
   an_ifc_expr_index_0_33 stage_0;
   an_ifc_expr_index      stage_1;
 
-  /* Copy the field (DeclField::alignment - ExprIndex) into version specific
+  /* Copy the field (DeclField::alignment - ExprIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -6811,7 +6811,7 @@ representation of the field "home_scope".
     a_boolean              stage_2;
     an_ifc_decl_index      stage_3;
 
-    /* Copy the field (DeclField::home_scope - DeclIndex) into version specific
+    /* Copy the field (DeclField::home_scope - DeclIndex) into version-specific
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
@@ -6829,8 +6829,8 @@ representation of the field "home_scope".
       an_ifc_decl_index_0_41     stage_3_3;
       an_ifc_decl_index          stage_3_4;
 
-      /* Copy the field (DeclField::home_scope - DeclIndex) into version
-         specific storage. */
+      /* Copy the field (DeclField::home_scope - DeclIndex) into
+         version-specific storage. */
       static_assert(sizeof(stage_3_0) == 4,
                     "stage_3_0 is not properly sized storage!");
       copy_ifc_field(&stage_3_0, universal.get_storage(), /*offset=*/16);
@@ -6840,8 +6840,8 @@ representation of the field "home_scope".
          validation).  Then, retrieve and return the desired value held by the
          field decl. */
       construct_node_unchecked(&stage_3_2, stage_3_1);
-      /* Copy the field (DeclSpecialization::decl - DeclIndex) into version
-         specific storage. */
+      /* Copy the field (DeclSpecialization::decl - DeclIndex) into
+         version-specific storage. */
       static_assert(sizeof(stage_3_3) == 4,
                     "stage_3_3 is not properly sized storage!");
       copy_ifc_field(&stage_3_3, stage_3_2.get_storage(), /*offset=*/4);
@@ -6851,8 +6851,8 @@ representation of the field "home_scope".
       an_ifc_decl_index_0_41 stage_3_0;
       an_ifc_decl_index      stage_3_1;
 
-      /* Copy the field (DeclField::home_scope - DeclIndex) into version
-         specific storage. */
+      /* Copy the field (DeclField::home_scope - DeclIndex) into
+         version-specific storage. */
       static_assert(sizeof(stage_3_0) == 4,
                     "stage_3_0 is not properly sized storage!");
       copy_ifc_field(&stage_3_0, universal.get_storage(), /*offset=*/16);
@@ -6864,7 +6864,7 @@ representation of the field "home_scope".
     an_ifc_decl_index_0_33 stage_0;
     an_ifc_decl_index      stage_1;
 
-    /* Copy the field (DeclField::home_scope - DeclIndex) into version specific
+    /* Copy the field (DeclField::home_scope - DeclIndex) into version-specific
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
@@ -6907,7 +6907,7 @@ representation of the field "initializer".
   an_ifc_expr_index_0_33 stage_0;
   an_ifc_expr_index      stage_1;
 
-  /* Copy the field (DeclField::initializer - ExprIndex) into version specific
+  /* Copy the field (DeclField::initializer - ExprIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -6995,7 +6995,7 @@ representation of the field "name".
   an_ifc_text_offset_0_33 stage_0;
   an_ifc_text_offset      stage_1;
 
-  /* Copy the field (DeclField::name - TextOffset) into version specific
+  /* Copy the field (DeclField::name - TextOffset) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -7039,7 +7039,7 @@ representation of the field "properties".
   an_ifc_reachable_properties_bitfield      stage_1;
 
   /* Copy the field (DeclField::properties - ReachablePropertiesBitfield) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/31);
@@ -7083,7 +7083,7 @@ representation of the field "specifiers".
   an_ifc_basic_specifiers_bitfield      stage_1;
 
   /* Copy the field (DeclField::specifiers - BasicSpecifiersBitfield) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/29);
@@ -7126,8 +7126,8 @@ representation of the field "traits".
   an_ifc_object_traits_bitfield_0_33 stage_0;
   an_ifc_object_traits_bitfield      stage_1;
 
-  /* Copy the field (DeclField::traits - ObjectTraitsBitfield) into version
-     specific storage. */
+  /* Copy the field (DeclField::traits - ObjectTraitsBitfield) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/28);
@@ -7169,7 +7169,7 @@ representation of the field "type".
   an_ifc_type_index_0_33 stage_0;
   an_ifc_type_index      stage_1;
 
-  /* Copy the field (DeclField::type - TypeIndex) into version specific
+  /* Copy the field (DeclField::type - TypeIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -7216,7 +7216,7 @@ representation of the field "entity".
   an_ifc_expr_index_0_33 stage_0;
   an_ifc_expr_index      stage_1;
 
-  /* Copy the field (DeclFriend::entity - ExprIndex) into version specific
+  /* Copy the field (DeclFriend::entity - ExprIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -7263,7 +7263,7 @@ representation of the field "access".
   an_ifc_access_sort_0_33 stage_0;
   an_ifc_access_sort      stage_1;
 
-  /* Copy the field (DeclFunction::access - AccessSort) into version specific
+  /* Copy the field (DeclFunction::access - AccessSort) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
@@ -7305,7 +7305,7 @@ representation of the field "chart".
   an_ifc_chart_index_0_33 stage_0;
   an_ifc_chart_index      stage_1;
 
-  /* Copy the field (DeclFunction::chart - ChartIndex) into version specific
+  /* Copy the field (DeclFunction::chart - ChartIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -7350,8 +7350,8 @@ representation of the field "home_scope".
     a_boolean              stage_2;
     an_ifc_decl_index      stage_3;
 
-    /* Copy the field (DeclFunction::home_scope - DeclIndex) into version
-       specific storage. */
+    /* Copy the field (DeclFunction::home_scope - DeclIndex) into
+       version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
@@ -7368,8 +7368,8 @@ representation of the field "home_scope".
       an_ifc_decl_index_0_41     stage_3_3;
       an_ifc_decl_index          stage_3_4;
 
-      /* Copy the field (DeclFunction::home_scope - DeclIndex) into version
-         specific storage. */
+      /* Copy the field (DeclFunction::home_scope - DeclIndex) into
+         version-specific storage. */
       static_assert(sizeof(stage_3_0) == 4,
                     "stage_3_0 is not properly sized storage!");
       copy_ifc_field(&stage_3_0, universal.get_storage(), /*offset=*/16);
@@ -7379,8 +7379,8 @@ representation of the field "home_scope".
          validation).  Then, retrieve and return the desired value held by the
          field decl. */
       construct_node_unchecked(&stage_3_2, stage_3_1);
-      /* Copy the field (DeclSpecialization::decl - DeclIndex) into version
-         specific storage. */
+      /* Copy the field (DeclSpecialization::decl - DeclIndex) into
+         version-specific storage. */
       static_assert(sizeof(stage_3_3) == 4,
                     "stage_3_3 is not properly sized storage!");
       copy_ifc_field(&stage_3_3, stage_3_2.get_storage(), /*offset=*/4);
@@ -7390,8 +7390,8 @@ representation of the field "home_scope".
       an_ifc_decl_index_0_41 stage_3_0;
       an_ifc_decl_index      stage_3_1;
 
-      /* Copy the field (DeclFunction::home_scope - DeclIndex) into version
-         specific storage. */
+      /* Copy the field (DeclFunction::home_scope - DeclIndex) into
+         version-specific storage. */
       static_assert(sizeof(stage_3_0) == 4,
                     "stage_3_0 is not properly sized storage!");
       copy_ifc_field(&stage_3_0, universal.get_storage(), /*offset=*/16);
@@ -7403,8 +7403,8 @@ representation of the field "home_scope".
     an_ifc_decl_index_0_33 stage_0;
     an_ifc_decl_index      stage_1;
 
-    /* Copy the field (DeclFunction::home_scope - DeclIndex) into version
-       specific storage. */
+    /* Copy the field (DeclFunction::home_scope - DeclIndex) into
+       version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
@@ -7492,7 +7492,7 @@ representation of the field "name".
   an_ifc_name_index_0_33 stage_0;
   an_ifc_name_index      stage_1;
 
-  /* Copy the field (DeclFunction::name - NameIndex) into version specific
+  /* Copy the field (DeclFunction::name - NameIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -7536,7 +7536,7 @@ representation of the field "properties".
   an_ifc_reachable_properties_bitfield      stage_1;
 
   /* Copy the field (DeclFunction::properties - ReachablePropertiesBitfield)
-     into version specific storage. */
+     into version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/28);
@@ -7580,7 +7580,7 @@ representation of the field "specifiers".
   an_ifc_basic_specifiers_bitfield      stage_1;
 
   /* Copy the field (DeclFunction::specifiers - BasicSpecifiersBitfield) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/26);
@@ -7624,7 +7624,7 @@ representation of the field "traits".
   an_ifc_function_traits_bitfield      stage_1;
 
   /* Copy the field (DeclFunction::traits - FunctionTraitsBitfield) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 2,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24);
@@ -7666,7 +7666,7 @@ representation of the field "type".
   an_ifc_type_index_0_33 stage_0;
   an_ifc_type_index      stage_1;
 
-  /* Copy the field (DeclFunction::type - TypeIndex) into version specific
+  /* Copy the field (DeclFunction::type - TypeIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -7715,7 +7715,7 @@ universal representation of the field "access".
   an_ifc_access_sort      stage_1;
 
   /* Copy the field (DeclInheritedConstructor::access - AccessSort) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/27);
@@ -7759,7 +7759,7 @@ universal representation of the field "base_ctor".
     an_ifc_decl_index      stage_1;
 
     /* Copy the field (DeclInheritedConstructor::base_ctor - DeclIndex) into
-       version specific storage. */
+       version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/28);
@@ -7770,7 +7770,7 @@ universal representation of the field "base_ctor".
     an_ifc_decl_index      stage_1;
 
     /* Copy the field (DeclInheritedConstructor::base_ctor - DeclIndex) into
-       version specific storage. */
+       version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/28);
@@ -7813,8 +7813,8 @@ universal representation of the field "chart".
   an_ifc_chart_index_0_33 stage_0;
   an_ifc_chart_index      stage_1;
 
-  /* Copy the field (DeclInheritedConstructor::chart - ChartIndex) into version
-     specific storage. */
+  /* Copy the field (DeclInheritedConstructor::chart - ChartIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
@@ -7861,7 +7861,7 @@ universal representation of the field "home_scope".
     an_ifc_decl_index      stage_3;
 
     /* Copy the field (DeclInheritedConstructor::home_scope - DeclIndex) into
-       version specific storage. */
+       version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
@@ -7879,7 +7879,7 @@ universal representation of the field "home_scope".
       an_ifc_decl_index          stage_3_4;
 
       /* Copy the field (DeclInheritedConstructor::home_scope - DeclIndex) into
-         version specific storage. */
+         version-specific storage. */
       static_assert(sizeof(stage_3_0) == 4,
                     "stage_3_0 is not properly sized storage!");
       copy_ifc_field(&stage_3_0, universal.get_storage(), /*offset=*/16);
@@ -7889,8 +7889,8 @@ universal representation of the field "home_scope".
          validation).  Then, retrieve and return the desired value held by the
          field decl. */
       construct_node_unchecked(&stage_3_2, stage_3_1);
-      /* Copy the field (DeclSpecialization::decl - DeclIndex) into version
-         specific storage. */
+      /* Copy the field (DeclSpecialization::decl - DeclIndex) into
+         version-specific storage. */
       static_assert(sizeof(stage_3_3) == 4,
                     "stage_3_3 is not properly sized storage!");
       copy_ifc_field(&stage_3_3, stage_3_2.get_storage(), /*offset=*/4);
@@ -7901,7 +7901,7 @@ universal representation of the field "home_scope".
       an_ifc_decl_index      stage_3_1;
 
       /* Copy the field (DeclInheritedConstructor::home_scope - DeclIndex) into
-         version specific storage. */
+         version-specific storage. */
       static_assert(sizeof(stage_3_0) == 4,
                     "stage_3_0 is not properly sized storage!");
       copy_ifc_field(&stage_3_0, universal.get_storage(), /*offset=*/16);
@@ -7914,7 +7914,7 @@ universal representation of the field "home_scope".
     an_ifc_decl_index      stage_1;
 
     /* Copy the field (DeclInheritedConstructor::home_scope - DeclIndex) into
-       version specific storage. */
+       version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
@@ -8004,8 +8004,8 @@ universal representation of the field "name".
   an_ifc_text_offset_0_33 stage_0;
   an_ifc_text_offset      stage_1;
 
-  /* Copy the field (DeclInheritedConstructor::name - TextOffset) into version
-     specific storage. */
+  /* Copy the field (DeclInheritedConstructor::name - TextOffset) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -8049,7 +8049,7 @@ universal representation of the field "specifiers".
   an_ifc_basic_specifiers_bitfield      stage_1;
 
   /* Copy the field (DeclInheritedConstructor::specifiers -
-     BasicSpecifiersBitfield) into version specific storage. */
+     BasicSpecifiersBitfield) into version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/26);
@@ -8093,7 +8093,7 @@ universal representation of the field "traits".
   an_ifc_function_traits_bitfield      stage_1;
 
   /* Copy the field (DeclInheritedConstructor::traits - FunctionTraitsBitfield)
-     into version specific storage. */
+     into version-specific storage. */
   static_assert(sizeof(stage_0) == 2,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24);
@@ -8136,8 +8136,8 @@ universal representation of the field "type".
   an_ifc_type_index_0_33 stage_0;
   an_ifc_type_index      stage_1;
 
-  /* Copy the field (DeclInheritedConstructor::type - TypeIndex) into version
-     specific storage. */
+  /* Copy the field (DeclInheritedConstructor::type - TypeIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
@@ -8183,7 +8183,7 @@ representation of the field "access".
   an_ifc_access_sort_0_33 stage_0;
   an_ifc_access_sort      stage_1;
 
-  /* Copy the field (DeclIntrinsic::access - AccessSort) into version specific
+  /* Copy the field (DeclIntrinsic::access - AccessSort) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
@@ -8228,8 +8228,8 @@ representation of the field "home_scope".
     a_boolean              stage_2;
     an_ifc_decl_index      stage_3;
 
-    /* Copy the field (DeclIntrinsic::home_scope - DeclIndex) into version
-       specific storage. */
+    /* Copy the field (DeclIntrinsic::home_scope - DeclIndex) into
+       version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
@@ -8246,8 +8246,8 @@ representation of the field "home_scope".
       an_ifc_decl_index_0_41     stage_3_3;
       an_ifc_decl_index          stage_3_4;
 
-      /* Copy the field (DeclIntrinsic::home_scope - DeclIndex) into version
-         specific storage. */
+      /* Copy the field (DeclIntrinsic::home_scope - DeclIndex) into
+         version-specific storage. */
       static_assert(sizeof(stage_3_0) == 4,
                     "stage_3_0 is not properly sized storage!");
       copy_ifc_field(&stage_3_0, universal.get_storage(), /*offset=*/16);
@@ -8257,8 +8257,8 @@ representation of the field "home_scope".
          validation).  Then, retrieve and return the desired value held by the
          field decl. */
       construct_node_unchecked(&stage_3_2, stage_3_1);
-      /* Copy the field (DeclSpecialization::decl - DeclIndex) into version
-         specific storage. */
+      /* Copy the field (DeclSpecialization::decl - DeclIndex) into
+         version-specific storage. */
       static_assert(sizeof(stage_3_3) == 4,
                     "stage_3_3 is not properly sized storage!");
       copy_ifc_field(&stage_3_3, stage_3_2.get_storage(), /*offset=*/4);
@@ -8268,8 +8268,8 @@ representation of the field "home_scope".
       an_ifc_decl_index_0_41 stage_3_0;
       an_ifc_decl_index      stage_3_1;
 
-      /* Copy the field (DeclIntrinsic::home_scope - DeclIndex) into version
-         specific storage. */
+      /* Copy the field (DeclIntrinsic::home_scope - DeclIndex) into
+         version-specific storage. */
       static_assert(sizeof(stage_3_0) == 4,
                     "stage_3_0 is not properly sized storage!");
       copy_ifc_field(&stage_3_0, universal.get_storage(), /*offset=*/16);
@@ -8281,8 +8281,8 @@ representation of the field "home_scope".
     an_ifc_decl_index_0_33 stage_0;
     an_ifc_decl_index      stage_1;
 
-    /* Copy the field (DeclIntrinsic::home_scope - DeclIndex) into version
-       specific storage. */
+    /* Copy the field (DeclIntrinsic::home_scope - DeclIndex) into
+       version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
@@ -8370,7 +8370,7 @@ representation of the field "name".
   an_ifc_text_offset_0_33 stage_0;
   an_ifc_text_offset      stage_1;
 
-  /* Copy the field (DeclIntrinsic::name - TextOffset) into version specific
+  /* Copy the field (DeclIntrinsic::name - TextOffset) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -8414,7 +8414,7 @@ representation of the field "specifiers".
   an_ifc_basic_specifiers_bitfield      stage_1;
 
   /* Copy the field (DeclIntrinsic::specifiers - BasicSpecifiersBitfield) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
@@ -8456,7 +8456,7 @@ representation of the field "type".
   an_ifc_type_index_0_33 stage_0;
   an_ifc_type_index      stage_1;
 
-  /* Copy the field (DeclIntrinsic::type - TypeIndex) into version specific
+  /* Copy the field (DeclIntrinsic::type - TypeIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -8503,7 +8503,7 @@ representation of the field "access".
   an_ifc_access_sort_0_33 stage_0;
   an_ifc_access_sort      stage_1;
 
-  /* Copy the field (DeclMethod::access - AccessSort) into version specific
+  /* Copy the field (DeclMethod::access - AccessSort) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
@@ -8545,7 +8545,7 @@ representation of the field "chart".
   an_ifc_chart_index_0_33 stage_0;
   an_ifc_chart_index      stage_1;
 
-  /* Copy the field (DeclMethod::chart - ChartIndex) into version specific
+  /* Copy the field (DeclMethod::chart - ChartIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -8590,8 +8590,8 @@ representation of the field "home_scope".
     a_boolean              stage_2;
     an_ifc_decl_index      stage_3;
 
-    /* Copy the field (DeclMethod::home_scope - DeclIndex) into version
-       specific storage. */
+    /* Copy the field (DeclMethod::home_scope - DeclIndex) into
+       version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
@@ -8608,8 +8608,8 @@ representation of the field "home_scope".
       an_ifc_decl_index_0_41     stage_3_3;
       an_ifc_decl_index          stage_3_4;
 
-      /* Copy the field (DeclMethod::home_scope - DeclIndex) into version
-         specific storage. */
+      /* Copy the field (DeclMethod::home_scope - DeclIndex) into
+         version-specific storage. */
       static_assert(sizeof(stage_3_0) == 4,
                     "stage_3_0 is not properly sized storage!");
       copy_ifc_field(&stage_3_0, universal.get_storage(), /*offset=*/16);
@@ -8619,8 +8619,8 @@ representation of the field "home_scope".
          validation).  Then, retrieve and return the desired value held by the
          field decl. */
       construct_node_unchecked(&stage_3_2, stage_3_1);
-      /* Copy the field (DeclSpecialization::decl - DeclIndex) into version
-         specific storage. */
+      /* Copy the field (DeclSpecialization::decl - DeclIndex) into
+         version-specific storage. */
       static_assert(sizeof(stage_3_3) == 4,
                     "stage_3_3 is not properly sized storage!");
       copy_ifc_field(&stage_3_3, stage_3_2.get_storage(), /*offset=*/4);
@@ -8630,8 +8630,8 @@ representation of the field "home_scope".
       an_ifc_decl_index_0_41 stage_3_0;
       an_ifc_decl_index      stage_3_1;
 
-      /* Copy the field (DeclMethod::home_scope - DeclIndex) into version
-         specific storage. */
+      /* Copy the field (DeclMethod::home_scope - DeclIndex) into
+         version-specific storage. */
       static_assert(sizeof(stage_3_0) == 4,
                     "stage_3_0 is not properly sized storage!");
       copy_ifc_field(&stage_3_0, universal.get_storage(), /*offset=*/16);
@@ -8643,8 +8643,8 @@ representation of the field "home_scope".
     an_ifc_decl_index_0_33 stage_0;
     an_ifc_decl_index      stage_1;
 
-    /* Copy the field (DeclMethod::home_scope - DeclIndex) into version
-       specific storage. */
+    /* Copy the field (DeclMethod::home_scope - DeclIndex) into
+       version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
@@ -8732,7 +8732,7 @@ representation of the field "name".
   an_ifc_name_index_0_33 stage_0;
   an_ifc_name_index      stage_1;
 
-  /* Copy the field (DeclMethod::name - NameIndex) into version specific
+  /* Copy the field (DeclMethod::name - NameIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -8776,7 +8776,7 @@ representation of the field "properties".
   an_ifc_reachable_properties_bitfield      stage_1;
 
   /* Copy the field (DeclMethod::properties - ReachablePropertiesBitfield) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/28);
@@ -8820,7 +8820,7 @@ representation of the field "specifiers".
   an_ifc_basic_specifiers_bitfield      stage_1;
 
   /* Copy the field (DeclMethod::specifiers - BasicSpecifiersBitfield) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/26);
@@ -8863,8 +8863,8 @@ representation of the field "traits".
   an_ifc_function_traits_bitfield_0_33 stage_0;
   an_ifc_function_traits_bitfield      stage_1;
 
-  /* Copy the field (DeclMethod::traits - FunctionTraitsBitfield) into version
-     specific storage. */
+  /* Copy the field (DeclMethod::traits - FunctionTraitsBitfield) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 2,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24);
@@ -8906,7 +8906,7 @@ representation of the field "type".
   an_ifc_type_index_0_33 stage_0;
   an_ifc_type_index      stage_1;
 
-  /* Copy the field (DeclMethod::type - TypeIndex) into version specific
+  /* Copy the field (DeclMethod::type - TypeIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -8953,7 +8953,7 @@ representation of the field "ID".
   an_ifc_text_offset_0_33 stage_0;
   an_ifc_text_offset      stage_1;
 
-  /* Copy the field (DeclOutputSegment::ID - TextOffset) into version specific
+  /* Copy the field (DeclOutputSegment::ID - TextOffset) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -8995,8 +8995,8 @@ representation of the field "name".
   an_ifc_text_offset_0_33 stage_0;
   an_ifc_text_offset      stage_1;
 
-  /* Copy the field (DeclOutputSegment::name - TextOffset) into version
-     specific storage. */
+  /* Copy the field (DeclOutputSegment::name - TextOffset) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -9038,8 +9038,8 @@ representation of the field "traits".
   an_ifc_segment_traits_0_33 stage_0;
   an_ifc_segment_traits      stage_1;
 
-  /* Copy the field (DeclOutputSegment::traits - SegmentTraits) into version
-     specific storage. */
+  /* Copy the field (DeclOutputSegment::traits - SegmentTraits) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
@@ -9080,8 +9080,8 @@ representation of the field "type".
   an_ifc_segment_type_0_33 stage_0;
   an_ifc_segment_type      stage_1;
 
-  /* Copy the field (DeclOutputSegment::type - SegmentType) into version
-     specific storage. */
+  /* Copy the field (DeclOutputSegment::type - SegmentType) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
@@ -9127,8 +9127,8 @@ representation of the field "constraint".
   an_ifc_expr_index_0_33 stage_0;
   an_ifc_expr_index      stage_1;
 
-  /* Copy the field (DeclParameter::constraint - ExprIndex) into version
-     specific storage. */
+  /* Copy the field (DeclParameter::constraint - ExprIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
@@ -9169,8 +9169,8 @@ representation of the field "initializer".
   an_ifc_expr_index_0_33 stage_0;
   an_ifc_expr_index      stage_1;
 
-  /* Copy the field (DeclParameter::initializer - ExprIndex) into version
-     specific storage. */
+  /* Copy the field (DeclParameter::initializer - ExprIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
@@ -9211,8 +9211,8 @@ representation of the field "level".
   an_ifc_parameter_level_0_33 stage_0;
   an_ifc_parameter_level      stage_1;
 
-  /* Copy the field (DeclParameter::level - ParameterLevel) into version
-     specific storage. */
+  /* Copy the field (DeclParameter::level - ParameterLevel) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24);
@@ -9299,7 +9299,7 @@ representation of the field "name".
   an_ifc_text_offset_0_33 stage_0;
   an_ifc_text_offset      stage_1;
 
-  /* Copy the field (DeclParameter::name - TextOffset) into version specific
+  /* Copy the field (DeclParameter::name - TextOffset) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -9341,7 +9341,7 @@ representation of the field "pack".
   an_ifc_bool_0_33 stage_0;
   an_ifc_bool      stage_1;
 
-  /* Copy the field (DeclParameter::pack - bool) into version specific
+  /* Copy the field (DeclParameter::pack - bool) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
@@ -9384,8 +9384,8 @@ representation of the field "position".
   an_ifc_parameter_position_0_33 stage_0;
   an_ifc_parameter_position      stage_1;
 
-  /* Copy the field (DeclParameter::position - ParameterPosition) into version
-     specific storage. */
+  /* Copy the field (DeclParameter::position - ParameterPosition) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/28);
@@ -9429,7 +9429,7 @@ representation of the field "properties".
   an_ifc_reachable_properties_bitfield      stage_1;
 
   /* Copy the field (DeclParameter::properties - ReachablePropertiesBitfield)
-     into version specific storage. */
+     into version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/33);
@@ -9471,7 +9471,7 @@ representation of the field "sort".
   an_ifc_parameter_sort_0_33 stage_0;
   an_ifc_parameter_sort      stage_1;
 
-  /* Copy the field (DeclParameter::sort - ParameterSort) into version specific
+  /* Copy the field (DeclParameter::sort - ParameterSort) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
@@ -9513,7 +9513,7 @@ representation of the field "type".
   an_ifc_type_index_0_33 stage_0;
   an_ifc_type_index      stage_1;
 
-  /* Copy the field (DeclParameter::type - TypeIndex) into version specific
+  /* Copy the field (DeclParameter::type - TypeIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -9562,7 +9562,7 @@ universal representation of the field "access".
   an_ifc_access_sort      stage_1;
 
   /* Copy the field (DeclPartialSpecialization::access - AccessSort) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/41);
@@ -9605,7 +9605,7 @@ universal representation of the field "chart".
   an_ifc_chart_index      stage_1;
 
   /* Copy the field (DeclPartialSpecialization::chart - ChartIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
@@ -9697,7 +9697,7 @@ universal representation of the field "form".
   an_ifc_form_spec_index      stage_1;
 
   /* Copy the field (DeclPartialSpecialization::form - FormSpecIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/36);
@@ -9756,8 +9756,8 @@ universal representation of the field "home_scope".
                    /*size=*/16);
 #endif /* USE_MMAP_FOR_MODULES */
     stage_1 = {universal.get_module(), stage_0};
-    /* Copy the field (ParameterizedEntity::decl - DeclIndex) into version
-       specific storage. */
+    /* Copy the field (ParameterizedEntity::decl - DeclIndex) into
+       version-specific storage. */
     static_assert(sizeof(stage_2) == 4,
                   "stage_2 is not properly sized storage!");
     copy_ifc_field(&stage_2, stage_1.get_storage(), /*offset=*/0);
@@ -9783,8 +9783,8 @@ universal representation of the field "home_scope".
                    /*size=*/16);
 #endif /* USE_MMAP_FOR_MODULES */
     stage_1 = {universal.get_module(), stage_0};
-    /* Copy the field (ParameterizedEntity::decl - DeclIndex) into version
-       specific storage. */
+    /* Copy the field (ParameterizedEntity::decl - DeclIndex) into
+       version-specific storage. */
     static_assert(sizeof(stage_2) == 4,
                   "stage_2 is not properly sized storage!");
     copy_ifc_field(&stage_2, stage_1.get_storage(), /*offset=*/0);
@@ -9881,7 +9881,7 @@ universal representation of the field "name".
     an_ifc_name_index           stage_5;
 
     /* Copy the field (DeclPartialSpecialization::form - FormSpecIndex) into
-       version specific storage. */
+       version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/36);
@@ -9891,8 +9891,8 @@ universal representation of the field "name".
        FormSpec.  Then, retrieve and return the desired value held by the field
        primary_template. */
     construct_node_unchecked(&stage_2, stage_1);
-    /* Copy the field (FormSpec::primary_template - DeclIndex) into version
-       specific storage. */
+    /* Copy the field (FormSpec::primary_template - DeclIndex) into
+       version-specific storage. */
     static_assert(sizeof(stage_3) == 4,
                   "stage_3 is not properly sized storage!");
     copy_ifc_field(&stage_3, stage_2.get_storage(), /*offset=*/0);
@@ -9908,7 +9908,7 @@ universal representation of the field "name".
     an_ifc_name_index           stage_5;
 
     /* Copy the field (DeclPartialSpecialization::form - FormSpecIndex) into
-       version specific storage. */
+       version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/36);
@@ -9918,8 +9918,8 @@ universal representation of the field "name".
        FormSpec.  Then, retrieve and return the desired value held by the field
        primary_template. */
     construct_node_unchecked(&stage_2, stage_1);
-    /* Copy the field (FormSpec::primary_template - DeclIndex) into version
-       specific storage. */
+    /* Copy the field (FormSpec::primary_template - DeclIndex) into
+       version-specific storage. */
     static_assert(sizeof(stage_3) == 4,
                   "stage_3 is not properly sized storage!");
     copy_ifc_field(&stage_3, stage_2.get_storage(), /*offset=*/0);
@@ -9965,7 +9965,7 @@ universal representation of the field "properties".
   an_ifc_reachable_properties_bitfield      stage_1;
 
   /* Copy the field (DeclPartialSpecialization::properties -
-     ReachablePropertiesBitfield) into version specific storage. */
+     ReachablePropertiesBitfield) into version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/42);
@@ -10010,7 +10010,7 @@ universal representation of the field "specifiers".
   an_ifc_basic_specifiers_bitfield      stage_1;
 
   /* Copy the field (DeclPartialSpecialization::specifiers -
-     BasicSpecifiersBitfield) into version specific storage. */
+     BasicSpecifiersBitfield) into version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/40);
@@ -10057,7 +10057,7 @@ representation of the field "getter".
   an_ifc_text_offset_0_33 stage_0;
   an_ifc_text_offset      stage_1;
 
-  /* Copy the field (DeclProperty::getter - TextOffset) into version specific
+  /* Copy the field (DeclProperty::getter - TextOffset) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -10100,7 +10100,7 @@ representation of the field "member".
     an_ifc_decl_index_0_41 stage_0;
     an_ifc_decl_index      stage_1;
 
-    /* Copy the field (DeclProperty::member - DeclIndex) into version specific
+    /* Copy the field (DeclProperty::member - DeclIndex) into version-specific
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
@@ -10111,7 +10111,7 @@ representation of the field "member".
     an_ifc_decl_index_0_33 stage_0;
     an_ifc_decl_index      stage_1;
 
-    /* Copy the field (DeclProperty::member - DeclIndex) into version specific
+    /* Copy the field (DeclProperty::member - DeclIndex) into version-specific
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
@@ -10154,7 +10154,7 @@ representation of the field "setter".
   an_ifc_text_offset_0_33 stage_0;
   an_ifc_text_offset      stage_1;
 
-  /* Copy the field (DeclProperty::setter - TextOffset) into version specific
+  /* Copy the field (DeclProperty::setter - TextOffset) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -10217,7 +10217,7 @@ representation of the field "index".
   stage_1 = {universal.get_module(), stage_0};
   stage_2 = get_module(stage_1);
   /* Copy the field (DeclReference::local_index - DeclForeignIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_3) == 4,
                 "stage_3 is not properly sized storage!");
   copy_ifc_field(&stage_3, universal.get_storage(), /*offset=*/8);
@@ -10262,7 +10262,7 @@ representation of the field "local_index".
   an_ifc_decl_foreign_index      stage_1;
 
   /* Copy the field (DeclReference::local_index - DeclForeignIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
@@ -10355,7 +10355,7 @@ representation of the field "access".
   an_ifc_access_sort_0_33 stage_0;
   an_ifc_access_sort      stage_1;
 
-  /* Copy the field (DeclScope::access - AccessSort) into version specific
+  /* Copy the field (DeclScope::access - AccessSort) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
@@ -10397,7 +10397,7 @@ representation of the field "alignment".
   an_ifc_expr_index_0_33 stage_0;
   an_ifc_expr_index      stage_1;
 
-  /* Copy the field (DeclScope::alignment - ExprIndex) into version specific
+  /* Copy the field (DeclScope::alignment - ExprIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -10439,7 +10439,7 @@ representation of the field "base".
   an_ifc_type_index_0_33 stage_0;
   an_ifc_type_index      stage_1;
 
-  /* Copy the field (DeclScope::base - TypeIndex) into version specific
+  /* Copy the field (DeclScope::base - TypeIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -10484,7 +10484,7 @@ representation of the field "home_scope".
     a_boolean              stage_2;
     an_ifc_decl_index      stage_3;
 
-    /* Copy the field (DeclScope::home_scope - DeclIndex) into version specific
+    /* Copy the field (DeclScope::home_scope - DeclIndex) into version-specific
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
@@ -10502,8 +10502,8 @@ representation of the field "home_scope".
       an_ifc_decl_index_0_41     stage_3_3;
       an_ifc_decl_index          stage_3_4;
 
-      /* Copy the field (DeclScope::home_scope - DeclIndex) into version
-         specific storage. */
+      /* Copy the field (DeclScope::home_scope - DeclIndex) into
+         version-specific storage. */
       static_assert(sizeof(stage_3_0) == 4,
                     "stage_3_0 is not properly sized storage!");
       copy_ifc_field(&stage_3_0, universal.get_storage(), /*offset=*/24);
@@ -10513,8 +10513,8 @@ representation of the field "home_scope".
          validation).  Then, retrieve and return the desired value held by the
          field decl. */
       construct_node_unchecked(&stage_3_2, stage_3_1);
-      /* Copy the field (DeclSpecialization::decl - DeclIndex) into version
-         specific storage. */
+      /* Copy the field (DeclSpecialization::decl - DeclIndex) into
+         version-specific storage. */
       static_assert(sizeof(stage_3_3) == 4,
                     "stage_3_3 is not properly sized storage!");
       copy_ifc_field(&stage_3_3, stage_3_2.get_storage(), /*offset=*/4);
@@ -10524,8 +10524,8 @@ representation of the field "home_scope".
       an_ifc_decl_index_0_41 stage_3_0;
       an_ifc_decl_index      stage_3_1;
 
-      /* Copy the field (DeclScope::home_scope - DeclIndex) into version
-         specific storage. */
+      /* Copy the field (DeclScope::home_scope - DeclIndex) into
+         version-specific storage. */
       static_assert(sizeof(stage_3_0) == 4,
                     "stage_3_0 is not properly sized storage!");
       copy_ifc_field(&stage_3_0, universal.get_storage(), /*offset=*/24);
@@ -10537,7 +10537,7 @@ representation of the field "home_scope".
     an_ifc_decl_index_0_33 stage_0;
     an_ifc_decl_index      stage_1;
 
-    /* Copy the field (DeclScope::home_scope - DeclIndex) into version specific
+    /* Copy the field (DeclScope::home_scope - DeclIndex) into version-specific
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
@@ -10580,7 +10580,7 @@ representation of the field "initializer".
   an_ifc_scope_index_0_33 stage_0;
   an_ifc_scope_index      stage_1;
 
-  /* Copy the field (DeclScope::initializer - ScopeIndex) into version specific
+  /* Copy the field (DeclScope::initializer - ScopeIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -10668,7 +10668,7 @@ representation of the field "name".
   an_ifc_name_index_0_33 stage_0;
   an_ifc_name_index      stage_1;
 
-  /* Copy the field (DeclScope::name - NameIndex) into version specific
+  /* Copy the field (DeclScope::name - NameIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -10710,7 +10710,7 @@ representation of the field "pack_size".
   an_ifc_pack_size_0_33 stage_0;
   an_ifc_pack_size      stage_1;
 
-  /* Copy the field (DeclScope::pack_size - PackSize) into version specific
+  /* Copy the field (DeclScope::pack_size - PackSize) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 2,
                 "stage_0 is not properly sized storage!");
@@ -10754,7 +10754,7 @@ representation of the field "properties".
   an_ifc_reachable_properties_bitfield      stage_1;
 
   /* Copy the field (DeclScope::properties - ReachablePropertiesBitfield) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/37);
@@ -10798,7 +10798,7 @@ representation of the field "specifiers".
   an_ifc_basic_specifiers_bitfield      stage_1;
 
   /* Copy the field (DeclScope::specifiers - BasicSpecifiersBitfield) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/34);
@@ -10840,8 +10840,8 @@ representation of the field "traits".
   an_ifc_scope_traits_bitfield_0_33 stage_0;
   an_ifc_scope_traits_bitfield      stage_1;
 
-  /* Copy the field (DeclScope::traits - ScopeTraitsBitfield) into version
-     specific storage. */
+  /* Copy the field (DeclScope::traits - ScopeTraitsBitfield) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/35);
@@ -10883,7 +10883,7 @@ representation of the field "type".
   an_ifc_type_index_0_33 stage_0;
   an_ifc_type_index      stage_1;
 
-  /* Copy the field (DeclScope::type - TypeIndex) into version specific
+  /* Copy the field (DeclScope::type - TypeIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -10930,8 +10930,8 @@ representation of the field "decl".
   an_ifc_decl_index_0_41 stage_0;
   an_ifc_decl_index      stage_1;
 
-  /* Copy the field (DeclSpecialization::decl - DeclIndex) into version
-     specific storage. */
+  /* Copy the field (DeclSpecialization::decl - DeclIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
@@ -10973,8 +10973,8 @@ representation of the field "form".
   an_ifc_form_spec_index_0_33 stage_0;
   an_ifc_form_spec_index      stage_1;
 
-  /* Copy the field (DeclSpecialization::form - FormSpecIndex) into version
-     specific storage. */
+  /* Copy the field (DeclSpecialization::form - FormSpecIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -11017,8 +11017,8 @@ representation of the field "home_scope".
   an_ifc_decl_index      stage_1;
   an_ifc_decl_index      stage_2;
 
-  /* Copy the field (DeclSpecialization::decl - DeclIndex) into version
-     specific storage. */
+  /* Copy the field (DeclSpecialization::decl - DeclIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
@@ -11062,8 +11062,8 @@ representation of the field "locus".
   an_ifc_decl_index      stage_1;
   an_ifc_source_location stage_2;
 
-  /* Copy the field (DeclSpecialization::decl - DeclIndex) into version
-     specific storage. */
+  /* Copy the field (DeclSpecialization::decl - DeclIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
@@ -11109,8 +11109,8 @@ representation of the field "name".
   an_ifc_decl_index           stage_4;
   an_ifc_name_index           stage_5;
 
-  /* Copy the field (DeclSpecialization::form - FormSpecIndex) into version
-     specific storage. */
+  /* Copy the field (DeclSpecialization::form - FormSpecIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -11119,8 +11119,8 @@ representation of the field "name".
      Then, retrieve and return the desired value held by the field
      primary_template. */
   construct_node_unchecked(&stage_2, stage_1);
-  /* Copy the field (FormSpec::primary_template - DeclIndex) into version
-     specific storage. */
+  /* Copy the field (FormSpec::primary_template - DeclIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_3) == 4,
                 "stage_3 is not properly sized storage!");
   copy_ifc_field(&stage_3, stage_2.get_storage(), /*offset=*/0);
@@ -11164,7 +11164,7 @@ representation of the field "sort".
   an_ifc_specialization_sort      stage_1;
 
   /* Copy the field (DeclSpecialization::sort - SpecializationSort) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
@@ -11210,7 +11210,7 @@ representation of the field "access".
   an_ifc_access_sort_0_33 stage_0;
   an_ifc_access_sort      stage_1;
 
-  /* Copy the field (DeclTemplate::access - AccessSort) into version specific
+  /* Copy the field (DeclTemplate::access - AccessSort) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
@@ -11252,7 +11252,7 @@ representation of the field "chart".
   an_ifc_chart_index_0_33 stage_0;
   an_ifc_chart_index      stage_1;
 
-  /* Copy the field (DeclTemplate::chart - ChartIndex) into version specific
+  /* Copy the field (DeclTemplate::chart - ChartIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -11346,8 +11346,8 @@ representation of the field "home_scope".
     a_boolean              stage_2;
     an_ifc_decl_index      stage_3;
 
-    /* Copy the field (DeclTemplate::home_scope - DeclIndex) into version
-       specific storage. */
+    /* Copy the field (DeclTemplate::home_scope - DeclIndex) into
+       version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
@@ -11364,8 +11364,8 @@ representation of the field "home_scope".
       an_ifc_decl_index_0_41     stage_3_3;
       an_ifc_decl_index          stage_3_4;
 
-      /* Copy the field (DeclTemplate::home_scope - DeclIndex) into version
-         specific storage. */
+      /* Copy the field (DeclTemplate::home_scope - DeclIndex) into
+         version-specific storage. */
       static_assert(sizeof(stage_3_0) == 4,
                     "stage_3_0 is not properly sized storage!");
       copy_ifc_field(&stage_3_0, universal.get_storage(), /*offset=*/12);
@@ -11375,8 +11375,8 @@ representation of the field "home_scope".
          validation).  Then, retrieve and return the desired value held by the
          field decl. */
       construct_node_unchecked(&stage_3_2, stage_3_1);
-      /* Copy the field (DeclSpecialization::decl - DeclIndex) into version
-         specific storage. */
+      /* Copy the field (DeclSpecialization::decl - DeclIndex) into
+         version-specific storage. */
       static_assert(sizeof(stage_3_3) == 4,
                     "stage_3_3 is not properly sized storage!");
       copy_ifc_field(&stage_3_3, stage_3_2.get_storage(), /*offset=*/4);
@@ -11386,8 +11386,8 @@ representation of the field "home_scope".
       an_ifc_decl_index_0_41 stage_3_0;
       an_ifc_decl_index      stage_3_1;
 
-      /* Copy the field (DeclTemplate::home_scope - DeclIndex) into version
-         specific storage. */
+      /* Copy the field (DeclTemplate::home_scope - DeclIndex) into
+         version-specific storage. */
       static_assert(sizeof(stage_3_0) == 4,
                     "stage_3_0 is not properly sized storage!");
       copy_ifc_field(&stage_3_0, universal.get_storage(), /*offset=*/12);
@@ -11399,8 +11399,8 @@ representation of the field "home_scope".
     an_ifc_decl_index_0_33 stage_0;
     an_ifc_decl_index      stage_1;
 
-    /* Copy the field (DeclTemplate::home_scope - DeclIndex) into version
-       specific storage. */
+    /* Copy the field (DeclTemplate::home_scope - DeclIndex) into
+       version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
@@ -11505,8 +11505,8 @@ representation of the field "name".
                    /*size=*/16);
 #endif /* USE_MMAP_FOR_MODULES */
     stage_1 = {universal.get_module(), stage_0};
-    /* Copy the field (ParameterizedEntity::decl - DeclIndex) into version
-       specific storage. */
+    /* Copy the field (ParameterizedEntity::decl - DeclIndex) into
+       version-specific storage. */
     static_assert(sizeof(stage_2) == 4,
                   "stage_2 is not properly sized storage!");
     copy_ifc_field(&stage_2, stage_1.get_storage(), /*offset=*/0);
@@ -11537,8 +11537,8 @@ representation of the field "name".
                      /*size=*/16);
 #endif /* USE_MMAP_FOR_MODULES */
       stage_5_1 = {universal.get_module(), stage_5_0};
-      /* Copy the field (ParameterizedEntity::decl - DeclIndex) into version
-         specific storage. */
+      /* Copy the field (ParameterizedEntity::decl - DeclIndex) into
+         version-specific storage. */
       static_assert(sizeof(stage_5_2) == 4,
                     "stage_5_2 is not properly sized storage!");
       copy_ifc_field(&stage_5_2, stage_5_1.get_storage(), /*offset=*/0);
@@ -11549,7 +11549,7 @@ representation of the field "name".
       an_ifc_name_index_0_33 stage_5_0;
       an_ifc_name_index      stage_5_1;
 
-      /* Copy the field (DeclTemplate::name - NameIndex) into version specific
+      /* Copy the field (DeclTemplate::name - NameIndex) into version-specific
          storage. */
       static_assert(sizeof(stage_5_0) == 4,
                     "stage_5_0 is not properly sized storage!");
@@ -11578,8 +11578,8 @@ representation of the field "name".
                    /*size=*/16);
 #endif /* USE_MMAP_FOR_MODULES */
     stage_1 = {universal.get_module(), stage_0};
-    /* Copy the field (ParameterizedEntity::decl - DeclIndex) into version
-       specific storage. */
+    /* Copy the field (ParameterizedEntity::decl - DeclIndex) into
+       version-specific storage. */
     static_assert(sizeof(stage_2) == 4,
                   "stage_2 is not properly sized storage!");
     copy_ifc_field(&stage_2, stage_1.get_storage(), /*offset=*/0);
@@ -11610,8 +11610,8 @@ representation of the field "name".
                      /*size=*/16);
 #endif /* USE_MMAP_FOR_MODULES */
       stage_5_1 = {universal.get_module(), stage_5_0};
-      /* Copy the field (ParameterizedEntity::decl - DeclIndex) into version
-         specific storage. */
+      /* Copy the field (ParameterizedEntity::decl - DeclIndex) into
+         version-specific storage. */
       static_assert(sizeof(stage_5_2) == 4,
                     "stage_5_2 is not properly sized storage!");
       copy_ifc_field(&stage_5_2, stage_5_1.get_storage(), /*offset=*/0);
@@ -11622,7 +11622,7 @@ representation of the field "name".
       an_ifc_name_index_0_33 stage_5_0;
       an_ifc_name_index      stage_5_1;
 
-      /* Copy the field (DeclTemplate::name - NameIndex) into version specific
+      /* Copy the field (DeclTemplate::name - NameIndex) into version-specific
          storage. */
       static_assert(sizeof(stage_5_0) == 4,
                     "stage_5_0 is not properly sized storage!");
@@ -11669,7 +11669,7 @@ representation of the field "properties".
   an_ifc_reachable_properties_bitfield      stage_1;
 
   /* Copy the field (DeclTemplate::properties - ReachablePropertiesBitfield)
-     into version specific storage. */
+     into version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/42);
@@ -11713,7 +11713,7 @@ representation of the field "specifiers".
   an_ifc_basic_specifiers_bitfield      stage_1;
 
   /* Copy the field (DeclTemplate::specifiers - BasicSpecifiersBitfield) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/40);
@@ -11755,7 +11755,7 @@ representation of the field "type".
   an_ifc_type_index_0_33 stage_0;
   an_ifc_type_index      stage_1;
 
-  /* Copy the field (DeclTemplate::type - TypeIndex) into version specific
+  /* Copy the field (DeclTemplate::type - TypeIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -11802,7 +11802,7 @@ representation of the field "chart".
   an_ifc_chart_index_0_33 stage_0;
   an_ifc_chart_index      stage_1;
 
-  /* Copy the field (DeclTemploid::chart - ChartIndex) into version specific
+  /* Copy the field (DeclTemploid::chart - ChartIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -11895,7 +11895,7 @@ representation of the field "properties".
   an_ifc_reachable_properties_bitfield      stage_1;
 
   /* Copy the field (DeclTemploid::properties - ReachablePropertiesBitfield)
-     into version specific storage. */
+     into version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
@@ -11942,8 +11942,8 @@ representation of the field "cardinality".
   an_ifc_cardinality_0_33 stage_0;
   an_ifc_cardinality      stage_1;
 
-  /* Copy the field (DeclTuple::cardinality - Cardinality) into version
-     specific storage. */
+  /* Copy the field (DeclTuple::cardinality - Cardinality) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
@@ -11984,7 +11984,7 @@ representation of the field "start".
   an_ifc_index_0_33 stage_0;
   an_ifc_index      stage_1;
 
-  /* Copy the field (DeclTuple::start - Index) into version specific
+  /* Copy the field (DeclTuple::start - Index) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -12032,8 +12032,8 @@ universal representation of the field "access".
   an_ifc_access_sort_0_33 stage_0;
   an_ifc_access_sort      stage_1;
 
-  /* Copy the field (DeclUsingDeclaration::access - AccessSort) into version
-     specific storage. */
+  /* Copy the field (DeclUsingDeclaration::access - AccessSort) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/29);
@@ -12074,7 +12074,7 @@ universal representation of the field "hidden".
   an_ifc_bool_0_33 stage_0;
   an_ifc_bool      stage_1;
 
-  /* Copy the field (DeclUsingDeclaration::hidden - bool) into version specific
+  /* Copy the field (DeclUsingDeclaration::hidden - bool) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
@@ -12121,7 +12121,7 @@ universal representation of the field "home_scope".
     an_ifc_decl_index      stage_3;
 
     /* Copy the field (DeclUsingDeclaration::home_scope - DeclIndex) into
-       version specific storage. */
+       version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
@@ -12139,7 +12139,7 @@ universal representation of the field "home_scope".
       an_ifc_decl_index          stage_3_4;
 
       /* Copy the field (DeclUsingDeclaration::home_scope - DeclIndex) into
-         version specific storage. */
+         version-specific storage. */
       static_assert(sizeof(stage_3_0) == 4,
                     "stage_3_0 is not properly sized storage!");
       copy_ifc_field(&stage_3_0, universal.get_storage(), /*offset=*/12);
@@ -12149,8 +12149,8 @@ universal representation of the field "home_scope".
          validation).  Then, retrieve and return the desired value held by the
          field decl. */
       construct_node_unchecked(&stage_3_2, stage_3_1);
-      /* Copy the field (DeclSpecialization::decl - DeclIndex) into version
-         specific storage. */
+      /* Copy the field (DeclSpecialization::decl - DeclIndex) into
+         version-specific storage. */
       static_assert(sizeof(stage_3_3) == 4,
                     "stage_3_3 is not properly sized storage!");
       copy_ifc_field(&stage_3_3, stage_3_2.get_storage(), /*offset=*/4);
@@ -12161,7 +12161,7 @@ universal representation of the field "home_scope".
       an_ifc_decl_index      stage_3_1;
 
       /* Copy the field (DeclUsingDeclaration::home_scope - DeclIndex) into
-         version specific storage. */
+         version-specific storage. */
       static_assert(sizeof(stage_3_0) == 4,
                     "stage_3_0 is not properly sized storage!");
       copy_ifc_field(&stage_3_0, universal.get_storage(), /*offset=*/12);
@@ -12174,7 +12174,7 @@ universal representation of the field "home_scope".
     an_ifc_decl_index      stage_1;
 
     /* Copy the field (DeclUsingDeclaration::home_scope - DeclIndex) into
-       version specific storage. */
+       version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
@@ -12263,8 +12263,8 @@ universal representation of the field "name".
   an_ifc_text_offset_0_33 stage_0;
   an_ifc_text_offset      stage_1;
 
-  /* Copy the field (DeclUsingDeclaration::name - TextOffset) into version
-     specific storage. */
+  /* Copy the field (DeclUsingDeclaration::name - TextOffset) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -12306,8 +12306,8 @@ universal representation of the field "name2".
   an_ifc_text_offset_0_33 stage_0;
   an_ifc_text_offset      stage_1;
 
-  /* Copy the field (DeclUsingDeclaration::name2 - TextOffset) into version
-     specific storage. */
+  /* Copy the field (DeclUsingDeclaration::name2 - TextOffset) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24);
@@ -12349,8 +12349,8 @@ universal representation of the field "parent".
   an_ifc_expr_index_0_33 stage_0;
   an_ifc_expr_index      stage_1;
 
-  /* Copy the field (DeclUsingDeclaration::parent - ExprIndex) into version
-     specific storage. */
+  /* Copy the field (DeclUsingDeclaration::parent - ExprIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
@@ -12394,7 +12394,7 @@ universal representation of the field "resolution".
     an_ifc_decl_index      stage_1;
 
     /* Copy the field (DeclUsingDeclaration::resolution - DeclIndex) into
-       version specific storage. */
+       version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
@@ -12405,7 +12405,7 @@ universal representation of the field "resolution".
     an_ifc_decl_index      stage_1;
 
     /* Copy the field (DeclUsingDeclaration::resolution - DeclIndex) into
-       version specific storage. */
+       version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
@@ -12449,7 +12449,7 @@ universal representation of the field "specifiers".
   an_ifc_basic_specifiers_bitfield      stage_1;
 
   /* Copy the field (DeclUsingDeclaration::specifiers -
-     BasicSpecifiersBitfield) into version specific storage. */
+     BasicSpecifiersBitfield) into version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/28);
@@ -12496,7 +12496,7 @@ representation of the field "access".
   an_ifc_access_sort_0_33 stage_0;
   an_ifc_access_sort      stage_1;
 
-  /* Copy the field (DeclVariable::access - AccessSort) into version specific
+  /* Copy the field (DeclVariable::access - AccessSort) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
@@ -12538,7 +12538,7 @@ representation of the field "alignment".
   an_ifc_expr_index_0_33 stage_0;
   an_ifc_expr_index      stage_1;
 
-  /* Copy the field (DeclVariable::alignment - ExprIndex) into version specific
+  /* Copy the field (DeclVariable::alignment - ExprIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -12583,8 +12583,8 @@ representation of the field "home_scope".
     a_boolean              stage_2;
     an_ifc_decl_index      stage_3;
 
-    /* Copy the field (DeclVariable::home_scope - DeclIndex) into version
-       specific storage. */
+    /* Copy the field (DeclVariable::home_scope - DeclIndex) into
+       version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
@@ -12601,8 +12601,8 @@ representation of the field "home_scope".
       an_ifc_decl_index_0_41     stage_3_3;
       an_ifc_decl_index          stage_3_4;
 
-      /* Copy the field (DeclVariable::home_scope - DeclIndex) into version
-         specific storage. */
+      /* Copy the field (DeclVariable::home_scope - DeclIndex) into
+         version-specific storage. */
       static_assert(sizeof(stage_3_0) == 4,
                     "stage_3_0 is not properly sized storage!");
       copy_ifc_field(&stage_3_0, universal.get_storage(), /*offset=*/16);
@@ -12612,8 +12612,8 @@ representation of the field "home_scope".
          validation).  Then, retrieve and return the desired value held by the
          field decl. */
       construct_node_unchecked(&stage_3_2, stage_3_1);
-      /* Copy the field (DeclSpecialization::decl - DeclIndex) into version
-         specific storage. */
+      /* Copy the field (DeclSpecialization::decl - DeclIndex) into
+         version-specific storage. */
       static_assert(sizeof(stage_3_3) == 4,
                     "stage_3_3 is not properly sized storage!");
       copy_ifc_field(&stage_3_3, stage_3_2.get_storage(), /*offset=*/4);
@@ -12623,8 +12623,8 @@ representation of the field "home_scope".
       an_ifc_decl_index_0_41 stage_3_0;
       an_ifc_decl_index      stage_3_1;
 
-      /* Copy the field (DeclVariable::home_scope - DeclIndex) into version
-         specific storage. */
+      /* Copy the field (DeclVariable::home_scope - DeclIndex) into
+         version-specific storage. */
       static_assert(sizeof(stage_3_0) == 4,
                     "stage_3_0 is not properly sized storage!");
       copy_ifc_field(&stage_3_0, universal.get_storage(), /*offset=*/16);
@@ -12636,8 +12636,8 @@ representation of the field "home_scope".
     an_ifc_decl_index_0_33 stage_0;
     an_ifc_decl_index      stage_1;
 
-    /* Copy the field (DeclVariable::home_scope - DeclIndex) into version
-       specific storage. */
+    /* Copy the field (DeclVariable::home_scope - DeclIndex) into
+       version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
@@ -12679,8 +12679,8 @@ representation of the field "initializer".
   an_ifc_expr_index_0_33 stage_0;
   an_ifc_expr_index      stage_1;
 
-  /* Copy the field (DeclVariable::initializer - ExprIndex) into version
-     specific storage. */
+  /* Copy the field (DeclVariable::initializer - ExprIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
@@ -12767,7 +12767,7 @@ representation of the field "name".
   an_ifc_name_index_0_33 stage_0;
   an_ifc_name_index      stage_1;
 
-  /* Copy the field (DeclVariable::name - NameIndex) into version specific
+  /* Copy the field (DeclVariable::name - NameIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -12811,7 +12811,7 @@ representation of the field "properties".
   an_ifc_reachable_properties_bitfield      stage_1;
 
   /* Copy the field (DeclVariable::properties - ReachablePropertiesBitfield)
-     into version specific storage. */
+     into version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/31);
@@ -12855,7 +12855,7 @@ representation of the field "specifiers".
   an_ifc_basic_specifiers_bitfield      stage_1;
 
   /* Copy the field (DeclVariable::specifiers - BasicSpecifiersBitfield) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/29);
@@ -12898,8 +12898,8 @@ representation of the field "traits".
   an_ifc_object_traits_bitfield_0_33 stage_0;
   an_ifc_object_traits_bitfield      stage_1;
 
-  /* Copy the field (DeclVariable::traits - ObjectTraitsBitfield) into version
-     specific storage. */
+  /* Copy the field (DeclVariable::traits - ObjectTraitsBitfield) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/28);
@@ -12941,7 +12941,7 @@ representation of the field "type".
   an_ifc_type_index_0_33 stage_0;
   an_ifc_type_index      stage_1;
 
-  /* Copy the field (DeclVariable::type - TypeIndex) into version specific
+  /* Copy the field (DeclVariable::type - TypeIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -13034,7 +13034,7 @@ representation of the field "operand".
   an_ifc_syntax_index_0_33 stage_0;
   an_ifc_syntax_index      stage_1;
 
-  /* Copy the field (ExprAlignof::operand - SyntaxIndex) into version specific
+  /* Copy the field (ExprAlignof::operand - SyntaxIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -13076,7 +13076,7 @@ representation of the field "type".
   an_ifc_type_index_0_33 stage_0;
   an_ifc_type_index      stage_1;
 
-  /* Copy the field (ExprAlignof::type - TypeIndex) into version specific
+  /* Copy the field (ExprAlignof::type - TypeIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -13124,8 +13124,8 @@ representation of the field "element_type".
   an_ifc_type_index_0_33 stage_0;
   an_ifc_type_index      stage_1;
 
-  /* Copy the field (ExprArrayValue::element_type - TypeIndex) into version
-     specific storage. */
+  /* Copy the field (ExprArrayValue::element_type - TypeIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
@@ -13166,8 +13166,8 @@ representation of the field "elements".
   an_ifc_expr_index_0_33 stage_0;
   an_ifc_expr_index      stage_1;
 
-  /* Copy the field (ExprArrayValue::elements - ExprIndex) into version
-     specific storage. */
+  /* Copy the field (ExprArrayValue::elements - ExprIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
@@ -13254,7 +13254,7 @@ representation of the field "type".
   an_ifc_type_index_0_33 stage_0;
   an_ifc_type_index      stage_1;
 
-  /* Copy the field (ExprArrayValue::type - TypeIndex) into version specific
+  /* Copy the field (ExprArrayValue::type - TypeIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -13350,7 +13350,7 @@ universal representation of the field "initializer".
   an_ifc_expr_index      stage_1;
 
   /* Copy the field (ExprAssignInitializer::initializer - ExprIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
@@ -13398,7 +13398,7 @@ representation of the field "associativity".
   an_ifc_associativity      stage_1;
 
   /* Copy the field (ExprBinaryFold::associativity - Associativity) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/22);
@@ -13439,7 +13439,7 @@ representation of the field "left".
   an_ifc_expr_index_0_33 stage_0;
   an_ifc_expr_index      stage_1;
 
-  /* Copy the field (ExprBinaryFold::left - ExprIndex) into version specific
+  /* Copy the field (ExprBinaryFold::left - ExprIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -13529,7 +13529,7 @@ representation of the field "operation".
   an_ifc_dyadic_operator_sort      stage_1;
 
   /* Copy the field (ExprBinaryFold::operation - DyadicOperatorSort) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 2,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
@@ -13570,7 +13570,7 @@ representation of the field "right".
   an_ifc_expr_index_0_33 stage_0;
   an_ifc_expr_index      stage_1;
 
-  /* Copy the field (ExprBinaryFold::right - ExprIndex) into version specific
+  /* Copy the field (ExprBinaryFold::right - ExprIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -13612,7 +13612,7 @@ representation of the field "type".
   an_ifc_type_index_0_33 stage_0;
   an_ifc_type_index      stage_1;
 
-  /* Copy the field (ExprBinaryFold::type - TypeIndex) into version specific
+  /* Copy the field (ExprBinaryFold::type - TypeIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -13659,7 +13659,7 @@ representation of the field "arguments".
   an_ifc_expr_index_0_33 stage_0;
   an_ifc_expr_index      stage_1;
 
-  /* Copy the field (ExprCall::arguments - ExprIndex) into version specific
+  /* Copy the field (ExprCall::arguments - ExprIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -13747,7 +13747,7 @@ representation of the field "operation".
   an_ifc_expr_index_0_33 stage_0;
   an_ifc_expr_index      stage_1;
 
-  /* Copy the field (ExprCall::operation - ExprIndex) into version specific
+  /* Copy the field (ExprCall::operation - ExprIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -13789,7 +13789,7 @@ representation of the field "type".
   an_ifc_type_index_0_33 stage_0;
   an_ifc_type_index      stage_1;
 
-  /* Copy the field (ExprCall::type - TypeIndex) into version specific
+  /* Copy the field (ExprCall::type - TypeIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -13882,7 +13882,7 @@ representation of the field "op".
   an_ifc_dyadic_operator_sort_0_33 stage_0;
   an_ifc_dyadic_operator_sort      stage_1;
 
-  /* Copy the field (ExprCast::op - DyadicOperatorSort) into version specific
+  /* Copy the field (ExprCast::op - DyadicOperatorSort) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 2,
                 "stage_0 is not properly sized storage!");
@@ -13924,7 +13924,7 @@ representation of the field "source".
   an_ifc_expr_index_0_33 stage_0;
   an_ifc_expr_index      stage_1;
 
-  /* Copy the field (ExprCast::source - ExprIndex) into version specific
+  /* Copy the field (ExprCast::source - ExprIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -13966,7 +13966,7 @@ representation of the field "target".
   an_ifc_type_index_0_33 stage_0;
   an_ifc_type_index      stage_1;
 
-  /* Copy the field (ExprCast::target - TypeIndex) into version specific
+  /* Copy the field (ExprCast::target - TypeIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -14008,7 +14008,7 @@ representation of the field "type".
   an_ifc_type_index_0_33 stage_0;
   an_ifc_type_index      stage_1;
 
-  /* Copy the field (ExprCast::type - TypeIndex) into version specific
+  /* Copy the field (ExprCast::type - TypeIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -14102,8 +14102,8 @@ representation of the field "prefix".
   an_ifc_text_offset_0_33 stage_0;
   an_ifc_text_offset      stage_1;
 
-  /* Copy the field (ExprCompoundString::prefix - TextOffset) into version
-     specific storage. */
+  /* Copy the field (ExprCompoundString::prefix - TextOffset) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
@@ -14144,8 +14144,8 @@ representation of the field "string".
   an_ifc_expr_index_0_33 stage_0;
   an_ifc_expr_index      stage_1;
 
-  /* Copy the field (ExprCompoundString::string - ExprIndex) into version
-     specific storage. */
+  /* Copy the field (ExprCompoundString::string - ExprIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
@@ -14186,8 +14186,8 @@ representation of the field "type".
   an_ifc_type_index_0_33 stage_0;
   an_ifc_type_index      stage_1;
 
-  /* Copy the field (ExprCompoundString::type - TypeIndex) into version
-     specific storage. */
+  /* Copy the field (ExprCompoundString::type - TypeIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
@@ -14233,7 +14233,7 @@ representation of the field "expr".
   an_ifc_expr_index_0_33 stage_0;
   an_ifc_expr_index      stage_1;
 
-  /* Copy the field (ExprCondition::expr - ExprIndex) into version specific
+  /* Copy the field (ExprCondition::expr - ExprIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -14321,7 +14321,7 @@ representation of the field "type".
   an_ifc_type_index_0_33 stage_0;
   an_ifc_type_index      stage_1;
 
-  /* Copy the field (ExprCondition::type - TypeIndex) into version specific
+  /* Copy the field (ExprCondition::type - TypeIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -14371,7 +14371,7 @@ universal representation of the field "initializer".
   an_ifc_expr_index      stage_1;
 
   /* Copy the field (ExprDesignatedInitializer::initializer - ExprIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
@@ -14461,7 +14461,7 @@ universal representation of the field "member".
   an_ifc_text_offset      stage_1;
 
   /* Copy the field (ExprDesignatedInitializer::member - TextOffset) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
@@ -14503,8 +14503,8 @@ universal representation of the field "type".
   an_ifc_type_index_0_33 stage_0;
   an_ifc_type_index      stage_1;
 
-  /* Copy the field (ExprDesignatedInitializer::type - TypeIndex) into version
-     specific storage. */
+  /* Copy the field (ExprDesignatedInitializer::type - TypeIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
@@ -14551,8 +14551,8 @@ representation of the field "cleanup".
   an_ifc_destructor_sort_0_33 stage_0;
   an_ifc_destructor_sort      stage_1;
 
-  /* Copy the field (ExprDestructorCall::cleanup - DestructorSort) into version
-     specific storage. */
+  /* Copy the field (ExprDestructorCall::cleanup - DestructorSort) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
@@ -14597,7 +14597,7 @@ representation of the field "decltype_specifier".
   an_ifc_syntax_index      stage_1;
 
   /* Copy the field (ExprDestructorCall::decltype_specifier - SyntaxIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
@@ -14685,8 +14685,8 @@ representation of the field "name".
   an_ifc_expr_index_0_33 stage_0;
   an_ifc_expr_index      stage_1;
 
-  /* Copy the field (ExprDestructorCall::name - ExprIndex) into version
-     specific storage. */
+  /* Copy the field (ExprDestructorCall::name - ExprIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
@@ -14727,8 +14727,8 @@ representation of the field "type".
   an_ifc_type_index_0_33 stage_0;
   an_ifc_type_index      stage_1;
 
-  /* Copy the field (ExprDestructorCall::type - TypeIndex) into version
-     specific storage. */
+  /* Copy the field (ExprDestructorCall::type - TypeIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
@@ -14774,7 +14774,7 @@ representation of the field "argument_0".
   an_ifc_expr_index_0_33 stage_0;
   an_ifc_expr_index      stage_1;
 
-  /* Copy the field (ExprDyad::argument_0 - ExprIndex) into version specific
+  /* Copy the field (ExprDyad::argument_0 - ExprIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -14816,7 +14816,7 @@ representation of the field "argument_1".
   an_ifc_expr_index_0_33 stage_0;
   an_ifc_expr_index      stage_1;
 
-  /* Copy the field (ExprDyad::argument_1 - ExprIndex) into version specific
+  /* Copy the field (ExprDyad::argument_1 - ExprIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -14858,8 +14858,8 @@ representation of the field "assoc".
   an_ifc_dyadic_operator_sort_0_33 stage_0;
   an_ifc_dyadic_operator_sort      stage_1;
 
-  /* Copy the field (ExprDyad::assoc - DyadicOperatorSort) into version
-     specific storage. */
+  /* Copy the field (ExprDyad::assoc - DyadicOperatorSort) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 2,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24);
@@ -14901,7 +14901,7 @@ representation of the field "impl".
     an_ifc_decl_index_0_41 stage_0;
     an_ifc_decl_index      stage_1;
 
-    /* Copy the field (ExprDyad::impl - DeclIndex) into version specific
+    /* Copy the field (ExprDyad::impl - DeclIndex) into version-specific
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
@@ -14912,7 +14912,7 @@ representation of the field "impl".
     an_ifc_decl_index_0_33 stage_0;
     an_ifc_decl_index      stage_1;
 
-    /* Copy the field (ExprDyad::impl - DeclIndex) into version specific
+    /* Copy the field (ExprDyad::impl - DeclIndex) into version-specific
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
@@ -15001,7 +15001,7 @@ representation of the field "type".
   an_ifc_type_index_0_33 stage_0;
   an_ifc_type_index      stage_1;
 
-  /* Copy the field (ExprDyad::type - TypeIndex) into version specific
+  /* Copy the field (ExprDyad::type - TypeIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -15095,8 +15095,8 @@ representation of the field "pivot".
   an_ifc_expr_index_0_33 stage_0;
   an_ifc_expr_index      stage_1;
 
-  /* Copy the field (ExprDynamicDispatch::pivot - ExprIndex) into version
-     specific storage. */
+  /* Copy the field (ExprDynamicDispatch::pivot - ExprIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
@@ -15137,8 +15137,8 @@ representation of the field "type".
   an_ifc_type_index_0_33 stage_0;
   an_ifc_type_index      stage_1;
 
-  /* Copy the field (ExprDynamicDispatch::type - TypeIndex) into version
-     specific storage. */
+  /* Copy the field (ExprDynamicDispatch::type - TypeIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
@@ -15230,7 +15230,7 @@ representation of the field "type".
   an_ifc_type_index_0_33 stage_0;
   an_ifc_type_index      stage_1;
 
-  /* Copy the field (ExprEmpty::type - TypeIndex) into version specific
+  /* Copy the field (ExprEmpty::type - TypeIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -15323,7 +15323,7 @@ representation of the field "operand".
   an_ifc_expr_index_0_33 stage_0;
   an_ifc_expr_index      stage_1;
 
-  /* Copy the field (ExprExpansion::operand - ExprIndex) into version specific
+  /* Copy the field (ExprExpansion::operand - ExprIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -15365,7 +15365,7 @@ representation of the field "type".
   an_ifc_type_index_0_33 stage_0;
   an_ifc_type_index      stage_1;
 
-  /* Copy the field (ExprExpansion::type - TypeIndex) into version specific
+  /* Copy the field (ExprExpansion::type - TypeIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -15413,8 +15413,8 @@ representation of the field "contents".
   an_ifc_expr_index_0_33 stage_0;
   an_ifc_expr_index      stage_1;
 
-  /* Copy the field (ExprExpressionList::contents - ExprIndex) into version
-     specific storage. */
+  /* Copy the field (ExprExpressionList::contents - ExprIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
@@ -15457,7 +15457,7 @@ representation of the field "delimiter".
   an_ifc_delimiter_sort      stage_1;
 
   /* Copy the field (ExprExpressionList::delimiter - DelimiterSort) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
@@ -15644,8 +15644,8 @@ representation of the field "macro".
   an_ifc_text_offset_0_33 stage_0;
   an_ifc_text_offset      stage_1;
 
-  /* Copy the field (ExprFunctionString::macro - TextOffset) into version
-     specific storage. */
+  /* Copy the field (ExprFunctionString::macro - TextOffset) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
@@ -15686,8 +15686,8 @@ representation of the field "type".
   an_ifc_type_index_0_33 stage_0;
   an_ifc_type_index      stage_1;
 
-  /* Copy the field (ExprFunctionString::type - TypeIndex) into version
-     specific storage. */
+  /* Copy the field (ExprFunctionString::type - TypeIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
@@ -15736,7 +15736,7 @@ universal representation of the field "inheritance".
   an_ifc_expr_index      stage_1;
 
   /* Copy the field (ExprHierarchyConversion::inheritance - ExprIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
@@ -15826,7 +15826,7 @@ universal representation of the field "op".
   an_ifc_dyadic_operator_sort      stage_1;
 
   /* Copy the field (ExprHierarchyConversion::op - DyadicOperatorSort) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 2,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/28);
@@ -15869,7 +15869,7 @@ universal representation of the field "override".
   an_ifc_expr_index      stage_1;
 
   /* Copy the field (ExprHierarchyConversion::override - ExprIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24);
@@ -15911,8 +15911,8 @@ universal representation of the field "source".
   an_ifc_expr_index_0_33 stage_0;
   an_ifc_expr_index      stage_1;
 
-  /* Copy the field (ExprHierarchyConversion::source - ExprIndex) into version
-     specific storage. */
+  /* Copy the field (ExprHierarchyConversion::source - ExprIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
@@ -15954,8 +15954,8 @@ universal representation of the field "target".
   an_ifc_type_index_0_33 stage_0;
   an_ifc_type_index      stage_1;
 
-  /* Copy the field (ExprHierarchyConversion::target - TypeIndex) into version
-     specific storage. */
+  /* Copy the field (ExprHierarchyConversion::target - TypeIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
@@ -15997,8 +15997,8 @@ universal representation of the field "type".
   an_ifc_type_index_0_33 stage_0;
   an_ifc_type_index      stage_1;
 
-  /* Copy the field (ExprHierarchyConversion::type - TypeIndex) into version
-     specific storage. */
+  /* Copy the field (ExprHierarchyConversion::type - TypeIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
@@ -16091,8 +16091,8 @@ representation of the field "path".
   an_ifc_expr_index_0_33 stage_0;
   an_ifc_expr_index      stage_1;
 
-  /* Copy the field (ExprInheritancePath::path - ExprIndex) into version
-     specific storage. */
+  /* Copy the field (ExprInheritancePath::path - ExprIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
@@ -16133,8 +16133,8 @@ representation of the field "type".
   an_ifc_type_index_0_33 stage_0;
   an_ifc_type_index      stage_1;
 
-  /* Copy the field (ExprInheritancePath::type - TypeIndex) into version
-     specific storage. */
+  /* Copy the field (ExprInheritancePath::type - TypeIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
@@ -16180,7 +16180,7 @@ representation of the field "expr".
   an_ifc_expr_index_0_33 stage_0;
   an_ifc_expr_index      stage_1;
 
-  /* Copy the field (ExprInitializer::expr - ExprIndex) into version specific
+  /* Copy the field (ExprInitializer::expr - ExprIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -16268,8 +16268,8 @@ representation of the field "sort".
   an_ifc_initializer_sort_0_33 stage_0;
   an_ifc_initializer_sort      stage_1;
 
-  /* Copy the field (ExprInitializer::sort - InitializerSort) into version
-     specific storage. */
+  /* Copy the field (ExprInitializer::sort - InitializerSort) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
@@ -16310,7 +16310,7 @@ representation of the field "type".
   an_ifc_type_index_0_33 stage_0;
   an_ifc_type_index      stage_1;
 
-  /* Copy the field (ExprInitializer::type - TypeIndex) into version specific
+  /* Copy the field (ExprInitializer::type - TypeIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -16358,8 +16358,8 @@ representation of the field "elements".
   an_ifc_expr_index_0_33 stage_0;
   an_ifc_expr_index      stage_1;
 
-  /* Copy the field (ExprInitializerList::elements - ExprIndex) into version
-     specific storage. */
+  /* Copy the field (ExprInitializerList::elements - ExprIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
@@ -16447,8 +16447,8 @@ representation of the field "type".
   an_ifc_type_index_0_33 stage_0;
   an_ifc_type_index      stage_1;
 
-  /* Copy the field (ExprInitializerList::type - TypeIndex) into version
-     specific storage. */
+  /* Copy the field (ExprInitializerList::type - TypeIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
@@ -16494,7 +16494,7 @@ representation of the field "body".
   an_ifc_syntax_index_0_33 stage_0;
   an_ifc_syntax_index      stage_1;
 
-  /* Copy the field (ExprLambda::body - SyntaxIndex) into version specific
+  /* Copy the field (ExprLambda::body - SyntaxIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -16536,8 +16536,8 @@ representation of the field "constraint".
   an_ifc_syntax_index_0_33 stage_0;
   an_ifc_syntax_index      stage_1;
 
-  /* Copy the field (ExprLambda::constraint - SyntaxIndex) into version
-     specific storage. */
+  /* Copy the field (ExprLambda::constraint - SyntaxIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
@@ -16578,8 +16578,8 @@ representation of the field "declarator".
   an_ifc_syntax_index_0_33 stage_0;
   an_ifc_syntax_index      stage_1;
 
-  /* Copy the field (ExprLambda::declarator - SyntaxIndex) into version
-     specific storage. */
+  /* Copy the field (ExprLambda::declarator - SyntaxIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
@@ -16620,8 +16620,8 @@ representation of the field "introducer".
   an_ifc_syntax_index_0_33 stage_0;
   an_ifc_syntax_index      stage_1;
 
-  /* Copy the field (ExprLambda::introducer - SyntaxIndex) into version
-     specific storage. */
+  /* Copy the field (ExprLambda::introducer - SyntaxIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -16665,7 +16665,7 @@ representation of the field "template_parameters".
   an_ifc_syntax_index      stage_1;
 
   /* Copy the field (ExprLambda::template_parameters - SyntaxIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
@@ -16757,7 +16757,7 @@ representation of the field "type".
   an_ifc_type_index_0_33 stage_0;
   an_ifc_type_index      stage_1;
 
-  /* Copy the field (ExprLiteral::type - TypeIndex) into version specific
+  /* Copy the field (ExprLiteral::type - TypeIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -16799,7 +16799,7 @@ representation of the field "value".
   an_ifc_lit_index_0_33 stage_0;
   an_ifc_lit_index      stage_1;
 
-  /* Copy the field (ExprLiteral::value - LitIndex) into version specific
+  /* Copy the field (ExprLiteral::value - LitIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -16846,8 +16846,8 @@ representation of the field "enclosing".
   an_ifc_type_index_0_33 stage_0;
   an_ifc_type_index      stage_1;
 
-  /* Copy the field (ExprMemberAccess::enclosing - TypeIndex) into version
-     specific storage. */
+  /* Copy the field (ExprMemberAccess::enclosing - TypeIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
@@ -16935,7 +16935,7 @@ representation of the field "name".
   an_ifc_text_offset_0_33 stage_0;
   an_ifc_text_offset      stage_1;
 
-  /* Copy the field (ExprMemberAccess::name - TextOffset) into version specific
+  /* Copy the field (ExprMemberAccess::name - TextOffset) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -16977,8 +16977,8 @@ representation of the field "offset".
   an_ifc_expr_index_0_33 stage_0;
   an_ifc_expr_index      stage_1;
 
-  /* Copy the field (ExprMemberAccess::offset - ExprIndex) into version
-     specific storage. */
+  /* Copy the field (ExprMemberAccess::offset - ExprIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
@@ -17019,7 +17019,7 @@ representation of the field "type".
   an_ifc_type_index_0_33 stage_0;
   an_ifc_type_index      stage_1;
 
-  /* Copy the field (ExprMemberAccess::type - TypeIndex) into version specific
+  /* Copy the field (ExprMemberAccess::type - TypeIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -17066,8 +17066,8 @@ universal representation of the field "base".
   an_ifc_type_index_0_33 stage_0;
   an_ifc_type_index      stage_1;
 
-  /* Copy the field (ExprMemberInitializer::base - TypeIndex) into version
-     specific storage. */
+  /* Copy the field (ExprMemberInitializer::base - TypeIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
@@ -17110,7 +17110,7 @@ universal representation of the field "initializer".
   an_ifc_expr_index      stage_1;
 
   /* Copy the field (ExprMemberInitializer::initializer - ExprIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
@@ -17200,8 +17200,8 @@ universal representation of the field "member".
     an_ifc_decl_index_0_41 stage_0;
     an_ifc_decl_index      stage_1;
 
-    /* Copy the field (ExprMemberInitializer::member - DeclIndex) into version
-       specific storage. */
+    /* Copy the field (ExprMemberInitializer::member - DeclIndex) into
+       version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
@@ -17211,8 +17211,8 @@ universal representation of the field "member".
     an_ifc_decl_index_0_33 stage_0;
     an_ifc_decl_index      stage_1;
 
-    /* Copy the field (ExprMemberInitializer::member - DeclIndex) into version
-       specific storage. */
+    /* Copy the field (ExprMemberInitializer::member - DeclIndex) into
+       version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
@@ -17254,8 +17254,8 @@ universal representation of the field "type".
   an_ifc_type_index_0_33 stage_0;
   an_ifc_type_index      stage_1;
 
-  /* Copy the field (ExprMemberInitializer::type - TypeIndex) into version
-     specific storage. */
+  /* Copy the field (ExprMemberInitializer::type - TypeIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
@@ -17301,7 +17301,7 @@ representation of the field "argument".
   an_ifc_expr_index_0_33 stage_0;
   an_ifc_expr_index      stage_1;
 
-  /* Copy the field (ExprMonad::argument - ExprIndex) into version specific
+  /* Copy the field (ExprMonad::argument - ExprIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -17343,8 +17343,8 @@ representation of the field "assoc".
   an_ifc_monadic_operator_sort_0_33 stage_0;
   an_ifc_monadic_operator_sort      stage_1;
 
-  /* Copy the field (ExprMonad::assoc - MonadicOperatorSort) into version
-     specific storage. */
+  /* Copy the field (ExprMonad::assoc - MonadicOperatorSort) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 2,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
@@ -17386,7 +17386,7 @@ representation of the field "impl".
     an_ifc_decl_index_0_41 stage_0;
     an_ifc_decl_index      stage_1;
 
-    /* Copy the field (ExprMonad::impl - DeclIndex) into version specific
+    /* Copy the field (ExprMonad::impl - DeclIndex) into version-specific
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
@@ -17397,7 +17397,7 @@ representation of the field "impl".
     an_ifc_decl_index_0_33 stage_0;
     an_ifc_decl_index      stage_1;
 
-    /* Copy the field (ExprMonad::impl - DeclIndex) into version specific
+    /* Copy the field (ExprMonad::impl - DeclIndex) into version-specific
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
@@ -17486,7 +17486,7 @@ representation of the field "type".
   an_ifc_type_index_0_33 stage_0;
   an_ifc_type_index      stage_1;
 
-  /* Copy the field (ExprMonad::type - TypeIndex) into version specific
+  /* Copy the field (ExprMonad::type - TypeIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -17580,8 +17580,8 @@ representation of the field "resolution".
     an_ifc_decl_index_0_41 stage_0;
     an_ifc_decl_index      stage_1;
 
-    /* Copy the field (ExprNamedDecl::resolution - DeclIndex) into version
-       specific storage. */
+    /* Copy the field (ExprNamedDecl::resolution - DeclIndex) into
+       version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
@@ -17591,8 +17591,8 @@ representation of the field "resolution".
     an_ifc_decl_index_0_33 stage_0;
     an_ifc_decl_index      stage_1;
 
-    /* Copy the field (ExprNamedDecl::resolution - DeclIndex) into version
-       specific storage. */
+    /* Copy the field (ExprNamedDecl::resolution - DeclIndex) into
+       version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
@@ -17634,7 +17634,7 @@ representation of the field "type".
   an_ifc_type_index_0_33 stage_0;
   an_ifc_type_index      stage_1;
 
-  /* Copy the field (ExprNamedDecl::type - TypeIndex) into version specific
+  /* Copy the field (ExprNamedDecl::type - TypeIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -17727,7 +17727,7 @@ representation of the field "type".
   an_ifc_type_index_0_33 stage_0;
   an_ifc_type_index      stage_1;
 
-  /* Copy the field (ExprNullptr::type - TypeIndex) into version specific
+  /* Copy the field (ExprNullptr::type - TypeIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -17777,7 +17777,7 @@ universal representation of the field "arguments".
   an_ifc_expr_index      stage_1;
 
   /* Copy the field (ExprPackedTemplateArguments::arguments - ExprIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
@@ -17867,7 +17867,7 @@ universal representation of the field "type".
   an_ifc_type_index      stage_1;
 
   /* Copy the field (ExprPackedTemplateArguments::type - TypeIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
@@ -17959,7 +17959,7 @@ representation of the field "member".
   an_ifc_expr_index_0_33 stage_0;
   an_ifc_expr_index      stage_1;
 
-  /* Copy the field (ExprPath::member - ExprIndex) into version specific
+  /* Copy the field (ExprPath::member - ExprIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -18001,7 +18001,7 @@ representation of the field "scope".
   an_ifc_expr_index_0_33 stage_0;
   an_ifc_expr_index      stage_1;
 
-  /* Copy the field (ExprPath::scope - ExprIndex) into version specific
+  /* Copy the field (ExprPath::scope - ExprIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -18043,7 +18043,7 @@ representation of the field "type".
   an_ifc_type_index_0_33 stage_0;
   an_ifc_type_index      stage_1;
 
-  /* Copy the field (ExprPath::type - TypeIndex) into version specific
+  /* Copy the field (ExprPath::type - TypeIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -18136,7 +18136,7 @@ representation of the field "type".
   an_ifc_type_index_0_33 stage_0;
   an_ifc_type_index      stage_1;
 
-  /* Copy the field (ExprPlaceholder::type - TypeIndex) into version specific
+  /* Copy the field (ExprPlaceholder::type - TypeIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -18237,7 +18237,7 @@ universal representation of the field "base_subobjects".
   an_ifc_expr_index      stage_1;
 
   /* Copy the field (ExprProductTypeValue::base_subobjects - ExprIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
@@ -18279,8 +18279,8 @@ universal representation of the field "class_decl".
   an_ifc_type_index_0_33 stage_0;
   an_ifc_type_index      stage_1;
 
-  /* Copy the field (ExprProductTypeValue::class_decl - TypeIndex) into version
-     specific storage. */
+  /* Copy the field (ExprProductTypeValue::class_decl - TypeIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
@@ -18369,8 +18369,8 @@ universal representation of the field "members".
   an_ifc_expr_index_0_33 stage_0;
   an_ifc_expr_index      stage_1;
 
-  /* Copy the field (ExprProductTypeValue::members - ExprIndex) into version
-     specific storage. */
+  /* Copy the field (ExprProductTypeValue::members - ExprIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
@@ -18411,8 +18411,8 @@ universal representation of the field "type".
   an_ifc_type_index_0_33 stage_0;
   an_ifc_type_index      stage_1;
 
-  /* Copy the field (ExprProductTypeValue::type - TypeIndex) into version
-     specific storage. */
+  /* Copy the field (ExprProductTypeValue::type - TypeIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
@@ -18458,8 +18458,8 @@ representation of the field "ctor_call".
   an_ifc_expr_index_0_33 stage_0;
   an_ifc_expr_index      stage_1;
 
-  /* Copy the field (ExprPushState::ctor_call - ExprIndex) into version
-     specific storage. */
+  /* Copy the field (ExprPushState::ctor_call - ExprIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
@@ -18500,8 +18500,8 @@ representation of the field "dtor_call".
   an_ifc_expr_index_0_33 stage_0;
   an_ifc_expr_index      stage_1;
 
-  /* Copy the field (ExprPushState::dtor_call - ExprIndex) into version
-     specific storage. */
+  /* Copy the field (ExprPushState::dtor_call - ExprIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
@@ -18542,7 +18542,7 @@ representation of the field "flags".
   an_ifc_eh_flags_0_33 stage_0;
   an_ifc_eh_flags      stage_1;
 
-  /* Copy the field (ExprPushState::flags - EHFlags) into version specific
+  /* Copy the field (ExprPushState::flags - EHFlags) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 2,
                 "stage_0 is not properly sized storage!");
@@ -18630,7 +18630,7 @@ representation of the field "type".
   an_ifc_type_index_0_33 stage_0;
   an_ifc_type_index      stage_1;
 
-  /* Copy the field (ExprPushState::type - TypeIndex) into version specific
+  /* Copy the field (ExprPushState::type - TypeIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -18677,8 +18677,8 @@ representation of the field "elements".
   an_ifc_expr_index_0_33 stage_0;
   an_ifc_expr_index      stage_1;
 
-  /* Copy the field (ExprQualifiedName::elements - ExprIndex) into version
-     specific storage. */
+  /* Copy the field (ExprQualifiedName::elements - ExprIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
@@ -18766,7 +18766,7 @@ representation of the field "type".
   an_ifc_type_index_0_33 stage_0;
   an_ifc_type_index      stage_1;
 
-  /* Copy the field (ExprQualifiedName::type - TypeIndex) into version specific
+  /* Copy the field (ExprQualifiedName::type - TypeIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -18861,7 +18861,7 @@ representation of the field "address".
   an_ifc_expr_index_0_33 stage_0;
   an_ifc_expr_index      stage_1;
 
-  /* Copy the field (ExprRead::address - ExprIndex) into version specific
+  /* Copy the field (ExprRead::address - ExprIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -18949,7 +18949,7 @@ representation of the field "sort".
   an_ifc_read_conversion_sort_0_33 stage_0;
   an_ifc_read_conversion_sort      stage_1;
 
-  /* Copy the field (ExprRead::sort - ReadConversionSort) into version specific
+  /* Copy the field (ExprRead::sort - ReadConversionSort) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
@@ -18991,7 +18991,7 @@ representation of the field "type".
   an_ifc_type_index_0_33 stage_0;
   an_ifc_type_index      stage_1;
 
-  /* Copy the field (ExprRead::type - TypeIndex) into version specific
+  /* Copy the field (ExprRead::type - TypeIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -19038,7 +19038,7 @@ representation of the field "body".
   an_ifc_syntax_index_0_33 stage_0;
   an_ifc_syntax_index      stage_1;
 
-  /* Copy the field (ExprRequires::body - SyntaxIndex) into version specific
+  /* Copy the field (ExprRequires::body - SyntaxIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -19126,8 +19126,8 @@ representation of the field "parameters".
   an_ifc_syntax_index_0_33 stage_0;
   an_ifc_syntax_index      stage_1;
 
-  /* Copy the field (ExprRequires::parameters - SyntaxIndex) into version
-     specific storage. */
+  /* Copy the field (ExprRequires::parameters - SyntaxIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
@@ -19168,7 +19168,7 @@ representation of the field "type".
   an_ifc_type_index_0_33 stage_0;
   an_ifc_type_index      stage_1;
 
-  /* Copy the field (ExprRequires::type - TypeIndex) into version specific
+  /* Copy the field (ExprRequires::type - TypeIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -19262,8 +19262,8 @@ universal representation of the field "name".
   an_ifc_name_index_0_33 stage_0;
   an_ifc_name_index      stage_1;
 
-  /* Copy the field (ExprSimpleIdentifier::name - NameIndex) into version
-     specific storage. */
+  /* Copy the field (ExprSimpleIdentifier::name - NameIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
@@ -19304,8 +19304,8 @@ universal representation of the field "type".
   an_ifc_type_index_0_33 stage_0;
   an_ifc_type_index      stage_1;
 
-  /* Copy the field (ExprSimpleIdentifier::type - TypeIndex) into version
-     specific storage. */
+  /* Copy the field (ExprSimpleIdentifier::type - TypeIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
@@ -19397,7 +19397,7 @@ representation of the field "operand".
   an_ifc_type_index_0_33 stage_0;
   an_ifc_type_index      stage_1;
 
-  /* Copy the field (ExprSizeofType::operand - TypeIndex) into version specific
+  /* Copy the field (ExprSizeofType::operand - TypeIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -19439,7 +19439,7 @@ representation of the field "type".
   an_ifc_type_index_0_33 stage_0;
   an_ifc_type_index      stage_1;
 
-  /* Copy the field (ExprSizeofType::type - TypeIndex) into version specific
+  /* Copy the field (ExprSizeofType::type - TypeIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -19532,8 +19532,8 @@ representation of the field "string_index".
   an_ifc_string_index_0_33 stage_0;
   an_ifc_string_index      stage_1;
 
-  /* Copy the field (ExprString::string_index - StringIndex) into version
-     specific storage. */
+  /* Copy the field (ExprString::string_index - StringIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
@@ -19574,7 +19574,7 @@ representation of the field "type".
   an_ifc_type_index_0_33 stage_0;
   an_ifc_type_index      stage_1;
 
-  /* Copy the field (ExprString::type - TypeIndex) into version specific
+  /* Copy the field (ExprString::type - TypeIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -19668,8 +19668,8 @@ representation of the field "strings".
   an_ifc_expr_index_0_33 stage_0;
   an_ifc_expr_index      stage_1;
 
-  /* Copy the field (ExprStringSequence::strings - ExprIndex) into version
-     specific storage. */
+  /* Copy the field (ExprStringSequence::strings - ExprIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
@@ -19710,8 +19710,8 @@ representation of the field "type".
   an_ifc_type_index_0_33 stage_0;
   an_ifc_type_index      stage_1;
 
-  /* Copy the field (ExprStringSequence::type - TypeIndex) into version
-     specific storage. */
+  /* Copy the field (ExprStringSequence::type - TypeIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
@@ -19757,8 +19757,8 @@ representation of the field "value".
   an_ifc_expr_index_0_33 stage_0;
   an_ifc_expr_index      stage_1;
 
-  /* Copy the field (ExprSubobjectValue::value - ExprIndex) into version
-     specific storage. */
+  /* Copy the field (ExprSubobjectValue::value - ExprIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -19806,7 +19806,7 @@ representation of the field "discriminant".
   an_ifc_active_member      stage_1;
 
   /* Copy the field (ExprSumTypeValue::discriminant - ActiveMember) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
@@ -19894,7 +19894,7 @@ representation of the field "type".
   an_ifc_type_index_0_33 stage_0;
   an_ifc_type_index      stage_1;
 
-  /* Copy the field (ExprSumTypeValue::type - TypeIndex) into version specific
+  /* Copy the field (ExprSumTypeValue::type - TypeIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -19936,7 +19936,7 @@ representation of the field "value".
   an_ifc_expr_index_0_33 stage_0;
   an_ifc_expr_index      stage_1;
 
-  /* Copy the field (ExprSumTypeValue::value - ExprIndex) into version specific
+  /* Copy the field (ExprSumTypeValue::value - ExprIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -19979,8 +19979,8 @@ representation of the field "variant".
     an_ifc_decl_index_0_41 stage_0;
     an_ifc_decl_index      stage_1;
 
-    /* Copy the field (ExprSumTypeValue::variant - DeclIndex) into version
-       specific storage. */
+    /* Copy the field (ExprSumTypeValue::variant - DeclIndex) into
+       version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
@@ -19990,8 +19990,8 @@ representation of the field "variant".
     an_ifc_decl_index_0_33 stage_0;
     an_ifc_decl_index      stage_1;
 
-    /* Copy the field (ExprSumTypeValue::variant - DeclIndex) into version
-       specific storage. */
+    /* Copy the field (ExprSumTypeValue::variant - DeclIndex) into
+       version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
@@ -20038,8 +20038,8 @@ representation of the field "syntax".
   an_ifc_syntax_index_0_33 stage_0;
   an_ifc_syntax_index      stage_1;
 
-  /* Copy the field (ExprSyntaxTree::syntax - SyntaxIndex) into version
-     specific storage. */
+  /* Copy the field (ExprSyntaxTree::syntax - SyntaxIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -20085,8 +20085,8 @@ representation of the field "arguments".
   an_ifc_expr_index_0_33 stage_0;
   an_ifc_expr_index      stage_1;
 
-  /* Copy the field (ExprTemplateId::arguments - ExprIndex) into version
-     specific storage. */
+  /* Copy the field (ExprTemplateId::arguments - ExprIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
@@ -20173,7 +20173,7 @@ representation of the field "primary".
   an_ifc_expr_index_0_33 stage_0;
   an_ifc_expr_index      stage_1;
 
-  /* Copy the field (ExprTemplateId::primary - ExprIndex) into version specific
+  /* Copy the field (ExprTemplateId::primary - ExprIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -20215,7 +20215,7 @@ representation of the field "type".
   an_ifc_type_index_0_33 stage_0;
   an_ifc_type_index      stage_1;
 
-  /* Copy the field (ExprTemplateId::type - TypeIndex) into version specific
+  /* Copy the field (ExprTemplateId::type - TypeIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -20263,8 +20263,8 @@ universal representation of the field "arguments".
   an_ifc_expr_index_0_33 stage_0;
   an_ifc_expr_index      stage_1;
 
-  /* Copy the field (ExprTemplateReference::arguments - ExprIndex) into version
-     specific storage. */
+  /* Copy the field (ExprTemplateReference::arguments - ExprIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/28);
@@ -20402,7 +20402,7 @@ universal representation of the field "member_name".
   an_ifc_name_index      stage_1;
 
   /* Copy the field (ExprTemplateReference::member_name - NameIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
@@ -20444,8 +20444,8 @@ universal representation of the field "scope".
   an_ifc_type_index_0_33 stage_0;
   an_ifc_type_index      stage_1;
 
-  /* Copy the field (ExprTemplateReference::scope - TypeIndex) into version
-     specific storage. */
+  /* Copy the field (ExprTemplateReference::scope - TypeIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24);
@@ -20486,8 +20486,8 @@ universal representation of the field "type".
   an_ifc_type_index_0_33 stage_0;
   an_ifc_type_index      stage_1;
 
-  /* Copy the field (ExprTemplateReference::type - TypeIndex) into version
-     specific storage. */
+  /* Copy the field (ExprTemplateReference::type - TypeIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
@@ -20533,7 +20533,7 @@ representation of the field "id".
   an_ifc_unique_id_0_33 stage_0;
   an_ifc_unique_id      stage_1;
 
-  /* Copy the field (ExprTemporary::id - UniqueID) into version specific
+  /* Copy the field (ExprTemporary::id - UniqueID) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -20621,7 +20621,7 @@ representation of the field "type".
   an_ifc_type_index_0_33 stage_0;
   an_ifc_type_index      stage_1;
 
-  /* Copy the field (ExprTemporary::type - TypeIndex) into version specific
+  /* Copy the field (ExprTemporary::type - TypeIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -20714,7 +20714,7 @@ representation of the field "type".
   an_ifc_type_index_0_33 stage_0;
   an_ifc_type_index      stage_1;
 
-  /* Copy the field (ExprThis::type - TypeIndex) into version specific
+  /* Copy the field (ExprThis::type - TypeIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -20807,7 +20807,7 @@ representation of the field "type".
   an_ifc_type_index_0_33 stage_0;
   an_ifc_type_index      stage_1;
 
-  /* Copy the field (ExprTokens::type - TypeIndex) into version specific
+  /* Copy the field (ExprTokens::type - TypeIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -20849,7 +20849,7 @@ representation of the field "words".
   an_ifc_sentence_index_0_33 stage_0;
   an_ifc_sentence_index      stage_1;
 
-  /* Copy the field (ExprTokens::words - SentenceIndex) into version specific
+  /* Copy the field (ExprTokens::words - SentenceIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -20896,7 +20896,7 @@ representation of the field "argument_0".
   an_ifc_expr_index_0_33 stage_0;
   an_ifc_expr_index      stage_1;
 
-  /* Copy the field (ExprTriad::argument_0 - ExprIndex) into version specific
+  /* Copy the field (ExprTriad::argument_0 - ExprIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -20938,7 +20938,7 @@ representation of the field "argument_1".
   an_ifc_expr_index_0_33 stage_0;
   an_ifc_expr_index      stage_1;
 
-  /* Copy the field (ExprTriad::argument_1 - ExprIndex) into version specific
+  /* Copy the field (ExprTriad::argument_1 - ExprIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -20980,7 +20980,7 @@ representation of the field "argument_2".
   an_ifc_expr_index_0_33 stage_0;
   an_ifc_expr_index      stage_1;
 
-  /* Copy the field (ExprTriad::argument_2 - ExprIndex) into version specific
+  /* Copy the field (ExprTriad::argument_2 - ExprIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -21022,8 +21022,8 @@ representation of the field "assoc".
   an_ifc_triadic_operator_sort_0_33 stage_0;
   an_ifc_triadic_operator_sort      stage_1;
 
-  /* Copy the field (ExprTriad::assoc - TriadicOperatorSort) into version
-     specific storage. */
+  /* Copy the field (ExprTriad::assoc - TriadicOperatorSort) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 2,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/28);
@@ -21065,7 +21065,7 @@ representation of the field "impl".
     an_ifc_decl_index_0_41 stage_0;
     an_ifc_decl_index      stage_1;
 
-    /* Copy the field (ExprTriad::impl - DeclIndex) into version specific
+    /* Copy the field (ExprTriad::impl - DeclIndex) into version-specific
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
@@ -21076,7 +21076,7 @@ representation of the field "impl".
     an_ifc_decl_index_0_33 stage_0;
     an_ifc_decl_index      stage_1;
 
-    /* Copy the field (ExprTriad::impl - DeclIndex) into version specific
+    /* Copy the field (ExprTriad::impl - DeclIndex) into version-specific
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
@@ -21165,7 +21165,7 @@ representation of the field "type".
   an_ifc_type_index_0_33 stage_0;
   an_ifc_type_index      stage_1;
 
-  /* Copy the field (ExprTriad::type - TypeIndex) into version specific
+  /* Copy the field (ExprTriad::type - TypeIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -21212,8 +21212,8 @@ representation of the field "cardinality".
   an_ifc_cardinality_0_33 stage_0;
   an_ifc_cardinality      stage_1;
 
-  /* Copy the field (ExprTuple::cardinality - Cardinality) into version
-     specific storage. */
+  /* Copy the field (ExprTuple::cardinality - Cardinality) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
@@ -21300,7 +21300,7 @@ representation of the field "start".
   an_ifc_index_0_33 stage_0;
   an_ifc_index      stage_1;
 
-  /* Copy the field (ExprTuple::start - Index) into version specific
+  /* Copy the field (ExprTuple::start - Index) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -21342,7 +21342,7 @@ representation of the field "type".
   an_ifc_type_index_0_33 stage_0;
   an_ifc_type_index      stage_1;
 
-  /* Copy the field (ExprTuple::type - TypeIndex) into version specific
+  /* Copy the field (ExprTuple::type - TypeIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -21389,7 +21389,7 @@ representation of the field "denotation".
   an_ifc_type_index_0_33 stage_0;
   an_ifc_type_index      stage_1;
 
-  /* Copy the field (ExprType::denotation - TypeIndex) into version specific
+  /* Copy the field (ExprType::denotation - TypeIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -21477,7 +21477,7 @@ representation of the field "type".
   an_ifc_type_index_0_33 stage_0;
   an_ifc_type_index      stage_1;
 
-  /* Copy the field (ExprType::type - TypeIndex) into version specific
+  /* Copy the field (ExprType::type - TypeIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -21526,7 +21526,7 @@ universal representation of the field "arguments".
   an_ifc_type_index      stage_1;
 
   /* Copy the field (ExprTypeTraitIntrinsic::arguments - TypeIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
@@ -21569,7 +21569,7 @@ universal representation of the field "intrinsic".
   an_ifc_operator_category      stage_1;
 
   /* Copy the field (ExprTypeTraitIntrinsic::intrinsic - OperatorCategory) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 2,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
@@ -21658,8 +21658,8 @@ universal representation of the field "type".
   an_ifc_type_index_0_33 stage_0;
   an_ifc_type_index      stage_1;
 
-  /* Copy the field (ExprTypeTraitIntrinsic::type - TypeIndex) into version
-     specific storage. */
+  /* Copy the field (ExprTypeTraitIntrinsic::type - TypeIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
@@ -21751,7 +21751,7 @@ representation of the field "operand".
   an_ifc_type_index_0_33 stage_0;
   an_ifc_type_index      stage_1;
 
-  /* Copy the field (ExprTypeid::operand - TypeIndex) into version specific
+  /* Copy the field (ExprTypeid::operand - TypeIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -21793,7 +21793,7 @@ representation of the field "type".
   an_ifc_type_index_0_33 stage_0;
   an_ifc_type_index      stage_1;
 
-  /* Copy the field (ExprTypeid::type - TypeIndex) into version specific
+  /* Copy the field (ExprTypeid::type - TypeIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -21841,8 +21841,8 @@ representation of the field "associativity".
   an_ifc_associativity_0_33 stage_0;
   an_ifc_associativity      stage_1;
 
-  /* Copy the field (ExprUnaryFold::associativity - Associativity) into version
-     specific storage. */
+  /* Copy the field (ExprUnaryFold::associativity - Associativity) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/18);
@@ -21883,7 +21883,7 @@ representation of the field "expr".
   an_ifc_expr_index_0_33 stage_0;
   an_ifc_expr_index      stage_1;
 
-  /* Copy the field (ExprUnaryFold::expr - ExprIndex) into version specific
+  /* Copy the field (ExprUnaryFold::expr - ExprIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -21973,7 +21973,7 @@ representation of the field "operation".
   an_ifc_dyadic_operator_sort      stage_1;
 
   /* Copy the field (ExprUnaryFold::operation - DyadicOperatorSort) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 2,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
@@ -22014,7 +22014,7 @@ representation of the field "type".
   an_ifc_type_index_0_33 stage_0;
   an_ifc_type_index      stage_1;
 
-  /* Copy the field (ExprUnaryFold::type - TypeIndex) into version specific
+  /* Copy the field (ExprUnaryFold::type - TypeIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -22108,7 +22108,7 @@ representation of the field "name".
   an_ifc_name_index_0_33 stage_0;
   an_ifc_name_index      stage_1;
 
-  /* Copy the field (ExprUnqualifiedId::name - NameIndex) into version specific
+  /* Copy the field (ExprUnqualifiedId::name - NameIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -22151,8 +22151,8 @@ representation of the field "resolution".
   an_ifc_expr_index_0_33 stage_0;
   an_ifc_expr_index      stage_1;
 
-  /* Copy the field (ExprUnqualifiedId::resolution - ExprIndex) into version
-     specific storage. */
+  /* Copy the field (ExprUnqualifiedId::resolution - ExprIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
@@ -22241,7 +22241,7 @@ representation of the field "type".
   an_ifc_type_index_0_33 stage_0;
   an_ifc_type_index      stage_1;
 
-  /* Copy the field (ExprUnqualifiedId::type - TypeIndex) into version specific
+  /* Copy the field (ExprUnqualifiedId::type - TypeIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -22335,7 +22335,7 @@ representation of the field "name".
   an_ifc_name_index_0_33 stage_0;
   an_ifc_name_index      stage_1;
 
-  /* Copy the field (ExprUnresolvedId::name - NameIndex) into version specific
+  /* Copy the field (ExprUnresolvedId::name - NameIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -22377,7 +22377,7 @@ representation of the field "type".
   an_ifc_type_index_0_33 stage_0;
   an_ifc_type_index      stage_1;
 
-  /* Copy the field (ExprUnresolvedId::type - TypeIndex) into version specific
+  /* Copy the field (ExprUnresolvedId::type - TypeIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -22428,7 +22428,7 @@ universal representation of the field "function".
     an_ifc_decl_index      stage_1;
 
     /* Copy the field (ExprVirtualFunctionConversion::function - DeclIndex)
-       into version specific storage. */
+       into version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
@@ -22439,7 +22439,7 @@ universal representation of the field "function".
     an_ifc_decl_index      stage_1;
 
     /* Copy the field (ExprVirtualFunctionConversion::function - DeclIndex)
-       into version specific storage. */
+       into version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
@@ -22532,7 +22532,7 @@ universal representation of the field "type".
   an_ifc_type_index      stage_1;
 
   /* Copy the field (ExprVirtualFunctionConversion::type - TypeIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
@@ -22578,7 +22578,7 @@ representation of the field "first".
   an_ifc_form_index_0_33 stage_0;
   an_ifc_form_index      stage_1;
 
-  /* Copy the field (FormCatenate::first - FormIndex) into version specific
+  /* Copy the field (FormCatenate::first - FormIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -22666,7 +22666,7 @@ representation of the field "second".
   an_ifc_form_index_0_33 stage_0;
   an_ifc_form_index      stage_1;
 
-  /* Copy the field (FormCatenate::second - FormIndex) into version specific
+  /* Copy the field (FormCatenate::second - FormIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -22759,8 +22759,8 @@ representation of the field "spelling".
   an_ifc_text_offset_0_33 stage_0;
   an_ifc_text_offset      stage_1;
 
-  /* Copy the field (FormCharacter::spelling - TextOffset) into version
-     specific storage. */
+  /* Copy the field (FormCharacter::spelling - TextOffset) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
@@ -22852,7 +22852,7 @@ representation of the field "spelling".
   an_ifc_text_offset_0_33 stage_0;
   an_ifc_text_offset      stage_1;
 
-  /* Copy the field (FormHeader::spelling - TextOffset) into version specific
+  /* Copy the field (FormHeader::spelling - TextOffset) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -22945,8 +22945,8 @@ representation of the field "spelling".
   an_ifc_text_offset_0_33 stage_0;
   an_ifc_text_offset      stage_1;
 
-  /* Copy the field (FormIdentifier::spelling - TextOffset) into version
-     specific storage. */
+  /* Copy the field (FormIdentifier::spelling - TextOffset) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
@@ -23038,7 +23038,7 @@ representation of the field "spelling".
   an_ifc_text_offset_0_33 stage_0;
   an_ifc_text_offset      stage_1;
 
-  /* Copy the field (FormJunk::spelling - TextOffset) into version specific
+  /* Copy the field (FormJunk::spelling - TextOffset) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -23131,7 +23131,7 @@ representation of the field "spelling".
   an_ifc_text_offset_0_33 stage_0;
   an_ifc_text_offset      stage_1;
 
-  /* Copy the field (FormKeyword::spelling - TextOffset) into version specific
+  /* Copy the field (FormKeyword::spelling - TextOffset) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -23224,7 +23224,7 @@ representation of the field "spelling".
   an_ifc_text_offset_0_33 stage_0;
   an_ifc_text_offset      stage_1;
 
-  /* Copy the field (FormNumber::spelling - TextOffset) into version specific
+  /* Copy the field (FormNumber::spelling - TextOffset) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -23317,7 +23317,7 @@ representation of the field "op".
   an_ifc_form_operator_sort_0_33 stage_0;
   an_ifc_form_operator_sort      stage_1;
 
-  /* Copy the field (FormOperator::op - FormOperatorSort) into version specific
+  /* Copy the field (FormOperator::op - FormOperatorSort) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 2,
                 "stage_0 is not properly sized storage!");
@@ -23360,7 +23360,7 @@ representation of the field "spelling".
   an_ifc_text_offset_0_33 stage_0;
   an_ifc_text_offset      stage_1;
 
-  /* Copy the field (FormOperator::spelling - TextOffset) into version specific
+  /* Copy the field (FormOperator::spelling - TextOffset) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -23453,8 +23453,8 @@ representation of the field "spelling".
   an_ifc_text_offset_0_33 stage_0;
   an_ifc_text_offset      stage_1;
 
-  /* Copy the field (FormParameter::spelling - TextOffset) into version
-     specific storage. */
+  /* Copy the field (FormParameter::spelling - TextOffset) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
@@ -23547,8 +23547,8 @@ representation of the field "operand".
   an_ifc_form_index_0_33 stage_0;
   an_ifc_form_index      stage_1;
 
-  /* Copy the field (FormParenthesized::operand - FormIndex) into version
-     specific storage. */
+  /* Copy the field (FormParenthesized::operand - FormIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
@@ -23640,7 +23640,7 @@ representation of the field "operand".
   an_ifc_form_index_0_33 stage_0;
   an_ifc_form_index      stage_1;
 
-  /* Copy the field (FormPragma::operand - FormIndex) into version specific
+  /* Copy the field (FormPragma::operand - FormIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -23687,7 +23687,7 @@ representation of the field "arguments".
   an_ifc_expr_index_0_33 stage_0;
   an_ifc_expr_index      stage_1;
 
-  /* Copy the field (FormSpec::arguments - ExprIndex) into version specific
+  /* Copy the field (FormSpec::arguments - ExprIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -23730,8 +23730,8 @@ representation of the field "primary_template".
     an_ifc_decl_index_0_41 stage_0;
     an_ifc_decl_index      stage_1;
 
-    /* Copy the field (FormSpec::primary_template - DeclIndex) into version
-       specific storage. */
+    /* Copy the field (FormSpec::primary_template - DeclIndex) into
+       version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -23741,8 +23741,8 @@ representation of the field "primary_template".
     an_ifc_decl_index_0_33 stage_0;
     an_ifc_decl_index      stage_1;
 
-    /* Copy the field (FormSpec::primary_template - DeclIndex) into version
-       specific storage. */
+    /* Copy the field (FormSpec::primary_template - DeclIndex) into
+       version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -23835,7 +23835,7 @@ representation of the field "spelling".
   an_ifc_text_offset_0_33 stage_0;
   an_ifc_text_offset      stage_1;
 
-  /* Copy the field (FormString::spelling - TextOffset) into version specific
+  /* Copy the field (FormString::spelling - TextOffset) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -23928,7 +23928,7 @@ representation of the field "operand".
   an_ifc_form_index_0_33 stage_0;
   an_ifc_form_index      stage_1;
 
-  /* Copy the field (FormStringize::operand - FormIndex) into version specific
+  /* Copy the field (FormStringize::operand - FormIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -23975,8 +23975,8 @@ representation of the field "cardinality".
   an_ifc_cardinality_0_33 stage_0;
   an_ifc_cardinality      stage_1;
 
-  /* Copy the field (FormTuple::cardinality - Cardinality) into version
-     specific storage. */
+  /* Copy the field (FormTuple::cardinality - Cardinality) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
@@ -24017,7 +24017,7 @@ representation of the field "start".
   an_ifc_index_0_33 stage_0;
   an_ifc_index      stage_1;
 
-  /* Copy the field (FormTuple::start - Index) into version specific
+  /* Copy the field (FormTuple::start - Index) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -24115,7 +24115,7 @@ representation of the field "value".
   an_ifc_attr_index_0_33 stage_0;
   an_ifc_attr_index      stage_1;
 
-  /* Copy the field (HeapAttr::value - AttrIndex) into version specific
+  /* Copy the field (HeapAttr::value - AttrIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -24162,7 +24162,7 @@ representation of the field "value".
   an_ifc_chart_index_0_33 stage_0;
   an_ifc_chart_index      stage_1;
 
-  /* Copy the field (HeapChart::value - ChartIndex) into version specific
+  /* Copy the field (HeapChart::value - ChartIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -24210,7 +24210,7 @@ representation of the field "value".
     an_ifc_decl_index_0_41 stage_0;
     an_ifc_decl_index      stage_1;
 
-    /* Copy the field (HeapDecl::value - DeclIndex) into version specific
+    /* Copy the field (HeapDecl::value - DeclIndex) into version-specific
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
@@ -24221,7 +24221,7 @@ representation of the field "value".
     an_ifc_decl_index_0_33 stage_0;
     an_ifc_decl_index      stage_1;
 
-    /* Copy the field (HeapDecl::value - DeclIndex) into version specific
+    /* Copy the field (HeapDecl::value - DeclIndex) into version-specific
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
@@ -24269,7 +24269,7 @@ representation of the field "value".
   an_ifc_expr_index_0_33 stage_0;
   an_ifc_expr_index      stage_1;
 
-  /* Copy the field (HeapExpr::value - ExprIndex) into version specific
+  /* Copy the field (HeapExpr::value - ExprIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -24316,7 +24316,7 @@ representation of the field "value".
   an_ifc_form_index_0_33 stage_0;
   an_ifc_form_index      stage_1;
 
-  /* Copy the field (HeapForm::value - FormIndex) into version specific
+  /* Copy the field (HeapForm::value - FormIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -24363,7 +24363,7 @@ representation of the field "value".
   an_ifc_form_index_0_33 stage_0;
   an_ifc_form_index      stage_1;
 
-  /* Copy the field (HeapPPForm::value - FormIndex) into version specific
+  /* Copy the field (HeapPPForm::value - FormIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -24410,7 +24410,7 @@ representation of the field "value".
   an_ifc_stmt_index_0_33 stage_0;
   an_ifc_stmt_index      stage_1;
 
-  /* Copy the field (HeapStmt::value - StmtIndex) into version specific
+  /* Copy the field (HeapStmt::value - StmtIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -24457,7 +24457,7 @@ representation of the field "value".
   an_ifc_syntax_index_0_33 stage_0;
   an_ifc_syntax_index      stage_1;
 
-  /* Copy the field (HeapSyntax::value - SyntaxIndex) into version specific
+  /* Copy the field (HeapSyntax::value - SyntaxIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -24504,7 +24504,7 @@ representation of the field "value".
   an_ifc_type_index_0_33 stage_0;
   an_ifc_type_index      stage_1;
 
-  /* Copy the field (HeapType::value - TypeIndex) into version specific
+  /* Copy the field (HeapType::value - TypeIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -24599,7 +24599,7 @@ representation of the field "body".
   an_ifc_form_index_0_33 stage_0;
   an_ifc_form_index      stage_1;
 
-  /* Copy the field (MacroFunctionLike::body - FormIndex) into version specific
+  /* Copy the field (MacroFunctionLike::body - FormIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -24688,8 +24688,8 @@ representation of the field "name".
   an_ifc_text_offset_0_33 stage_0;
   an_ifc_text_offset      stage_1;
 
-  /* Copy the field (MacroFunctionLike::name - TextOffset) into version
-     specific storage. */
+  /* Copy the field (MacroFunctionLike::name - TextOffset) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
@@ -24731,8 +24731,8 @@ representation of the field "parameters".
   an_ifc_form_index_0_33 stage_0;
   an_ifc_form_index      stage_1;
 
-  /* Copy the field (MacroFunctionLike::parameters - FormIndex) into version
-     specific storage. */
+  /* Copy the field (MacroFunctionLike::parameters - FormIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
@@ -24778,7 +24778,7 @@ representation of the field "body".
   an_ifc_form_index_0_33 stage_0;
   an_ifc_form_index      stage_1;
 
-  /* Copy the field (MacroObjectLike::body - FormIndex) into version specific
+  /* Copy the field (MacroObjectLike::body - FormIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -24866,7 +24866,7 @@ representation of the field "name".
   an_ifc_text_offset_0_33 stage_0;
   an_ifc_text_offset      stage_1;
 
-  /* Copy the field (MacroObjectLike::name - TextOffset) into version specific
+  /* Copy the field (MacroObjectLike::name - TextOffset) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -25017,8 +25017,8 @@ representation of the field "encoded".
   an_ifc_text_offset_0_33 stage_0;
   an_ifc_text_offset      stage_1;
 
-  /* Copy the field (NameConversion::encoded - TextOffset) into version
-     specific storage. */
+  /* Copy the field (NameConversion::encoded - TextOffset) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
@@ -25059,7 +25059,7 @@ representation of the field "target".
   an_ifc_type_index_0_33 stage_0;
   an_ifc_type_index      stage_1;
 
-  /* Copy the field (NameConversion::target - TypeIndex) into version specific
+  /* Copy the field (NameConversion::target - TypeIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -25107,8 +25107,8 @@ representation of the field "primary_template".
     an_ifc_decl_index_0_41 stage_0;
     an_ifc_decl_index      stage_1;
 
-    /* Copy the field (NameGuide::primary_template - DeclIndex) into version
-       specific storage. */
+    /* Copy the field (NameGuide::primary_template - DeclIndex) into
+       version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -25118,8 +25118,8 @@ representation of the field "primary_template".
     an_ifc_decl_index_0_33 stage_0;
     an_ifc_decl_index      stage_1;
 
-    /* Copy the field (NameGuide::primary_template - DeclIndex) into version
-       specific storage. */
+    /* Copy the field (NameGuide::primary_template - DeclIndex) into
+       version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -25166,7 +25166,7 @@ representation of the field "encoded".
   an_ifc_text_offset_0_33 stage_0;
   an_ifc_text_offset      stage_1;
 
-  /* Copy the field (NameLiteral::encoded - TextOffset) into version specific
+  /* Copy the field (NameLiteral::encoded - TextOffset) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -25213,7 +25213,7 @@ representation of the field "encoded".
   an_ifc_text_offset_0_33 stage_0;
   an_ifc_text_offset      stage_1;
 
-  /* Copy the field (NameOperator::encoded - TextOffset) into version specific
+  /* Copy the field (NameOperator::encoded - TextOffset) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -25256,8 +25256,8 @@ representation of the field "operator".
   an_ifc_operator_category_0_33 stage_0;
   an_ifc_operator_category      stage_1;
 
-  /* Copy the field (NameOperator::operator - OperatorCategory) into version
-     specific storage. */
+  /* Copy the field (NameOperator::operator - OperatorCategory) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 2,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
@@ -25303,7 +25303,7 @@ representation of the field "guard".
   an_ifc_text_offset_0_33 stage_0;
   an_ifc_text_offset      stage_1;
 
-  /* Copy the field (NameSourceFile::guard - TextOffset) into version specific
+  /* Copy the field (NameSourceFile::guard - TextOffset) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -25345,7 +25345,7 @@ representation of the field "path".
   an_ifc_text_offset_0_33 stage_0;
   an_ifc_text_offset      stage_1;
 
-  /* Copy the field (NameSourceFile::path - TextOffset) into version specific
+  /* Copy the field (NameSourceFile::path - TextOffset) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -25393,8 +25393,8 @@ representation of the field "arguments".
   an_ifc_expr_index_0_33 stage_0;
   an_ifc_expr_index      stage_1;
 
-  /* Copy the field (NameSpecialization::arguments - ExprIndex) into version
-     specific storage. */
+  /* Copy the field (NameSpecialization::arguments - ExprIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
@@ -25435,8 +25435,8 @@ representation of the field "primary".
   an_ifc_name_index_0_33 stage_0;
   an_ifc_name_index      stage_1;
 
-  /* Copy the field (NameSpecialization::primary - NameIndex) into version
-     specific storage. */
+  /* Copy the field (NameSpecialization::primary - NameIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -25482,7 +25482,7 @@ representation of the field "name".
   an_ifc_name_index_0_33 stage_0;
   an_ifc_name_index      stage_1;
 
-  /* Copy the field (NameTemplate::name - NameIndex) into version specific
+  /* Copy the field (NameTemplate::name - NameIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -25530,8 +25530,8 @@ representation of the field "cardinality".
   an_ifc_cardinality_0_33 stage_0;
   an_ifc_cardinality      stage_1;
 
-  /* Copy the field (ScopeDescriptor::cardinality - Cardinality) into version
-     specific storage. */
+  /* Copy the field (ScopeDescriptor::cardinality - Cardinality) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
@@ -25572,7 +25572,7 @@ representation of the field "start".
   an_ifc_index_0_33 stage_0;
   an_ifc_index      stage_1;
 
-  /* Copy the field (ScopeDescriptor::start - Index) into version specific
+  /* Copy the field (ScopeDescriptor::start - Index) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -25620,7 +25620,7 @@ representation of the field "index".
     an_ifc_decl_index_0_41 stage_0;
     an_ifc_decl_index      stage_1;
 
-    /* Copy the field (ScopeMember::index - DeclIndex) into version specific
+    /* Copy the field (ScopeMember::index - DeclIndex) into version-specific
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
@@ -25631,7 +25631,7 @@ representation of the field "index".
     an_ifc_decl_index_0_33 stage_0;
     an_ifc_decl_index      stage_1;
 
-    /* Copy the field (ScopeMember::index - DeclIndex) into version specific
+    /* Copy the field (ScopeMember::index - DeclIndex) into version-specific
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
@@ -25679,7 +25679,7 @@ representation of the field "file".
   an_ifc_name_index_0_33 stage_0;
   an_ifc_name_index      stage_1;
 
-  /* Copy the field (SourceLine::file - NameIndex) into version specific
+  /* Copy the field (SourceLine::file - NameIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -25721,7 +25721,7 @@ representation of the field "line".
   an_ifc_line_number_0_33 stage_0;
   an_ifc_line_number      stage_1;
 
-  /* Copy the field (SourceLine::line - LineNumber) into version specific
+  /* Copy the field (SourceLine::line - LineNumber) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -25768,8 +25768,8 @@ representation of the field "cardinality".
   an_ifc_cardinality_0_33 stage_0;
   an_ifc_cardinality      stage_1;
 
-  /* Copy the field (SourceSentence::cardinality - Cardinality) into version
-     specific storage. */
+  /* Copy the field (SourceSentence::cardinality - Cardinality) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
@@ -25856,7 +25856,7 @@ representation of the field "start".
   an_ifc_index_0_33 stage_0;
   an_ifc_index      stage_1;
 
-  /* Copy the field (SourceSentence::start - Index) into version specific
+  /* Copy the field (SourceSentence::start - Index) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -25907,16 +25907,16 @@ representation of the field "category".
   an_ifc_word_category_0_33 stage_4;
   an_ifc_word_category      stage_5;
 
-  /* Copy the field (SourceWord::index - Index) into version specific
+  /* Copy the field (SourceWord::index - Index) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-  /* Copy the field (SourceWord::value - u16) into version specific storage. */
+  /* Copy the field (SourceWord::value - u16) into version-specific storage. */
   static_assert(sizeof(stage_1) == 2,
                 "stage_1 is not properly sized storage!");
   copy_ifc_field(&stage_1, universal.get_storage(), /*offset=*/12);
-  /* Copy the field (SourceWord::sort - WordSort) into version specific
+  /* Copy the field (SourceWord::sort - WordSort) into version-specific
      storage. */
   static_assert(sizeof(stage_2) == 1,
                 "stage_2 is not properly sized storage!");
@@ -25968,7 +25968,7 @@ representation of the field "index".
   an_ifc_index_0_33 stage_0;
   an_ifc_index      stage_1;
 
-  /* Copy the field (SourceWord::index - Index) into version specific
+  /* Copy the field (SourceWord::index - Index) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -26056,7 +26056,7 @@ representation of the field "sort".
   an_ifc_word_sort_0_33 stage_0;
   an_ifc_word_sort      stage_1;
 
-  /* Copy the field (SourceWord::sort - WordSort) into version specific
+  /* Copy the field (SourceWord::sort - WordSort) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
@@ -26098,7 +26098,7 @@ representation of the field "value".
   an_ifc_u16_0_33 stage_0;
   an_ifc_u16      stage_1;
 
-  /* Copy the field (SourceWord::value - u16) into version specific storage. */
+  /* Copy the field (SourceWord::value - u16) into version-specific storage. */
   static_assert(sizeof(stage_0) == 2,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
@@ -26144,8 +26144,8 @@ representation of the field "cardinality".
   an_ifc_cardinality_0_33 stage_0;
   an_ifc_cardinality      stage_1;
 
-  /* Copy the field (StmtBlock::cardinality - Cardinality) into version
-     specific storage. */
+  /* Copy the field (StmtBlock::cardinality - Cardinality) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
@@ -26186,7 +26186,7 @@ representation of the field "start".
   an_ifc_index_0_33 stage_0;
   an_ifc_index      stage_1;
 
-  /* Copy the field (StmtBlock::start - Index) into version specific
+  /* Copy the field (StmtBlock::start - Index) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -26284,7 +26284,7 @@ representation of the field "expr".
   an_ifc_expr_index_0_33 stage_0;
   an_ifc_expr_index      stage_1;
 
-  /* Copy the field (StmtCase::expr - ExprIndex) into version specific
+  /* Copy the field (StmtCase::expr - ExprIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -26479,7 +26479,7 @@ representation of the field "body".
   an_ifc_stmt_index_0_33 stage_0;
   an_ifc_stmt_index      stage_1;
 
-  /* Copy the field (StmtDoWhile::body - StmtIndex) into version specific
+  /* Copy the field (StmtDoWhile::body - StmtIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -26521,7 +26521,7 @@ representation of the field "condition".
   an_ifc_stmt_index_0_33 stage_0;
   an_ifc_stmt_index      stage_1;
 
-  /* Copy the field (StmtDoWhile::condition - StmtIndex) into version specific
+  /* Copy the field (StmtDoWhile::condition - StmtIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -26665,7 +26665,7 @@ representation of the field "operand".
   an_ifc_stmt_index_0_33 stage_0;
   an_ifc_stmt_index      stage_1;
 
-  /* Copy the field (StmtExpansion::operand - StmtIndex) into version specific
+  /* Copy the field (StmtExpansion::operand - StmtIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -26712,7 +26712,7 @@ representation of the field "expr".
   an_ifc_expr_index_0_33 stage_0;
   an_ifc_expr_index      stage_1;
 
-  /* Copy the field (StmtExpression::expr - ExprIndex) into version specific
+  /* Copy the field (StmtExpression::expr - ExprIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -26805,7 +26805,7 @@ representation of the field "body".
   an_ifc_stmt_index_0_33 stage_0;
   an_ifc_stmt_index      stage_1;
 
-  /* Copy the field (StmtFor::body - StmtIndex) into version specific
+  /* Copy the field (StmtFor::body - StmtIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -26847,7 +26847,7 @@ representation of the field "condition".
   an_ifc_stmt_index_0_33 stage_0;
   an_ifc_stmt_index      stage_1;
 
-  /* Copy the field (StmtFor::condition - StmtIndex) into version specific
+  /* Copy the field (StmtFor::condition - StmtIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -26889,7 +26889,7 @@ representation of the field "continuation".
   an_ifc_stmt_index_0_33 stage_0;
   an_ifc_stmt_index      stage_1;
 
-  /* Copy the field (StmtFor::continuation - StmtIndex) into version specific
+  /* Copy the field (StmtFor::continuation - StmtIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -26931,7 +26931,7 @@ representation of the field "initialization".
   an_ifc_stmt_index_0_33 stage_0;
   an_ifc_stmt_index      stage_1;
 
-  /* Copy the field (StmtFor::initialization - StmtIndex) into version specific
+  /* Copy the field (StmtFor::initialization - StmtIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -27025,7 +27025,7 @@ representation of the field "alternative".
   an_ifc_stmt_index_0_33 stage_0;
   an_ifc_stmt_index      stage_1;
 
-  /* Copy the field (StmtIf::alternative - StmtIndex) into version specific
+  /* Copy the field (StmtIf::alternative - StmtIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -27067,7 +27067,7 @@ representation of the field "condition".
   an_ifc_stmt_index_0_33 stage_0;
   an_ifc_stmt_index      stage_1;
 
-  /* Copy the field (StmtIf::condition - StmtIndex) into version specific
+  /* Copy the field (StmtIf::condition - StmtIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -27109,7 +27109,7 @@ representation of the field "consequence".
   an_ifc_stmt_index_0_33 stage_0;
   an_ifc_stmt_index      stage_1;
 
-  /* Copy the field (StmtIf::consequence - StmtIndex) into version specific
+  /* Copy the field (StmtIf::consequence - StmtIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -27151,7 +27151,7 @@ representation of the field "initialization".
   an_ifc_stmt_index_0_33 stage_0;
   an_ifc_stmt_index      stage_1;
 
-  /* Copy the field (StmtIf::initialization - StmtIndex) into version specific
+  /* Copy the field (StmtIf::initialization - StmtIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -27244,7 +27244,7 @@ representation of the field "expr".
   an_ifc_expr_index_0_33 stage_0;
   an_ifc_expr_index      stage_1;
 
-  /* Copy the field (StmtReturn::expr - ExprIndex) into version specific
+  /* Copy the field (StmtReturn::expr - ExprIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -27286,8 +27286,8 @@ representation of the field "expression_type".
   an_ifc_type_index_0_33 stage_0;
   an_ifc_type_index      stage_1;
 
-  /* Copy the field (StmtReturn::expression_type - TypeIndex) into version
-     specific storage. */
+  /* Copy the field (StmtReturn::expression_type - TypeIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
@@ -27328,8 +27328,8 @@ representation of the field "function_type".
   an_ifc_type_index_0_33 stage_0;
   an_ifc_type_index      stage_1;
 
-  /* Copy the field (StmtReturn::function_type - TypeIndex) into version
-     specific storage. */
+  /* Copy the field (StmtReturn::function_type - TypeIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
@@ -27422,7 +27422,7 @@ representation of the field "body".
   an_ifc_stmt_index_0_33 stage_0;
   an_ifc_stmt_index      stage_1;
 
-  /* Copy the field (StmtSwitch::body - StmtIndex) into version specific
+  /* Copy the field (StmtSwitch::body - StmtIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -27464,7 +27464,7 @@ representation of the field "condition".
   an_ifc_expr_index_0_33 stage_0;
   an_ifc_expr_index      stage_1;
 
-  /* Copy the field (StmtSwitch::condition - ExprIndex) into version specific
+  /* Copy the field (StmtSwitch::condition - ExprIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -27506,8 +27506,8 @@ representation of the field "initialization".
   an_ifc_stmt_index_0_33 stage_0;
   an_ifc_stmt_index      stage_1;
 
-  /* Copy the field (StmtSwitch::initialization - StmtIndex) into version
-     specific storage. */
+  /* Copy the field (StmtSwitch::initialization - StmtIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -27601,8 +27601,8 @@ representation of the field "decl".
     an_ifc_decl_index_0_41 stage_0;
     an_ifc_decl_index      stage_1;
 
-    /* Copy the field (StmtVariableDecl::decl - DeclIndex) into version
-       specific storage. */
+    /* Copy the field (StmtVariableDecl::decl - DeclIndex) into
+       version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -27612,8 +27612,8 @@ representation of the field "decl".
     an_ifc_decl_index_0_33 stage_0;
     an_ifc_decl_index      stage_1;
 
-    /* Copy the field (StmtVariableDecl::decl - DeclIndex) into version
-       specific storage. */
+    /* Copy the field (StmtVariableDecl::decl - DeclIndex) into
+       version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -27707,7 +27707,7 @@ representation of the field "body".
   an_ifc_stmt_index_0_33 stage_0;
   an_ifc_stmt_index      stage_1;
 
-  /* Copy the field (StmtWhile::body - StmtIndex) into version specific
+  /* Copy the field (StmtWhile::body - StmtIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -27749,7 +27749,7 @@ representation of the field "condition".
   an_ifc_stmt_index_0_33 stage_0;
   an_ifc_stmt_index      stage_1;
 
-  /* Copy the field (StmtWhile::condition - StmtIndex) into version specific
+  /* Copy the field (StmtWhile::condition - StmtIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -27940,7 +27940,7 @@ universal representation of the field "designator".
   an_ifc_expr_index      stage_1;
 
   /* Copy the field (SyntaxAccessSpecifier::designator - ExprIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -28132,7 +28132,7 @@ universal representation of the field "aliasee".
   an_ifc_syntax_index      stage_1;
 
   /* Copy the field (SyntaxAliasDeclaration::aliasee - SyntaxIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
@@ -28269,8 +28269,8 @@ universal representation of the field "name".
   an_ifc_expr_index_0_33 stage_0;
   an_ifc_expr_index      stage_1;
 
-  /* Copy the field (SyntaxAliasDeclaration::name - ExprIndex) into version
-     specific storage. */
+  /* Copy the field (SyntaxAliasDeclaration::name - ExprIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -28458,8 +28458,8 @@ representation of the field "operand".
   an_ifc_syntax_index_0_33 stage_0;
   an_ifc_syntax_index      stage_1;
 
-  /* Copy the field (SyntaxAlignas::operand - SyntaxIndex) into version
-     specific storage. */
+  /* Copy the field (SyntaxAlignas::operand - SyntaxIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -28554,8 +28554,8 @@ universal representation of the field "bound".
   an_ifc_expr_index_0_33 stage_0;
   an_ifc_expr_index      stage_1;
 
-  /* Copy the field (SyntaxArrayDeclarator::bound - ExprIndex) into version
-     specific storage. */
+  /* Copy the field (SyntaxArrayDeclarator::bound - ExprIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -28697,7 +28697,7 @@ representation of the field "array".
   an_ifc_expr_index_0_33 stage_0;
   an_ifc_expr_index      stage_1;
 
-  /* Copy the field (SyntaxArrayIndex::array - ExprIndex) into version specific
+  /* Copy the field (SyntaxArrayIndex::array - ExprIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -28739,7 +28739,7 @@ representation of the field "index".
   an_ifc_expr_index_0_33 stage_0;
   an_ifc_expr_index      stage_1;
 
-  /* Copy the field (SyntaxArrayIndex::index - ExprIndex) into version specific
+  /* Copy the field (SyntaxArrayIndex::index - ExprIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -28884,7 +28884,7 @@ the universal representation of the field "declarator".
   an_ifc_syntax_index      stage_1;
 
   /* Copy the field (SyntaxArrayOrFunctionDeclarator::declarator - SyntaxIndex)
-     into version specific storage. */
+     into version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -28928,7 +28928,7 @@ the universal representation of the field "next".
   an_ifc_syntax_index      stage_1;
 
   /* Copy the field (SyntaxArrayOrFunctionDeclarator::next - SyntaxIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
@@ -29022,8 +29022,8 @@ representation of the field "tokens".
   an_ifc_sentence_index_0_33 stage_0;
   an_ifc_sentence_index      stage_1;
 
-  /* Copy the field (SyntaxAsmStatement::tokens - SentenceIndex) into version
-     specific storage. */
+  /* Copy the field (SyntaxAsmStatement::tokens - SentenceIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -29071,7 +29071,7 @@ representation of the field "argument_clause".
   an_ifc_syntax_index      stage_1;
 
   /* Copy the field (SyntaxAttribute::argument_clause - SyntaxIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
@@ -29254,7 +29254,7 @@ representation of the field "name".
   an_ifc_expr_index_0_33 stage_0;
   an_ifc_expr_index      stage_1;
 
-  /* Copy the field (SyntaxAttribute::name - ExprIndex) into version specific
+  /* Copy the field (SyntaxAttribute::name - ExprIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -29296,7 +29296,7 @@ representation of the field "scope".
   an_ifc_expr_index_0_33 stage_0;
   an_ifc_expr_index      stage_1;
 
-  /* Copy the field (SyntaxAttribute::scope - ExprIndex) into version specific
+  /* Copy the field (SyntaxAttribute::scope - ExprIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -29443,7 +29443,7 @@ universal representation of the field "tokens".
   an_ifc_sentence_index      stage_1;
 
   /* Copy the field (SyntaxAttributeArgumentClause::tokens - SentenceIndex)
-     into version specific storage. */
+     into version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -29492,7 +29492,7 @@ universal representation of the field "attributes".
   an_ifc_syntax_index      stage_1;
 
   /* Copy the field (SyntaxAttributeSpecifier::attributes - SyntaxIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
@@ -29632,7 +29632,7 @@ universal representation of the field "prefix".
   an_ifc_syntax_index      stage_1;
 
   /* Copy the field (SyntaxAttributeSpecifier::prefix - SyntaxIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -29779,7 +29779,7 @@ universal representation of the field "attributes".
   an_ifc_syntax_index      stage_1;
 
   /* Copy the field (SyntaxAttributeSpecifierSeq::attributes - SyntaxIndex)
-     into version specific storage. */
+     into version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -29927,7 +29927,7 @@ universal representation of the field "attributes".
   an_ifc_syntax_index      stage_1;
 
   /* Copy the field (SyntaxAttributedDeclaration::attributes - SyntaxIndex)
-     into version specific storage. */
+     into version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
@@ -29970,7 +29970,7 @@ universal representation of the field "decl".
   an_ifc_syntax_index      stage_1;
 
   /* Copy the field (SyntaxAttributedDeclaration::decl - SyntaxIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
@@ -30066,7 +30066,7 @@ universal representation of the field "attributes".
   an_ifc_syntax_index      stage_1;
 
   /* Copy the field (SyntaxAttributedStatement::attributes - SyntaxIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
@@ -30109,7 +30109,7 @@ universal representation of the field "pragma".
   an_ifc_sentence_index      stage_1;
 
   /* Copy the field (SyntaxAttributedStatement::pragma - SentenceIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -30152,7 +30152,7 @@ universal representation of the field "stmt".
   an_ifc_syntax_index      stage_1;
 
   /* Copy the field (SyntaxAttributedStatement::stmt - SyntaxIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
@@ -30302,7 +30302,7 @@ universal representation of the field "base_specifiers".
   an_ifc_syntax_index      stage_1;
 
   /* Copy the field (SyntaxBaseSpecifierList::base_specifiers - SyntaxIndex)
-     into version specific storage. */
+     into version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -30398,7 +30398,7 @@ universal representation of the field "direction".
   an_ifc_fold_direction_sort      stage_1;
 
   /* Copy the field (SyntaxBinaryFoldExpression::direction - FoldDirectionSort)
-     into version specific storage. */
+     into version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -30441,7 +30441,7 @@ universal representation of the field "dyad".
   an_ifc_dyadic_operator_sort      stage_1;
 
   /* Copy the field (SyntaxBinaryFoldExpression::dyad - DyadicOperatorSort)
-     into version specific storage. */
+     into version-specific storage. */
   static_assert(sizeof(stage_0) == 2,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
@@ -30680,7 +30680,7 @@ universal representation of the field "operand_1".
   an_ifc_expr_index      stage_1;
 
   /* Copy the field (SyntaxBinaryFoldExpression::operand_1 - ExprIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
@@ -30724,7 +30724,7 @@ universal representation of the field "operand_2".
   an_ifc_expr_index      stage_1;
 
   /* Copy the field (SyntaxBinaryFoldExpression::operand_2 - ExprIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
@@ -30918,7 +30918,7 @@ universal representation of the field "by_ref".
   an_ifc_bool_0_33 stage_0;
   an_ifc_bool      stage_1;
 
-  /* Copy the field (SyntaxCaptureDefault::by_ref - bool) into version specific
+  /* Copy the field (SyntaxCaptureDefault::by_ref - bool) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
@@ -31060,8 +31060,8 @@ universal representation of the field "bases".
   an_ifc_syntax_index_0_33 stage_0;
   an_ifc_syntax_index      stage_1;
 
-  /* Copy the field (SyntaxClassSpecifier::bases - SyntaxIndex) into version
-     specific storage. */
+  /* Copy the field (SyntaxClassSpecifier::bases - SyntaxIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
@@ -31152,7 +31152,7 @@ universal representation of the field "left_paren".
   an_ifc_syntax_index      stage_1;
 
   /* Copy the field (SyntaxClassSpecifier::left_paren - SyntaxIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24);
@@ -31194,8 +31194,8 @@ universal representation of the field "members".
   an_ifc_syntax_index_0_33 stage_0;
   an_ifc_syntax_index      stage_1;
 
-  /* Copy the field (SyntaxClassSpecifier::members - SyntaxIndex) into version
-     specific storage. */
+  /* Copy the field (SyntaxClassSpecifier::members - SyntaxIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
@@ -31236,8 +31236,8 @@ universal representation of the field "name".
   an_ifc_expr_index_0_33 stage_0;
   an_ifc_expr_index      stage_1;
 
-  /* Copy the field (SyntaxClassSpecifier::name - ExprIndex) into version
-     specific storage. */
+  /* Copy the field (SyntaxClassSpecifier::name - ExprIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -31280,7 +31280,7 @@ universal representation of the field "right_paren".
   an_ifc_syntax_index      stage_1;
 
   /* Copy the field (SyntaxClassSpecifier::right_paren - SyntaxIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/28);
@@ -31329,7 +31329,7 @@ universal representation of the field "condition".
   an_ifc_expr_index      stage_1;
 
   /* Copy the field (SyntaxCompoundRequirement::condition - ExprIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -31373,7 +31373,7 @@ universal representation of the field "constraint".
   an_ifc_expr_index      stage_1;
 
   /* Copy the field (SyntaxCompoundRequirement::constraint - ExprIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
@@ -31613,7 +31613,7 @@ universal representation of the field "pragam".
   an_ifc_sentence_index      stage_1;
 
   /* Copy the field (SyntaxCompoundStatement::pragam - SentenceIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -31704,8 +31704,8 @@ universal representation of the field "stmts".
   an_ifc_syntax_index_0_33 stage_0;
   an_ifc_syntax_index      stage_1;
 
-  /* Copy the field (SyntaxCompoundStatement::stmts - SyntaxIndex) into version
-     specific storage. */
+  /* Copy the field (SyntaxCompoundStatement::stmts - SyntaxIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
@@ -31851,7 +31851,7 @@ universal representation of the field "initializer".
   an_ifc_expr_index      stage_1;
 
   /* Copy the field (SyntaxConceptDefinition::initializer - ExprIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
@@ -31940,8 +31940,8 @@ universal representation of the field "name".
   an_ifc_text_offset_0_33 stage_0;
   an_ifc_text_offset      stage_1;
 
-  /* Copy the field (SyntaxConceptDefinition::name - TextOffset) into version
-     specific storage. */
+  /* Copy the field (SyntaxConceptDefinition::name - TextOffset) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
@@ -31984,7 +31984,7 @@ universal representation of the field "parameters".
   an_ifc_syntax_index      stage_1;
 
   /* Copy the field (SyntaxConceptDefinition::parameters - SyntaxIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -32081,7 +32081,7 @@ universal representation of the field "decl_specifier".
   an_ifc_syntax_index      stage_1;
 
   /* Copy the field (SyntaxConditionDeclaration::decl_specifier - SyntaxIndex)
-     into version specific storage. */
+     into version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -32125,7 +32125,7 @@ universal representation of the field "initializaerion".
   an_ifc_syntax_index      stage_1;
 
   /* Copy the field (SyntaxConditionDeclaration::initializaerion - SyntaxIndex)
-     into version specific storage. */
+     into version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
@@ -32366,7 +32366,7 @@ universal representation of the field "initializers".
   an_ifc_syntax_index      stage_1;
 
   /* Copy the field (SyntaxCtorInitializer::initializers - SyntaxIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -32414,7 +32414,7 @@ universal representation of the field "declspec".
   an_ifc_sentence_index      stage_1;
 
   /* Copy the field (SyntaxDeclSpecifierSeq::declspec - SentenceIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
@@ -32458,7 +32458,7 @@ universal representation of the field "explicit_kw".
   an_ifc_syntax_index      stage_1;
 
   /* Copy the field (SyntaxDeclSpecifierSeq::explicit_kw - SyntaxIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24);
@@ -32548,7 +32548,7 @@ universal representation of the field "qualifiers".
   an_ifc_qualifier_bitfield      stage_1;
 
   /* Copy the field (SyntaxDeclSpecifierSeq::qualifiers - QualifierBitfield)
-     into version specific storage. */
+     into version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/28);
@@ -32640,8 +32640,8 @@ universal representation of the field "type".
   an_ifc_type_index_0_33 stage_0;
   an_ifc_type_index      stage_1;
 
-  /* Copy the field (SyntaxDeclSpecifierSeq::type - TypeIndex) into version
-     specific storage. */
+  /* Copy the field (SyntaxDeclSpecifierSeq::type - TypeIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -32684,7 +32684,7 @@ universal representation of the field "type_name".
   an_ifc_syntax_index      stage_1;
 
   /* Copy the field (SyntaxDeclSpecifierSeq::type_name - SyntaxIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
@@ -32732,7 +32732,7 @@ universal representation of the field "decl".
   an_ifc_syntax_index      stage_1;
 
   /* Copy the field (SyntaxDeclarationStatement::decl - SyntaxIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
@@ -32775,7 +32775,7 @@ universal representation of the field "pragma".
   an_ifc_sentence_index      stage_1;
 
   /* Copy the field (SyntaxDeclarationStatement::pragma - SentenceIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -32824,7 +32824,7 @@ representation of the field "array_or_function".
   an_ifc_syntax_index      stage_1;
 
   /* Copy the field (SyntaxDeclarator::array_or_function - SyntaxIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
@@ -32865,7 +32865,7 @@ representation of the field "callable".
   an_ifc_bool_0_33 stage_0;
   an_ifc_bool      stage_1;
 
-  /* Copy the field (SyntaxDeclarator::callable - bool) into version specific
+  /* Copy the field (SyntaxDeclarator::callable - bool) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
@@ -32909,7 +32909,7 @@ representation of the field "convention".
   an_ifc_calling_convention_sort      stage_1;
 
   /* Copy the field (SyntaxDeclarator::convention - CallingConventionSort) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/41);
@@ -33045,7 +33045,7 @@ representation of the field "name".
   an_ifc_expr_index_0_33 stage_0;
   an_ifc_expr_index      stage_1;
 
-  /* Copy the field (SyntaxDeclarator::name - ExprIndex) into version specific
+  /* Copy the field (SyntaxDeclarator::name - ExprIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -33089,7 +33089,7 @@ representation of the field "parenthesized".
   an_ifc_syntax_index      stage_1;
 
   /* Copy the field (SyntaxDeclarator::parenthesized - SyntaxIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
@@ -33130,8 +33130,8 @@ representation of the field "pointer".
   an_ifc_syntax_index_0_33 stage_0;
   an_ifc_syntax_index      stage_1;
 
-  /* Copy the field (SyntaxDeclarator::pointer - SyntaxIndex) into version
-     specific storage. */
+  /* Copy the field (SyntaxDeclarator::pointer - SyntaxIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -33174,7 +33174,7 @@ representation of the field "qualifiers".
   an_ifc_qualifier_bitfield      stage_1;
 
   /* Copy the field (SyntaxDeclarator::qualifiers - QualifierBitfield) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/40);
@@ -33218,7 +33218,7 @@ representation of the field "trailing_target".
   an_ifc_syntax_index      stage_1;
 
   /* Copy the field (SyntaxDeclarator::trailing_target - SyntaxIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
@@ -33262,7 +33262,7 @@ representation of the field "virtual_specifiers".
   an_ifc_syntax_index      stage_1;
 
   /* Copy the field (SyntaxDeclarator::virtual_specifiers - SyntaxIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
@@ -33357,8 +33357,8 @@ universal representation of the field "expr".
   an_ifc_expr_index_0_33 stage_0;
   an_ifc_expr_index      stage_1;
 
-  /* Copy the field (SyntaxDecltypeSpecifier::expr - ExprIndex) into version
-     specific storage. */
+  /* Copy the field (SyntaxDecltypeSpecifier::expr - ExprIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -33502,8 +33502,8 @@ universal representation of the field "body".
   an_ifc_syntax_index_0_33 stage_0;
   an_ifc_syntax_index      stage_1;
 
-  /* Copy the field (SyntaxDoWhileStatement::body - SyntaxIndex) into version
-     specific storage. */
+  /* Copy the field (SyntaxDoWhileStatement::body - SyntaxIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
@@ -33546,7 +33546,7 @@ universal representation of the field "condition".
   an_ifc_expr_index      stage_1;
 
   /* Copy the field (SyntaxDoWhileStatement::condition - ExprIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
@@ -33637,7 +33637,7 @@ universal representation of the field "pragma".
   an_ifc_sentence_index      stage_1;
 
   /* Copy the field (SyntaxDoWhileStatement::pragma - SentenceIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -33976,7 +33976,7 @@ universal representation of the field "type_list".
   an_ifc_syntax_index      stage_1;
 
   /* Copy the field (SyntaxDynamicExceptionSpec::type_list - SyntaxIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -34074,8 +34074,8 @@ representation of the field "base".
   an_ifc_syntax_index_0_33 stage_0;
   an_ifc_syntax_index      stage_1;
 
-  /* Copy the field (SyntaxEnumSpecifier::base - SyntaxIndex) into version
-     specific storage. */
+  /* Copy the field (SyntaxEnumSpecifier::base - SyntaxIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
@@ -34214,7 +34214,7 @@ representation of the field "enumerators".
   an_ifc_syntax_index      stage_1;
 
   /* Copy the field (SyntaxEnumSpecifier::enumerators - SyntaxIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
@@ -34351,8 +34351,8 @@ representation of the field "name".
   an_ifc_expr_index_0_33 stage_0;
   an_ifc_expr_index      stage_1;
 
-  /* Copy the field (SyntaxEnumSpecifier::name - ExprIndex) into version
-     specific storage. */
+  /* Copy the field (SyntaxEnumSpecifier::name - ExprIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -34545,7 +34545,7 @@ universal representation of the field "initializer".
   an_ifc_expr_index      stage_1;
 
   /* Copy the field (SyntaxEnumeratorDefinition::initializer - ExprIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
@@ -34635,7 +34635,7 @@ universal representation of the field "name".
   an_ifc_text_offset      stage_1;
 
   /* Copy the field (SyntaxEnumeratorDefinition::name - TextOffset) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -34684,7 +34684,7 @@ universal representation of the field "declarator".
   an_ifc_syntax_index      stage_1;
 
   /* Copy the field (SyntaxExceptionDeclaration::declarator - SyntaxIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
@@ -34824,7 +34824,7 @@ universal representation of the field "type_specifiers".
   an_ifc_syntax_index      stage_1;
 
   /* Copy the field (SyntaxExceptionDeclaration::type_specifiers - SyntaxIndex)
-     into version specific storage. */
+     into version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -34872,7 +34872,7 @@ universal representation of the field "condition".
   an_ifc_expr_index      stage_1;
 
   /* Copy the field (SyntaxExplicitSpecifier::condition - ExprIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -35062,8 +35062,8 @@ representation of the field "expression".
   an_ifc_expr_index_0_33 stage_0;
   an_ifc_expr_index      stage_1;
 
-  /* Copy the field (SyntaxExpression::expression - ExprIndex) into version
-     specific storage. */
+  /* Copy the field (SyntaxExpression::expression - ExprIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -35110,8 +35110,8 @@ universal representation of the field "expr".
   an_ifc_expr_index_0_33 stage_0;
   an_ifc_expr_index      stage_1;
 
-  /* Copy the field (SyntaxExpressionStatement::expr - ExprIndex) into version
-     specific storage. */
+  /* Copy the field (SyntaxExpressionStatement::expr - ExprIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
@@ -35154,7 +35154,7 @@ universal representation of the field "pragma".
   an_ifc_sentence_index      stage_1;
 
   /* Copy the field (SyntaxExpressionStatement::pragma - SentenceIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -35251,7 +35251,7 @@ universal representation of the field "declarator".
   an_ifc_syntax_index      stage_1;
 
   /* Copy the field (SyntaxForRangeDeclaration::declarator - SyntaxIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
@@ -35295,7 +35295,7 @@ universal representation of the field "specifiers".
   an_ifc_syntax_index      stage_1;
 
   /* Copy the field (SyntaxForRangeDeclaration::specifiers - SyntaxIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -35341,8 +35341,8 @@ representation of the field "body".
   an_ifc_syntax_index_0_33 stage_0;
   an_ifc_syntax_index      stage_1;
 
-  /* Copy the field (SyntaxForStatement::body - SyntaxIndex) into version
-     specific storage. */
+  /* Copy the field (SyntaxForStatement::body - SyntaxIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
@@ -35384,8 +35384,8 @@ representation of the field "condition".
   an_ifc_expr_index_0_33 stage_0;
   an_ifc_expr_index      stage_1;
 
-  /* Copy the field (SyntaxForStatement::condition - ExprIndex) into version
-     specific storage. */
+  /* Copy the field (SyntaxForStatement::condition - ExprIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
@@ -35427,8 +35427,8 @@ representation of the field "continuation".
   an_ifc_expr_index_0_33 stage_0;
   an_ifc_expr_index      stage_1;
 
-  /* Copy the field (SyntaxForStatement::continuation - ExprIndex) into version
-     specific storage. */
+  /* Copy the field (SyntaxForStatement::continuation - ExprIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
@@ -35519,7 +35519,7 @@ representation of the field "initialization".
   an_ifc_syntax_index      stage_1;
 
   /* Copy the field (SyntaxForStatement::initialization - SyntaxIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
@@ -35609,8 +35609,8 @@ representation of the field "pragma".
   an_ifc_sentence_index_0_33 stage_0;
   an_ifc_sentence_index      stage_1;
 
-  /* Copy the field (SyntaxForStatement::pragma - SentenceIndex) into version
-     specific storage. */
+  /* Copy the field (SyntaxForStatement::pragma - SentenceIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -35850,7 +35850,7 @@ representation of the field "initializers".
   an_ifc_syntax_index      stage_1;
 
   /* Copy the field (SyntaxFunctionBody::initializers - SyntaxIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
@@ -35939,8 +35939,8 @@ representation of the field "stmts".
   an_ifc_syntax_index_0_33 stage_0;
   an_ifc_syntax_index      stage_1;
 
-  /* Copy the field (SyntaxFunctionBody::stmts - SyntaxIndex) into version
-     specific storage. */
+  /* Copy the field (SyntaxFunctionBody::stmts - SyntaxIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -35982,8 +35982,8 @@ representation of the field "try_block".
   an_ifc_syntax_index_0_33 stage_0;
   an_ifc_syntax_index      stage_1;
 
-  /* Copy the field (SyntaxFunctionBody::try_block - SyntaxIndex) into version
-     specific storage. */
+  /* Copy the field (SyntaxFunctionBody::try_block - SyntaxIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
@@ -36031,7 +36031,7 @@ universal representation of the field "eh_spec".
   an_ifc_syntax_index      stage_1;
 
   /* Copy the field (SyntaxFunctionDeclarator::eh_spec - SyntaxIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
@@ -36123,7 +36123,7 @@ universal representation of the field "parameters".
   an_ifc_syntax_index      stage_1;
 
   /* Copy the field (SyntaxFunctionDeclarator::parameters - SyntaxIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -36269,7 +36269,7 @@ universal representation of the field "initializers".
   an_ifc_syntax_index      stage_1;
 
   /* Copy the field (SyntaxFunctionDefinition::initializers - SyntaxIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
@@ -36360,7 +36360,7 @@ universal representation of the field "stmts".
   an_ifc_syntax_index      stage_1;
 
   /* Copy the field (SyntaxFunctionDefinition::stmts - SyntaxIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -36451,7 +36451,7 @@ universal representation of the field "try_block".
   an_ifc_syntax_index      stage_1;
 
   /* Copy the field (SyntaxFunctionDefinition::try_block - SyntaxIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
@@ -36498,8 +36498,8 @@ universal representation of the field "body".
   an_ifc_syntax_index_0_33 stage_0;
   an_ifc_syntax_index      stage_1;
 
-  /* Copy the field (SyntaxFunctionTryBlock::body - SyntaxIndex) into version
-     specific storage. */
+  /* Copy the field (SyntaxFunctionTryBlock::body - SyntaxIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -36542,7 +36542,7 @@ universal representation of the field "handlers".
   an_ifc_syntax_index      stage_1;
 
   /* Copy the field (SyntaxFunctionTryBlock::handlers - SyntaxIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
@@ -36586,7 +36586,7 @@ universal representation of the field "initializers".
   an_ifc_syntax_index      stage_1;
 
   /* Copy the field (SyntaxFunctionTryBlock::initializers - SyntaxIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
@@ -36728,8 +36728,8 @@ representation of the field "pragma".
   an_ifc_sentence_index_0_33 stage_0;
   an_ifc_sentence_index      stage_1;
 
-  /* Copy the field (SyntaxGotoStatement::pragma - SentenceIndex) into version
-     specific storage. */
+  /* Copy the field (SyntaxGotoStatement::pragma - SentenceIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -36819,8 +36819,8 @@ representation of the field "target".
   an_ifc_text_offset_0_33 stage_0;
   an_ifc_text_offset      stage_1;
 
-  /* Copy the field (SyntaxGotoStatement::target - TextOffset) into version
-     specific storage. */
+  /* Copy the field (SyntaxGotoStatement::target - TextOffset) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
@@ -36866,7 +36866,7 @@ representation of the field "body".
   an_ifc_syntax_index_0_33 stage_0;
   an_ifc_syntax_index      stage_1;
 
-  /* Copy the field (SyntaxHandler::body - SyntaxIndex) into version specific
+  /* Copy the field (SyntaxHandler::body - SyntaxIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -36955,8 +36955,8 @@ representation of the field "exception".
   an_ifc_syntax_index_0_33 stage_0;
   an_ifc_syntax_index      stage_1;
 
-  /* Copy the field (SyntaxHandler::exception - SyntaxIndex) into version
-     specific storage. */
+  /* Copy the field (SyntaxHandler::exception - SyntaxIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
@@ -37045,8 +37045,8 @@ representation of the field "pragma".
   an_ifc_sentence_index_0_33 stage_0;
   an_ifc_sentence_index      stage_1;
 
-  /* Copy the field (SyntaxHandler::pragma - SentenceIndex) into version
-     specific storage. */
+  /* Copy the field (SyntaxHandler::pragma - SentenceIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -37141,8 +37141,8 @@ representation of the field "handlers".
   an_ifc_syntax_index_0_33 stage_0;
   an_ifc_syntax_index      stage_1;
 
-  /* Copy the field (SyntaxHandlerSeq::handlers - SyntaxIndex) into version
-     specific storage. */
+  /* Copy the field (SyntaxHandlerSeq::handlers - SyntaxIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -37189,8 +37189,8 @@ representation of the field "alternative".
   an_ifc_syntax_index_0_33 stage_0;
   an_ifc_syntax_index      stage_1;
 
-  /* Copy the field (SyntaxIfStatement::alternative - SyntaxIndex) into version
-     specific storage. */
+  /* Copy the field (SyntaxIfStatement::alternative - SyntaxIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
@@ -37231,8 +37231,8 @@ representation of the field "condition".
   an_ifc_index_0_33 stage_0;
   an_ifc_index      stage_1;
 
-  /* Copy the field (SyntaxIfStatement::condition - Index) into version
-     specific storage. */
+  /* Copy the field (SyntaxIfStatement::condition - Index) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
@@ -37274,8 +37274,8 @@ representation of the field "consequence".
   an_ifc_syntax_index_0_33 stage_0;
   an_ifc_syntax_index      stage_1;
 
-  /* Copy the field (SyntaxIfStatement::consequence - SyntaxIndex) into version
-     specific storage. */
+  /* Copy the field (SyntaxIfStatement::consequence - SyntaxIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
@@ -37461,7 +37461,7 @@ representation of the field "initialization".
   an_ifc_syntax_index      stage_1;
 
   /* Copy the field (SyntaxIfStatement::initialization - SyntaxIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
@@ -37503,8 +37503,8 @@ representation of the field "pragma".
   an_ifc_sentence_index_0_33 stage_0;
   an_ifc_sentence_index      stage_1;
 
-  /* Copy the field (SyntaxIfStatement::pragma - SentenceIndex) into version
-     specific storage. */
+  /* Copy the field (SyntaxIfStatement::pragma - SentenceIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -37694,8 +37694,8 @@ representation of the field "initializer".
   an_ifc_expr_index_0_33 stage_0;
   an_ifc_expr_index      stage_1;
 
-  /* Copy the field (SyntaxInitCapture::initializer - ExprIndex) into version
-     specific storage. */
+  /* Copy the field (SyntaxInitCapture::initializer - ExprIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
@@ -37736,7 +37736,7 @@ representation of the field "name".
   an_ifc_expr_index_0_33 stage_0;
   an_ifc_expr_index      stage_1;
 
-  /* Copy the field (SyntaxInitCapture::name - ExprIndex) into version specific
+  /* Copy the field (SyntaxInitCapture::name - ExprIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -37833,7 +37833,7 @@ universal representation of the field "constraint".
   an_ifc_syntax_index      stage_1;
 
   /* Copy the field (SyntaxInitDeclarator::constraint - SyntaxIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
@@ -37876,7 +37876,7 @@ universal representation of the field "declarator".
   an_ifc_syntax_index      stage_1;
 
   /* Copy the field (SyntaxInitDeclarator::declarator - SyntaxIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -37919,7 +37919,7 @@ universal representation of the field "initializer".
   an_ifc_expr_index      stage_1;
 
   /* Copy the field (SyntaxInitDeclarator::initializer - ExprIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
@@ -37965,8 +37965,8 @@ representation of the field "init".
   an_ifc_syntax_index_0_33 stage_0;
   an_ifc_syntax_index      stage_1;
 
-  /* Copy the field (SyntaxInitStatement::init - SyntaxIndex) into version
-     specific storage. */
+  /* Copy the field (SyntaxInitStatement::init - SyntaxIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
@@ -38008,8 +38008,8 @@ representation of the field "pragma".
   an_ifc_sentence_index_0_33 stage_0;
   an_ifc_sentence_index      stage_1;
 
-  /* Copy the field (SyntaxInitStatement::pragma - SentenceIndex) into version
-     specific storage. */
+  /* Copy the field (SyntaxInitStatement::pragma - SentenceIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -38056,8 +38056,8 @@ universal representation of the field "label".
   an_ifc_expr_index_0_33 stage_0;
   an_ifc_expr_index      stage_1;
 
-  /* Copy the field (SyntaxLabeledStatement::label - ExprIndex) into version
-     specific storage. */
+  /* Copy the field (SyntaxLabeledStatement::label - ExprIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
@@ -38099,8 +38099,8 @@ universal representation of the field "locus".
   an_ifc_keyword_sort_0_33 stage_0;
   an_ifc_keyword_sort      stage_1;
 
-  /* Copy the field (SyntaxLabeledStatement::locus - KeywordSort) into version
-     specific storage. */
+  /* Copy the field (SyntaxLabeledStatement::locus - KeywordSort) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
@@ -38143,7 +38143,7 @@ universal representation of the field "pragma".
   an_ifc_sentence_index      stage_1;
 
   /* Copy the field (SyntaxLabeledStatement::pragma - SentenceIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -38185,8 +38185,8 @@ universal representation of the field "sort".
   an_ifc_label_sort_0_33 stage_0;
   an_ifc_label_sort      stage_1;
 
-  /* Copy the field (SyntaxLabeledStatement::sort - LabelSort) into version
-     specific storage. */
+  /* Copy the field (SyntaxLabeledStatement::sort - LabelSort) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
@@ -38228,8 +38228,8 @@ universal representation of the field "stmt".
   an_ifc_syntax_index_0_33 stage_0;
   an_ifc_syntax_index      stage_1;
 
-  /* Copy the field (SyntaxLabeledStatement::stmt - SyntaxIndex) into version
-     specific storage. */
+  /* Copy the field (SyntaxLabeledStatement::stmt - SyntaxIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
@@ -38277,7 +38277,7 @@ universal representation of the field "eh_spec".
   an_ifc_syntax_index      stage_1;
 
   /* Copy the field (SyntaxLambdaDeclarator::eh_spec - SyntaxIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
@@ -38416,7 +38416,7 @@ universal representation of the field "modifier".
   an_ifc_keyword_sort      stage_1;
 
   /* Copy the field (SyntaxLambdaDeclarator::modifier - KeywordSort) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
@@ -38459,7 +38459,7 @@ universal representation of the field "parameters".
   an_ifc_syntax_index      stage_1;
 
   /* Copy the field (SyntaxLambdaDeclarator::parameters - SyntaxIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -38551,7 +38551,7 @@ universal representation of the field "trailing_target".
   an_ifc_syntax_index      stage_1;
 
   /* Copy the field (SyntaxLambdaDeclarator::trailing_target - SyntaxIndex)
-     into version specific storage. */
+     into version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
@@ -38599,7 +38599,7 @@ universal representation of the field "captures".
   an_ifc_syntax_index      stage_1;
 
   /* Copy the field (SyntaxLambdaIntroducer::captures - SyntaxIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -38839,7 +38839,7 @@ universal representation of the field "initializer".
   an_ifc_expr_index      stage_1;
 
   /* Copy the field (SyntaxMemInitializer::initializer - ExprIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
@@ -38881,8 +38881,8 @@ universal representation of the field "member".
   an_ifc_expr_index_0_33 stage_0;
   an_ifc_expr_index      stage_1;
 
-  /* Copy the field (SyntaxMemInitializer::member - ExprIndex) into version
-     specific storage. */
+  /* Copy the field (SyntaxMemInitializer::member - ExprIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -38931,7 +38931,7 @@ universal representation of the field "decl_specifiers".
   an_ifc_syntax_index      stage_1;
 
   /* Copy the field (SyntaxMemberDeclaration::decl_specifiers - SyntaxIndex)
-     into version specific storage. */
+     into version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -38975,7 +38975,7 @@ universal representation of the field "declarations".
   an_ifc_syntax_index      stage_1;
 
   /* Copy the field (SyntaxMemberDeclaration::declarations - SyntaxIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
@@ -39069,8 +39069,8 @@ universal representation of the field "bitwidth".
   an_ifc_expr_index_0_33 stage_0;
   an_ifc_expr_index      stage_1;
 
-  /* Copy the field (SyntaxMemberDeclarator::bitwidth - ExprIndex) into version
-     specific storage. */
+  /* Copy the field (SyntaxMemberDeclarator::bitwidth - ExprIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
@@ -39209,7 +39209,7 @@ universal representation of the field "constraint".
   an_ifc_syntax_index      stage_1;
 
   /* Copy the field (SyntaxMemberDeclarator::constraint - SyntaxIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
@@ -39252,7 +39252,7 @@ universal representation of the field "declarator".
   an_ifc_syntax_index      stage_1;
 
   /* Copy the field (SyntaxMemberDeclarator::declarator - SyntaxIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -39295,7 +39295,7 @@ universal representation of the field "initializer".
   an_ifc_expr_index      stage_1;
 
   /* Copy the field (SyntaxMemberDeclarator::initializer - ExprIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
@@ -39392,7 +39392,7 @@ the universal representation of the field "definition".
   an_ifc_syntax_index      stage_1;
 
   /* Copy the field (SyntaxMemberFunctionDeclaration::definition - SyntaxIndex)
-     into version specific storage. */
+     into version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -39442,7 +39442,7 @@ universal representation of the field "member_declarations".
   an_ifc_syntax_index      stage_1;
 
   /* Copy the field (SyntaxMemberSpecification::member_declarations -
-     SyntaxIndex) into version specific storage. */
+     SyntaxIndex) into version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -39540,7 +39540,7 @@ the universal representation of the field "name".
   an_ifc_expr_index      stage_1;
 
   /* Copy the field (SyntaxNamespaceAliasDefinition::name - ExprIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -39681,7 +39681,7 @@ the universal representation of the field "target".
   an_ifc_expr_index      stage_1;
 
   /* Copy the field (SyntaxNamespaceAliasDefinition::target - ExprIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
@@ -39729,7 +39729,7 @@ universal representation of the field "condition".
   an_ifc_expr_index      stage_1;
 
   /* Copy the field (SyntaxNestedRequirement::condition - ExprIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -39824,7 +39824,7 @@ representation of the field "declarator".
   an_ifc_syntax_index      stage_1;
 
   /* Copy the field (SyntaxNewDeclarator::declarator - SyntaxIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -39872,7 +39872,7 @@ universal representation of the field "expr".
   an_ifc_syntax_index      stage_1;
 
   /* Copy the field (SyntaxNoexceptSpecification::expr - SyntaxIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -40066,7 +40066,7 @@ universal representation of the field "argument".
   an_ifc_expr_index      stage_1;
 
   /* Copy the field (SyntaxNonTypeTemplateArgument::argument - ExprIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -40212,7 +40212,7 @@ universal representation of the field "decl_specifiers".
   an_ifc_syntax_index      stage_1;
 
   /* Copy the field (SyntaxParameterDeclarator::decl_specifiers - SyntaxIndex)
-     into version specific storage. */
+     into version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -40256,7 +40256,7 @@ universal representation of the field "declarator".
   an_ifc_syntax_index      stage_1;
 
   /* Copy the field (SyntaxParameterDeclarator::declarator - SyntaxIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
@@ -40300,7 +40300,7 @@ universal representation of the field "default_expr".
   an_ifc_expr_index      stage_1;
 
   /* Copy the field (SyntaxParameterDeclarator::default_expr - ExprIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
@@ -40391,7 +40391,7 @@ universal representation of the field "sort".
   an_ifc_parameter_sort      stage_1;
 
   /* Copy the field (SyntaxParameterDeclarator::sort - ParameterSort) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
@@ -40440,7 +40440,7 @@ the universal representation of the field "basis".
   an_ifc_type_basis_sort      stage_1;
 
   /* Copy the field (SyntaxPlaceholderTypeSpecifier::basis - TypeBasisSort)
-     into version specific storage. */
+     into version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
@@ -40484,7 +40484,7 @@ the universal representation of the field "constraint".
   an_ifc_expr_index      stage_1;
 
   /* Copy the field (SyntaxPlaceholderTypeSpecifier::constraint - ExprIndex)
-     into version specific storage. */
+     into version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -40627,8 +40627,8 @@ universal representation of the field "callable".
   an_ifc_bool_0_33 stage_0;
   an_ifc_bool      stage_1;
 
-  /* Copy the field (SyntaxPointerDeclarator::callable - bool) into version
-     specific storage. */
+  /* Copy the field (SyntaxPointerDeclarator::callable - bool) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/19);
@@ -40671,7 +40671,7 @@ universal representation of the field "convention".
   an_ifc_calling_convention_sort      stage_1;
 
   /* Copy the field (SyntaxPointerDeclarator::convention -
-     CallingConventionSort) into version specific storage. */
+     CallingConventionSort) into version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/18);
@@ -40760,8 +40760,8 @@ universal representation of the field "next".
   an_ifc_syntax_index_0_33 stage_0;
   an_ifc_syntax_index      stage_1;
 
-  /* Copy the field (SyntaxPointerDeclarator::next - SyntaxIndex) into version
-     specific storage. */
+  /* Copy the field (SyntaxPointerDeclarator::next - SyntaxIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
@@ -40804,7 +40804,7 @@ universal representation of the field "qualifiers".
   an_ifc_qualifier_bitfield      stage_1;
 
   /* Copy the field (SyntaxPointerDeclarator::qualifiers - QualifierBitfield)
-     into version specific storage. */
+     into version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/17);
@@ -40848,7 +40848,7 @@ universal representation of the field "sort".
   an_ifc_pointer_declarator_sort      stage_1;
 
   /* Copy the field (SyntaxPointerDeclarator::sort - PointerDeclaratorSort)
-     into version specific storage. */
+     into version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
@@ -40890,8 +40890,8 @@ universal representation of the field "whole".
   an_ifc_syntax_index_0_33 stage_0;
   an_ifc_syntax_index      stage_1;
 
-  /* Copy the field (SyntaxPointerDeclarator::whole - SyntaxIndex) into version
-     specific storage. */
+  /* Copy the field (SyntaxPointerDeclarator::whole - SyntaxIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -40940,7 +40940,7 @@ universal representation of the field "body".
   an_ifc_syntax_index      stage_1;
 
   /* Copy the field (SyntaxRangeBasedForStatement::body - SyntaxIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
@@ -41033,7 +41033,7 @@ universal representation of the field "decl".
   an_ifc_syntax_index      stage_1;
 
   /* Copy the field (SyntaxRangeBasedForStatement::decl - SyntaxIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
@@ -41125,7 +41125,7 @@ universal representation of the field "init".
   an_ifc_syntax_index      stage_1;
 
   /* Copy the field (SyntaxRangeBasedForStatement::init - SyntaxIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
@@ -41169,7 +41169,7 @@ universal representation of the field "initializer".
   an_ifc_syntax_index      stage_1;
 
   /* Copy the field (SyntaxRangeBasedForStatement::initializer - SyntaxIndex)
-     into version specific storage. */
+     into version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
@@ -41262,7 +41262,7 @@ universal representation of the field "pragma".
   an_ifc_sentence_index      stage_1;
 
   /* Copy the field (SyntaxRangeBasedForStatement::pragma - SentenceIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -41406,7 +41406,7 @@ universal representation of the field "requirements".
   an_ifc_syntax_index      stage_1;
 
   /* Copy the field (SyntaxRequirementBody::requirements - SyntaxIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -41501,8 +41501,8 @@ universal representation of the field "condition".
   an_ifc_expr_index_0_33 stage_0;
   an_ifc_expr_index      stage_1;
 
-  /* Copy the field (SyntaxRequiresClause::condition - ExprIndex) into version
-     specific storage. */
+  /* Copy the field (SyntaxRequiresClause::condition - ExprIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -41595,8 +41595,8 @@ universal representation of the field "expr".
   an_ifc_expr_index_0_33 stage_0;
   an_ifc_expr_index      stage_1;
 
-  /* Copy the field (SyntaxReturnStatement::expr - ExprIndex) into version
-     specific storage. */
+  /* Copy the field (SyntaxReturnStatement::expr - ExprIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
@@ -41639,7 +41639,7 @@ universal representation of the field "pragma".
   an_ifc_sentence_index      stage_1;
 
   /* Copy the field (SyntaxReturnStatement::pragma - SentenceIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -41776,8 +41776,8 @@ universal representation of the field "sort".
   an_ifc_return_sort_0_33 stage_0;
   an_ifc_return_sort      stage_1;
 
-  /* Copy the field (SyntaxReturnStatement::sort - ReturnSort) into version
-     specific storage. */
+  /* Copy the field (SyntaxReturnStatement::sort - ReturnSort) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
@@ -41823,7 +41823,7 @@ representation of the field "body".
   an_ifc_syntax_index_0_33 stage_0;
   an_ifc_syntax_index      stage_1;
 
-  /* Copy the field (SyntaxSEHExcept::body - SyntaxIndex) into version specific
+  /* Copy the field (SyntaxSEHExcept::body - SyntaxIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -41865,8 +41865,8 @@ representation of the field "condition".
   an_ifc_expr_index_0_33 stage_0;
   an_ifc_expr_index      stage_1;
 
-  /* Copy the field (SyntaxSEHExcept::condition - ExprIndex) into version
-     specific storage. */
+  /* Copy the field (SyntaxSEHExcept::condition - ExprIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -42055,8 +42055,8 @@ representation of the field "body".
   an_ifc_syntax_index_0_33 stage_0;
   an_ifc_syntax_index      stage_1;
 
-  /* Copy the field (SyntaxSEHFinally::body - SyntaxIndex) into version
-     specific storage. */
+  /* Copy the field (SyntaxSEHFinally::body - SyntaxIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -42248,7 +42248,7 @@ representation of the field "body".
   an_ifc_syntax_index_0_33 stage_0;
   an_ifc_syntax_index      stage_1;
 
-  /* Copy the field (SyntaxSEHTry::body - SyntaxIndex) into version specific
+  /* Copy the field (SyntaxSEHTry::body - SyntaxIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -42290,7 +42290,7 @@ representation of the field "handler".
   an_ifc_syntax_index_0_33 stage_0;
   an_ifc_syntax_index      stage_1;
 
-  /* Copy the field (SyntaxSEHTry::handler - SyntaxIndex) into version specific
+  /* Copy the field (SyntaxSEHTry::handler - SyntaxIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -42526,8 +42526,8 @@ representation of the field "name".
   an_ifc_expr_index_0_33 stage_0;
   an_ifc_expr_index      stage_1;
 
-  /* Copy the field (SyntaxSimpleCapture::name - ExprIndex) into version
-     specific storage. */
+  /* Copy the field (SyntaxSimpleCapture::name - ExprIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -42576,7 +42576,7 @@ universal representation of the field "decl_specifiers".
   an_ifc_syntax_index      stage_1;
 
   /* Copy the field (SyntaxSimpleDeclaration::decl_specifiers - SyntaxIndex)
-     into version specific storage. */
+     into version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -42620,7 +42620,7 @@ universal representation of the field "declarators".
   an_ifc_syntax_index      stage_1;
 
   /* Copy the field (SyntaxSimpleDeclaration::declarators - SyntaxIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
@@ -42763,7 +42763,7 @@ universal representation of the field "condition".
   an_ifc_expr_index      stage_1;
 
   /* Copy the field (SyntaxSimpleRequirement::condition - ExprIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -42857,8 +42857,8 @@ universal representation of the field "expr".
   an_ifc_expr_index_0_33 stage_0;
   an_ifc_expr_index      stage_1;
 
-  /* Copy the field (SyntaxSimpleTypeSpecifier::expr - ExprIndex) into version
-     specific storage. */
+  /* Copy the field (SyntaxSimpleTypeSpecifier::expr - ExprIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
@@ -42947,8 +42947,8 @@ universal representation of the field "type".
   an_ifc_type_index_0_33 stage_0;
   an_ifc_type_index      stage_1;
 
-  /* Copy the field (SyntaxSimpleTypeSpecifier::type - TypeIndex) into version
-     specific storage. */
+  /* Copy the field (SyntaxSimpleTypeSpecifier::type - TypeIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -42994,8 +42994,8 @@ representation of the field "stmts".
   an_ifc_syntax_index_0_33 stage_0;
   an_ifc_syntax_index      stage_1;
 
-  /* Copy the field (SyntaxStatementSeq::stmts - SyntaxIndex) into version
-     specific storage. */
+  /* Copy the field (SyntaxStatementSeq::stmts - SyntaxIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -43093,7 +43093,7 @@ universal representation of the field "condition".
   an_ifc_expr_index      stage_1;
 
   /* Copy the field (SyntaxStaticAssertDeclaration::condition - ExprIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -43234,7 +43234,7 @@ universal representation of the field "message".
   an_ifc_expr_index      stage_1;
 
   /* Copy the field (SyntaxStaticAssertDeclaration::message - ExprIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
@@ -43381,7 +43381,7 @@ return the universal representation of the field "initializer".
   an_ifc_expr_index      stage_1;
 
   /* Copy the field (SyntaxStructuredBindingDeclaration::initializer -
-     ExprIndex) into version specific storage. */
+     ExprIndex) into version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24);
@@ -43473,7 +43473,7 @@ return the universal representation of the field "names".
   an_ifc_syntax_index      stage_1;
 
   /* Copy the field (SyntaxStructuredBindingDeclaration::names - SyntaxIndex)
-     into version specific storage. */
+     into version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
@@ -43565,7 +43565,7 @@ return the universal representation of the field "specifiers".
   an_ifc_syntax_index      stage_1;
 
   /* Copy the field (SyntaxStructuredBindingDeclaration::specifiers -
-     SyntaxIndex) into version specific storage. */
+     SyntaxIndex) into version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
@@ -43662,7 +43662,7 @@ the universal representation of the field "name".
   an_ifc_expr_index      stage_1;
 
   /* Copy the field (SyntaxStructuredBindingIdentifier::name - ExprIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -43760,8 +43760,8 @@ universal representation of the field "body".
   an_ifc_syntax_index_0_33 stage_0;
   an_ifc_syntax_index      stage_1;
 
-  /* Copy the field (SyntaxSwitchStatement::body - SyntaxIndex) into version
-     specific storage. */
+  /* Copy the field (SyntaxSwitchStatement::body - SyntaxIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
@@ -43804,7 +43804,7 @@ universal representation of the field "condition".
   an_ifc_syntax_index      stage_1;
 
   /* Copy the field (SyntaxSwitchStatement::condition - SyntaxIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
@@ -43846,8 +43846,8 @@ universal representation of the field "init".
   an_ifc_syntax_index_0_33 stage_0;
   an_ifc_syntax_index      stage_1;
 
-  /* Copy the field (SyntaxSwitchStatement::init - SyntaxIndex) into version
-     specific storage. */
+  /* Copy the field (SyntaxSwitchStatement::init - SyntaxIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
@@ -43890,7 +43890,7 @@ universal representation of the field "pragma".
   an_ifc_sentence_index      stage_1;
 
   /* Copy the field (SyntaxSwitchStatement::pragma - SentenceIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -43987,7 +43987,7 @@ universal representation of the field "arguments".
   an_ifc_syntax_index      stage_1;
 
   /* Copy the field (SyntaxTemplateArgumentList::arguments - SyntaxIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -44180,7 +44180,7 @@ universal representation of the field "parameters".
   an_ifc_syntax_index      stage_1;
 
   /* Copy the field (SyntaxTemplateDeclaration::parameters - SyntaxIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -44223,7 +44223,7 @@ universal representation of the field "subject".
   an_ifc_syntax_index      stage_1;
 
   /* Copy the field (SyntaxTemplateDeclaration::subject - SyntaxIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
@@ -44270,8 +44270,8 @@ representation of the field "arguments".
   an_ifc_syntax_index_0_33 stage_0;
   an_ifc_syntax_index      stage_1;
 
-  /* Copy the field (SyntaxTemplateId::arguments - SyntaxIndex) into version
-     specific storage. */
+  /* Copy the field (SyntaxTemplateId::arguments - SyntaxIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
@@ -44360,8 +44360,8 @@ representation of the field "name".
   an_ifc_syntax_index_0_33 stage_0;
   an_ifc_syntax_index      stage_1;
 
-  /* Copy the field (SyntaxTemplateId::name - SyntaxIndex) into version
-     specific storage. */
+  /* Copy the field (SyntaxTemplateId::name - SyntaxIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -44402,8 +44402,8 @@ representation of the field "symbol".
   an_ifc_expr_index_0_33 stage_0;
   an_ifc_expr_index      stage_1;
 
-  /* Copy the field (SyntaxTemplateId::symbol - ExprIndex) into version
-     specific storage. */
+  /* Copy the field (SyntaxTemplateId::symbol - ExprIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
@@ -44500,7 +44500,7 @@ universal representation of the field "clause".
   an_ifc_syntax_index      stage_1;
 
   /* Copy the field (SyntaxTemplateParameterList::clause - SyntaxIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
@@ -44592,7 +44592,7 @@ universal representation of the field "parameters".
   an_ifc_syntax_index      stage_1;
 
   /* Copy the field (SyntaxTemplateParameterList::parameters - SyntaxIndex)
-     into version specific storage. */
+     into version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -44690,7 +44690,7 @@ the universal representation of the field "argument".
   an_ifc_syntax_index      stage_1;
 
   /* Copy the field (SyntaxTemplateTemplateParameter::argument - SyntaxIndex)
-     into version specific storage. */
+     into version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
@@ -44930,7 +44930,7 @@ the universal representation of the field "name".
   an_ifc_text_offset      stage_1;
 
   /* Copy the field (SyntaxTemplateTemplateParameter::name - TextOffset) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -44974,7 +44974,7 @@ the universal representation of the field "parameters".
   an_ifc_syntax_index      stage_1;
 
   /* Copy the field (SyntaxTemplateTemplateParameter::parameters - SyntaxIndex)
-     into version specific storage. */
+     into version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
@@ -45216,7 +45216,7 @@ universal representation of the field "target".
   an_ifc_syntax_index      stage_1;
 
   /* Copy the field (SyntaxTrailingReturnType::target - SyntaxIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -45262,7 +45262,7 @@ representation of the field "body".
   an_ifc_syntax_index_0_33 stage_0;
   an_ifc_syntax_index      stage_1;
 
-  /* Copy the field (SyntaxTryBlock::body - SyntaxIndex) into version specific
+  /* Copy the field (SyntaxTryBlock::body - SyntaxIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -45304,8 +45304,8 @@ representation of the field "handlers".
   an_ifc_syntax_index_0_33 stage_0;
   an_ifc_syntax_index      stage_1;
 
-  /* Copy the field (SyntaxTryBlock::handlers - SyntaxIndex) into version
-     specific storage. */
+  /* Copy the field (SyntaxTryBlock::handlers - SyntaxIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
@@ -45346,8 +45346,8 @@ representation of the field "pragma".
   an_ifc_sentence_index_0_33 stage_0;
   an_ifc_sentence_index      stage_1;
 
-  /* Copy the field (SyntaxTryBlock::pragma - SentenceIndex) into version
-     specific storage. */
+  /* Copy the field (SyntaxTryBlock::pragma - SentenceIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -45440,8 +45440,8 @@ representation of the field "cardinality".
   an_ifc_cardinality_0_33 stage_0;
   an_ifc_cardinality      stage_1;
 
-  /* Copy the field (SyntaxTuple::cardinality - Cardinality) into version
-     specific storage. */
+  /* Copy the field (SyntaxTuple::cardinality - Cardinality) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
@@ -45482,7 +45482,7 @@ representation of the field "start".
   an_ifc_index_0_33 stage_0;
   an_ifc_index      stage_1;
 
-  /* Copy the field (SyntaxTuple::start - Index) into version specific
+  /* Copy the field (SyntaxTuple::start - Index) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -45532,7 +45532,7 @@ representation of the field "abstract_declarator".
   an_ifc_syntax_index      stage_1;
 
   /* Copy the field (SyntaxTypeId::abstract_declarator - SyntaxIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
@@ -45620,8 +45620,8 @@ representation of the field "type_specifier".
   an_ifc_syntax_index_0_33 stage_0;
   an_ifc_syntax_index      stage_1;
 
-  /* Copy the field (SyntaxTypeId::type_specifier - SyntaxIndex) into version
-     specific storage. */
+  /* Copy the field (SyntaxTypeId::type_specifier - SyntaxIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -45716,7 +45716,7 @@ universal representation of the field "type_id".
   an_ifc_syntax_index      stage_1;
 
   /* Copy the field (SyntaxTypeIdListElement::type_id - SyntaxIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -45809,8 +45809,8 @@ universal representation of the field "type".
   an_ifc_expr_index_0_33 stage_0;
   an_ifc_expr_index      stage_1;
 
-  /* Copy the field (SyntaxTypeRequirement::type - ExprIndex) into version
-     specific storage. */
+  /* Copy the field (SyntaxTypeRequirement::type - ExprIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -45905,7 +45905,7 @@ universal representation of the field "qualifiers".
   an_ifc_qualifier_bitfield      stage_1;
 
   /* Copy the field (SyntaxTypeSpecifierSeq::qualifiers - QualifierBitfield)
-     into version specific storage. */
+     into version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
@@ -45948,8 +45948,8 @@ universal representation of the field "type".
   an_ifc_type_index_0_33 stage_0;
   an_ifc_type_index      stage_1;
 
-  /* Copy the field (SyntaxTypeSpecifierSeq::type - TypeIndex) into version
-     specific storage. */
+  /* Copy the field (SyntaxTypeSpecifierSeq::type - TypeIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
@@ -45992,7 +45992,7 @@ universal representation of the field "type_name".
   an_ifc_syntax_index      stage_1;
 
   /* Copy the field (SyntaxTypeSpecifierSeq::type_name - SyntaxIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -46033,8 +46033,8 @@ universal representation of the field "unhashed".
   an_ifc_bool_0_33 stage_0;
   an_ifc_bool      stage_1;
 
-  /* Copy the field (SyntaxTypeSpecifierSeq::unhashed - bool) into version
-     specific storage. */
+  /* Copy the field (SyntaxTypeSpecifierSeq::unhashed - bool) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/17);
@@ -46083,7 +46083,7 @@ universal representation of the field "argument".
   an_ifc_syntax_index      stage_1;
 
   /* Copy the field (SyntaxTypeTemplateArgument::argument - SyntaxIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -46228,7 +46228,7 @@ universal representation of the field "argument".
   an_ifc_syntax_index      stage_1;
 
   /* Copy the field (SyntaxTypeTemplateParameter::argument - SyntaxIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
@@ -46272,7 +46272,7 @@ universal representation of the field "constraint".
   an_ifc_syntax_index      stage_1;
 
   /* Copy the field (SyntaxTypeTemplateParameter::constraint - SyntaxIndex)
-     into version specific storage. */
+     into version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
@@ -46412,7 +46412,7 @@ universal representation of the field "name".
   an_ifc_text_offset      stage_1;
 
   /* Copy the field (SyntaxTypeTemplateParameter::name - TextOffset) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -46461,7 +46461,7 @@ universal representation of the field "arguments".
   an_ifc_syntax_index      stage_1;
 
   /* Copy the field (SyntaxTypeTraitIntrinsic::arguments - SyntaxIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -46505,7 +46505,7 @@ universal representation of the field "intrinsic".
   an_ifc_operator_category      stage_1;
 
   /* Copy the field (SyntaxTypeTraitIntrinsic::intrinsic - OperatorCategory)
-     into version specific storage. */
+     into version-specific storage. */
   static_assert(sizeof(stage_0) == 2,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
@@ -46601,7 +46601,7 @@ universal representation of the field "direction".
   an_ifc_fold_direction_sort      stage_1;
 
   /* Copy the field (SyntaxUnaryFoldExpression::direction - FoldDirectionSort)
-     into version specific storage. */
+     into version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -46644,7 +46644,7 @@ universal representation of the field "dyad".
   an_ifc_dyadic_operator_sort      stage_1;
 
   /* Copy the field (SyntaxUnaryFoldExpression::dyad - DyadicOperatorSort) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 2,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
@@ -46833,7 +46833,7 @@ universal representation of the field "operand".
   an_ifc_expr_index      stage_1;
 
   /* Copy the field (SyntaxUnaryFoldExpression::operand - ExprIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
@@ -46930,7 +46930,7 @@ universal representation of the field "declarators".
   an_ifc_syntax_index      stage_1;
 
   /* Copy the field (SyntaxUsingDeclaration::declarators - SyntaxIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -47170,7 +47170,7 @@ universal representation of the field "qualified_name".
   an_ifc_expr_index      stage_1;
 
   /* Copy the field (SyntaxUsingDeclarator::qualified_name - ExprIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -47314,7 +47314,7 @@ universal representation of the field "qualified_name".
   an_ifc_expr_index      stage_1;
 
   /* Copy the field (SyntaxUsingDirective::qualified_name - ExprIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -47505,8 +47505,8 @@ universal representation of the field "name".
   an_ifc_expr_index_0_33 stage_0;
   an_ifc_expr_index      stage_1;
 
-  /* Copy the field (SyntaxUsingEnumDeclaration::name - ExprIndex) into version
-     specific storage. */
+  /* Copy the field (SyntaxUsingEnumDeclaration::name - ExprIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -47793,8 +47793,8 @@ universal representation of the field "pure".
   an_ifc_bool_0_33 stage_0;
   an_ifc_bool      stage_1;
 
-  /* Copy the field (SyntaxVirtualSpecifierSeq::pure - bool) into version
-     specific storage. */
+  /* Copy the field (SyntaxVirtualSpecifierSeq::pure - bool) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24);
@@ -47841,8 +47841,8 @@ universal representation of the field "body".
   an_ifc_syntax_index_0_33 stage_0;
   an_ifc_syntax_index      stage_1;
 
-  /* Copy the field (SyntaxWhileStatement::body - SyntaxIndex) into version
-     specific storage. */
+  /* Copy the field (SyntaxWhileStatement::body - SyntaxIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
@@ -47884,8 +47884,8 @@ universal representation of the field "condition".
   an_ifc_expr_index_0_33 stage_0;
   an_ifc_expr_index      stage_1;
 
-  /* Copy the field (SyntaxWhileStatement::condition - ExprIndex) into version
-     specific storage. */
+  /* Copy the field (SyntaxWhileStatement::condition - ExprIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
@@ -47927,8 +47927,8 @@ universal representation of the field "pragma".
   an_ifc_sentence_index_0_33 stage_0;
   an_ifc_sentence_index      stage_1;
 
-  /* Copy the field (SyntaxWhileStatement::pragma - SentenceIndex) into version
-     specific storage. */
+  /* Copy the field (SyntaxWhileStatement::pragma - SentenceIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -48023,8 +48023,8 @@ representation of the field "decl".
     an_ifc_decl_index_0_41 stage_0;
     an_ifc_decl_index      stage_1;
 
-    /* Copy the field (TraitAliasTemplate::decl - DeclIndex) into version
-       specific storage. */
+    /* Copy the field (TraitAliasTemplate::decl - DeclIndex) into
+       version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -48034,8 +48034,8 @@ representation of the field "decl".
     an_ifc_decl_index_0_33 stage_0;
     an_ifc_decl_index      stage_1;
 
-    /* Copy the field (TraitAliasTemplate::decl - DeclIndex) into version
-       specific storage. */
+    /* Copy the field (TraitAliasTemplate::decl - DeclIndex) into
+       version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -48080,8 +48080,8 @@ representation of the field "encoded_decl".
     an_ifc_decl_index         stage_1;
     an_ifc_encoded_decl_index stage_2;
 
-    /* Copy the field (TraitAliasTemplate::decl - DeclIndex) into version
-       specific storage. */
+    /* Copy the field (TraitAliasTemplate::decl - DeclIndex) into
+       version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -48096,8 +48096,8 @@ representation of the field "encoded_decl".
     an_ifc_decl_index         stage_1;
     an_ifc_encoded_decl_index stage_2;
 
-    /* Copy the field (TraitAliasTemplate::decl - DeclIndex) into version
-       specific storage. */
+    /* Copy the field (TraitAliasTemplate::decl - DeclIndex) into
+       version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -48143,8 +48143,8 @@ representation of the field "trait".
   an_ifc_syntax_index_0_33 stage_0;
   an_ifc_syntax_index      stage_1;
 
-  /* Copy the field (TraitAliasTemplate::trait - SyntaxIndex) into version
-     specific storage. */
+  /* Copy the field (TraitAliasTemplate::trait - SyntaxIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
@@ -48191,7 +48191,7 @@ representation of the field "decl".
     an_ifc_decl_index_0_41 stage_0;
     an_ifc_decl_index      stage_1;
 
-    /* Copy the field (TraitAttribute::decl - DeclIndex) into version specific
+    /* Copy the field (TraitAttribute::decl - DeclIndex) into version-specific
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
@@ -48202,7 +48202,7 @@ representation of the field "decl".
     an_ifc_decl_index_0_33 stage_0;
     an_ifc_decl_index      stage_1;
 
-    /* Copy the field (TraitAttribute::decl - DeclIndex) into version specific
+    /* Copy the field (TraitAttribute::decl - DeclIndex) into version-specific
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
@@ -48248,7 +48248,7 @@ representation of the field "encoded_decl".
     an_ifc_decl_index         stage_1;
     an_ifc_encoded_decl_index stage_2;
 
-    /* Copy the field (TraitAttribute::decl - DeclIndex) into version specific
+    /* Copy the field (TraitAttribute::decl - DeclIndex) into version-specific
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
@@ -48264,7 +48264,7 @@ representation of the field "encoded_decl".
     an_ifc_decl_index         stage_1;
     an_ifc_encoded_decl_index stage_2;
 
-    /* Copy the field (TraitAttribute::decl - DeclIndex) into version specific
+    /* Copy the field (TraitAttribute::decl - DeclIndex) into version-specific
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
@@ -48311,7 +48311,7 @@ representation of the field "trait".
   an_ifc_attr_index_0_33 stage_0;
   an_ifc_attr_index      stage_1;
 
-  /* Copy the field (TraitAttribute::trait - AttrIndex) into version specific
+  /* Copy the field (TraitAttribute::trait - AttrIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -48359,8 +48359,8 @@ representation of the field "decl".
     an_ifc_decl_index_0_41 stage_0;
     an_ifc_decl_index      stage_1;
 
-    /* Copy the field (TraitDeductionGuide::decl - DeclIndex) into version
-       specific storage. */
+    /* Copy the field (TraitDeductionGuide::decl - DeclIndex) into
+       version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -48370,8 +48370,8 @@ representation of the field "decl".
     an_ifc_decl_index_0_33 stage_0;
     an_ifc_decl_index      stage_1;
 
-    /* Copy the field (TraitDeductionGuide::decl - DeclIndex) into version
-       specific storage. */
+    /* Copy the field (TraitDeductionGuide::decl - DeclIndex) into
+       version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -48416,8 +48416,8 @@ representation of the field "encoded_decl".
     an_ifc_decl_index         stage_1;
     an_ifc_encoded_decl_index stage_2;
 
-    /* Copy the field (TraitDeductionGuide::decl - DeclIndex) into version
-       specific storage. */
+    /* Copy the field (TraitDeductionGuide::decl - DeclIndex) into
+       version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -48432,8 +48432,8 @@ representation of the field "encoded_decl".
     an_ifc_decl_index         stage_1;
     an_ifc_encoded_decl_index stage_2;
 
-    /* Copy the field (TraitDeductionGuide::decl - DeclIndex) into version
-       specific storage. */
+    /* Copy the field (TraitDeductionGuide::decl - DeclIndex) into
+       version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -48480,8 +48480,8 @@ representation of the field "trait".
     an_ifc_decl_index_0_41 stage_0;
     an_ifc_decl_index      stage_1;
 
-    /* Copy the field (TraitDeductionGuide::trait - DeclIndex) into version
-       specific storage. */
+    /* Copy the field (TraitDeductionGuide::trait - DeclIndex) into
+       version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
@@ -48491,8 +48491,8 @@ representation of the field "trait".
     an_ifc_decl_index_0_33 stage_0;
     an_ifc_decl_index      stage_1;
 
-    /* Copy the field (TraitDeductionGuide::trait - DeclIndex) into version
-       specific storage. */
+    /* Copy the field (TraitDeductionGuide::trait - DeclIndex) into
+       version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
@@ -48540,7 +48540,7 @@ representation of the field "decl".
     an_ifc_decl_index_0_41 stage_0;
     an_ifc_decl_index      stage_1;
 
-    /* Copy the field (TraitDeprecated::decl - DeclIndex) into version specific
+    /* Copy the field (TraitDeprecated::decl - DeclIndex) into version-specific
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
@@ -48551,7 +48551,7 @@ representation of the field "decl".
     an_ifc_decl_index_0_33 stage_0;
     an_ifc_decl_index      stage_1;
 
-    /* Copy the field (TraitDeprecated::decl - DeclIndex) into version specific
+    /* Copy the field (TraitDeprecated::decl - DeclIndex) into version-specific
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
@@ -48597,7 +48597,7 @@ representation of the field "encoded_decl".
     an_ifc_decl_index         stage_1;
     an_ifc_encoded_decl_index stage_2;
 
-    /* Copy the field (TraitDeprecated::decl - DeclIndex) into version specific
+    /* Copy the field (TraitDeprecated::decl - DeclIndex) into version-specific
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
@@ -48613,7 +48613,7 @@ representation of the field "encoded_decl".
     an_ifc_decl_index         stage_1;
     an_ifc_encoded_decl_index stage_2;
 
-    /* Copy the field (TraitDeprecated::decl - DeclIndex) into version specific
+    /* Copy the field (TraitDeprecated::decl - DeclIndex) into version-specific
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
@@ -48660,7 +48660,7 @@ representation of the field "trait".
   an_ifc_text_offset_0_33 stage_0;
   an_ifc_text_offset      stage_1;
 
-  /* Copy the field (TraitDeprecated::trait - TextOffset) into version specific
+  /* Copy the field (TraitDeprecated::trait - TextOffset) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -48708,7 +48708,7 @@ representation of the field "decl".
     an_ifc_decl_index_0_41 stage_0;
     an_ifc_decl_index      stage_1;
 
-    /* Copy the field (TraitFriend::decl - DeclIndex) into version specific
+    /* Copy the field (TraitFriend::decl - DeclIndex) into version-specific
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
@@ -48719,7 +48719,7 @@ representation of the field "decl".
     an_ifc_decl_index_0_33 stage_0;
     an_ifc_decl_index      stage_1;
 
-    /* Copy the field (TraitFriend::decl - DeclIndex) into version specific
+    /* Copy the field (TraitFriend::decl - DeclIndex) into version-specific
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
@@ -48765,7 +48765,7 @@ representation of the field "encoded_decl".
     an_ifc_decl_index         stage_1;
     an_ifc_encoded_decl_index stage_2;
 
-    /* Copy the field (TraitFriend::decl - DeclIndex) into version specific
+    /* Copy the field (TraitFriend::decl - DeclIndex) into version-specific
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
@@ -48781,7 +48781,7 @@ representation of the field "encoded_decl".
     an_ifc_decl_index         stage_1;
     an_ifc_encoded_decl_index stage_2;
 
-    /* Copy the field (TraitFriend::decl - DeclIndex) into version specific
+    /* Copy the field (TraitFriend::decl - DeclIndex) into version-specific
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
@@ -48879,8 +48879,8 @@ universal representation of the field "body".
   an_ifc_stmt_index_0_33 stage_0;
   an_ifc_stmt_index      stage_1;
 
-  /* Copy the field (TraitFunctionDefinition::body - StmtIndex) into version
-     specific storage. */
+  /* Copy the field (TraitFunctionDefinition::body - StmtIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
@@ -48923,8 +48923,8 @@ universal representation of the field "decl".
     an_ifc_decl_index_0_41 stage_0;
     an_ifc_decl_index      stage_1;
 
-    /* Copy the field (TraitFunctionDefinition::decl - DeclIndex) into version
-       specific storage. */
+    /* Copy the field (TraitFunctionDefinition::decl - DeclIndex) into
+       version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -48934,8 +48934,8 @@ universal representation of the field "decl".
     an_ifc_decl_index_0_33 stage_0;
     an_ifc_decl_index      stage_1;
 
-    /* Copy the field (TraitFunctionDefinition::decl - DeclIndex) into version
-       specific storage. */
+    /* Copy the field (TraitFunctionDefinition::decl - DeclIndex) into
+       version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -48981,8 +48981,8 @@ universal representation of the field "encoded_decl".
     an_ifc_decl_index         stage_1;
     an_ifc_encoded_decl_index stage_2;
 
-    /* Copy the field (TraitFunctionDefinition::decl - DeclIndex) into version
-       specific storage. */
+    /* Copy the field (TraitFunctionDefinition::decl - DeclIndex) into
+       version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -48997,8 +48997,8 @@ universal representation of the field "encoded_decl".
     an_ifc_decl_index         stage_1;
     an_ifc_encoded_decl_index stage_2;
 
-    /* Copy the field (TraitFunctionDefinition::decl - DeclIndex) into version
-       specific storage. */
+    /* Copy the field (TraitFunctionDefinition::decl - DeclIndex) into
+       version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -49047,7 +49047,7 @@ universal representation of the field "initializers".
   an_ifc_expr_index      stage_1;
 
   /* Copy the field (TraitFunctionDefinition::initializers - ExprIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
@@ -49090,7 +49090,7 @@ universal representation of the field "parameters".
   an_ifc_chart_index      stage_1;
 
   /* Copy the field (TraitFunctionDefinition::parameters - ChartIndex) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
@@ -49137,8 +49137,8 @@ representation of the field "decl".
     an_ifc_decl_index_0_41 stage_0;
     an_ifc_decl_index      stage_1;
 
-    /* Copy the field (TraitMsvcDeclAttrs::decl - DeclIndex) into version
-       specific storage. */
+    /* Copy the field (TraitMsvcDeclAttrs::decl - DeclIndex) into
+       version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -49148,8 +49148,8 @@ representation of the field "decl".
     an_ifc_decl_index_0_33 stage_0;
     an_ifc_decl_index      stage_1;
 
-    /* Copy the field (TraitMsvcDeclAttrs::decl - DeclIndex) into version
-       specific storage. */
+    /* Copy the field (TraitMsvcDeclAttrs::decl - DeclIndex) into
+       version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -49194,8 +49194,8 @@ representation of the field "encoded_decl".
     an_ifc_decl_index         stage_1;
     an_ifc_encoded_decl_index stage_2;
 
-    /* Copy the field (TraitMsvcDeclAttrs::decl - DeclIndex) into version
-       specific storage. */
+    /* Copy the field (TraitMsvcDeclAttrs::decl - DeclIndex) into
+       version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -49210,8 +49210,8 @@ representation of the field "encoded_decl".
     an_ifc_decl_index         stage_1;
     an_ifc_encoded_decl_index stage_2;
 
-    /* Copy the field (TraitMsvcDeclAttrs::decl - DeclIndex) into version
-       specific storage. */
+    /* Copy the field (TraitMsvcDeclAttrs::decl - DeclIndex) into
+       version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -49257,8 +49257,8 @@ representation of the field "trait".
   an_ifc_attr_index_0_33 stage_0;
   an_ifc_attr_index      stage_1;
 
-  /* Copy the field (TraitMsvcDeclAttrs::trait - AttrIndex) into version
-     specific storage. */
+  /* Copy the field (TraitMsvcDeclAttrs::trait - AttrIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
@@ -49305,8 +49305,8 @@ representation of the field "decl".
     an_ifc_decl_index_0_41 stage_0;
     an_ifc_decl_index      stage_1;
 
-    /* Copy the field (TraitMsvcFuncParams::decl - DeclIndex) into version
-       specific storage. */
+    /* Copy the field (TraitMsvcFuncParams::decl - DeclIndex) into
+       version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -49316,8 +49316,8 @@ representation of the field "decl".
     an_ifc_decl_index_0_33 stage_0;
     an_ifc_decl_index      stage_1;
 
-    /* Copy the field (TraitMsvcFuncParams::decl - DeclIndex) into version
-       specific storage. */
+    /* Copy the field (TraitMsvcFuncParams::decl - DeclIndex) into
+       version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -49362,8 +49362,8 @@ representation of the field "encoded_decl".
     an_ifc_decl_index         stage_1;
     an_ifc_encoded_decl_index stage_2;
 
-    /* Copy the field (TraitMsvcFuncParams::decl - DeclIndex) into version
-       specific storage. */
+    /* Copy the field (TraitMsvcFuncParams::decl - DeclIndex) into
+       version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -49378,8 +49378,8 @@ representation of the field "encoded_decl".
     an_ifc_decl_index         stage_1;
     an_ifc_encoded_decl_index stage_2;
 
-    /* Copy the field (TraitMsvcFuncParams::decl - DeclIndex) into version
-       specific storage. */
+    /* Copy the field (TraitMsvcFuncParams::decl - DeclIndex) into
+       version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -49426,8 +49426,8 @@ representation of the field "params".
   an_ifc_chart_index_0_33 stage_0;
   an_ifc_chart_index      stage_1;
 
-  /* Copy the field (TraitMsvcFuncParams::params - ChartIndex) into version
-     specific storage. */
+  /* Copy the field (TraitMsvcFuncParams::params - ChartIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
@@ -49474,7 +49474,7 @@ representation of the field "decl".
     an_ifc_decl_index_0_41 stage_0;
     an_ifc_decl_index      stage_1;
 
-    /* Copy the field (TraitMsvcUuid::decl - DeclIndex) into version specific
+    /* Copy the field (TraitMsvcUuid::decl - DeclIndex) into version-specific
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
@@ -49485,7 +49485,7 @@ representation of the field "decl".
     an_ifc_decl_index_0_33 stage_0;
     an_ifc_decl_index      stage_1;
 
-    /* Copy the field (TraitMsvcUuid::decl - DeclIndex) into version specific
+    /* Copy the field (TraitMsvcUuid::decl - DeclIndex) into version-specific
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
@@ -49531,7 +49531,7 @@ representation of the field "encoded_decl".
     an_ifc_decl_index         stage_1;
     an_ifc_encoded_decl_index stage_2;
 
-    /* Copy the field (TraitMsvcUuid::decl - DeclIndex) into version specific
+    /* Copy the field (TraitMsvcUuid::decl - DeclIndex) into version-specific
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
@@ -49547,7 +49547,7 @@ representation of the field "encoded_decl".
     an_ifc_decl_index         stage_1;
     an_ifc_encoded_decl_index stage_2;
 
-    /* Copy the field (TraitMsvcUuid::decl - DeclIndex) into version specific
+    /* Copy the field (TraitMsvcUuid::decl - DeclIndex) into version-specific
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
@@ -49645,8 +49645,8 @@ universal representation of the field "decl".
     an_ifc_decl_index_0_41 stage_0;
     an_ifc_decl_index      stage_1;
 
-    /* Copy the field (TraitMsvcVendorTrait::decl - DeclIndex) into version
-       specific storage. */
+    /* Copy the field (TraitMsvcVendorTrait::decl - DeclIndex) into
+       version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -49656,8 +49656,8 @@ universal representation of the field "decl".
     an_ifc_decl_index_0_33 stage_0;
     an_ifc_decl_index      stage_1;
 
-    /* Copy the field (TraitMsvcVendorTrait::decl - DeclIndex) into version
-       specific storage. */
+    /* Copy the field (TraitMsvcVendorTrait::decl - DeclIndex) into
+       version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -49702,8 +49702,8 @@ universal representation of the field "encoded_decl".
     an_ifc_decl_index         stage_1;
     an_ifc_encoded_decl_index stage_2;
 
-    /* Copy the field (TraitMsvcVendorTrait::decl - DeclIndex) into version
-       specific storage. */
+    /* Copy the field (TraitMsvcVendorTrait::decl - DeclIndex) into
+       version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -49718,8 +49718,8 @@ universal representation of the field "encoded_decl".
     an_ifc_decl_index         stage_1;
     an_ifc_encoded_decl_index stage_2;
 
-    /* Copy the field (TraitMsvcVendorTrait::decl - DeclIndex) into version
-       specific storage. */
+    /* Copy the field (TraitMsvcVendorTrait::decl - DeclIndex) into
+       version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -49767,7 +49767,7 @@ universal representation of the field "trait".
   an_ifc_msvc_traits_bitfield      stage_1;
 
   /* Copy the field (TraitMsvcVendorTrait::trait - MsvcTraitsBitfield) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
@@ -49815,7 +49815,7 @@ representation of the field "decl".
     an_ifc_decl_index_0_41 stage_0;
     an_ifc_decl_index      stage_1;
 
-    /* Copy the field (TraitRequires::decl - DeclIndex) into version specific
+    /* Copy the field (TraitRequires::decl - DeclIndex) into version-specific
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
@@ -49826,7 +49826,7 @@ representation of the field "decl".
     an_ifc_decl_index_0_33 stage_0;
     an_ifc_decl_index      stage_1;
 
-    /* Copy the field (TraitRequires::decl - DeclIndex) into version specific
+    /* Copy the field (TraitRequires::decl - DeclIndex) into version-specific
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
@@ -49872,7 +49872,7 @@ representation of the field "encoded_decl".
     an_ifc_decl_index         stage_1;
     an_ifc_encoded_decl_index stage_2;
 
-    /* Copy the field (TraitRequires::decl - DeclIndex) into version specific
+    /* Copy the field (TraitRequires::decl - DeclIndex) into version-specific
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
@@ -49888,7 +49888,7 @@ representation of the field "encoded_decl".
     an_ifc_decl_index         stage_1;
     an_ifc_encoded_decl_index stage_2;
 
-    /* Copy the field (TraitRequires::decl - DeclIndex) into version specific
+    /* Copy the field (TraitRequires::decl - DeclIndex) into version-specific
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
@@ -49935,7 +49935,7 @@ representation of the field "trait".
   an_ifc_syntax_index_0_33 stage_0;
   an_ifc_syntax_index      stage_1;
 
-  /* Copy the field (TraitRequires::trait - SyntaxIndex) into version specific
+  /* Copy the field (TraitRequires::trait - SyntaxIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -49983,8 +49983,8 @@ representation of the field "decl".
     an_ifc_decl_index_0_41 stage_0;
     an_ifc_decl_index      stage_1;
 
-    /* Copy the field (TraitSpecialization::decl - DeclIndex) into version
-       specific storage. */
+    /* Copy the field (TraitSpecialization::decl - DeclIndex) into
+       version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -49994,8 +49994,8 @@ representation of the field "decl".
     an_ifc_decl_index_0_33 stage_0;
     an_ifc_decl_index      stage_1;
 
-    /* Copy the field (TraitSpecialization::decl - DeclIndex) into version
-       specific storage. */
+    /* Copy the field (TraitSpecialization::decl - DeclIndex) into
+       version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -50040,8 +50040,8 @@ representation of the field "encoded_decl".
     an_ifc_decl_index         stage_1;
     an_ifc_encoded_decl_index stage_2;
 
-    /* Copy the field (TraitSpecialization::decl - DeclIndex) into version
-       specific storage. */
+    /* Copy the field (TraitSpecialization::decl - DeclIndex) into
+       version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -50056,8 +50056,8 @@ representation of the field "encoded_decl".
     an_ifc_decl_index         stage_1;
     an_ifc_encoded_decl_index stage_2;
 
-    /* Copy the field (TraitSpecialization::decl - DeclIndex) into version
-       specific storage. */
+    /* Copy the field (TraitSpecialization::decl - DeclIndex) into
+       version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -50154,7 +50154,7 @@ representation of the field "element".
   an_ifc_type_index_0_33 stage_0;
   an_ifc_type_index      stage_1;
 
-  /* Copy the field (TypeArray::element - TypeIndex) into version specific
+  /* Copy the field (TypeArray::element - TypeIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -50196,7 +50196,7 @@ representation of the field "extent".
   an_ifc_expr_index_0_33 stage_0;
   an_ifc_expr_index      stage_1;
 
-  /* Copy the field (TypeArray::extent - ExprIndex) into version specific
+  /* Copy the field (TypeArray::extent - ExprIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -50243,7 +50243,7 @@ representation of the field "access".
   an_ifc_access_sort_0_33 stage_0;
   an_ifc_access_sort      stage_1;
 
-  /* Copy the field (TypeBase::access - AccessSort) into version specific
+  /* Copy the field (TypeBase::access - AccessSort) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
@@ -50285,7 +50285,7 @@ representation of the field "pack_expanded".
   an_ifc_bool_0_33 stage_0;
   an_ifc_bool      stage_1;
 
-  /* Copy the field (TypeBase::pack_expanded - bool) into version specific
+  /* Copy the field (TypeBase::pack_expanded - bool) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
@@ -50327,7 +50327,7 @@ representation of the field "shared".
   an_ifc_bool_0_33 stage_0;
   an_ifc_bool      stage_1;
 
-  /* Copy the field (TypeBase::shared - bool) into version specific storage. */
+  /* Copy the field (TypeBase::shared - bool) into version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/5);
@@ -50368,7 +50368,7 @@ representation of the field "type".
   an_ifc_type_index_0_33 stage_0;
   an_ifc_type_index      stage_1;
 
-  /* Copy the field (TypeBase::type - TypeIndex) into version specific
+  /* Copy the field (TypeBase::type - TypeIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -50415,7 +50415,7 @@ representation of the field "expr".
   an_ifc_syntax_index_0_33 stage_0;
   an_ifc_syntax_index      stage_1;
 
-  /* Copy the field (TypeDecltype::expr - SyntaxIndex) into version specific
+  /* Copy the field (TypeDecltype::expr - SyntaxIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -50463,7 +50463,7 @@ representation of the field "decl".
     an_ifc_decl_index_0_41 stage_0;
     an_ifc_decl_index      stage_1;
 
-    /* Copy the field (TypeDesignated::decl - DeclIndex) into version specific
+    /* Copy the field (TypeDesignated::decl - DeclIndex) into version-specific
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
@@ -50474,7 +50474,7 @@ representation of the field "decl".
     an_ifc_decl_index_0_33 stage_0;
     an_ifc_decl_index      stage_1;
 
-    /* Copy the field (TypeDesignated::decl - DeclIndex) into version specific
+    /* Copy the field (TypeDesignated::decl - DeclIndex) into version-specific
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
@@ -50522,8 +50522,8 @@ representation of the field "mode".
   an_ifc_expansion_mode_sort_0_33 stage_0;
   an_ifc_expansion_mode_sort      stage_1;
 
-  /* Copy the field (TypeExpansion::mode - ExpansionModeSort) into version
-     specific storage. */
+  /* Copy the field (TypeExpansion::mode - ExpansionModeSort) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
@@ -50564,7 +50564,7 @@ representation of the field "pack".
   an_ifc_type_index_0_33 stage_0;
   an_ifc_type_index      stage_1;
 
-  /* Copy the field (TypeExpansion::pack - TypeIndex) into version specific
+  /* Copy the field (TypeExpansion::pack - TypeIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -50611,7 +50611,7 @@ representation of the field "chart".
   an_ifc_chart_index_0_33 stage_0;
   an_ifc_chart_index      stage_1;
 
-  /* Copy the field (TypeForall::chart - ChartIndex) into version specific
+  /* Copy the field (TypeForall::chart - ChartIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -50653,7 +50653,7 @@ representation of the field "subject".
   an_ifc_type_index_0_33 stage_0;
   an_ifc_type_index      stage_1;
 
-  /* Copy the field (TypeForall::subject - TypeIndex) into version specific
+  /* Copy the field (TypeForall::subject - TypeIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -50702,7 +50702,7 @@ representation of the field "convention".
   an_ifc_calling_convention_sort      stage_1;
 
   /* Copy the field (TypeFunction::convention - CallingConventionSort) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
@@ -50791,7 +50791,7 @@ representation of the field "source".
   an_ifc_type_index_0_33 stage_0;
   an_ifc_type_index      stage_1;
 
-  /* Copy the field (TypeFunction::source - TypeIndex) into version specific
+  /* Copy the field (TypeFunction::source - TypeIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -50833,7 +50833,7 @@ representation of the field "target".
   an_ifc_type_index_0_33 stage_0;
   an_ifc_type_index      stage_1;
 
-  /* Copy the field (TypeFunction::target - TypeIndex) into version specific
+  /* Copy the field (TypeFunction::target - TypeIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -50877,7 +50877,7 @@ representation of the field "traits".
   an_ifc_function_type_traits_bitfield      stage_1;
 
   /* Copy the field (TypeFunction::traits - FunctionTypeTraitsBitfield) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/17);
@@ -50924,8 +50924,8 @@ representation of the field "basis".
   an_ifc_type_basis_sort_0_33 stage_0;
   an_ifc_type_basis_sort      stage_1;
 
-  /* Copy the field (TypeFundamental::basis - TypeBasisSort) into version
-     specific storage. */
+  /* Copy the field (TypeFundamental::basis - TypeBasisSort) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -50968,7 +50968,7 @@ representation of the field "precision".
   an_ifc_type_precision_sort      stage_1;
 
   /* Copy the field (TypeFundamental::precision - TypePrecisionSort) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/1);
@@ -51009,8 +51009,8 @@ representation of the field "sign".
   an_ifc_type_sign_sort_0_33 stage_0;
   an_ifc_type_sign_sort      stage_1;
 
-  /* Copy the field (TypeFundamental::sign - TypeSignSort) into version
-     specific storage. */
+  /* Copy the field (TypeFundamental::sign - TypeSignSort) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/2);
@@ -51057,8 +51057,8 @@ representation of the field "referee".
   an_ifc_type_index_0_33 stage_0;
   an_ifc_type_index      stage_1;
 
-  /* Copy the field (TypeLvalueReference::referee - TypeIndex) into version
-     specific storage. */
+  /* Copy the field (TypeLvalueReference::referee - TypeIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -51106,7 +51106,7 @@ representation of the field "convention".
   an_ifc_calling_convention_sort      stage_1;
 
   /* Copy the field (TypeMethod::convention - CallingConventionSort) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
@@ -51196,7 +51196,7 @@ representation of the field "scope".
   an_ifc_type_index_0_33 stage_0;
   an_ifc_type_index      stage_1;
 
-  /* Copy the field (TypeMethod::scope - TypeIndex) into version specific
+  /* Copy the field (TypeMethod::scope - TypeIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -51238,7 +51238,7 @@ representation of the field "source".
   an_ifc_type_index_0_33 stage_0;
   an_ifc_type_index      stage_1;
 
-  /* Copy the field (TypeMethod::source - TypeIndex) into version specific
+  /* Copy the field (TypeMethod::source - TypeIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -51280,7 +51280,7 @@ representation of the field "target".
   an_ifc_type_index_0_33 stage_0;
   an_ifc_type_index      stage_1;
 
-  /* Copy the field (TypeMethod::target - TypeIndex) into version specific
+  /* Copy the field (TypeMethod::target - TypeIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -51324,7 +51324,7 @@ representation of the field "traits".
   an_ifc_function_type_traits_bitfield      stage_1;
 
   /* Copy the field (TypeMethod::traits - FunctionTypeTraitsBitfield) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/21);
@@ -51371,8 +51371,8 @@ representation of the field "basis".
   an_ifc_type_basis_sort_0_33 stage_0;
   an_ifc_type_basis_sort      stage_1;
 
-  /* Copy the field (TypePlaceholder::basis - TypeBasisSort) into version
-     specific storage. */
+  /* Copy the field (TypePlaceholder::basis - TypeBasisSort) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
@@ -51413,8 +51413,8 @@ representation of the field "constraint".
   an_ifc_expr_index_0_33 stage_0;
   an_ifc_expr_index      stage_1;
 
-  /* Copy the field (TypePlaceholder::constraint - ExprIndex) into version
-     specific storage. */
+  /* Copy the field (TypePlaceholder::constraint - ExprIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -51455,8 +51455,8 @@ representation of the field "elaboration".
   an_ifc_type_index_0_33 stage_0;
   an_ifc_type_index      stage_1;
 
-  /* Copy the field (TypePlaceholder::elaboration - TypeIndex) into version
-     specific storage. */
+  /* Copy the field (TypePlaceholder::elaboration - TypeIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/5);
@@ -51502,7 +51502,7 @@ representation of the field "pointee".
   an_ifc_type_index_0_33 stage_0;
   an_ifc_type_index      stage_1;
 
-  /* Copy the field (TypePointer::pointee - TypeIndex) into version specific
+  /* Copy the field (TypePointer::pointee - TypeIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -51550,8 +51550,8 @@ representation of the field "member".
   an_ifc_type_index_0_33 stage_0;
   an_ifc_type_index      stage_1;
 
-  /* Copy the field (TypePointerToMember::member - TypeIndex) into version
-     specific storage. */
+  /* Copy the field (TypePointerToMember::member - TypeIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
@@ -51592,8 +51592,8 @@ representation of the field "scope".
   an_ifc_type_index_0_33 stage_0;
   an_ifc_type_index      stage_1;
 
-  /* Copy the field (TypePointerToMember::scope - TypeIndex) into version
-     specific storage. */
+  /* Copy the field (TypePointerToMember::scope - TypeIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -51641,7 +51641,7 @@ representation of the field "qualifiers".
   an_ifc_qualifier_bitfield      stage_1;
 
   /* Copy the field (TypeQualified::qualifiers - QualifierBitfield) into
-     version specific storage. */
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
@@ -51683,8 +51683,8 @@ representation of the field "unqualified".
   an_ifc_type_index_0_33 stage_0;
   an_ifc_type_index      stage_1;
 
-  /* Copy the field (TypeQualified::unqualified - TypeIndex) into version
-     specific storage. */
+  /* Copy the field (TypeQualified::unqualified - TypeIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -51731,8 +51731,8 @@ representation of the field "referee".
   an_ifc_type_index_0_33 stage_0;
   an_ifc_type_index      stage_1;
 
-  /* Copy the field (TypeRvalueReference::referee - TypeIndex) into version
-     specific storage. */
+  /* Copy the field (TypeRvalueReference::referee - TypeIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -51778,7 +51778,7 @@ representation of the field "expr".
   an_ifc_expr_index_0_33 stage_0;
   an_ifc_expr_index      stage_1;
 
-  /* Copy the field (TypeSyntactic::expr - ExprIndex) into version specific
+  /* Copy the field (TypeSyntactic::expr - ExprIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -51825,8 +51825,8 @@ representation of the field "syntax".
   an_ifc_syntax_index_0_33 stage_0;
   an_ifc_syntax_index      stage_1;
 
-  /* Copy the field (TypeSyntaxTree::syntax - SyntaxIndex) into version
-     specific storage. */
+  /* Copy the field (TypeSyntaxTree::syntax - SyntaxIndex) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
@@ -51873,8 +51873,8 @@ representation of the field "convention".
   an_ifc_calling_convention_sort_0_33 stage_0;
   an_ifc_calling_convention_sort      stage_1;
 
-  /* Copy the field (TypeTor::convention - CallingConventionSort) into version
-     specific storage. */
+  /* Copy the field (TypeTor::convention - CallingConventionSort) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
@@ -51962,7 +51962,7 @@ representation of the field "source".
   an_ifc_type_index_0_33 stage_0;
   an_ifc_type_index      stage_1;
 
-  /* Copy the field (TypeTor::source - TypeIndex) into version specific
+  /* Copy the field (TypeTor::source - TypeIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -52009,8 +52009,8 @@ representation of the field "cardinality".
   an_ifc_cardinality_0_33 stage_0;
   an_ifc_cardinality      stage_1;
 
-  /* Copy the field (TypeTuple::cardinality - Cardinality) into version
-     specific storage. */
+  /* Copy the field (TypeTuple::cardinality - Cardinality) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
@@ -52051,7 +52051,7 @@ representation of the field "start".
   an_ifc_index_0_33 stage_0;
   an_ifc_index      stage_1;
 
-  /* Copy the field (TypeTuple::start - Index) into version specific
+  /* Copy the field (TypeTuple::start - Index) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -52098,7 +52098,7 @@ representation of the field "path".
   an_ifc_expr_index_0_33 stage_0;
   an_ifc_expr_index      stage_1;
 
-  /* Copy the field (TypeTypename::path - ExprIndex) into version specific
+  /* Copy the field (TypeTypename::path - ExprIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
@@ -52145,7 +52145,7 @@ representation of the field "type".
   an_ifc_type_index_0_33 stage_0;
   an_ifc_type_index      stage_1;
 
-  /* Copy the field (TypeUnaligned::type - TypeIndex) into version specific
+  /* Copy the field (TypeUnaligned::type - TypeIndex) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
