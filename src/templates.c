@@ -11628,7 +11628,10 @@ doing C++17-style template template parameter matching.
                                     constant_type, new_list, templ_param_list,
 				    source_pos,
                                     CTWS_NO_OPTIONS, &copy_error, &ctws_state);
-            if (copy_error) {
+            if (copy_error ||
+                !check_nontype_template_param_type(&constant_type,
+                                                   /*from_auto=*/FALSE,
+                                                   (a_source_position*)NULL)) {
               /* The substitution of the type of the nontype parameter
                  resulted in an invalid type. */
               arg_kind_mismatch = TRUE;

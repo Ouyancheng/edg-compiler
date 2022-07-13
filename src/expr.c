@@ -11855,11 +11855,7 @@ error indication in *rcblock).
         a_type_ptr operand_type;
         an_expr_node_ptr node;
         /* Make the "*" operator node. */
-        if (is_pointer_type(operand.type)
-#if MICROSOFT_EXTENSIONS_ALLOWED
-            || (cli_or_cx_enabled && is_handle_type(operand.type))
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-                                                                  ) {
+        if (is_pointer_or_handle_type(operand.type)) {
           operand_type = type_pointed_to(operand.type);
         } else if (is_template_dependent_type(operand.type)) {
           operand_type = type_of_unknown_templ_param_nontype;
