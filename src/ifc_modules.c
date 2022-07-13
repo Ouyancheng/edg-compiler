@@ -2170,7 +2170,6 @@ error occurs, return NULL.
         an_ifc_expr_index        primary = get_ifc_primary(template_id);
         a_source_position        pos;
         an_ifc_module            *mod = primary.mod;
-        mod->source_position_from_locus(&pos, get_ifc_locus(template_id));
         templ_sym = load_ifc_entity_ref(primary);
         if (templ_sym == NULL) goto invalid;
 
@@ -2183,6 +2182,11 @@ error occurs, return NULL.
         clear_token_cache(&arg_cache, /*reusable=*/FALSE);
         if (!is_null_index(args)) {
           mod->cache_expr(&arg_cache, args);
+        }  /* if */
+        if (has_ifc_locus(template_id)) {
+          mod->source_position_from_locus(&pos, get_ifc_locus(template_id));
+        } else {
+          pos = null_source_position;
         }  /* if */
         cache_token(&arg_cache, tok_gt, &pos);
         terminate_token_cache(&arg_cache);

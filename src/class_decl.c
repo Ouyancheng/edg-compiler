@@ -29342,7 +29342,6 @@ class type.  Check that dps->type is a valid type for such a declaration.
   }  /* if */
 }  /* check_initonly_member_type */
 
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void process_ifc_friend_ref(a_decl_parse_state  *dps,
                                    a_type_ptr          enclosing_class)
@@ -29372,6 +29371,7 @@ friendship and consume the two tokens.
   discard_curr_construct_pragmas();
 }  /* process_ifc_friend_ref */
 
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static a_symbol_ptr class_member_declaration(
              a_class_def_state_ptr              class_state,
@@ -29450,10 +29450,14 @@ block of information that is provided if this is a member template declaration.
     dps->marked_as_gnu_extension = TRUE;
   }  /* if */
 #endif /*GNU_EXTENSIONS_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
   if (curr_token == tok_friend && ifc_entity_ref_next(&dps->sym)) {
     process_ifc_friend_ref(dps, class_type);
     goto next_declaration;
-  } else if (!dps->is_lambda) {
+  } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  /* Do not insert code here. */
+  if (!dps->is_lambda) {
     /* Normal case: Scan attributes and declaration specifiers. */
     if (!C_mode() && !is_member_template && !is_member_template_rescan) {
       /* Start caching the current declaration in case it turns out to be a
