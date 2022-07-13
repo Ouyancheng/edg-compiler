@@ -149,9 +149,8 @@ the given index.
 }  /* read_partition_element */
 
 
-template<typename an_ifc_Storage_type>
-an_ifc_Byte_buffer<an_ifc_Storage_type> construct_node_from_module(
-                                                            an_ifc_module *mod)
+template<typename an_ifc_Node_type>
+an_ifc_Node_type construct_node_from_module(an_ifc_module *mod)
 /*
 Using the previously initialized and validated module source buffer, initialize
 and return a new IFC node of the given type.
@@ -160,8 +159,9 @@ Direct use of this function is discouraged, prefer one of the other construct_
 functions that build upon this call.
 */
 {
-  an_ifc_Byte_buffer<an_ifc_Storage_type> result;
-  an_ifc_Storage_type                     nts, *ntsp;
+  using an_ifc_Storage_type = typename an_ifc_Node_type::storage_type;
+  an_ifc_Node_type    result;
+  an_ifc_Storage_type nts, *ntsp;
 
   ntsp = get<an_ifc_Storage_type>(mod, &nts, /*fill_storage=*/FALSE);
   /* When memory mapping is enabled and the endianness of the IFC and the host
@@ -174,29 +174,28 @@ functions that build upon this call.
 #if USE_MMAP_FOR_MEMORY_REGIONS
   if (ntsp != &nts) {
     /* The storage wasn't used, use the pointer. */
-    result = an_ifc_Byte_buffer<an_ifc_Storage_type>(mod, ntsp);
+    result = an_ifc_Node_type(mod, ntsp);
   } else {
 #else /* !USE_MMAP_FOR_MEMORY_REGIONS */
   {
     check_assertion(ntsp == &nts);
 #endif /* USE_MMAP_FOR_MEMORY_REGIONS */
     /* The storage was used, copy it. */
-    result = an_ifc_Byte_buffer<an_ifc_Storage_type>(mod, nts);
+    result = an_ifc_Node_type(mod, nts);
   }
   return result;
 }  /* construct_node_from_module */
 
 
 /* Macro used to explicitly instantiate construct_node_from_module. */
-#define INST_CONSTRUCT_NODE_FM(storage_type) \
+#define INST_CONSTRUCT_NODE_FM(node_type) \
   template \
-  an_ifc_Byte_buffer<storage_type> \
-  construct_node_from_module<storage_type>(an_ifc_module *mod);
+  node_type construct_node_from_module<node_type>(an_ifc_module *mod);
 
 
 /* Manually defined explicit instantiations of construct_node. */
-INST_CONSTRUCT_NODE_FM(an_ifc_file_header_storage)
-INST_CONSTRUCT_NODE_FM(an_ifc_partition_storage)
+INST_CONSTRUCT_NODE_FM(an_ifc_file_header)
+INST_CONSTRUCT_NODE_FM(an_ifc_partition)
 
 
 template<typename an_ifc_Index_type>
@@ -319,9 +318,9 @@ if has_been_validated returns TRUE.
 }  /* mark_invalid */
 
 
-template<typename an_ifc_Storage_type, typename an_ifc_Index_type>
-void construct_node(Opt<an_ifc_Byte_buffer<an_ifc_Storage_type>> *result,
-                    an_ifc_Index_type                            idx)
+template<typename an_ifc_Node_type, typename an_ifc_Index_type>
+void construct_node(Opt<an_ifc_Node_type> *result,
+                    an_ifc_Index_type     idx)
 /*
 Construct the node at the given index using the byte buffer pointed to by
 result.  The given index is assumed to point to a valid partition element of
@@ -333,14 +332,14 @@ call).
 */
 {
   constexpr an_ifc_partition_kind node_part_kind =
-                                 get_ifc_partition_kind<an_ifc_Storage_type>();
+                                    get_ifc_partition_kind<an_ifc_Node_type>();
   an_ifc_partition_kind           idx_part_kind = get_partition_kind(idx);
 
   if (node_part_kind == idx_part_kind) {
-    an_ifc_Byte_buffer<an_ifc_Storage_type> read_value;
+    an_ifc_Node_type read_value;
 
     read_partition_element(idx);
-    read_value = construct_node_from_module<an_ifc_Storage_type>(idx.mod);
+    read_value = construct_node_from_module<an_ifc_Node_type>(idx.mod);
     /* First, check to see if this node has already been validated.  If the
        node hasn't been validated, validate it, and cache the result
        appropriately; otherwise, skip re-validation and use the cached result.
@@ -371,55 +370,47 @@ call).
 
 
 /* Macro used to explicitly instantiate construct_node. */
-#define INST_CONSTRUCT_NODE(storage_type, idx_type) \
+#define INST_CONSTRUCT_NODE(node_type, idx_type) \
   template \
-  void construct_node<storage_type, idx_type>( \
-                               Opt<an_ifc_Byte_buffer<storage_type>> *result, \
-                               idx_type                              idx);
+  void construct_node<node_type, idx_type>(Opt<node_type> *result, \
+                                           idx_type       idx);
 
 
 /* Manually defined explicit instantiations of construct_node. */
-INST_CONSTRUCT_NODE(an_ifc_const_f64_storage, an_ifc_partition_kind_index)
-INST_CONSTRUCT_NODE(an_ifc_const_i64_storage, an_ifc_partition_kind_index)
-INST_CONSTRUCT_NODE(an_ifc_const_str_storage, an_ifc_partition_kind_index)
-INST_CONSTRUCT_NODE(an_ifc_decl_parameter_storage, an_ifc_partition_kind_index)
-INST_CONSTRUCT_NODE(an_ifc_decl_template_storage, an_ifc_partition_kind_index)
-INST_CONSTRUCT_NODE(an_ifc_form_spec_storage, an_ifc_form_spec_index)
-INST_CONSTRUCT_NODE(an_ifc_heap_attr_storage, an_ifc_partition_kind_index)
-INST_CONSTRUCT_NODE(an_ifc_heap_decl_storage, an_ifc_partition_kind_index)
-INST_CONSTRUCT_NODE(an_ifc_heap_expr_storage, an_ifc_partition_kind_index)
-INST_CONSTRUCT_NODE(an_ifc_heap_pp_form_storage, an_ifc_partition_kind_index)
-INST_CONSTRUCT_NODE(an_ifc_heap_stmt_storage, an_ifc_partition_kind_index)
-INST_CONSTRUCT_NODE(an_ifc_heap_syntax_storage, an_ifc_partition_kind_index)
-INST_CONSTRUCT_NODE(an_ifc_heap_type_storage, an_ifc_partition_kind_index)
-INST_CONSTRUCT_NODE(an_ifc_module_export_reference_storage,
+INST_CONSTRUCT_NODE(an_ifc_const_f64, an_ifc_partition_kind_index)
+INST_CONSTRUCT_NODE(an_ifc_const_i64, an_ifc_partition_kind_index)
+INST_CONSTRUCT_NODE(an_ifc_const_str, an_ifc_partition_kind_index)
+INST_CONSTRUCT_NODE(an_ifc_decl_parameter, an_ifc_partition_kind_index)
+INST_CONSTRUCT_NODE(an_ifc_decl_template, an_ifc_partition_kind_index)
+INST_CONSTRUCT_NODE(an_ifc_form_spec, an_ifc_form_spec_index)
+INST_CONSTRUCT_NODE(an_ifc_heap_attr, an_ifc_partition_kind_index)
+INST_CONSTRUCT_NODE(an_ifc_heap_decl, an_ifc_partition_kind_index)
+INST_CONSTRUCT_NODE(an_ifc_heap_expr, an_ifc_partition_kind_index)
+INST_CONSTRUCT_NODE(an_ifc_heap_pp_form, an_ifc_partition_kind_index)
+INST_CONSTRUCT_NODE(an_ifc_heap_stmt, an_ifc_partition_kind_index)
+INST_CONSTRUCT_NODE(an_ifc_heap_syntax, an_ifc_partition_kind_index)
+INST_CONSTRUCT_NODE(an_ifc_heap_type, an_ifc_partition_kind_index)
+INST_CONSTRUCT_NODE(an_ifc_module_export_reference,
                     an_ifc_partition_kind_index)
-INST_CONSTRUCT_NODE(an_ifc_scope_descriptor_storage,
+INST_CONSTRUCT_NODE(an_ifc_scope_descriptor, an_ifc_partition_kind_index)
+INST_CONSTRUCT_NODE(an_ifc_scope_member, an_ifc_partition_kind_index)
+INST_CONSTRUCT_NODE(an_ifc_source_line, an_ifc_partition_kind_index)
+INST_CONSTRUCT_NODE(an_ifc_source_sentence, an_ifc_partition_kind_index)
+INST_CONSTRUCT_NODE(an_ifc_source_word, an_ifc_partition_kind_index)
+INST_CONSTRUCT_NODE(an_ifc_trait_function_definition,
                     an_ifc_partition_kind_index)
-INST_CONSTRUCT_NODE(an_ifc_scope_member_storage, an_ifc_partition_kind_index)
-INST_CONSTRUCT_NODE(an_ifc_source_line_storage, an_ifc_partition_kind_index)
-INST_CONSTRUCT_NODE(an_ifc_source_sentence_storage,
+INST_CONSTRUCT_NODE(an_ifc_trait_deduction_guide, an_ifc_partition_kind_index)
+INST_CONSTRUCT_NODE(an_ifc_trait_msvc_decl_attrs, an_ifc_partition_kind_index)
+INST_CONSTRUCT_NODE(an_ifc_trait_msvc_func_params, an_ifc_partition_kind_index)
+INST_CONSTRUCT_NODE(an_ifc_trait_msvc_vendor_trait,
                     an_ifc_partition_kind_index)
-INST_CONSTRUCT_NODE(an_ifc_source_word_storage, an_ifc_partition_kind_index)
-INST_CONSTRUCT_NODE(an_ifc_trait_function_definition_storage,
-                    an_ifc_partition_kind_index)
-INST_CONSTRUCT_NODE(an_ifc_trait_deduction_guide_storage,
-                    an_ifc_partition_kind_index)
-INST_CONSTRUCT_NODE(an_ifc_trait_msvc_decl_attrs_storage,
-                    an_ifc_partition_kind_index)
-INST_CONSTRUCT_NODE(an_ifc_trait_msvc_func_params_storage,
-                    an_ifc_partition_kind_index)
-INST_CONSTRUCT_NODE(an_ifc_trait_msvc_vendor_trait_storage,
-                    an_ifc_partition_kind_index)
-INST_CONSTRUCT_NODE(an_ifc_trait_friend_storage,
-                    an_ifc_partition_kind_index)
-INST_CONSTRUCT_NODE(an_ifc_trait_specialization_storage,
-                    an_ifc_partition_kind_index)
+INST_CONSTRUCT_NODE(an_ifc_trait_friend, an_ifc_partition_kind_index)
+INST_CONSTRUCT_NODE(an_ifc_trait_specialization, an_ifc_partition_kind_index)
 
 
-template<typename an_ifc_Storage_type, typename an_ifc_Index_type>
-void construct_node_prechecked(an_ifc_Byte_buffer<an_ifc_Storage_type> *result,
-                               an_ifc_Index_type                       idx)
+template<typename an_ifc_Node_type, typename an_ifc_Index_type>
+void construct_node_prechecked(an_ifc_Node_type  *result,
+                               an_ifc_Index_type idx)
 /*
 Construct the node at the given index using the byte buffer pointed to by
 result.  The given index is assumed to point to a valid partition element,
@@ -428,28 +419,27 @@ constructed node must have previously been checked for validity.
 */
 {
   check_assertion(has_been_validated(idx) && !is_marked_invalid(idx));
-  check_assertion(get_ifc_partition_kind<an_ifc_Storage_type>() ==
+  check_assertion(get_ifc_partition_kind<an_ifc_Node_type>() ==
                                                       get_partition_kind(idx));
   read_partition_element(idx);
-  *result = construct_node_from_module<an_ifc_Storage_type>(idx.mod);
+  *result = construct_node_from_module<an_ifc_Node_type>(idx.mod);
 }  /* construct_node_prechecked */
 
 
 /* Macro used to explicitly instantiate construct_node_prechecked. */
-#define INST_CONSTRUCT_NODE_PRE(storage_type, idx_type) \
+#define INST_CONSTRUCT_NODE_PRE(node_type, idx_type) \
   template \
-  void construct_node_prechecked<storage_type, idx_type>( \
-                                    an_ifc_Byte_buffer<storage_type> *result, \
-                                    idx_type                         idx);
+  void construct_node_prechecked<node_type, idx_type>(node_type *result, \
+                                                      idx_type  idx);
 
 
 /* Manually defined explicit instantiations of construct_node_prechecked. */
 /* none */
 
 
-template<typename an_ifc_Storage_type, typename an_ifc_Index_type>
-void construct_node_unchecked(an_ifc_Byte_buffer<an_ifc_Storage_type> *result,
-                              an_ifc_Index_type                       idx)
+template<typename an_ifc_Node_type, typename an_ifc_Index_type>
+void construct_node_unchecked(an_ifc_Node_type  *result,
+                              an_ifc_Index_type idx)
 /*
 Construct the node at the given index using the byte buffer pointed to by
 result.  The given index is assumed to point to a valid partition element,
@@ -457,45 +447,44 @@ without any mismatches between the index's sort and the node type.  The
 constructed node will not be checked for validity.
 */
 {
-  check_assertion(get_ifc_partition_kind<an_ifc_Storage_type>() ==
+  check_assertion(get_ifc_partition_kind<an_ifc_Node_type>() ==
                                                       get_partition_kind(idx));
   read_partition_element(idx);
-  *result = construct_node_from_module<an_ifc_Storage_type>(idx.mod);
+  *result = construct_node_from_module<an_ifc_Node_type>(idx.mod);
 }  /* construct_node_unchecked */
 
 
 /* Macro used to explicitly instantiate construct_node_unchecked. */
-#define INST_CONSTRUCT_NODE_UN(storage_type, idx_type) \
+#define INST_CONSTRUCT_NODE_UN(node_type, idx_type) \
   template \
-  void construct_node_unchecked<storage_type, idx_type>( \
-                                    an_ifc_Byte_buffer<storage_type> *result, \
-                                    idx_type                         idx);
+  void construct_node_unchecked<node_type, idx_type>(node_type *result, \
+                                                     idx_type  idx);
 
 /* Manually defined explicit instantiations of construct_node_unchecked. */
 /* FIXME: This should be automatically handled by the codegen script,
    but it isn't. */
-INST_CONSTRUCT_NODE_UN(an_ifc_form_spec_storage, an_ifc_form_spec_index)
-INST_CONSTRUCT_NODE_UN(an_ifc_trait_function_definition_storage,
+INST_CONSTRUCT_NODE_UN(an_ifc_form_spec, an_ifc_form_spec_index)
+INST_CONSTRUCT_NODE_UN(an_ifc_trait_function_definition,
                        an_ifc_partition_kind_index)
-INST_CONSTRUCT_NODE_UN(an_ifc_trait_deduction_guide_storage,
+INST_CONSTRUCT_NODE_UN(an_ifc_trait_deduction_guide,
                        an_ifc_partition_kind_index)
-INST_CONSTRUCT_NODE_UN(an_ifc_trait_msvc_decl_attrs_storage,
+INST_CONSTRUCT_NODE_UN(an_ifc_trait_msvc_decl_attrs,
                        an_ifc_partition_kind_index)
-INST_CONSTRUCT_NODE_UN(an_ifc_trait_msvc_func_params_storage,
+INST_CONSTRUCT_NODE_UN(an_ifc_trait_msvc_func_params,
                        an_ifc_partition_kind_index)
-INST_CONSTRUCT_NODE_UN(an_ifc_trait_msvc_vendor_trait_storage,
+INST_CONSTRUCT_NODE_UN(an_ifc_trait_msvc_vendor_trait,
                        an_ifc_partition_kind_index)
-INST_CONSTRUCT_NODE_UN(an_ifc_trait_friend_storage,
+INST_CONSTRUCT_NODE_UN(an_ifc_trait_friend,
                        an_ifc_partition_kind_index)
-INST_CONSTRUCT_NODE_UN(an_ifc_trait_specialization_storage,
+INST_CONSTRUCT_NODE_UN(an_ifc_trait_specialization,
                        an_ifc_partition_kind_index)
 
 
 /* Macro used to explicitly instantiate all versions of construct_node. */
-#define INST_CONSTRUCT_NODE_ALL(storage_type, idx_type) \
-  INST_CONSTRUCT_NODE(storage_type, idx_type) \
-  INST_CONSTRUCT_NODE_PRE(storage_type, idx_type) \
-  INST_CONSTRUCT_NODE_UN(storage_type, idx_type) \
+#define INST_CONSTRUCT_NODE_ALL(node_type, idx_type) \
+  INST_CONSTRUCT_NODE(node_type, idx_type) \
+  INST_CONSTRUCT_NODE_PRE(node_type, idx_type) \
+  INST_CONSTRUCT_NODE_UN(node_type, idx_type) \
 
 
 /* Manually defined explicit instantiations of construct_node,

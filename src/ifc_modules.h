@@ -642,24 +642,20 @@ extern size_t get_partition_offset(an_ifc_Index_type idx);
 extern a_const_char *get_partition_name_from_kind(
                                               an_ifc_partition_kind part_kind);
 
-template<typename an_ifc_Storage_type>
-extern an_ifc_Byte_buffer<an_ifc_Storage_type> construct_node_from_module(
-                                                           an_ifc_module *mod);
+template<typename an_ifc_Node_type>
+extern an_ifc_Node_type construct_node_from_module(an_ifc_module *mod);
 
-template<typename an_ifc_Storage_type, typename an_ifc_Index_type>
-extern void construct_node(
-                          Opt<an_ifc_Byte_buffer<an_ifc_Storage_type>> *result,
-                          an_ifc_Index_type                            idx);
+template<typename an_ifc_Node_type, typename an_ifc_Index_type>
+extern void construct_node(Opt<an_ifc_Node_type> *result,
+                           an_ifc_Index_type     idx);
 
-template<typename an_ifc_Storage_type, typename an_ifc_Index_type>
-extern void construct_node_prechecked(
-                               an_ifc_Byte_buffer<an_ifc_Storage_type> *result,
-                               an_ifc_Index_type                       idx);
+template<typename an_ifc_Node_type, typename an_ifc_Index_type>
+extern void construct_node_prechecked(an_ifc_Node_type  *result,
+                                      an_ifc_Index_type idx);
 
-template<typename an_ifc_Storage_type, typename an_ifc_Index_type>
-extern void construct_node_unchecked(
-                               an_ifc_Byte_buffer<an_ifc_Storage_type> *result,
-                               an_ifc_Index_type                       idx);
+template<typename an_ifc_Node_type, typename an_ifc_Index_type>
+extern void construct_node_unchecked(an_ifc_Node_type  *result,
+                                     an_ifc_Index_type idx);
 
 extern a_boolean check_module(const an_ifc_module_reference &ref);
 

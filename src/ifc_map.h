@@ -115,8 +115,17 @@ using an_ifc_ieeele_float_bytes = const an_ifc_ieeele_float_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_ieeele_float_bytes = an_ifc_ieeele_float_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_ieeele_float = an_ifc_Byte_buffer<an_ifc_ieeele_float_storage>;
+/*
+The universal representation of an IFC IEEELEFloat node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_ieeele_float : an_ifc_Byte_buffer<an_ifc_ieeele_float_storage> {
+  using storage_type = an_ifc_ieeele_float_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_ieeele_float */
 
 /*
   |----------------|
@@ -132,8 +141,17 @@ using an_ifc_sha256_bytes = const an_ifc_sha256_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_sha256_bytes = an_ifc_sha256_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_sha256 = an_ifc_Byte_buffer<an_ifc_sha256_storage>;
+/*
+The universal representation of an IFC SHA256 node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_sha256 : an_ifc_Byte_buffer<an_ifc_sha256_storage> {
+  using storage_type = an_ifc_sha256_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_sha256 */
 
 /*
   |----------------|
@@ -149,8 +167,18 @@ using an_ifc_storage_class_bytes = const an_ifc_storage_class_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_storage_class_bytes = an_ifc_storage_class_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_storage_class = an_ifc_Byte_buffer<an_ifc_storage_class_storage>;
+/*
+The universal representation of an IFC StorageClass node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_storage_class :
+                             an_ifc_Byte_buffer<an_ifc_storage_class_storage> {
+  using storage_type = an_ifc_storage_class_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_storage_class */
 
 /*
   |----------------|
@@ -166,8 +194,17 @@ using an_ifc_uuid_bytes = const an_ifc_uuid_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_uuid_bytes = an_ifc_uuid_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_uuid = an_ifc_Byte_buffer<an_ifc_uuid_storage>;
+/*
+The universal representation of an IFC Uuid node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_uuid : an_ifc_Byte_buffer<an_ifc_uuid_storage> {
+  using storage_type = an_ifc_uuid_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_uuid */
 
 /*
   |----------------|
@@ -183,9 +220,18 @@ using an_ifc_variadic_arity_bytes = const an_ifc_variadic_arity_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_variadic_arity_bytes = an_ifc_variadic_arity_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_variadic_arity =
-                             an_ifc_Byte_buffer<an_ifc_variadic_arity_storage>;
+/*
+The universal representation of an IFC VariadicArity node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_variadic_arity :
+                            an_ifc_Byte_buffer<an_ifc_variadic_arity_storage> {
+  using storage_type = an_ifc_variadic_arity_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_variadic_arity */
 
 enum an_ifc_abi_0_33 : uint8_t;
 using an_ifc_abi_storage = uint8_t;
@@ -5821,9 +5867,18 @@ using an_ifc_keyword_syntax_bytes = const an_ifc_keyword_syntax_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_keyword_syntax_bytes = an_ifc_keyword_syntax_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_keyword_syntax =
-                             an_ifc_Byte_buffer<an_ifc_keyword_syntax_storage>;
+/*
+The universal representation of an IFC KeywordSyntax node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_keyword_syntax :
+                            an_ifc_Byte_buffer<an_ifc_keyword_syntax_storage> {
+  using storage_type = an_ifc_keyword_syntax_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_keyword_syntax */
 
 /*
   |-----------------------------------------|
@@ -5842,9 +5897,18 @@ using an_ifc_module_reference_bytes = const an_ifc_module_reference_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_module_reference_bytes = an_ifc_module_reference_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_module_reference =
-                           an_ifc_Byte_buffer<an_ifc_module_reference_storage>;
+/*
+The universal representation of an IFC ModuleReference node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_module_reference :
+                          an_ifc_Byte_buffer<an_ifc_module_reference_storage> {
+  using storage_type = an_ifc_module_reference_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_module_reference */
 
 /*
   |-----------------------------------------------|
@@ -5868,8 +5932,18 @@ using an_ifc_nestable_word_bytes = const an_ifc_nestable_word_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_nestable_word_bytes = an_ifc_nestable_word_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_nestable_word = an_ifc_Byte_buffer<an_ifc_nestable_word_storage>;
+/*
+The universal representation of an IFC NestableWord node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_nestable_word :
+                             an_ifc_Byte_buffer<an_ifc_nestable_word_storage> {
+  using storage_type = an_ifc_nestable_word_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_nestable_word */
 
 /*
   |----------------------------------------------|
@@ -5892,9 +5966,18 @@ using an_ifc_noexcept_specification_bytes =
 using an_ifc_noexcept_specification_bytes =
                                          an_ifc_noexcept_specification_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_noexcept_specification =
-                     an_ifc_Byte_buffer<an_ifc_noexcept_specification_storage>;
+/*
+The universal representation of an IFC NoexceptSpecification node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_noexcept_specification :
+                    an_ifc_Byte_buffer<an_ifc_noexcept_specification_storage> {
+  using storage_type = an_ifc_noexcept_specification_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_noexcept_specification */
 
 /*
   |---------------------------------------------|
@@ -5928,9 +6011,18 @@ using an_ifc_parameterized_entity_bytes =
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_parameterized_entity_bytes = an_ifc_parameterized_entity_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_parameterized_entity =
-                       an_ifc_Byte_buffer<an_ifc_parameterized_entity_storage>;
+/*
+The universal representation of an IFC ParameterizedEntity node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_parameterized_entity :
+                      an_ifc_Byte_buffer<an_ifc_parameterized_entity_storage> {
+  using storage_type = an_ifc_parameterized_entity_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_parameterized_entity */
 
 /*
   |--------------------------------------------|
@@ -5949,8 +6041,17 @@ using an_ifc_sequence_bytes = const an_ifc_sequence_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_sequence_bytes = an_ifc_sequence_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_sequence = an_ifc_Byte_buffer<an_ifc_sequence_storage>;
+/*
+The universal representation of an IFC Sequence node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_sequence : an_ifc_Byte_buffer<an_ifc_sequence_storage> {
+  using storage_type = an_ifc_sequence_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_sequence */
 
 /*
   |-------------------------------------|
@@ -5969,9 +6070,18 @@ using an_ifc_source_location_bytes = const an_ifc_source_location_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_source_location_bytes = an_ifc_source_location_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_source_location =
-                            an_ifc_Byte_buffer<an_ifc_source_location_storage>;
+/*
+The universal representation of an IFC SourceLocation node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_source_location :
+                           an_ifc_Byte_buffer<an_ifc_source_location_storage> {
+  using storage_type = an_ifc_source_location_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_source_location */
 
 /*
   |--------------------------------------------------------|
@@ -6002,8 +6112,17 @@ using an_ifc_file_header_bytes = const an_ifc_file_header_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_file_header_bytes = an_ifc_file_header_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_file_header = an_ifc_Byte_buffer<an_ifc_file_header_storage>;
+/*
+The universal representation of an IFC FileHeader node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_file_header : an_ifc_Byte_buffer<an_ifc_file_header_storage> {
+  using storage_type = an_ifc_file_header_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_file_header */
 
 /*
   |--------------------------------------------|
@@ -6024,8 +6143,17 @@ using an_ifc_partition_bytes = const an_ifc_partition_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_partition_bytes = an_ifc_partition_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_partition = an_ifc_Byte_buffer<an_ifc_partition_storage>;
+/*
+The universal representation of an IFC Partition node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_partition : an_ifc_Byte_buffer<an_ifc_partition_storage> {
+  using storage_type = an_ifc_partition_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_partition */
 
 /*
   |--------------------------------------|
@@ -6043,8 +6171,17 @@ using an_ifc_attr_basic_bytes = const an_ifc_attr_basic_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_attr_basic_bytes = an_ifc_attr_basic_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_attr_basic = an_ifc_Byte_buffer<an_ifc_attr_basic_storage>;
+/*
+The universal representation of an IFC AttrBasic node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_attr_basic : an_ifc_Byte_buffer<an_ifc_attr_basic_storage> {
+  using storage_type = an_ifc_attr_basic_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_attr_basic */
 
 /*
   |----------------------------------------|
@@ -6063,8 +6200,17 @@ using an_ifc_attr_called_bytes = const an_ifc_attr_called_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_attr_called_bytes = an_ifc_attr_called_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_attr_called = an_ifc_Byte_buffer<an_ifc_attr_called_storage>;
+/*
+The universal representation of an IFC AttrCalled node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_attr_called : an_ifc_Byte_buffer<an_ifc_attr_called_storage> {
+  using storage_type = an_ifc_attr_called_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_attr_called */
 
 /*
   |-----------------------------------------|
@@ -6082,9 +6228,18 @@ using an_ifc_attr_elaborated_bytes = const an_ifc_attr_elaborated_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_attr_elaborated_bytes = an_ifc_attr_elaborated_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_attr_elaborated =
-                            an_ifc_Byte_buffer<an_ifc_attr_elaborated_storage>;
+/*
+The universal representation of an IFC AttrElaborated node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_attr_elaborated :
+                           an_ifc_Byte_buffer<an_ifc_attr_elaborated_storage> {
+  using storage_type = an_ifc_attr_elaborated_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_attr_elaborated */
 
 /*
   |--------------------------------------|
@@ -6102,8 +6257,18 @@ using an_ifc_attr_expanded_bytes = const an_ifc_attr_expanded_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_attr_expanded_bytes = an_ifc_attr_expanded_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_attr_expanded = an_ifc_Byte_buffer<an_ifc_attr_expanded_storage>;
+/*
+The universal representation of an IFC AttrExpanded node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_attr_expanded :
+                             an_ifc_Byte_buffer<an_ifc_attr_expanded_storage> {
+  using storage_type = an_ifc_attr_expanded_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_attr_expanded */
 
 /*
   |----------------------------------------|
@@ -6122,8 +6287,18 @@ using an_ifc_attr_factored_bytes = const an_ifc_attr_factored_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_attr_factored_bytes = an_ifc_attr_factored_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_attr_factored = an_ifc_Byte_buffer<an_ifc_attr_factored_storage>;
+/*
+The universal representation of an IFC AttrFactored node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_attr_factored :
+                             an_ifc_Byte_buffer<an_ifc_attr_factored_storage> {
+  using storage_type = an_ifc_attr_factored_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_attr_factored */
 
 /*
   |-------------------------------------------|
@@ -6142,8 +6317,17 @@ using an_ifc_attr_labeled_bytes = const an_ifc_attr_labeled_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_attr_labeled_bytes = an_ifc_attr_labeled_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_attr_labeled = an_ifc_Byte_buffer<an_ifc_attr_labeled_storage>;
+/*
+The universal representation of an IFC AttrLabeled node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_attr_labeled : an_ifc_Byte_buffer<an_ifc_attr_labeled_storage> {
+  using storage_type = an_ifc_attr_labeled_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_attr_labeled */
 
 /*
   |----------------------------------------|
@@ -6162,8 +6346,17 @@ using an_ifc_attr_scoped_bytes = const an_ifc_attr_scoped_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_attr_scoped_bytes = an_ifc_attr_scoped_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_attr_scoped = an_ifc_Byte_buffer<an_ifc_attr_scoped_storage>;
+/*
+The universal representation of an IFC AttrScoped node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_attr_scoped : an_ifc_Byte_buffer<an_ifc_attr_scoped_storage> {
+  using storage_type = an_ifc_attr_scoped_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_attr_scoped */
 
 /*
   |--------------------------------------------|
@@ -6182,8 +6375,17 @@ using an_ifc_attr_tuple_bytes = const an_ifc_attr_tuple_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_attr_tuple_bytes = an_ifc_attr_tuple_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_attr_tuple = an_ifc_Byte_buffer<an_ifc_attr_tuple_storage>;
+/*
+The universal representation of an IFC AttrTuple node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_attr_tuple : an_ifc_Byte_buffer<an_ifc_attr_tuple_storage> {
+  using storage_type = an_ifc_attr_tuple_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_attr_tuple */
 
 /*
   |--------------------------------------------|
@@ -6202,9 +6404,18 @@ using an_ifc_chart_multilevel_bytes = const an_ifc_chart_multilevel_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_chart_multilevel_bytes = an_ifc_chart_multilevel_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_chart_multilevel =
-                           an_ifc_Byte_buffer<an_ifc_chart_multilevel_storage>;
+/*
+The universal representation of an IFC ChartMultilevel node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_chart_multilevel :
+                          an_ifc_Byte_buffer<an_ifc_chart_multilevel_storage> {
+  using storage_type = an_ifc_chart_multilevel_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_chart_multilevel */
 
 /*
   |--------------------------------------------|
@@ -6224,9 +6435,18 @@ using an_ifc_chart_unilevel_bytes = const an_ifc_chart_unilevel_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_chart_unilevel_bytes = an_ifc_chart_unilevel_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_chart_unilevel =
-                             an_ifc_Byte_buffer<an_ifc_chart_unilevel_storage>;
+/*
+The universal representation of an IFC ChartUnilevel node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_chart_unilevel :
+                            an_ifc_Byte_buffer<an_ifc_chart_unilevel_storage> {
+  using storage_type = an_ifc_chart_unilevel_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_chart_unilevel */
 
 /*
   |--------------------------------------------|
@@ -6245,8 +6465,17 @@ using an_ifc_const_f64_bytes = const an_ifc_const_f64_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_const_f64_bytes = an_ifc_const_f64_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_const_f64 = an_ifc_Byte_buffer<an_ifc_const_f64_storage>;
+/*
+The universal representation of an IFC ConstF64 node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_const_f64 : an_ifc_Byte_buffer<an_ifc_const_f64_storage> {
+  using storage_type = an_ifc_const_f64_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_const_f64 */
 
 /*
   |-------------------------------|
@@ -6264,8 +6493,17 @@ using an_ifc_const_i64_bytes = const an_ifc_const_i64_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_const_i64_bytes = an_ifc_const_i64_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_const_i64 = an_ifc_Byte_buffer<an_ifc_const_i64_storage>;
+/*
+The universal representation of an IFC ConstI64 node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_const_i64 : an_ifc_Byte_buffer<an_ifc_const_i64_storage> {
+  using storage_type = an_ifc_const_i64_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_const_i64 */
 
 /*
   |---------------------------------------|
@@ -6285,8 +6523,17 @@ using an_ifc_const_str_bytes = const an_ifc_const_str_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_const_str_bytes = an_ifc_const_str_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_const_str = an_ifc_Byte_buffer<an_ifc_const_str_storage>;
+/*
+The universal representation of an IFC ConstStr node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_const_str : an_ifc_Byte_buffer<an_ifc_const_str_storage> {
+  using storage_type = an_ifc_const_str_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_const_str */
 
 /*
   |--------------------------------------------------------|
@@ -6328,8 +6575,17 @@ using an_ifc_decl_alias_bytes = const an_ifc_decl_alias_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_decl_alias_bytes = an_ifc_decl_alias_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_decl_alias = an_ifc_Byte_buffer<an_ifc_decl_alias_storage>;
+/*
+The universal representation of an IFC DeclAlias node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_decl_alias : an_ifc_Byte_buffer<an_ifc_decl_alias_storage> {
+  using storage_type = an_ifc_decl_alias_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_decl_alias */
 
 /*
   |------------------------------------------------------------|
@@ -6375,8 +6631,18 @@ using an_ifc_decl_bitfield_bytes = const an_ifc_decl_bitfield_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_decl_bitfield_bytes = an_ifc_decl_bitfield_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_decl_bitfield = an_ifc_Byte_buffer<an_ifc_decl_bitfield_storage>;
+/*
+The universal representation of an IFC DeclBitfield node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_decl_bitfield :
+                             an_ifc_Byte_buffer<an_ifc_decl_bitfield_storage> {
+  using storage_type = an_ifc_decl_bitfield_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_decl_bitfield */
 
 /*
   |-------------------------------------------------------|
@@ -6424,8 +6690,17 @@ using an_ifc_decl_concept_bytes = const an_ifc_decl_concept_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_decl_concept_bytes = an_ifc_decl_concept_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_decl_concept = an_ifc_Byte_buffer<an_ifc_decl_concept_storage>;
+/*
+The universal representation of an IFC DeclConcept node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_decl_concept : an_ifc_Byte_buffer<an_ifc_decl_concept_storage> {
+  using storage_type = an_ifc_decl_concept_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_decl_concept */
 
 /*
   |------------------------------------------------------------|
@@ -6474,9 +6749,18 @@ using an_ifc_decl_constructor_bytes = const an_ifc_decl_constructor_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_decl_constructor_bytes = an_ifc_decl_constructor_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_decl_constructor =
-                           an_ifc_Byte_buffer<an_ifc_decl_constructor_storage>;
+/*
+The universal representation of an IFC DeclConstructor node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_decl_constructor :
+                          an_ifc_Byte_buffer<an_ifc_decl_constructor_storage> {
+  using storage_type = an_ifc_decl_constructor_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_decl_constructor */
 
 /*
   |--------------------------------------------------------|
@@ -6520,9 +6804,18 @@ using an_ifc_decl_deduction_guide_bytes =
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_decl_deduction_guide_bytes = an_ifc_decl_deduction_guide_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_decl_deduction_guide =
-                       an_ifc_Byte_buffer<an_ifc_decl_deduction_guide_storage>;
+/*
+The universal representation of an IFC DeclDeductionGuide node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_decl_deduction_guide :
+                      an_ifc_Byte_buffer<an_ifc_decl_deduction_guide_storage> {
+  using storage_type = an_ifc_decl_deduction_guide_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_decl_deduction_guide */
 
 /*
   |------------------------------------------------------------|
@@ -6571,9 +6864,18 @@ using an_ifc_decl_destructor_bytes = const an_ifc_decl_destructor_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_decl_destructor_bytes = an_ifc_decl_destructor_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_decl_destructor =
-                            an_ifc_Byte_buffer<an_ifc_decl_destructor_storage>;
+/*
+The universal representation of an IFC DeclDestructor node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_decl_destructor :
+                           an_ifc_Byte_buffer<an_ifc_decl_destructor_storage> {
+  using storage_type = an_ifc_decl_destructor_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_decl_destructor */
 
 /*
   |------------------------------------------------------------|
@@ -6621,9 +6923,18 @@ using an_ifc_decl_enumeration_bytes = const an_ifc_decl_enumeration_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_decl_enumeration_bytes = an_ifc_decl_enumeration_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_decl_enumeration =
-                           an_ifc_Byte_buffer<an_ifc_decl_enumeration_storage>;
+/*
+The universal representation of an IFC DeclEnumeration node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_decl_enumeration :
+                          an_ifc_Byte_buffer<an_ifc_decl_enumeration_storage> {
+  using storage_type = an_ifc_decl_enumeration_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_decl_enumeration */
 
 /*
   |--------------------------------------------------------|
@@ -6649,9 +6960,18 @@ using an_ifc_decl_enumerator_bytes = const an_ifc_decl_enumerator_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_decl_enumerator_bytes = an_ifc_decl_enumerator_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_decl_enumerator =
-                            an_ifc_Byte_buffer<an_ifc_decl_enumerator_storage>;
+/*
+The universal representation of an IFC DeclEnumerator node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_decl_enumerator :
+                           an_ifc_Byte_buffer<an_ifc_decl_enumerator_storage> {
+  using storage_type = an_ifc_decl_enumerator_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_decl_enumerator */
 
 /*
   |-------------------------------------------|
@@ -6679,9 +6999,18 @@ using an_ifc_decl_expansion_bytes = const an_ifc_decl_expansion_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_decl_expansion_bytes = an_ifc_decl_expansion_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_decl_expansion =
-                             an_ifc_Byte_buffer<an_ifc_decl_expansion_storage>;
+/*
+The universal representation of an IFC DeclExpansion node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_decl_expansion :
+                            an_ifc_Byte_buffer<an_ifc_decl_expansion_storage> {
+  using storage_type = an_ifc_decl_expansion_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_decl_expansion */
 
 /*
   |--------------------------------------------|
@@ -6703,9 +7032,18 @@ using an_ifc_decl_explicit_instantiation_bytes =
 using an_ifc_decl_explicit_instantiation_bytes =
                                     an_ifc_decl_explicit_instantiation_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_decl_explicit_instantiation =
-                an_ifc_Byte_buffer<an_ifc_decl_explicit_instantiation_storage>;
+/*
+The universal representation of an IFC DeclExplicitInstantiation node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_decl_explicit_instantiation :
+               an_ifc_Byte_buffer<an_ifc_decl_explicit_instantiation_storage> {
+  using storage_type = an_ifc_decl_explicit_instantiation_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_decl_explicit_instantiation */
 
 /*
   |---------------------------------------------|
@@ -6727,9 +7065,18 @@ using an_ifc_decl_explicit_specialization_bytes =
 using an_ifc_decl_explicit_specialization_bytes =
                                    an_ifc_decl_explicit_specialization_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_decl_explicit_specialization =
-               an_ifc_Byte_buffer<an_ifc_decl_explicit_specialization_storage>;
+/*
+The universal representation of an IFC DeclExplicitSpecialization node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_decl_explicit_specialization :
+              an_ifc_Byte_buffer<an_ifc_decl_explicit_specialization_storage> {
+  using storage_type = an_ifc_decl_explicit_specialization_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_decl_explicit_specialization */
 
 /*
   |------------------------------------------------------------|
@@ -6775,8 +7122,17 @@ using an_ifc_decl_field_bytes = const an_ifc_decl_field_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_decl_field_bytes = an_ifc_decl_field_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_decl_field = an_ifc_Byte_buffer<an_ifc_decl_field_storage>;
+/*
+The universal representation of an IFC DeclField node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_decl_field : an_ifc_Byte_buffer<an_ifc_decl_field_storage> {
+  using storage_type = an_ifc_decl_field_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_decl_field */
 
 /*
   |-------------------------------------|
@@ -6794,8 +7150,17 @@ using an_ifc_decl_friend_bytes = const an_ifc_decl_friend_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_decl_friend_bytes = an_ifc_decl_friend_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_decl_friend = an_ifc_Byte_buffer<an_ifc_decl_friend_storage>;
+/*
+The universal representation of an IFC DeclFriend node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_decl_friend : an_ifc_Byte_buffer<an_ifc_decl_friend_storage> {
+  using storage_type = an_ifc_decl_friend_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_decl_friend */
 
 /*
   |------------------------------------------------------------|
@@ -6841,8 +7206,18 @@ using an_ifc_decl_function_bytes = const an_ifc_decl_function_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_decl_function_bytes = an_ifc_decl_function_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_decl_function = an_ifc_Byte_buffer<an_ifc_decl_function_storage>;
+/*
+The universal representation of an IFC DeclFunction node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_decl_function :
+                             an_ifc_Byte_buffer<an_ifc_decl_function_storage> {
+  using storage_type = an_ifc_decl_function_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_decl_function */
 
 /*
   |-------------------------------------------------------|
@@ -6889,9 +7264,18 @@ using an_ifc_decl_inherited_constructor_bytes =
 using an_ifc_decl_inherited_constructor_bytes =
                                      an_ifc_decl_inherited_constructor_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_decl_inherited_constructor =
-                 an_ifc_Byte_buffer<an_ifc_decl_inherited_constructor_storage>;
+/*
+The universal representation of an IFC DeclInheritedConstructor node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_decl_inherited_constructor :
+                an_ifc_Byte_buffer<an_ifc_decl_inherited_constructor_storage> {
+  using storage_type = an_ifc_decl_inherited_constructor_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_decl_inherited_constructor */
 
 /*
   |--------------------------------------------------------|
@@ -6931,9 +7315,18 @@ using an_ifc_decl_intrinsic_bytes = const an_ifc_decl_intrinsic_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_decl_intrinsic_bytes = an_ifc_decl_intrinsic_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_decl_intrinsic =
-                             an_ifc_Byte_buffer<an_ifc_decl_intrinsic_storage>;
+/*
+The universal representation of an IFC DeclIntrinsic node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_decl_intrinsic :
+                            an_ifc_Byte_buffer<an_ifc_decl_intrinsic_storage> {
+  using storage_type = an_ifc_decl_intrinsic_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_decl_intrinsic */
 
 /*
   |------------------------------------------------------------|
@@ -6979,8 +7372,17 @@ using an_ifc_decl_method_bytes = const an_ifc_decl_method_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_decl_method_bytes = an_ifc_decl_method_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_decl_method = an_ifc_Byte_buffer<an_ifc_decl_method_storage>;
+/*
+The universal representation of an IFC DeclMethod node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_decl_method : an_ifc_Byte_buffer<an_ifc_decl_method_storage> {
+  using storage_type = an_ifc_decl_method_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_decl_method */
 
 /*
   |-----------------------------------------|
@@ -7002,9 +7404,18 @@ using an_ifc_decl_output_segment_bytes =
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_decl_output_segment_bytes = an_ifc_decl_output_segment_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_decl_output_segment =
-                        an_ifc_Byte_buffer<an_ifc_decl_output_segment_storage>;
+/*
+The universal representation of an IFC DeclOutputSegment node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_decl_output_segment :
+                       an_ifc_Byte_buffer<an_ifc_decl_output_segment_storage> {
+  using storage_type = an_ifc_decl_output_segment_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_decl_output_segment */
 
 /*
   |------------------------------------------------------------|
@@ -7032,9 +7443,18 @@ using an_ifc_decl_parameter_bytes = const an_ifc_decl_parameter_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_decl_parameter_bytes = an_ifc_decl_parameter_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_decl_parameter =
-                             an_ifc_Byte_buffer<an_ifc_decl_parameter_storage>;
+/*
+The universal representation of an IFC DeclParameter node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_decl_parameter :
+                            an_ifc_Byte_buffer<an_ifc_decl_parameter_storage> {
+  using storage_type = an_ifc_decl_parameter_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_decl_parameter */
 
 /*
   |------------------------------------------------------------|
@@ -7087,9 +7507,18 @@ using an_ifc_decl_partial_specialization_bytes =
 using an_ifc_decl_partial_specialization_bytes =
                                     an_ifc_decl_partial_specialization_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_decl_partial_specialization =
-                an_ifc_Byte_buffer<an_ifc_decl_partial_specialization_storage>;
+/*
+The universal representation of an IFC DeclPartialSpecialization node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_decl_partial_specialization :
+               an_ifc_Byte_buffer<an_ifc_decl_partial_specialization_storage> {
+  using storage_type = an_ifc_decl_partial_specialization_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_decl_partial_specialization */
 
 /*
   |--------------------------------------|
@@ -7119,8 +7548,18 @@ using an_ifc_decl_property_bytes = const an_ifc_decl_property_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_decl_property_bytes = an_ifc_decl_property_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_decl_property = an_ifc_Byte_buffer<an_ifc_decl_property_storage>;
+/*
+The universal representation of an IFC DeclProperty node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_decl_property :
+                             an_ifc_Byte_buffer<an_ifc_decl_property_storage> {
+  using storage_type = an_ifc_decl_property_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_decl_property */
 
 /*
   |-------------------------------------------------|
@@ -7141,9 +7580,18 @@ using an_ifc_decl_reference_bytes = const an_ifc_decl_reference_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_decl_reference_bytes = an_ifc_decl_reference_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_decl_reference =
-                             an_ifc_Byte_buffer<an_ifc_decl_reference_storage>;
+/*
+The universal representation of an IFC DeclReference node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_decl_reference :
+                            an_ifc_Byte_buffer<an_ifc_decl_reference_storage> {
+  using storage_type = an_ifc_decl_reference_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_decl_reference */
 
 /*
   |------------------------------------------------------------|
@@ -7195,8 +7643,17 @@ using an_ifc_decl_scope_bytes = const an_ifc_decl_scope_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_decl_scope_bytes = an_ifc_decl_scope_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_decl_scope = an_ifc_Byte_buffer<an_ifc_decl_scope_storage>;
+/*
+The universal representation of an IFC DeclScope node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_decl_scope : an_ifc_Byte_buffer<an_ifc_decl_scope_storage> {
+  using storage_type = an_ifc_decl_scope_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_decl_scope */
 
 /*
   |---------------------------------------------------|
@@ -7222,9 +7679,18 @@ using an_ifc_decl_specialization_bytes =
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_decl_specialization_bytes = an_ifc_decl_specialization_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_decl_specialization =
-                        an_ifc_Byte_buffer<an_ifc_decl_specialization_storage>;
+/*
+The universal representation of an IFC DeclSpecialization node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_decl_specialization :
+                       an_ifc_Byte_buffer<an_ifc_decl_specialization_storage> {
+  using storage_type = an_ifc_decl_specialization_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_decl_specialization */
 
 /*
   |------------------------------------------------------------|
@@ -7273,8 +7739,18 @@ using an_ifc_decl_template_bytes = const an_ifc_decl_template_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_decl_template_bytes = an_ifc_decl_template_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_decl_template = an_ifc_Byte_buffer<an_ifc_decl_template_storage>;
+/*
+The universal representation of an IFC DeclTemplate node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_decl_template :
+                             an_ifc_Byte_buffer<an_ifc_decl_template_storage> {
+  using storage_type = an_ifc_decl_template_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_decl_template */
 
 /*
   |------------------------------------------------------------|
@@ -7306,8 +7782,18 @@ using an_ifc_decl_temploid_bytes = const an_ifc_decl_temploid_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_decl_temploid_bytes = an_ifc_decl_temploid_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_decl_temploid = an_ifc_Byte_buffer<an_ifc_decl_temploid_storage>;
+/*
+The universal representation of an IFC DeclTemploid node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_decl_temploid :
+                             an_ifc_Byte_buffer<an_ifc_decl_temploid_storage> {
+  using storage_type = an_ifc_decl_temploid_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_decl_temploid */
 
 /*
   |--------------------------------------------|
@@ -7326,8 +7812,17 @@ using an_ifc_decl_tuple_bytes = const an_ifc_decl_tuple_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_decl_tuple_bytes = an_ifc_decl_tuple_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_decl_tuple = an_ifc_Byte_buffer<an_ifc_decl_tuple_storage>;
+/*
+The universal representation of an IFC DeclTuple node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_decl_tuple : an_ifc_Byte_buffer<an_ifc_decl_tuple_storage> {
+  using storage_type = an_ifc_decl_tuple_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_decl_tuple */
 
 /*
   |--------------------------------------------------------|
@@ -7376,9 +7871,18 @@ using an_ifc_decl_using_declaration_bytes =
 using an_ifc_decl_using_declaration_bytes =
                                          an_ifc_decl_using_declaration_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_decl_using_declaration =
-                     an_ifc_Byte_buffer<an_ifc_decl_using_declaration_storage>;
+/*
+The universal representation of an IFC DeclUsingDeclaration node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_decl_using_declaration :
+                    an_ifc_Byte_buffer<an_ifc_decl_using_declaration_storage> {
+  using storage_type = an_ifc_decl_using_declaration_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_decl_using_declaration */
 
 /*
   |------------------------------------------------------------|
@@ -7424,8 +7928,18 @@ using an_ifc_decl_variable_bytes = const an_ifc_decl_variable_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_decl_variable_bytes = an_ifc_decl_variable_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_decl_variable = an_ifc_Byte_buffer<an_ifc_decl_variable_storage>;
+/*
+The universal representation of an IFC DeclVariable node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_decl_variable :
+                             an_ifc_Byte_buffer<an_ifc_decl_variable_storage> {
+  using storage_type = an_ifc_decl_variable_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_decl_variable */
 
 /*
   |-------------------------------------------|
@@ -7445,8 +7959,17 @@ using an_ifc_expr_alignof_bytes = const an_ifc_expr_alignof_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_expr_alignof_bytes = an_ifc_expr_alignof_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_expr_alignof = an_ifc_Byte_buffer<an_ifc_expr_alignof_storage>;
+/*
+The universal representation of an IFC ExprAlignof node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_expr_alignof : an_ifc_Byte_buffer<an_ifc_expr_alignof_storage> {
+  using storage_type = an_ifc_expr_alignof_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_expr_alignof */
 
 /*
   |------------------------------------------------|
@@ -7467,9 +7990,18 @@ using an_ifc_expr_array_value_bytes = const an_ifc_expr_array_value_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_expr_array_value_bytes = an_ifc_expr_array_value_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_expr_array_value =
-                           an_ifc_Byte_buffer<an_ifc_expr_array_value_storage>;
+/*
+The universal representation of an IFC ExprArrayValue node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_expr_array_value :
+                          an_ifc_Byte_buffer<an_ifc_expr_array_value_storage> {
+  using storage_type = an_ifc_expr_array_value_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_expr_array_value */
 
 /*
   |-----------------------------------------------|
@@ -7491,9 +8023,18 @@ using an_ifc_expr_assign_initializer_bytes =
 using an_ifc_expr_assign_initializer_bytes =
                                         an_ifc_expr_assign_initializer_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_expr_assign_initializer =
-                    an_ifc_Byte_buffer<an_ifc_expr_assign_initializer_storage>;
+/*
+The universal representation of an IFC ExprAssignInitializer node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_expr_assign_initializer :
+                   an_ifc_Byte_buffer<an_ifc_expr_assign_initializer_storage> {
+  using storage_type = an_ifc_expr_assign_initializer_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_expr_assign_initializer */
 
 /*
   |-----------------------------------------------------|
@@ -7516,9 +8057,18 @@ using an_ifc_expr_binary_fold_bytes = const an_ifc_expr_binary_fold_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_expr_binary_fold_bytes = an_ifc_expr_binary_fold_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_expr_binary_fold =
-                           an_ifc_Byte_buffer<an_ifc_expr_binary_fold_storage>;
+/*
+The universal representation of an IFC ExprBinaryFold node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_expr_binary_fold :
+                          an_ifc_Byte_buffer<an_ifc_expr_binary_fold_storage> {
+  using storage_type = an_ifc_expr_binary_fold_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_expr_binary_fold */
 
 /*
   |---------------------------------------------|
@@ -7539,8 +8089,17 @@ using an_ifc_expr_call_bytes = const an_ifc_expr_call_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_expr_call_bytes = an_ifc_expr_call_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_expr_call = an_ifc_Byte_buffer<an_ifc_expr_call_storage>;
+/*
+The universal representation of an IFC ExprCall node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_expr_call : an_ifc_Byte_buffer<an_ifc_expr_call_storage> {
+  using storage_type = an_ifc_expr_call_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_expr_call */
 
 /*
   |---------------------------------------------------|
@@ -7563,8 +8122,17 @@ using an_ifc_expr_cast_bytes = const an_ifc_expr_cast_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_expr_cast_bytes = an_ifc_expr_cast_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_expr_cast = an_ifc_Byte_buffer<an_ifc_expr_cast_storage>;
+/*
+The universal representation of an IFC ExprCast node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_expr_cast : an_ifc_Byte_buffer<an_ifc_expr_cast_storage> {
+  using storage_type = an_ifc_expr_cast_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_expr_cast */
 
 /*
   |------------------------------------------|
@@ -7587,9 +8155,18 @@ using an_ifc_expr_compound_string_bytes =
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_expr_compound_string_bytes = an_ifc_expr_compound_string_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_expr_compound_string =
-                       an_ifc_Byte_buffer<an_ifc_expr_compound_string_storage>;
+/*
+The universal representation of an IFC ExprCompoundString node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_expr_compound_string :
+                      an_ifc_Byte_buffer<an_ifc_expr_compound_string_storage> {
+  using storage_type = an_ifc_expr_compound_string_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_expr_compound_string */
 
 /*
   |-----------------------------------------|
@@ -7609,9 +8186,18 @@ using an_ifc_expr_condition_bytes = const an_ifc_expr_condition_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_expr_condition_bytes = an_ifc_expr_condition_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_expr_condition =
-                             an_ifc_Byte_buffer<an_ifc_expr_condition_storage>;
+/*
+The universal representation of an IFC ExprCondition node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_expr_condition :
+                            an_ifc_Byte_buffer<an_ifc_expr_condition_storage> {
+  using storage_type = an_ifc_expr_condition_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_expr_condition */
 
 /*
   |-----------------------------------------------|
@@ -7635,9 +8221,18 @@ using an_ifc_expr_designated_initializer_bytes =
 using an_ifc_expr_designated_initializer_bytes =
                                     an_ifc_expr_designated_initializer_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_expr_designated_initializer =
-                an_ifc_Byte_buffer<an_ifc_expr_designated_initializer_storage>;
+/*
+The universal representation of an IFC ExprDesignatedInitializer node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_expr_designated_initializer :
+               an_ifc_Byte_buffer<an_ifc_expr_designated_initializer_storage> {
+  using storage_type = an_ifc_expr_designated_initializer_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_expr_designated_initializer */
 
 /*
   |------------------------------------------------------|
@@ -7661,9 +8256,18 @@ using an_ifc_expr_destructor_call_bytes =
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_expr_destructor_call_bytes = an_ifc_expr_destructor_call_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_expr_destructor_call =
-                       an_ifc_Byte_buffer<an_ifc_expr_destructor_call_storage>;
+/*
+The universal representation of an IFC ExprDestructorCall node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_expr_destructor_call :
+                      an_ifc_Byte_buffer<an_ifc_expr_destructor_call_storage> {
+  using storage_type = an_ifc_expr_destructor_call_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_expr_destructor_call */
 
 /*
   |---------------------------------------------------|
@@ -7701,8 +8305,17 @@ using an_ifc_expr_dyad_bytes = const an_ifc_expr_dyad_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_expr_dyad_bytes = an_ifc_expr_dyad_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_expr_dyad = an_ifc_Byte_buffer<an_ifc_expr_dyad_storage>;
+/*
+The universal representation of an IFC ExprDyad node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_expr_dyad : an_ifc_Byte_buffer<an_ifc_expr_dyad_storage> {
+  using storage_type = an_ifc_expr_dyad_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_expr_dyad */
 
 /*
   |-----------------------------------------|
@@ -7725,9 +8338,18 @@ using an_ifc_expr_dynamic_dispatch_bytes =
 using an_ifc_expr_dynamic_dispatch_bytes =
                                           an_ifc_expr_dynamic_dispatch_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_expr_dynamic_dispatch =
-                      an_ifc_Byte_buffer<an_ifc_expr_dynamic_dispatch_storage>;
+/*
+The universal representation of an IFC ExprDynamicDispatch node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_expr_dynamic_dispatch :
+                     an_ifc_Byte_buffer<an_ifc_expr_dynamic_dispatch_storage> {
+  using storage_type = an_ifc_expr_dynamic_dispatch_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_expr_dynamic_dispatch */
 
 /*
   |-----------------------------------------|
@@ -7746,8 +8368,17 @@ using an_ifc_expr_empty_bytes = const an_ifc_expr_empty_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_expr_empty_bytes = an_ifc_expr_empty_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_expr_empty = an_ifc_Byte_buffer<an_ifc_expr_empty_storage>;
+/*
+The universal representation of an IFC ExprEmpty node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_expr_empty : an_ifc_Byte_buffer<an_ifc_expr_empty_storage> {
+  using storage_type = an_ifc_expr_empty_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_expr_empty */
 
 /*
   |-------------------------------------------|
@@ -7767,9 +8398,18 @@ using an_ifc_expr_expansion_bytes = const an_ifc_expr_expansion_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_expr_expansion_bytes = an_ifc_expr_expansion_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_expr_expansion =
-                             an_ifc_Byte_buffer<an_ifc_expr_expansion_storage>;
+/*
+The universal representation of an IFC ExprExpansion node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_expr_expansion :
+                            an_ifc_Byte_buffer<an_ifc_expr_expansion_storage> {
+  using storage_type = an_ifc_expr_expansion_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_expr_expansion */
 
 /*
   |-----------------------------------------------|
@@ -7793,9 +8433,18 @@ using an_ifc_expr_expression_list_bytes =
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_expr_expression_list_bytes = an_ifc_expr_expression_list_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_expr_expression_list =
-                       an_ifc_Byte_buffer<an_ifc_expr_expression_list_storage>;
+/*
+The universal representation of an IFC ExprExpressionList node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_expr_expression_list :
+                      an_ifc_Byte_buffer<an_ifc_expr_expression_list_storage> {
+  using storage_type = an_ifc_expr_expression_list_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_expr_expression_list */
 
 /*
   |-----------------------------------------|
@@ -7817,9 +8466,18 @@ using an_ifc_expr_function_string_bytes =
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_expr_function_string_bytes = an_ifc_expr_function_string_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_expr_function_string =
-                       an_ifc_Byte_buffer<an_ifc_expr_function_string_storage>;
+/*
+The universal representation of an IFC ExprFunctionString node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_expr_function_string :
+                      an_ifc_Byte_buffer<an_ifc_expr_function_string_storage> {
+  using storage_type = an_ifc_expr_function_string_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_expr_function_string */
 
 /*
   |---------------------------------------------------|
@@ -7847,9 +8505,18 @@ using an_ifc_expr_hierarchy_conversion_bytes =
 using an_ifc_expr_hierarchy_conversion_bytes =
                                       an_ifc_expr_hierarchy_conversion_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_expr_hierarchy_conversion =
-                  an_ifc_Byte_buffer<an_ifc_expr_hierarchy_conversion_storage>;
+/*
+The universal representation of an IFC ExprHierarchyConversion node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_expr_hierarchy_conversion :
+                 an_ifc_Byte_buffer<an_ifc_expr_hierarchy_conversion_storage> {
+  using storage_type = an_ifc_expr_hierarchy_conversion_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_expr_hierarchy_conversion */
 
 /*
   |-----------------------------------------|
@@ -7872,9 +8539,18 @@ using an_ifc_expr_inheritance_path_bytes =
 using an_ifc_expr_inheritance_path_bytes =
                                           an_ifc_expr_inheritance_path_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_expr_inheritance_path =
-                      an_ifc_Byte_buffer<an_ifc_expr_inheritance_path_storage>;
+/*
+The universal representation of an IFC ExprInheritancePath node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_expr_inheritance_path :
+                     an_ifc_Byte_buffer<an_ifc_expr_inheritance_path_storage> {
+  using storage_type = an_ifc_expr_inheritance_path_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_expr_inheritance_path */
 
 /*
   |------------------------------------------|
@@ -7895,9 +8571,18 @@ using an_ifc_expr_initializer_bytes = const an_ifc_expr_initializer_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_expr_initializer_bytes = an_ifc_expr_initializer_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_expr_initializer =
-                           an_ifc_Byte_buffer<an_ifc_expr_initializer_storage>;
+/*
+The universal representation of an IFC ExprInitializer node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_expr_initializer :
+                          an_ifc_Byte_buffer<an_ifc_expr_initializer_storage> {
+  using storage_type = an_ifc_expr_initializer_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_expr_initializer */
 
 /*
   |--------------------------------------------|
@@ -7920,9 +8605,18 @@ using an_ifc_expr_initializer_list_bytes =
 using an_ifc_expr_initializer_list_bytes =
                                           an_ifc_expr_initializer_list_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_expr_initializer_list =
-                      an_ifc_Byte_buffer<an_ifc_expr_initializer_list_storage>;
+/*
+The universal representation of an IFC ExprInitializerList node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_expr_initializer_list :
+                     an_ifc_Byte_buffer<an_ifc_expr_initializer_list_storage> {
+  using storage_type = an_ifc_expr_initializer_list_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_expr_initializer_list */
 
 /*
   |----------------------------------------------------|
@@ -7944,8 +8638,17 @@ using an_ifc_expr_lambda_bytes = const an_ifc_expr_lambda_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_expr_lambda_bytes = an_ifc_expr_lambda_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_expr_lambda = an_ifc_Byte_buffer<an_ifc_expr_lambda_storage>;
+/*
+The universal representation of an IFC ExprLambda node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_expr_lambda : an_ifc_Byte_buffer<an_ifc_expr_lambda_storage> {
+  using storage_type = an_ifc_expr_lambda_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_expr_lambda */
 
 /*
   |-----------------------------------------|
@@ -7965,8 +8668,17 @@ using an_ifc_expr_literal_bytes = const an_ifc_expr_literal_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_expr_literal_bytes = an_ifc_expr_literal_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_expr_literal = an_ifc_Byte_buffer<an_ifc_expr_literal_storage>;
+/*
+The universal representation of an IFC ExprLiteral node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_expr_literal : an_ifc_Byte_buffer<an_ifc_expr_literal_storage> {
+  using storage_type = an_ifc_expr_literal_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_expr_literal */
 
 /*
   |---------------------------------------------|
@@ -7989,9 +8701,18 @@ using an_ifc_expr_member_access_bytes =
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_expr_member_access_bytes = an_ifc_expr_member_access_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_expr_member_access =
-                         an_ifc_Byte_buffer<an_ifc_expr_member_access_storage>;
+/*
+The universal representation of an IFC ExprMemberAccess node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_expr_member_access :
+                        an_ifc_Byte_buffer<an_ifc_expr_member_access_storage> {
+  using storage_type = an_ifc_expr_member_access_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_expr_member_access */
 
 /*
   |-----------------------------------------------|
@@ -8028,9 +8749,18 @@ using an_ifc_expr_member_initializer_bytes =
 using an_ifc_expr_member_initializer_bytes =
                                         an_ifc_expr_member_initializer_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_expr_member_initializer =
-                    an_ifc_Byte_buffer<an_ifc_expr_member_initializer_storage>;
+/*
+The universal representation of an IFC ExprMemberInitializer node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_expr_member_initializer :
+                   an_ifc_Byte_buffer<an_ifc_expr_member_initializer_storage> {
+  using storage_type = an_ifc_expr_member_initializer_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_expr_member_initializer */
 
 /*
   |----------------------------------------------------|
@@ -8066,8 +8796,17 @@ using an_ifc_expr_monad_bytes = const an_ifc_expr_monad_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_expr_monad_bytes = an_ifc_expr_monad_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_expr_monad = an_ifc_Byte_buffer<an_ifc_expr_monad_storage>;
+/*
+The universal representation of an IFC ExprMonad node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_expr_monad : an_ifc_Byte_buffer<an_ifc_expr_monad_storage> {
+  using storage_type = an_ifc_expr_monad_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_expr_monad */
 
 /*
   |----------------------------------------------|
@@ -8097,9 +8836,18 @@ using an_ifc_expr_named_decl_bytes = const an_ifc_expr_named_decl_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_expr_named_decl_bytes = an_ifc_expr_named_decl_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_expr_named_decl =
-                            an_ifc_Byte_buffer<an_ifc_expr_named_decl_storage>;
+/*
+The universal representation of an IFC ExprNamedDecl node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_expr_named_decl :
+                           an_ifc_Byte_buffer<an_ifc_expr_named_decl_storage> {
+  using storage_type = an_ifc_expr_named_decl_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_expr_named_decl */
 
 /*
   |-----------------------------------------|
@@ -8118,8 +8866,17 @@ using an_ifc_expr_nullptr_bytes = const an_ifc_expr_nullptr_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_expr_nullptr_bytes = an_ifc_expr_nullptr_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_expr_nullptr = an_ifc_Byte_buffer<an_ifc_expr_nullptr_storage>;
+/*
+The universal representation of an IFC ExprNullptr node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_expr_nullptr : an_ifc_Byte_buffer<an_ifc_expr_nullptr_storage> {
+  using storage_type = an_ifc_expr_nullptr_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_expr_nullptr */
 
 /*
   |-----------------------------------------------|
@@ -8142,9 +8899,18 @@ using an_ifc_expr_packed_template_arguments_bytes =
 using an_ifc_expr_packed_template_arguments_bytes =
                                  an_ifc_expr_packed_template_arguments_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_expr_packed_template_arguments =
-             an_ifc_Byte_buffer<an_ifc_expr_packed_template_arguments_storage>;
+/*
+The universal representation of an IFC ExprPackedTemplateArguments node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_expr_packed_template_arguments :
+            an_ifc_Byte_buffer<an_ifc_expr_packed_template_arguments_storage> {
+  using storage_type = an_ifc_expr_packed_template_arguments_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_expr_packed_template_arguments */
 
 /*
   |------------------------------------------|
@@ -8165,8 +8931,17 @@ using an_ifc_expr_path_bytes = const an_ifc_expr_path_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_expr_path_bytes = an_ifc_expr_path_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_expr_path = an_ifc_Byte_buffer<an_ifc_expr_path_storage>;
+/*
+The universal representation of an IFC ExprPath node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_expr_path : an_ifc_Byte_buffer<an_ifc_expr_path_storage> {
+  using storage_type = an_ifc_expr_path_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_expr_path */
 
 /*
   |-----------------------------------------|
@@ -8185,9 +8960,18 @@ using an_ifc_expr_placeholder_bytes = const an_ifc_expr_placeholder_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_expr_placeholder_bytes = an_ifc_expr_placeholder_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_expr_placeholder =
-                           an_ifc_Byte_buffer<an_ifc_expr_placeholder_storage>;
+/*
+The universal representation of an IFC ExprPlaceholder node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_expr_placeholder :
+                          an_ifc_Byte_buffer<an_ifc_expr_placeholder_storage> {
+  using storage_type = an_ifc_expr_placeholder_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_expr_placeholder */
 
 /*
   |-----------------------------------------|
@@ -8205,8 +8989,17 @@ using an_ifc_expr_pointer_bytes = const an_ifc_expr_pointer_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_expr_pointer_bytes = an_ifc_expr_pointer_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_expr_pointer = an_ifc_Byte_buffer<an_ifc_expr_pointer_storage>;
+/*
+The universal representation of an IFC ExprPointer node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_expr_pointer : an_ifc_Byte_buffer<an_ifc_expr_pointer_storage> {
+  using storage_type = an_ifc_expr_pointer_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_expr_pointer */
 
 /*
   |---------------------------------------------------|
@@ -8231,9 +9024,18 @@ using an_ifc_expr_product_type_value_bytes =
 using an_ifc_expr_product_type_value_bytes =
                                         an_ifc_expr_product_type_value_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_expr_product_type_value =
-                    an_ifc_Byte_buffer<an_ifc_expr_product_type_value_storage>;
+/*
+The universal representation of an IFC ExprProductTypeValue node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_expr_product_type_value :
+                   an_ifc_Byte_buffer<an_ifc_expr_product_type_value_storage> {
+  using storage_type = an_ifc_expr_product_type_value_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_expr_product_type_value */
 
 /*
   |---------------------------------------------|
@@ -8255,9 +9057,18 @@ using an_ifc_expr_push_state_bytes = const an_ifc_expr_push_state_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_expr_push_state_bytes = an_ifc_expr_push_state_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_expr_push_state =
-                            an_ifc_Byte_buffer<an_ifc_expr_push_state_storage>;
+/*
+The universal representation of an IFC ExprPushState node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_expr_push_state :
+                           an_ifc_Byte_buffer<an_ifc_expr_push_state_storage> {
+  using storage_type = an_ifc_expr_push_state_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_expr_push_state */
 
 /*
   |----------------------------------------------------|
@@ -8279,9 +9090,18 @@ using an_ifc_expr_qualified_name_bytes =
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_expr_qualified_name_bytes = an_ifc_expr_qualified_name_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_expr_qualified_name =
-                        an_ifc_Byte_buffer<an_ifc_expr_qualified_name_storage>;
+/*
+The universal representation of an IFC ExprQualifiedName node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_expr_qualified_name :
+                       an_ifc_Byte_buffer<an_ifc_expr_qualified_name_storage> {
+  using storage_type = an_ifc_expr_qualified_name_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_expr_qualified_name */
 
 /*
   |---------------------------------------------------|
@@ -8303,8 +9123,17 @@ using an_ifc_expr_read_bytes = const an_ifc_expr_read_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_expr_read_bytes = an_ifc_expr_read_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_expr_read = an_ifc_Byte_buffer<an_ifc_expr_read_storage>;
+/*
+The universal representation of an IFC ExprRead node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_expr_read : an_ifc_Byte_buffer<an_ifc_expr_read_storage> {
+  using storage_type = an_ifc_expr_read_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_expr_read */
 
 /*
   |----------------------------------------------|
@@ -8325,8 +9154,18 @@ using an_ifc_expr_requires_bytes = const an_ifc_expr_requires_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_expr_requires_bytes = an_ifc_expr_requires_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_expr_requires = an_ifc_Byte_buffer<an_ifc_expr_requires_storage>;
+/*
+The universal representation of an IFC ExprRequires node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_expr_requires :
+                             an_ifc_Byte_buffer<an_ifc_expr_requires_storage> {
+  using storage_type = an_ifc_expr_requires_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_expr_requires */
 
 /*
   |-----------------------------------------|
@@ -8349,9 +9188,18 @@ using an_ifc_expr_simple_identifier_bytes =
 using an_ifc_expr_simple_identifier_bytes =
                                          an_ifc_expr_simple_identifier_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_expr_simple_identifier =
-                     an_ifc_Byte_buffer<an_ifc_expr_simple_identifier_storage>;
+/*
+The universal representation of an IFC ExprSimpleIdentifier node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_expr_simple_identifier :
+                    an_ifc_Byte_buffer<an_ifc_expr_simple_identifier_storage> {
+  using storage_type = an_ifc_expr_simple_identifier_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_expr_simple_identifier */
 
 /*
   |-------------------------------------------|
@@ -8371,9 +9219,18 @@ using an_ifc_expr_sizeof_type_bytes = const an_ifc_expr_sizeof_type_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_expr_sizeof_type_bytes = an_ifc_expr_sizeof_type_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_expr_sizeof_type =
-                           an_ifc_Byte_buffer<an_ifc_expr_sizeof_type_storage>;
+/*
+The universal representation of an IFC ExprSizeofType node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_expr_sizeof_type :
+                          an_ifc_Byte_buffer<an_ifc_expr_sizeof_type_storage> {
+  using storage_type = an_ifc_expr_sizeof_type_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_expr_sizeof_type */
 
 /*
   |------------------------------------------------|
@@ -8393,8 +9250,17 @@ using an_ifc_expr_string_bytes = const an_ifc_expr_string_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_expr_string_bytes = an_ifc_expr_string_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_expr_string = an_ifc_Byte_buffer<an_ifc_expr_string_storage>;
+/*
+The universal representation of an IFC ExprString node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_expr_string : an_ifc_Byte_buffer<an_ifc_expr_string_storage> {
+  using storage_type = an_ifc_expr_string_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_expr_string */
 
 /*
   |-------------------------------------------|
@@ -8416,9 +9282,18 @@ using an_ifc_expr_string_sequence_bytes =
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_expr_string_sequence_bytes = an_ifc_expr_string_sequence_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_expr_string_sequence =
-                       an_ifc_Byte_buffer<an_ifc_expr_string_sequence_storage>;
+/*
+The universal representation of an IFC ExprStringSequence node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_expr_string_sequence :
+                      an_ifc_Byte_buffer<an_ifc_expr_string_sequence_storage> {
+  using storage_type = an_ifc_expr_string_sequence_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_expr_string_sequence */
 
 /*
   |-------------------------------------|
@@ -8438,9 +9313,18 @@ using an_ifc_expr_subobject_value_bytes =
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_expr_subobject_value_bytes = an_ifc_expr_subobject_value_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_expr_subobject_value =
-                       an_ifc_Byte_buffer<an_ifc_expr_subobject_value_storage>;
+/*
+The universal representation of an IFC ExprSubobjectValue node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_expr_subobject_value :
+                      an_ifc_Byte_buffer<an_ifc_expr_subobject_value_storage> {
+  using storage_type = an_ifc_expr_subobject_value_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_expr_subobject_value */
 
 /*
   |------------------------------------------------|
@@ -8475,9 +9359,18 @@ using an_ifc_expr_sum_type_value_bytes =
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_expr_sum_type_value_bytes = an_ifc_expr_sum_type_value_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_expr_sum_type_value =
-                        an_ifc_Byte_buffer<an_ifc_expr_sum_type_value_storage>;
+/*
+The universal representation of an IFC ExprSumTypeValue node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_expr_sum_type_value :
+                       an_ifc_Byte_buffer<an_ifc_expr_sum_type_value_storage> {
+  using storage_type = an_ifc_expr_sum_type_value_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_expr_sum_type_value */
 
 /*
   |---------------------------------------|
@@ -8495,9 +9388,18 @@ using an_ifc_expr_syntax_tree_bytes = const an_ifc_expr_syntax_tree_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_expr_syntax_tree_bytes = an_ifc_expr_syntax_tree_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_expr_syntax_tree =
-                           an_ifc_Byte_buffer<an_ifc_expr_syntax_tree_storage>;
+/*
+The universal representation of an IFC ExprSyntaxTree node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_expr_syntax_tree :
+                          an_ifc_Byte_buffer<an_ifc_expr_syntax_tree_storage> {
+  using storage_type = an_ifc_expr_syntax_tree_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_expr_syntax_tree */
 
 /*
   |---------------------------------------------|
@@ -8518,9 +9420,18 @@ using an_ifc_expr_template_id_bytes = const an_ifc_expr_template_id_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_expr_template_id_bytes = an_ifc_expr_template_id_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_expr_template_id =
-                           an_ifc_Byte_buffer<an_ifc_expr_template_id_storage>;
+/*
+The universal representation of an IFC ExprTemplateId node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_expr_template_id :
+                          an_ifc_Byte_buffer<an_ifc_expr_template_id_storage> {
+  using storage_type = an_ifc_expr_template_id_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_expr_template_id */
 
 /*
   |------------------------------------------------|
@@ -8546,9 +9457,18 @@ using an_ifc_expr_template_reference_bytes =
 using an_ifc_expr_template_reference_bytes =
                                         an_ifc_expr_template_reference_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_expr_template_reference =
-                    an_ifc_Byte_buffer<an_ifc_expr_template_reference_storage>;
+/*
+The universal representation of an IFC ExprTemplateReference node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_expr_template_reference :
+                   an_ifc_Byte_buffer<an_ifc_expr_template_reference_storage> {
+  using storage_type = an_ifc_expr_template_reference_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_expr_template_reference */
 
 /*
   |-----------------------------------------|
@@ -8568,9 +9488,18 @@ using an_ifc_expr_temporary_bytes = const an_ifc_expr_temporary_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_expr_temporary_bytes = an_ifc_expr_temporary_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_expr_temporary =
-                             an_ifc_Byte_buffer<an_ifc_expr_temporary_storage>;
+/*
+The universal representation of an IFC ExprTemporary node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_expr_temporary :
+                            an_ifc_Byte_buffer<an_ifc_expr_temporary_storage> {
+  using storage_type = an_ifc_expr_temporary_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_expr_temporary */
 
 /*
   |-----------------------------------------|
@@ -8589,8 +9518,17 @@ using an_ifc_expr_this_bytes = const an_ifc_expr_this_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_expr_this_bytes = an_ifc_expr_this_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_expr_this = an_ifc_Byte_buffer<an_ifc_expr_this_storage>;
+/*
+The universal representation of an IFC ExprThis node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_expr_this : an_ifc_Byte_buffer<an_ifc_expr_this_storage> {
+  using storage_type = an_ifc_expr_this_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_expr_this */
 
 /*
   |-----------------------------------------|
@@ -8610,8 +9548,17 @@ using an_ifc_expr_tokens_bytes = const an_ifc_expr_tokens_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_expr_tokens_bytes = an_ifc_expr_tokens_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_expr_tokens = an_ifc_Byte_buffer<an_ifc_expr_tokens_storage>;
+/*
+The universal representation of an IFC ExprTokens node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_expr_tokens : an_ifc_Byte_buffer<an_ifc_expr_tokens_storage> {
+  using storage_type = an_ifc_expr_tokens_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_expr_tokens */
 
 /*
   |----------------------------------------------------|
@@ -8651,8 +9598,17 @@ using an_ifc_expr_triad_bytes = const an_ifc_expr_triad_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_expr_triad_bytes = an_ifc_expr_triad_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_expr_triad = an_ifc_Byte_buffer<an_ifc_expr_triad_storage>;
+/*
+The universal representation of an IFC ExprTriad node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_expr_triad : an_ifc_Byte_buffer<an_ifc_expr_triad_storage> {
+  using storage_type = an_ifc_expr_triad_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_expr_triad */
 
 /*
   |-----------------------------------------------|
@@ -8673,8 +9629,17 @@ using an_ifc_expr_tuple_bytes = const an_ifc_expr_tuple_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_expr_tuple_bytes = an_ifc_expr_tuple_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_expr_tuple = an_ifc_Byte_buffer<an_ifc_expr_tuple_storage>;
+/*
+The universal representation of an IFC ExprTuple node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_expr_tuple : an_ifc_Byte_buffer<an_ifc_expr_tuple_storage> {
+  using storage_type = an_ifc_expr_tuple_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_expr_tuple */
 
 /*
   |----------------------------------------------|
@@ -8694,8 +9659,17 @@ using an_ifc_expr_type_bytes = const an_ifc_expr_type_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_expr_type_bytes = an_ifc_expr_type_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_expr_type = an_ifc_Byte_buffer<an_ifc_expr_type_storage>;
+/*
+The universal representation of an IFC ExprType node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_expr_type : an_ifc_Byte_buffer<an_ifc_expr_type_storage> {
+  using storage_type = an_ifc_expr_type_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_expr_type */
 
 /*
   |-------------------------------------------------|
@@ -8720,9 +9694,18 @@ using an_ifc_expr_type_trait_intrinsic_bytes =
 using an_ifc_expr_type_trait_intrinsic_bytes =
                                       an_ifc_expr_type_trait_intrinsic_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_expr_type_trait_intrinsic =
-                  an_ifc_Byte_buffer<an_ifc_expr_type_trait_intrinsic_storage>;
+/*
+The universal representation of an IFC ExprTypeTraitIntrinsic node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_expr_type_trait_intrinsic :
+                 an_ifc_Byte_buffer<an_ifc_expr_type_trait_intrinsic_storage> {
+  using storage_type = an_ifc_expr_type_trait_intrinsic_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_expr_type_trait_intrinsic */
 
 /*
   |-------------------------------------------|
@@ -8742,8 +9725,17 @@ using an_ifc_expr_typeid_bytes = const an_ifc_expr_typeid_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_expr_typeid_bytes = an_ifc_expr_typeid_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_expr_typeid = an_ifc_Byte_buffer<an_ifc_expr_typeid_storage>;
+/*
+The universal representation of an IFC ExprTypeid node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_expr_typeid : an_ifc_Byte_buffer<an_ifc_expr_typeid_storage> {
+  using storage_type = an_ifc_expr_typeid_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_expr_typeid */
 
 /*
   |-----------------------------------------------------|
@@ -8766,9 +9758,18 @@ using an_ifc_expr_unary_fold_bytes = const an_ifc_expr_unary_fold_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_expr_unary_fold_bytes = an_ifc_expr_unary_fold_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_expr_unary_fold =
-                            an_ifc_Byte_buffer<an_ifc_expr_unary_fold_storage>;
+/*
+The universal representation of an IFC ExprUnaryFold node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_expr_unary_fold :
+                           an_ifc_Byte_buffer<an_ifc_expr_unary_fold_storage> {
+  using storage_type = an_ifc_expr_unary_fold_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_expr_unary_fold */
 
 /*
   |----------------------------------------------------|
@@ -8791,9 +9792,18 @@ using an_ifc_expr_unqualified_id_bytes =
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_expr_unqualified_id_bytes = an_ifc_expr_unqualified_id_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_expr_unqualified_id =
-                        an_ifc_Byte_buffer<an_ifc_expr_unqualified_id_storage>;
+/*
+The universal representation of an IFC ExprUnqualifiedId node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_expr_unqualified_id :
+                       an_ifc_Byte_buffer<an_ifc_expr_unqualified_id_storage> {
+  using storage_type = an_ifc_expr_unqualified_id_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_expr_unqualified_id */
 
 /*
   |-----------------------------------------|
@@ -8814,9 +9824,18 @@ using an_ifc_expr_unresolved_id_bytes =
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_expr_unresolved_id_bytes = an_ifc_expr_unresolved_id_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_expr_unresolved_id =
-                         an_ifc_Byte_buffer<an_ifc_expr_unresolved_id_storage>;
+/*
+The universal representation of an IFC ExprUnresolvedId node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_expr_unresolved_id :
+                        an_ifc_Byte_buffer<an_ifc_expr_unresolved_id_storage> {
+  using storage_type = an_ifc_expr_unresolved_id_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_expr_unresolved_id */
 
 /*
   |-------------------------------------------------|
@@ -8849,9 +9868,18 @@ using an_ifc_expr_virtual_function_conversion_bytes =
 using an_ifc_expr_virtual_function_conversion_bytes =
                                an_ifc_expr_virtual_function_conversion_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_expr_virtual_function_conversion =
-           an_ifc_Byte_buffer<an_ifc_expr_virtual_function_conversion_storage>;
+/*
+The universal representation of an IFC ExprVirtualFunctionConversion node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_expr_virtual_function_conversion :
+          an_ifc_Byte_buffer<an_ifc_expr_virtual_function_conversion_storage> {
+  using storage_type = an_ifc_expr_virtual_function_conversion_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_expr_virtual_function_conversion */
 
 /*
   |------------------------------------------|
@@ -8871,8 +9899,18 @@ using an_ifc_form_catenate_bytes = const an_ifc_form_catenate_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_form_catenate_bytes = an_ifc_form_catenate_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_form_catenate = an_ifc_Byte_buffer<an_ifc_form_catenate_storage>;
+/*
+The universal representation of an IFC FormCatenate node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_form_catenate :
+                             an_ifc_Byte_buffer<an_ifc_form_catenate_storage> {
+  using storage_type = an_ifc_form_catenate_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_form_catenate */
 
 /*
   |--------------------------------------------|
@@ -8891,9 +9929,18 @@ using an_ifc_form_character_bytes = const an_ifc_form_character_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_form_character_bytes = an_ifc_form_character_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_form_character =
-                             an_ifc_Byte_buffer<an_ifc_form_character_storage>;
+/*
+The universal representation of an IFC FormCharacter node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_form_character :
+                            an_ifc_Byte_buffer<an_ifc_form_character_storage> {
+  using storage_type = an_ifc_form_character_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_form_character */
 
 /*
   |--------------------------------------------|
@@ -8912,8 +9959,17 @@ using an_ifc_form_header_bytes = const an_ifc_form_header_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_form_header_bytes = an_ifc_form_header_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_form_header = an_ifc_Byte_buffer<an_ifc_form_header_storage>;
+/*
+The universal representation of an IFC FormHeader node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_form_header : an_ifc_Byte_buffer<an_ifc_form_header_storage> {
+  using storage_type = an_ifc_form_header_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_form_header */
 
 /*
   |--------------------------------------------|
@@ -8932,9 +9988,18 @@ using an_ifc_form_identifier_bytes = const an_ifc_form_identifier_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_form_identifier_bytes = an_ifc_form_identifier_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_form_identifier =
-                            an_ifc_Byte_buffer<an_ifc_form_identifier_storage>;
+/*
+The universal representation of an IFC FormIdentifier node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_form_identifier :
+                           an_ifc_Byte_buffer<an_ifc_form_identifier_storage> {
+  using storage_type = an_ifc_form_identifier_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_form_identifier */
 
 /*
   |--------------------------------------------|
@@ -8953,8 +10018,17 @@ using an_ifc_form_junk_bytes = const an_ifc_form_junk_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_form_junk_bytes = an_ifc_form_junk_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_form_junk = an_ifc_Byte_buffer<an_ifc_form_junk_storage>;
+/*
+The universal representation of an IFC FormJunk node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_form_junk : an_ifc_Byte_buffer<an_ifc_form_junk_storage> {
+  using storage_type = an_ifc_form_junk_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_form_junk */
 
 /*
   |--------------------------------------------|
@@ -8973,8 +10047,17 @@ using an_ifc_form_keyword_bytes = const an_ifc_form_keyword_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_form_keyword_bytes = an_ifc_form_keyword_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_form_keyword = an_ifc_Byte_buffer<an_ifc_form_keyword_storage>;
+/*
+The universal representation of an IFC FormKeyword node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_form_keyword : an_ifc_Byte_buffer<an_ifc_form_keyword_storage> {
+  using storage_type = an_ifc_form_keyword_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_form_keyword */
 
 /*
   |--------------------------------------------|
@@ -8993,8 +10076,17 @@ using an_ifc_form_number_bytes = const an_ifc_form_number_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_form_number_bytes = an_ifc_form_number_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_form_number = an_ifc_Byte_buffer<an_ifc_form_number_storage>;
+/*
+The universal representation of an IFC FormNumber node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_form_number : an_ifc_Byte_buffer<an_ifc_form_number_storage> {
+  using storage_type = an_ifc_form_number_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_form_number */
 
 /*
   |-------------------------------------------------|
@@ -9015,8 +10107,18 @@ using an_ifc_form_operator_bytes = const an_ifc_form_operator_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_form_operator_bytes = an_ifc_form_operator_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_form_operator = an_ifc_Byte_buffer<an_ifc_form_operator_storage>;
+/*
+The universal representation of an IFC FormOperator node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_form_operator :
+                             an_ifc_Byte_buffer<an_ifc_form_operator_storage> {
+  using storage_type = an_ifc_form_operator_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_form_operator */
 
 /*
   |--------------------------------------------|
@@ -9035,9 +10137,18 @@ using an_ifc_form_parameter_bytes = const an_ifc_form_parameter_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_form_parameter_bytes = an_ifc_form_parameter_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_form_parameter =
-                             an_ifc_Byte_buffer<an_ifc_form_parameter_storage>;
+/*
+The universal representation of an IFC FormParameter node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_form_parameter :
+                            an_ifc_Byte_buffer<an_ifc_form_parameter_storage> {
+  using storage_type = an_ifc_form_parameter_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_form_parameter */
 
 /*
   |-------------------------------------------|
@@ -9057,9 +10168,18 @@ using an_ifc_form_parenthesized_bytes =
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_form_parenthesized_bytes = an_ifc_form_parenthesized_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_form_parenthesized =
-                         an_ifc_Byte_buffer<an_ifc_form_parenthesized_storage>;
+/*
+The universal representation of an IFC FormParenthesized node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_form_parenthesized :
+                        an_ifc_Byte_buffer<an_ifc_form_parenthesized_storage> {
+  using storage_type = an_ifc_form_parenthesized_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_form_parenthesized */
 
 /*
   |-------------------------------------------|
@@ -9078,8 +10198,17 @@ using an_ifc_form_pragma_bytes = const an_ifc_form_pragma_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_form_pragma_bytes = an_ifc_form_pragma_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_form_pragma = an_ifc_Byte_buffer<an_ifc_form_pragma_storage>;
+/*
+The universal representation of an IFC FormPragma node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_form_pragma : an_ifc_Byte_buffer<an_ifc_form_pragma_storage> {
+  using storage_type = an_ifc_form_pragma_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_form_pragma */
 
 /*
   |-----------------------------------------------|
@@ -9107,8 +10236,17 @@ using an_ifc_form_spec_bytes = const an_ifc_form_spec_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_form_spec_bytes = an_ifc_form_spec_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_form_spec = an_ifc_Byte_buffer<an_ifc_form_spec_storage>;
+/*
+The universal representation of an IFC FormSpec node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_form_spec : an_ifc_Byte_buffer<an_ifc_form_spec_storage> {
+  using storage_type = an_ifc_form_spec_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_form_spec */
 
 /*
   |--------------------------------------------|
@@ -9127,8 +10265,17 @@ using an_ifc_form_string_bytes = const an_ifc_form_string_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_form_string_bytes = an_ifc_form_string_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_form_string = an_ifc_Byte_buffer<an_ifc_form_string_storage>;
+/*
+The universal representation of an IFC FormString node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_form_string : an_ifc_Byte_buffer<an_ifc_form_string_storage> {
+  using storage_type = an_ifc_form_string_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_form_string */
 
 /*
   |-------------------------------------------|
@@ -9147,9 +10294,18 @@ using an_ifc_form_stringize_bytes = const an_ifc_form_stringize_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_form_stringize_bytes = an_ifc_form_stringize_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_form_stringize =
-                             an_ifc_Byte_buffer<an_ifc_form_stringize_storage>;
+/*
+The universal representation of an IFC FormStringize node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_form_stringize :
+                            an_ifc_Byte_buffer<an_ifc_form_stringize_storage> {
+  using storage_type = an_ifc_form_stringize_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_form_stringize */
 
 /*
   |--------------------------------------------|
@@ -9168,8 +10324,17 @@ using an_ifc_form_tuple_bytes = const an_ifc_form_tuple_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_form_tuple_bytes = an_ifc_form_tuple_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_form_tuple = an_ifc_Byte_buffer<an_ifc_form_tuple_storage>;
+/*
+The universal representation of an IFC FormTuple node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_form_tuple : an_ifc_Byte_buffer<an_ifc_form_tuple_storage> {
+  using storage_type = an_ifc_form_tuple_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_form_tuple */
 
 /*
   |-----------------------------------------|
@@ -9187,9 +10352,18 @@ using an_ifc_form_whitespace_bytes = const an_ifc_form_whitespace_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_form_whitespace_bytes = an_ifc_form_whitespace_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_form_whitespace =
-                            an_ifc_Byte_buffer<an_ifc_form_whitespace_storage>;
+/*
+The universal representation of an IFC FormWhitespace node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_form_whitespace :
+                           an_ifc_Byte_buffer<an_ifc_form_whitespace_storage> {
+  using storage_type = an_ifc_form_whitespace_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_form_whitespace */
 
 /*
   |------------------------------------|
@@ -9207,8 +10381,17 @@ using an_ifc_heap_attr_bytes = const an_ifc_heap_attr_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_heap_attr_bytes = an_ifc_heap_attr_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_heap_attr = an_ifc_Byte_buffer<an_ifc_heap_attr_storage>;
+/*
+The universal representation of an IFC HeapAttr node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_heap_attr : an_ifc_Byte_buffer<an_ifc_heap_attr_storage> {
+  using storage_type = an_ifc_heap_attr_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_heap_attr */
 
 /*
   |-------------------------------------|
@@ -9226,8 +10409,17 @@ using an_ifc_heap_chart_bytes = const an_ifc_heap_chart_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_heap_chart_bytes = an_ifc_heap_chart_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_heap_chart = an_ifc_Byte_buffer<an_ifc_heap_chart_storage>;
+/*
+The universal representation of an IFC HeapChart node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_heap_chart : an_ifc_Byte_buffer<an_ifc_heap_chart_storage> {
+  using storage_type = an_ifc_heap_chart_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_heap_chart */
 
 /*
   |------------------------------------|
@@ -9253,8 +10445,17 @@ using an_ifc_heap_decl_bytes = const an_ifc_heap_decl_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_heap_decl_bytes = an_ifc_heap_decl_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_heap_decl = an_ifc_Byte_buffer<an_ifc_heap_decl_storage>;
+/*
+The universal representation of an IFC HeapDecl node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_heap_decl : an_ifc_Byte_buffer<an_ifc_heap_decl_storage> {
+  using storage_type = an_ifc_heap_decl_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_heap_decl */
 
 /*
   |------------------------------------|
@@ -9272,8 +10473,17 @@ using an_ifc_heap_expr_bytes = const an_ifc_heap_expr_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_heap_expr_bytes = an_ifc_heap_expr_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_heap_expr = an_ifc_Byte_buffer<an_ifc_heap_expr_storage>;
+/*
+The universal representation of an IFC HeapExpr node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_heap_expr : an_ifc_Byte_buffer<an_ifc_heap_expr_storage> {
+  using storage_type = an_ifc_heap_expr_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_heap_expr */
 
 /*
   |------------------------------------|
@@ -9291,8 +10501,17 @@ using an_ifc_heap_form_bytes = const an_ifc_heap_form_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_heap_form_bytes = an_ifc_heap_form_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_heap_form = an_ifc_Byte_buffer<an_ifc_heap_form_storage>;
+/*
+The universal representation of an IFC HeapForm node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_heap_form : an_ifc_Byte_buffer<an_ifc_heap_form_storage> {
+  using storage_type = an_ifc_heap_form_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_heap_form */
 
 /*
   |------------------------------------|
@@ -9310,8 +10529,17 @@ using an_ifc_heap_pp_form_bytes = const an_ifc_heap_pp_form_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_heap_pp_form_bytes = an_ifc_heap_pp_form_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_heap_pp_form = an_ifc_Byte_buffer<an_ifc_heap_pp_form_storage>;
+/*
+The universal representation of an IFC HeapPPForm node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_heap_pp_form : an_ifc_Byte_buffer<an_ifc_heap_pp_form_storage> {
+  using storage_type = an_ifc_heap_pp_form_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_heap_pp_form */
 
 /*
   |------------------------------------|
@@ -9329,8 +10557,17 @@ using an_ifc_heap_stmt_bytes = const an_ifc_heap_stmt_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_heap_stmt_bytes = an_ifc_heap_stmt_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_heap_stmt = an_ifc_Byte_buffer<an_ifc_heap_stmt_storage>;
+/*
+The universal representation of an IFC HeapStmt node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_heap_stmt : an_ifc_Byte_buffer<an_ifc_heap_stmt_storage> {
+  using storage_type = an_ifc_heap_stmt_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_heap_stmt */
 
 /*
   |--------------------------------------|
@@ -9348,8 +10585,17 @@ using an_ifc_heap_syntax_bytes = const an_ifc_heap_syntax_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_heap_syntax_bytes = an_ifc_heap_syntax_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_heap_syntax = an_ifc_Byte_buffer<an_ifc_heap_syntax_storage>;
+/*
+The universal representation of an IFC HeapSyntax node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_heap_syntax : an_ifc_Byte_buffer<an_ifc_heap_syntax_storage> {
+  using storage_type = an_ifc_heap_syntax_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_heap_syntax */
 
 /*
   |------------------------------------|
@@ -9367,8 +10613,17 @@ using an_ifc_heap_type_bytes = const an_ifc_heap_type_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_heap_type_bytes = an_ifc_heap_type_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_heap_type = an_ifc_Byte_buffer<an_ifc_heap_type_storage>;
+/*
+The universal representation of an IFC HeapType node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_heap_type : an_ifc_Byte_buffer<an_ifc_heap_type_storage> {
+  using storage_type = an_ifc_heap_type_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_heap_type */
 
 /*
   |--------------------------------------------------|
@@ -9391,9 +10646,18 @@ using an_ifc_macro_function_like_bytes =
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_macro_function_like_bytes = an_ifc_macro_function_like_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_macro_function_like =
-                        an_ifc_Byte_buffer<an_ifc_macro_function_like_storage>;
+/*
+The universal representation of an IFC MacroFunctionLike node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_macro_function_like :
+                       an_ifc_Byte_buffer<an_ifc_macro_function_like_storage> {
+  using storage_type = an_ifc_macro_function_like_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_macro_function_like */
 
 /*
   |-----------------------------------------|
@@ -9413,9 +10677,18 @@ using an_ifc_macro_object_like_bytes = const an_ifc_macro_object_like_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_macro_object_like_bytes = an_ifc_macro_object_like_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_macro_object_like =
-                          an_ifc_Byte_buffer<an_ifc_macro_object_like_storage>;
+/*
+The universal representation of an IFC MacroObjectLike node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_macro_object_like :
+                         an_ifc_Byte_buffer<an_ifc_macro_object_like_storage> {
+  using storage_type = an_ifc_macro_object_like_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_macro_object_like */
 
 /*
   |----------------------------------------------|
@@ -9436,9 +10709,18 @@ using an_ifc_module_export_reference_bytes =
 using an_ifc_module_export_reference_bytes =
                                         an_ifc_module_export_reference_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_module_export_reference =
-                    an_ifc_Byte_buffer<an_ifc_module_export_reference_storage>;
+/*
+The universal representation of an IFC ModuleExportReference node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_module_export_reference :
+                   an_ifc_Byte_buffer<an_ifc_module_export_reference_storage> {
+  using storage_type = an_ifc_module_export_reference_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_module_export_reference */
 
 /*
   |----------------------------------------------|
@@ -9459,9 +10741,18 @@ using an_ifc_module_import_reference_bytes =
 using an_ifc_module_import_reference_bytes =
                                         an_ifc_module_import_reference_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_module_import_reference =
-                    an_ifc_Byte_buffer<an_ifc_module_import_reference_storage>;
+/*
+The universal representation of an IFC ModuleImportReference node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_module_import_reference :
+                   an_ifc_Byte_buffer<an_ifc_module_import_reference_storage> {
+  using storage_type = an_ifc_module_import_reference_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_module_import_reference */
 
 /*
   |---------------------------------------|
@@ -9480,9 +10771,18 @@ using an_ifc_name_conversion_bytes = const an_ifc_name_conversion_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_name_conversion_bytes = an_ifc_name_conversion_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_name_conversion =
-                            an_ifc_Byte_buffer<an_ifc_name_conversion_storage>;
+/*
+The universal representation of an IFC NameConversion node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_name_conversion :
+                           an_ifc_Byte_buffer<an_ifc_name_conversion_storage> {
+  using storage_type = an_ifc_name_conversion_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_name_conversion */
 
 /*
   |-----------------------------------------------|
@@ -9508,8 +10808,17 @@ using an_ifc_name_guide_bytes = const an_ifc_name_guide_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_name_guide_bytes = an_ifc_name_guide_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_name_guide = an_ifc_Byte_buffer<an_ifc_name_guide_storage>;
+/*
+The universal representation of an IFC NameGuide node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_name_guide : an_ifc_Byte_buffer<an_ifc_name_guide_storage> {
+  using storage_type = an_ifc_name_guide_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_name_guide */
 
 /*
   |---------------------------------------|
@@ -9527,8 +10836,17 @@ using an_ifc_name_literal_bytes = const an_ifc_name_literal_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_name_literal_bytes = an_ifc_name_literal_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_name_literal = an_ifc_Byte_buffer<an_ifc_name_literal_storage>;
+/*
+The universal representation of an IFC NameLiteral node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_name_literal : an_ifc_Byte_buffer<an_ifc_name_literal_storage> {
+  using storage_type = an_ifc_name_literal_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_name_literal */
 
 /*
   |-------------------------------------------------|
@@ -9548,8 +10866,18 @@ using an_ifc_name_operator_bytes = const an_ifc_name_operator_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_name_operator_bytes = an_ifc_name_operator_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_name_operator = an_ifc_Byte_buffer<an_ifc_name_operator_storage>;
+/*
+The universal representation of an IFC NameOperator node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_name_operator :
+                             an_ifc_Byte_buffer<an_ifc_name_operator_storage> {
+  using storage_type = an_ifc_name_operator_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_name_operator */
 
 /*
   |-------------------------------------|
@@ -9568,9 +10896,18 @@ using an_ifc_name_source_file_bytes = const an_ifc_name_source_file_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_name_source_file_bytes = an_ifc_name_source_file_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_name_source_file =
-                           an_ifc_Byte_buffer<an_ifc_name_source_file_storage>;
+/*
+The universal representation of an IFC NameSourceFile node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_name_source_file :
+                          an_ifc_Byte_buffer<an_ifc_name_source_file_storage> {
+  using storage_type = an_ifc_name_source_file_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_name_source_file */
 
 /*
   |----------------------------------------|
@@ -9590,9 +10927,18 @@ using an_ifc_name_specialization_bytes =
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_name_specialization_bytes = an_ifc_name_specialization_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_name_specialization =
-                        an_ifc_Byte_buffer<an_ifc_name_specialization_storage>;
+/*
+The universal representation of an IFC NameSpecialization node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_name_specialization :
+                       an_ifc_Byte_buffer<an_ifc_name_specialization_storage> {
+  using storage_type = an_ifc_name_specialization_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_name_specialization */
 
 /*
   |-----------------------------------|
@@ -9610,8 +10956,18 @@ using an_ifc_name_template_bytes = const an_ifc_name_template_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_name_template_bytes = an_ifc_name_template_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_name_template = an_ifc_Byte_buffer<an_ifc_name_template_storage>;
+/*
+The universal representation of an IFC NameTemplate node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_name_template :
+                             an_ifc_Byte_buffer<an_ifc_name_template_storage> {
+  using storage_type = an_ifc_name_template_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_name_template */
 
 /*
   |--------------------------------------------|
@@ -9630,9 +10986,18 @@ using an_ifc_scope_descriptor_bytes = const an_ifc_scope_descriptor_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_scope_descriptor_bytes = an_ifc_scope_descriptor_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_scope_descriptor =
-                           an_ifc_Byte_buffer<an_ifc_scope_descriptor_storage>;
+/*
+The universal representation of an IFC ScopeDescriptor node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_scope_descriptor :
+                          an_ifc_Byte_buffer<an_ifc_scope_descriptor_storage> {
+  using storage_type = an_ifc_scope_descriptor_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_scope_descriptor */
 
 /*
   |------------------------------------|
@@ -9658,8 +11023,17 @@ using an_ifc_scope_member_bytes = const an_ifc_scope_member_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_scope_member_bytes = an_ifc_scope_member_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_scope_member = an_ifc_Byte_buffer<an_ifc_scope_member_storage>;
+/*
+The universal representation of an IFC ScopeMember node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_scope_member : an_ifc_Byte_buffer<an_ifc_scope_member_storage> {
+  using storage_type = an_ifc_scope_member_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_scope_member */
 
 /*
   |------------------------------------|
@@ -9678,8 +11052,17 @@ using an_ifc_source_line_bytes = const an_ifc_source_line_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_source_line_bytes = an_ifc_source_line_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_source_line = an_ifc_Byte_buffer<an_ifc_source_line_storage>;
+/*
+The universal representation of an IFC SourceLine node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_source_line : an_ifc_Byte_buffer<an_ifc_source_line_storage> {
+  using storage_type = an_ifc_source_line_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_source_line */
 
 /*
   |-----------------------------------------------|
@@ -9699,9 +11082,18 @@ using an_ifc_source_sentence_bytes = const an_ifc_source_sentence_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_source_sentence_bytes = an_ifc_source_sentence_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_source_sentence =
-                            an_ifc_Byte_buffer<an_ifc_source_sentence_storage>;
+/*
+The universal representation of an IFC SourceSentence node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_source_sentence :
+                           an_ifc_Byte_buffer<an_ifc_source_sentence_storage> {
+  using storage_type = an_ifc_source_sentence_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_source_sentence */
 
 /*
   |-----------------------------------------------|
@@ -9725,8 +11117,17 @@ using an_ifc_source_word_bytes = const an_ifc_source_word_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_source_word_bytes = an_ifc_source_word_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_source_word = an_ifc_Byte_buffer<an_ifc_source_word_storage>;
+/*
+The universal representation of an IFC SourceWord node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_source_word : an_ifc_Byte_buffer<an_ifc_source_word_storage> {
+  using storage_type = an_ifc_source_word_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_source_word */
 
 /*
   |--------------------------------------------|
@@ -9745,8 +11146,17 @@ using an_ifc_stmt_block_bytes = const an_ifc_stmt_block_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_stmt_block_bytes = an_ifc_stmt_block_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_stmt_block = an_ifc_Byte_buffer<an_ifc_stmt_block_storage>;
+/*
+The universal representation of an IFC StmtBlock node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_stmt_block : an_ifc_Byte_buffer<an_ifc_stmt_block_storage> {
+  using storage_type = an_ifc_stmt_block_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_stmt_block */
 
 /*
   |-----------------------------------------|
@@ -9764,8 +11174,17 @@ using an_ifc_stmt_break_bytes = const an_ifc_stmt_break_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_stmt_break_bytes = an_ifc_stmt_break_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_stmt_break = an_ifc_Byte_buffer<an_ifc_stmt_break_storage>;
+/*
+The universal representation of an IFC StmtBreak node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_stmt_break : an_ifc_Byte_buffer<an_ifc_stmt_break_storage> {
+  using storage_type = an_ifc_stmt_break_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_stmt_break */
 
 /*
   |-----------------------------------------|
@@ -9784,8 +11203,17 @@ using an_ifc_stmt_case_bytes = const an_ifc_stmt_case_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_stmt_case_bytes = an_ifc_stmt_case_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_stmt_case = an_ifc_Byte_buffer<an_ifc_stmt_case_storage>;
+/*
+The universal representation of an IFC StmtCase node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_stmt_case : an_ifc_Byte_buffer<an_ifc_stmt_case_storage> {
+  using storage_type = an_ifc_stmt_case_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_stmt_case */
 
 /*
   |-----------------------------------------|
@@ -9803,8 +11231,18 @@ using an_ifc_stmt_continue_bytes = const an_ifc_stmt_continue_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_stmt_continue_bytes = an_ifc_stmt_continue_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_stmt_continue = an_ifc_Byte_buffer<an_ifc_stmt_continue_storage>;
+/*
+The universal representation of an IFC StmtContinue node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_stmt_continue :
+                             an_ifc_Byte_buffer<an_ifc_stmt_continue_storage> {
+  using storage_type = an_ifc_stmt_continue_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_stmt_continue */
 
 /*
   |-----------------------------------------|
@@ -9822,8 +11260,17 @@ using an_ifc_stmt_default_bytes = const an_ifc_stmt_default_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_stmt_default_bytes = an_ifc_stmt_default_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_stmt_default = an_ifc_Byte_buffer<an_ifc_stmt_default_storage>;
+/*
+The universal representation of an IFC StmtDefault node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_stmt_default : an_ifc_Byte_buffer<an_ifc_stmt_default_storage> {
+  using storage_type = an_ifc_stmt_default_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_stmt_default */
 
 /*
   |---------------------------------------------|
@@ -9843,8 +11290,18 @@ using an_ifc_stmt_do_while_bytes = const an_ifc_stmt_do_while_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_stmt_do_while_bytes = an_ifc_stmt_do_while_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_stmt_do_while = an_ifc_Byte_buffer<an_ifc_stmt_do_while_storage>;
+/*
+The universal representation of an IFC StmtDoWhile node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_stmt_do_while :
+                             an_ifc_Byte_buffer<an_ifc_stmt_do_while_storage> {
+  using storage_type = an_ifc_stmt_do_while_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_stmt_do_while */
 
 /*
   |-----------------------------------------|
@@ -9862,8 +11319,17 @@ using an_ifc_stmt_empty_bytes = const an_ifc_stmt_empty_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_stmt_empty_bytes = an_ifc_stmt_empty_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_stmt_empty = an_ifc_Byte_buffer<an_ifc_stmt_empty_storage>;
+/*
+The universal representation of an IFC StmtEmpty node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_stmt_empty : an_ifc_Byte_buffer<an_ifc_stmt_empty_storage> {
+  using storage_type = an_ifc_stmt_empty_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_stmt_empty */
 
 /*
   |--------------------------------------|
@@ -9881,9 +11347,18 @@ using an_ifc_stmt_expansion_bytes = const an_ifc_stmt_expansion_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_stmt_expansion_bytes = an_ifc_stmt_expansion_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_stmt_expansion =
-                             an_ifc_Byte_buffer<an_ifc_stmt_expansion_storage>;
+/*
+The universal representation of an IFC StmtExpansion node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_stmt_expansion :
+                            an_ifc_Byte_buffer<an_ifc_stmt_expansion_storage> {
+  using storage_type = an_ifc_stmt_expansion_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_stmt_expansion */
 
 /*
   |-----------------------------------------|
@@ -9902,9 +11377,18 @@ using an_ifc_stmt_expression_bytes = const an_ifc_stmt_expression_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_stmt_expression_bytes = an_ifc_stmt_expression_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_stmt_expression =
-                            an_ifc_Byte_buffer<an_ifc_stmt_expression_storage>;
+/*
+The universal representation of an IFC StmtExpression node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_stmt_expression :
+                           an_ifc_Byte_buffer<an_ifc_stmt_expression_storage> {
+  using storage_type = an_ifc_stmt_expression_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_stmt_expression */
 
 /*
   |--------------------------------------------------|
@@ -9926,8 +11410,17 @@ using an_ifc_stmt_for_bytes = const an_ifc_stmt_for_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_stmt_for_bytes = an_ifc_stmt_for_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_stmt_for = an_ifc_Byte_buffer<an_ifc_stmt_for_storage>;
+/*
+The universal representation of an IFC StmtFor node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_stmt_for : an_ifc_Byte_buffer<an_ifc_stmt_for_storage> {
+  using storage_type = an_ifc_stmt_for_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_stmt_for */
 
 /*
   |--------------------------------------------------|
@@ -9949,8 +11442,17 @@ using an_ifc_stmt_if_bytes = const an_ifc_stmt_if_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_stmt_if_bytes = an_ifc_stmt_if_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_stmt_if = an_ifc_Byte_buffer<an_ifc_stmt_if_storage>;
+/*
+The universal representation of an IFC StmtIf node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_stmt_if : an_ifc_Byte_buffer<an_ifc_stmt_if_storage> {
+  using storage_type = an_ifc_stmt_if_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_stmt_if */
 
 /*
   |---------------------------------------------------|
@@ -9971,8 +11473,17 @@ using an_ifc_stmt_return_bytes = const an_ifc_stmt_return_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_stmt_return_bytes = an_ifc_stmt_return_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_stmt_return = an_ifc_Byte_buffer<an_ifc_stmt_return_storage>;
+/*
+The universal representation of an IFC StmtReturn node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_stmt_return : an_ifc_Byte_buffer<an_ifc_stmt_return_storage> {
+  using storage_type = an_ifc_stmt_return_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_stmt_return */
 
 /*
   |--------------------------------------------------|
@@ -9993,8 +11504,17 @@ using an_ifc_stmt_switch_bytes = const an_ifc_stmt_switch_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_stmt_switch_bytes = an_ifc_stmt_switch_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_stmt_switch = an_ifc_Byte_buffer<an_ifc_stmt_switch_storage>;
+/*
+The universal representation of an IFC StmtSwitch node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_stmt_switch : an_ifc_Byte_buffer<an_ifc_stmt_switch_storage> {
+  using storage_type = an_ifc_stmt_switch_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_stmt_switch */
 
 /*
   |-----------------------------------------|
@@ -10023,9 +11543,18 @@ using an_ifc_stmt_variable_decl_bytes =
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_stmt_variable_decl_bytes = an_ifc_stmt_variable_decl_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_stmt_variable_decl =
-                         an_ifc_Byte_buffer<an_ifc_stmt_variable_decl_storage>;
+/*
+The universal representation of an IFC StmtVariableDecl node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_stmt_variable_decl :
+                        an_ifc_Byte_buffer<an_ifc_stmt_variable_decl_storage> {
+  using storage_type = an_ifc_stmt_variable_decl_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_stmt_variable_decl */
 
 /*
   |---------------------------------------------|
@@ -10045,8 +11574,17 @@ using an_ifc_stmt_while_bytes = const an_ifc_stmt_while_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_stmt_while_bytes = an_ifc_stmt_while_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_stmt_while = an_ifc_Byte_buffer<an_ifc_stmt_while_storage>;
+/*
+The universal representation of an IFC StmtWhile node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_stmt_while : an_ifc_Byte_buffer<an_ifc_stmt_while_storage> {
+  using storage_type = an_ifc_stmt_while_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_stmt_while */
 
 /*
   |-----------------------------------------------|
@@ -10072,9 +11610,18 @@ using an_ifc_syntax_access_specifier_bytes =
 using an_ifc_syntax_access_specifier_bytes =
                                         an_ifc_syntax_access_specifier_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_syntax_access_specifier =
-                    an_ifc_Byte_buffer<an_ifc_syntax_access_specifier_storage>;
+/*
+The universal representation of an IFC SyntaxAccessSpecifier node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_syntax_access_specifier :
+                   an_ifc_Byte_buffer<an_ifc_syntax_access_specifier_storage> {
+  using storage_type = an_ifc_syntax_access_specifier_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_syntax_access_specifier */
 
 /*
   |---------------------------------------------|
@@ -10099,9 +11646,18 @@ using an_ifc_syntax_alias_declaration_bytes =
 using an_ifc_syntax_alias_declaration_bytes =
                                        an_ifc_syntax_alias_declaration_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_syntax_alias_declaration =
-                   an_ifc_Byte_buffer<an_ifc_syntax_alias_declaration_storage>;
+/*
+The universal representation of an IFC SyntaxAliasDeclaration node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_syntax_alias_declaration :
+                  an_ifc_Byte_buffer<an_ifc_syntax_alias_declaration_storage> {
+  using storage_type = an_ifc_syntax_alias_declaration_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_syntax_alias_declaration */
 
 /*
   |-----------------------------------------------|
@@ -10122,9 +11678,18 @@ using an_ifc_syntax_alignas_bytes = const an_ifc_syntax_alignas_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_syntax_alignas_bytes = an_ifc_syntax_alignas_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_syntax_alignas =
-                             an_ifc_Byte_buffer<an_ifc_syntax_alignas_storage>;
+/*
+The universal representation of an IFC SyntaxAlignas node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_syntax_alignas :
+                            an_ifc_Byte_buffer<an_ifc_syntax_alignas_storage> {
+  using storage_type = an_ifc_syntax_alignas_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_syntax_alignas */
 
 /*
   |-------------------------------------------------|
@@ -10147,9 +11712,18 @@ using an_ifc_syntax_array_declarator_bytes =
 using an_ifc_syntax_array_declarator_bytes =
                                         an_ifc_syntax_array_declarator_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_syntax_array_declarator =
-                    an_ifc_Byte_buffer<an_ifc_syntax_array_declarator_storage>;
+/*
+The universal representation of an IFC SyntaxArrayDeclarator node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_syntax_array_declarator :
+                   an_ifc_Byte_buffer<an_ifc_syntax_array_declarator_storage> {
+  using storage_type = an_ifc_syntax_array_declarator_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_syntax_array_declarator */
 
 /*
   |-------------------------------------------------|
@@ -10171,9 +11745,18 @@ using an_ifc_syntax_array_index_bytes =
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_syntax_array_index_bytes = an_ifc_syntax_array_index_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_syntax_array_index =
-                         an_ifc_Byte_buffer<an_ifc_syntax_array_index_storage>;
+/*
+The universal representation of an IFC SyntaxArrayIndex node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_syntax_array_index :
+                        an_ifc_Byte_buffer<an_ifc_syntax_array_index_storage> {
+  using storage_type = an_ifc_syntax_array_index_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_syntax_array_index */
 
 /*
   |--------------------------------------------------|
@@ -10195,9 +11778,18 @@ using an_ifc_syntax_array_or_function_declarator_bytes =
 using an_ifc_syntax_array_or_function_declarator_bytes =
                             an_ifc_syntax_array_or_function_declarator_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_syntax_array_or_function_declarator =
-        an_ifc_Byte_buffer<an_ifc_syntax_array_or_function_declarator_storage>;
+/*
+The universal representation of an IFC SyntaxArrayOrFunctionDeclarator node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_syntax_array_or_function_declarator :
+       an_ifc_Byte_buffer<an_ifc_syntax_array_or_function_declarator_storage> {
+  using storage_type = an_ifc_syntax_array_or_function_declarator_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_syntax_array_or_function_declarator */
 
 /*
   |------------------------------------------|
@@ -10218,9 +11810,18 @@ using an_ifc_syntax_asm_statement_bytes =
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_syntax_asm_statement_bytes = an_ifc_syntax_asm_statement_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_syntax_asm_statement =
-                       an_ifc_Byte_buffer<an_ifc_syntax_asm_statement_storage>;
+/*
+The universal representation of an IFC SyntaxAsmStatement node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_syntax_asm_statement :
+                      an_ifc_Byte_buffer<an_ifc_syntax_asm_statement_storage> {
+  using storage_type = an_ifc_syntax_asm_statement_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_syntax_asm_statement */
 
 /*
   |---------------------------------------------------|
@@ -10243,9 +11844,18 @@ using an_ifc_syntax_attribute_bytes = const an_ifc_syntax_attribute_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_syntax_attribute_bytes = an_ifc_syntax_attribute_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_syntax_attribute =
-                           an_ifc_Byte_buffer<an_ifc_syntax_attribute_storage>;
+/*
+The universal representation of an IFC SyntaxAttribute node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_syntax_attribute :
+                          an_ifc_Byte_buffer<an_ifc_syntax_attribute_storage> {
+  using storage_type = an_ifc_syntax_attribute_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_syntax_attribute */
 
 /*
   |-------------------------------------------------|
@@ -10268,9 +11878,18 @@ using an_ifc_syntax_attribute_argument_clause_bytes =
 using an_ifc_syntax_attribute_argument_clause_bytes =
                                an_ifc_syntax_attribute_argument_clause_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_syntax_attribute_argument_clause =
-           an_ifc_Byte_buffer<an_ifc_syntax_attribute_argument_clause_storage>;
+/*
+The universal representation of an IFC SyntaxAttributeArgumentClause node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_syntax_attribute_argument_clause :
+          an_ifc_Byte_buffer<an_ifc_syntax_attribute_argument_clause_storage> {
+  using storage_type = an_ifc_syntax_attribute_argument_clause_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_syntax_attribute_argument_clause */
 
 /*
   |-------------------------------------------------|
@@ -10296,9 +11915,18 @@ using an_ifc_syntax_attribute_specifier_bytes =
 using an_ifc_syntax_attribute_specifier_bytes =
                                      an_ifc_syntax_attribute_specifier_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_syntax_attribute_specifier =
-                 an_ifc_Byte_buffer<an_ifc_syntax_attribute_specifier_storage>;
+/*
+The universal representation of an IFC SyntaxAttributeSpecifier node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_syntax_attribute_specifier :
+                an_ifc_Byte_buffer<an_ifc_syntax_attribute_specifier_storage> {
+  using storage_type = an_ifc_syntax_attribute_specifier_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_syntax_attribute_specifier */
 
 /*
   |----------------------------------------------|
@@ -10319,9 +11947,18 @@ using an_ifc_syntax_attribute_specifier_seq_bytes =
 using an_ifc_syntax_attribute_specifier_seq_bytes =
                                  an_ifc_syntax_attribute_specifier_seq_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_syntax_attribute_specifier_seq =
-             an_ifc_Byte_buffer<an_ifc_syntax_attribute_specifier_seq_storage>;
+/*
+The universal representation of an IFC SyntaxAttributeSpecifierSeq node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_syntax_attribute_specifier_seq :
+            an_ifc_Byte_buffer<an_ifc_syntax_attribute_specifier_seq_storage> {
+  using storage_type = an_ifc_syntax_attribute_specifier_seq_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_syntax_attribute_specifier_seq */
 
 /*
   |----------------------------------------------|
@@ -10343,9 +11980,18 @@ using an_ifc_syntax_attribute_using_prefix_bytes =
 using an_ifc_syntax_attribute_using_prefix_bytes =
                                   an_ifc_syntax_attribute_using_prefix_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_syntax_attribute_using_prefix =
-              an_ifc_Byte_buffer<an_ifc_syntax_attribute_using_prefix_storage>;
+/*
+The universal representation of an IFC SyntaxAttributeUsingPrefix node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_syntax_attribute_using_prefix :
+             an_ifc_Byte_buffer<an_ifc_syntax_attribute_using_prefix_storage> {
+  using storage_type = an_ifc_syntax_attribute_using_prefix_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_syntax_attribute_using_prefix */
 
 /*
   |-----------------------------------------------|
@@ -10368,9 +12014,18 @@ using an_ifc_syntax_attributed_declaration_bytes =
 using an_ifc_syntax_attributed_declaration_bytes =
                                   an_ifc_syntax_attributed_declaration_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_syntax_attributed_declaration =
-              an_ifc_Byte_buffer<an_ifc_syntax_attributed_declaration_storage>;
+/*
+The universal representation of an IFC SyntaxAttributedDeclaration node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_syntax_attributed_declaration :
+             an_ifc_Byte_buffer<an_ifc_syntax_attributed_declaration_storage> {
+  using storage_type = an_ifc_syntax_attributed_declaration_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_syntax_attributed_declaration */
 
 /*
   |---------------------------------------------|
@@ -10393,9 +12048,18 @@ using an_ifc_syntax_attributed_statement_bytes =
 using an_ifc_syntax_attributed_statement_bytes =
                                     an_ifc_syntax_attributed_statement_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_syntax_attributed_statement =
-                an_ifc_Byte_buffer<an_ifc_syntax_attributed_statement_storage>;
+/*
+The universal representation of an IFC SyntaxAttributedStatement node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_syntax_attributed_statement :
+               an_ifc_Byte_buffer<an_ifc_syntax_attributed_statement_storage> {
+  using storage_type = an_ifc_syntax_attributed_statement_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_syntax_attributed_statement */
 
 /*
   |------------------------------------------|
@@ -10417,9 +12081,18 @@ using an_ifc_syntax_base_specifier_bytes =
 using an_ifc_syntax_base_specifier_bytes =
                                           an_ifc_syntax_base_specifier_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_syntax_base_specifier =
-                      an_ifc_Byte_buffer<an_ifc_syntax_base_specifier_storage>;
+/*
+The universal representation of an IFC SyntaxBaseSpecifier node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_syntax_base_specifier :
+                     an_ifc_Byte_buffer<an_ifc_syntax_base_specifier_storage> {
+  using storage_type = an_ifc_syntax_base_specifier_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_syntax_base_specifier */
 
 /*
   |---------------------------------------------------|
@@ -10441,9 +12114,18 @@ using an_ifc_syntax_base_specifier_list_bytes =
 using an_ifc_syntax_base_specifier_list_bytes =
                                      an_ifc_syntax_base_specifier_list_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_syntax_base_specifier_list =
-                 an_ifc_Byte_buffer<an_ifc_syntax_base_specifier_list_storage>;
+/*
+The universal representation of an IFC SyntaxBaseSpecifierList node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_syntax_base_specifier_list :
+                an_ifc_Byte_buffer<an_ifc_syntax_base_specifier_list_storage> {
+  using storage_type = an_ifc_syntax_base_specifier_list_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_syntax_base_specifier_list */
 
 /*
   |----------------------------------------------------|
@@ -10472,9 +12154,18 @@ using an_ifc_syntax_binary_fold_expression_bytes =
 using an_ifc_syntax_binary_fold_expression_bytes =
                                   an_ifc_syntax_binary_fold_expression_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_syntax_binary_fold_expression =
-              an_ifc_Byte_buffer<an_ifc_syntax_binary_fold_expression_storage>;
+/*
+The universal representation of an IFC SyntaxBinaryFoldExpression node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_syntax_binary_fold_expression :
+             an_ifc_Byte_buffer<an_ifc_syntax_binary_fold_expression_storage> {
+  using storage_type = an_ifc_syntax_binary_fold_expression_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_syntax_binary_fold_expression */
 
 /*
   |---------------------------------------------|
@@ -10496,9 +12187,18 @@ using an_ifc_syntax_break_statement_bytes =
 using an_ifc_syntax_break_statement_bytes =
                                          an_ifc_syntax_break_statement_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_syntax_break_statement =
-                     an_ifc_Byte_buffer<an_ifc_syntax_break_statement_storage>;
+/*
+The universal representation of an IFC SyntaxBreakStatement node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_syntax_break_statement :
+                    an_ifc_Byte_buffer<an_ifc_syntax_break_statement_storage> {
+  using storage_type = an_ifc_syntax_break_statement_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_syntax_break_statement */
 
 /*
   |------------------------------------------|
@@ -10521,9 +12221,18 @@ using an_ifc_syntax_capture_default_bytes =
 using an_ifc_syntax_capture_default_bytes =
                                          an_ifc_syntax_capture_default_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_syntax_capture_default =
-                     an_ifc_Byte_buffer<an_ifc_syntax_capture_default_storage>;
+/*
+The universal representation of an IFC SyntaxCaptureDefault node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_syntax_capture_default :
+                    an_ifc_Byte_buffer<an_ifc_syntax_capture_default_storage> {
+  using storage_type = an_ifc_syntax_capture_default_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_syntax_capture_default */
 
 /*
   |----------------------------------------------|
@@ -10549,9 +12258,18 @@ using an_ifc_syntax_class_specifier_bytes =
 using an_ifc_syntax_class_specifier_bytes =
                                          an_ifc_syntax_class_specifier_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_syntax_class_specifier =
-                     an_ifc_Byte_buffer<an_ifc_syntax_class_specifier_storage>;
+/*
+The universal representation of an IFC SyntaxClassSpecifier node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_syntax_class_specifier :
+                    an_ifc_Byte_buffer<an_ifc_syntax_class_specifier_storage> {
+  using storage_type = an_ifc_syntax_class_specifier_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_syntax_class_specifier */
 
 /*
   |------------------------------------------------|
@@ -10576,9 +12294,18 @@ using an_ifc_syntax_compound_requirement_bytes =
 using an_ifc_syntax_compound_requirement_bytes =
                                     an_ifc_syntax_compound_requirement_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_syntax_compound_requirement =
-                an_ifc_Byte_buffer<an_ifc_syntax_compound_requirement_storage>;
+/*
+The universal representation of an IFC SyntaxCompoundRequirement node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_syntax_compound_requirement :
+               an_ifc_Byte_buffer<an_ifc_syntax_compound_requirement_storage> {
+  using storage_type = an_ifc_syntax_compound_requirement_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_syntax_compound_requirement */
 
 /*
   |-----------------------------------------------|
@@ -10602,9 +12329,18 @@ using an_ifc_syntax_compound_statement_bytes =
 using an_ifc_syntax_compound_statement_bytes =
                                       an_ifc_syntax_compound_statement_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_syntax_compound_statement =
-                  an_ifc_Byte_buffer<an_ifc_syntax_compound_statement_storage>;
+/*
+The universal representation of an IFC SyntaxCompoundStatement node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_syntax_compound_statement :
+                 an_ifc_Byte_buffer<an_ifc_syntax_compound_statement_storage> {
+  using storage_type = an_ifc_syntax_compound_statement_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_syntax_compound_statement */
 
 /*
   |---------------------------------------------------|
@@ -10631,9 +12367,18 @@ using an_ifc_syntax_concept_definition_bytes =
 using an_ifc_syntax_concept_definition_bytes =
                                       an_ifc_syntax_concept_definition_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_syntax_concept_definition =
-                  an_ifc_Byte_buffer<an_ifc_syntax_concept_definition_storage>;
+/*
+The universal representation of an IFC SyntaxConceptDefinition node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_syntax_concept_definition :
+                 an_ifc_Byte_buffer<an_ifc_syntax_concept_definition_storage> {
+  using storage_type = an_ifc_syntax_concept_definition_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_syntax_concept_definition */
 
 /*
   |---------------------------------------------------|
@@ -10656,9 +12401,18 @@ using an_ifc_syntax_condition_declaration_bytes =
 using an_ifc_syntax_condition_declaration_bytes =
                                    an_ifc_syntax_condition_declaration_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_syntax_condition_declaration =
-               an_ifc_Byte_buffer<an_ifc_syntax_condition_declaration_storage>;
+/*
+The universal representation of an IFC SyntaxConditionDeclaration node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_syntax_condition_declaration :
+              an_ifc_Byte_buffer<an_ifc_syntax_condition_declaration_storage> {
+  using storage_type = an_ifc_syntax_condition_declaration_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_syntax_condition_declaration */
 
 /*
   |---------------------------------------------|
@@ -10680,9 +12434,18 @@ using an_ifc_syntax_continue_statement_bytes =
 using an_ifc_syntax_continue_statement_bytes =
                                       an_ifc_syntax_continue_statement_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_syntax_continue_statement =
-                  an_ifc_Byte_buffer<an_ifc_syntax_continue_statement_storage>;
+/*
+The universal representation of an IFC SyntaxContinueStatement node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_syntax_continue_statement :
+                 an_ifc_Byte_buffer<an_ifc_syntax_continue_statement_storage> {
+  using storage_type = an_ifc_syntax_continue_statement_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_syntax_continue_statement */
 
 /*
   |------------------------------------------------|
@@ -10704,9 +12467,18 @@ using an_ifc_syntax_ctor_initializer_bytes =
 using an_ifc_syntax_ctor_initializer_bytes =
                                         an_ifc_syntax_ctor_initializer_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_syntax_ctor_initializer =
-                    an_ifc_Byte_buffer<an_ifc_syntax_ctor_initializer_storage>;
+/*
+The universal representation of an IFC SyntaxCtorInitializer node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_syntax_ctor_initializer :
+                   an_ifc_Byte_buffer<an_ifc_syntax_ctor_initializer_storage> {
+  using storage_type = an_ifc_syntax_ctor_initializer_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_syntax_ctor_initializer */
 
 /*
   |----------------------------------------------------|
@@ -10734,9 +12506,18 @@ using an_ifc_syntax_decl_specifier_seq_bytes =
 using an_ifc_syntax_decl_specifier_seq_bytes =
                                       an_ifc_syntax_decl_specifier_seq_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_syntax_decl_specifier_seq =
-                  an_ifc_Byte_buffer<an_ifc_syntax_decl_specifier_seq_storage>;
+/*
+The universal representation of an IFC SyntaxDeclSpecifierSeq node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_syntax_decl_specifier_seq :
+                 an_ifc_Byte_buffer<an_ifc_syntax_decl_specifier_seq_storage> {
+  using storage_type = an_ifc_syntax_decl_specifier_seq_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_syntax_decl_specifier_seq */
 
 /*
   |---------------------------------------------|
@@ -10758,9 +12539,18 @@ using an_ifc_syntax_declaration_statement_bytes =
 using an_ifc_syntax_declaration_statement_bytes =
                                    an_ifc_syntax_declaration_statement_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_syntax_declaration_statement =
-               an_ifc_Byte_buffer<an_ifc_syntax_declaration_statement_storage>;
+/*
+The universal representation of an IFC SyntaxDeclarationStatement node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_syntax_declaration_statement :
+              an_ifc_Byte_buffer<an_ifc_syntax_declaration_statement_storage> {
+  using storage_type = an_ifc_syntax_declaration_statement_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_syntax_declaration_statement */
 
 /*
   |-------------------------------------------------------------|
@@ -10789,9 +12579,18 @@ using an_ifc_syntax_declarator_bytes = const an_ifc_syntax_declarator_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_syntax_declarator_bytes = an_ifc_syntax_declarator_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_syntax_declarator =
-                          an_ifc_Byte_buffer<an_ifc_syntax_declarator_storage>;
+/*
+The universal representation of an IFC SyntaxDeclarator node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_syntax_declarator :
+                         an_ifc_Byte_buffer<an_ifc_syntax_declarator_storage> {
+  using storage_type = an_ifc_syntax_declarator_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_syntax_declarator */
 
 /*
   |----------------------------------------------------|
@@ -10815,9 +12614,18 @@ using an_ifc_syntax_decltype_specifier_bytes =
 using an_ifc_syntax_decltype_specifier_bytes =
                                       an_ifc_syntax_decltype_specifier_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_syntax_decltype_specifier =
-                  an_ifc_Byte_buffer<an_ifc_syntax_decltype_specifier_storage>;
+/*
+The universal representation of an IFC SyntaxDecltypeSpecifier node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_syntax_decltype_specifier :
+                 an_ifc_Byte_buffer<an_ifc_syntax_decltype_specifier_storage> {
+  using storage_type = an_ifc_syntax_decltype_specifier_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_syntax_decltype_specifier */
 
 /*
   |---------------------------------------------|
@@ -10843,9 +12651,18 @@ using an_ifc_syntax_do_while_statement_bytes =
 using an_ifc_syntax_do_while_statement_bytes =
                                       an_ifc_syntax_do_while_statement_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_syntax_do_while_statement =
-                  an_ifc_Byte_buffer<an_ifc_syntax_do_while_statement_storage>;
+/*
+The universal representation of an IFC SyntaxDoWhileStatement node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_syntax_do_while_statement :
+                 an_ifc_Byte_buffer<an_ifc_syntax_do_while_statement_storage> {
+  using storage_type = an_ifc_syntax_do_while_statement_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_syntax_do_while_statement */
 
 /*
   |-----------------------------------------------|
@@ -10870,9 +12687,18 @@ using an_ifc_syntax_dynamic_exception_spec_bytes =
 using an_ifc_syntax_dynamic_exception_spec_bytes =
                                   an_ifc_syntax_dynamic_exception_spec_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_syntax_dynamic_exception_spec =
-              an_ifc_Byte_buffer<an_ifc_syntax_dynamic_exception_spec_storage>;
+/*
+The universal representation of an IFC SyntaxDynamicExceptionSpec node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_syntax_dynamic_exception_spec :
+             an_ifc_Byte_buffer<an_ifc_syntax_dynamic_exception_spec_storage> {
+  using storage_type = an_ifc_syntax_dynamic_exception_spec_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_syntax_dynamic_exception_spec */
 
 /*
   |-----------------------------------------|
@@ -10893,9 +12719,18 @@ using an_ifc_syntax_empty_statement_bytes =
 using an_ifc_syntax_empty_statement_bytes =
                                          an_ifc_syntax_empty_statement_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_syntax_empty_statement =
-                     an_ifc_Byte_buffer<an_ifc_syntax_empty_statement_storage>;
+/*
+The universal representation of an IFC SyntaxEmptyStatement node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_syntax_empty_statement :
+                    an_ifc_Byte_buffer<an_ifc_syntax_empty_statement_storage> {
+  using storage_type = an_ifc_syntax_empty_statement_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_syntax_empty_statement */
 
 /*
   |-----------------------------------------------|
@@ -10923,9 +12758,18 @@ using an_ifc_syntax_enum_specifier_bytes =
 using an_ifc_syntax_enum_specifier_bytes =
                                           an_ifc_syntax_enum_specifier_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_syntax_enum_specifier =
-                      an_ifc_Byte_buffer<an_ifc_syntax_enum_specifier_storage>;
+/*
+The universal representation of an IFC SyntaxEnumSpecifier node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_syntax_enum_specifier :
+                     an_ifc_Byte_buffer<an_ifc_syntax_enum_specifier_storage> {
+  using storage_type = an_ifc_syntax_enum_specifier_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_syntax_enum_specifier */
 
 /*
   |-----------------------------------------------|
@@ -10950,9 +12794,18 @@ using an_ifc_syntax_enumerator_definition_bytes =
 using an_ifc_syntax_enumerator_definition_bytes =
                                    an_ifc_syntax_enumerator_definition_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_syntax_enumerator_definition =
-               an_ifc_Byte_buffer<an_ifc_syntax_enumerator_definition_storage>;
+/*
+The universal representation of an IFC SyntaxEnumeratorDefinition node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_syntax_enumerator_definition :
+              an_ifc_Byte_buffer<an_ifc_syntax_enumerator_definition_storage> {
+  using storage_type = an_ifc_syntax_enumerator_definition_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_syntax_enumerator_definition */
 
 /*
   |---------------------------------------------------|
@@ -10976,9 +12829,18 @@ using an_ifc_syntax_exception_declaration_bytes =
 using an_ifc_syntax_exception_declaration_bytes =
                                    an_ifc_syntax_exception_declaration_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_syntax_exception_declaration =
-               an_ifc_Byte_buffer<an_ifc_syntax_exception_declaration_storage>;
+/*
+The universal representation of an IFC SyntaxExceptionDeclaration node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_syntax_exception_declaration :
+              an_ifc_Byte_buffer<an_ifc_syntax_exception_declaration_storage> {
+  using storage_type = an_ifc_syntax_exception_declaration_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_syntax_exception_declaration */
 
 /*
   |-----------------------------------------------|
@@ -11002,9 +12864,18 @@ using an_ifc_syntax_explicit_specifier_bytes =
 using an_ifc_syntax_explicit_specifier_bytes =
                                       an_ifc_syntax_explicit_specifier_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_syntax_explicit_specifier =
-                  an_ifc_Byte_buffer<an_ifc_syntax_explicit_specifier_storage>;
+/*
+The universal representation of an IFC SyntaxExplicitSpecifier node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_syntax_explicit_specifier :
+                 an_ifc_Byte_buffer<an_ifc_syntax_explicit_specifier_storage> {
+  using storage_type = an_ifc_syntax_explicit_specifier_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_syntax_explicit_specifier */
 
 /*
   |-----------------------------------------|
@@ -11022,9 +12893,18 @@ using an_ifc_syntax_expression_bytes = const an_ifc_syntax_expression_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_syntax_expression_bytes = an_ifc_syntax_expression_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_syntax_expression =
-                          an_ifc_Byte_buffer<an_ifc_syntax_expression_storage>;
+/*
+The universal representation of an IFC SyntaxExpression node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_syntax_expression :
+                         an_ifc_Byte_buffer<an_ifc_syntax_expression_storage> {
+  using storage_type = an_ifc_syntax_expression_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_syntax_expression */
 
 /*
   |---------------------------------------------|
@@ -11047,9 +12927,18 @@ using an_ifc_syntax_expression_statement_bytes =
 using an_ifc_syntax_expression_statement_bytes =
                                     an_ifc_syntax_expression_statement_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_syntax_expression_statement =
-                an_ifc_Byte_buffer<an_ifc_syntax_expression_statement_storage>;
+/*
+The universal representation of an IFC SyntaxExpressionStatement node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_syntax_expression_statement :
+               an_ifc_Byte_buffer<an_ifc_syntax_expression_statement_storage> {
+  using storage_type = an_ifc_syntax_expression_statement_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_syntax_expression_statement */
 
 /*
   |--------------------------------------------|
@@ -11071,9 +12960,18 @@ using an_ifc_syntax_for_range_declaration_bytes =
 using an_ifc_syntax_for_range_declaration_bytes =
                                    an_ifc_syntax_for_range_declaration_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_syntax_for_range_declaration =
-               an_ifc_Byte_buffer<an_ifc_syntax_for_range_declaration_storage>;
+/*
+The universal representation of an IFC SyntaxForRangeDeclaration node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_syntax_for_range_declaration :
+              an_ifc_Byte_buffer<an_ifc_syntax_for_range_declaration_storage> {
+  using storage_type = an_ifc_syntax_for_range_declaration_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_syntax_for_range_declaration */
 
 /*
   |--------------------------------------------------|
@@ -11101,9 +12999,18 @@ using an_ifc_syntax_for_statement_bytes =
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_syntax_for_statement_bytes = an_ifc_syntax_for_statement_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_syntax_for_statement =
-                       an_ifc_Byte_buffer<an_ifc_syntax_for_statement_storage>;
+/*
+The universal representation of an IFC SyntaxForStatement node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_syntax_for_statement :
+                      an_ifc_Byte_buffer<an_ifc_syntax_for_statement_storage> {
+  using storage_type = an_ifc_syntax_for_statement_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_syntax_for_statement */
 
 /*
   |------------------------------------------------|
@@ -11128,9 +13035,18 @@ using an_ifc_syntax_function_body_bytes =
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_syntax_function_body_bytes = an_ifc_syntax_function_body_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_syntax_function_body =
-                       an_ifc_Byte_buffer<an_ifc_syntax_function_body_storage>;
+/*
+The universal representation of an IFC SyntaxFunctionBody node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_syntax_function_body :
+                      an_ifc_Byte_buffer<an_ifc_syntax_function_body_storage> {
+  using storage_type = an_ifc_syntax_function_body_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_syntax_function_body */
 
 /*
   |-----------------------------------------------|
@@ -11155,9 +13071,18 @@ using an_ifc_syntax_function_declarator_bytes =
 using an_ifc_syntax_function_declarator_bytes =
                                      an_ifc_syntax_function_declarator_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_syntax_function_declarator =
-                 an_ifc_Byte_buffer<an_ifc_syntax_function_declarator_storage>;
+/*
+The universal representation of an IFC SyntaxFunctionDeclarator node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_syntax_function_declarator :
+                an_ifc_Byte_buffer<an_ifc_syntax_function_declarator_storage> {
+  using storage_type = an_ifc_syntax_function_declarator_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_syntax_function_declarator */
 
 /*
   |------------------------------------------------|
@@ -11183,9 +13108,18 @@ using an_ifc_syntax_function_definition_bytes =
 using an_ifc_syntax_function_definition_bytes =
                                      an_ifc_syntax_function_definition_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_syntax_function_definition =
-                 an_ifc_Byte_buffer<an_ifc_syntax_function_definition_storage>;
+/*
+The universal representation of an IFC SyntaxFunctionDefinition node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_syntax_function_definition :
+                an_ifc_Byte_buffer<an_ifc_syntax_function_definition_storage> {
+  using storage_type = an_ifc_syntax_function_definition_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_syntax_function_definition */
 
 /*
   |---------------------------------------------|
@@ -11208,9 +13142,18 @@ using an_ifc_syntax_function_try_block_bytes =
 using an_ifc_syntax_function_try_block_bytes =
                                       an_ifc_syntax_function_try_block_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_syntax_function_try_block =
-                  an_ifc_Byte_buffer<an_ifc_syntax_function_try_block_storage>;
+/*
+The universal representation of an IFC SyntaxFunctionTryBlock node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_syntax_function_try_block :
+                 an_ifc_Byte_buffer<an_ifc_syntax_function_try_block_storage> {
+  using storage_type = an_ifc_syntax_function_try_block_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_syntax_function_try_block */
 
 /*
   |---------------------------------------------|
@@ -11235,9 +13178,18 @@ using an_ifc_syntax_goto_statement_bytes =
 using an_ifc_syntax_goto_statement_bytes =
                                           an_ifc_syntax_goto_statement_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_syntax_goto_statement =
-                      an_ifc_Byte_buffer<an_ifc_syntax_goto_statement_storage>;
+/*
+The universal representation of an IFC SyntaxGotoStatement node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_syntax_goto_statement :
+                     an_ifc_Byte_buffer<an_ifc_syntax_goto_statement_storage> {
+  using storage_type = an_ifc_syntax_goto_statement_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_syntax_goto_statement */
 
 /*
   |-----------------------------------------------|
@@ -11260,9 +13212,18 @@ using an_ifc_syntax_handler_bytes = const an_ifc_syntax_handler_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_syntax_handler_bytes = an_ifc_syntax_handler_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_syntax_handler =
-                             an_ifc_Byte_buffer<an_ifc_syntax_handler_storage>;
+/*
+The universal representation of an IFC SyntaxHandler node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_syntax_handler :
+                            an_ifc_Byte_buffer<an_ifc_syntax_handler_storage> {
+  using storage_type = an_ifc_syntax_handler_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_syntax_handler */
 
 /*
   |-----------------------------------------|
@@ -11281,9 +13242,18 @@ using an_ifc_syntax_handler_seq_bytes =
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_syntax_handler_seq_bytes = an_ifc_syntax_handler_seq_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_syntax_handler_seq =
-                         an_ifc_Byte_buffer<an_ifc_syntax_handler_seq_storage>;
+/*
+The universal representation of an IFC SyntaxHandlerSeq node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_syntax_handler_seq :
+                        an_ifc_Byte_buffer<an_ifc_syntax_handler_seq_storage> {
+  using storage_type = an_ifc_syntax_handler_seq_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_syntax_handler_seq */
 
 /*
   |--------------------------------------------------|
@@ -11309,9 +13279,18 @@ using an_ifc_syntax_if_statement_bytes =
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_syntax_if_statement_bytes = an_ifc_syntax_if_statement_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_syntax_if_statement =
-                        an_ifc_Byte_buffer<an_ifc_syntax_if_statement_storage>;
+/*
+The universal representation of an IFC SyntaxIfStatement node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_syntax_if_statement :
+                       an_ifc_Byte_buffer<an_ifc_syntax_if_statement_storage> {
+  using storage_type = an_ifc_syntax_if_statement_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_syntax_if_statement */
 
 /*
   |-----------------------------------------------|
@@ -11334,9 +13313,18 @@ using an_ifc_syntax_init_capture_bytes =
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_syntax_init_capture_bytes = an_ifc_syntax_init_capture_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_syntax_init_capture =
-                        an_ifc_Byte_buffer<an_ifc_syntax_init_capture_storage>;
+/*
+The universal representation of an IFC SyntaxInitCapture node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_syntax_init_capture :
+                       an_ifc_Byte_buffer<an_ifc_syntax_init_capture_storage> {
+  using storage_type = an_ifc_syntax_init_capture_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_syntax_init_capture */
 
 /*
   |-----------------------------------------------|
@@ -11360,9 +13348,18 @@ using an_ifc_syntax_init_declarator_bytes =
 using an_ifc_syntax_init_declarator_bytes =
                                          an_ifc_syntax_init_declarator_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_syntax_init_declarator =
-                     an_ifc_Byte_buffer<an_ifc_syntax_init_declarator_storage>;
+/*
+The universal representation of an IFC SyntaxInitDeclarator node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_syntax_init_declarator :
+                    an_ifc_Byte_buffer<an_ifc_syntax_init_declarator_storage> {
+  using storage_type = an_ifc_syntax_init_declarator_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_syntax_init_declarator */
 
 /*
   |-----------------------------------------|
@@ -11384,9 +13381,18 @@ using an_ifc_syntax_init_statement_bytes =
 using an_ifc_syntax_init_statement_bytes =
                                           an_ifc_syntax_init_statement_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_syntax_init_statement =
-                      an_ifc_Byte_buffer<an_ifc_syntax_init_statement_storage>;
+/*
+The universal representation of an IFC SyntaxInitStatement node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_syntax_init_statement :
+                     an_ifc_Byte_buffer<an_ifc_syntax_init_statement_storage> {
+  using storage_type = an_ifc_syntax_init_statement_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_syntax_init_statement */
 
 /*
   |------------------------------------------|
@@ -11411,9 +13417,18 @@ using an_ifc_syntax_labeled_statement_bytes =
 using an_ifc_syntax_labeled_statement_bytes =
                                        an_ifc_syntax_labeled_statement_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_syntax_labeled_statement =
-                   an_ifc_Byte_buffer<an_ifc_syntax_labeled_statement_storage>;
+/*
+The universal representation of an IFC SyntaxLabeledStatement node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_syntax_labeled_statement :
+                  an_ifc_Byte_buffer<an_ifc_syntax_labeled_statement_storage> {
+  using storage_type = an_ifc_syntax_labeled_statement_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_syntax_labeled_statement */
 
 /*
   |---------------------------------------------------|
@@ -11441,9 +13456,18 @@ using an_ifc_syntax_lambda_declarator_bytes =
 using an_ifc_syntax_lambda_declarator_bytes =
                                        an_ifc_syntax_lambda_declarator_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_syntax_lambda_declarator =
-                   an_ifc_Byte_buffer<an_ifc_syntax_lambda_declarator_storage>;
+/*
+The universal representation of an IFC SyntaxLambdaDeclarator node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_syntax_lambda_declarator :
+                  an_ifc_Byte_buffer<an_ifc_syntax_lambda_declarator_storage> {
+  using storage_type = an_ifc_syntax_lambda_declarator_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_syntax_lambda_declarator */
 
 /*
   |-------------------------------------------------|
@@ -11466,9 +13490,18 @@ using an_ifc_syntax_lambda_introducer_bytes =
 using an_ifc_syntax_lambda_introducer_bytes =
                                        an_ifc_syntax_lambda_introducer_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_syntax_lambda_introducer =
-                   an_ifc_Byte_buffer<an_ifc_syntax_lambda_introducer_storage>;
+/*
+The universal representation of an IFC SyntaxLambdaIntroducer node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_syntax_lambda_introducer :
+                  an_ifc_Byte_buffer<an_ifc_syntax_lambda_introducer_storage> {
+  using storage_type = an_ifc_syntax_lambda_introducer_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_syntax_lambda_introducer */
 
 /*
   |-----------------------------------------------|
@@ -11492,9 +13525,18 @@ using an_ifc_syntax_mem_initializer_bytes =
 using an_ifc_syntax_mem_initializer_bytes =
                                          an_ifc_syntax_mem_initializer_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_syntax_mem_initializer =
-                     an_ifc_Byte_buffer<an_ifc_syntax_mem_initializer_storage>;
+/*
+The universal representation of an IFC SyntaxMemInitializer node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_syntax_mem_initializer :
+                    an_ifc_Byte_buffer<an_ifc_syntax_mem_initializer_storage> {
+  using storage_type = an_ifc_syntax_mem_initializer_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_syntax_mem_initializer */
 
 /*
   |---------------------------------------------------|
@@ -11517,9 +13559,18 @@ using an_ifc_syntax_member_declaration_bytes =
 using an_ifc_syntax_member_declaration_bytes =
                                       an_ifc_syntax_member_declaration_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_syntax_member_declaration =
-                  an_ifc_Byte_buffer<an_ifc_syntax_member_declaration_storage>;
+/*
+The universal representation of an IFC SyntaxMemberDeclaration node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_syntax_member_declaration :
+                 an_ifc_Byte_buffer<an_ifc_syntax_member_declaration_storage> {
+  using storage_type = an_ifc_syntax_member_declaration_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_syntax_member_declaration */
 
 /*
   |-----------------------------------------------|
@@ -11546,9 +13597,18 @@ using an_ifc_syntax_member_declarator_bytes =
 using an_ifc_syntax_member_declarator_bytes =
                                        an_ifc_syntax_member_declarator_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_syntax_member_declarator =
-                   an_ifc_Byte_buffer<an_ifc_syntax_member_declarator_storage>;
+/*
+The universal representation of an IFC SyntaxMemberDeclarator node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_syntax_member_declarator :
+                  an_ifc_Byte_buffer<an_ifc_syntax_member_declarator_storage> {
+  using storage_type = an_ifc_syntax_member_declarator_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_syntax_member_declarator */
 
 /*
   |--------------------------------------------------|
@@ -11569,9 +13629,18 @@ using an_ifc_syntax_member_function_declaration_bytes =
 using an_ifc_syntax_member_function_declaration_bytes =
                              an_ifc_syntax_member_function_declaration_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_syntax_member_function_declaration =
-         an_ifc_Byte_buffer<an_ifc_syntax_member_function_declaration_storage>;
+/*
+The universal representation of an IFC SyntaxMemberFunctionDeclaration node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_syntax_member_function_declaration :
+        an_ifc_Byte_buffer<an_ifc_syntax_member_function_declaration_storage> {
+  using storage_type = an_ifc_syntax_member_function_declaration_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_syntax_member_function_declaration */
 
 /*
   |----------------------------------------------------|
@@ -11592,9 +13661,18 @@ using an_ifc_syntax_member_specification_bytes =
 using an_ifc_syntax_member_specification_bytes =
                                     an_ifc_syntax_member_specification_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_syntax_member_specification =
-                an_ifc_Byte_buffer<an_ifc_syntax_member_specification_storage>;
+/*
+The universal representation of an IFC SyntaxMemberSpecification node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_syntax_member_specification :
+               an_ifc_Byte_buffer<an_ifc_syntax_member_specification_storage> {
+  using storage_type = an_ifc_syntax_member_specification_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_syntax_member_specification */
 
 /*
   |--------------------------------------------------|
@@ -11619,9 +13697,18 @@ using an_ifc_syntax_namespace_alias_definition_bytes =
 using an_ifc_syntax_namespace_alias_definition_bytes =
                               an_ifc_syntax_namespace_alias_definition_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_syntax_namespace_alias_definition =
-          an_ifc_Byte_buffer<an_ifc_syntax_namespace_alias_definition_storage>;
+/*
+The universal representation of an IFC SyntaxNamespaceAliasDefinition node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_syntax_namespace_alias_definition :
+         an_ifc_Byte_buffer<an_ifc_syntax_namespace_alias_definition_storage> {
+  using storage_type = an_ifc_syntax_namespace_alias_definition_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_syntax_namespace_alias_definition */
 
 /*
   |---------------------------------------------|
@@ -11643,9 +13730,18 @@ using an_ifc_syntax_nested_requirement_bytes =
 using an_ifc_syntax_nested_requirement_bytes =
                                       an_ifc_syntax_nested_requirement_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_syntax_nested_requirement =
-                  an_ifc_Byte_buffer<an_ifc_syntax_nested_requirement_storage>;
+/*
+The universal representation of an IFC SyntaxNestedRequirement node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_syntax_nested_requirement :
+                 an_ifc_Byte_buffer<an_ifc_syntax_nested_requirement_storage> {
+  using storage_type = an_ifc_syntax_nested_requirement_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_syntax_nested_requirement */
 
 /*
   |-------------------------------------------|
@@ -11666,9 +13762,18 @@ using an_ifc_syntax_new_declarator_bytes =
 using an_ifc_syntax_new_declarator_bytes =
                                           an_ifc_syntax_new_declarator_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_syntax_new_declarator =
-                      an_ifc_Byte_buffer<an_ifc_syntax_new_declarator_storage>;
+/*
+The universal representation of an IFC SyntaxNewDeclarator node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_syntax_new_declarator :
+                     an_ifc_Byte_buffer<an_ifc_syntax_new_declarator_storage> {
+  using storage_type = an_ifc_syntax_new_declarator_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_syntax_new_declarator */
 
 /*
   |-----------------------------------------------|
@@ -11692,9 +13797,18 @@ using an_ifc_syntax_noexcept_specification_bytes =
 using an_ifc_syntax_noexcept_specification_bytes =
                                   an_ifc_syntax_noexcept_specification_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_syntax_noexcept_specification =
-              an_ifc_Byte_buffer<an_ifc_syntax_noexcept_specification_storage>;
+/*
+The universal representation of an IFC SyntaxNoexceptSpecification node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_syntax_noexcept_specification :
+             an_ifc_Byte_buffer<an_ifc_syntax_noexcept_specification_storage> {
+  using storage_type = an_ifc_syntax_noexcept_specification_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_syntax_noexcept_specification */
 
 /*
   |-------------------------------------------------|
@@ -11717,9 +13831,18 @@ using an_ifc_syntax_non_type_template_argument_bytes =
 using an_ifc_syntax_non_type_template_argument_bytes =
                               an_ifc_syntax_non_type_template_argument_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_syntax_non_type_template_argument =
-          an_ifc_Byte_buffer<an_ifc_syntax_non_type_template_argument_storage>;
+/*
+The universal representation of an IFC SyntaxNonTypeTemplateArgument node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_syntax_non_type_template_argument :
+         an_ifc_Byte_buffer<an_ifc_syntax_non_type_template_argument_storage> {
+  using storage_type = an_ifc_syntax_non_type_template_argument_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_syntax_non_type_template_argument */
 
 /*
   |---------------------------------------------------|
@@ -11745,9 +13868,18 @@ using an_ifc_syntax_parameter_declarator_bytes =
 using an_ifc_syntax_parameter_declarator_bytes =
                                     an_ifc_syntax_parameter_declarator_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_syntax_parameter_declarator =
-                an_ifc_Byte_buffer<an_ifc_syntax_parameter_declarator_storage>;
+/*
+The universal representation of an IFC SyntaxParameterDeclarator node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_syntax_parameter_declarator :
+               an_ifc_Byte_buffer<an_ifc_syntax_parameter_declarator_storage> {
+  using storage_type = an_ifc_syntax_parameter_declarator_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_syntax_parameter_declarator */
 
 /*
   |--------------------------------------------------|
@@ -11771,9 +13903,18 @@ using an_ifc_syntax_placeholder_type_specifier_bytes =
 using an_ifc_syntax_placeholder_type_specifier_bytes =
                               an_ifc_syntax_placeholder_type_specifier_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_syntax_placeholder_type_specifier =
-          an_ifc_Byte_buffer<an_ifc_syntax_placeholder_type_specifier_storage>;
+/*
+The universal representation of an IFC SyntaxPlaceholderTypeSpecifier node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_syntax_placeholder_type_specifier :
+         an_ifc_Byte_buffer<an_ifc_syntax_placeholder_type_specifier_storage> {
+  using storage_type = an_ifc_syntax_placeholder_type_specifier_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_syntax_placeholder_type_specifier */
 
 /*
   |-----------------------------------------------------|
@@ -11800,9 +13941,18 @@ using an_ifc_syntax_pointer_declarator_bytes =
 using an_ifc_syntax_pointer_declarator_bytes =
                                       an_ifc_syntax_pointer_declarator_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_syntax_pointer_declarator =
-                  an_ifc_Byte_buffer<an_ifc_syntax_pointer_declarator_storage>;
+/*
+The universal representation of an IFC SyntaxPointerDeclarator node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_syntax_pointer_declarator :
+                 an_ifc_Byte_buffer<an_ifc_syntax_pointer_declarator_storage> {
+  using storage_type = an_ifc_syntax_pointer_declarator_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_syntax_pointer_declarator */
 
 /*
   |------------------------------------------------|
@@ -11831,9 +13981,18 @@ using an_ifc_syntax_range_based_for_statement_bytes =
 using an_ifc_syntax_range_based_for_statement_bytes =
                                an_ifc_syntax_range_based_for_statement_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_syntax_range_based_for_statement =
-           an_ifc_Byte_buffer<an_ifc_syntax_range_based_for_statement_storage>;
+/*
+The universal representation of an IFC SyntaxRangeBasedForStatement node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_syntax_range_based_for_statement :
+          an_ifc_Byte_buffer<an_ifc_syntax_range_based_for_statement_storage> {
+  using storage_type = an_ifc_syntax_range_based_for_statement_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_syntax_range_based_for_statement */
 
 /*
   |------------------------------------------------|
@@ -11856,9 +14015,18 @@ using an_ifc_syntax_requirement_body_bytes =
 using an_ifc_syntax_requirement_body_bytes =
                                         an_ifc_syntax_requirement_body_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_syntax_requirement_body =
-                    an_ifc_Byte_buffer<an_ifc_syntax_requirement_body_storage>;
+/*
+The universal representation of an IFC SyntaxRequirementBody node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_syntax_requirement_body :
+                   an_ifc_Byte_buffer<an_ifc_syntax_requirement_body_storage> {
+  using storage_type = an_ifc_syntax_requirement_body_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_syntax_requirement_body */
 
 /*
   |---------------------------------------------|
@@ -11880,9 +14048,18 @@ using an_ifc_syntax_requires_clause_bytes =
 using an_ifc_syntax_requires_clause_bytes =
                                          an_ifc_syntax_requires_clause_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_syntax_requires_clause =
-                     an_ifc_Byte_buffer<an_ifc_syntax_requires_clause_storage>;
+/*
+The universal representation of an IFC SyntaxRequiresClause node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_syntax_requires_clause :
+                    an_ifc_Byte_buffer<an_ifc_syntax_requires_clause_storage> {
+  using storage_type = an_ifc_syntax_requires_clause_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_syntax_requires_clause */
 
 /*
   |-----------------------------------------------|
@@ -11908,9 +14085,18 @@ using an_ifc_syntax_return_statement_bytes =
 using an_ifc_syntax_return_statement_bytes =
                                         an_ifc_syntax_return_statement_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_syntax_return_statement =
-                    an_ifc_Byte_buffer<an_ifc_syntax_return_statement_storage>;
+/*
+The universal representation of an IFC SyntaxReturnStatement node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_syntax_return_statement :
+                   an_ifc_Byte_buffer<an_ifc_syntax_return_statement_storage> {
+  using storage_type = an_ifc_syntax_return_statement_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_syntax_return_statement */
 
 /*
   |-----------------------------------------------|
@@ -11932,9 +14118,18 @@ using an_ifc_syntax_seh_except_bytes = const an_ifc_syntax_seh_except_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_syntax_seh_except_bytes = an_ifc_syntax_seh_except_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_syntax_seh_except =
-                          an_ifc_Byte_buffer<an_ifc_syntax_seh_except_storage>;
+/*
+The universal representation of an IFC SyntaxSEHExcept node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_syntax_seh_except :
+                         an_ifc_Byte_buffer<an_ifc_syntax_seh_except_storage> {
+  using storage_type = an_ifc_syntax_seh_except_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_syntax_seh_except */
 
 /*
   |----------------------------------------------|
@@ -11954,9 +14149,18 @@ using an_ifc_syntax_seh_finally_bytes =
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_syntax_seh_finally_bytes = an_ifc_syntax_seh_finally_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_syntax_seh_finally =
-                         an_ifc_Byte_buffer<an_ifc_syntax_seh_finally_storage>;
+/*
+The universal representation of an IFC SyntaxSEHFinally node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_syntax_seh_finally :
+                        an_ifc_Byte_buffer<an_ifc_syntax_seh_finally_storage> {
+  using storage_type = an_ifc_syntax_seh_finally_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_syntax_seh_finally */
 
 /*
   |---------------------------------------------|
@@ -11975,9 +14179,18 @@ using an_ifc_syntax_seh_leave_bytes = const an_ifc_syntax_seh_leave_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_syntax_seh_leave_bytes = an_ifc_syntax_seh_leave_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_syntax_seh_leave =
-                           an_ifc_Byte_buffer<an_ifc_syntax_seh_leave_storage>;
+/*
+The universal representation of an IFC SyntaxSEHLeave node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_syntax_seh_leave :
+                          an_ifc_Byte_buffer<an_ifc_syntax_seh_leave_storage> {
+  using storage_type = an_ifc_syntax_seh_leave_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_syntax_seh_leave */
 
 /*
   |-------------------------------------------|
@@ -11997,9 +14210,18 @@ using an_ifc_syntax_seh_try_bytes = const an_ifc_syntax_seh_try_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_syntax_seh_try_bytes = an_ifc_syntax_seh_try_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_syntax_seh_try =
-                             an_ifc_Byte_buffer<an_ifc_syntax_seh_try_storage>;
+/*
+The universal representation of an IFC SyntaxSEHTry node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_syntax_seh_try :
+                            an_ifc_Byte_buffer<an_ifc_syntax_seh_try_storage> {
+  using storage_type = an_ifc_syntax_seh_try_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_syntax_seh_try */
 
 /*
   |---------------------------------------------|
@@ -12023,9 +14245,18 @@ using an_ifc_syntax_simple_capture_bytes =
 using an_ifc_syntax_simple_capture_bytes =
                                           an_ifc_syntax_simple_capture_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_syntax_simple_capture =
-                      an_ifc_Byte_buffer<an_ifc_syntax_simple_capture_storage>;
+/*
+The universal representation of an IFC SyntaxSimpleCapture node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_syntax_simple_capture :
+                     an_ifc_Byte_buffer<an_ifc_syntax_simple_capture_storage> {
+  using storage_type = an_ifc_syntax_simple_capture_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_syntax_simple_capture */
 
 /*
   |---------------------------------------------------|
@@ -12049,9 +14280,18 @@ using an_ifc_syntax_simple_declaration_bytes =
 using an_ifc_syntax_simple_declaration_bytes =
                                       an_ifc_syntax_simple_declaration_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_syntax_simple_declaration =
-                  an_ifc_Byte_buffer<an_ifc_syntax_simple_declaration_storage>;
+/*
+The universal representation of an IFC SyntaxSimpleDeclaration node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_syntax_simple_declaration :
+                 an_ifc_Byte_buffer<an_ifc_syntax_simple_declaration_storage> {
+  using storage_type = an_ifc_syntax_simple_declaration_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_syntax_simple_declaration */
 
 /*
   |---------------------------------------------|
@@ -12073,9 +14313,18 @@ using an_ifc_syntax_simple_requirement_bytes =
 using an_ifc_syntax_simple_requirement_bytes =
                                       an_ifc_syntax_simple_requirement_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_syntax_simple_requirement =
-                  an_ifc_Byte_buffer<an_ifc_syntax_simple_requirement_storage>;
+/*
+The universal representation of an IFC SyntaxSimpleRequirement node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_syntax_simple_requirement :
+                 an_ifc_Byte_buffer<an_ifc_syntax_simple_requirement_storage> {
+  using storage_type = an_ifc_syntax_simple_requirement_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_syntax_simple_requirement */
 
 /*
   |---------------------------------------------|
@@ -12098,9 +14347,18 @@ using an_ifc_syntax_simple_type_specifier_bytes =
 using an_ifc_syntax_simple_type_specifier_bytes =
                                    an_ifc_syntax_simple_type_specifier_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_syntax_simple_type_specifier =
-               an_ifc_Byte_buffer<an_ifc_syntax_simple_type_specifier_storage>;
+/*
+The universal representation of an IFC SyntaxSimpleTypeSpecifier node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_syntax_simple_type_specifier :
+              an_ifc_Byte_buffer<an_ifc_syntax_simple_type_specifier_storage> {
+  using storage_type = an_ifc_syntax_simple_type_specifier_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_syntax_simple_type_specifier */
 
 /*
   |--------------------------------------|
@@ -12120,9 +14378,18 @@ using an_ifc_syntax_statement_seq_bytes =
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_syntax_statement_seq_bytes = an_ifc_syntax_statement_seq_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_syntax_statement_seq =
-                       an_ifc_Byte_buffer<an_ifc_syntax_statement_seq_storage>;
+/*
+The universal representation of an IFC SyntaxStatementSeq node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_syntax_statement_seq :
+                      an_ifc_Byte_buffer<an_ifc_syntax_statement_seq_storage> {
+  using storage_type = an_ifc_syntax_statement_seq_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_syntax_statement_seq */
 
 /*
   |-------------------------------------------------|
@@ -12149,9 +14416,18 @@ using an_ifc_syntax_static_assert_declaration_bytes =
 using an_ifc_syntax_static_assert_declaration_bytes =
                                an_ifc_syntax_static_assert_declaration_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_syntax_static_assert_declaration =
-           an_ifc_Byte_buffer<an_ifc_syntax_static_assert_declaration_storage>;
+/*
+The universal representation of an IFC SyntaxStaticAssertDeclaration node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_syntax_static_assert_declaration :
+          an_ifc_Byte_buffer<an_ifc_syntax_static_assert_declaration_storage> {
+  using storage_type = an_ifc_syntax_static_assert_declaration_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_syntax_static_assert_declaration */
 
 /*
   |------------------------------------------------------|
@@ -12176,9 +14452,18 @@ using an_ifc_syntax_structured_binding_declaration_bytes =
 using an_ifc_syntax_structured_binding_declaration_bytes =
                           an_ifc_syntax_structured_binding_declaration_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_syntax_structured_binding_declaration =
-      an_ifc_Byte_buffer<an_ifc_syntax_structured_binding_declaration_storage>;
+/*
+The universal representation of an IFC SyntaxStructuredBindingDeclaration node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_syntax_structured_binding_declaration :
+     an_ifc_Byte_buffer<an_ifc_syntax_structured_binding_declaration_storage> {
+  using storage_type = an_ifc_syntax_structured_binding_declaration_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_syntax_structured_binding_declaration */
 
 /*
   |-----------------------------------------------------|
@@ -12200,9 +14485,18 @@ using an_ifc_syntax_structured_binding_identifier_bytes =
 using an_ifc_syntax_structured_binding_identifier_bytes =
                            an_ifc_syntax_structured_binding_identifier_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_syntax_structured_binding_identifier =
-       an_ifc_Byte_buffer<an_ifc_syntax_structured_binding_identifier_storage>;
+/*
+The universal representation of an IFC SyntaxStructuredBindingIdentifier node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_syntax_structured_binding_identifier :
+      an_ifc_Byte_buffer<an_ifc_syntax_structured_binding_identifier_storage> {
+  using storage_type = an_ifc_syntax_structured_binding_identifier_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_syntax_structured_binding_identifier */
 
 /*
   |-----------------------------------------|
@@ -12220,8 +14514,17 @@ using an_ifc_syntax_super_bytes = const an_ifc_syntax_super_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_syntax_super_bytes = an_ifc_syntax_super_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_syntax_super = an_ifc_Byte_buffer<an_ifc_syntax_super_storage>;
+/*
+The universal representation of an IFC SyntaxSuper node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_syntax_super : an_ifc_Byte_buffer<an_ifc_syntax_super_storage> {
+  using storage_type = an_ifc_syntax_super_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_syntax_super */
 
 /*
   |---------------------------------------------|
@@ -12246,9 +14549,18 @@ using an_ifc_syntax_switch_statement_bytes =
 using an_ifc_syntax_switch_statement_bytes =
                                         an_ifc_syntax_switch_statement_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_syntax_switch_statement =
-                    an_ifc_Byte_buffer<an_ifc_syntax_switch_statement_storage>;
+/*
+The universal representation of an IFC SyntaxSwitchStatement node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_syntax_switch_statement :
+                   an_ifc_Byte_buffer<an_ifc_syntax_switch_statement_storage> {
+  using storage_type = an_ifc_syntax_switch_statement_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_syntax_switch_statement */
 
 /*
   |-----------------------------------------------|
@@ -12271,9 +14583,18 @@ using an_ifc_syntax_template_argument_list_bytes =
 using an_ifc_syntax_template_argument_list_bytes =
                                   an_ifc_syntax_template_argument_list_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_syntax_template_argument_list =
-              an_ifc_Byte_buffer<an_ifc_syntax_template_argument_list_storage>;
+/*
+The universal representation of an IFC SyntaxTemplateArgumentList node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_syntax_template_argument_list :
+             an_ifc_Byte_buffer<an_ifc_syntax_template_argument_list_storage> {
+  using storage_type = an_ifc_syntax_template_argument_list_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_syntax_template_argument_list */
 
 /*
   |----------------------------------------------|
@@ -12296,9 +14617,18 @@ using an_ifc_syntax_template_declaration_bytes =
 using an_ifc_syntax_template_declaration_bytes =
                                     an_ifc_syntax_template_declaration_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_syntax_template_declaration =
-                an_ifc_Byte_buffer<an_ifc_syntax_template_declaration_storage>;
+/*
+The universal representation of an IFC SyntaxTemplateDeclaration node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_syntax_template_declaration :
+               an_ifc_Byte_buffer<an_ifc_syntax_template_declaration_storage> {
+  using storage_type = an_ifc_syntax_template_declaration_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_syntax_template_declaration */
 
 /*
   |-----------------------------------------------|
@@ -12321,9 +14651,18 @@ using an_ifc_syntax_template_id_bytes =
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_syntax_template_id_bytes = an_ifc_syntax_template_id_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_syntax_template_id =
-                         an_ifc_Byte_buffer<an_ifc_syntax_template_id_storage>;
+/*
+The universal representation of an IFC SyntaxTemplateId node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_syntax_template_id :
+                        an_ifc_Byte_buffer<an_ifc_syntax_template_id_storage> {
+  using storage_type = an_ifc_syntax_template_id_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_syntax_template_id */
 
 /*
   |-----------------------------------------------|
@@ -12347,9 +14686,18 @@ using an_ifc_syntax_template_parameter_list_bytes =
 using an_ifc_syntax_template_parameter_list_bytes =
                                  an_ifc_syntax_template_parameter_list_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_syntax_template_parameter_list =
-             an_ifc_Byte_buffer<an_ifc_syntax_template_parameter_list_storage>;
+/*
+The universal representation of an IFC SyntaxTemplateParameterList node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_syntax_template_parameter_list :
+            an_ifc_Byte_buffer<an_ifc_syntax_template_parameter_list_storage> {
+  using storage_type = an_ifc_syntax_template_parameter_list_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_syntax_template_parameter_list */
 
 /*
   |---------------------------------------------------|
@@ -12376,9 +14724,18 @@ using an_ifc_syntax_template_template_parameter_bytes =
 using an_ifc_syntax_template_template_parameter_bytes =
                              an_ifc_syntax_template_template_parameter_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_syntax_template_template_parameter =
-         an_ifc_Byte_buffer<an_ifc_syntax_template_template_parameter_storage>;
+/*
+The universal representation of an IFC SyntaxTemplateTemplateParameter node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_syntax_template_template_parameter :
+        an_ifc_Byte_buffer<an_ifc_syntax_template_template_parameter_storage> {
+  using storage_type = an_ifc_syntax_template_template_parameter_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_syntax_template_template_parameter */
 
 /*
   |--------------------------------------------|
@@ -12399,9 +14756,18 @@ using an_ifc_syntax_this_capture_bytes =
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_syntax_this_capture_bytes = an_ifc_syntax_this_capture_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_syntax_this_capture =
-                        an_ifc_Byte_buffer<an_ifc_syntax_this_capture_storage>;
+/*
+The universal representation of an IFC SyntaxThisCapture node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_syntax_this_capture :
+                       an_ifc_Byte_buffer<an_ifc_syntax_this_capture_storage> {
+  using storage_type = an_ifc_syntax_this_capture_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_syntax_this_capture */
 
 /*
   |--------------------------------------------|
@@ -12423,9 +14789,18 @@ using an_ifc_syntax_trailing_return_type_bytes =
 using an_ifc_syntax_trailing_return_type_bytes =
                                     an_ifc_syntax_trailing_return_type_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_syntax_trailing_return_type =
-                an_ifc_Byte_buffer<an_ifc_syntax_trailing_return_type_storage>;
+/*
+The universal representation of an IFC SyntaxTrailingReturnType node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_syntax_trailing_return_type :
+               an_ifc_Byte_buffer<an_ifc_syntax_trailing_return_type_storage> {
+  using storage_type = an_ifc_syntax_trailing_return_type_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_syntax_trailing_return_type */
 
 /*
   |--------------------------------------------|
@@ -12446,9 +14821,18 @@ using an_ifc_syntax_try_block_bytes = const an_ifc_syntax_try_block_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_syntax_try_block_bytes = an_ifc_syntax_try_block_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_syntax_try_block =
-                           an_ifc_Byte_buffer<an_ifc_syntax_try_block_storage>;
+/*
+The universal representation of an IFC SyntaxTryBlock node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_syntax_try_block :
+                          an_ifc_Byte_buffer<an_ifc_syntax_try_block_storage> {
+  using storage_type = an_ifc_syntax_try_block_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_syntax_try_block */
 
 /*
   |--------------------------------------------|
@@ -12467,8 +14851,17 @@ using an_ifc_syntax_tuple_bytes = const an_ifc_syntax_tuple_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_syntax_tuple_bytes = an_ifc_syntax_tuple_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_syntax_tuple = an_ifc_Byte_buffer<an_ifc_syntax_tuple_storage>;
+/*
+The universal representation of an IFC SyntaxTuple node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_syntax_tuple : an_ifc_Byte_buffer<an_ifc_syntax_tuple_storage> {
+  using storage_type = an_ifc_syntax_tuple_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_syntax_tuple */
 
 /*
   |-------------------------------------------------------|
@@ -12488,9 +14881,18 @@ using an_ifc_syntax_type_id_bytes = const an_ifc_syntax_type_id_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_syntax_type_id_bytes = an_ifc_syntax_type_id_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_syntax_type_id =
-                             an_ifc_Byte_buffer<an_ifc_syntax_type_id_storage>;
+/*
+The universal representation of an IFC SyntaxTypeId node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_syntax_type_id :
+                            an_ifc_Byte_buffer<an_ifc_syntax_type_id_storage> {
+  using storage_type = an_ifc_syntax_type_id_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_syntax_type_id */
 
 /*
   |--------------------------------------------|
@@ -12512,9 +14914,18 @@ using an_ifc_syntax_type_id_list_element_bytes =
 using an_ifc_syntax_type_id_list_element_bytes =
                                     an_ifc_syntax_type_id_list_element_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_syntax_type_id_list_element =
-                an_ifc_Byte_buffer<an_ifc_syntax_type_id_list_element_storage>;
+/*
+The universal representation of an IFC SyntaxTypeIdListElement node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_syntax_type_id_list_element :
+               an_ifc_Byte_buffer<an_ifc_syntax_type_id_list_element_storage> {
+  using storage_type = an_ifc_syntax_type_id_list_element_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_syntax_type_id_list_element */
 
 /*
   |-----------------------------------------|
@@ -12536,9 +14947,18 @@ using an_ifc_syntax_type_requirement_bytes =
 using an_ifc_syntax_type_requirement_bytes =
                                         an_ifc_syntax_type_requirement_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_syntax_type_requirement =
-                    an_ifc_Byte_buffer<an_ifc_syntax_type_requirement_storage>;
+/*
+The universal representation of an IFC SyntaxTypeRequirement node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_syntax_type_requirement :
+                   an_ifc_Byte_buffer<an_ifc_syntax_type_requirement_storage> {
+  using storage_type = an_ifc_syntax_type_requirement_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_syntax_type_requirement */
 
 /*
   |--------------------------------------------------|
@@ -12564,9 +14984,18 @@ using an_ifc_syntax_type_specifier_seq_bytes =
 using an_ifc_syntax_type_specifier_seq_bytes =
                                       an_ifc_syntax_type_specifier_seq_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_syntax_type_specifier_seq =
-                  an_ifc_Byte_buffer<an_ifc_syntax_type_specifier_seq_storage>;
+/*
+The universal representation of an IFC SyntaxTypeSpecifierSeq node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_syntax_type_specifier_seq :
+                 an_ifc_Byte_buffer<an_ifc_syntax_type_specifier_seq_storage> {
+  using storage_type = an_ifc_syntax_type_specifier_seq_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_syntax_type_specifier_seq */
 
 /*
   |----------------------------------------------|
@@ -12589,9 +15018,18 @@ using an_ifc_syntax_type_template_argument_bytes =
 using an_ifc_syntax_type_template_argument_bytes =
                                   an_ifc_syntax_type_template_argument_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_syntax_type_template_argument =
-              an_ifc_Byte_buffer<an_ifc_syntax_type_template_argument_storage>;
+/*
+The universal representation of an IFC SyntaxTypeTemplateArgument node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_syntax_type_template_argument :
+             an_ifc_Byte_buffer<an_ifc_syntax_type_template_argument_storage> {
+  using storage_type = an_ifc_syntax_type_template_argument_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_syntax_type_template_argument */
 
 /*
   |-----------------------------------------------|
@@ -12616,9 +15054,18 @@ using an_ifc_syntax_type_template_parameter_bytes =
 using an_ifc_syntax_type_template_parameter_bytes =
                                  an_ifc_syntax_type_template_parameter_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_syntax_type_template_parameter =
-             an_ifc_Byte_buffer<an_ifc_syntax_type_template_parameter_storage>;
+/*
+The universal representation of an IFC SyntaxTypeTemplateParameter node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_syntax_type_template_parameter :
+            an_ifc_Byte_buffer<an_ifc_syntax_type_template_parameter_storage> {
+  using storage_type = an_ifc_syntax_type_template_parameter_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_syntax_type_template_parameter */
 
 /*
   |-------------------------------------------------|
@@ -12642,9 +15089,18 @@ using an_ifc_syntax_type_trait_intrinsic_bytes =
 using an_ifc_syntax_type_trait_intrinsic_bytes =
                                     an_ifc_syntax_type_trait_intrinsic_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_syntax_type_trait_intrinsic =
-                an_ifc_Byte_buffer<an_ifc_syntax_type_trait_intrinsic_storage>;
+/*
+The universal representation of an IFC SyntaxTypeTraitIntrinsic node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_syntax_type_trait_intrinsic :
+               an_ifc_Byte_buffer<an_ifc_syntax_type_trait_intrinsic_storage> {
+  using storage_type = an_ifc_syntax_type_trait_intrinsic_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_syntax_type_trait_intrinsic */
 
 /*
   |---------------------------------------------------|
@@ -12672,9 +15128,18 @@ using an_ifc_syntax_unary_fold_expression_bytes =
 using an_ifc_syntax_unary_fold_expression_bytes =
                                    an_ifc_syntax_unary_fold_expression_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_syntax_unary_fold_expression =
-               an_ifc_Byte_buffer<an_ifc_syntax_unary_fold_expression_storage>;
+/*
+The universal representation of an IFC SyntaxUnaryFoldExpression node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_syntax_unary_fold_expression :
+              an_ifc_Byte_buffer<an_ifc_syntax_unary_fold_expression_storage> {
+  using storage_type = an_ifc_syntax_unary_fold_expression_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_syntax_unary_fold_expression */
 
 /*
   |-----------------------------------------------|
@@ -12697,9 +15162,18 @@ using an_ifc_syntax_using_declaration_bytes =
 using an_ifc_syntax_using_declaration_bytes =
                                        an_ifc_syntax_using_declaration_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_syntax_using_declaration =
-                   an_ifc_Byte_buffer<an_ifc_syntax_using_declaration_storage>;
+/*
+The universal representation of an IFC SyntaxUsingDeclaration node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_syntax_using_declaration :
+                  an_ifc_Byte_buffer<an_ifc_syntax_using_declaration_storage> {
+  using storage_type = an_ifc_syntax_using_declaration_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_syntax_using_declaration */
 
 /*
   |--------------------------------------------------|
@@ -12723,9 +15197,18 @@ using an_ifc_syntax_using_declarator_bytes =
 using an_ifc_syntax_using_declarator_bytes =
                                         an_ifc_syntax_using_declarator_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_syntax_using_declarator =
-                    an_ifc_Byte_buffer<an_ifc_syntax_using_declarator_storage>;
+/*
+The universal representation of an IFC SyntaxUsingDeclarator node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_syntax_using_declarator :
+                   an_ifc_Byte_buffer<an_ifc_syntax_using_declarator_storage> {
+  using storage_type = an_ifc_syntax_using_declarator_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_syntax_using_declarator */
 
 /*
   |--------------------------------------------------|
@@ -12749,9 +15232,18 @@ using an_ifc_syntax_using_directive_bytes =
 using an_ifc_syntax_using_directive_bytes =
                                          an_ifc_syntax_using_directive_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_syntax_using_directive =
-                     an_ifc_Byte_buffer<an_ifc_syntax_using_directive_storage>;
+/*
+The universal representation of an IFC SyntaxUsingDirective node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_syntax_using_directive :
+                    an_ifc_Byte_buffer<an_ifc_syntax_using_directive_storage> {
+  using storage_type = an_ifc_syntax_using_directive_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_syntax_using_directive */
 
 /*
   |----------------------------------------------|
@@ -12775,9 +15267,18 @@ using an_ifc_syntax_using_enum_declaration_bytes =
 using an_ifc_syntax_using_enum_declaration_bytes =
                                   an_ifc_syntax_using_enum_declaration_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_syntax_using_enum_declaration =
-              an_ifc_Byte_buffer<an_ifc_syntax_using_enum_declaration_storage>;
+/*
+The universal representation of an IFC SyntaxUsingEnumDeclaration node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_syntax_using_enum_declaration :
+             an_ifc_Byte_buffer<an_ifc_syntax_using_enum_declaration_storage> {
+  using storage_type = an_ifc_syntax_using_enum_declaration_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_syntax_using_enum_declaration */
 
 /*
   |-----------------------------------------------|
@@ -12801,9 +15302,18 @@ using an_ifc_syntax_virtual_specifier_seq_bytes =
 using an_ifc_syntax_virtual_specifier_seq_bytes =
                                    an_ifc_syntax_virtual_specifier_seq_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_syntax_virtual_specifier_seq =
-               an_ifc_Byte_buffer<an_ifc_syntax_virtual_specifier_seq_storage>;
+/*
+The universal representation of an IFC SyntaxVirtualSpecifierSeq node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_syntax_virtual_specifier_seq :
+              an_ifc_Byte_buffer<an_ifc_syntax_virtual_specifier_seq_storage> {
+  using storage_type = an_ifc_syntax_virtual_specifier_seq_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_syntax_virtual_specifier_seq */
 
 /*
   |---------------------------------------------|
@@ -12827,9 +15337,18 @@ using an_ifc_syntax_while_statement_bytes =
 using an_ifc_syntax_while_statement_bytes =
                                          an_ifc_syntax_while_statement_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_syntax_while_statement =
-                     an_ifc_Byte_buffer<an_ifc_syntax_while_statement_storage>;
+/*
+The universal representation of an IFC SyntaxWhileStatement node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_syntax_while_statement :
+                    an_ifc_Byte_buffer<an_ifc_syntax_while_statement_storage> {
+  using storage_type = an_ifc_syntax_while_statement_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_syntax_while_statement */
 
 /*
   |--------------------------------------------------|
@@ -12863,9 +15382,18 @@ using an_ifc_trait_alias_template_bytes =
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_trait_alias_template_bytes = an_ifc_trait_alias_template_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_trait_alias_template =
-                       an_ifc_Byte_buffer<an_ifc_trait_alias_template_storage>;
+/*
+The universal representation of an IFC TraitAliasTemplate node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_trait_alias_template :
+                      an_ifc_Byte_buffer<an_ifc_trait_alias_template_storage> {
+  using storage_type = an_ifc_trait_alias_template_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_trait_alias_template */
 
 /*
   |--------------------------------------------------|
@@ -12897,9 +15425,18 @@ using an_ifc_trait_attribute_bytes = const an_ifc_trait_attribute_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_trait_attribute_bytes = an_ifc_trait_attribute_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_trait_attribute =
-                            an_ifc_Byte_buffer<an_ifc_trait_attribute_storage>;
+/*
+The universal representation of an IFC TraitAttribute node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_trait_attribute :
+                           an_ifc_Byte_buffer<an_ifc_trait_attribute_storage> {
+  using storage_type = an_ifc_trait_attribute_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_trait_attribute */
 
 /*
   |--------------------------------------------------|
@@ -12934,9 +15471,18 @@ using an_ifc_trait_deduction_guide_bytes =
 using an_ifc_trait_deduction_guide_bytes =
                                           an_ifc_trait_deduction_guide_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_trait_deduction_guide =
-                      an_ifc_Byte_buffer<an_ifc_trait_deduction_guide_storage>;
+/*
+The universal representation of an IFC TraitDeductionGuide node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_trait_deduction_guide :
+                     an_ifc_Byte_buffer<an_ifc_trait_deduction_guide_storage> {
+  using storage_type = an_ifc_trait_deduction_guide_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_trait_deduction_guide */
 
 /*
   |--------------------------------------------------|
@@ -12968,9 +15514,18 @@ using an_ifc_trait_deprecated_bytes = const an_ifc_trait_deprecated_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_trait_deprecated_bytes = an_ifc_trait_deprecated_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_trait_deprecated =
-                           an_ifc_Byte_buffer<an_ifc_trait_deprecated_storage>;
+/*
+The universal representation of an IFC TraitDeprecated node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_trait_deprecated :
+                          an_ifc_Byte_buffer<an_ifc_trait_deprecated_storage> {
+  using storage_type = an_ifc_trait_deprecated_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_trait_deprecated */
 
 /*
   |--------------------------------------------------|
@@ -13002,8 +15557,17 @@ using an_ifc_trait_friend_bytes = const an_ifc_trait_friend_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_trait_friend_bytes = an_ifc_trait_friend_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_trait_friend = an_ifc_Byte_buffer<an_ifc_trait_friend_storage>;
+/*
+The universal representation of an IFC TraitFriend node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_trait_friend : an_ifc_Byte_buffer<an_ifc_trait_friend_storage> {
+  using storage_type = an_ifc_trait_friend_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_trait_friend */
 
 /*
   |--------------------------------------------------|
@@ -13042,9 +15606,18 @@ using an_ifc_trait_function_definition_bytes =
 using an_ifc_trait_function_definition_bytes =
                                       an_ifc_trait_function_definition_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_trait_function_definition =
-                  an_ifc_Byte_buffer<an_ifc_trait_function_definition_storage>;
+/*
+The universal representation of an IFC TraitFunctionDefinition node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_trait_function_definition :
+                 an_ifc_Byte_buffer<an_ifc_trait_function_definition_storage> {
+  using storage_type = an_ifc_trait_function_definition_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_trait_function_definition */
 
 /*
   |--------------------------------------------------|
@@ -13079,9 +15652,18 @@ using an_ifc_trait_msvc_decl_attrs_bytes =
 using an_ifc_trait_msvc_decl_attrs_bytes =
                                           an_ifc_trait_msvc_decl_attrs_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_trait_msvc_decl_attrs =
-                      an_ifc_Byte_buffer<an_ifc_trait_msvc_decl_attrs_storage>;
+/*
+The universal representation of an IFC TraitMsvcDeclAttrs node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_trait_msvc_decl_attrs :
+                     an_ifc_Byte_buffer<an_ifc_trait_msvc_decl_attrs_storage> {
+  using storage_type = an_ifc_trait_msvc_decl_attrs_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_trait_msvc_decl_attrs */
 
 /*
   |--------------------------------------------------|
@@ -13116,9 +15698,18 @@ using an_ifc_trait_msvc_func_params_bytes =
 using an_ifc_trait_msvc_func_params_bytes =
                                          an_ifc_trait_msvc_func_params_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_trait_msvc_func_params =
-                     an_ifc_Byte_buffer<an_ifc_trait_msvc_func_params_storage>;
+/*
+The universal representation of an IFC TraitMsvcFuncParams node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_trait_msvc_func_params :
+                    an_ifc_Byte_buffer<an_ifc_trait_msvc_func_params_storage> {
+  using storage_type = an_ifc_trait_msvc_func_params_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_trait_msvc_func_params */
 
 /*
   |--------------------------------------------------|
@@ -13152,9 +15743,18 @@ using an_ifc_trait_msvc_uuid_bytes = const an_ifc_trait_msvc_uuid_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_trait_msvc_uuid_bytes = an_ifc_trait_msvc_uuid_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_trait_msvc_uuid =
-                            an_ifc_Byte_buffer<an_ifc_trait_msvc_uuid_storage>;
+/*
+The universal representation of an IFC TraitMsvcUuid node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_trait_msvc_uuid :
+                           an_ifc_Byte_buffer<an_ifc_trait_msvc_uuid_storage> {
+  using storage_type = an_ifc_trait_msvc_uuid_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_trait_msvc_uuid */
 
 /*
   |----------------------------------------------------|
@@ -13189,9 +15789,18 @@ using an_ifc_trait_msvc_vendor_trait_bytes =
 using an_ifc_trait_msvc_vendor_trait_bytes =
                                         an_ifc_trait_msvc_vendor_trait_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_trait_msvc_vendor_trait =
-                    an_ifc_Byte_buffer<an_ifc_trait_msvc_vendor_trait_storage>;
+/*
+The universal representation of an IFC TraitMsvcVendorTrait node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_trait_msvc_vendor_trait :
+                   an_ifc_Byte_buffer<an_ifc_trait_msvc_vendor_trait_storage> {
+  using storage_type = an_ifc_trait_msvc_vendor_trait_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_trait_msvc_vendor_trait */
 
 /*
   |--------------------------------------------------|
@@ -13223,9 +15832,18 @@ using an_ifc_trait_requires_bytes = const an_ifc_trait_requires_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_trait_requires_bytes = an_ifc_trait_requires_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_trait_requires =
-                             an_ifc_Byte_buffer<an_ifc_trait_requires_storage>;
+/*
+The universal representation of an IFC TraitRequires node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_trait_requires :
+                            an_ifc_Byte_buffer<an_ifc_trait_requires_storage> {
+  using storage_type = an_ifc_trait_requires_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_trait_requires */
 
 /*
   |--------------------------------------------------|
@@ -13259,9 +15877,18 @@ using an_ifc_trait_specialization_bytes =
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_trait_specialization_bytes = an_ifc_trait_specialization_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_trait_specialization =
-                       an_ifc_Byte_buffer<an_ifc_trait_specialization_storage>;
+/*
+The universal representation of an IFC TraitSpecialization node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_trait_specialization :
+                      an_ifc_Byte_buffer<an_ifc_trait_specialization_storage> {
+  using storage_type = an_ifc_trait_specialization_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_trait_specialization */
 
 /*
   |--------------------------------------|
@@ -13280,8 +15907,17 @@ using an_ifc_type_array_bytes = const an_ifc_type_array_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_type_array_bytes = an_ifc_type_array_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_type_array = an_ifc_Byte_buffer<an_ifc_type_array_storage>;
+/*
+The universal representation of an IFC TypeArray node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_type_array : an_ifc_Byte_buffer<an_ifc_type_array_storage> {
+  using storage_type = an_ifc_type_array_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_type_array */
 
 /*
   |---------------------------------------------|
@@ -13303,8 +15939,17 @@ using an_ifc_type_base_bytes = const an_ifc_type_base_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_type_base_bytes = an_ifc_type_base_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_type_base = an_ifc_Byte_buffer<an_ifc_type_base_storage>;
+/*
+The universal representation of an IFC TypeBase node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_type_base : an_ifc_Byte_buffer<an_ifc_type_base_storage> {
+  using storage_type = an_ifc_type_base_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_type_base */
 
 /*
   |-------------------------------------|
@@ -13322,8 +15967,18 @@ using an_ifc_type_decltype_bytes = const an_ifc_type_decltype_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_type_decltype_bytes = an_ifc_type_decltype_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_type_decltype = an_ifc_Byte_buffer<an_ifc_type_decltype_storage>;
+/*
+The universal representation of an IFC TypeDecltype node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_type_decltype :
+                             an_ifc_Byte_buffer<an_ifc_type_decltype_storage> {
+  using storage_type = an_ifc_type_decltype_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_type_decltype */
 
 /*
   |-----------------------------------|
@@ -13349,9 +16004,18 @@ using an_ifc_type_designated_bytes = const an_ifc_type_designated_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_type_designated_bytes = an_ifc_type_designated_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_type_designated =
-                            an_ifc_Byte_buffer<an_ifc_type_designated_storage>;
+/*
+The universal representation of an IFC TypeDesignated node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_type_designated :
+                           an_ifc_Byte_buffer<an_ifc_type_designated_storage> {
+  using storage_type = an_ifc_type_designated_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_type_designated */
 
 /*
   |--------------------------------------------------|
@@ -13371,9 +16035,18 @@ using an_ifc_type_expansion_bytes = const an_ifc_type_expansion_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_type_expansion_bytes = an_ifc_type_expansion_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_type_expansion =
-                             an_ifc_Byte_buffer<an_ifc_type_expansion_storage>;
+/*
+The universal representation of an IFC TypeExpansion node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_type_expansion :
+                            an_ifc_Byte_buffer<an_ifc_type_expansion_storage> {
+  using storage_type = an_ifc_type_expansion_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_type_expansion */
 
 /*
   |---------------------------------------|
@@ -13392,8 +16065,17 @@ using an_ifc_type_forall_bytes = const an_ifc_type_forall_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_type_forall_bytes = an_ifc_type_forall_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_type_forall = an_ifc_Byte_buffer<an_ifc_type_forall_storage>;
+/*
+The universal representation of an IFC TypeForall node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_type_forall : an_ifc_Byte_buffer<an_ifc_type_forall_storage> {
+  using storage_type = an_ifc_type_forall_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_type_forall */
 
 /*
   |-----------------------------------------------------------|
@@ -13416,8 +16098,18 @@ using an_ifc_type_function_bytes = const an_ifc_type_function_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_type_function_bytes = an_ifc_type_function_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_type_function = an_ifc_Byte_buffer<an_ifc_type_function_storage>;
+/*
+The universal representation of an IFC TypeFunction node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_type_function :
+                             an_ifc_Byte_buffer<an_ifc_type_function_storage> {
+  using storage_type = an_ifc_type_function_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_type_function */
 
 /*
   |--------------------------------------------------|
@@ -13438,9 +16130,18 @@ using an_ifc_type_fundamental_bytes = const an_ifc_type_fundamental_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_type_fundamental_bytes = an_ifc_type_fundamental_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_type_fundamental =
-                           an_ifc_Byte_buffer<an_ifc_type_fundamental_storage>;
+/*
+The universal representation of an IFC TypeFundamental node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_type_fundamental :
+                          an_ifc_Byte_buffer<an_ifc_type_fundamental_storage> {
+  using storage_type = an_ifc_type_fundamental_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_type_fundamental */
 
 /*
   |--------------------------------------|
@@ -13461,9 +16162,18 @@ using an_ifc_type_lvalue_reference_bytes =
 using an_ifc_type_lvalue_reference_bytes =
                                           an_ifc_type_lvalue_reference_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_type_lvalue_reference =
-                      an_ifc_Byte_buffer<an_ifc_type_lvalue_reference_storage>;
+/*
+The universal representation of an IFC TypeLvalueReference node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_type_lvalue_reference :
+                     an_ifc_Byte_buffer<an_ifc_type_lvalue_reference_storage> {
+  using storage_type = an_ifc_type_lvalue_reference_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_type_lvalue_reference */
 
 /*
   |-----------------------------------------------------------|
@@ -13487,8 +16197,17 @@ using an_ifc_type_method_bytes = const an_ifc_type_method_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_type_method_bytes = an_ifc_type_method_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_type_method = an_ifc_Byte_buffer<an_ifc_type_method_storage>;
+/*
+The universal representation of an IFC TypeMethod node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_type_method : an_ifc_Byte_buffer<an_ifc_type_method_storage> {
+  using storage_type = an_ifc_type_method_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_type_method */
 
 /*
   |----------------------------------------------|
@@ -13509,9 +16228,18 @@ using an_ifc_type_placeholder_bytes = const an_ifc_type_placeholder_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_type_placeholder_bytes = an_ifc_type_placeholder_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_type_placeholder =
-                           an_ifc_Byte_buffer<an_ifc_type_placeholder_storage>;
+/*
+The universal representation of an IFC TypePlaceholder node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_type_placeholder :
+                          an_ifc_Byte_buffer<an_ifc_type_placeholder_storage> {
+  using storage_type = an_ifc_type_placeholder_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_type_placeholder */
 
 /*
   |--------------------------------------|
@@ -13529,8 +16257,17 @@ using an_ifc_type_pointer_bytes = const an_ifc_type_pointer_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_type_pointer_bytes = an_ifc_type_pointer_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_type_pointer = an_ifc_Byte_buffer<an_ifc_type_pointer_storage>;
+/*
+The universal representation of an IFC TypePointer node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_type_pointer : an_ifc_Byte_buffer<an_ifc_type_pointer_storage> {
+  using storage_type = an_ifc_type_pointer_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_type_pointer */
 
 /*
   |--------------------------------------|
@@ -13552,9 +16289,18 @@ using an_ifc_type_pointer_to_member_bytes =
 using an_ifc_type_pointer_to_member_bytes =
                                          an_ifc_type_pointer_to_member_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_type_pointer_to_member =
-                     an_ifc_Byte_buffer<an_ifc_type_pointer_to_member_storage>;
+/*
+The universal representation of an IFC TypePointerToMember node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_type_pointer_to_member :
+                    an_ifc_Byte_buffer<an_ifc_type_pointer_to_member_storage> {
+  using storage_type = an_ifc_type_pointer_to_member_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_type_pointer_to_member */
 
 /*
   |--------------------------------------------------|
@@ -13574,9 +16320,18 @@ using an_ifc_type_qualified_bytes = const an_ifc_type_qualified_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_type_qualified_bytes = an_ifc_type_qualified_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_type_qualified =
-                             an_ifc_Byte_buffer<an_ifc_type_qualified_storage>;
+/*
+The universal representation of an IFC TypeQualified node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_type_qualified :
+                            an_ifc_Byte_buffer<an_ifc_type_qualified_storage> {
+  using storage_type = an_ifc_type_qualified_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_type_qualified */
 
 /*
   |--------------------------------------|
@@ -13597,9 +16352,18 @@ using an_ifc_type_rvalue_reference_bytes =
 using an_ifc_type_rvalue_reference_bytes =
                                           an_ifc_type_rvalue_reference_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_type_rvalue_reference =
-                      an_ifc_Byte_buffer<an_ifc_type_rvalue_reference_storage>;
+/*
+The universal representation of an IFC TypeRvalueReference node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_type_rvalue_reference :
+                     an_ifc_Byte_buffer<an_ifc_type_rvalue_reference_storage> {
+  using storage_type = an_ifc_type_rvalue_reference_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_type_rvalue_reference */
 
 /*
   |-----------------------------------|
@@ -13617,9 +16381,18 @@ using an_ifc_type_syntactic_bytes = const an_ifc_type_syntactic_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_type_syntactic_bytes = an_ifc_type_syntactic_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_type_syntactic =
-                             an_ifc_Byte_buffer<an_ifc_type_syntactic_storage>;
+/*
+The universal representation of an IFC TypeSyntactic node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_type_syntactic :
+                            an_ifc_Byte_buffer<an_ifc_type_syntactic_storage> {
+  using storage_type = an_ifc_type_syntactic_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_type_syntactic */
 
 /*
   |---------------------------------------|
@@ -13637,9 +16410,18 @@ using an_ifc_type_syntax_tree_bytes = const an_ifc_type_syntax_tree_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_type_syntax_tree_bytes = an_ifc_type_syntax_tree_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_type_syntax_tree =
-                           an_ifc_Byte_buffer<an_ifc_type_syntax_tree_storage>;
+/*
+The universal representation of an IFC TypeSyntaxTree node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_type_syntax_tree :
+                          an_ifc_Byte_buffer<an_ifc_type_syntax_tree_storage> {
+  using storage_type = an_ifc_type_syntax_tree_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_type_syntax_tree */
 
 /*
   |------------------------------------------------------|
@@ -13660,8 +16442,17 @@ using an_ifc_type_tor_bytes = const an_ifc_type_tor_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_type_tor_bytes = an_ifc_type_tor_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_type_tor = an_ifc_Byte_buffer<an_ifc_type_tor_storage>;
+/*
+The universal representation of an IFC TypeTor node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_type_tor : an_ifc_Byte_buffer<an_ifc_type_tor_storage> {
+  using storage_type = an_ifc_type_tor_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_type_tor */
 
 /*
   |--------------------------------------------|
@@ -13680,8 +16471,17 @@ using an_ifc_type_tuple_bytes = const an_ifc_type_tuple_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_type_tuple_bytes = an_ifc_type_tuple_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_type_tuple = an_ifc_Byte_buffer<an_ifc_type_tuple_storage>;
+/*
+The universal representation of an IFC TypeTuple node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_type_tuple : an_ifc_Byte_buffer<an_ifc_type_tuple_storage> {
+  using storage_type = an_ifc_type_tuple_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_type_tuple */
 
 /*
   |-----------------------------------|
@@ -13699,8 +16499,18 @@ using an_ifc_type_typename_bytes = const an_ifc_type_typename_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_type_typename_bytes = an_ifc_type_typename_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_type_typename = an_ifc_Byte_buffer<an_ifc_type_typename_storage>;
+/*
+The universal representation of an IFC TypeTypename node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_type_typename :
+                             an_ifc_Byte_buffer<an_ifc_type_typename_storage> {
+  using storage_type = an_ifc_type_typename_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_type_typename */
 
 /*
   |-----------------------------------|
@@ -13718,9 +16528,18 @@ using an_ifc_type_unaligned_bytes = const an_ifc_type_unaligned_storage*;
 #else /* !USE_MMAP_FOR_MODULES */
 using an_ifc_type_unaligned_bytes = an_ifc_type_unaligned_storage;
 #endif /* USE_MMAP_FOR_MODULES */
-using an_ifc_type_unaligned =
-                             an_ifc_Byte_buffer<an_ifc_type_unaligned_storage>;
+/*
+The universal representation of an IFC TypeUnaligned node.
 
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_type_unaligned :
+                            an_ifc_Byte_buffer<an_ifc_type_unaligned_storage> {
+  using storage_type = an_ifc_type_unaligned_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_type_unaligned */
 
 enum an_ifc_partition_kind : uint32_t {
   ifc_pk_none,

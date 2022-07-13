@@ -11622,8 +11622,7 @@ an_ifc_attr_basic_storage* get<an_ifc_attr_basic_storage>(
                                        a_boolean                 fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_attr_basic_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_attr_basic>()
 /*
 Return the corresponding partition kind for AttrBasic.
 */
@@ -11664,8 +11663,7 @@ an_ifc_attr_called_storage* get<an_ifc_attr_called_storage>(
                                       a_boolean                  fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_attr_called_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_attr_called>()
 /*
 Return the corresponding partition kind for AttrCalled.
 */
@@ -11701,7 +11699,7 @@ an_ifc_attr_elaborated_storage* get<an_ifc_attr_elaborated_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_attr_elaborated_storage>()
+get_ifc_partition_kind<an_ifc_attr_elaborated>()
 /*
 Return the corresponding partition kind for AttrElaborated.
 */
@@ -11736,8 +11734,7 @@ an_ifc_attr_expanded_storage* get<an_ifc_attr_expanded_storage>(
                                     a_boolean                    fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_attr_expanded_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_attr_expanded>()
 /*
 Return the corresponding partition kind for AttrExpanded.
 */
@@ -11778,8 +11775,7 @@ an_ifc_attr_factored_storage* get<an_ifc_attr_factored_storage>(
                                     a_boolean                    fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_attr_factored_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_attr_factored>()
 /*
 Return the corresponding partition kind for AttrFactored.
 */
@@ -11820,8 +11816,7 @@ an_ifc_attr_labeled_storage* get<an_ifc_attr_labeled_storage>(
                                      a_boolean                   fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_attr_labeled_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_attr_labeled>()
 /*
 Return the corresponding partition kind for AttrLabeled.
 */
@@ -11862,8 +11857,7 @@ an_ifc_attr_scoped_storage* get<an_ifc_attr_scoped_storage>(
                                       a_boolean                  fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_attr_scoped_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_attr_scoped>()
 /*
 Return the corresponding partition kind for AttrScoped.
 */
@@ -11904,8 +11898,7 @@ an_ifc_attr_tuple_storage* get<an_ifc_attr_tuple_storage>(
                                        a_boolean                 fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_attr_tuple_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_attr_tuple>()
 /*
 Return the corresponding partition kind for AttrTuple.
 */
@@ -11948,7 +11941,7 @@ an_ifc_chart_multilevel_storage* get<an_ifc_chart_multilevel_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_chart_multilevel_storage>()
+get_ifc_partition_kind<an_ifc_chart_multilevel>()
 /*
 Return the corresponding partition kind for ChartMultilevel.
 */
@@ -11995,8 +11988,7 @@ an_ifc_chart_unilevel_storage* get<an_ifc_chart_unilevel_storage>(
                                    a_boolean                     fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_chart_unilevel_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_chart_unilevel>()
 /*
 Return the corresponding partition kind for ChartUnilevel.
 */
@@ -12031,8 +12023,7 @@ an_ifc_const_f64_storage* get<an_ifc_const_f64_storage>(
                                         a_boolean                fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_const_f64_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_const_f64>()
 /*
 Return the corresponding partition kind for ConstF64.
 */
@@ -12067,8 +12058,7 @@ an_ifc_const_i64_storage* get<an_ifc_const_i64_storage>(
                                         a_boolean                fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_const_i64_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_const_i64>()
 /*
 Return the corresponding partition kind for ConstI64.
 */
@@ -12115,8 +12105,7 @@ an_ifc_const_str_storage* get<an_ifc_const_str_storage>(
                                         a_boolean                fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_const_str_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_const_str>()
 /*
 Return the corresponding partition kind for ConstStr.
 */
@@ -12188,8 +12177,7 @@ an_ifc_decl_alias_storage* get<an_ifc_decl_alias_storage>(
                                        a_boolean                 fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_decl_alias_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_decl_alias>()
 /*
 Return the corresponding partition kind for DeclAlias.
 */
@@ -12281,8 +12269,7 @@ an_ifc_decl_bitfield_storage* get<an_ifc_decl_bitfield_storage>(
                                     a_boolean                    fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_decl_bitfield_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_decl_bitfield>()
 /*
 Return the corresponding partition kind for DeclBitfield.
 */
@@ -12378,8 +12365,7 @@ an_ifc_decl_concept_storage* get<an_ifc_decl_concept_storage>(
                                      a_boolean                   fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_decl_concept_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_decl_concept>()
 /*
 Return the corresponding partition kind for DeclConcept.
 */
@@ -12466,7 +12452,7 @@ an_ifc_decl_constructor_storage* get<an_ifc_decl_constructor_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_decl_constructor_storage>()
+get_ifc_partition_kind<an_ifc_decl_constructor>()
 /*
 Return the corresponding partition kind for DeclConstructor.
 */
@@ -12544,7 +12530,7 @@ an_ifc_decl_deduction_guide_storage* get<an_ifc_decl_deduction_guide_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_decl_deduction_guide_storage>()
+get_ifc_partition_kind<an_ifc_decl_deduction_guide>()
 /*
 Return the corresponding partition kind for DeclDeductionGuide.
 */
@@ -12633,7 +12619,7 @@ an_ifc_decl_destructor_storage* get<an_ifc_decl_destructor_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_decl_destructor_storage>()
+get_ifc_partition_kind<an_ifc_decl_destructor>()
 /*
 Return the corresponding partition kind for DeclDestructor.
 */
@@ -12725,7 +12711,7 @@ an_ifc_decl_enumeration_storage* get<an_ifc_decl_enumeration_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_decl_enumeration_storage>()
+get_ifc_partition_kind<an_ifc_decl_enumeration>()
 /*
 Return the corresponding partition kind for DeclEnumeration.
 */
@@ -12798,7 +12784,7 @@ an_ifc_decl_enumerator_storage* get<an_ifc_decl_enumerator_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_decl_enumerator_storage>()
+get_ifc_partition_kind<an_ifc_decl_enumerator>()
 /*
 Return the corresponding partition kind for DeclEnumerator.
 */
@@ -12839,8 +12825,7 @@ an_ifc_decl_expansion_storage* get<an_ifc_decl_expansion_storage>(
                                    a_boolean                     fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_decl_expansion_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_decl_expansion>()
 /*
 Return the corresponding partition kind for DeclExpansion.
 */
@@ -12886,7 +12871,7 @@ get<an_ifc_decl_explicit_instantiation_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_decl_explicit_instantiation_storage>()
+get_ifc_partition_kind<an_ifc_decl_explicit_instantiation>()
 /*
 Return the corresponding partition kind for DeclExplicitInstantiation.
 */
@@ -12932,7 +12917,7 @@ get<an_ifc_decl_explicit_specialization_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_decl_explicit_specialization_storage>()
+get_ifc_partition_kind<an_ifc_decl_explicit_specialization>()
 /*
 Return the corresponding partition kind for DeclExplicitSpecialization.
 */
@@ -13024,8 +13009,7 @@ an_ifc_decl_field_storage* get<an_ifc_decl_field_storage>(
                                        a_boolean                 fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_decl_field_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_decl_field>()
 /*
 Return the corresponding partition kind for DeclField.
 */
@@ -13060,8 +13044,7 @@ an_ifc_decl_friend_storage* get<an_ifc_decl_friend_storage>(
                                       a_boolean                  fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_decl_friend_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_decl_friend>()
 /*
 Return the corresponding partition kind for DeclFriend.
 */
@@ -13147,8 +13130,7 @@ an_ifc_decl_function_storage* get<an_ifc_decl_function_storage>(
                                     a_boolean                    fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_decl_function_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_decl_function>()
 /*
 Return the corresponding partition kind for DeclFunction.
 */
@@ -13246,7 +13228,7 @@ get<an_ifc_decl_inherited_constructor_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_decl_inherited_constructor_storage>()
+get_ifc_partition_kind<an_ifc_decl_inherited_constructor>()
 /*
 Return the corresponding partition kind for DeclInheritedConstructor.
 */
@@ -13312,8 +13294,7 @@ an_ifc_decl_intrinsic_storage* get<an_ifc_decl_intrinsic_storage>(
                                    a_boolean                     fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_decl_intrinsic_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_decl_intrinsic>()
 /*
 Return the corresponding partition kind for DeclIntrinsic.
 */
@@ -13399,8 +13380,7 @@ an_ifc_decl_method_storage* get<an_ifc_decl_method_storage>(
                                       a_boolean                  fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_decl_method_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_decl_method>()
 /*
 Return the corresponding partition kind for DeclMethod.
 */
@@ -13456,7 +13436,7 @@ an_ifc_decl_output_segment_storage* get<an_ifc_decl_output_segment_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_decl_output_segment_storage>()
+get_ifc_partition_kind<an_ifc_decl_output_segment>()
 /*
 Return the corresponding partition kind for DeclOutputSegment.
 */
@@ -13547,8 +13527,7 @@ an_ifc_decl_parameter_storage* get<an_ifc_decl_parameter_storage>(
                                    a_boolean                     fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_decl_parameter_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_decl_parameter>()
 /*
 Return the corresponding partition kind for DeclParameter.
 */
@@ -13646,7 +13625,7 @@ get<an_ifc_decl_partial_specialization_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_decl_partial_specialization_storage>()
+get_ifc_partition_kind<an_ifc_decl_partial_specialization>()
 /*
 Return the corresponding partition kind for DeclPartialSpecialization.
 */
@@ -13693,8 +13672,7 @@ an_ifc_decl_property_storage* get<an_ifc_decl_property_storage>(
                                     a_boolean                    fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_decl_property_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_decl_property>()
 /*
 Return the corresponding partition kind for DeclProperty.
 */
@@ -13742,8 +13720,7 @@ an_ifc_decl_reference_storage* get<an_ifc_decl_reference_storage>(
                                    a_boolean                     fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_decl_reference_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_decl_reference>()
 /*
 Return the corresponding partition kind for DeclReference.
 */
@@ -13847,8 +13824,7 @@ an_ifc_decl_scope_storage* get<an_ifc_decl_scope_storage>(
                                        a_boolean                 fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_decl_scope_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_decl_scope>()
 /*
 Return the corresponding partition kind for DeclScope.
 */
@@ -13919,7 +13895,7 @@ an_ifc_decl_specialization_storage* get<an_ifc_decl_specialization_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_decl_specialization_storage>()
+get_ifc_partition_kind<an_ifc_decl_specialization>()
 /*
 Return the corresponding partition kind for DeclSpecialization.
 */
@@ -14005,8 +13981,7 @@ an_ifc_decl_template_storage* get<an_ifc_decl_template_storage>(
                                     a_boolean                    fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_decl_template_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_decl_template>()
 /*
 Return the corresponding partition kind for DeclTemplate.
 */
@@ -14055,8 +14030,7 @@ an_ifc_decl_temploid_storage* get<an_ifc_decl_temploid_storage>(
                                     a_boolean                    fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_decl_temploid_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_decl_temploid>()
 /*
 Return the corresponding partition kind for DeclTemploid.
 */
@@ -14097,8 +14071,7 @@ an_ifc_decl_tuple_storage* get<an_ifc_decl_tuple_storage>(
                                        a_boolean                 fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_decl_tuple_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_decl_tuple>()
 /*
 Return the corresponding partition kind for DeclTuple.
 */
@@ -14192,7 +14165,7 @@ get<an_ifc_decl_using_declaration_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_decl_using_declaration_storage>()
+get_ifc_partition_kind<an_ifc_decl_using_declaration>()
 /*
 Return the corresponding partition kind for DeclUsingDeclaration.
 */
@@ -14284,8 +14257,7 @@ an_ifc_decl_variable_storage* get<an_ifc_decl_variable_storage>(
                                     a_boolean                    fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_decl_variable_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_decl_variable>()
 /*
 Return the corresponding partition kind for DeclVariable.
 */
@@ -14332,8 +14304,7 @@ an_ifc_expr_alignof_storage* get<an_ifc_expr_alignof_storage>(
                                      a_boolean                   fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_expr_alignof_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_alignof>()
 /*
 Return the corresponding partition kind for ExprAlignof.
 */
@@ -14388,7 +14359,7 @@ an_ifc_expr_array_value_storage* get<an_ifc_expr_array_value_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_expr_array_value_storage>()
+get_ifc_partition_kind<an_ifc_expr_array_value>()
 /*
 Return the corresponding partition kind for ExprArrayValue.
 */
@@ -14434,7 +14405,7 @@ get<an_ifc_expr_assign_initializer_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_expr_assign_initializer_storage>()
+get_ifc_partition_kind<an_ifc_expr_assign_initializer>()
 /*
 Return the corresponding partition kind for ExprAssignInitializer.
 */
@@ -14502,7 +14473,7 @@ an_ifc_expr_binary_fold_storage* get<an_ifc_expr_binary_fold_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_expr_binary_fold_storage>()
+get_ifc_partition_kind<an_ifc_expr_binary_fold>()
 /*
 Return the corresponding partition kind for ExprBinaryFold.
 */
@@ -14555,8 +14526,7 @@ an_ifc_expr_call_storage* get<an_ifc_expr_call_storage>(
                                         a_boolean                fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_expr_call_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_call>()
 /*
 Return the corresponding partition kind for ExprCall.
 */
@@ -14615,8 +14585,7 @@ an_ifc_expr_cast_storage* get<an_ifc_expr_cast_storage>(
                                         a_boolean                fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_expr_cast_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_cast>()
 /*
 Return the corresponding partition kind for ExprCast.
 */
@@ -14673,7 +14642,7 @@ an_ifc_expr_compound_string_storage* get<an_ifc_expr_compound_string_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_expr_compound_string_storage>()
+get_ifc_partition_kind<an_ifc_expr_compound_string>()
 /*
 Return the corresponding partition kind for ExprCompoundString.
 */
@@ -14720,8 +14689,7 @@ an_ifc_expr_condition_storage* get<an_ifc_expr_condition_storage>(
                                    a_boolean                     fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_expr_condition_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_condition>()
 /*
 Return the corresponding partition kind for ExprCondition.
 */
@@ -14782,7 +14750,7 @@ get<an_ifc_expr_designated_initializer_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_expr_designated_initializer_storage>()
+get_ifc_partition_kind<an_ifc_expr_designated_initializer>()
 /*
 Return the corresponding partition kind for ExprDesignatedInitializer.
 */
@@ -14847,7 +14815,7 @@ an_ifc_expr_destructor_call_storage* get<an_ifc_expr_destructor_call_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_expr_destructor_call_storage>()
+get_ifc_partition_kind<an_ifc_expr_destructor_call>()
 /*
 Return the corresponding partition kind for ExprDestructorCall.
 */
@@ -14912,8 +14880,7 @@ an_ifc_expr_dyad_storage* get<an_ifc_expr_dyad_storage>(
                                         a_boolean                fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_expr_dyad_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_dyad>()
 /*
 Return the corresponding partition kind for ExprDyad.
 */
@@ -14964,7 +14931,7 @@ get<an_ifc_expr_dynamic_dispatch_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_expr_dynamic_dispatch_storage>()
+get_ifc_partition_kind<an_ifc_expr_dynamic_dispatch>()
 /*
 Return the corresponding partition kind for ExprDynamicDispatch.
 */
@@ -15005,8 +14972,7 @@ an_ifc_expr_empty_storage* get<an_ifc_expr_empty_storage>(
                                        a_boolean                 fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_expr_empty_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_empty>()
 /*
 Return the corresponding partition kind for ExprEmpty.
 */
@@ -15053,8 +15019,7 @@ an_ifc_expr_expansion_storage* get<an_ifc_expr_expansion_storage>(
                                    a_boolean                     fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_expr_expansion_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_expansion>()
 /*
 Return the corresponding partition kind for ExprExpansion.
 */
@@ -15113,7 +15078,7 @@ an_ifc_expr_expression_list_storage* get<an_ifc_expr_expression_list_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_expr_expression_list_storage>()
+get_ifc_partition_kind<an_ifc_expr_expression_list>()
 /*
 Return the corresponding partition kind for ExprExpressionList.
 */
@@ -15163,7 +15128,7 @@ an_ifc_expr_function_string_storage* get<an_ifc_expr_function_string_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_expr_function_string_storage>()
+get_ifc_partition_kind<an_ifc_expr_function_string>()
 /*
 Return the corresponding partition kind for ExprFunctionString.
 */
@@ -15245,7 +15210,7 @@ get<an_ifc_expr_hierarchy_conversion_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_expr_hierarchy_conversion_storage>()
+get_ifc_partition_kind<an_ifc_expr_hierarchy_conversion>()
 /*
 Return the corresponding partition kind for ExprHierarchyConversion.
 */
@@ -15296,7 +15261,7 @@ get<an_ifc_expr_inheritance_path_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_expr_inheritance_path_storage>()
+get_ifc_partition_kind<an_ifc_expr_inheritance_path>()
 /*
 Return the corresponding partition kind for ExprInheritancePath.
 */
@@ -15350,7 +15315,7 @@ an_ifc_expr_initializer_storage* get<an_ifc_expr_initializer_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_expr_initializer_storage>()
+get_ifc_partition_kind<an_ifc_expr_initializer>()
 /*
 Return the corresponding partition kind for ExprInitializer.
 */
@@ -15402,7 +15367,7 @@ get<an_ifc_expr_initializer_list_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_expr_initializer_list_storage>()
+get_ifc_partition_kind<an_ifc_expr_initializer_list>()
 /*
 Return the corresponding partition kind for ExprInitializerList.
 */
@@ -15462,8 +15427,7 @@ an_ifc_expr_lambda_storage* get<an_ifc_expr_lambda_storage>(
                                       a_boolean                  fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_expr_lambda_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_lambda>()
 /*
 Return the corresponding partition kind for ExprLambda.
 */
@@ -15510,8 +15474,7 @@ an_ifc_expr_literal_storage* get<an_ifc_expr_literal_storage>(
                                      a_boolean                   fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_expr_literal_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_literal>()
 /*
 Return the corresponding partition kind for ExprLiteral.
 */
@@ -15574,7 +15537,7 @@ an_ifc_expr_member_access_storage* get<an_ifc_expr_member_access_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_expr_member_access_storage>()
+get_ifc_partition_kind<an_ifc_expr_member_access>()
 /*
 Return the corresponding partition kind for ExprMemberAccess.
 */
@@ -15641,7 +15604,7 @@ get<an_ifc_expr_member_initializer_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_expr_member_initializer_storage>()
+get_ifc_partition_kind<an_ifc_expr_member_initializer>()
 /*
 Return the corresponding partition kind for ExprMemberInitializer.
 */
@@ -15700,8 +15663,7 @@ an_ifc_expr_monad_storage* get<an_ifc_expr_monad_storage>(
                                        a_boolean                 fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_expr_monad_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_monad>()
 /*
 Return the corresponding partition kind for ExprMonad.
 */
@@ -15749,7 +15711,7 @@ an_ifc_expr_named_decl_storage* get<an_ifc_expr_named_decl_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_expr_named_decl_storage>()
+get_ifc_partition_kind<an_ifc_expr_named_decl>()
 /*
 Return the corresponding partition kind for ExprNamedDecl.
 */
@@ -15790,8 +15752,7 @@ an_ifc_expr_nullptr_storage* get<an_ifc_expr_nullptr_storage>(
                                      a_boolean                   fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_expr_nullptr_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_nullptr>()
 /*
 Return the corresponding partition kind for ExprNullptr.
 */
@@ -15846,7 +15807,7 @@ get<an_ifc_expr_packed_template_arguments_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_expr_packed_template_arguments_storage>()
+get_ifc_partition_kind<an_ifc_expr_packed_template_arguments>()
 /*
 Return the corresponding partition kind for ExprPackedTemplateArguments.
 */
@@ -15899,8 +15860,7 @@ an_ifc_expr_path_storage* get<an_ifc_expr_path_storage>(
                                         a_boolean                fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_expr_path_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_path>()
 /*
 Return the corresponding partition kind for ExprPath.
 */
@@ -15942,7 +15902,7 @@ an_ifc_expr_placeholder_storage* get<an_ifc_expr_placeholder_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_expr_placeholder_storage>()
+get_ifc_partition_kind<an_ifc_expr_placeholder>()
 /*
 Return the corresponding partition kind for ExprPlaceholder.
 */
@@ -15977,8 +15937,7 @@ an_ifc_expr_pointer_storage* get<an_ifc_expr_pointer_storage>(
                                      a_boolean                   fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_expr_pointer_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_pointer>()
 /*
 Return the corresponding partition kind for ExprPointer.
 */
@@ -16046,7 +16005,7 @@ get<an_ifc_expr_product_type_value_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_expr_product_type_value_storage>()
+get_ifc_partition_kind<an_ifc_expr_product_type_value>()
 /*
 Return the corresponding partition kind for ExprProductTypeValue.
 */
@@ -16106,7 +16065,7 @@ an_ifc_expr_push_state_storage* get<an_ifc_expr_push_state_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_expr_push_state_storage>()
+get_ifc_partition_kind<an_ifc_expr_push_state>()
 /*
 Return the corresponding partition kind for ExprPushState.
 */
@@ -16165,7 +16124,7 @@ an_ifc_expr_qualified_name_storage* get<an_ifc_expr_qualified_name_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_expr_qualified_name_storage>()
+get_ifc_partition_kind<an_ifc_expr_qualified_name>()
 /*
 Return the corresponding partition kind for ExprQualifiedName.
 */
@@ -16218,8 +16177,7 @@ an_ifc_expr_read_storage* get<an_ifc_expr_read_storage>(
                                         a_boolean                fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_expr_read_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_read>()
 /*
 Return the corresponding partition kind for ExprRead.
 */
@@ -16272,8 +16230,7 @@ an_ifc_expr_requires_storage* get<an_ifc_expr_requires_storage>(
                                     a_boolean                    fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_expr_requires_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_requires>()
 /*
 Return the corresponding partition kind for ExprRequires.
 */
@@ -16324,7 +16281,7 @@ get<an_ifc_expr_simple_identifier_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_expr_simple_identifier_storage>()
+get_ifc_partition_kind<an_ifc_expr_simple_identifier>()
 /*
 Return the corresponding partition kind for ExprSimpleIdentifier.
 */
@@ -16372,7 +16329,7 @@ an_ifc_expr_sizeof_type_storage* get<an_ifc_expr_sizeof_type_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_expr_sizeof_type_storage>()
+get_ifc_partition_kind<an_ifc_expr_sizeof_type>()
 /*
 Return the corresponding partition kind for ExprSizeofType.
 */
@@ -16419,8 +16376,7 @@ an_ifc_expr_string_storage* get<an_ifc_expr_string_storage>(
                                       a_boolean                  fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_expr_string_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_string>()
 /*
 Return the corresponding partition kind for ExprString.
 */
@@ -16471,7 +16427,7 @@ an_ifc_expr_string_sequence_storage* get<an_ifc_expr_string_sequence_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_expr_string_sequence_storage>()
+get_ifc_partition_kind<an_ifc_expr_string_sequence>()
 /*
 Return the corresponding partition kind for ExprStringSequence.
 */
@@ -16508,7 +16464,7 @@ an_ifc_expr_subobject_value_storage* get<an_ifc_expr_subobject_value_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_expr_subobject_value_storage>()
+get_ifc_partition_kind<an_ifc_expr_subobject_value>()
 /*
 Return the corresponding partition kind for ExprSubobjectValue.
 */
@@ -16571,7 +16527,7 @@ an_ifc_expr_sum_type_value_storage* get<an_ifc_expr_sum_type_value_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_expr_sum_type_value_storage>()
+get_ifc_partition_kind<an_ifc_expr_sum_type_value>()
 /*
 Return the corresponding partition kind for ExprSumTypeValue.
 */
@@ -16607,7 +16563,7 @@ an_ifc_expr_syntax_tree_storage* get<an_ifc_expr_syntax_tree_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_expr_syntax_tree_storage>()
+get_ifc_partition_kind<an_ifc_expr_syntax_tree>()
 /*
 Return the corresponding partition kind for ExprSyntaxTree.
 */
@@ -16661,7 +16617,7 @@ an_ifc_expr_template_id_storage* get<an_ifc_expr_template_id_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_expr_template_id_storage>()
+get_ifc_partition_kind<an_ifc_expr_template_id>()
 /*
 Return the corresponding partition kind for ExprTemplateId.
 */
@@ -16736,7 +16692,7 @@ get<an_ifc_expr_template_reference_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_expr_template_reference_storage>()
+get_ifc_partition_kind<an_ifc_expr_template_reference>()
 /*
 Return the corresponding partition kind for ExprTemplateReference.
 */
@@ -16783,8 +16739,7 @@ an_ifc_expr_temporary_storage* get<an_ifc_expr_temporary_storage>(
                                    a_boolean                     fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_expr_temporary_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_temporary>()
 /*
 Return the corresponding partition kind for ExprTemporary.
 */
@@ -16825,8 +16780,7 @@ an_ifc_expr_this_storage* get<an_ifc_expr_this_storage>(
                                         a_boolean                fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_expr_this_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_this>()
 /*
 Return the corresponding partition kind for ExprThis.
 */
@@ -16873,8 +16827,7 @@ an_ifc_expr_tokens_storage* get<an_ifc_expr_tokens_storage>(
                                       a_boolean                  fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_expr_tokens_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_tokens>()
 /*
 Return the corresponding partition kind for ExprTokens.
 */
@@ -16945,8 +16898,7 @@ an_ifc_expr_triad_storage* get<an_ifc_expr_triad_storage>(
                                        a_boolean                 fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_expr_triad_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_triad>()
 /*
 Return the corresponding partition kind for ExprTriad.
 */
@@ -16999,8 +16951,7 @@ an_ifc_expr_tuple_storage* get<an_ifc_expr_tuple_storage>(
                                        a_boolean                 fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_expr_tuple_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_tuple>()
 /*
 Return the corresponding partition kind for ExprTuple.
 */
@@ -17047,8 +16998,7 @@ an_ifc_expr_type_storage* get<an_ifc_expr_type_storage>(
                                         a_boolean                fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_expr_type_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_type>()
 /*
 Return the corresponding partition kind for ExprType.
 */
@@ -17108,7 +17058,7 @@ get<an_ifc_expr_type_trait_intrinsic_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_expr_type_trait_intrinsic_storage>()
+get_ifc_partition_kind<an_ifc_expr_type_trait_intrinsic>()
 /*
 Return the corresponding partition kind for ExprTypeTraitIntrinsic.
 */
@@ -17155,8 +17105,7 @@ an_ifc_expr_typeid_storage* get<an_ifc_expr_typeid_storage>(
                                       a_boolean                  fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_expr_typeid_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_typeid>()
 /*
 Return the corresponding partition kind for ExprTypeid.
 */
@@ -17218,7 +17167,7 @@ an_ifc_expr_unary_fold_storage* get<an_ifc_expr_unary_fold_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_expr_unary_fold_storage>()
+get_ifc_partition_kind<an_ifc_expr_unary_fold>()
 /*
 Return the corresponding partition kind for ExprUnaryFold.
 */
@@ -17283,7 +17232,7 @@ an_ifc_expr_unqualified_id_storage* get<an_ifc_expr_unqualified_id_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_expr_unqualified_id_storage>()
+get_ifc_partition_kind<an_ifc_expr_unqualified_id>()
 /*
 Return the corresponding partition kind for ExprUnqualifiedId.
 */
@@ -17333,7 +17282,7 @@ an_ifc_expr_unresolved_id_storage* get<an_ifc_expr_unresolved_id_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_expr_unresolved_id_storage>()
+get_ifc_partition_kind<an_ifc_expr_unresolved_id>()
 /*
 Return the corresponding partition kind for ExprUnresolvedId.
 */
@@ -17389,7 +17338,7 @@ get<an_ifc_expr_virtual_function_conversion_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_expr_virtual_function_conversion_storage>()
+get_ifc_partition_kind<an_ifc_expr_virtual_function_conversion>()
 /*
 Return the corresponding partition kind for ExprVirtualFunctionConversion.
 */
@@ -17436,8 +17385,7 @@ an_ifc_form_catenate_storage* get<an_ifc_form_catenate_storage>(
                                     a_boolean                    fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_form_catenate_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_form_catenate>()
 /*
 Return the corresponding partition kind for FormCatenate.
 */
@@ -17478,8 +17426,7 @@ an_ifc_form_character_storage* get<an_ifc_form_character_storage>(
                                    a_boolean                     fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_form_character_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_form_character>()
 /*
 Return the corresponding partition kind for FormCharacter.
 */
@@ -17520,8 +17467,7 @@ an_ifc_form_header_storage* get<an_ifc_form_header_storage>(
                                       a_boolean                  fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_form_header_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_form_header>()
 /*
 Return the corresponding partition kind for FormHeader.
 */
@@ -17563,7 +17509,7 @@ an_ifc_form_identifier_storage* get<an_ifc_form_identifier_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_form_identifier_storage>()
+get_ifc_partition_kind<an_ifc_form_identifier>()
 /*
 Return the corresponding partition kind for FormIdentifier.
 */
@@ -17604,8 +17550,7 @@ an_ifc_form_junk_storage* get<an_ifc_form_junk_storage>(
                                         a_boolean                fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_form_junk_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_form_junk>()
 /*
 Return the corresponding partition kind for FormJunk.
 */
@@ -17646,8 +17591,7 @@ an_ifc_form_keyword_storage* get<an_ifc_form_keyword_storage>(
                                      a_boolean                   fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_form_keyword_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_form_keyword>()
 /*
 Return the corresponding partition kind for FormKeyword.
 */
@@ -17688,8 +17632,7 @@ an_ifc_form_number_storage* get<an_ifc_form_number_storage>(
                                       a_boolean                  fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_form_number_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_form_number>()
 /*
 Return the corresponding partition kind for FormNumber.
 */
@@ -17736,8 +17679,7 @@ an_ifc_form_operator_storage* get<an_ifc_form_operator_storage>(
                                     a_boolean                    fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_form_operator_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_form_operator>()
 /*
 Return the corresponding partition kind for FormOperator.
 */
@@ -17778,8 +17720,7 @@ an_ifc_form_parameter_storage* get<an_ifc_form_parameter_storage>(
                                    a_boolean                     fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_form_parameter_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_form_parameter>()
 /*
 Return the corresponding partition kind for FormParameter.
 */
@@ -17823,7 +17764,7 @@ an_ifc_form_parenthesized_storage* get<an_ifc_form_parenthesized_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_form_parenthesized_storage>()
+get_ifc_partition_kind<an_ifc_form_parenthesized>()
 /*
 Return the corresponding partition kind for FormParenthesized.
 */
@@ -17864,8 +17805,7 @@ an_ifc_form_pragma_storage* get<an_ifc_form_pragma_storage>(
                                       a_boolean                  fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_form_pragma_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_form_pragma>()
 /*
 Return the corresponding partition kind for FormPragma.
 */
@@ -17906,8 +17846,7 @@ an_ifc_form_spec_storage* get<an_ifc_form_spec_storage>(
                                         a_boolean                fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_form_spec_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_form_spec>()
 /*
 Return the corresponding partition kind for FormSpec.
 */
@@ -17948,8 +17887,7 @@ an_ifc_form_string_storage* get<an_ifc_form_string_storage>(
                                       a_boolean                  fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_form_string_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_form_string>()
 /*
 Return the corresponding partition kind for FormString.
 */
@@ -17990,8 +17928,7 @@ an_ifc_form_stringize_storage* get<an_ifc_form_stringize_storage>(
                                    a_boolean                     fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_form_stringize_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_form_stringize>()
 /*
 Return the corresponding partition kind for FormStringize.
 */
@@ -18032,8 +17969,7 @@ an_ifc_form_tuple_storage* get<an_ifc_form_tuple_storage>(
                                        a_boolean                 fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_form_tuple_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_form_tuple>()
 /*
 Return the corresponding partition kind for FormTuple.
 */
@@ -18069,7 +18005,7 @@ an_ifc_form_whitespace_storage* get<an_ifc_form_whitespace_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_form_whitespace_storage>()
+get_ifc_partition_kind<an_ifc_form_whitespace>()
 /*
 Return the corresponding partition kind for FormWhitespace.
 */
@@ -18104,8 +18040,7 @@ an_ifc_heap_attr_storage* get<an_ifc_heap_attr_storage>(
                                         a_boolean                fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_heap_attr_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_heap_attr>()
 /*
 Return the corresponding partition kind for HeapAttr.
 */
@@ -18140,8 +18075,7 @@ an_ifc_heap_chart_storage* get<an_ifc_heap_chart_storage>(
                                        a_boolean                 fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_heap_chart_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_heap_chart>()
 /*
 Return the corresponding partition kind for HeapChart.
 */
@@ -18176,8 +18110,7 @@ an_ifc_heap_decl_storage* get<an_ifc_heap_decl_storage>(
                                         a_boolean                fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_heap_decl_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_heap_decl>()
 /*
 Return the corresponding partition kind for HeapDecl.
 */
@@ -18212,8 +18145,7 @@ an_ifc_heap_expr_storage* get<an_ifc_heap_expr_storage>(
                                         a_boolean                fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_heap_expr_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_heap_expr>()
 /*
 Return the corresponding partition kind for HeapExpr.
 */
@@ -18248,8 +18180,7 @@ an_ifc_heap_form_storage* get<an_ifc_heap_form_storage>(
                                         a_boolean                fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_heap_form_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_heap_form>()
 /*
 Return the corresponding partition kind for HeapForm.
 */
@@ -18284,8 +18215,7 @@ an_ifc_heap_pp_form_storage* get<an_ifc_heap_pp_form_storage>(
                                      a_boolean                   fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_heap_pp_form_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_heap_pp_form>()
 /*
 Return the corresponding partition kind for HeapPPForm.
 */
@@ -18320,8 +18250,7 @@ an_ifc_heap_stmt_storage* get<an_ifc_heap_stmt_storage>(
                                         a_boolean                fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_heap_stmt_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_heap_stmt>()
 /*
 Return the corresponding partition kind for HeapStmt.
 */
@@ -18356,8 +18285,7 @@ an_ifc_heap_syntax_storage* get<an_ifc_heap_syntax_storage>(
                                       a_boolean                  fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_heap_syntax_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_heap_syntax>()
 /*
 Return the corresponding partition kind for HeapSyntax.
 */
@@ -18392,8 +18320,7 @@ an_ifc_heap_type_storage* get<an_ifc_heap_type_storage>(
                                         a_boolean                fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_heap_type_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_heap_type>()
 /*
 Return the corresponding partition kind for HeapType.
 */
@@ -18457,7 +18384,7 @@ an_ifc_macro_function_like_storage* get<an_ifc_macro_function_like_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_macro_function_like_storage>()
+get_ifc_partition_kind<an_ifc_macro_function_like>()
 /*
 Return the corresponding partition kind for MacroFunctionLike.
 */
@@ -18507,7 +18434,7 @@ an_ifc_macro_object_like_storage* get<an_ifc_macro_object_like_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_macro_object_like_storage>()
+get_ifc_partition_kind<an_ifc_macro_object_like>()
 /*
 Return the corresponding partition kind for MacroObjectLike.
 */
@@ -18546,7 +18473,7 @@ get<an_ifc_module_export_reference_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_module_export_reference_storage>()
+get_ifc_partition_kind<an_ifc_module_export_reference>()
 /*
 Return the corresponding partition kind for ModuleExportReference.
 */
@@ -18585,7 +18512,7 @@ get<an_ifc_module_import_reference_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_module_import_reference_storage>()
+get_ifc_partition_kind<an_ifc_module_import_reference>()
 /*
 Return the corresponding partition kind for ModuleImportReference.
 */
@@ -18627,7 +18554,7 @@ an_ifc_name_conversion_storage* get<an_ifc_name_conversion_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_name_conversion_storage>()
+get_ifc_partition_kind<an_ifc_name_conversion>()
 /*
 Return the corresponding partition kind for NameConversion.
 */
@@ -18662,8 +18589,7 @@ an_ifc_name_guide_storage* get<an_ifc_name_guide_storage>(
                                        a_boolean                 fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_name_guide_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_name_guide>()
 /*
 Return the corresponding partition kind for NameGuide.
 */
@@ -18698,8 +18624,7 @@ an_ifc_name_literal_storage* get<an_ifc_name_literal_storage>(
                                      a_boolean                   fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_name_literal_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_name_literal>()
 /*
 Return the corresponding partition kind for NameLiteral.
 */
@@ -18741,8 +18666,7 @@ an_ifc_name_operator_storage* get<an_ifc_name_operator_storage>(
                                     a_boolean                    fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_name_operator_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_name_operator>()
 /*
 Return the corresponding partition kind for NameOperator.
 */
@@ -18784,7 +18708,7 @@ an_ifc_name_source_file_storage* get<an_ifc_name_source_file_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_name_source_file_storage>()
+get_ifc_partition_kind<an_ifc_name_source_file>()
 /*
 Return the corresponding partition kind for NameSourceFile.
 */
@@ -18828,7 +18752,7 @@ an_ifc_name_specialization_storage* get<an_ifc_name_specialization_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_name_specialization_storage>()
+get_ifc_partition_kind<an_ifc_name_specialization>()
 /*
 Return the corresponding partition kind for NameSpecialization.
 */
@@ -18863,8 +18787,7 @@ an_ifc_name_template_storage* get<an_ifc_name_template_storage>(
                                     a_boolean                    fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_name_template_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_name_template>()
 /*
 Return the corresponding partition kind for NameTemplate.
 */
@@ -18907,7 +18830,7 @@ an_ifc_scope_descriptor_storage* get<an_ifc_scope_descriptor_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_scope_descriptor_storage>()
+get_ifc_partition_kind<an_ifc_scope_descriptor>()
 /*
 Return the corresponding partition kind for ScopeDescriptor.
 */
@@ -18942,8 +18865,7 @@ an_ifc_scope_member_storage* get<an_ifc_scope_member_storage>(
                                      a_boolean                   fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_scope_member_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_scope_member>()
 /*
 Return the corresponding partition kind for ScopeMember.
 */
@@ -18984,8 +18906,7 @@ an_ifc_source_line_storage* get<an_ifc_source_line_storage>(
                                       a_boolean                  fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_source_line_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_source_line>()
 /*
 Return the corresponding partition kind for SourceLine.
 */
@@ -19034,7 +18955,7 @@ an_ifc_source_sentence_storage* get<an_ifc_source_sentence_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_source_sentence_storage>()
+get_ifc_partition_kind<an_ifc_source_sentence>()
 /*
 Return the corresponding partition kind for SourceSentence.
 */
@@ -19093,8 +19014,7 @@ an_ifc_source_word_storage* get<an_ifc_source_word_storage>(
                                       a_boolean                  fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_source_word_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_source_word>()
 /*
 Return the corresponding partition kind for SourceWord.
 */
@@ -19135,8 +19055,7 @@ an_ifc_stmt_block_storage* get<an_ifc_stmt_block_storage>(
                                        a_boolean                 fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_stmt_block_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_stmt_block>()
 /*
 Return the corresponding partition kind for StmtBlock.
 */
@@ -19171,8 +19090,7 @@ an_ifc_stmt_break_storage* get<an_ifc_stmt_break_storage>(
                                        a_boolean                 fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_stmt_break_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_stmt_break>()
 /*
 Return the corresponding partition kind for StmtBreak.
 */
@@ -19213,8 +19131,7 @@ an_ifc_stmt_case_storage* get<an_ifc_stmt_case_storage>(
                                         a_boolean                fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_stmt_case_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_stmt_case>()
 /*
 Return the corresponding partition kind for StmtCase.
 */
@@ -19249,8 +19166,7 @@ an_ifc_stmt_continue_storage* get<an_ifc_stmt_continue_storage>(
                                     a_boolean                    fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_stmt_continue_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_stmt_continue>()
 /*
 Return the corresponding partition kind for StmtContinue.
 */
@@ -19285,8 +19201,7 @@ an_ifc_stmt_default_storage* get<an_ifc_stmt_default_storage>(
                                      a_boolean                   fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_stmt_default_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_stmt_default>()
 /*
 Return the corresponding partition kind for StmtDefault.
 */
@@ -19333,8 +19248,7 @@ an_ifc_stmt_do_while_storage* get<an_ifc_stmt_do_while_storage>(
                                     a_boolean                    fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_stmt_do_while_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_stmt_do_while>()
 /*
 Return the corresponding partition kind for StmtDoWhile.
 */
@@ -19369,8 +19283,7 @@ an_ifc_stmt_empty_storage* get<an_ifc_stmt_empty_storage>(
                                        a_boolean                 fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_stmt_empty_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_stmt_empty>()
 /*
 Return the corresponding partition kind for StmtEmpty.
 */
@@ -19405,8 +19318,7 @@ an_ifc_stmt_expansion_storage* get<an_ifc_stmt_expansion_storage>(
                                    a_boolean                     fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_stmt_expansion_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_stmt_expansion>()
 /*
 Return the corresponding partition kind for StmtExpansion.
 */
@@ -19448,7 +19360,7 @@ an_ifc_stmt_expression_storage* get<an_ifc_stmt_expression_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_stmt_expression_storage>()
+get_ifc_partition_kind<an_ifc_stmt_expression>()
 /*
 Return the corresponding partition kind for StmtExpression.
 */
@@ -19507,8 +19419,7 @@ an_ifc_stmt_for_storage* get<an_ifc_stmt_for_storage>(
                                          a_boolean               fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_stmt_for_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_stmt_for>()
 /*
 Return the corresponding partition kind for StmtFor.
 */
@@ -19567,8 +19478,7 @@ an_ifc_stmt_if_storage* get<an_ifc_stmt_if_storage>(
                                           a_boolean              fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_stmt_if_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_stmt_if>()
 /*
 Return the corresponding partition kind for StmtIf.
 */
@@ -19621,8 +19531,7 @@ an_ifc_stmt_return_storage* get<an_ifc_stmt_return_storage>(
                                       a_boolean                  fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_stmt_return_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_stmt_return>()
 /*
 Return the corresponding partition kind for StmtReturn.
 */
@@ -19675,8 +19584,7 @@ an_ifc_stmt_switch_storage* get<an_ifc_stmt_switch_storage>(
                                       a_boolean                  fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_stmt_switch_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_stmt_switch>()
 /*
 Return the corresponding partition kind for StmtSwitch.
 */
@@ -19720,7 +19628,7 @@ an_ifc_stmt_variable_decl_storage* get<an_ifc_stmt_variable_decl_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_stmt_variable_decl_storage>()
+get_ifc_partition_kind<an_ifc_stmt_variable_decl>()
 /*
 Return the corresponding partition kind for StmtVariableDecl.
 */
@@ -19767,8 +19675,7 @@ an_ifc_stmt_while_storage* get<an_ifc_stmt_while_storage>(
                                        a_boolean                 fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_stmt_while_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_stmt_while>()
 /*
 Return the corresponding partition kind for StmtWhile.
 */
@@ -19842,7 +19749,7 @@ get<an_ifc_syntax_access_specifier_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_access_specifier_storage>()
+get_ifc_partition_kind<an_ifc_syntax_access_specifier>()
 /*
 Return the corresponding partition kind for SyntaxAccessSpecifier.
 */
@@ -19909,7 +19816,7 @@ get<an_ifc_syntax_alias_declaration_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_alias_declaration_storage>()
+get_ifc_partition_kind<an_ifc_syntax_alias_declaration>()
 /*
 Return the corresponding partition kind for SyntaxAliasDeclaration.
 */
@@ -19964,8 +19871,7 @@ an_ifc_syntax_alignas_storage* get<an_ifc_syntax_alignas_storage>(
                                    a_boolean                     fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_alignas_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_syntax_alignas>()
 /*
 Return the corresponding partition kind for SyntaxAlignas.
 */
@@ -20020,7 +19926,7 @@ get<an_ifc_syntax_array_declarator_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_array_declarator_storage>()
+get_ifc_partition_kind<an_ifc_syntax_array_declarator>()
 /*
 Return the corresponding partition kind for SyntaxArrayDeclarator.
 */
@@ -20077,7 +19983,7 @@ an_ifc_syntax_array_index_storage* get<an_ifc_syntax_array_index_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_array_index_storage>()
+get_ifc_partition_kind<an_ifc_syntax_array_index>()
 /*
 Return the corresponding partition kind for SyntaxArrayIndex.
 */
@@ -20128,7 +20034,7 @@ get<an_ifc_syntax_array_or_function_declarator_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_array_or_function_declarator_storage>()
+get_ifc_partition_kind<an_ifc_syntax_array_or_function_declarator>()
 /*
 Return the corresponding partition kind for SyntaxArrayOrFunctionDeclarator.
 */
@@ -20173,7 +20079,7 @@ an_ifc_syntax_asm_statement_storage* get<an_ifc_syntax_asm_statement_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_asm_statement_storage>()
+get_ifc_partition_kind<an_ifc_syntax_asm_statement>()
 /*
 Return the corresponding partition kind for SyntaxAsmStatement.
 */
@@ -20242,7 +20148,7 @@ an_ifc_syntax_attribute_storage* get<an_ifc_syntax_attribute_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_attribute_storage>()
+get_ifc_partition_kind<an_ifc_syntax_attribute>()
 /*
 Return the corresponding partition kind for SyntaxAttribute.
 */
@@ -20298,7 +20204,7 @@ get<an_ifc_syntax_attribute_argument_clause_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_attribute_argument_clause_storage>()
+get_ifc_partition_kind<an_ifc_syntax_attribute_argument_clause>()
 /*
 Return the corresponding partition kind for SyntaxAttributeArgumentClause.
 */
@@ -20377,7 +20283,7 @@ get<an_ifc_syntax_attribute_specifier_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_attribute_specifier_storage>()
+get_ifc_partition_kind<an_ifc_syntax_attribute_specifier>()
 /*
 Return the corresponding partition kind for SyntaxAttributeSpecifier.
 */
@@ -20417,7 +20323,7 @@ get<an_ifc_syntax_attribute_specifier_seq_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_attribute_specifier_seq_storage>()
+get_ifc_partition_kind<an_ifc_syntax_attribute_specifier_seq>()
 /*
 Return the corresponding partition kind for SyntaxAttributeSpecifierSeq.
 */
@@ -20463,7 +20369,7 @@ get<an_ifc_syntax_attribute_using_prefix_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_attribute_using_prefix_storage>()
+get_ifc_partition_kind<an_ifc_syntax_attribute_using_prefix>()
 /*
 Return the corresponding partition kind for SyntaxAttributeUsingPrefix.
 */
@@ -20517,7 +20423,7 @@ get<an_ifc_syntax_attributed_declaration_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_attributed_declaration_storage>()
+get_ifc_partition_kind<an_ifc_syntax_attributed_declaration>()
 /*
 Return the corresponding partition kind for SyntaxAttributedDeclaration.
 */
@@ -20571,7 +20477,7 @@ get<an_ifc_syntax_attributed_statement_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_attributed_statement_storage>()
+get_ifc_partition_kind<an_ifc_syntax_attributed_statement>()
 /*
 Return the corresponding partition kind for SyntaxAttributedStatement.
 */
@@ -20617,7 +20523,7 @@ get<an_ifc_syntax_base_specifier_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_base_specifier_storage>()
+get_ifc_partition_kind<an_ifc_syntax_base_specifier>()
 /*
 Return the corresponding partition kind for SyntaxBaseSpecifier.
 */
@@ -20664,7 +20570,7 @@ get<an_ifc_syntax_base_specifier_list_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_base_specifier_list_storage>()
+get_ifc_partition_kind<an_ifc_syntax_base_specifier_list>()
 /*
 Return the corresponding partition kind for SyntaxBaseSpecifierList.
 */
@@ -20766,7 +20672,7 @@ get<an_ifc_syntax_binary_fold_expression_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_binary_fold_expression_storage>()
+get_ifc_partition_kind<an_ifc_syntax_binary_fold_expression>()
 /*
 Return the corresponding partition kind for SyntaxBinaryFoldExpression.
 */
@@ -20812,7 +20718,7 @@ get<an_ifc_syntax_break_statement_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_break_statement_storage>()
+get_ifc_partition_kind<an_ifc_syntax_break_statement>()
 /*
 Return the corresponding partition kind for SyntaxBreakStatement.
 */
@@ -20864,7 +20770,7 @@ get<an_ifc_syntax_capture_default_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_capture_default_storage>()
+get_ifc_partition_kind<an_ifc_syntax_capture_default>()
 /*
 Return the corresponding partition kind for SyntaxCaptureDefault.
 */
@@ -20937,7 +20843,7 @@ get<an_ifc_syntax_class_specifier_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_class_specifier_storage>()
+get_ifc_partition_kind<an_ifc_syntax_class_specifier>()
 /*
 Return the corresponding partition kind for SyntaxClassSpecifier.
 */
@@ -21008,7 +20914,7 @@ get<an_ifc_syntax_compound_requirement_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_compound_requirement_storage>()
+get_ifc_partition_kind<an_ifc_syntax_compound_requirement>()
 /*
 Return the corresponding partition kind for SyntaxCompoundRequirement.
 */
@@ -21070,7 +20976,7 @@ get<an_ifc_syntax_compound_statement_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_compound_statement_storage>()
+get_ifc_partition_kind<an_ifc_syntax_compound_statement>()
 /*
 Return the corresponding partition kind for SyntaxCompoundStatement.
 */
@@ -21154,7 +21060,7 @@ get<an_ifc_syntax_concept_definition_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_concept_definition_storage>()
+get_ifc_partition_kind<an_ifc_syntax_concept_definition>()
 /*
 Return the corresponding partition kind for SyntaxConceptDefinition.
 */
@@ -21209,7 +21115,7 @@ get<an_ifc_syntax_condition_declaration_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_condition_declaration_storage>()
+get_ifc_partition_kind<an_ifc_syntax_condition_declaration>()
 /*
 Return the corresponding partition kind for SyntaxConditionDeclaration.
 */
@@ -21255,7 +21161,7 @@ get<an_ifc_syntax_continue_statement_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_continue_statement_storage>()
+get_ifc_partition_kind<an_ifc_syntax_continue_statement>()
 /*
 Return the corresponding partition kind for SyntaxContinueStatement.
 */
@@ -21302,7 +21208,7 @@ get<an_ifc_syntax_ctor_initializer_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_ctor_initializer_storage>()
+get_ifc_partition_kind<an_ifc_syntax_ctor_initializer>()
 /*
 Return the corresponding partition kind for SyntaxCtorInitializer.
 */
@@ -21386,7 +21292,7 @@ get<an_ifc_syntax_decl_specifier_seq_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_decl_specifier_seq_storage>()
+get_ifc_partition_kind<an_ifc_syntax_decl_specifier_seq>()
 /*
 Return the corresponding partition kind for SyntaxDeclSpecifierSeq.
 */
@@ -21432,7 +21338,7 @@ get<an_ifc_syntax_declaration_statement_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_declaration_statement_storage>()
+get_ifc_partition_kind<an_ifc_syntax_declaration_statement>()
 /*
 Return the corresponding partition kind for SyntaxDeclarationStatement.
 */
@@ -21538,7 +21444,7 @@ an_ifc_syntax_declarator_storage* get<an_ifc_syntax_declarator_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_declarator_storage>()
+get_ifc_partition_kind<an_ifc_syntax_declarator>()
 /*
 Return the corresponding partition kind for SyntaxDeclarator.
 */
@@ -21601,7 +21507,7 @@ get<an_ifc_syntax_decltype_specifier_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_decltype_specifier_storage>()
+get_ifc_partition_kind<an_ifc_syntax_decltype_specifier>()
 /*
 Return the corresponding partition kind for SyntaxDecltypeSpecifier.
 */
@@ -21675,7 +21581,7 @@ get<an_ifc_syntax_do_while_statement_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_do_while_statement_storage>()
+get_ifc_partition_kind<an_ifc_syntax_do_while_statement>()
 /*
 Return the corresponding partition kind for SyntaxDoWhileStatement.
 */
@@ -21746,7 +21652,7 @@ get<an_ifc_syntax_dynamic_exception_spec_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_dynamic_exception_spec_storage>()
+get_ifc_partition_kind<an_ifc_syntax_dynamic_exception_spec>()
 /*
 Return the corresponding partition kind for SyntaxDynamicExceptionSpec.
 */
@@ -21785,7 +21691,7 @@ get<an_ifc_syntax_empty_statement_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_empty_statement_storage>()
+get_ifc_partition_kind<an_ifc_syntax_empty_statement>()
 /*
 Return the corresponding partition kind for SyntaxEmptyStatement.
 */
@@ -21872,7 +21778,7 @@ get<an_ifc_syntax_enum_specifier_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_enum_specifier_storage>()
+get_ifc_partition_kind<an_ifc_syntax_enum_specifier>()
 /*
 Return the corresponding partition kind for SyntaxEnumSpecifier.
 */
@@ -21940,7 +21846,7 @@ get<an_ifc_syntax_enumerator_definition_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_enumerator_definition_storage>()
+get_ifc_partition_kind<an_ifc_syntax_enumerator_definition>()
 /*
 Return the corresponding partition kind for SyntaxEnumeratorDefinition.
 */
@@ -22003,7 +21909,7 @@ get<an_ifc_syntax_exception_declaration_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_exception_declaration_storage>()
+get_ifc_partition_kind<an_ifc_syntax_exception_declaration>()
 /*
 Return the corresponding partition kind for SyntaxExceptionDeclaration.
 */
@@ -22065,7 +21971,7 @@ get<an_ifc_syntax_explicit_specifier_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_explicit_specifier_storage>()
+get_ifc_partition_kind<an_ifc_syntax_explicit_specifier>()
 /*
 Return the corresponding partition kind for SyntaxExplicitSpecifier.
 */
@@ -22103,7 +22009,7 @@ an_ifc_syntax_expression_storage* get<an_ifc_syntax_expression_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_expression_storage>()
+get_ifc_partition_kind<an_ifc_syntax_expression>()
 /*
 Return the corresponding partition kind for SyntaxExpression.
 */
@@ -22157,7 +22063,7 @@ get<an_ifc_syntax_expression_statement_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_expression_statement_storage>()
+get_ifc_partition_kind<an_ifc_syntax_expression_statement>()
 /*
 Return the corresponding partition kind for SyntaxExpressionStatement.
 */
@@ -22205,7 +22111,7 @@ get<an_ifc_syntax_for_range_declaration_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_for_range_declaration_storage>()
+get_ifc_partition_kind<an_ifc_syntax_for_range_declaration>()
 /*
 Return the corresponding partition kind for SyntaxForRangeDeclaration.
 */
@@ -22298,7 +22204,7 @@ an_ifc_syntax_for_statement_storage* get<an_ifc_syntax_for_statement_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_for_statement_storage>()
+get_ifc_partition_kind<an_ifc_syntax_for_statement>()
 /*
 Return the corresponding partition kind for SyntaxForStatement.
 */
@@ -22371,7 +22277,7 @@ an_ifc_syntax_function_body_storage* get<an_ifc_syntax_function_body_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_function_body_storage>()
+get_ifc_partition_kind<an_ifc_syntax_function_body>()
 /*
 Return the corresponding partition kind for SyntaxFunctionBody.
 */
@@ -22434,7 +22340,7 @@ get<an_ifc_syntax_function_declarator_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_function_declarator_storage>()
+get_ifc_partition_kind<an_ifc_syntax_function_declarator>()
 /*
 Return the corresponding partition kind for SyntaxFunctionDeclarator.
 */
@@ -22512,7 +22418,7 @@ get<an_ifc_syntax_function_definition_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_function_definition_storage>()
+get_ifc_partition_kind<an_ifc_syntax_function_definition>()
 /*
 Return the corresponding partition kind for SyntaxFunctionDefinition.
 */
@@ -22566,7 +22472,7 @@ get<an_ifc_syntax_function_try_block_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_function_try_block_storage>()
+get_ifc_partition_kind<an_ifc_syntax_function_try_block>()
 /*
 Return the corresponding partition kind for SyntaxFunctionTryBlock.
 */
@@ -22633,7 +22539,7 @@ get<an_ifc_syntax_goto_statement_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_goto_statement_storage>()
+get_ifc_partition_kind<an_ifc_syntax_goto_statement>()
 /*
 Return the corresponding partition kind for SyntaxGotoStatement.
 */
@@ -22700,8 +22606,7 @@ an_ifc_syntax_handler_storage* get<an_ifc_syntax_handler_storage>(
                                    a_boolean                     fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_handler_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_syntax_handler>()
 /*
 Return the corresponding partition kind for SyntaxHandler.
 */
@@ -22739,7 +22644,7 @@ an_ifc_syntax_handler_seq_storage* get<an_ifc_syntax_handler_seq_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_handler_seq_storage>()
+get_ifc_partition_kind<an_ifc_syntax_handler_seq>()
 /*
 Return the corresponding partition kind for SyntaxHandlerSeq.
 */
@@ -22824,7 +22729,7 @@ an_ifc_syntax_if_statement_storage* get<an_ifc_syntax_if_statement_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_if_statement_storage>()
+get_ifc_partition_kind<an_ifc_syntax_if_statement>()
 /*
 Return the corresponding partition kind for SyntaxIfStatement.
 */
@@ -22889,7 +22794,7 @@ an_ifc_syntax_init_capture_storage* get<an_ifc_syntax_init_capture_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_init_capture_storage>()
+get_ifc_partition_kind<an_ifc_syntax_init_capture>()
 /*
 Return the corresponding partition kind for SyntaxInitCapture.
 */
@@ -22949,7 +22854,7 @@ get<an_ifc_syntax_init_declarator_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_init_declarator_storage>()
+get_ifc_partition_kind<an_ifc_syntax_init_declarator>()
 /*
 Return the corresponding partition kind for SyntaxInitDeclarator.
 */
@@ -22995,7 +22900,7 @@ get<an_ifc_syntax_init_statement_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_init_statement_storage>()
+get_ifc_partition_kind<an_ifc_syntax_init_statement>()
 /*
 Return the corresponding partition kind for SyntaxInitStatement.
 */
@@ -23062,7 +22967,7 @@ get<an_ifc_syntax_labeled_statement_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_labeled_statement_storage>()
+get_ifc_partition_kind<an_ifc_syntax_labeled_statement>()
 /*
 Return the corresponding partition kind for SyntaxLabeledStatement.
 */
@@ -23145,7 +23050,7 @@ get<an_ifc_syntax_lambda_declarator_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_lambda_declarator_storage>()
+get_ifc_partition_kind<an_ifc_syntax_lambda_declarator>()
 /*
 Return the corresponding partition kind for SyntaxLambdaDeclarator.
 */
@@ -23200,7 +23105,7 @@ get<an_ifc_syntax_lambda_introducer_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_lambda_introducer_storage>()
+get_ifc_partition_kind<an_ifc_syntax_lambda_introducer>()
 /*
 Return the corresponding partition kind for SyntaxLambdaIntroducer.
 */
@@ -23260,7 +23165,7 @@ get<an_ifc_syntax_mem_initializer_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_mem_initializer_storage>()
+get_ifc_partition_kind<an_ifc_syntax_mem_initializer>()
 /*
 Return the corresponding partition kind for SyntaxMemInitializer.
 */
@@ -23315,7 +23220,7 @@ get<an_ifc_syntax_member_declaration_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_member_declaration_storage>()
+get_ifc_partition_kind<an_ifc_syntax_member_declaration>()
 /*
 Return the corresponding partition kind for SyntaxMemberDeclaration.
 */
@@ -23397,7 +23302,7 @@ get<an_ifc_syntax_member_declarator_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_member_declarator_storage>()
+get_ifc_partition_kind<an_ifc_syntax_member_declarator>()
 /*
 Return the corresponding partition kind for SyntaxMemberDeclarator.
 */
@@ -23439,7 +23344,7 @@ get<an_ifc_syntax_member_function_declaration_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_member_function_declaration_storage>()
+get_ifc_partition_kind<an_ifc_syntax_member_function_declaration>()
 /*
 Return the corresponding partition kind for SyntaxMemberFunctionDeclaration.
 */
@@ -23479,7 +23384,7 @@ get<an_ifc_syntax_member_specification_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_member_specification_storage>()
+get_ifc_partition_kind<an_ifc_syntax_member_specification>()
 /*
 Return the corresponding partition kind for SyntaxMemberSpecification.
 */
@@ -23551,7 +23456,7 @@ get<an_ifc_syntax_namespace_alias_definition_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_namespace_alias_definition_storage>()
+get_ifc_partition_kind<an_ifc_syntax_namespace_alias_definition>()
 /*
 Return the corresponding partition kind for SyntaxNamespaceAliasDefinition.
 */
@@ -23597,7 +23502,7 @@ get<an_ifc_syntax_nested_requirement_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_nested_requirement_storage>()
+get_ifc_partition_kind<an_ifc_syntax_nested_requirement>()
 /*
 Return the corresponding partition kind for SyntaxNestedRequirement.
 */
@@ -23636,7 +23541,7 @@ get<an_ifc_syntax_new_declarator_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_new_declarator_storage>()
+get_ifc_partition_kind<an_ifc_syntax_new_declarator>()
 /*
 Return the corresponding partition kind for SyntaxNewDeclarator.
 */
@@ -23698,7 +23603,7 @@ get<an_ifc_syntax_noexcept_specification_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_noexcept_specification_storage>()
+get_ifc_partition_kind<an_ifc_syntax_noexcept_specification>()
 /*
 Return the corresponding partition kind for SyntaxNoexceptSpecification.
 */
@@ -23754,7 +23659,7 @@ get<an_ifc_syntax_non_type_template_argument_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_non_type_template_argument_storage>()
+get_ifc_partition_kind<an_ifc_syntax_non_type_template_argument>()
 /*
 Return the corresponding partition kind for SyntaxNonTypeTemplateArgument.
 */
@@ -23824,7 +23729,7 @@ get<an_ifc_syntax_parameter_declarator_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_parameter_declarator_storage>()
+get_ifc_partition_kind<an_ifc_syntax_parameter_declarator>()
 /*
 Return the corresponding partition kind for SyntaxParameterDeclarator.
 */
@@ -23888,7 +23793,7 @@ get<an_ifc_syntax_placeholder_type_specifier_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_placeholder_type_specifier_storage>()
+get_ifc_partition_kind<an_ifc_syntax_placeholder_type_specifier>()
 /*
 Return the corresponding partition kind for SyntaxPlaceholderTypeSpecifier.
 */
@@ -23971,7 +23876,7 @@ get<an_ifc_syntax_pointer_declarator_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_pointer_declarator_storage>()
+get_ifc_partition_kind<an_ifc_syntax_pointer_declarator>()
 /*
 Return the corresponding partition kind for SyntaxPointerDeclarator.
 */
@@ -24075,7 +23980,7 @@ get<an_ifc_syntax_range_based_for_statement_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_range_based_for_statement_storage>()
+get_ifc_partition_kind<an_ifc_syntax_range_based_for_statement>()
 /*
 Return the corresponding partition kind for SyntaxRangeBasedForStatement.
 */
@@ -24129,7 +24034,7 @@ get<an_ifc_syntax_requirement_body_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_requirement_body_storage>()
+get_ifc_partition_kind<an_ifc_syntax_requirement_body>()
 /*
 Return the corresponding partition kind for SyntaxRequirementBody.
 */
@@ -24175,7 +24080,7 @@ get<an_ifc_syntax_requires_clause_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_requires_clause_storage>()
+get_ifc_partition_kind<an_ifc_syntax_requires_clause>()
 /*
 Return the corresponding partition kind for SyntaxRequiresClause.
 */
@@ -24242,7 +24147,7 @@ get<an_ifc_syntax_return_statement_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_return_statement_storage>()
+get_ifc_partition_kind<an_ifc_syntax_return_statement>()
 /*
 Return the corresponding partition kind for SyntaxReturnStatement.
 */
@@ -24306,7 +24211,7 @@ an_ifc_syntax_seh_except_storage* get<an_ifc_syntax_seh_except_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_seh_except_storage>()
+get_ifc_partition_kind<an_ifc_syntax_seh_except>()
 /*
 Return the corresponding partition kind for SyntaxSEHExcept.
 */
@@ -24350,7 +24255,7 @@ an_ifc_syntax_seh_finally_storage* get<an_ifc_syntax_seh_finally_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_seh_finally_storage>()
+get_ifc_partition_kind<an_ifc_syntax_seh_finally>()
 /*
 Return the corresponding partition kind for SyntaxSEHFinally.
 */
@@ -24394,7 +24299,7 @@ an_ifc_syntax_seh_leave_storage* get<an_ifc_syntax_seh_leave_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_seh_leave_storage>()
+get_ifc_partition_kind<an_ifc_syntax_seh_leave>()
 /*
 Return the corresponding partition kind for SyntaxSEHLeave.
 */
@@ -24441,8 +24346,7 @@ an_ifc_syntax_seh_try_storage* get<an_ifc_syntax_seh_try_storage>(
                                    a_boolean                     fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_seh_try_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_syntax_seh_try>()
 /*
 Return the corresponding partition kind for SyntaxSEHTry.
 */
@@ -24501,7 +24405,7 @@ get<an_ifc_syntax_simple_capture_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_simple_capture_storage>()
+get_ifc_partition_kind<an_ifc_syntax_simple_capture>()
 /*
 Return the corresponding partition kind for SyntaxSimpleCapture.
 */
@@ -24563,7 +24467,7 @@ get<an_ifc_syntax_simple_declaration_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_simple_declaration_storage>()
+get_ifc_partition_kind<an_ifc_syntax_simple_declaration>()
 /*
 Return the corresponding partition kind for SyntaxSimpleDeclaration.
 */
@@ -24609,7 +24513,7 @@ get<an_ifc_syntax_simple_requirement_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_simple_requirement_storage>()
+get_ifc_partition_kind<an_ifc_syntax_simple_requirement>()
 /*
 Return the corresponding partition kind for SyntaxSimpleRequirement.
 */
@@ -24662,7 +24566,7 @@ get<an_ifc_syntax_simple_type_specifier_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_simple_type_specifier_storage>()
+get_ifc_partition_kind<an_ifc_syntax_simple_type_specifier>()
 /*
 Return the corresponding partition kind for SyntaxSimpleTypeSpecifier.
 */
@@ -24700,7 +24604,7 @@ an_ifc_syntax_statement_seq_storage* get<an_ifc_syntax_statement_seq_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_statement_seq_storage>()
+get_ifc_partition_kind<an_ifc_syntax_statement_seq>()
 /*
 Return the corresponding partition kind for SyntaxStatementSeq.
 */
@@ -24788,7 +24692,7 @@ get<an_ifc_syntax_static_assert_declaration_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_static_assert_declaration_storage>()
+get_ifc_partition_kind<an_ifc_syntax_static_assert_declaration>()
 /*
 Return the corresponding partition kind for SyntaxStaticAssertDeclaration.
 */
@@ -24863,7 +24767,7 @@ get<an_ifc_syntax_structured_binding_declaration_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_structured_binding_declaration_storage>()
+get_ifc_partition_kind<an_ifc_syntax_structured_binding_declaration>()
 /*
 Return the corresponding partition kind for SyntaxStructuredBindingDeclaration.
 */
@@ -24914,7 +24818,7 @@ get<an_ifc_syntax_structured_binding_identifier_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_structured_binding_identifier_storage>()
+get_ifc_partition_kind<an_ifc_syntax_structured_binding_identifier>()
 /*
 Return the corresponding partition kind for SyntaxStructuredBindingIdentifier.
 */
@@ -24949,8 +24853,7 @@ an_ifc_syntax_super_storage* get<an_ifc_syntax_super_storage>(
                                      a_boolean                   fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_super_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_syntax_super>()
 /*
 Return the corresponding partition kind for SyntaxSuper.
 */
@@ -25017,7 +24920,7 @@ get<an_ifc_syntax_switch_statement_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_switch_statement_storage>()
+get_ifc_partition_kind<an_ifc_syntax_switch_statement>()
 /*
 Return the corresponding partition kind for SyntaxSwitchStatement.
 */
@@ -25073,7 +24976,7 @@ get<an_ifc_syntax_template_argument_list_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_template_argument_list_storage>()
+get_ifc_partition_kind<an_ifc_syntax_template_argument_list>()
 /*
 Return the corresponding partition kind for SyntaxTemplateArgumentList.
 */
@@ -25127,7 +25030,7 @@ get<an_ifc_syntax_template_declaration_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_template_declaration_storage>()
+get_ifc_partition_kind<an_ifc_syntax_template_declaration>()
 /*
 Return the corresponding partition kind for SyntaxTemplateDeclaration.
 */
@@ -25191,7 +25094,7 @@ an_ifc_syntax_template_id_storage* get<an_ifc_syntax_template_id_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_template_id_storage>()
+get_ifc_partition_kind<an_ifc_syntax_template_id>()
 /*
 Return the corresponding partition kind for SyntaxTemplateId.
 */
@@ -25255,7 +25158,7 @@ get<an_ifc_syntax_template_parameter_list_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_template_parameter_list_storage>()
+get_ifc_partition_kind<an_ifc_syntax_template_parameter_list>()
 /*
 Return the corresponding partition kind for SyntaxTemplateParameterList.
 */
@@ -25345,7 +25248,7 @@ get<an_ifc_syntax_template_template_parameter_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_template_template_parameter_storage>()
+get_ifc_partition_kind<an_ifc_syntax_template_template_parameter>()
 /*
 Return the corresponding partition kind for SyntaxTemplateTemplateParameter.
 */
@@ -25397,7 +25300,7 @@ an_ifc_syntax_this_capture_storage* get<an_ifc_syntax_this_capture_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_this_capture_storage>()
+get_ifc_partition_kind<an_ifc_syntax_this_capture>()
 /*
 Return the corresponding partition kind for SyntaxThisCapture.
 */
@@ -25443,7 +25346,7 @@ get<an_ifc_syntax_trailing_return_type_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_trailing_return_type_storage>()
+get_ifc_partition_kind<an_ifc_syntax_trailing_return_type>()
 /*
 Return the corresponding partition kind for SyntaxTrailingReturnType.
 */
@@ -25497,7 +25400,7 @@ an_ifc_syntax_try_block_storage* get<an_ifc_syntax_try_block_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_try_block_storage>()
+get_ifc_partition_kind<an_ifc_syntax_try_block>()
 /*
 Return the corresponding partition kind for SyntaxTryBlock.
 */
@@ -25538,8 +25441,7 @@ an_ifc_syntax_tuple_storage* get<an_ifc_syntax_tuple_storage>(
                                      a_boolean                   fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_tuple_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_syntax_tuple>()
 /*
 Return the corresponding partition kind for SyntaxTuple.
 */
@@ -25588,8 +25490,7 @@ an_ifc_syntax_type_id_storage* get<an_ifc_syntax_type_id_storage>(
                                    a_boolean                     fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_type_id_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_syntax_type_id>()
 /*
 Return the corresponding partition kind for SyntaxTypeId.
 */
@@ -25636,7 +25537,7 @@ get<an_ifc_syntax_type_id_list_element_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_type_id_list_element_storage>()
+get_ifc_partition_kind<an_ifc_syntax_type_id_list_element>()
 /*
 Return the corresponding partition kind for SyntaxTypeIdListElement.
 */
@@ -25682,7 +25583,7 @@ get<an_ifc_syntax_type_requirement_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_type_requirement_storage>()
+get_ifc_partition_kind<an_ifc_syntax_type_requirement>()
 /*
 Return the corresponding partition kind for SyntaxTypeRequirement.
 */
@@ -25750,7 +25651,7 @@ get<an_ifc_syntax_type_specifier_seq_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_type_specifier_seq_storage>()
+get_ifc_partition_kind<an_ifc_syntax_type_specifier_seq>()
 /*
 Return the corresponding partition kind for SyntaxTypeSpecifierSeq.
 */
@@ -25805,7 +25706,7 @@ get<an_ifc_syntax_type_template_argument_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_type_template_argument_storage>()
+get_ifc_partition_kind<an_ifc_syntax_type_template_argument>()
 /*
 Return the corresponding partition kind for SyntaxTypeTemplateArgument.
 */
@@ -25876,7 +25777,7 @@ get<an_ifc_syntax_type_template_parameter_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_type_template_parameter_storage>()
+get_ifc_partition_kind<an_ifc_syntax_type_template_parameter>()
 /*
 Return the corresponding partition kind for SyntaxTypeTemplateParameter.
 */
@@ -25931,7 +25832,7 @@ get<an_ifc_syntax_type_trait_intrinsic_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_type_trait_intrinsic_storage>()
+get_ifc_partition_kind<an_ifc_syntax_type_trait_intrinsic>()
 /*
 Return the corresponding partition kind for SyntaxTypeTraitIntrinsic.
 */
@@ -26017,7 +25918,7 @@ get<an_ifc_syntax_unary_fold_expression_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_unary_fold_expression_storage>()
+get_ifc_partition_kind<an_ifc_syntax_unary_fold_expression>()
 /*
 Return the corresponding partition kind for SyntaxUnaryFoldExpression.
 */
@@ -26071,7 +25972,7 @@ get<an_ifc_syntax_using_declaration_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_using_declaration_storage>()
+get_ifc_partition_kind<an_ifc_syntax_using_declaration>()
 /*
 Return the corresponding partition kind for SyntaxUsingDeclaration.
 */
@@ -26132,7 +26033,7 @@ get<an_ifc_syntax_using_declarator_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_using_declarator_storage>()
+get_ifc_partition_kind<an_ifc_syntax_using_declarator>()
 /*
 Return the corresponding partition kind for SyntaxUsingDeclarator.
 */
@@ -26193,7 +26094,7 @@ get<an_ifc_syntax_using_directive_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_using_directive_storage>()
+get_ifc_partition_kind<an_ifc_syntax_using_directive>()
 /*
 Return the corresponding partition kind for SyntaxUsingDirective.
 */
@@ -26256,7 +26157,7 @@ get<an_ifc_syntax_using_enum_declaration_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_using_enum_declaration_storage>()
+get_ifc_partition_kind<an_ifc_syntax_using_enum_declaration>()
 /*
 Return the corresponding partition kind for SyntaxUsingEnumDeclaration.
 */
@@ -26317,7 +26218,7 @@ get<an_ifc_syntax_virtual_specifier_seq_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_virtual_specifier_seq_storage>()
+get_ifc_partition_kind<an_ifc_syntax_virtual_specifier_seq>()
 /*
 Return the corresponding partition kind for SyntaxVirtualSpecifierSeq.
 */
@@ -26377,7 +26278,7 @@ get<an_ifc_syntax_while_statement_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_while_statement_storage>()
+get_ifc_partition_kind<an_ifc_syntax_while_statement>()
 /*
 Return the corresponding partition kind for SyntaxWhileStatement.
 */
@@ -26428,7 +26329,7 @@ an_ifc_trait_alias_template_storage* get<an_ifc_trait_alias_template_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_trait_alias_template_storage>()
+get_ifc_partition_kind<an_ifc_trait_alias_template>()
 /*
 Return the corresponding partition kind for TraitAliasTemplate.
 */
@@ -26477,7 +26378,7 @@ an_ifc_trait_attribute_storage* get<an_ifc_trait_attribute_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_trait_attribute_storage>()
+get_ifc_partition_kind<an_ifc_trait_attribute>()
 /*
 Return the corresponding partition kind for TraitAttribute.
 */
@@ -26528,7 +26429,7 @@ get<an_ifc_trait_deduction_guide_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_trait_deduction_guide_storage>()
+get_ifc_partition_kind<an_ifc_trait_deduction_guide>()
 /*
 Return the corresponding partition kind for TraitDeductionGuide.
 */
@@ -26577,7 +26478,7 @@ an_ifc_trait_deprecated_storage* get<an_ifc_trait_deprecated_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_trait_deprecated_storage>()
+get_ifc_partition_kind<an_ifc_trait_deprecated>()
 /*
 Return the corresponding partition kind for TraitDeprecated.
 */
@@ -26625,8 +26526,7 @@ an_ifc_trait_friend_storage* get<an_ifc_trait_friend_storage>(
                                      a_boolean                   fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_trait_friend_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_trait_friend>()
 /*
 Return the corresponding partition kind for TraitFriend.
 */
@@ -26696,7 +26596,7 @@ get<an_ifc_trait_function_definition_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_trait_function_definition_storage>()
+get_ifc_partition_kind<an_ifc_trait_function_definition>()
 /*
 Return the corresponding partition kind for TraitFunctionDefinition.
 */
@@ -26747,7 +26647,7 @@ get<an_ifc_trait_msvc_decl_attrs_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_trait_msvc_decl_attrs_storage>()
+get_ifc_partition_kind<an_ifc_trait_msvc_decl_attrs>()
 /*
 Return the corresponding partition kind for TraitMsvcDeclAttrs.
 */
@@ -26799,7 +26699,7 @@ get<an_ifc_trait_msvc_func_params_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_trait_msvc_func_params_storage>()
+get_ifc_partition_kind<an_ifc_trait_msvc_func_params>()
 /*
 Return the corresponding partition kind for TraitMsvcFuncParams.
 */
@@ -26848,7 +26748,7 @@ an_ifc_trait_msvc_uuid_storage* get<an_ifc_trait_msvc_uuid_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_trait_msvc_uuid_storage>()
+get_ifc_partition_kind<an_ifc_trait_msvc_uuid>()
 /*
 Return the corresponding partition kind for TraitMsvcUuid.
 */
@@ -26902,7 +26802,7 @@ get<an_ifc_trait_msvc_vendor_trait_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_trait_msvc_vendor_trait_storage>()
+get_ifc_partition_kind<an_ifc_trait_msvc_vendor_trait>()
 /*
 Return the corresponding partition kind for TraitMsvcVendorTrait.
 */
@@ -26950,8 +26850,7 @@ an_ifc_trait_requires_storage* get<an_ifc_trait_requires_storage>(
                                    a_boolean                     fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_trait_requires_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_trait_requires>()
 /*
 Return the corresponding partition kind for TraitRequires.
 */
@@ -27001,7 +26900,7 @@ an_ifc_trait_specialization_storage* get<an_ifc_trait_specialization_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_trait_specialization_storage>()
+get_ifc_partition_kind<an_ifc_trait_specialization>()
 /*
 Return the corresponding partition kind for TraitSpecialization.
 */
@@ -27042,8 +26941,7 @@ an_ifc_type_array_storage* get<an_ifc_type_array_storage>(
                                        a_boolean                 fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_type_array_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_type_array>()
 /*
 Return the corresponding partition kind for TypeArray.
 */
@@ -27096,8 +26994,7 @@ an_ifc_type_base_storage* get<an_ifc_type_base_storage>(
                                         a_boolean                fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_type_base_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_type_base>()
 /*
 Return the corresponding partition kind for TypeBase.
 */
@@ -27132,8 +27029,7 @@ an_ifc_type_decltype_storage* get<an_ifc_type_decltype_storage>(
                                     a_boolean                    fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_type_decltype_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_type_decltype>()
 /*
 Return the corresponding partition kind for TypeDecltype.
 */
@@ -27169,7 +27065,7 @@ an_ifc_type_designated_storage* get<an_ifc_type_designated_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_type_designated_storage>()
+get_ifc_partition_kind<an_ifc_type_designated>()
 /*
 Return the corresponding partition kind for TypeDesignated.
 */
@@ -27211,8 +27107,7 @@ an_ifc_type_expansion_storage* get<an_ifc_type_expansion_storage>(
                                    a_boolean                     fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_type_expansion_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_type_expansion>()
 /*
 Return the corresponding partition kind for TypeExpansion.
 */
@@ -27253,8 +27148,7 @@ an_ifc_type_forall_storage* get<an_ifc_type_forall_storage>(
                                       a_boolean                  fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_type_forall_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_type_forall>()
 /*
 Return the corresponding partition kind for TypeForall.
 */
@@ -27316,8 +27210,7 @@ an_ifc_type_function_storage* get<an_ifc_type_function_storage>(
                                     a_boolean                    fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_type_function_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_type_function>()
 /*
 Return the corresponding partition kind for TypeFunction.
 */
@@ -27366,7 +27259,7 @@ an_ifc_type_fundamental_storage* get<an_ifc_type_fundamental_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_type_fundamental_storage>()
+get_ifc_partition_kind<an_ifc_type_fundamental>()
 /*
 Return the corresponding partition kind for TypeFundamental.
 */
@@ -27405,7 +27298,7 @@ get<an_ifc_type_lvalue_reference_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_type_lvalue_reference_storage>()
+get_ifc_partition_kind<an_ifc_type_lvalue_reference>()
 /*
 Return the corresponding partition kind for TypeLvalueReference.
 */
@@ -27473,8 +27366,7 @@ an_ifc_type_method_storage* get<an_ifc_type_method_storage>(
                                       a_boolean                  fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_type_method_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_type_method>()
 /*
 Return the corresponding partition kind for TypeMethod.
 */
@@ -27523,7 +27415,7 @@ an_ifc_type_placeholder_storage* get<an_ifc_type_placeholder_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_type_placeholder_storage>()
+get_ifc_partition_kind<an_ifc_type_placeholder>()
 /*
 Return the corresponding partition kind for TypePlaceholder.
 */
@@ -27558,8 +27450,7 @@ an_ifc_type_pointer_storage* get<an_ifc_type_pointer_storage>(
                                      a_boolean                   fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_type_pointer_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_type_pointer>()
 /*
 Return the corresponding partition kind for TypePointer.
 */
@@ -27605,7 +27496,7 @@ get<an_ifc_type_pointer_to_member_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_type_pointer_to_member_storage>()
+get_ifc_partition_kind<an_ifc_type_pointer_to_member>()
 /*
 Return the corresponding partition kind for TypePointerToMember.
 */
@@ -27647,8 +27538,7 @@ an_ifc_type_qualified_storage* get<an_ifc_type_qualified_storage>(
                                    a_boolean                     fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_type_qualified_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_type_qualified>()
 /*
 Return the corresponding partition kind for TypeQualified.
 */
@@ -27687,7 +27577,7 @@ get<an_ifc_type_rvalue_reference_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_type_rvalue_reference_storage>()
+get_ifc_partition_kind<an_ifc_type_rvalue_reference>()
 /*
 Return the corresponding partition kind for TypeRvalueReference.
 */
@@ -27722,8 +27612,7 @@ an_ifc_type_syntactic_storage* get<an_ifc_type_syntactic_storage>(
                                    a_boolean                     fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_type_syntactic_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_type_syntactic>()
 /*
 Return the corresponding partition kind for TypeSyntactic.
 */
@@ -27759,7 +27648,7 @@ an_ifc_type_syntax_tree_storage* get<an_ifc_type_syntax_tree_storage>(
 
 template<>
 constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_type_syntax_tree_storage>()
+get_ifc_partition_kind<an_ifc_type_syntax_tree>()
 /*
 Return the corresponding partition kind for TypeSyntaxTree.
 */
@@ -27808,8 +27697,7 @@ an_ifc_type_tor_storage* get<an_ifc_type_tor_storage>(
                                          a_boolean               fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_type_tor_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_type_tor>()
 /*
 Return the corresponding partition kind for TypeTor.
 */
@@ -27850,8 +27738,7 @@ an_ifc_type_tuple_storage* get<an_ifc_type_tuple_storage>(
                                        a_boolean                 fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_type_tuple_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_type_tuple>()
 /*
 Return the corresponding partition kind for TypeTuple.
 */
@@ -27886,8 +27773,7 @@ an_ifc_type_typename_storage* get<an_ifc_type_typename_storage>(
                                     a_boolean                    fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_type_typename_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_type_typename>()
 /*
 Return the corresponding partition kind for TypeTypename.
 */
@@ -27922,8 +27808,7 @@ an_ifc_type_unaligned_storage* get<an_ifc_type_unaligned_storage>(
                                    a_boolean                     fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_type_unaligned_storage>()
+constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_type_unaligned>()
 /*
 Return the corresponding partition kind for TypeUnaligned.
 */

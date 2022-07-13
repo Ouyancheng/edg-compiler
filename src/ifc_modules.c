@@ -455,9 +455,9 @@ Load and return the an_ifc_module handler for the referenced module.
 }  /* get_module */
 
 
-template<typename a_Trait_T>
-static void find_trait(Opt<an_ifc_Byte_buffer<a_Trait_T>> *result,
-                       an_ifc_decl_index                  decl)
+template<typename an_ifc_Node_type>
+static void find_trait(Opt<an_ifc_Node_type> *result,
+                       an_ifc_decl_index     decl)
 /*
 Given the declaration index (decl) to use as a trait table key (for the trait
 table associated with the given trait type), find and return the associated
@@ -470,15 +470,16 @@ occurred.
      a required IFC field from being 0 (i.e., "NULL"), or there's a logic
      bug. */
   check_assertion(!is_null_index(decl));
-  an_ifc_partition_kind trait_part_kind = get_ifc_partition_kind<a_Trait_T>();
+  an_ifc_partition_kind trait_part_kind =
+                                    get_ifc_partition_kind<an_ifc_Node_type>();
   an_ifc_module         *mod = decl.mod;
   size_t                num_traits = mod->get_num_entries(trait_part_kind);
   /* Provide a value function for retrieving the trait at the given trait
      partition index. */
   auto                  value_lambda = [mod, trait_part_kind](ptrdiff_t idx) {
-    an_ifc_partition_kind_index   part_idx{mod, trait_part_kind,
-                                           (an_ifc_index_type)idx};
-    an_ifc_Byte_buffer<a_Trait_T> trait;
+    an_ifc_partition_kind_index part_idx{mod, trait_part_kind,
+                                         (an_ifc_index_type)idx};
+    an_ifc_Node_type            trait;
 
     /* As the binary search used by this value is only doing comparisons (not
        attempting to operate on the returned DeclIndex) and the result will
@@ -4925,7 +4926,7 @@ issue diagnostics if issue_diag is TRUE.
 
   /* Read the IFC file header (which starts after the magic number). */
   init_byte_buffer(this, 4, this->f_size - 4);
-  this->header = construct_node_from_module<an_ifc_file_header_storage>(this);
+  this->header = construct_node_from_module<an_ifc_file_header>(this);
   /* Set the version information.  This is presumed to be version stable, and
      is critical for all following calls. */
   check_assertion_str(has_ifc_major_version(this->header),
@@ -5075,8 +5076,7 @@ issue_diag is TRUE.
       static_assert(sizeof(an_ifc_partition_storage) == 16,
                     "Partition storage is larger than expected");
       init_byte_buffer(this, toc + (16 * i), f_size - (size_t)toc);
-      an_ifc_partition ip =
-                    construct_node_from_module<an_ifc_partition_storage>(this);
+      an_ifc_partition ip = construct_node_from_module<an_ifc_partition>(this);
 
       /* If the partition fails to validate, don't load it. */
       if (!validate(ip, /*parent=*/NULL)) {
