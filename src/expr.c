@@ -6242,7 +6242,7 @@ static a_routine_ptr adjust_preserve_access_index(
                              a_builtin_call_adjustment *bcap,
                              an_expr_node_ptr          *arg_list)
 /*
-Perform special processing for the __builtin_preserve_access_index builtin
+Perform special processing for the __builtin_preserve_access_index builtin.
 This consists of setting the return type to that of the first argument.
 */
 {
