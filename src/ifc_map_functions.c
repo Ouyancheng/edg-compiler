@@ -31957,6 +31957,7 @@ Return TRUE if the node has the field "access"; otherwise, return FALSE.
       }
       break;
     default:
+      result = FALSE;
       break;
   }  /* switch */
   return result;
@@ -32232,6 +32233,7 @@ Return TRUE if the node has the field "home_scope"; otherwise, return FALSE.
       }
       break;
     default:
+      result = FALSE;
       break;
   }  /* switch */
   return result;
@@ -32531,6 +32533,7 @@ Return TRUE if the node has the field "locus"; otherwise, return FALSE.
       }
       break;
     default:
+      result = FALSE;
       break;
   }  /* switch */
   return result;
@@ -32844,6 +32847,7 @@ TRUE if the node has the field "name"; otherwise, return FALSE.
       }
       break;
     default:
+      result = FALSE;
       break;
   }  /* switch */
   return result;
