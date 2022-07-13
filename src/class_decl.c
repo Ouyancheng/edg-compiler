@@ -29350,7 +29350,8 @@ We have run into two-token sequence of the form
 	friend <ifc-entity-ref>
 where <ifc-entity-ref> is a placeholder token detected with ifc_entity_ref_next
 (which set dps->sym to the referenced friend entity).  Record the associated
-friendship and consume the two tokens.
+friendship and consume the two tokens.  enclosing_class is the class in which
+the friend declaration appears.
 */
 {
   a_symbol_ptr  sym = dps->sym;

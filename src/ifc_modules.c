@@ -2096,16 +2096,18 @@ to be needed later on.
 static a_symbol_ptr symbol_for_decl_index(an_ifc_decl_index  decl_idx)
 /*
 Return the symbol associated with the declaration corresponding to decl_idx.
-Return NULL if none if found.
+Return NULL if none is found.
 */
 {
   a_symbol_ptr  result = NULL;
   a_boolean     load_ifc_entry = FALSE; 
 
+  // FIXME: Attempt to look up result in a hash table
   if (result != NULL) {
     /* We found the symbol above. */
   } else if (decl_idx.sort == ifc_ds_decl_template) {
-    /* Non-member templates can be loaded from IFC. */
+    /* Non-member templates can be individually loaded from an IFC file.
+       (Member templates are loaded as part of their enclosing class.) */
     Opt<an_ifc_decl_template>  opt_template;
     construct_node(&opt_template, decl_idx);
     if (opt_template.has_value() &&
@@ -13458,7 +13460,7 @@ Add the tokens corresponding to the given declaration (decl) to cache.
          refers to the friend entity (normally, ifc_es_expr_named_decl or
          ifc_es_expr_template_id).  Rather than trying to reconstruct a friend
          declaration that resolves to the construct, we record the IFC
-         expression information for latter processing by class member
+         expression information for later processing by class member
          declaration parsing.  The pseudo-declaration is of the form
               friend <ifc-entity-ref> ;
          where ifc-entity-ref is a pseudo-token that carries the IFC expression
@@ -13472,7 +13474,7 @@ Add the tokens corresponding to the given declaration (decl) to cache.
         if (has_ifc_locus(decl)) {
           source_position_from_locus(&pos, get_ifc_locus(decl));
         } else {
-          pos = null_source_position;
+          pos = error_position;
         }  /* if */
         cache_token(cache, tok_friend, &pos);
         cache_token(cache, tok_ifc_entity_ref, &null_source_position);
