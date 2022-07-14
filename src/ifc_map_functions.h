@@ -27894,6 +27894,8 @@ Visitor functions for validating the nodes at a given index.
 
 extern a_boolean validate(an_ifc_decl_index idx);
 
+extern a_boolean validate(an_ifc_expr_index idx);
+
 /*
 Visitor functions for retrieving access values from nodes on the DeclIndex.
 */
@@ -27925,6 +27927,14 @@ Visitor functions for retrieving name values from nodes on the DeclIndex.
 a_boolean has_ifc_name(an_ifc_decl_index idx);
 
 extern an_ifc_name_index get_ifc_name(an_ifc_decl_index idx);
+
+/*
+Visitor functions for retrieving locus values from nodes on the ExprIndex.
+*/
+
+a_boolean has_ifc_locus(an_ifc_expr_index idx);
+
+extern an_ifc_source_location get_ifc_locus(an_ifc_expr_index idx);
 
 
 /* Conditionally close the "edg" namespace. */
