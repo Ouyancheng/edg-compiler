@@ -144,6 +144,10 @@ not compile with a possibly misinterpreted IFC import).
   ifc_requirement_impl(__LINE__, __EDG_func__,                          \
                        mod, condition, string)
 
+#define ifc_unexpected(mod, string)                                     \
+  ifc_requirement_impl(__LINE__, __EDG_func__,                          \
+                       mod, FALSE, string)
+
 /*
 The routines and data structures below are used to support host-independent
 access to the fields of an IFC file regardless of endianness, padding, or
@@ -7786,20 +7790,25 @@ FIXME: what other expressions can we get here?
                                         (a_host_large_unsigned)lit_value.value,
                                         (an_integer_kind)ik_unsigned_int);
               } else {
-                check_assertion(constant_type != NULL);
-                if (is_pointer_type(constant_type)) {
-                  /* Pointer literal. */
-                  set_unsigned_integer_constant(cp, value,
-                                                targ_size_t_int_kind);
-                } else {
-                  a_type_ptr stripped_type = skip_typerefs(constant_type);
-                  check_assertion(stripped_type->kind ==
-                                                      (a_type_kind)tk_integer);
-                  set_unsigned_integer_constant(
+                if (constant_type != NULL) {
+                  if (is_pointer_type(constant_type)) {
+                    /* Pointer literal. */
+                    set_unsigned_integer_constant(cp, value,
+                                                  targ_size_t_int_kind);
+                  } else {
+                    a_type_ptr stripped_type = skip_typerefs(constant_type);
+                    if (stripped_type->kind == (a_type_kind)tk_integer) {
+                      set_unsigned_integer_constant(
                                       cp, value,
                                       stripped_type->variant.integer.int_kind);
+                    } else {
+                      ifc_unexpected(this, "expected an integer type");
+                    }  /* if */
+                  }  /* if */
+                  cp->type = constant_type;
+                } else {
+                  ifc_unexpected(this, "expected the constant to have a type");
                 }  /* if */
-                cp->type = constant_type;
               }  /* if */
             }
             break;
@@ -8248,14 +8257,15 @@ Add a tok_identifier for name to cache.  pos is the position of the identifier.
 }  /* cache_identifier */
 
 
-static void cache_literal(a_token_cache_ptr     cache,
+static void cache_literal(an_ifc_module         *mod,
+                          a_token_cache_ptr     cache,
                           a_constant_ptr        lit_const,
                           a_source_position_ptr pos)
 /*
-Add a tok_literal for lit_const to cache.  pos is the position of the literal.
-Do not use this for boolean literals, string literals, or user-defined
-literals (see cache_bool_literal, cache_string_literal, and cache_ud_literal
-for those).
+Add a tok_literal for lit_const (a literal constant formed from information in
+the given module) to cache.  pos is the position of the literal.  Do not use
+this for boolean literals, string literals, or user-defined literals (see
+cache_bool_literal, cache_string_literal, and cache_ud_literal for those).
 */
 {
   a_type_ptr   lit_type = lit_const->type;
@@ -8278,13 +8288,16 @@ for those).
     }  /* if */
     lit_kind = tok_int_constant;
   } else {
-    check_assertion(is_error_type(lit_type));
+    ifc_requirement(mod, is_error_type(lit_type), "unhandled literal type");
     lit_kind = tok_error;
   }  /* if */
   cache_token(cache, lit_kind, pos);
-  cache->last_token->extra_info_kind = (a_token_extra_info_kind)teik_constant;
-  cache->last_token->variant.constant = alloc_cached_constant();
-  copy_constant(lit_const, cache->last_token->variant.constant);
+  if (lit_kind != tok_error) {
+    cache->last_token->extra_info_kind =
+                                        (a_token_extra_info_kind)teik_constant;
+    cache->last_token->variant.constant = alloc_cached_constant();
+    copy_constant(lit_const, cache->last_token->variant.constant);
+  }  /* if */
 }  /* cache_literal */
 
 
@@ -10009,16 +10022,17 @@ that precede a declaration.  pos is the position to use for the traits.
 }  /* cache_vendor_traits */
 
 
-static void cache_func_traits(a_token_cache_ptr               cache,
+static void cache_func_traits(an_ifc_module                   *mod,
+                              a_token_cache_ptr               cache,
                               an_ifc_function_traits_bitfield traits,
                               an_ifc_msvc_traits_bitfield     vendor_traits,
                               a_boolean                       trailing,
                               a_source_position_ptr           pos)
 /*
-Add the tokens corresponding to the given function and vendor traits to cache.
-If trailing is TRUE then cache the traits that follow a function declaration.
-Otherwise, cache the traits that precede a function declaration.  pos is the
-position to use for the traits.
+Add the tokens corresponding to the given module's function and vendor traits
+to cache.  If trailing is TRUE then cache the traits that follow a function
+declaration.  Otherwise, cache the traits that precede a function declaration.
+pos is the position to use for the traits.
 */
 {
   cache_vendor_traits(cache, vendor_traits, trailing, pos);
@@ -10027,7 +10041,7 @@ position to use for the traits.
       a_constant_ptr cp = alloc_cached_constant();
       cache_token(cache, tok_assign, pos);
       make_zero_of_proper_type(integer_type((an_integer_kind)ik_int), cp);
-      cache_literal(cache, cp, pos);
+      cache_literal(mod, cache, cp, pos);
     }  /* if */
     if (test_bitmask<ifc_ftb_defaulted>(traits)) {
       cache_token(cache, tok_assign, pos);
@@ -12143,8 +12157,8 @@ properly for specializations using a NameIndex.
     /* This is a static member function. */
     cache_token(cache, tok_static, &pos);
   }  /* if */
-  cache_func_traits(cache, func_traits, vendor_traits, /*trailing=*/FALSE,
-                    &pos);
+  cache_func_traits(this, cache, func_traits, vendor_traits,
+                    /*trailing=*/FALSE, &pos);
   if (!is_null_index(return_type)) {
     cache_type(cache, return_type, locus);
   }  /* if */
@@ -12165,7 +12179,7 @@ properly for specializations using a NameIndex.
   cache_token(cache, tok_rparen, &pos);
   cache_func_type_traits(cache, func_type_traits, &pos);
   cache_exception_spec(cache, eh_spec, &pos);
-  cache_func_traits(cache, func_traits, vendor_traits, /*trailing=*/TRUE,
+  cache_func_traits(this, cache, func_traits, vendor_traits, /*trailing=*/TRUE,
                     &pos);
   cache_token(cache, tok_semicolon, &pos);
 }  /* cache_function_decl */
@@ -13774,7 +13788,7 @@ second operand of an assignment.
                                                       /*default_type=*/NULL);
 
           source_position_from_locus(&pos, get_ifc_locus(iel));
-          cache_literal(cache, cp, &pos);
+          cache_literal(this, cache, cp, &pos);
         }  /* if */
       }
       break;
