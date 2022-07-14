@@ -1,5 +1,25 @@
 Version 6.4
 
+7/13/22  [EDGcpfe/25280]
+C++-generating back end: non-type template parameters with dependent function
+types
+
+In configurations in which template definitions are generated from the
+prototype instantiation IL, the C++-generating back end produced incorrect
+code when the type of a non-type template parameter is a dependent function
+type.  For example, with --c++17":
+
+  template<typename c> using e = c();   // e is "function returning c" type
+  template<auto&> int task_id;
+  template<typename h, e<h> TASK> void j() { task_id<*TASK>; }
+
+The C++-generating back end put out the last line as:
+
+  template<class h, e<h> *TASK> void j() { task_id<TASK> ; }
+
+This is now fixed.
+
+
 7/12/22  [EDGcpfe/25335]
 Clang compatibility: __builtin_preserve_access_index
 
