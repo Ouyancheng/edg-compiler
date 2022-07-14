@@ -16389,7 +16389,7 @@ static void diag_undefined_partition(an_ifc_module                 *mod,
 /*
 Given the associated module, encountered undefined partition kind, and
 validation trace, handle failure and diagnostics for an encountered undefined
-partition
+partition.
 */
 {
   a_const_char     *part_name = get_partition_name_from_kind(part_kind);
@@ -16412,10 +16412,10 @@ static void diag_partition_position(
                                  size_t                        relative_offset,
                                  const an_ifc_validation_trace *trace)
 /*
-Given the error code to diagnose with, the associated module module, partition
-kind, offset into the file, relative offset from the start of the partition,
-and validation trace, handle failure and diagnostics for an encountered
-overflowing partition.
+Given the error code to diagnose with, the associated module, partition kind,
+offset into the file, relative offset from the start of the partition, and
+validation trace, handle failure and diagnostics for an encountered overflowing
+partition.
 */
 {
   a_const_char     *part_name = get_partition_name_from_kind(part_kind);
@@ -16436,8 +16436,9 @@ a_boolean validate_element_exists(an_ifc_module                 *mod,
                                   an_ifc_index_type             index,
                                   const an_ifc_validation_trace *trace)
 /*
-Check that the given partition index exists for the given module.  If the
-index exists, return TRUE.  Otherwise, return FALSE and emit a diagnostic.
+Check that the given partition index exists for the given module.  If the index
+exists, return TRUE.  Otherwise, return FALSE and emit an appropriate
+diagnostic using the validation trace.
 */
 {
   a_boolean                   result = TRUE;
