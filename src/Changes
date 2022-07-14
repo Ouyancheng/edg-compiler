@@ -7,7 +7,7 @@ types
 In configurations in which template definitions are generated from the
 prototype instantiation IL, the C++-generating back end produced incorrect
 code when the type of a non-type template parameter is a dependent function
-type.  For example, with --c++17":
+type.  For example, with --c++17:
 
   template<typename c> using e = c();   // e is "function returning c" type
   template<auto&> int task_id;
