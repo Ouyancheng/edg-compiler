@@ -19808,14 +19808,10 @@ next_integer_pack_element:
         if (param_for_default->has_default_arg) {
           /* A type parameter with a default value.  The default can be
              either a type or a token cache that needs to be scanned. */
-          if (!template_in_prototype_instantiation) {
-            arg_ptr->variant.type =
-                     rescan_template_type_default_arg(templ_sym_for_default,
-                                                      param_for_default,
-                                                      arg_list);
-          } else {
-            arg_ptr->variant.type = param_for_default->default_arg.type;
-          }  /* if */
+          arg_ptr->variant.type = rescan_template_type_default_arg(
+                                                         templ_sym_for_default,
+                                                         param_for_default,
+                                                         arg_list);
         } else {
           /* A type parameter with no default argument.  This occurs only
              in error cases.  Use an error type. */
