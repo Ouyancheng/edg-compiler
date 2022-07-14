@@ -60,6 +60,90 @@ an_error_severity
 			   file contains unhandled nodes.  Typically only one
 			   report per module will be issued. */
 
+
+namespace {
+
+struct a_module_entity_stack_state;
+
+a_module_entity_stack_state
+                *curr_mep_state = NULL;
+                        /* A global stack of module entity pointers currently
+                           being processed.  This stack can be printed with
+                           db_mep_stack().*/
+
+/*
+A class used to represent an element on the module entity state stack.  This is
+an RAII object that automatically manages the value of curr_mep_state for the
+module given during construction.
+*/
+struct a_module_entity_stack_state {
+  a_module_entity_stack_state(a_module_entity_ptr mep_val)
+    : parent(curr_mep_state), mep(mep_val)
+    { curr_mep_state = this; }
+
+  ~a_module_entity_stack_state()
+    { curr_mep_state = this->parent; }
+
+  void invalidate()
+    { this->mep->invalid = TRUE; }
+
+  a_module_entity_stack_state
+                *parent;
+                        /* The parent (old) module entity stack state, prior
+                           to this object's construction. */
+  a_module_entity_ptr
+                mep;
+                        /* The current module entity pointer. */
+};  /* a_module_entity_stack_state */
+
+}  /* namespace */
+
+
+static void ifc_requirement_impl(ARG_UNUSED int          line_number,
+                                 ARG_UNUSED a_const_char *function,
+                                 an_ifc_module           *mod,
+                                 a_boolean               condition,
+                                 ARG_UNUSED a_const_char *string)
+/*
+This function take the line number where the failure occurred, an associated
+module, a condition to check, and a string describing the condition being
+checked.  If the given condition is FALSE, the processing of any associated
+module entity pointer will be failed, the TU processing will be failed, and an
+error will be emitted.
+
+The caller is responsible for ensuring there is at least module entity stack
+state pushed.
+
+If there's any risk of the input data triggering the condition failure, and the
+front end can reasonably recover/continue, this function should be used in
+place of check_assertion.  This is particularly important for incomplete
+features where the front end partially implements the IFC spec for the given
+node, but needs to catch cases that are not yet implement (ensuring the TU does
+not compile with a possibly misinterpreted IFC import).
+*/
+{
+  /* Checking a condition without a module entity pointer state.  The caller
+     did not setup the module entity state stack properly. */
+  check_assertion(curr_mep_state != NULL);
+  if (!condition) {
+    a_diagnostic_ptr diag = pos_st_start_error(ec_ifc_requirement_failure,
+                                               &null_source_position,
+                                               mod->assoc_module_info->name);
+
+#if DEBUG
+    num_st2_add_diag_info(diag, ec_ifc_requirement_failure_fill_in,
+                          line_number, function, string);
+#endif /* DEBUG */
+    end_diagnostic(diag);
+    curr_mep_state->invalidate();
+  }  /* if */
+}  /* ifc_requirement_impl */
+
+
+#define ifc_requirement(mod, condition, string)                         \
+  ifc_requirement_impl(__LINE__, __EDG_func__,                          \
+                       mod, condition, string)
+
 /*
 The routines and data structures below are used to support host-independent
 access to the fields of an IFC file regardless of endianness, padding, or
@@ -2816,11 +2900,13 @@ process that definition and return TRUE.
   an_ifc_decl_index ifb = ifc_function_bodies->get(rp);
 
   if (ifb.mod != NULL) {
-    a_func_info_block  func_info;
-    a_token_cache      def_cache;
-    a_decl_flag_set    flags = SFB_NEW_STRUCT_STMT_STACK_REQUIRED;
-    a_curr_token_preserver
-                       guard;
+    a_func_info_block           func_info;
+    a_token_cache               def_cache;
+    a_decl_flag_set             flags = SFB_NEW_STRUCT_STMT_STACK_REQUIRED;
+    a_curr_token_preserver      guard;
+    a_module_entity_stack_state mep_state(
+                                      ifb.mod->get_ifc_module_entity_ptr(ifb));
+
     /* We are about to load the definition.  So the "pending definition" entry
        can be dropped now. */
     ifc_function_bodies->unmap(rp);
@@ -3016,11 +3102,11 @@ module, but its definition hasn't been loaded yet.  Load the definition now.
 
     construct_node(&opt_idt, to_partition_kind_index(mep));
     if (opt_idt.has_value()) {
-      a_source_position        saved_error_position = error_position;
-      a_module_entity_ptr      saved_mep = curr_module_entity;
-      a_curr_token_preserver   guard;
-      a_module_scope_push_kind scope_push_status = mspk_unattempted;
-
+      a_source_position           saved_error_position = error_position;
+      a_module_entity_ptr         saved_mep = curr_module_entity;
+      a_curr_token_preserver      guard;
+      a_module_scope_push_kind    scope_push_status = mspk_unattempted;
+      a_module_entity_stack_state mep_state(mep);
       curr_module_entity = mep;
       push_module_declaration_context(mep->scope, &scope_push_status);
 
@@ -3222,10 +3308,11 @@ principal associated IL entity.
   }  /* if */
 #endif /* DEBUG */
   if (!mep->imminent && mep->entity.ptr == NULL) {
-    a_source_position   saved_error_position = error_position;
-    a_module_entity_ptr saved_mep = curr_module_entity;
-    a_ms_mode_parse     tmp_ms_parse(this);
-    an_ifc_decl_index   decl_idx = decl_index_of(mep);
+    a_source_position           saved_error_position = error_position;
+    a_module_entity_ptr         saved_mep = curr_module_entity;
+    a_ms_mode_parse             tmp_ms_parse(this);
+    an_ifc_decl_index           decl_idx = decl_index_of(mep);
+    a_module_entity_stack_state mep_state(mep);
 
 #if DEBUG
     if (db_flag_is_set("ifc_idx")) {
@@ -4711,15 +4798,16 @@ Complete the definition of the class referred to by mep (if needed).
     check_assertion(mep->entity.kind == (an_il_entry_kind)iek_type &&
                     class_type != NULL);
     if (class_type->incomplete && initializer != 0) {
-      a_template_decl_info_ptr tdip;
-      a_symbol_ptr             class_sym = symbol_for(class_type);
-      a_scope_depth            saved_non_local_class_fixup_depth =
+      a_template_decl_info_ptr    tdip;
+      a_symbol_ptr                class_sym = symbol_for(class_type);
+      a_scope_depth               saved_non_local_class_fixup_depth =
                                                    non_local_class_fixup_depth;
-      a_source_position        saved_error_position = error_position;
-      a_module_scope_push_kind scope_push_status = mspk_unattempted;
-      a_curr_token_preserver   guard;
-      a_ms_mode_parse          tmp_ms_parse(this);
-      an_ifc_source_location   locus;
+      a_source_position           saved_error_position = error_position;
+      a_module_scope_push_kind    scope_push_status = mspk_unattempted;
+      a_curr_token_preserver      guard;
+      a_ms_mode_parse             tmp_ms_parse(this);
+      an_ifc_source_location      locus;
+      a_module_entity_stack_state mep_state(mep);
 
       push_module_declaration_context(mep->scope, &scope_push_status);
       locus = get_ifc_locus(ids);
@@ -4867,6 +4955,20 @@ Print information about the module entity pointer.
     (void)fprintf(f_debug, "\n");
   }  /* if */
 }  /* db_mep */
+
+
+void db_mep_stack()
+/*
+Print information about the module entity stack.
+*/
+{
+  a_module_entity_stack_state *state = curr_mep_state;
+
+  while (state != NULL) {
+    db_mep(state->mep);
+    state = state->parent;
+  }  /* while */
+}  /* db_mep_stack */
 
 
 void an_ifc_module::db_locus(const an_ifc_source_location &locus)

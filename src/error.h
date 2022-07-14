@@ -769,6 +769,13 @@ extern void ty_add_diag_info(a_diagnostic_ptr primary_dp,
 extern void str_add_diag_info(a_diagnostic_ptr primary_dp,
                               an_error_code    error_code,
                               a_const_char     *error_string);
+#if !STANDALONE_UTILITY_PROGRAM
+extern void num_st2_add_diag_info(a_diagnostic_ptr primary_dp,
+                                  an_error_code    error_code,
+                                  int32_t          error_num,
+                                  a_const_char     *error_string1,
+                                  a_const_char     *error_string2);
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 extern void copy_str_add_diag_info(a_diagnostic_ptr primary_dp,
                                    an_error_code    error_code,
                                    a_const_char     *error_string);

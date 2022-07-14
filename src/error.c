@@ -7046,6 +7046,26 @@ primary_dp.
   add_string_fill_in(dp, error_string);
 }  /* str_add_diag_info */
 
+#if !STANDALONE_UTILITY_PROGRAM
+
+void num_st2_add_diag_info(a_diagnostic_ptr primary_dp,
+                           an_error_code    error_code,
+                           int32_t          error_num,
+                           a_const_char     *error_string1,
+                           a_const_char     *error_string2)
+/*
+Add the specified diagnostic message with the number and string substitutions
+to primary_dp.
+*/
+{
+  a_diagnostic_ptr dp = create_sub_message(primary_dp, error_code);
+
+  add_number_fill_in(dp, error_num);
+  add_string_fill_in(dp, error_string1);
+  add_string_fill_in(dp, error_string2);
+}  /* num_st2_add_diag_info */
+
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 void copy_str_add_diag_info(a_diagnostic_ptr primary_dp,
                             an_error_code    error_code,
