@@ -8176,7 +8176,7 @@ for those).
     }  /* if */
     lit_kind = tok_int_constant;
   } else {
-    check_assertion(is_fixed_point_type(lit_type) || is_error_type(lit_type));
+    check_assertion(is_error_type(lit_type));
     lit_kind = tok_error;
   }  /* if */
   cache_token(cache, lit_kind, pos);
