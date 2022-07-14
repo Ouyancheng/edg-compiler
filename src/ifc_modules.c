@@ -13476,8 +13476,8 @@ Add the tokens corresponding to the given declaration (decl) to cache.
 
         an_ifc_decl_friend friend_decl = *opt_df;
         an_ifc_expr_index  friend_id = get_ifc_entity(friend_decl);
-        if (has_ifc_locus(decl)) {
-          source_position_from_locus(&pos, get_ifc_locus(decl));
+        if (has_ifc_locus(friend_id) && validate(friend_id)) {
+          source_position_from_locus(&pos, get_ifc_locus(friend_id));
         } else {
           pos = error_position;
         }  /* if */
