@@ -34,6 +34,7 @@ class_decl.c -- Scanning of class declarations.
 #include "il_walk.h"
 #endif /* MAINTAIN_NEEDED_FLAGS */
 #if MICROSOFT_EXTENSIONS_ALLOWED
+#include "ifc_modules.h"
 #include "ms_attrib.h"
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
@@ -29342,36 +29343,6 @@ class type.  Check that dps->type is a valid type for such a declaration.
   }  /* if */
 }  /* check_initonly_member_type */
 
-
-static void process_ifc_friend_ref(a_decl_parse_state  *dps,
-                                   a_type_ptr          enclosing_class)
-/*
-We have run into two-token sequence of the form
-	friend <ifc-entity-ref>
-where <ifc-entity-ref> is a placeholder token detected with ifc_entity_ref_next
-(which set dps->sym to the referenced friend entity).  Record the associated
-friendship and consume the two tokens.  enclosing_class is the class in which
-the friend declaration appears.
-*/
-{
-  a_symbol_ptr  sym = dps->sym;
-
-  if (sym == NULL) {
-    /* Something went wrong while reading the IFC file.  That doesn't always
-       translate to an error. */
-  } else if (is_class_struct_union_symbol(sym)) {
-    decl_friend_class(enclosing_class, sym->variant.class_struct_union.type,
-                      /*for_friend_template=*/FALSE,
-                      (a_decl_pos_block*)NULL);
-  } else if (is_simple_function_symbol(sym)) {
-    update_friend_function_info(sym->variant.routine.ptr, enclosing_class);
-  }  /* if */
-  /* Skip over "friend" and the tok_ifc_entity_ref that follows. */
-  (void)get_token();
-  (void)get_token();
-  discard_curr_construct_pragmas();
-}  /* process_ifc_friend_ref */
-
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static a_symbol_ptr class_member_declaration(
@@ -29451,13 +29422,6 @@ block of information that is provided if this is a member template declaration.
     dps->marked_as_gnu_extension = TRUE;
   }  /* if */
 #endif /*GNU_EXTENSIONS_ALLOWED */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  if (curr_token == tok_friend && ifc_entity_ref_next(&dps->sym)) {
-    process_ifc_friend_ref(dps, class_type);
-    goto next_declaration;
-  } else
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  /* Do not insert code here. */
   if (!dps->is_lambda) {
     /* Normal case: Scan attributes and declaration specifiers. */
     if (!C_mode() && !is_member_template && !is_member_template_rescan) {
@@ -32571,6 +32535,7 @@ classes.
       do {
         an_ms_attribute_ptr  ms_attributes = NULL;
         a_source_position    export_pos;
+        a_symbol_ptr         member_sym = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
         a_source_position    decl_start_pos;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -32782,8 +32747,9 @@ classes.
               /* A C++/CLI generic declaration. */
               td_flags |= TDO_GENERIC;
             }  /* if */
-            template_directive_or_declaration(&final_token, td_flags,
-                                              &directive_start_pos);
+            member_sym = template_directive_or_declaration(
+                                                       &final_token, td_flags,
+                                                       &directive_start_pos);
             /* The terminating token will be either a semicolon or a right
                brace.  The latter has already been checked for, but the former
                has not. */
@@ -32804,7 +32770,8 @@ classes.
             goto next_declaration;
           }  /* if */
         }  /* if */
-        (void)class_member_declaration(&class_state,
+        member_sym = class_member_declaration(
+                                       &class_state,
                                        (a_tmpl_decl_state_ptr)NULL,
                                        ms_attributes,
                                        /*is_member_template=*/FALSE,
@@ -32839,6 +32806,12 @@ next_declaration:
 #if MICROSOFT_EXTENSIONS_ALLOWED
         if (class_state.property_or_event_descr != NULL) {
           check_cli_accessor_decl(&class_state, &decl_start_pos);
+        }  /* if */
+        if (curr_token == tok_ifc_decl) {
+          if (member_sym != NULL) {
+            record_symbol_for_ifc_decl(member_sym);
+          }  /*if */
+          (void)get_token();
         }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         /* Keep processing member declarations until the closing brace or

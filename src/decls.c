@@ -20173,8 +20173,8 @@ processing should proceed after the call.
         /* A C++/CLI generic declaration. */
         td_flags |= TDO_GENERIC;
       }  /* if */
-      template_directive_or_declaration(final_token, td_flags,
-                                        &directive_start_pos);
+      (void)template_directive_or_declaration(final_token, td_flags,
+                                              &directive_start_pos);
       /* The terminating token will be either a semicolon or a right
          brace.  The latter has already been checked for, but the former
          has not. */

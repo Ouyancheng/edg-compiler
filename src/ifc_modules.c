@@ -543,6 +543,30 @@ Load and return the an_ifc_module handler for the referenced module.
 }  /* get_module */
 
 
+static inline uintptr_t hash_ptr(an_ifc_decl_index  idx)
+/*
+Return a hash value for the given IFC declaration index.
+*/
+{
+  uintptr_t  result = 17*31 + hash_ptr((void*)idx.mod);
+
+  result = result*31 + (uintptr_t)idx.sort;
+  result = result*31 + (uintptr_t)idx.value;
+  return result;
+}  /* hash_ptr */
+
+
+using an_ifc_decl_lookup_table = Ptr_map<an_ifc_decl_index, a_symbol_ptr>;
+			/* The type of a table that maps IFC declaration
+			   indices to corresponding front end symbols. */
+
+
+an_ifc_decl_lookup_table
+		*ifc_decl_lookup_table;
+			/* A hash table to map IFC declaration indices to
+			   corresponding front end symbols. */
+
+
 template<typename an_ifc_Node_type>
 static void find_trait(Opt<an_ifc_Node_type> *result,
                        an_ifc_decl_index     decl)
@@ -2181,26 +2205,52 @@ to be needed later on.
 }  /* record_pending_ifc_function_body */
 
 
+void record_symbol_for_ifc_decl(a_symbol_ptr  sym)
+/*
+The current token is a tok_ifc_decl token.  Map its associated IFC declaration
+index information to the given symbol.
+*/
+{
+  a_lexical_ifc_index_reference  *lex_idx = &ifc_index_for_curr_token;
+  an_ifc_decl_index              decl_idx = {(an_ifc_module*)lex_idx->module,
+                                             (an_ifc_decl_sort)lex_idx->sort,
+                                             lex_idx->index};
+
+  ifc_decl_lookup_table->map(decl_idx, sym);
+}  /* record_symbol_for_ifc_decl */
+
+
 static a_symbol_ptr symbol_for_decl_index(an_ifc_decl_index  decl_idx)
 /*
 Return the symbol associated with the declaration corresponding to decl_idx.
 Return NULL if none is found.
 */
 {
-  a_symbol_ptr  result = NULL;
+  a_symbol_ptr  result = ifc_decl_lookup_table->get(decl_idx);
   a_boolean     load_ifc_entry = FALSE; 
 
-  // FIXME: Attempt to look up result in a hash table
   if (result != NULL) {
     /* We found the symbol above. */
   } else if (decl_idx.sort == ifc_ds_decl_template) {
-    /* Non-member templates can be individually loaded from an IFC file.
-       (Member templates are loaded as part of their enclosing class.) */
     Opt<an_ifc_decl_template>  opt_template;
     construct_node(&opt_template, decl_idx);
-    if (opt_template.has_value() &&
-        !scope_is(get_home_scope(*opt_template), sck_class_struct_union)) {
-      load_ifc_entry = TRUE;
+    if (opt_template.has_value()) {
+      a_scope_ptr  parent_scope = get_home_scope(*opt_template);
+      if (!scope_is(parent_scope, sck_class_struct_union)) {
+        /* Non-member templates can be individually loaded from an IFC file. */
+        load_ifc_entry = TRUE;
+      } else {
+        a_type_ptr  parent_class = parent_scope->variant.assoc_type;
+        if (parent_class->incomplete) {
+          /* Attempt to complete the class type.  This may include friend
+             declarations within the type. */
+          an_ifc_module           *mod = decl_idx.mod;
+          Value_saver<a_boolean>  suppression(&mod->suppress_friend_token,
+                                              /*new_value=*/FALSE);
+          complete_type_is_needed(parent_class);
+          result = ifc_decl_lookup_table->get(decl_idx);
+        }  /* if */
+      }  /* if */
     }  /* if */
   } else if (decl_idx.sort != ifc_ds_decl_method &&
              decl_idx.sort != ifc_ds_decl_constructor &&
@@ -2211,10 +2261,16 @@ Return NULL if none is found.
     load_ifc_entry = TRUE;
   }  /* if */
   if (load_ifc_entry) {
-    /* Resolve the IFC declaration index to a front end symbol. */
+    /* Load a namespace-scope entity from the IFC file and determine its
+       front-end symbol. */
     a_source_correspondence  *scp;
     a_module_entity          *mep;
     an_ifc_module            *mod = decl_idx.mod;
+    /* Disable the "friend" specifier since we are parsing the entity itself
+       (in namespace scope) and not its friendship (which is handled
+       elsewhere). */
+    Value_saver<a_boolean>   suppression(&mod->suppress_friend_token,
+                                         /*new_value=*/TRUE);
     mep = mod->get_ifc_module_entity_ptr(decl_idx);
     if (mep->entity.ptr == NULL) {
       mod->process_ifc_declaration(mep, /*defer=*/FALSE, (a_type_ptr)NULL);
@@ -2223,6 +2279,9 @@ Return NULL if none is found.
     scp = source_corresp_for_il_entry(mep->entity.ptr, mep->entity.kind);
     if (scp != NULL) {
       result = (a_symbol_ptr)scp->assoc_info;
+      if (result != NULL) {
+        ifc_decl_lookup_table->map(decl_idx, result);
+      }  /* if */
     }  /* if */
   }  /* if */
   return result;
@@ -4780,6 +4839,71 @@ is handled by not caching any tokens.
 }  /* cache_scope */
 
 
+static void add_friend_to_class(a_type_ptr    class_type,
+                                a_symbol_ptr  sym)
+/*
+Record the entity described by sym as being a "friend" of the given class type.
+sym might be a class type, a function or member function, or a class or
+function template.  If sym is NULL, it is simply ignored.
+*/
+{
+  if (sym == NULL) {
+    /* Something went wrong upstream.  Ignore this call. */
+  } else if (is_class_struct_union_symbol(sym)) {
+    decl_friend_class(class_type, sym->variant.class_struct_union.type,
+                      /*for_friend_template=*/FALSE,
+                      (a_decl_pos_block*)NULL);
+  } else if (is_simple_function_symbol(sym)) {
+    update_friend_function_info(sym->variant.routine.ptr, class_type);
+  } else if (symbol_is(sym, sk_function_template)) {
+    add_friend_function_to_lookup_list_for_class(sym, class_type);
+    add_befriending_class_to_function_template(sym->variant.template_info,
+                                               class_type);
+  } else if (symbol_is(sym, sk_class_template)) {
+    add_befriending_class_to_class_template(sym->variant.template_info,
+                                            class_type);
+  } else {
+    unexpected_condition();
+  }  /* if */
+}  /* add_friend_to_class */
+
+
+static void add_ifc_friends_to_class(an_ifc_module      *mod,
+                                     a_type_ptr         class_type,
+                                     an_ifc_decl_index  class_idx)
+/*
+The given class_type associated with the given module and IFC declaration
+index has just been completed.  Record its associated friend entities.  This
+function is called after the class is completed because IFC "friend
+declarations" may include template definitions that rely on the completeness
+of the class type.
+*/
+{
+  /* Check if there are friends. */
+  Opt<an_ifc_trait_friend>  opt_friends;
+
+  find_trait(&opt_friends, class_idx);
+  if (opt_friends.has_value()) {
+    /* There are friends: Record them. */
+    Opt<an_ifc_sequence>  friends = get_ifc_trait(*opt_friends);
+    if (friends.has_value()) {
+      mod->traverse_scope_member_sequence(
+        *friends,
+        [=](const an_ifc_scope_member  &ism) {
+          an_ifc_decl_index  friend_decl_idx = get_ifc_index(ism);
+          Opt<an_ifc_decl_friend> opt_df;
+          construct_node(&opt_df, friend_decl_idx);
+          if (opt_df.has_value()) {
+            an_ifc_decl_friend friend_decl = *opt_df;
+            an_ifc_expr_index  friend_id = get_ifc_entity(friend_decl);
+            add_friend_to_class(class_type, load_ifc_entity_ref(friend_id));
+          }  /*if */
+        });
+    }  /* if */
+  }  /* if */
+}  /* add_ifc_friends_to_class */
+
+
 void an_ifc_module::complete_definition_of_module_class(
                                                        a_module_entity_ptr mep)
 /*
@@ -4829,22 +4953,15 @@ Complete the definition of the class referred to by mep (if needed).
           cache_token(&cache, tok_lbrace, &error_position);
           /* Emit ordinary members: */
           auto cache_member = [this, &cache](const an_ifc_scope_member  &ism) {
-            this->cache_decl(&cache, get_ifc_index(ism));
+            an_ifc_decl_index  member_idx = get_ifc_index(ism);
+            this->cache_decl(&cache, member_idx);
+            cache_token(&cache, tok_ifc_decl, &error_position);
+            cache.last_token->extra_info_kind = teik_ifc_index;
+            cache.last_token->variant.ifc_index = {member_idx.sort,
+                                                   member_idx.value,
+                                                   member_idx.mod};
           };
           traverse_scope_members(class_members, cache_member);
-          /* Check if there are friends. */
-          Opt<an_ifc_trait_friend>  opt_friends;
-          find_trait(&opt_friends, decl_idx);
-          if (opt_friends.has_value()) {
-            /* Emit the friend declarations: */
-            Opt<an_ifc_sequence>  friends = get_ifc_trait(*opt_friends);
-            if (friends.has_value()) {
-              this->traverse_scope_member_sequence(*friends,
-                [this, &cache, &cache_member](const an_ifc_scope_member &ism) {
-                  cache_member(ism);
-                });
-            }  /* if */
-          }  /* if */
           cache_token(&cache, tok_rbrace, &error_position);
         }  /* if */
         cache_token(&cache, tok_semicolon, &error_position);
@@ -4891,6 +5008,7 @@ Complete the definition of the class referred to by mep (if needed).
                                   /*is_template_specialization=*/FALSE,
                                   (a_template_ptr)NULL,
                                   (a_decl_pos_block_ptr)NULL);
+      add_ifc_friends_to_class(this, class_type, decl_idx);
       process_deferred_class_fixups_and_instantiations(
                                                    /*for_instantiation=*/TRUE);
       {
@@ -16731,6 +16849,8 @@ Do one-time initialization of static variables defined in this file.
   if (precompiled_header_processing_required) {
     static a_pch_saved_variable saved_vars[] = {
       pch_saved_var_array_elem(lazy_symbols_may_be_visible),
+      pch_saved_var_array_elem(ifc_function_bodies),
+      pch_saved_var_array_elem(ifc_decl_lookup_table),
       pch_saved_var_array_terminating_elem()
     };
     register_pch_saved_variables(saved_vars);
@@ -16749,6 +16869,8 @@ for each compilation.
 #endif /* DEBUG && EXPENSIVE_CHECKING */
   ifc_function_bodies = alloc_fe_of_type(an_ifc_function_body_map);
   construct(ifc_function_bodies, /*mask_width=*/10);
+  ifc_decl_lookup_table = alloc_fe_of_type(an_ifc_decl_lookup_table);
+  construct(ifc_decl_lookup_table, /*mask_width=*/10);
 }  /* ifc_modules_init */
 
 /*lint -restore*/ /* FIXME: temporary */

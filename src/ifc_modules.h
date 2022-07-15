@@ -170,15 +170,9 @@ struct an_ifc_module : public a_module_interface {
 			/* Flag to indicate that a "friend" keyword should be
 			   suppressed (typically because the friendship is
 			   handled at a higher level). */
-  /* FIXME: This is module specific, should it not be, or should we use a
-    structure that's module specific.  It seems very redundant to have a module
-    pointer for every entry in this map. */
-  Ptr_map<an_ifc_decl_index, a_symbol_ptr>
-		decl_map;
 public:
   an_ifc_module() : a_module_interface((a_module_kind)mk_ifc),
-                    referenced_modules(/*mask_width=*/4),
-                    decl_map(/*mask_width=*/8)
+                    referenced_modules(/*mask_width=*/4)
     {}
   VIRTUAL ~an_ifc_module() EDG_NOEXCEPT = default;
 
@@ -672,6 +666,8 @@ extern a_dynamic_init_ptr load_variable_init_from_ifc_module(
 
 extern void record_pending_ifc_function_body(a_routine_ptr     rp,
                                              an_ifc_decl_index decl_idx);
+
+extern void record_symbol_for_ifc_decl(a_symbol_ptr  sym);
 
 extern a_symbol_ptr load_ifc_friend_entity_ref(an_ifc_expr_index  expr_idx);
 

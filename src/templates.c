@@ -28788,8 +28788,8 @@ first declaration of the template.
 }  /* check_function_template_param_usage */
 
 
-static void add_befriending_class_to_function_template
-                      (a_template_symbol_supplement_ptr     tssp,
+void add_befriending_class_to_function_template(
+                       a_template_symbol_supplement_ptr     tssp,
 		       a_type_ptr                           class_declared_in)
 /*
 Indicate that the template designated by tssp is a friend of the class
@@ -33969,7 +33969,7 @@ following a template parameter clause.  Parse and record the concept.
 }  /* scan_concept_definition */
 
 
-static void template_or_specialization_declaration(
+static a_symbol_ptr template_or_specialization_declaration(
                                            a_token_kind        *final_token,
                                            a_boolean           export_present,
                                            a_source_position   *export_pos,
@@ -33983,6 +33983,7 @@ export_pos is the position of the export keyword.  is_generic is TRUE if this
 is a C++/CLI generic declaration.  If this function is called for an
 abbreviated function template, orig_dps is non-NULL, otherwise, orig_dps is
 NULL.  See template_or_specialization_declaration_full for more details.
+Return a symbol for the declared entity if applicable.
 */
 {
   a_tmpl_decl_state  decl_state;
@@ -34008,6 +34009,7 @@ NULL.  See template_or_specialization_declaration_full for more details.
   decl_state.enclosing_scope = scope_stack_top().il_scope;
   template_or_specialization_declaration_full(&decl_state, is_generic,
                                               orig_dps);
+  return dps.sym;
 }  /* template_or_specialization_declaration */
 
 
@@ -34043,7 +34045,7 @@ of the "auto" parameters.
 
   check_assertion_str2(curr_token == tok_template || orig_dps != NULL ||
                        (curr_token == tok_identifier && is_generic),
-                       "template_or_specialization_declaration:",
+                       "template_or_specialization_declaration_full:",
                        "expected tok_template or generic identifier");
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   header_pos = pos_curr_token;
@@ -34253,9 +34255,10 @@ updated to tok_rbrace.
                          orig_dps->start_tsn, curr_token_sequence_number,
                          /*include_last_token=*/FALSE, &reparse_cache);
   rescan_cached_tokens(&reparse_cache);
-  template_or_specialization_declaration(final_token, /*export_present=*/FALSE,
-                                         &null_source_position,
-                                         /*is_generic=*/FALSE, orig_dps);
+  (void)template_or_specialization_declaration(
+                                        final_token, /*export_present=*/FALSE,
+                                        &null_source_position,
+                                        /*is_generic=*/FALSE, orig_dps);
   discard_end_of_parse_actions(orig_dps);
 }  /* reparse_abbr_func_template */
 
@@ -40131,24 +40134,26 @@ directive_start_pos points to the beginning of the directive (e.g., for
 }  /* explicit_instantiation */
 
 
-void template_directive_or_declaration(
+a_symbol_ptr template_directive_or_declaration(
 			a_token_kind			*final_token,
 			a_template_decl_options_set	options,
 			a_source_position_ptr		directive_start_pos)
 /*
-Scan a template declaration of an explicit instantiation.  This routine
+Scan a template declaration or an explicit instantiation.  This routine
 is called to decide whether the current statement is a template
 declaration or an explicit instantiation.  It then calls the appropriate
 routine.  Note that the final token is not consumed -- that is left to the
 caller.  For diagnostics, the kind of token expected (semicolon or right
 brace) is returned in *final_token.  options is a bit set of option flags.
 directive_start_pos points to the beginning of the directive or declaration
-(e.g., for "extern template", points to the "extern" keyword).
+(e.g., for "extern template", points to the "extern" keyword).  Return a
+symbol for the declared entity if applicable (otherwise return NULL).
 */
 {
-  a_boolean		export_present = FALSE;
-  a_source_position	export_pos;
-  a_boolean		is_generic = (options & TDO_GENERIC) != 0;
+  a_symbol_ptr       result = NULL;
+  a_boolean          export_present = FALSE;
+  a_source_position  export_pos;
+  a_boolean          is_generic = (options & TDO_GENERIC) != 0;
 
   db_enter(3, "template_directive_or_declaration");
   export_pos = null_source_position;
@@ -40222,9 +40227,10 @@ directive_start_pos points to the beginning of the directive or declaration
       ssep->name_linkage_is_explicit = FALSE;
     }  /* if */
     /* Scan the declaration. */
-    template_or_specialization_declaration(final_token, export_present,
-                                           &export_pos, is_generic,
-                                           (a_decl_parse_state*)NULL);
+    result = template_or_specialization_declaration(
+                                                  final_token, export_present,
+                                                  &export_pos, is_generic,
+                                                  (a_decl_parse_state*)NULL);
     if (err) {
       /* Get a new pointer in case the scope stack was reallocated. */
       ssep = &scope_stack[depth_scope_stack];
@@ -40244,6 +40250,7 @@ directive_start_pos points to the beginning of the directive or declaration
     explicit_instantiation(&dps, options, directive_start_pos);
   }  /* if */
   db_exit();
+  return result;
 }  /* template_directive_or_declaration */
 
 

@@ -319,6 +319,7 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
    (an_opname_kind)onk_none,          /* tok_pending_ifc_func_body */
    (an_opname_kind)onk_none,          /* tok_pending_ifc_var_init */
    (an_opname_kind)onk_none,          /* tok_ifc_entity_ref */
+   (an_opname_kind)onk_none,          /* tok_ifc_decl */
    (an_opname_kind)onk_none,          /* tok_unimplemented */
    (an_opname_kind)onk_subscript,     /* operator[] starts with tok_lbracket */
    (an_opname_kind)onk_none,          /* tok_rbracket */
@@ -2681,8 +2682,6 @@ a_token_kind next_two_tokens(a_token_kind	first_token_must_be,
 extern void unget_token(void);
 
 extern a_boolean pending_ifc_func_body_next(a_symbol_ptr  rout_sym);
-
-extern a_boolean ifc_entity_ref_next(a_symbol_ptr  *p_sym);
 
 extern a_symbol_ptr coalesce_template_class_reference
 			(a_symbol_ptr		   template_symbol,

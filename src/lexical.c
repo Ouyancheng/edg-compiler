@@ -3208,7 +3208,10 @@ This is used to save tokens for later rescanning.
        (e.g., a string) has been allocated in the file scope and doesn't
        need to be copied. */
     copy_constant(&const_for_curr_token, ctp->variant.constant);
-  } else if (curr_token == tok_pending_ifc_var_init) {
+  } else if (curr_token == tok_pending_ifc_var_init ||
+             curr_token == tok_pending_ifc_func_body ||
+             curr_token == tok_ifc_entity_ref ||
+             curr_token == tok_ifc_decl) {
     /* This token has an associated index. */
     ctp->extra_info_kind = teik_ifc_index;
     ctp->variant.ifc_index = ifc_index_for_curr_token;
@@ -18003,31 +18006,6 @@ the given routine with that pending function body.
   }  /* if */
   return result;
 }  /* pending_ifc_func_body_next */
-
-
-a_boolean ifc_entity_ref_next(a_symbol_ptr  *p_sym)
-/*
-Return TRUE if we are rescanning cached tokens and the next token is a
-tok_ifc_entity_ref.  If so, return in *p_sym a symbol for the entity described
-by the associated IFC module reference (or NULL if any error occurs while
-attempting to load that reference).
-*/
-{
-  a_boolean           result = FALSE;
-  a_cached_token_ptr  ctp = cached_token_rescan_list;
-
-  if (ctp != NULL && ctp->token == tok_ifc_entity_ref) {
-    a_lexical_ifc_index_reference index = ctp->variant.ifc_index;
-    an_ifc_expr_index             expr_idx = {(an_ifc_module*)index.module,
-                                              (an_ifc_expr_sort)index.sort,
-                                              index.index};
-
-    error_position = pos_curr_token;
-    *p_sym = load_ifc_friend_entity_ref(expr_idx);
-    result = TRUE;
-  }  /* if */
-  return result;
-}  /* ifc_entity_ref_next */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 

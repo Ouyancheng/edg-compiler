@@ -1097,12 +1097,16 @@ extern void scan_nested_deduction_guide_template(
                                        a_type_ptr             parent_class,
                                        a_decl_pos_block_ptr   decl_pos_block);
 
-extern void template_directive_or_declaration(
+extern a_symbol_ptr template_directive_or_declaration(
 			a_token_kind			*final_token,
 			a_template_decl_options_set	options,
 			a_source_position_ptr		directive_start_pos);
 
 extern a_boolean is_template_friend_decl(void);
+
+void add_befriending_class_to_function_template(
+                         a_template_symbol_supplement_ptr  tssp,
+		         a_type_ptr                        class_declared_in);
 
 #if !STANDALONE_UTILITY_PROGRAM
 
