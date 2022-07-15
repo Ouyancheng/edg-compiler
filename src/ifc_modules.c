@@ -105,25 +105,25 @@ static void ifc_requirement_impl(ARG_UNUSED int          line_number,
                                  a_boolean               condition,
                                  ARG_UNUSED a_const_char *string)
 /*
-This function take the line number where the failure occurred, an associated
-module, a condition to check, and a string describing the condition being
-checked.  If the given condition is FALSE, the processing of any associated
-module entity pointer will be failed, the TU processing will be failed, and an
-error will be emitted.
+This function takes the line number and the name of the function where the
+failure occurred, an associated module, a condition to check, and a string
+describing the condition being checked.  If the given condition is FALSE, the
+processing of any associated module entity pointer will be failed, the TU
+processing will be failed, and an error will be emitted.
 
-The caller is responsible for ensuring there is at least module entity stack
-state pushed.
+The caller is responsible for ensuring there is at least one module entity
+stack state pushed.
 
 If there's any risk of the input data triggering the condition failure, and the
 front end can reasonably recover/continue, this function should be used in
 place of check_assertion.  This is particularly important for incomplete
 features where the front end partially implements the IFC spec for the given
-node, but needs to catch cases that are not yet implement (ensuring the TU does
-not compile with a possibly misinterpreted IFC import).
+node, but needs to catch cases that are not yet implemented (ensuring the TU
+does not compile with a possibly-misinterpreted IFC import).
 */
 {
   /* Checking a condition without a module entity pointer state.  The caller
-     did not setup the module entity state stack properly. */
+     did not set up the module entity state stack properly. */
   check_assertion(curr_mep_state != NULL);
   if (!condition) {
     a_diagnostic_ptr diag = pos_st_start_error(ec_ifc_requirement_failure,
