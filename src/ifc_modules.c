@@ -7797,7 +7797,7 @@ FIXME: what other expressions can we get here?
                                                   targ_size_t_int_kind);
                   } else {
                     a_type_ptr stripped_type = skip_typerefs(constant_type);
-                    if (stripped_type->kind == (a_type_kind)tk_integer) {
+                    if (type_is(stripped_type, tk_integer)) {
                       set_unsigned_integer_constant(
                                       cp, value,
                                       stripped_type->variant.integer.int_kind);
