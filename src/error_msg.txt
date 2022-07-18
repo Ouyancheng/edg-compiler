@@ -3349,6 +3349,7 @@ ec_ifc_partition_mismatch;;"attempted to construct an element from IFC partition
 ec_ifc_partition_bad_entry_size;;"the partition %sq specified its entry size as %d1 when %d2 was expected"
 ec_ifc_requirement_failure;;"an unexpected IFC requirement was encountered while processing module %sq1"
 ec_ifc_requirement_failure_fill_in;;"condition failed at line %d in %s1: %sq2"
+ec_circular_constraint;;"atomic constraint depends on itself"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

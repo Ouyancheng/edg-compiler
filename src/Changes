@@ -1,5 +1,31 @@
 Version 6.4
 
+7/18/22  [EDGcpfe/25346]
+Circular atomic constraints
+
+Consider:
+
+  struct X {
+    template<class T> X &operator<<(const T &);
+  };
+  template<typename T, typename U>
+    concept Outable = requires(U &s, T const &x) { s << x; };
+  template<typename T>
+    void operator<<(X &x, const T &o) requires (!Outable<T, X>) {
+    x << 0;  // Error now caught earlier.
+  }
+
+This example is ill-formed because the constraint that must be checked for
+the expression x << 0 depends on itself (via the concept Outable, which will
+recursively substitute the non-member operator<< candidate).  Previously, the
+front end caught this via a general mechanism that limits the number of
+recursive substitutions.  If the limit is set to high, however, that can result
+in aborts due to running out of space on the system call stack.  Now, the front
+end reports the circularity as soon as it finds that an atomic constraint (the
+requires-expression in this case) is recursively substituted with the same
+template arguments.
+
+
 7/13/22  [EDGcpfe/25280]
 C++-generating back end: non-type template parameters with dependent function
 types

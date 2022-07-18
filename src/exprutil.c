@@ -25529,6 +25529,8 @@ struct a_test_subst_result {
   /* A structure describing a previously substituted constraint expression. */
   enum {
     tsrk_none,		/* This represents the null (default) value. */
+    tsrk_pending,	/* Substitution has started but not completed.  This
+			   result is updated when substitution completes. */
     tsrk_expr,		/* Substitution yielded an expression. */
     tsrk_constant	/* Substitution yielded a constant. */
   } kind;
@@ -25703,6 +25705,10 @@ p_fatal and p_copy_error are NULL by default.
         a_constant_ptr          cp = local_constant();
         a_memory_region_number  region_to_switch_back_to;
         switch_to_file_scope_region(&region_to_switch_back_to);
+        test.template_arg_list = copy_template_arg_list(template_arg_list);
+        cached_subst.kind = a_test_subst_result::tsrk_pending;
+        (void)constraint_subst_cache->map_or_replace_with_hash(
+                                                    test, cached_subst, hash);
         init_ctws_state(&ctws_state);
         if (options & CTWS_SUBST_PARENT_CLASS_ARGS) {
           ctws_state.in_parent_substitution = TRUE;
@@ -25730,7 +25736,6 @@ p_fatal and p_copy_error are NULL by default.
           cached_subst.kind = a_test_subst_result::tsrk_constant;
           cached_subst.constant = allocated_cp;
         }  /* if */
-        test.template_arg_list = copy_template_arg_list(template_arg_list);
         /* In some (error) situations, the call to copy_template_param_expr
            may have caused the constraint test to be cached already.  We
            therefore use "map_or_replace" instead of just "map" here. */
@@ -25745,11 +25750,18 @@ p_fatal and p_copy_error are NULL by default.
         expr = cached_subst.expr;
         if (expr == NULL) copy_error = TRUE;
         allocated_cp = NULL;
-      } else {
+      } else if (cached_subst.kind == a_test_subst_result::tsrk_constant) {
         /* The substitution was already in the cache, and it produces a
            constant. */
         expr = NULL;
         allocated_cp = cached_subst.constant;
+      } else if (cached_subst.kind == a_test_subst_result::tsrk_pending) {
+        /* This constraint appears to depend on itself. */
+        pos_error(ec_circular_constraint, &constraint->position);
+        copy_error = TRUE;
+        *p_fatal = TRUE;
+      } else {
+        unexpected_condition();
       }  /* if */
     } else {
       /* No parameters: This can occur when called from
