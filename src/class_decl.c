@@ -32813,6 +32813,9 @@ next_declaration:
           }  /*if */
           (void)get_token();
         }  /* if */
+#else /* MICROSOFT_EXTENSIONS_ALLOWED */
+        /* Silence some compiler warnings about member_sym being unused. */
+        (void)*member_sym;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         /* Keep processing member declarations until the closing brace or
            the end-of-source marker is reached. */
