@@ -32815,7 +32815,7 @@ next_declaration:
         }  /* if */
 #else /* MICROSOFT_EXTENSIONS_ALLOWED */
         /* Silence some compiler warnings about member_sym being unused. */
-        (void)*member_sym;
+        (void)(member_sym != NULL);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         /* Keep processing member declarations until the closing brace or
            the end-of-source marker is reached. */
