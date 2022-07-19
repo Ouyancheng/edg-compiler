@@ -1071,7 +1071,8 @@ extern a_boolean is_null_bitfield(an_ifc_basic_specifiers_bitfield universal);
 extern uint8_t to_bitmask_0_33(an_ifc_basic_specifiers_bitfield_query query);
 
 template<an_ifc_basic_specifiers_bitfield_query a_Query>
-a_boolean test_bitmask(const an_ifc_basic_specifiers_bitfield &universal)
+inline a_boolean test_bitmask(
+                             const an_ifc_basic_specifiers_bitfield &universal)
 /*
 Given the universal representation of BasicSpecifiersBitfield, return TRUE if
 the universal bitmask specified by a_Query matches; otherwise, return FALSE.
@@ -1109,7 +1110,7 @@ extern a_boolean is_null_bitfield(an_ifc_function_traits_bitfield universal);
 extern uint16_t to_bitmask_0_33(an_ifc_function_traits_bitfield_query query);
 
 template<an_ifc_function_traits_bitfield_query a_Query>
-a_boolean test_bitmask(const an_ifc_function_traits_bitfield &universal)
+inline a_boolean test_bitmask(const an_ifc_function_traits_bitfield &universal)
 /*
 Given the universal representation of FunctionTraitsBitfield, return TRUE if
 the universal bitmask specified by a_Query matches; otherwise, return FALSE.
@@ -1149,7 +1150,8 @@ extern uint8_t to_bitmask_0_33(
                              an_ifc_function_type_traits_bitfield_query query);
 
 template<an_ifc_function_type_traits_bitfield_query a_Query>
-a_boolean test_bitmask(const an_ifc_function_type_traits_bitfield &universal)
+inline a_boolean test_bitmask(
+                         const an_ifc_function_type_traits_bitfield &universal)
 /*
 Given the universal representation of FunctionTypeTraitsBitfield, return TRUE
 if the universal bitmask specified by a_Query matches; otherwise, return FALSE.
@@ -1186,7 +1188,7 @@ extern a_boolean is_null_bitfield(an_ifc_msvc_traits_bitfield universal);
 extern uint32_t to_bitmask_0_33(an_ifc_msvc_traits_bitfield_query query);
 
 template<an_ifc_msvc_traits_bitfield_query a_Query>
-a_boolean test_bitmask(const an_ifc_msvc_traits_bitfield &universal)
+inline a_boolean test_bitmask(const an_ifc_msvc_traits_bitfield &universal)
 /*
 Given the universal representation of MsvcTraitsBitfield, return TRUE if the
 universal bitmask specified by a_Query matches; otherwise, return FALSE.
@@ -1223,7 +1225,7 @@ extern a_boolean is_null_bitfield(an_ifc_object_traits_bitfield universal);
 extern uint8_t to_bitmask_0_33(an_ifc_object_traits_bitfield_query query);
 
 template<an_ifc_object_traits_bitfield_query a_Query>
-a_boolean test_bitmask(const an_ifc_object_traits_bitfield &universal)
+inline a_boolean test_bitmask(const an_ifc_object_traits_bitfield &universal)
 /*
 Given the universal representation of ObjectTraitsBitfield, return TRUE if the
 universal bitmask specified by a_Query matches; otherwise, return FALSE.
@@ -1260,7 +1262,7 @@ extern a_boolean is_null_bitfield(an_ifc_qualifier_bitfield universal);
 extern uint8_t to_bitmask_0_33(an_ifc_qualifier_bitfield_query query);
 
 template<an_ifc_qualifier_bitfield_query a_Query>
-a_boolean test_bitmask(const an_ifc_qualifier_bitfield &universal)
+inline a_boolean test_bitmask(const an_ifc_qualifier_bitfield &universal)
 /*
 Given the universal representation of QualifierBitfield, return TRUE if the
 universal bitmask specified by a_Query matches; otherwise, return FALSE.
@@ -1300,7 +1302,8 @@ extern uint8_t to_bitmask_0_33(
                              an_ifc_reachable_properties_bitfield_query query);
 
 template<an_ifc_reachable_properties_bitfield_query a_Query>
-a_boolean test_bitmask(const an_ifc_reachable_properties_bitfield &universal)
+inline a_boolean test_bitmask(
+                         const an_ifc_reachable_properties_bitfield &universal)
 /*
 Given the universal representation of ReachablePropertiesBitfield, return TRUE
 if the universal bitmask specified by a_Query matches; otherwise, return FALSE.
@@ -1337,7 +1340,7 @@ extern a_boolean is_null_bitfield(an_ifc_scope_traits_bitfield universal);
 extern uint8_t to_bitmask_0_33(an_ifc_scope_traits_bitfield_query query);
 
 template<an_ifc_scope_traits_bitfield_query a_Query>
-a_boolean test_bitmask(const an_ifc_scope_traits_bitfield &universal)
+inline a_boolean test_bitmask(const an_ifc_scope_traits_bitfield &universal)
 /*
 Given the universal representation of ScopeTraitsBitfield, return TRUE if the
 universal bitmask specified by a_Query matches; otherwise, return FALSE.

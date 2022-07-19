@@ -31834,9 +31834,7 @@ representation is valid; otherwise, return FALSE.
       }
       break;
     default:
-      { /* issue_unsupported_node_diag("TODO", &error_position); */
-        unexpected_condition_str("No known way to valid partition kind.");
-      }
+      unexpected_condition_str("No known way to validate partition kind.");
       break;
   }  /* switch */
   return result;
@@ -32252,9 +32250,7 @@ representation is valid; otherwise, return FALSE.
       }
       break;
     default:
-      { /* issue_unsupported_node_diag("TODO", &error_position); */
-        unexpected_condition_str("No known way to valid partition kind.");
-      }
+      unexpected_condition_str("No known way to validate partition kind.");
       break;
   }  /* switch */
   return result;
