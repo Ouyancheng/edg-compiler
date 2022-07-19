@@ -331,9 +331,9 @@ issues with the node will be diagnosed (unless previously diagnosed by a prior
 call).
 */
 {
-  constexpr an_ifc_partition_kind node_part_kind =
+  an_ifc_partition_kind node_part_kind =
                                     get_ifc_partition_kind<an_ifc_Node_type>();
-  an_ifc_partition_kind           idx_part_kind = get_partition_kind(idx);
+  an_ifc_partition_kind idx_part_kind = get_partition_kind(idx);
 
   if (node_part_kind == idx_part_kind) {
     an_ifc_Node_type read_value;

@@ -1179,6 +1179,22 @@ global suppression of these warnings.
 #endif /* defined(__GNUC__) && __GNUC__ > 4 || (__GNUC__ == 4 && ...) */
 
 /*
+Versions of Clang prior to 3.9 suffered from an issue with explicit
+specializations when the template being specialized was deleted.  As a
+workaround for older versions of clang, set these functions to empty function
+bodies.  Note that Clang does not diagnose empty function bodies for
+non-constexpr function templates which specify a return type, so this can be
+used for (most) non-void functions (i.e., the Wreturn-type warning is not
+generally a concern).
+*/
+#if defined(__clang__) && \
+    (__clang_major__ == 3 && __clang_minor__ < 9)
+#define DELETED_FN_DEF {}
+#else  /* !(defined(__clang__) && (__clang_major__ == 3 && ...)) */
+#define DELETED_FN_DEF = delete;
+#endif /* defined(__clang__) && (__clang_major__ == 3 && ...) */
+
+/*
 Some coding standards require a default label in switches even if it's
 unreachable, while others prefer to leave this off to allow the compiler to
 catch when the case labels are not exhaustive.  A TRUE value for

@@ -1503,13 +1503,14 @@ usage/sanity checks).
 
 
 template<typename an_ifc_Node_type>
-extern an_ifc_Node_type* get(an_ifc_module    *mod,
-                             an_ifc_Node_type *storage,
-                             a_boolean        fill_storage = FALSE) = delete;
+extern an_ifc_Node_type* get(
+                          an_ifc_module    *mod,
+                          an_ifc_Node_type *storage,
+                          a_boolean        fill_storage = FALSE) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-constexpr an_ifc_partition_kind get_ifc_partition_kind() = delete;
+extern an_ifc_partition_kind get_ifc_partition_kind() DELETED_FN_DEF
 
 
 /*
@@ -8557,2676 +8558,2830 @@ struct an_ifc_value_metadata<an_ifc_source_word> {
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_ID(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_ID(const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_text_offset get_ifc_ID(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_abi(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_abi(const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern an_ifc_abi get_ifc_abi(const an_ifc_Node_type &universal) = delete;
+extern an_ifc_abi get_ifc_abi(const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_abstract_declarator(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_syntax_index get_ifc_abstract_declarator(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_access(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_access(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern typename an_ifc_access_metadata<an_ifc_Node_type>::return_type
-get_ifc_access(const an_ifc_Node_type &universal) = delete;
+get_ifc_access(const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_address(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_address(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_expr_index get_ifc_address(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_aliasee(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_aliasee(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern typename an_ifc_aliasee_metadata<an_ifc_Node_type>::return_type
-get_ifc_aliasee(const an_ifc_Node_type &universal) = delete;
+get_ifc_aliasee(const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_alignment(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_alignment(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_expr_index get_ifc_alignment(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_alternative(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern typename an_ifc_alternative_metadata<an_ifc_Node_type>::return_type
-get_ifc_alternative(const an_ifc_Node_type &universal) = delete;
+get_ifc_alternative(const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_ampersand(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_ampersand(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_source_location get_ifc_ampersand(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_arch(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_arch(const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_architecture_sort get_ifc_arch(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_argument(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_argument(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern typename an_ifc_argument_metadata<an_ifc_Node_type>::return_type
-get_ifc_argument(const an_ifc_Node_type &universal) = delete;
+get_ifc_argument(const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_argument_0(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_expr_index get_ifc_argument_0(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_argument_1(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_expr_index get_ifc_argument_1(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_argument_2(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_expr_index get_ifc_argument_2(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_argument_clause(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_syntax_index get_ifc_argument_clause(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_arguments(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_arguments(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern typename an_ifc_arguments_metadata<an_ifc_Node_type>::return_type
-get_ifc_arguments(const an_ifc_Node_type &universal) = delete;
+get_ifc_arguments(const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_arity_variadic(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_variadic_arity get_ifc_arity_variadic(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_array(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_array(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_expr_index get_ifc_array(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_array_or_function(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_syntax_index get_ifc_array_or_function(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_arrow(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_arrow(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_source_location get_ifc_arrow(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_assign(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_assign(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_source_location get_ifc_assign(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_assoc(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_assoc(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern typename an_ifc_assoc_metadata<an_ifc_Node_type>::return_type
-get_ifc_assoc(const an_ifc_Node_type &universal) = delete;
+get_ifc_assoc(const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_associativity(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_associativity get_ifc_associativity(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_asterisk(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_asterisk(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_source_location get_ifc_asterisk(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_attribute(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_attribute(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_attr_index get_ifc_attribute(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_attributes(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern typename an_ifc_attributes_metadata<an_ifc_Node_type>::return_type
-get_ifc_attributes(const an_ifc_Node_type &universal) = delete;
+get_ifc_attributes(const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_base(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_base(const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern typename an_ifc_base_metadata<an_ifc_Node_type>::return_type
-get_ifc_base(const an_ifc_Node_type &universal) = delete;
+get_ifc_base(const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_base_ctor(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_base_ctor(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_decl_index get_ifc_base_ctor(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_base_specifiers(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_syntax_index get_ifc_base_specifiers(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_base_subobjects(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_expr_index get_ifc_base_subobjects(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_bases(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_bases(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_syntax_index get_ifc_bases(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_basis(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_basis(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_type_basis_sort get_ifc_basis(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_bitwidth(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_bitwidth(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_expr_index get_ifc_bitwidth(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_body(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_body(const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern typename an_ifc_body_metadata<an_ifc_Node_type>::return_type
-get_ifc_body(const an_ifc_Node_type &universal) = delete;
+get_ifc_body(const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_bound(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_bound(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_expr_index get_ifc_bound(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_break(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_break(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_source_location get_ifc_break(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_by_ref(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_by_ref(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern an_ifc_bool get_ifc_by_ref(const an_ifc_Node_type &universal) = delete;
+extern an_ifc_bool get_ifc_by_ref(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_callable(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_callable(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_bool get_ifc_callable(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_captures(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_captures(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_syntax_index get_ifc_captures(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_cardinality(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_cardinality get_ifc_cardinality(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_catch(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_catch(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_source_location get_ifc_catch(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_category(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_category(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_word_category get_ifc_category(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_chart(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_chart(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_chart_index get_ifc_chart(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_checksum(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_checksum(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_sha256 get_ifc_checksum(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_class_decl(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_type_index get_ifc_class_decl(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_class_key(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_class_key(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_keyword_syntax get_ifc_class_key(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_clause(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_clause(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_syntax_index get_ifc_clause(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_cleanup(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_cleanup(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_destructor_sort get_ifc_cleanup(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_colon(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_colon(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_source_location get_ifc_colon(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_colons(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_colons(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_source_location get_ifc_colons(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_column(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_column(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_column get_ifc_column(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_comma(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_comma(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_source_location get_ifc_comma(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_concept_keyword(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_source_location get_ifc_concept_keyword(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_condition(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_condition(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern typename an_ifc_condition_metadata<an_ifc_Node_type>::return_type
-get_ifc_condition(const an_ifc_Node_type &universal) = delete;
+get_ifc_condition(const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_consequence(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern typename an_ifc_consequence_metadata<an_ifc_Node_type>::return_type
-get_ifc_consequence(const an_ifc_Node_type &universal) = delete;
+get_ifc_consequence(const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_constexpr(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_constexpr(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_source_location get_ifc_constexpr(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_constraint(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern typename an_ifc_constraint_metadata<an_ifc_Node_type>::return_type
-get_ifc_constraint(const an_ifc_Node_type &universal) = delete;
+get_ifc_constraint(const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_contents(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_contents(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_expr_index get_ifc_contents(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_continuation(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern typename an_ifc_continuation_metadata<an_ifc_Node_type>::return_type
-get_ifc_continuation(const an_ifc_Node_type &universal) = delete;
+get_ifc_continuation(const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_continue(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_continue(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_source_location get_ifc_continue(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_convention(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_calling_convention_sort get_ifc_convention(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_ctor_call(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_ctor_call(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_expr_index get_ifc_ctor_call(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_decl(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_decl(const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern typename an_ifc_decl_metadata<an_ifc_Node_type>::return_type
-get_ifc_decl(const an_ifc_Node_type &universal) = delete;
+get_ifc_decl(const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_decl_specifier(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_syntax_index get_ifc_decl_specifier(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_decl_specifiers(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_syntax_index get_ifc_decl_specifiers(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_declarations(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_syntax_index get_ifc_declarations(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_declarator(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_syntax_index get_ifc_declarator(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_declarators(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_syntax_index get_ifc_declarators(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_declspec(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_declspec(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_sentence_index get_ifc_declspec(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_decltype_keyword(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_source_location get_ifc_decltype_keyword(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_decltype_specifier(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_syntax_index get_ifc_decltype_specifier(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_default_expr(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_expr_index get_ifc_default_expr(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_definition(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_syntax_index get_ifc_definition(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_delimiter(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_delimiter(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_delimiter_sort get_ifc_delimiter(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_denotation(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_type_index get_ifc_denotation(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_designator(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_expr_index get_ifc_designator(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_dialect(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_dialect(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_language_version get_ifc_dialect(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_direction(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_direction(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_fold_direction_sort get_ifc_direction(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_discriminant(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_active_member get_ifc_discriminant(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_do(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_do(const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_source_location get_ifc_do(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_dtor_call(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_dtor_call(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_expr_index get_ifc_dtor_call(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_dyad(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_dyad(const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_dyadic_operator_sort get_ifc_dyad(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_eh_spec(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_eh_spec(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern typename an_ifc_eh_spec_metadata<an_ifc_Node_type>::return_type
-get_ifc_eh_spec(const an_ifc_Node_type &universal) = delete;
+get_ifc_eh_spec(const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_elaboration(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_type_index get_ifc_elaboration(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_element(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_element(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_type_index get_ifc_element(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_element_type(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_type_index get_ifc_element_type(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_elements(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_elements(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_expr_index get_ifc_elements(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_ellipsis(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_ellipsis(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_source_location get_ifc_ellipsis(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_else(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_else(const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_source_location get_ifc_else(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_enclosing(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_enclosing(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_type_index get_ifc_enclosing(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_encoded(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_encoded(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_text_offset get_ifc_encoded(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_encoded_decl(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_encoded_decl_index get_ifc_encoded_decl(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_entity(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_entity(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern typename an_ifc_entity_metadata<an_ifc_Node_type>::return_type
-get_ifc_entity(const an_ifc_Node_type &universal) = delete;
+get_ifc_entity(const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_entry_size(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_entity_size get_ifc_entry_size(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_enum_kw(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_enum_kw(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_source_location get_ifc_enum_kw(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_enumerators(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_syntax_index get_ifc_enumerators(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_equal(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_equal(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_source_location get_ifc_equal(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_except_kw(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_except_kw(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_source_location get_ifc_except_kw(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_exception(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_exception(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_syntax_index get_ifc_exception(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_expander(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_expander(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_source_location get_ifc_expander(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_explicit_kw(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_syntax_index get_ifc_explicit_kw(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_expr(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_expr(const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern typename an_ifc_expr_metadata<an_ifc_Node_type>::return_type
-get_ifc_expr(const an_ifc_Node_type &universal) = delete;
+get_ifc_expr(const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_expression(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_expr_index get_ifc_expression(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_expression_type(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_type_index get_ifc_expression_type(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_extent(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_extent(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_expr_index get_ifc_extent(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_factor(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_factor(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_nestable_word get_ifc_factor(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_file(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_file(const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_name_index get_ifc_file(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_final_kw(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_final_kw(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_source_location get_ifc_final_kw(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_finally_kw(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_source_location get_ifc_finally_kw(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_first(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_first(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_form_index get_ifc_first(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_flags(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_flags(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_eh_flags get_ifc_flags(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_for(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_for(const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_source_location get_ifc_for(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_form(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_form(const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_form_spec_index get_ifc_form(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_function(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_function(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern typename an_ifc_function_metadata<an_ifc_Node_type>::return_type
-get_ifc_function(const an_ifc_Node_type &universal) = delete;
+get_ifc_function(const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_function_type(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_type_index get_ifc_function_type(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_generate(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_generate(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_keyword_syntax get_ifc_generate(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_getter(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_getter(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_text_offset get_ifc_getter(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_global_scope(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_scope_index get_ifc_global_scope(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_glyph_loci_1(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_source_location get_ifc_glyph_loci_1(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_glyph_loci_2(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_source_location get_ifc_glyph_loci_2(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_glyph_locus(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_source_location get_ifc_glyph_locus(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_guard(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_guard(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_text_offset get_ifc_guard(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_handler(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_handler(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_syntax_index get_ifc_handler(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_handlers(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_handlers(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_syntax_index get_ifc_handlers(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_head(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_head(const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_sentence_index get_ifc_head(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_hidden(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_hidden(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern an_ifc_bool get_ifc_hidden(const an_ifc_Node_type &universal) = delete;
+extern an_ifc_bool get_ifc_hidden(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_home_scope(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_decl_index get_ifc_home_scope(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_id(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_id(const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern an_ifc_unique_id get_ifc_id(const an_ifc_Node_type &universal) = delete;
+extern an_ifc_unique_id get_ifc_id(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_if(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_if(const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_source_location get_ifc_if(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_impl(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_impl(const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_decl_index get_ifc_impl(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_index(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_index(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern typename an_ifc_index_metadata<an_ifc_Node_type>::return_type
-get_ifc_index(const an_ifc_Node_type &universal) = delete;
+get_ifc_index(const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_inheritance(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_expr_index get_ifc_inheritance(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_init(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_init(const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_syntax_index get_ifc_init(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_initializaerion(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_syntax_index get_ifc_initializaerion(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_initialization(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern typename an_ifc_initialization_metadata<an_ifc_Node_type>::return_type
-get_ifc_initialization(const an_ifc_Node_type &universal) = delete;
+get_ifc_initialization(const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_initializer(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern typename an_ifc_initializer_metadata<an_ifc_Node_type>::return_type
-get_ifc_initializer(const an_ifc_Node_type &universal) = delete;
+get_ifc_initializer(const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_initializers(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern typename an_ifc_initializers_metadata<an_ifc_Node_type>::return_type
-get_ifc_initializers(const an_ifc_Node_type &universal) = delete;
+get_ifc_initializers(const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_internal(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_internal(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_bool get_ifc_internal(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_intrinsic(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_intrinsic(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_operator_category get_ifc_intrinsic(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_introducer(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_syntax_index get_ifc_introducer(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_key(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_key(const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_keyword_syntax get_ifc_key(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_keyword(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_keyword(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_source_location get_ifc_keyword(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_label(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_label(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern typename an_ifc_label_metadata<an_ifc_Node_type>::return_type
-get_ifc_label(const an_ifc_Node_type &universal) = delete;
+get_ifc_label(const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_leave_kw(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_leave_kw(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_source_location get_ifc_leave_kw(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_left(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_left(const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern typename an_ifc_left_metadata<an_ifc_Node_type>::return_type
-get_ifc_left(const an_ifc_Node_type &universal) = delete;
+get_ifc_left(const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_left_angle(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_source_location get_ifc_left_angle(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_left_brace(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_source_location get_ifc_left_brace(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_left_bracket(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_source_location get_ifc_left_bracket(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_left_curly(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_source_location get_ifc_left_curly(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_left_paren(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern typename an_ifc_left_paren_metadata<an_ifc_Node_type>::return_type
-get_ifc_left_paren(const an_ifc_Node_type &universal) = delete;
+get_ifc_left_paren(const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_left_paren_1(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_source_location get_ifc_left_paren_1(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_left_paren_2(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_source_location get_ifc_left_paren_2(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_length(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_length(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_cardinality get_ifc_length(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_level(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_level(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_parameter_level get_ifc_level(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_line(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_line(const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern typename an_ifc_line_metadata<an_ifc_Node_type>::return_type
-get_ifc_line(const an_ifc_Node_type &universal) = delete;
+get_ifc_line(const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_local_index(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_decl_foreign_index get_ifc_local_index(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_locus(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_locus(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern typename an_ifc_locus_metadata<an_ifc_Node_type>::return_type
-get_ifc_locus(const an_ifc_Node_type &universal) = delete;
+get_ifc_locus(const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_macro(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_macro(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_text_offset get_ifc_macro(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_major_version(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_version get_ifc_major_version(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_member(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_member(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern typename an_ifc_member_metadata<an_ifc_Node_type>::return_type
-get_ifc_member(const an_ifc_Node_type &universal) = delete;
+get_ifc_member(const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_member_declarations(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_syntax_index get_ifc_member_declarations(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_member_locus(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_source_location get_ifc_member_locus(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_member_name(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_name_index get_ifc_member_name(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_members(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_members(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern typename an_ifc_members_metadata<an_ifc_Node_type>::return_type
-get_ifc_members(const an_ifc_Node_type &universal) = delete;
+get_ifc_members(const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_message(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_message(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_expr_index get_ifc_message(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_minor_version(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_version get_ifc_minor_version(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_mode(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_mode(const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_expansion_mode_sort get_ifc_mode(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_modifier(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_modifier(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_keyword_sort get_ifc_modifier(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_name(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_name(const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern typename an_ifc_name_metadata<an_ifc_Node_type>::return_type
-get_ifc_name(const an_ifc_Node_type &universal) = delete;
+get_ifc_name(const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_name2(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_name2(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_text_offset get_ifc_name2(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_names(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_names(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_syntax_index get_ifc_names(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_namespace_kw(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_source_location get_ifc_namespace_kw(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_next(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_next(const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_syntax_index get_ifc_next(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_noexcept_loc(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_source_location get_ifc_noexcept_loc(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_offset(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_offset(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern typename an_ifc_offset_metadata<an_ifc_Node_type>::return_type
-get_ifc_offset(const an_ifc_Node_type &universal) = delete;
+get_ifc_offset(const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_op(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_op(const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern typename an_ifc_op_metadata<an_ifc_Node_type>::return_type get_ifc_op(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_operand(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_operand(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern typename an_ifc_operand_metadata<an_ifc_Node_type>::return_type
-get_ifc_operand(const an_ifc_Node_type &universal) = delete;
+get_ifc_operand(const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_operand_1(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_operand_1(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_expr_index get_ifc_operand_1(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_operand_2(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_operand_2(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_expr_index get_ifc_operand_2(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_operation(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_operation(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern typename an_ifc_operation_metadata<an_ifc_Node_type>::return_type
-get_ifc_operation(const an_ifc_Node_type &universal) = delete;
+get_ifc_operation(const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_operator(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_operator(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_operator_category get_ifc_operator(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_override(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_override(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_expr_index get_ifc_override(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_override_kw(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_source_location get_ifc_override_kw(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_owner(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_owner(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_text_offset get_ifc_owner(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_pack(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_pack(const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern typename an_ifc_pack_metadata<an_ifc_Node_type>::return_type
-get_ifc_pack(const an_ifc_Node_type &universal) = delete;
+get_ifc_pack(const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_pack_expanded(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_bool get_ifc_pack_expanded(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_pack_size(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_pack_size(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_pack_size get_ifc_pack_size(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_parameters(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern typename an_ifc_parameters_metadata<an_ifc_Node_type>::return_type
-get_ifc_parameters(const an_ifc_Node_type &universal) = delete;
+get_ifc_parameters(const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_params(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_params(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_chart_index get_ifc_params(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_parent(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_parent(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_expr_index get_ifc_parent(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_parenthesized(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_syntax_index get_ifc_parenthesized(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_partition(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_partition(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_text_offset get_ifc_partition(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_partition_count(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_cardinality get_ifc_partition_count(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_path(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_path(const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern typename an_ifc_path_metadata<an_ifc_Node_type>::return_type
-get_ifc_path(const an_ifc_Node_type &universal) = delete;
+get_ifc_path(const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_pivot(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_pivot(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_expr_index get_ifc_pivot(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_pointee(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_pointee(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_type_index get_ifc_pointee(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_pointer(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_pointer(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_syntax_index get_ifc_pointer(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_position(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_position(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_parameter_position get_ifc_position(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_pragam(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_pragam(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_sentence_index get_ifc_pragam(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_pragma(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_pragma(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_sentence_index get_ifc_pragma(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_precision(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_precision(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_type_precision_sort get_ifc_precision(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_prefix(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_prefix(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern typename an_ifc_prefix_metadata<an_ifc_Node_type>::return_type
-get_ifc_prefix(const an_ifc_Node_type &universal) = delete;
+get_ifc_prefix(const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_primary(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_primary(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern typename an_ifc_primary_metadata<an_ifc_Node_type>::return_type
-get_ifc_primary(const an_ifc_Node_type &universal) = delete;
+get_ifc_primary(const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_primary_template(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_decl_index get_ifc_primary_template(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_properties(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_reachable_properties_bitfield get_ifc_properties(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_pure(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_pure(const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern an_ifc_bool get_ifc_pure(const an_ifc_Node_type &universal) = delete;
+extern an_ifc_bool get_ifc_pure(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_qualified_name(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_expr_index get_ifc_qualified_name(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_qualifiers(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_qualifier_bitfield get_ifc_qualifiers(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_ref(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_ref(const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_source_location get_ifc_ref(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_referee(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_referee(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_type_index get_ifc_referee(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_reference(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_reference(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_module_reference get_ifc_reference(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_requirements(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_syntax_index get_ifc_requirements(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_resolution(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern typename an_ifc_resolution_metadata<an_ifc_Node_type>::return_type
-get_ifc_resolution(const an_ifc_Node_type &universal) = delete;
+get_ifc_resolution(const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_return(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_return(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_source_location get_ifc_return(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_right(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_right(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern typename an_ifc_right_metadata<an_ifc_Node_type>::return_type
-get_ifc_right(const an_ifc_Node_type &universal) = delete;
+get_ifc_right(const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_right_angle(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_source_location get_ifc_right_angle(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_right_brace(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_source_location get_ifc_right_brace(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_right_bracket(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_source_location get_ifc_right_bracket(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_right_curly(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_source_location get_ifc_right_curly(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_right_paren(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern typename an_ifc_right_paren_metadata<an_ifc_Node_type>::return_type
-get_ifc_right_paren(const an_ifc_Node_type &universal) = delete;
+get_ifc_right_paren(const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_right_paren_1(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_source_location get_ifc_right_paren_1(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_right_paren_2(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_source_location get_ifc_right_paren_2(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_scope(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_scope(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern typename an_ifc_scope_metadata<an_ifc_Node_type>::return_type
-get_ifc_scope(const an_ifc_Node_type &universal) = delete;
+get_ifc_scope(const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_second(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_second(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_form_index get_ifc_second(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_semicolon(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_semicolon(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_source_location get_ifc_semicolon(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_setter(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_setter(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_text_offset get_ifc_setter(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_shared(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_shared(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern an_ifc_bool get_ifc_shared(const an_ifc_Node_type &universal) = delete;
+extern an_ifc_bool get_ifc_shared(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_sign(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_sign(const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_type_sign_sort get_ifc_sign(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_sort(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_sort(const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern typename an_ifc_sort_metadata<an_ifc_Node_type>::return_type
-get_ifc_sort(const an_ifc_Node_type &universal) = delete;
+get_ifc_sort(const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_source(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_source(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern typename an_ifc_source_metadata<an_ifc_Node_type>::return_type
-get_ifc_source(const an_ifc_Node_type &universal) = delete;
+get_ifc_source(const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_specifiers(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern typename an_ifc_specifiers_metadata<an_ifc_Node_type>::return_type
-get_ifc_specifiers(const an_ifc_Node_type &universal) = delete;
+get_ifc_specifiers(const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_spelling(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_spelling(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_text_offset get_ifc_spelling(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_src_path(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_src_path(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_text_offset get_ifc_src_path(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_start(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_start(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern typename an_ifc_start_metadata<an_ifc_Node_type>::return_type
-get_ifc_start(const an_ifc_Node_type &universal) = delete;
+get_ifc_start(const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_stmt(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_stmt(const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_syntax_index get_ifc_stmt(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_stmts(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_stmts(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_syntax_index get_ifc_stmts(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_storage_class(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_storage_class get_ifc_storage_class(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_string(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_string(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_expr_index get_ifc_string(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_string_index(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_string_index get_ifc_string_index(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_string_table_bytes(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_byte_offset get_ifc_string_table_bytes(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_string_table_size(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_cardinality get_ifc_string_table_size(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_strings(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_strings(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_expr_index get_ifc_strings(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_subject(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_subject(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern typename an_ifc_subject_metadata<an_ifc_Node_type>::return_type
-get_ifc_subject(const an_ifc_Node_type &universal) = delete;
+get_ifc_subject(const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_suffix(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_suffix(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_text_offset get_ifc_suffix(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_switch(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_switch(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_source_location get_ifc_switch(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_symbol(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_symbol(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_expr_index get_ifc_symbol(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_syntax(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_syntax(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_syntax_index get_ifc_syntax(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_synthesis(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_synthesis(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_keyword_syntax get_ifc_synthesis(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_target(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_target(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern typename an_ifc_target_metadata<an_ifc_Node_type>::return_type
-get_ifc_target(const an_ifc_Node_type &universal) = delete;
+get_ifc_target(const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_template_keyword(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_source_location get_ifc_template_keyword(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_template_kw(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_source_location get_ifc_template_kw(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_template_parameters(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_syntax_index get_ifc_template_parameters(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_terms(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_terms(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_attr_index get_ifc_terms(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_throw(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_throw(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_source_location get_ifc_throw(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_toc(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_toc(const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_byte_offset get_ifc_toc(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_tokens(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_tokens(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_sentence_index get_ifc_tokens(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_trailing_target(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_syntax_index get_ifc_trailing_target(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_trait(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_trait(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern typename an_ifc_trait_metadata<an_ifc_Node_type>::return_type
-get_ifc_trait(const an_ifc_Node_type &universal) = delete;
+get_ifc_trait(const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_traits(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_traits(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern typename an_ifc_traits_metadata<an_ifc_Node_type>::return_type
-get_ifc_traits(const an_ifc_Node_type &universal) = delete;
+get_ifc_traits(const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_try(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_try(const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_source_location get_ifc_try(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_try_block(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_try_block(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_syntax_index get_ifc_try_block(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_try_kw(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_try_kw(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_source_location get_ifc_try_kw(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_type(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_type(const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern typename an_ifc_type_metadata<an_ifc_Node_type>::return_type
-get_ifc_type(const an_ifc_Node_type &universal) = delete;
+get_ifc_type(const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_type_id(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_type_id(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_syntax_index get_ifc_type_id(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_type_list(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_type_list(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_syntax_index get_ifc_type_list(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_type_name(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_type_name(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_syntax_index get_ifc_type_name(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_type_specifier(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_syntax_index get_ifc_type_specifier(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_type_specifiers(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_syntax_index get_ifc_type_specifiers(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_typename_keyword(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_source_location get_ifc_typename_keyword(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_typename_kw(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_source_location get_ifc_typename_kw(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_unhashed(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_unhashed(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_bool get_ifc_unhashed(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_unit(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_unit(const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern typename an_ifc_unit_metadata<an_ifc_Node_type>::return_type
-get_ifc_unit(const an_ifc_Node_type &universal) = delete;
+get_ifc_unit(const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_unknown(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_unknown(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern an_ifc_u16 get_ifc_unknown(const an_ifc_Node_type &universal) = delete;
+extern an_ifc_u16 get_ifc_unknown(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_unqualified(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_type_index get_ifc_unqualified(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_using_kw(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_using_kw(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_source_location get_ifc_using_kw(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_uuid(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_uuid(const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern an_ifc_uuid get_ifc_uuid(const an_ifc_Node_type &universal) = delete;
+extern an_ifc_uuid get_ifc_uuid(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_value(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_value(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern typename an_ifc_value_metadata<an_ifc_Node_type>::return_type
-get_ifc_value(const an_ifc_Node_type &universal) = delete;
+get_ifc_value(const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_variant(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_variant(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_decl_index get_ifc_variant(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_virtual_kw(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_source_location get_ifc_virtual_kw(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_virtual_kw2(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_source_location get_ifc_virtual_kw2(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_virtual_specifiers(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_syntax_index get_ifc_virtual_specifiers(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_while(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_while(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_source_location get_ifc_while(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_whole(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_whole(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_syntax_index get_ifc_whole(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_width(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_width(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_expr_index get_ifc_width(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_word(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_word(const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_nestable_word get_ifc_word(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_words(const an_ifc_Node_type &universal) = delete;
+extern a_boolean has_ifc_words(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
 extern an_ifc_sentence_index get_ifc_words(
-                                   const an_ifc_Node_type &universal) = delete;
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean validate(const an_ifc_Node_type        &universal,
-                          const an_ifc_validation_trace *parent) = delete;
+extern a_boolean validate(
+                       const an_ifc_Node_type        &universal,
+                       const an_ifc_validation_trace *parent) DELETED_FN_DEF
 
 /*
 Functions for interacting with IFC KeywordSyntax nodes.
@@ -11625,13 +11780,7 @@ an_ifc_attr_basic_storage* get<an_ifc_attr_basic_storage>(
                                        a_boolean                 fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_attr_basic>()
-/*
-Return the corresponding partition kind for AttrBasic.
-*/
-{
-  return ifc_pk_attr_basic;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_attr_basic>();
 
 /*
 Functions for interacting with IFC AttrCalled nodes.
@@ -11666,13 +11815,7 @@ an_ifc_attr_called_storage* get<an_ifc_attr_called_storage>(
                                       a_boolean                  fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_attr_called>()
-/*
-Return the corresponding partition kind for AttrCalled.
-*/
-{
-  return ifc_pk_attr_called;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_attr_called>();
 
 /*
 Functions for interacting with IFC AttrElaborated nodes.
@@ -11701,14 +11844,7 @@ an_ifc_attr_elaborated_storage* get<an_ifc_attr_elaborated_storage>(
                                   a_boolean                      fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_attr_elaborated>()
-/*
-Return the corresponding partition kind for AttrElaborated.
-*/
-{
-  return ifc_pk_attr_elaborated;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_attr_elaborated>();
 
 /*
 Functions for interacting with IFC AttrExpanded nodes.
@@ -11737,13 +11873,7 @@ an_ifc_attr_expanded_storage* get<an_ifc_attr_expanded_storage>(
                                     a_boolean                    fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_attr_expanded>()
-/*
-Return the corresponding partition kind for AttrExpanded.
-*/
-{
-  return ifc_pk_attr_expanded;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_attr_expanded>();
 
 /*
 Functions for interacting with IFC AttrFactored nodes.
@@ -11778,13 +11908,7 @@ an_ifc_attr_factored_storage* get<an_ifc_attr_factored_storage>(
                                     a_boolean                    fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_attr_factored>()
-/*
-Return the corresponding partition kind for AttrFactored.
-*/
-{
-  return ifc_pk_attr_factored;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_attr_factored>();
 
 /*
 Functions for interacting with IFC AttrLabeled nodes.
@@ -11819,13 +11943,7 @@ an_ifc_attr_labeled_storage* get<an_ifc_attr_labeled_storage>(
                                      a_boolean                   fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_attr_labeled>()
-/*
-Return the corresponding partition kind for AttrLabeled.
-*/
-{
-  return ifc_pk_attr_labeled;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_attr_labeled>();
 
 /*
 Functions for interacting with IFC AttrScoped nodes.
@@ -11860,13 +11978,7 @@ an_ifc_attr_scoped_storage* get<an_ifc_attr_scoped_storage>(
                                       a_boolean                  fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_attr_scoped>()
-/*
-Return the corresponding partition kind for AttrScoped.
-*/
-{
-  return ifc_pk_attr_scoped;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_attr_scoped>();
 
 /*
 Functions for interacting with IFC AttrTuple nodes.
@@ -11901,13 +12013,7 @@ an_ifc_attr_tuple_storage* get<an_ifc_attr_tuple_storage>(
                                        a_boolean                 fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_attr_tuple>()
-/*
-Return the corresponding partition kind for AttrTuple.
-*/
-{
-  return ifc_pk_attr_tuple;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_attr_tuple>();
 
 /*
 Functions for interacting with IFC ChartMultilevel nodes.
@@ -11943,14 +12049,7 @@ an_ifc_chart_multilevel_storage* get<an_ifc_chart_multilevel_storage>(
                                  a_boolean                       fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_chart_multilevel>()
-/*
-Return the corresponding partition kind for ChartMultilevel.
-*/
-{
-  return ifc_pk_chart_multilevel;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_chart_multilevel>();
 
 /*
 Functions for interacting with IFC ChartUnilevel nodes.
@@ -11991,13 +12090,7 @@ an_ifc_chart_unilevel_storage* get<an_ifc_chart_unilevel_storage>(
                                    a_boolean                     fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_chart_unilevel>()
-/*
-Return the corresponding partition kind for ChartUnilevel.
-*/
-{
-  return ifc_pk_chart_unilevel;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_chart_unilevel>();
 
 /*
 Functions for interacting with IFC ConstF64 nodes.
@@ -12026,13 +12119,7 @@ an_ifc_const_f64_storage* get<an_ifc_const_f64_storage>(
                                         a_boolean                fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_const_f64>()
-/*
-Return the corresponding partition kind for ConstF64.
-*/
-{
-  return ifc_pk_const_f64;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_const_f64>();
 
 /*
 Functions for interacting with IFC ConstI64 nodes.
@@ -12061,13 +12148,7 @@ an_ifc_const_i64_storage* get<an_ifc_const_i64_storage>(
                                         a_boolean                fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_const_i64>()
-/*
-Return the corresponding partition kind for ConstI64.
-*/
-{
-  return ifc_pk_const_i64;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_const_i64>();
 
 /*
 Functions for interacting with IFC ConstStr nodes.
@@ -12108,13 +12189,7 @@ an_ifc_const_str_storage* get<an_ifc_const_str_storage>(
                                         a_boolean                fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_const_str>()
-/*
-Return the corresponding partition kind for ConstStr.
-*/
-{
-  return ifc_pk_const_str;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_const_str>();
 
 /*
 Functions for interacting with IFC DeclAlias nodes.
@@ -12180,13 +12255,7 @@ an_ifc_decl_alias_storage* get<an_ifc_decl_alias_storage>(
                                        a_boolean                 fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_decl_alias>()
-/*
-Return the corresponding partition kind for DeclAlias.
-*/
-{
-  return ifc_pk_decl_alias;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_decl_alias>();
 
 /*
 Functions for interacting with IFC DeclBitfield nodes.
@@ -12272,13 +12341,7 @@ an_ifc_decl_bitfield_storage* get<an_ifc_decl_bitfield_storage>(
                                     a_boolean                    fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_decl_bitfield>()
-/*
-Return the corresponding partition kind for DeclBitfield.
-*/
-{
-  return ifc_pk_decl_bitfield;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_decl_bitfield>();
 
 /*
 Functions for interacting with IFC DeclConcept nodes.
@@ -12368,13 +12431,7 @@ an_ifc_decl_concept_storage* get<an_ifc_decl_concept_storage>(
                                      a_boolean                   fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_decl_concept>()
-/*
-Return the corresponding partition kind for DeclConcept.
-*/
-{
-  return ifc_pk_decl_concept;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_decl_concept>();
 
 /*
 Functions for interacting with IFC DeclConstructor nodes.
@@ -12454,14 +12511,7 @@ an_ifc_decl_constructor_storage* get<an_ifc_decl_constructor_storage>(
                                  a_boolean                       fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_decl_constructor>()
-/*
-Return the corresponding partition kind for DeclConstructor.
-*/
-{
-  return ifc_pk_decl_constructor;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_decl_constructor>();
 
 /*
 Functions for interacting with IFC DeclDeductionGuide nodes.
@@ -12532,14 +12582,7 @@ an_ifc_decl_deduction_guide_storage* get<an_ifc_decl_deduction_guide_storage>(
                              a_boolean                           fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_decl_deduction_guide>()
-/*
-Return the corresponding partition kind for DeclDeductionGuide.
-*/
-{
-  return ifc_pk_decl_deduction_guide;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_decl_deduction_guide>();
 
 /*
 Functions for interacting with IFC DeclDestructor nodes.
@@ -12621,14 +12664,7 @@ an_ifc_decl_destructor_storage* get<an_ifc_decl_destructor_storage>(
                                   a_boolean                      fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_decl_destructor>()
-/*
-Return the corresponding partition kind for DeclDestructor.
-*/
-{
-  return ifc_pk_decl_destructor;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_decl_destructor>();
 
 /*
 Functions for interacting with IFC DeclEnumeration nodes.
@@ -12713,14 +12749,7 @@ an_ifc_decl_enumeration_storage* get<an_ifc_decl_enumeration_storage>(
                                  a_boolean                       fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_decl_enumeration>()
-/*
-Return the corresponding partition kind for DeclEnumeration.
-*/
-{
-  return ifc_pk_decl_enum;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_decl_enumeration>();
 
 /*
 Functions for interacting with IFC DeclEnumerator nodes.
@@ -12786,14 +12815,7 @@ an_ifc_decl_enumerator_storage* get<an_ifc_decl_enumerator_storage>(
                                   a_boolean                      fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_decl_enumerator>()
-/*
-Return the corresponding partition kind for DeclEnumerator.
-*/
-{
-  return ifc_pk_decl_enumerator;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_decl_enumerator>();
 
 /*
 Functions for interacting with IFC DeclExpansion nodes.
@@ -12828,13 +12850,7 @@ an_ifc_decl_expansion_storage* get<an_ifc_decl_expansion_storage>(
                                    a_boolean                     fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_decl_expansion>()
-/*
-Return the corresponding partition kind for DeclExpansion.
-*/
-{
-  return ifc_pk_decl_expansion;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_decl_expansion>();
 
 /*
 Functions for interacting with IFC DeclExplicitInstantiation nodes.
@@ -12873,14 +12889,8 @@ get<an_ifc_decl_explicit_instantiation_storage>(
                       a_boolean                                  fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_decl_explicit_instantiation>()
-/*
-Return the corresponding partition kind for DeclExplicitInstantiation.
-*/
-{
-  return ifc_pk_decl_explicit_instantiation;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind
+get_ifc_partition_kind<an_ifc_decl_explicit_instantiation>();
 
 /*
 Functions for interacting with IFC DeclExplicitSpecialization nodes.
@@ -12919,14 +12929,8 @@ get<an_ifc_decl_explicit_specialization_storage>(
                      a_boolean                                   fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_decl_explicit_specialization>()
-/*
-Return the corresponding partition kind for DeclExplicitSpecialization.
-*/
-{
-  return ifc_pk_decl_explicit_specialization;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind
+get_ifc_partition_kind<an_ifc_decl_explicit_specialization>();
 
 /*
 Functions for interacting with IFC DeclField nodes.
@@ -13012,13 +13016,7 @@ an_ifc_decl_field_storage* get<an_ifc_decl_field_storage>(
                                        a_boolean                 fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_decl_field>()
-/*
-Return the corresponding partition kind for DeclField.
-*/
-{
-  return ifc_pk_decl_field;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_decl_field>();
 
 /*
 Functions for interacting with IFC DeclFriend nodes.
@@ -13047,13 +13045,7 @@ an_ifc_decl_friend_storage* get<an_ifc_decl_friend_storage>(
                                       a_boolean                  fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_decl_friend>()
-/*
-Return the corresponding partition kind for DeclFriend.
-*/
-{
-  return ifc_pk_decl_friend;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_decl_friend>();
 
 /*
 Functions for interacting with IFC DeclFunction nodes.
@@ -13133,13 +13125,7 @@ an_ifc_decl_function_storage* get<an_ifc_decl_function_storage>(
                                     a_boolean                    fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_decl_function>()
-/*
-Return the corresponding partition kind for DeclFunction.
-*/
-{
-  return ifc_pk_decl_function;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_decl_function>();
 
 /*
 Functions for interacting with IFC DeclInheritedConstructor nodes.
@@ -13230,14 +13216,8 @@ get<an_ifc_decl_inherited_constructor_storage>(
                        a_boolean                                 fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_decl_inherited_constructor>()
-/*
-Return the corresponding partition kind for DeclInheritedConstructor.
-*/
-{
-  return ifc_pk_decl_inherited_constructor;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind
+get_ifc_partition_kind<an_ifc_decl_inherited_constructor>();
 
 /*
 Functions for interacting with IFC DeclIntrinsic nodes.
@@ -13297,13 +13277,7 @@ an_ifc_decl_intrinsic_storage* get<an_ifc_decl_intrinsic_storage>(
                                    a_boolean                     fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_decl_intrinsic>()
-/*
-Return the corresponding partition kind for DeclIntrinsic.
-*/
-{
-  return ifc_pk_decl_intrinsic;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_decl_intrinsic>();
 
 /*
 Functions for interacting with IFC DeclMethod nodes.
@@ -13383,13 +13357,7 @@ an_ifc_decl_method_storage* get<an_ifc_decl_method_storage>(
                                       a_boolean                  fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_decl_method>()
-/*
-Return the corresponding partition kind for DeclMethod.
-*/
-{
-  return ifc_pk_decl_method;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_decl_method>();
 
 /*
 Functions for interacting with IFC DeclOutputSegment nodes.
@@ -13438,14 +13406,7 @@ an_ifc_decl_output_segment_storage* get<an_ifc_decl_output_segment_storage>(
                               a_boolean                          fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_decl_output_segment>()
-/*
-Return the corresponding partition kind for DeclOutputSegment.
-*/
-{
-  return ifc_pk_decl_segment;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_decl_output_segment>();
 
 /*
 Functions for interacting with IFC DeclParameter nodes.
@@ -13530,13 +13491,7 @@ an_ifc_decl_parameter_storage* get<an_ifc_decl_parameter_storage>(
                                    a_boolean                     fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_decl_parameter>()
-/*
-Return the corresponding partition kind for DeclParameter.
-*/
-{
-  return ifc_pk_decl_parameter;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_decl_parameter>();
 
 /*
 Functions for interacting with IFC DeclPartialSpecialization nodes.
@@ -13627,14 +13582,8 @@ get<an_ifc_decl_partial_specialization_storage>(
                       a_boolean                                  fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_decl_partial_specialization>()
-/*
-Return the corresponding partition kind for DeclPartialSpecialization.
-*/
-{
-  return ifc_pk_decl_partial_specialization;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind
+get_ifc_partition_kind<an_ifc_decl_partial_specialization>();
 
 /*
 Functions for interacting with IFC DeclProperty nodes.
@@ -13675,13 +13624,7 @@ an_ifc_decl_property_storage* get<an_ifc_decl_property_storage>(
                                     a_boolean                    fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_decl_property>()
-/*
-Return the corresponding partition kind for DeclProperty.
-*/
-{
-  return ifc_pk_decl_property;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_decl_property>();
 
 /*
 Functions for interacting with IFC DeclReference nodes.
@@ -13723,13 +13666,7 @@ an_ifc_decl_reference_storage* get<an_ifc_decl_reference_storage>(
                                    a_boolean                     fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_decl_reference>()
-/*
-Return the corresponding partition kind for DeclReference.
-*/
-{
-  return ifc_pk_decl_reference;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_decl_reference>();
 
 /*
 Functions for interacting with IFC DeclScope nodes.
@@ -13827,13 +13764,7 @@ an_ifc_decl_scope_storage* get<an_ifc_decl_scope_storage>(
                                        a_boolean                 fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_decl_scope>()
-/*
-Return the corresponding partition kind for DeclScope.
-*/
-{
-  return ifc_pk_decl_scope;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_decl_scope>();
 
 /*
 Functions for interacting with IFC DeclSpecialization nodes.
@@ -13897,14 +13828,7 @@ an_ifc_decl_specialization_storage* get<an_ifc_decl_specialization_storage>(
                               a_boolean                          fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_decl_specialization>()
-/*
-Return the corresponding partition kind for DeclSpecialization.
-*/
-{
-  return ifc_pk_decl_specialization;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_decl_specialization>();
 
 /*
 Functions for interacting with IFC DeclTemplate nodes.
@@ -13984,13 +13908,7 @@ an_ifc_decl_template_storage* get<an_ifc_decl_template_storage>(
                                     a_boolean                    fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_decl_template>()
-/*
-Return the corresponding partition kind for DeclTemplate.
-*/
-{
-  return ifc_pk_decl_template;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_decl_template>();
 
 /*
 Functions for interacting with IFC DeclTemploid nodes.
@@ -14033,13 +13951,7 @@ an_ifc_decl_temploid_storage* get<an_ifc_decl_temploid_storage>(
                                     a_boolean                    fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_decl_temploid>()
-/*
-Return the corresponding partition kind for DeclTemploid.
-*/
-{
-  return ifc_pk_decl_temploid;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_decl_temploid>();
 
 /*
 Functions for interacting with IFC DeclTuple nodes.
@@ -14074,13 +13986,7 @@ an_ifc_decl_tuple_storage* get<an_ifc_decl_tuple_storage>(
                                        a_boolean                 fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_decl_tuple>()
-/*
-Return the corresponding partition kind for DeclTuple.
-*/
-{
-  return ifc_pk_decl_tuple;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_decl_tuple>();
 
 /*
 Functions for interacting with IFC DeclUsingDeclaration nodes.
@@ -14167,14 +14073,7 @@ get<an_ifc_decl_using_declaration_storage>(
                            a_boolean                             fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_decl_using_declaration>()
-/*
-Return the corresponding partition kind for DeclUsingDeclaration.
-*/
-{
-  return ifc_pk_decl_using_declaration;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_decl_using_declaration>();
 
 /*
 Functions for interacting with IFC DeclVariable nodes.
@@ -14260,13 +14159,7 @@ an_ifc_decl_variable_storage* get<an_ifc_decl_variable_storage>(
                                     a_boolean                    fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_decl_variable>()
-/*
-Return the corresponding partition kind for DeclVariable.
-*/
-{
-  return ifc_pk_decl_variable;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_decl_variable>();
 
 /*
 Functions for interacting with IFC ExprAlignof nodes.
@@ -14307,13 +14200,7 @@ an_ifc_expr_alignof_storage* get<an_ifc_expr_alignof_storage>(
                                      a_boolean                   fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_alignof>()
-/*
-Return the corresponding partition kind for ExprAlignof.
-*/
-{
-  return ifc_pk_expr_alignof_type_id;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_alignof>();
 
 /*
 Functions for interacting with IFC ExprArrayValue nodes.
@@ -14361,14 +14248,7 @@ an_ifc_expr_array_value_storage* get<an_ifc_expr_array_value_storage>(
                                  a_boolean                       fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_expr_array_value>()
-/*
-Return the corresponding partition kind for ExprArrayValue.
-*/
-{
-  return ifc_pk_expr_array_value;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_array_value>();
 
 /*
 Functions for interacting with IFC ExprAssignInitializer nodes.
@@ -14407,14 +14287,7 @@ get<an_ifc_expr_assign_initializer_storage>(
                           a_boolean                              fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_expr_assign_initializer>()
-/*
-Return the corresponding partition kind for ExprAssignInitializer.
-*/
-{
-  return ifc_pk_expr_assign_initializer;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_assign_initializer>();
 
 /*
 Functions for interacting with IFC ExprBinaryFold nodes.
@@ -14475,14 +14348,7 @@ an_ifc_expr_binary_fold_storage* get<an_ifc_expr_binary_fold_storage>(
                                  a_boolean                       fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_expr_binary_fold>()
-/*
-Return the corresponding partition kind for ExprBinaryFold.
-*/
-{
-  return ifc_pk_expr_binary_fold;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_binary_fold>();
 
 /*
 Functions for interacting with IFC ExprCall nodes.
@@ -14529,13 +14395,7 @@ an_ifc_expr_call_storage* get<an_ifc_expr_call_storage>(
                                         a_boolean                fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_call>()
-/*
-Return the corresponding partition kind for ExprCall.
-*/
-{
-  return ifc_pk_expr_call;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_call>();
 
 /*
 Functions for interacting with IFC ExprCast nodes.
@@ -14588,13 +14448,7 @@ an_ifc_expr_cast_storage* get<an_ifc_expr_cast_storage>(
                                         a_boolean                fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_cast>()
-/*
-Return the corresponding partition kind for ExprCast.
-*/
-{
-  return ifc_pk_expr_cast;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_cast>();
 
 /*
 Functions for interacting with IFC ExprCompoundString nodes.
@@ -14644,14 +14498,7 @@ an_ifc_expr_compound_string_storage* get<an_ifc_expr_compound_string_storage>(
                              a_boolean                           fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_expr_compound_string>()
-/*
-Return the corresponding partition kind for ExprCompoundString.
-*/
-{
-  return ifc_pk_expr_compound_string;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_compound_string>();
 
 /*
 Functions for interacting with IFC ExprCondition nodes.
@@ -14692,13 +14539,7 @@ an_ifc_expr_condition_storage* get<an_ifc_expr_condition_storage>(
                                    a_boolean                     fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_condition>()
-/*
-Return the corresponding partition kind for ExprCondition.
-*/
-{
-  return ifc_pk_expr_condition;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_condition>();
 
 /*
 Functions for interacting with IFC ExprDesignatedInitializer nodes.
@@ -14752,14 +14593,8 @@ get<an_ifc_expr_designated_initializer_storage>(
                       a_boolean                                  fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_expr_designated_initializer>()
-/*
-Return the corresponding partition kind for ExprDesignatedInitializer.
-*/
-{
-  return ifc_pk_expr_designated_init;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind
+get_ifc_partition_kind<an_ifc_expr_designated_initializer>();
 
 /*
 Functions for interacting with IFC ExprDestructorCall nodes.
@@ -14817,14 +14652,7 @@ an_ifc_expr_destructor_call_storage* get<an_ifc_expr_destructor_call_storage>(
                              a_boolean                           fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_expr_destructor_call>()
-/*
-Return the corresponding partition kind for ExprDestructorCall.
-*/
-{
-  return ifc_pk_expr_destructor_call;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_destructor_call>();
 
 /*
 Functions for interacting with IFC ExprDyad nodes.
@@ -14883,13 +14711,7 @@ an_ifc_expr_dyad_storage* get<an_ifc_expr_dyad_storage>(
                                         a_boolean                fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_dyad>()
-/*
-Return the corresponding partition kind for ExprDyad.
-*/
-{
-  return ifc_pk_expr_dyad;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_dyad>();
 
 /*
 Functions for interacting with IFC ExprDynamicDispatch nodes.
@@ -14933,14 +14755,7 @@ get<an_ifc_expr_dynamic_dispatch_storage>(
                             a_boolean                            fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_expr_dynamic_dispatch>()
-/*
-Return the corresponding partition kind for ExprDynamicDispatch.
-*/
-{
-  return ifc_pk_expr_dynamic_dispatch;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_dynamic_dispatch>();
 
 /*
 Functions for interacting with IFC ExprEmpty nodes.
@@ -14975,13 +14790,7 @@ an_ifc_expr_empty_storage* get<an_ifc_expr_empty_storage>(
                                        a_boolean                 fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_empty>()
-/*
-Return the corresponding partition kind for ExprEmpty.
-*/
-{
-  return ifc_pk_expr_empty;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_empty>();
 
 /*
 Functions for interacting with IFC ExprExpansion nodes.
@@ -15022,13 +14831,7 @@ an_ifc_expr_expansion_storage* get<an_ifc_expr_expansion_storage>(
                                    a_boolean                     fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_expansion>()
-/*
-Return the corresponding partition kind for ExprExpansion.
-*/
-{
-  return ifc_pk_expr_expansion;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_expansion>();
 
 /*
 Functions for interacting with IFC ExprExpressionList nodes.
@@ -15080,14 +14883,7 @@ an_ifc_expr_expression_list_storage* get<an_ifc_expr_expression_list_storage>(
                              a_boolean                           fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_expr_expression_list>()
-/*
-Return the corresponding partition kind for ExprExpressionList.
-*/
-{
-  return ifc_pk_expr_expression_list;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_expression_list>();
 
 /*
 Functions for interacting with IFC ExprFunctionString nodes.
@@ -15130,14 +14926,7 @@ an_ifc_expr_function_string_storage* get<an_ifc_expr_function_string_storage>(
                              a_boolean                           fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_expr_function_string>()
-/*
-Return the corresponding partition kind for ExprFunctionString.
-*/
-{
-  return ifc_pk_expr_function_string;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_function_string>();
 
 /*
 Functions for interacting with IFC ExprHierarchyConversion nodes.
@@ -15212,14 +15001,8 @@ get<an_ifc_expr_hierarchy_conversion_storage>(
                         a_boolean                                fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_expr_hierarchy_conversion>()
-/*
-Return the corresponding partition kind for ExprHierarchyConversion.
-*/
-{
-  return ifc_pk_expr_hierarchy_conversion;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind
+get_ifc_partition_kind<an_ifc_expr_hierarchy_conversion>();
 
 /*
 Functions for interacting with IFC ExprInheritancePath nodes.
@@ -15263,14 +15046,7 @@ get<an_ifc_expr_inheritance_path_storage>(
                             a_boolean                            fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_expr_inheritance_path>()
-/*
-Return the corresponding partition kind for ExprInheritancePath.
-*/
-{
-  return ifc_pk_expr_inheritance_path;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_inheritance_path>();
 
 /*
 Functions for interacting with IFC ExprInitializer nodes.
@@ -15317,14 +15093,7 @@ an_ifc_expr_initializer_storage* get<an_ifc_expr_initializer_storage>(
                                  a_boolean                       fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_expr_initializer>()
-/*
-Return the corresponding partition kind for ExprInitializer.
-*/
-{
-  return ifc_pk_expr_initializer;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_initializer>();
 
 /*
 Functions for interacting with IFC ExprInitializerList nodes.
@@ -15369,14 +15138,7 @@ get<an_ifc_expr_initializer_list_storage>(
                             a_boolean                            fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_expr_initializer_list>()
-/*
-Return the corresponding partition kind for ExprInitializerList.
-*/
-{
-  return ifc_pk_expr_initializer_list;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_initializer_list>();
 
 /*
 Functions for interacting with IFC ExprLambda nodes.
@@ -15430,13 +15192,7 @@ an_ifc_expr_lambda_storage* get<an_ifc_expr_lambda_storage>(
                                       a_boolean                  fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_lambda>()
-/*
-Return the corresponding partition kind for ExprLambda.
-*/
-{
-  return ifc_pk_expr_lambda;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_lambda>();
 
 /*
 Functions for interacting with IFC ExprLiteral nodes.
@@ -15477,13 +15233,7 @@ an_ifc_expr_literal_storage* get<an_ifc_expr_literal_storage>(
                                      a_boolean                   fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_literal>()
-/*
-Return the corresponding partition kind for ExprLiteral.
-*/
-{
-  return ifc_pk_expr_literal;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_literal>();
 
 /*
 Functions for interacting with IFC ExprMemberAccess nodes.
@@ -15539,14 +15289,7 @@ an_ifc_expr_member_access_storage* get<an_ifc_expr_member_access_storage>(
                                a_boolean                         fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_expr_member_access>()
-/*
-Return the corresponding partition kind for ExprMemberAccess.
-*/
-{
-  return ifc_pk_expr_member_access;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_member_access>();
 
 /*
 Functions for interacting with IFC ExprMemberInitializer nodes.
@@ -15606,14 +15349,7 @@ get<an_ifc_expr_member_initializer_storage>(
                           a_boolean                              fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_expr_member_initializer>()
-/*
-Return the corresponding partition kind for ExprMemberInitializer.
-*/
-{
-  return ifc_pk_expr_member_initializer;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_member_initializer>();
 
 /*
 Functions for interacting with IFC ExprMonad nodes.
@@ -15666,13 +15402,7 @@ an_ifc_expr_monad_storage* get<an_ifc_expr_monad_storage>(
                                        a_boolean                 fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_monad>()
-/*
-Return the corresponding partition kind for ExprMonad.
-*/
-{
-  return ifc_pk_expr_monad;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_monad>();
 
 /*
 Functions for interacting with IFC ExprNamedDecl nodes.
@@ -15713,14 +15443,7 @@ an_ifc_expr_named_decl_storage* get<an_ifc_expr_named_decl_storage>(
                                   a_boolean                      fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_expr_named_decl>()
-/*
-Return the corresponding partition kind for ExprNamedDecl.
-*/
-{
-  return ifc_pk_expr_decl;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_named_decl>();
 
 /*
 Functions for interacting with IFC ExprNullptr nodes.
@@ -15755,13 +15478,7 @@ an_ifc_expr_nullptr_storage* get<an_ifc_expr_nullptr_storage>(
                                      a_boolean                   fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_nullptr>()
-/*
-Return the corresponding partition kind for ExprNullptr.
-*/
-{
-  return ifc_pk_expr_nullptr;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_nullptr>();
 
 /*
 Functions for interacting with IFC ExprPackedTemplateArguments nodes.
@@ -15809,14 +15526,8 @@ get<an_ifc_expr_packed_template_arguments_storage>(
                    a_boolean                                     fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_expr_packed_template_arguments>()
-/*
-Return the corresponding partition kind for ExprPackedTemplateArguments.
-*/
-{
-  return ifc_pk_expr_packed_template_arguments;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind
+get_ifc_partition_kind<an_ifc_expr_packed_template_arguments>();
 
 /*
 Functions for interacting with IFC ExprPath nodes.
@@ -15863,13 +15574,7 @@ an_ifc_expr_path_storage* get<an_ifc_expr_path_storage>(
                                         a_boolean                fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_path>()
-/*
-Return the corresponding partition kind for ExprPath.
-*/
-{
-  return ifc_pk_expr_path;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_path>();
 
 /*
 Functions for interacting with IFC ExprPlaceholder nodes.
@@ -15904,14 +15609,7 @@ an_ifc_expr_placeholder_storage* get<an_ifc_expr_placeholder_storage>(
                                  a_boolean                       fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_expr_placeholder>()
-/*
-Return the corresponding partition kind for ExprPlaceholder.
-*/
-{
-  return ifc_pk_expr_placeholder;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_placeholder>();
 
 /*
 Functions for interacting with IFC ExprPointer nodes.
@@ -15940,13 +15638,7 @@ an_ifc_expr_pointer_storage* get<an_ifc_expr_pointer_storage>(
                                      a_boolean                   fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_pointer>()
-/*
-Return the corresponding partition kind for ExprPointer.
-*/
-{
-  return ifc_pk_expr_pointer;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_pointer>();
 
 /*
 Functions for interacting with IFC ExprProductTypeValue nodes.
@@ -16007,14 +15699,7 @@ get<an_ifc_expr_product_type_value_storage>(
                           a_boolean                              fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_expr_product_type_value>()
-/*
-Return the corresponding partition kind for ExprProductTypeValue.
-*/
-{
-  return ifc_pk_expr_product_type_value;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_product_type_value>();
 
 /*
 Functions for interacting with IFC ExprPushState nodes.
@@ -16067,14 +15752,7 @@ an_ifc_expr_push_state_storage* get<an_ifc_expr_push_state_storage>(
                                   a_boolean                      fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_expr_push_state>()
-/*
-Return the corresponding partition kind for ExprPushState.
-*/
-{
-  return ifc_pk_expr_push_state;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_push_state>();
 
 /*
 Functions for interacting with IFC ExprQualifiedName nodes.
@@ -16126,14 +15804,7 @@ an_ifc_expr_qualified_name_storage* get<an_ifc_expr_qualified_name_storage>(
                               a_boolean                          fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_expr_qualified_name>()
-/*
-Return the corresponding partition kind for ExprQualifiedName.
-*/
-{
-  return ifc_pk_expr_qualified_name;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_qualified_name>();
 
 /*
 Functions for interacting with IFC ExprRead nodes.
@@ -16180,13 +15851,7 @@ an_ifc_expr_read_storage* get<an_ifc_expr_read_storage>(
                                         a_boolean                fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_read>()
-/*
-Return the corresponding partition kind for ExprRead.
-*/
-{
-  return ifc_pk_expr_read;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_read>();
 
 /*
 Functions for interacting with IFC ExprRequires nodes.
@@ -16233,13 +15898,7 @@ an_ifc_expr_requires_storage* get<an_ifc_expr_requires_storage>(
                                     a_boolean                    fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_requires>()
-/*
-Return the corresponding partition kind for ExprRequires.
-*/
-{
-  return ifc_pk_expr_requires;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_requires>();
 
 /*
 Functions for interacting with IFC ExprSimpleIdentifier nodes.
@@ -16283,14 +15942,7 @@ get<an_ifc_expr_simple_identifier_storage>(
                            a_boolean                             fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_expr_simple_identifier>()
-/*
-Return the corresponding partition kind for ExprSimpleIdentifier.
-*/
-{
-  return ifc_pk_expr_simple_identifier;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_simple_identifier>();
 
 /*
 Functions for interacting with IFC ExprSizeofType nodes.
@@ -16331,14 +15983,7 @@ an_ifc_expr_sizeof_type_storage* get<an_ifc_expr_sizeof_type_storage>(
                                  a_boolean                       fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_expr_sizeof_type>()
-/*
-Return the corresponding partition kind for ExprSizeofType.
-*/
-{
-  return ifc_pk_expr_sizeof_type;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_sizeof_type>();
 
 /*
 Functions for interacting with IFC ExprString nodes.
@@ -16379,13 +16024,7 @@ an_ifc_expr_string_storage* get<an_ifc_expr_string_storage>(
                                       a_boolean                  fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_string>()
-/*
-Return the corresponding partition kind for ExprString.
-*/
-{
-  return ifc_pk_expr_strings;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_string>();
 
 /*
 Functions for interacting with IFC ExprStringSequence nodes.
@@ -16429,14 +16068,7 @@ an_ifc_expr_string_sequence_storage* get<an_ifc_expr_string_sequence_storage>(
                              a_boolean                           fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_expr_string_sequence>()
-/*
-Return the corresponding partition kind for ExprStringSequence.
-*/
-{
-  return ifc_pk_expr_string_sequence;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_string_sequence>();
 
 /*
 Functions for interacting with IFC ExprSubobjectValue nodes.
@@ -16466,14 +16098,7 @@ an_ifc_expr_subobject_value_storage* get<an_ifc_expr_subobject_value_storage>(
                              a_boolean                           fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_expr_subobject_value>()
-/*
-Return the corresponding partition kind for ExprSubobjectValue.
-*/
-{
-  return ifc_pk_expr_class_subobject_value;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_subobject_value>();
 
 /*
 Functions for interacting with IFC ExprSumTypeValue nodes.
@@ -16529,14 +16154,7 @@ an_ifc_expr_sum_type_value_storage* get<an_ifc_expr_sum_type_value_storage>(
                               a_boolean                          fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_expr_sum_type_value>()
-/*
-Return the corresponding partition kind for ExprSumTypeValue.
-*/
-{
-  return ifc_pk_expr_sum_type_value;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_sum_type_value>();
 
 /*
 Functions for interacting with IFC ExprSyntaxTree nodes.
@@ -16565,14 +16183,7 @@ an_ifc_expr_syntax_tree_storage* get<an_ifc_expr_syntax_tree_storage>(
                                  a_boolean                       fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_expr_syntax_tree>()
-/*
-Return the corresponding partition kind for ExprSyntaxTree.
-*/
-{
-  return ifc_pk_expr_syntax_tree;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_syntax_tree>();
 
 /*
 Functions for interacting with IFC ExprTemplateId nodes.
@@ -16619,14 +16230,7 @@ an_ifc_expr_template_id_storage* get<an_ifc_expr_template_id_storage>(
                                  a_boolean                       fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_expr_template_id>()
-/*
-Return the corresponding partition kind for ExprTemplateId.
-*/
-{
-  return ifc_pk_expr_template_id;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_template_id>();
 
 /*
 Functions for interacting with IFC ExprTemplateReference nodes.
@@ -16694,14 +16298,7 @@ get<an_ifc_expr_template_reference_storage>(
                           a_boolean                              fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_expr_template_reference>()
-/*
-Return the corresponding partition kind for ExprTemplateReference.
-*/
-{
-  return ifc_pk_expr_template_reference;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_template_reference>();
 
 /*
 Functions for interacting with IFC ExprTemporary nodes.
@@ -16742,13 +16339,7 @@ an_ifc_expr_temporary_storage* get<an_ifc_expr_temporary_storage>(
                                    a_boolean                     fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_temporary>()
-/*
-Return the corresponding partition kind for ExprTemporary.
-*/
-{
-  return ifc_pk_expr_temporary;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_temporary>();
 
 /*
 Functions for interacting with IFC ExprThis nodes.
@@ -16783,13 +16374,7 @@ an_ifc_expr_this_storage* get<an_ifc_expr_this_storage>(
                                         a_boolean                fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_this>()
-/*
-Return the corresponding partition kind for ExprThis.
-*/
-{
-  return ifc_pk_expr_this;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_this>();
 
 /*
 Functions for interacting with IFC ExprTokens nodes.
@@ -16830,13 +16415,7 @@ an_ifc_expr_tokens_storage* get<an_ifc_expr_tokens_storage>(
                                       a_boolean                  fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_tokens>()
-/*
-Return the corresponding partition kind for ExprTokens.
-*/
-{
-  return ifc_pk_expr_tokens;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_tokens>();
 
 /*
 Functions for interacting with IFC ExprTriad nodes.
@@ -16901,13 +16480,7 @@ an_ifc_expr_triad_storage* get<an_ifc_expr_triad_storage>(
                                        a_boolean                 fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_triad>()
-/*
-Return the corresponding partition kind for ExprTriad.
-*/
-{
-  return ifc_pk_expr_triad;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_triad>();
 
 /*
 Functions for interacting with IFC ExprTuple nodes.
@@ -16954,13 +16527,7 @@ an_ifc_expr_tuple_storage* get<an_ifc_expr_tuple_storage>(
                                        a_boolean                 fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_tuple>()
-/*
-Return the corresponding partition kind for ExprTuple.
-*/
-{
-  return ifc_pk_expr_tuple;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_tuple>();
 
 /*
 Functions for interacting with IFC ExprType nodes.
@@ -17001,13 +16568,7 @@ an_ifc_expr_type_storage* get<an_ifc_expr_type_storage>(
                                         a_boolean                fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_type>()
-/*
-Return the corresponding partition kind for ExprType.
-*/
-{
-  return ifc_pk_expr_type;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_type>();
 
 /*
 Functions for interacting with IFC ExprTypeTraitIntrinsic nodes.
@@ -17060,14 +16621,8 @@ get<an_ifc_expr_type_trait_intrinsic_storage>(
                         a_boolean                                fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_expr_type_trait_intrinsic>()
-/*
-Return the corresponding partition kind for ExprTypeTraitIntrinsic.
-*/
-{
-  return ifc_pk_expr_type_trait;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind
+get_ifc_partition_kind<an_ifc_expr_type_trait_intrinsic>();
 
 /*
 Functions for interacting with IFC ExprTypeid nodes.
@@ -17108,13 +16663,7 @@ an_ifc_expr_typeid_storage* get<an_ifc_expr_typeid_storage>(
                                       a_boolean                  fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_typeid>()
-/*
-Return the corresponding partition kind for ExprTypeid.
-*/
-{
-  return ifc_pk_expr_typeid;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_typeid>();
 
 /*
 Functions for interacting with IFC ExprUnaryFold nodes.
@@ -17169,14 +16718,7 @@ an_ifc_expr_unary_fold_storage* get<an_ifc_expr_unary_fold_storage>(
                                   a_boolean                      fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_expr_unary_fold>()
-/*
-Return the corresponding partition kind for ExprUnaryFold.
-*/
-{
-  return ifc_pk_expr_unary_fold;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_unary_fold>();
 
 /*
 Functions for interacting with IFC ExprUnqualifiedId nodes.
@@ -17234,14 +16776,7 @@ an_ifc_expr_unqualified_id_storage* get<an_ifc_expr_unqualified_id_storage>(
                               a_boolean                          fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_expr_unqualified_id>()
-/*
-Return the corresponding partition kind for ExprUnqualifiedId.
-*/
-{
-  return ifc_pk_expr_unqualified_id;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_unqualified_id>();
 
 /*
 Functions for interacting with IFC ExprUnresolvedId nodes.
@@ -17284,14 +16819,7 @@ an_ifc_expr_unresolved_id_storage* get<an_ifc_expr_unresolved_id_storage>(
                                a_boolean                         fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_expr_unresolved_id>()
-/*
-Return the corresponding partition kind for ExprUnresolvedId.
-*/
-{
-  return ifc_pk_expr_unresolved;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_unresolved_id>();
 
 /*
 Functions for interacting with IFC ExprVirtualFunctionConversion nodes.
@@ -17340,14 +16868,8 @@ get<an_ifc_expr_virtual_function_conversion_storage>(
                  a_boolean                                       fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_expr_virtual_function_conversion>()
-/*
-Return the corresponding partition kind for ExprVirtualFunctionConversion.
-*/
-{
-  return ifc_pk_expr_virtual_function_conversion;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind
+get_ifc_partition_kind<an_ifc_expr_virtual_function_conversion>();
 
 /*
 Functions for interacting with IFC FormCatenate nodes.
@@ -17388,13 +16910,7 @@ an_ifc_form_catenate_storage* get<an_ifc_form_catenate_storage>(
                                     a_boolean                    fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_form_catenate>()
-/*
-Return the corresponding partition kind for FormCatenate.
-*/
-{
-  return ifc_pk_pp_catenate;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_form_catenate>();
 
 /*
 Functions for interacting with IFC FormCharacter nodes.
@@ -17429,13 +16945,7 @@ an_ifc_form_character_storage* get<an_ifc_form_character_storage>(
                                    a_boolean                     fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_form_character>()
-/*
-Return the corresponding partition kind for FormCharacter.
-*/
-{
-  return ifc_pk_pp_char;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_form_character>();
 
 /*
 Functions for interacting with IFC FormHeader nodes.
@@ -17470,13 +16980,7 @@ an_ifc_form_header_storage* get<an_ifc_form_header_storage>(
                                       a_boolean                  fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_form_header>()
-/*
-Return the corresponding partition kind for FormHeader.
-*/
-{
-  return ifc_pk_pp_header;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_form_header>();
 
 /*
 Functions for interacting with IFC FormIdentifier nodes.
@@ -17511,14 +17015,7 @@ an_ifc_form_identifier_storage* get<an_ifc_form_identifier_storage>(
                                   a_boolean                      fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_form_identifier>()
-/*
-Return the corresponding partition kind for FormIdentifier.
-*/
-{
-  return ifc_pk_pp_ident;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_form_identifier>();
 
 /*
 Functions for interacting with IFC FormJunk nodes.
@@ -17553,13 +17050,7 @@ an_ifc_form_junk_storage* get<an_ifc_form_junk_storage>(
                                         a_boolean                fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_form_junk>()
-/*
-Return the corresponding partition kind for FormJunk.
-*/
-{
-  return ifc_pk_pp_junk;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_form_junk>();
 
 /*
 Functions for interacting with IFC FormKeyword nodes.
@@ -17594,13 +17085,7 @@ an_ifc_form_keyword_storage* get<an_ifc_form_keyword_storage>(
                                      a_boolean                   fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_form_keyword>()
-/*
-Return the corresponding partition kind for FormKeyword.
-*/
-{
-  return ifc_pk_pp_key;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_form_keyword>();
 
 /*
 Functions for interacting with IFC FormNumber nodes.
@@ -17635,13 +17120,7 @@ an_ifc_form_number_storage* get<an_ifc_form_number_storage>(
                                       a_boolean                  fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_form_number>()
-/*
-Return the corresponding partition kind for FormNumber.
-*/
-{
-  return ifc_pk_pp_num;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_form_number>();
 
 /*
 Functions for interacting with IFC FormOperator nodes.
@@ -17682,13 +17161,7 @@ an_ifc_form_operator_storage* get<an_ifc_form_operator_storage>(
                                     a_boolean                    fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_form_operator>()
-/*
-Return the corresponding partition kind for FormOperator.
-*/
-{
-  return ifc_pk_pp_op;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_form_operator>();
 
 /*
 Functions for interacting with IFC FormParameter nodes.
@@ -17723,13 +17196,7 @@ an_ifc_form_parameter_storage* get<an_ifc_form_parameter_storage>(
                                    a_boolean                     fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_form_parameter>()
-/*
-Return the corresponding partition kind for FormParameter.
-*/
-{
-  return ifc_pk_pp_param;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_form_parameter>();
 
 /*
 Functions for interacting with IFC FormParenthesized nodes.
@@ -17766,14 +17233,7 @@ an_ifc_form_parenthesized_storage* get<an_ifc_form_parenthesized_storage>(
                                a_boolean                         fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_form_parenthesized>()
-/*
-Return the corresponding partition kind for FormParenthesized.
-*/
-{
-  return ifc_pk_pp_paren;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_form_parenthesized>();
 
 /*
 Functions for interacting with IFC FormPragma nodes.
@@ -17808,13 +17268,7 @@ an_ifc_form_pragma_storage* get<an_ifc_form_pragma_storage>(
                                       a_boolean                  fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_form_pragma>()
-/*
-Return the corresponding partition kind for FormPragma.
-*/
-{
-  return ifc_pk_pp_pragma;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_form_pragma>();
 
 /*
 Functions for interacting with IFC FormSpec nodes.
@@ -17849,13 +17303,7 @@ an_ifc_form_spec_storage* get<an_ifc_form_spec_storage>(
                                         a_boolean                fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_form_spec>()
-/*
-Return the corresponding partition kind for FormSpec.
-*/
-{
-  return ifc_pk_form_spec;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_form_spec>();
 
 /*
 Functions for interacting with IFC FormString nodes.
@@ -17890,13 +17338,7 @@ an_ifc_form_string_storage* get<an_ifc_form_string_storage>(
                                       a_boolean                  fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_form_string>()
-/*
-Return the corresponding partition kind for FormString.
-*/
-{
-  return ifc_pk_pp_string;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_form_string>();
 
 /*
 Functions for interacting with IFC FormStringize nodes.
@@ -17931,13 +17373,7 @@ an_ifc_form_stringize_storage* get<an_ifc_form_stringize_storage>(
                                    a_boolean                     fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_form_stringize>()
-/*
-Return the corresponding partition kind for FormStringize.
-*/
-{
-  return ifc_pk_pp_to_string;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_form_stringize>();
 
 /*
 Functions for interacting with IFC FormTuple nodes.
@@ -17972,13 +17408,7 @@ an_ifc_form_tuple_storage* get<an_ifc_form_tuple_storage>(
                                        a_boolean                 fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_form_tuple>()
-/*
-Return the corresponding partition kind for FormTuple.
-*/
-{
-  return ifc_pk_pp_tuple;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_form_tuple>();
 
 /*
 Functions for interacting with IFC FormWhitespace nodes.
@@ -18007,14 +17437,7 @@ an_ifc_form_whitespace_storage* get<an_ifc_form_whitespace_storage>(
                                   a_boolean                      fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_form_whitespace>()
-/*
-Return the corresponding partition kind for FormWhitespace.
-*/
-{
-  return ifc_pk_pp_space;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_form_whitespace>();
 
 /*
 Functions for interacting with IFC HeapAttr nodes.
@@ -18043,13 +17466,7 @@ an_ifc_heap_attr_storage* get<an_ifc_heap_attr_storage>(
                                         a_boolean                fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_heap_attr>()
-/*
-Return the corresponding partition kind for HeapAttr.
-*/
-{
-  return ifc_pk_heap_attr;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_heap_attr>();
 
 /*
 Functions for interacting with IFC HeapChart nodes.
@@ -18078,13 +17495,7 @@ an_ifc_heap_chart_storage* get<an_ifc_heap_chart_storage>(
                                        a_boolean                 fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_heap_chart>()
-/*
-Return the corresponding partition kind for HeapChart.
-*/
-{
-  return ifc_pk_heap_chart;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_heap_chart>();
 
 /*
 Functions for interacting with IFC HeapDecl nodes.
@@ -18113,13 +17524,7 @@ an_ifc_heap_decl_storage* get<an_ifc_heap_decl_storage>(
                                         a_boolean                fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_heap_decl>()
-/*
-Return the corresponding partition kind for HeapDecl.
-*/
-{
-  return ifc_pk_heap_decl;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_heap_decl>();
 
 /*
 Functions for interacting with IFC HeapExpr nodes.
@@ -18148,13 +17553,7 @@ an_ifc_heap_expr_storage* get<an_ifc_heap_expr_storage>(
                                         a_boolean                fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_heap_expr>()
-/*
-Return the corresponding partition kind for HeapExpr.
-*/
-{
-  return ifc_pk_heap_expr;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_heap_expr>();
 
 /*
 Functions for interacting with IFC HeapForm nodes.
@@ -18183,13 +17582,7 @@ an_ifc_heap_form_storage* get<an_ifc_heap_form_storage>(
                                         a_boolean                fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_heap_form>()
-/*
-Return the corresponding partition kind for HeapForm.
-*/
-{
-  return ifc_pk_heap_form;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_heap_form>();
 
 /*
 Functions for interacting with IFC HeapPPForm nodes.
@@ -18218,13 +17611,7 @@ an_ifc_heap_pp_form_storage* get<an_ifc_heap_pp_form_storage>(
                                      a_boolean                   fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_heap_pp_form>()
-/*
-Return the corresponding partition kind for HeapPPForm.
-*/
-{
-  return ifc_pk_heap_pp;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_heap_pp_form>();
 
 /*
 Functions for interacting with IFC HeapStmt nodes.
@@ -18253,13 +17640,7 @@ an_ifc_heap_stmt_storage* get<an_ifc_heap_stmt_storage>(
                                         a_boolean                fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_heap_stmt>()
-/*
-Return the corresponding partition kind for HeapStmt.
-*/
-{
-  return ifc_pk_heap_stmt;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_heap_stmt>();
 
 /*
 Functions for interacting with IFC HeapSyntax nodes.
@@ -18288,13 +17669,7 @@ an_ifc_heap_syntax_storage* get<an_ifc_heap_syntax_storage>(
                                       a_boolean                  fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_heap_syntax>()
-/*
-Return the corresponding partition kind for HeapSyntax.
-*/
-{
-  return ifc_pk_heap_syn;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_heap_syntax>();
 
 /*
 Functions for interacting with IFC HeapType nodes.
@@ -18323,13 +17698,7 @@ an_ifc_heap_type_storage* get<an_ifc_heap_type_storage>(
                                         a_boolean                fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_heap_type>()
-/*
-Return the corresponding partition kind for HeapType.
-*/
-{
-  return ifc_pk_heap_type;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_heap_type>();
 
 /*
 Functions for interacting with IFC MacroFunctionLike nodes.
@@ -18386,14 +17755,7 @@ an_ifc_macro_function_like_storage* get<an_ifc_macro_function_like_storage>(
                               a_boolean                          fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_macro_function_like>()
-/*
-Return the corresponding partition kind for MacroFunctionLike.
-*/
-{
-  return ifc_pk_macro_function_like;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_macro_function_like>();
 
 /*
 Functions for interacting with IFC MacroObjectLike nodes.
@@ -18436,14 +17798,7 @@ an_ifc_macro_object_like_storage* get<an_ifc_macro_object_like_storage>(
                                 a_boolean                        fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_macro_object_like>()
-/*
-Return the corresponding partition kind for MacroObjectLike.
-*/
-{
-  return ifc_pk_macro_object_like;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_macro_object_like>();
 
 /*
 Functions for interacting with IFC ModuleExportReference nodes.
@@ -18475,14 +17830,7 @@ get<an_ifc_module_export_reference_storage>(
                           a_boolean                              fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_module_export_reference>()
-/*
-Return the corresponding partition kind for ModuleExportReference.
-*/
-{
-  return ifc_pk_module_exported;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_module_export_reference>();
 
 /*
 Functions for interacting with IFC ModuleImportReference nodes.
@@ -18514,14 +17862,7 @@ get<an_ifc_module_import_reference_storage>(
                           a_boolean                              fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_module_import_reference>()
-/*
-Return the corresponding partition kind for ModuleImportReference.
-*/
-{
-  return ifc_pk_module_imported;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_module_import_reference>();
 
 /*
 Functions for interacting with IFC NameConversion nodes.
@@ -18556,14 +17897,7 @@ an_ifc_name_conversion_storage* get<an_ifc_name_conversion_storage>(
                                   a_boolean                      fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_name_conversion>()
-/*
-Return the corresponding partition kind for NameConversion.
-*/
-{
-  return ifc_pk_name_conversion;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_name_conversion>();
 
 /*
 Functions for interacting with IFC NameGuide nodes.
@@ -18592,13 +17926,7 @@ an_ifc_name_guide_storage* get<an_ifc_name_guide_storage>(
                                        a_boolean                 fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_name_guide>()
-/*
-Return the corresponding partition kind for NameGuide.
-*/
-{
-  return ifc_pk_name_guide;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_name_guide>();
 
 /*
 Functions for interacting with IFC NameLiteral nodes.
@@ -18627,13 +17955,7 @@ an_ifc_name_literal_storage* get<an_ifc_name_literal_storage>(
                                      a_boolean                   fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_name_literal>()
-/*
-Return the corresponding partition kind for NameLiteral.
-*/
-{
-  return ifc_pk_name_literal;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_name_literal>();
 
 /*
 Functions for interacting with IFC NameOperator nodes.
@@ -18669,13 +17991,7 @@ an_ifc_name_operator_storage* get<an_ifc_name_operator_storage>(
                                     a_boolean                    fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_name_operator>()
-/*
-Return the corresponding partition kind for NameOperator.
-*/
-{
-  return ifc_pk_name_operator;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_name_operator>();
 
 /*
 Functions for interacting with IFC NameSourceFile nodes.
@@ -18710,14 +18026,7 @@ an_ifc_name_source_file_storage* get<an_ifc_name_source_file_storage>(
                                  a_boolean                       fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_name_source_file>()
-/*
-Return the corresponding partition kind for NameSourceFile.
-*/
-{
-  return ifc_pk_name_source_file;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_name_source_file>();
 
 /*
 Functions for interacting with IFC NameSpecialization nodes.
@@ -18754,14 +18063,7 @@ an_ifc_name_specialization_storage* get<an_ifc_name_specialization_storage>(
                               a_boolean                          fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_name_specialization>()
-/*
-Return the corresponding partition kind for NameSpecialization.
-*/
-{
-  return ifc_pk_name_specialization;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_name_specialization>();
 
 /*
 Functions for interacting with IFC NameTemplate nodes.
@@ -18790,13 +18092,7 @@ an_ifc_name_template_storage* get<an_ifc_name_template_storage>(
                                     a_boolean                    fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_name_template>()
-/*
-Return the corresponding partition kind for NameTemplate.
-*/
-{
-  return ifc_pk_name_template;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_name_template>();
 
 /*
 Functions for interacting with IFC ScopeDescriptor nodes.
@@ -18832,14 +18128,7 @@ an_ifc_scope_descriptor_storage* get<an_ifc_scope_descriptor_storage>(
                                  a_boolean                       fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_scope_descriptor>()
-/*
-Return the corresponding partition kind for ScopeDescriptor.
-*/
-{
-  return ifc_pk_scope_desc;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_scope_descriptor>();
 
 /*
 Functions for interacting with IFC ScopeMember nodes.
@@ -18868,13 +18157,7 @@ an_ifc_scope_member_storage* get<an_ifc_scope_member_storage>(
                                      a_boolean                   fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_scope_member>()
-/*
-Return the corresponding partition kind for ScopeMember.
-*/
-{
-  return ifc_pk_scope_member;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_scope_member>();
 
 /*
 Functions for interacting with IFC SourceLine nodes.
@@ -18909,13 +18192,7 @@ an_ifc_source_line_storage* get<an_ifc_source_line_storage>(
                                       a_boolean                  fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_source_line>()
-/*
-Return the corresponding partition kind for SourceLine.
-*/
-{
-  return ifc_pk_src_line;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_source_line>();
 
 /*
 Functions for interacting with IFC SourceSentence nodes.
@@ -18957,14 +18234,7 @@ an_ifc_source_sentence_storage* get<an_ifc_source_sentence_storage>(
                                   a_boolean                      fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_source_sentence>()
-/*
-Return the corresponding partition kind for SourceSentence.
-*/
-{
-  return ifc_pk_src_sentence;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_source_sentence>();
 
 /*
 Functions for interacting with IFC SourceWord nodes.
@@ -19017,13 +18287,7 @@ an_ifc_source_word_storage* get<an_ifc_source_word_storage>(
                                       a_boolean                  fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_source_word>()
-/*
-Return the corresponding partition kind for SourceWord.
-*/
-{
-  return ifc_pk_src_word;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_source_word>();
 
 /*
 Functions for interacting with IFC StmtBlock nodes.
@@ -19058,13 +18322,7 @@ an_ifc_stmt_block_storage* get<an_ifc_stmt_block_storage>(
                                        a_boolean                 fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_stmt_block>()
-/*
-Return the corresponding partition kind for StmtBlock.
-*/
-{
-  return ifc_pk_stmt_block;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_stmt_block>();
 
 /*
 Functions for interacting with IFC StmtBreak nodes.
@@ -19093,13 +18351,7 @@ an_ifc_stmt_break_storage* get<an_ifc_stmt_break_storage>(
                                        a_boolean                 fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_stmt_break>()
-/*
-Return the corresponding partition kind for StmtBreak.
-*/
-{
-  return ifc_pk_stmt_break;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_stmt_break>();
 
 /*
 Functions for interacting with IFC StmtCase nodes.
@@ -19134,13 +18386,7 @@ an_ifc_stmt_case_storage* get<an_ifc_stmt_case_storage>(
                                         a_boolean                fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_stmt_case>()
-/*
-Return the corresponding partition kind for StmtCase.
-*/
-{
-  return ifc_pk_stmt_case;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_stmt_case>();
 
 /*
 Functions for interacting with IFC StmtContinue nodes.
@@ -19169,13 +18415,7 @@ an_ifc_stmt_continue_storage* get<an_ifc_stmt_continue_storage>(
                                     a_boolean                    fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_stmt_continue>()
-/*
-Return the corresponding partition kind for StmtContinue.
-*/
-{
-  return ifc_pk_stmt_continue;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_stmt_continue>();
 
 /*
 Functions for interacting with IFC StmtDefault nodes.
@@ -19204,13 +18444,7 @@ an_ifc_stmt_default_storage* get<an_ifc_stmt_default_storage>(
                                      a_boolean                   fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_stmt_default>()
-/*
-Return the corresponding partition kind for StmtDefault.
-*/
-{
-  return ifc_pk_stmt_default;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_stmt_default>();
 
 /*
 Functions for interacting with IFC StmtDoWhile nodes.
@@ -19251,13 +18485,7 @@ an_ifc_stmt_do_while_storage* get<an_ifc_stmt_do_while_storage>(
                                     a_boolean                    fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_stmt_do_while>()
-/*
-Return the corresponding partition kind for StmtDoWhile.
-*/
-{
-  return ifc_pk_stmt_do_while;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_stmt_do_while>();
 
 /*
 Functions for interacting with IFC StmtEmpty nodes.
@@ -19286,13 +18514,7 @@ an_ifc_stmt_empty_storage* get<an_ifc_stmt_empty_storage>(
                                        a_boolean                 fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_stmt_empty>()
-/*
-Return the corresponding partition kind for StmtEmpty.
-*/
-{
-  return ifc_pk_stmt_empty;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_stmt_empty>();
 
 /*
 Functions for interacting with IFC StmtExpansion nodes.
@@ -19321,13 +18543,7 @@ an_ifc_stmt_expansion_storage* get<an_ifc_stmt_expansion_storage>(
                                    a_boolean                     fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_stmt_expansion>()
-/*
-Return the corresponding partition kind for StmtExpansion.
-*/
-{
-  return ifc_pk_stmt_expansion;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_stmt_expansion>();
 
 /*
 Functions for interacting with IFC StmtExpression nodes.
@@ -19362,14 +18578,7 @@ an_ifc_stmt_expression_storage* get<an_ifc_stmt_expression_storage>(
                                   a_boolean                      fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_stmt_expression>()
-/*
-Return the corresponding partition kind for StmtExpression.
-*/
-{
-  return ifc_pk_stmt_expression;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_stmt_expression>();
 
 /*
 Functions for interacting with IFC StmtFor nodes.
@@ -19422,13 +18631,7 @@ an_ifc_stmt_for_storage* get<an_ifc_stmt_for_storage>(
                                          a_boolean               fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_stmt_for>()
-/*
-Return the corresponding partition kind for StmtFor.
-*/
-{
-  return ifc_pk_stmt_for;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_stmt_for>();
 
 /*
 Functions for interacting with IFC StmtIf nodes.
@@ -19481,13 +18684,7 @@ an_ifc_stmt_if_storage* get<an_ifc_stmt_if_storage>(
                                           a_boolean              fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_stmt_if>()
-/*
-Return the corresponding partition kind for StmtIf.
-*/
-{
-  return ifc_pk_stmt_if;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_stmt_if>();
 
 /*
 Functions for interacting with IFC StmtReturn nodes.
@@ -19534,13 +18731,7 @@ an_ifc_stmt_return_storage* get<an_ifc_stmt_return_storage>(
                                       a_boolean                  fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_stmt_return>()
-/*
-Return the corresponding partition kind for StmtReturn.
-*/
-{
-  return ifc_pk_stmt_return;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_stmt_return>();
 
 /*
 Functions for interacting with IFC StmtSwitch nodes.
@@ -19587,13 +18778,7 @@ an_ifc_stmt_switch_storage* get<an_ifc_stmt_switch_storage>(
                                       a_boolean                  fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_stmt_switch>()
-/*
-Return the corresponding partition kind for StmtSwitch.
-*/
-{
-  return ifc_pk_stmt_switch;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_stmt_switch>();
 
 /*
 Functions for interacting with IFC StmtVariableDecl nodes.
@@ -19630,14 +18815,7 @@ an_ifc_stmt_variable_decl_storage* get<an_ifc_stmt_variable_decl_storage>(
                                a_boolean                         fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_stmt_variable_decl>()
-/*
-Return the corresponding partition kind for StmtVariableDecl.
-*/
-{
-  return ifc_pk_stmt_variable;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_stmt_variable_decl>();
 
 /*
 Functions for interacting with IFC StmtWhile nodes.
@@ -19678,13 +18856,7 @@ an_ifc_stmt_while_storage* get<an_ifc_stmt_while_storage>(
                                        a_boolean                 fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_stmt_while>()
-/*
-Return the corresponding partition kind for StmtWhile.
-*/
-{
-  return ifc_pk_stmt_while;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_stmt_while>();
 
 /*
 Functions for interacting with IFC SyntaxAccessSpecifier nodes.
@@ -19751,14 +18923,7 @@ get<an_ifc_syntax_access_specifier_storage>(
                           a_boolean                              fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_access_specifier>()
-/*
-Return the corresponding partition kind for SyntaxAccessSpecifier.
-*/
-{
-  return ifc_pk_syntax_access_specifier;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_syntax_access_specifier>();
 
 /*
 Functions for interacting with IFC SyntaxAliasDeclaration nodes.
@@ -19818,14 +18983,8 @@ get<an_ifc_syntax_alias_declaration_storage>(
                          a_boolean                               fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_alias_declaration>()
-/*
-Return the corresponding partition kind for SyntaxAliasDeclaration.
-*/
-{
-  return ifc_pk_syntax_alias_declaration;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind
+get_ifc_partition_kind<an_ifc_syntax_alias_declaration>();
 
 /*
 Functions for interacting with IFC SyntaxAlignas nodes.
@@ -19874,13 +19033,7 @@ an_ifc_syntax_alignas_storage* get<an_ifc_syntax_alignas_storage>(
                                    a_boolean                     fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_syntax_alignas>()
-/*
-Return the corresponding partition kind for SyntaxAlignas.
-*/
-{
-  return ifc_pk_syntax_alignas;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_syntax_alignas>();
 
 /*
 Functions for interacting with IFC SyntaxArrayDeclarator nodes.
@@ -19928,14 +19081,7 @@ get<an_ifc_syntax_array_declarator_storage>(
                           a_boolean                              fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_array_declarator>()
-/*
-Return the corresponding partition kind for SyntaxArrayDeclarator.
-*/
-{
-  return ifc_pk_syntax_array_declarator;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_syntax_array_declarator>();
 
 /*
 Functions for interacting with IFC SyntaxArrayIndex nodes.
@@ -19985,14 +19131,7 @@ an_ifc_syntax_array_index_storage* get<an_ifc_syntax_array_index_storage>(
                                a_boolean                         fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_array_index>()
-/*
-Return the corresponding partition kind for SyntaxArrayIndex.
-*/
-{
-  return ifc_pk_syntax_array_index;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_syntax_array_index>();
 
 /*
 Functions for interacting with IFC SyntaxArrayOrFunctionDeclarator nodes.
@@ -20036,14 +19175,8 @@ get<an_ifc_syntax_array_or_function_declarator_storage>(
               a_boolean                                          fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_array_or_function_declarator>()
-/*
-Return the corresponding partition kind for SyntaxArrayOrFunctionDeclarator.
-*/
-{
-  return ifc_pk_syntax_array_or_function_declarator;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind
+get_ifc_partition_kind<an_ifc_syntax_array_or_function_declarator>();
 
 /*
 Functions for interacting with IFC SyntaxAsmStatement nodes.
@@ -20081,14 +19214,7 @@ an_ifc_syntax_asm_statement_storage* get<an_ifc_syntax_asm_statement_storage>(
                              a_boolean                           fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_asm_statement>()
-/*
-Return the corresponding partition kind for SyntaxAsmStatement.
-*/
-{
-  return ifc_pk_syntax_asm_statement;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_syntax_asm_statement>();
 
 /*
 Functions for interacting with IFC SyntaxAttribute nodes.
@@ -20150,14 +19276,7 @@ an_ifc_syntax_attribute_storage* get<an_ifc_syntax_attribute_storage>(
                                  a_boolean                       fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_attribute>()
-/*
-Return the corresponding partition kind for SyntaxAttribute.
-*/
-{
-  return ifc_pk_syntax_attribute;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_syntax_attribute>();
 
 /*
 Functions for interacting with IFC SyntaxAttributeArgumentClause nodes.
@@ -20206,14 +19325,8 @@ get<an_ifc_syntax_attribute_argument_clause_storage>(
                  a_boolean                                       fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_attribute_argument_clause>()
-/*
-Return the corresponding partition kind for SyntaxAttributeArgumentClause.
-*/
-{
-  return ifc_pk_syntax_attribute_argument_clause;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind
+get_ifc_partition_kind<an_ifc_syntax_attribute_argument_clause>();
 
 /*
 Functions for interacting with IFC SyntaxAttributeSpecifier nodes.
@@ -20285,14 +19398,8 @@ get<an_ifc_syntax_attribute_specifier_storage>(
                        a_boolean                                 fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_attribute_specifier>()
-/*
-Return the corresponding partition kind for SyntaxAttributeSpecifier.
-*/
-{
-  return ifc_pk_syntax_attribute_specifier;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind
+get_ifc_partition_kind<an_ifc_syntax_attribute_specifier>();
 
 /*
 Functions for interacting with IFC SyntaxAttributeSpecifierSeq nodes.
@@ -20325,14 +19432,8 @@ get<an_ifc_syntax_attribute_specifier_seq_storage>(
                    a_boolean                                     fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_attribute_specifier_seq>()
-/*
-Return the corresponding partition kind for SyntaxAttributeSpecifierSeq.
-*/
-{
-  return ifc_pk_syntax_attribute_specifier_seq;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind
+get_ifc_partition_kind<an_ifc_syntax_attribute_specifier_seq>();
 
 /*
 Functions for interacting with IFC SyntaxAttributeUsingPrefix nodes.
@@ -20371,14 +19472,8 @@ get<an_ifc_syntax_attribute_using_prefix_storage>(
                     a_boolean                                    fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_attribute_using_prefix>()
-/*
-Return the corresponding partition kind for SyntaxAttributeUsingPrefix.
-*/
-{
-  return ifc_pk_syntax_attribute_using_prefix;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind
+get_ifc_partition_kind<an_ifc_syntax_attribute_using_prefix>();
 
 /*
 Functions for interacting with IFC SyntaxAttributedDeclaration nodes.
@@ -20425,14 +19520,8 @@ get<an_ifc_syntax_attributed_declaration_storage>(
                     a_boolean                                    fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_attributed_declaration>()
-/*
-Return the corresponding partition kind for SyntaxAttributedDeclaration.
-*/
-{
-  return ifc_pk_syntax_attributed_declaration;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind
+get_ifc_partition_kind<an_ifc_syntax_attributed_declaration>();
 
 /*
 Functions for interacting with IFC SyntaxAttributedStatement nodes.
@@ -20479,14 +19568,8 @@ get<an_ifc_syntax_attributed_statement_storage>(
                       a_boolean                                  fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_attributed_statement>()
-/*
-Return the corresponding partition kind for SyntaxAttributedStatement.
-*/
-{
-  return ifc_pk_syntax_attributed_statement;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind
+get_ifc_partition_kind<an_ifc_syntax_attributed_statement>();
 
 /*
 Functions for interacting with IFC SyntaxBaseSpecifier nodes.
@@ -20525,14 +19608,7 @@ get<an_ifc_syntax_base_specifier_storage>(
                             a_boolean                            fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_base_specifier>()
-/*
-Return the corresponding partition kind for SyntaxBaseSpecifier.
-*/
-{
-  return ifc_pk_syntax_base_specifier;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_syntax_base_specifier>();
 
 /*
 Functions for interacting with IFC SyntaxBaseSpecifierList nodes.
@@ -20572,14 +19648,8 @@ get<an_ifc_syntax_base_specifier_list_storage>(
                        a_boolean                                 fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_base_specifier_list>()
-/*
-Return the corresponding partition kind for SyntaxBaseSpecifierList.
-*/
-{
-  return ifc_pk_syntax_base_specifier_list;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind
+get_ifc_partition_kind<an_ifc_syntax_base_specifier_list>();
 
 /*
 Functions for interacting with IFC SyntaxBinaryFoldExpression nodes.
@@ -20674,14 +19744,8 @@ get<an_ifc_syntax_binary_fold_expression_storage>(
                     a_boolean                                    fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_binary_fold_expression>()
-/*
-Return the corresponding partition kind for SyntaxBinaryFoldExpression.
-*/
-{
-  return ifc_pk_syntax_binary_fold_expression;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind
+get_ifc_partition_kind<an_ifc_syntax_binary_fold_expression>();
 
 /*
 Functions for interacting with IFC SyntaxBreakStatement nodes.
@@ -20720,14 +19784,7 @@ get<an_ifc_syntax_break_statement_storage>(
                            a_boolean                             fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_break_statement>()
-/*
-Return the corresponding partition kind for SyntaxBreakStatement.
-*/
-{
-  return ifc_pk_syntax_break_statement;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_syntax_break_statement>();
 
 /*
 Functions for interacting with IFC SyntaxCaptureDefault nodes.
@@ -20772,14 +19829,7 @@ get<an_ifc_syntax_capture_default_storage>(
                            a_boolean                             fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_capture_default>()
-/*
-Return the corresponding partition kind for SyntaxCaptureDefault.
-*/
-{
-  return ifc_pk_syntax_capture_default;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_syntax_capture_default>();
 
 /*
 Functions for interacting with IFC SyntaxClassSpecifier nodes.
@@ -20845,14 +19895,7 @@ get<an_ifc_syntax_class_specifier_storage>(
                            a_boolean                             fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_class_specifier>()
-/*
-Return the corresponding partition kind for SyntaxClassSpecifier.
-*/
-{
-  return ifc_pk_syntax_class_specifier;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_syntax_class_specifier>();
 
 /*
 Functions for interacting with IFC SyntaxCompoundRequirement nodes.
@@ -20916,14 +19959,8 @@ get<an_ifc_syntax_compound_requirement_storage>(
                       a_boolean                                  fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_compound_requirement>()
-/*
-Return the corresponding partition kind for SyntaxCompoundRequirement.
-*/
-{
-  return ifc_pk_syntax_compound_requirement;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind
+get_ifc_partition_kind<an_ifc_syntax_compound_requirement>();
 
 /*
 Functions for interacting with IFC SyntaxCompoundStatement nodes.
@@ -20978,14 +20015,8 @@ get<an_ifc_syntax_compound_statement_storage>(
                         a_boolean                                fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_compound_statement>()
-/*
-Return the corresponding partition kind for SyntaxCompoundStatement.
-*/
-{
-  return ifc_pk_syntax_compound_statement;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind
+get_ifc_partition_kind<an_ifc_syntax_compound_statement>();
 
 /*
 Functions for interacting with IFC SyntaxConceptDefinition nodes.
@@ -21062,14 +20093,8 @@ get<an_ifc_syntax_concept_definition_storage>(
                         a_boolean                                fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_concept_definition>()
-/*
-Return the corresponding partition kind for SyntaxConceptDefinition.
-*/
-{
-  return ifc_pk_syntax_concept_definition;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind
+get_ifc_partition_kind<an_ifc_syntax_concept_definition>();
 
 /*
 Functions for interacting with IFC SyntaxConditionDeclaration nodes.
@@ -21117,14 +20142,8 @@ get<an_ifc_syntax_condition_declaration_storage>(
                      a_boolean                                   fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_condition_declaration>()
-/*
-Return the corresponding partition kind for SyntaxConditionDeclaration.
-*/
-{
-  return ifc_pk_syntax_condition_declaration;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind
+get_ifc_partition_kind<an_ifc_syntax_condition_declaration>();
 
 /*
 Functions for interacting with IFC SyntaxContinueStatement nodes.
@@ -21163,14 +20182,8 @@ get<an_ifc_syntax_continue_statement_storage>(
                         a_boolean                                fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_continue_statement>()
-/*
-Return the corresponding partition kind for SyntaxContinueStatement.
-*/
-{
-  return ifc_pk_syntax_continue_statement;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind
+get_ifc_partition_kind<an_ifc_syntax_continue_statement>();
 
 /*
 Functions for interacting with IFC SyntaxCtorInitializer nodes.
@@ -21210,14 +20223,7 @@ get<an_ifc_syntax_ctor_initializer_storage>(
                           a_boolean                              fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_ctor_initializer>()
-/*
-Return the corresponding partition kind for SyntaxCtorInitializer.
-*/
-{
-  return ifc_pk_syntax_ctor_initializer;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_syntax_ctor_initializer>();
 
 /*
 Functions for interacting with IFC SyntaxDeclSpecifierSeq nodes.
@@ -21294,14 +20300,8 @@ get<an_ifc_syntax_decl_specifier_seq_storage>(
                         a_boolean                                fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_decl_specifier_seq>()
-/*
-Return the corresponding partition kind for SyntaxDeclSpecifierSeq.
-*/
-{
-  return ifc_pk_syntax_decl_specifier_seq;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind
+get_ifc_partition_kind<an_ifc_syntax_decl_specifier_seq>();
 
 /*
 Functions for interacting with IFC SyntaxDeclarationStatement nodes.
@@ -21340,14 +20340,8 @@ get<an_ifc_syntax_declaration_statement_storage>(
                      a_boolean                                   fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_declaration_statement>()
-/*
-Return the corresponding partition kind for SyntaxDeclarationStatement.
-*/
-{
-  return ifc_pk_syntax_declaration_statement;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind
+get_ifc_partition_kind<an_ifc_syntax_declaration_statement>();
 
 /*
 Functions for interacting with IFC SyntaxDeclarator nodes.
@@ -21446,14 +20440,7 @@ an_ifc_syntax_declarator_storage* get<an_ifc_syntax_declarator_storage>(
                                 a_boolean                        fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_declarator>()
-/*
-Return the corresponding partition kind for SyntaxDeclarator.
-*/
-{
-  return ifc_pk_syntax_declarator;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_syntax_declarator>();
 
 /*
 Functions for interacting with IFC SyntaxDecltypeSpecifier nodes.
@@ -21509,14 +20496,8 @@ get<an_ifc_syntax_decltype_specifier_storage>(
                         a_boolean                                fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_decltype_specifier>()
-/*
-Return the corresponding partition kind for SyntaxDecltypeSpecifier.
-*/
-{
-  return ifc_pk_syntax_decltype_specifier;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind
+get_ifc_partition_kind<an_ifc_syntax_decltype_specifier>();
 
 /*
 Functions for interacting with IFC SyntaxDoWhileStatement nodes.
@@ -21583,14 +20564,8 @@ get<an_ifc_syntax_do_while_statement_storage>(
                         a_boolean                                fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_do_while_statement>()
-/*
-Return the corresponding partition kind for SyntaxDoWhileStatement.
-*/
-{
-  return ifc_pk_syntax_do_statement;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind
+get_ifc_partition_kind<an_ifc_syntax_do_while_statement>();
 
 /*
 Functions for interacting with IFC SyntaxDynamicExceptionSpec nodes.
@@ -21654,14 +20629,8 @@ get<an_ifc_syntax_dynamic_exception_spec_storage>(
                     a_boolean                                    fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_dynamic_exception_spec>()
-/*
-Return the corresponding partition kind for SyntaxDynamicExceptionSpec.
-*/
-{
-  return ifc_pk_syntax_dynamic_exception_spec;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind
+get_ifc_partition_kind<an_ifc_syntax_dynamic_exception_spec>();
 
 /*
 Functions for interacting with IFC SyntaxEmptyStatement nodes.
@@ -21693,14 +20662,7 @@ get<an_ifc_syntax_empty_statement_storage>(
                            a_boolean                             fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_empty_statement>()
-/*
-Return the corresponding partition kind for SyntaxEmptyStatement.
-*/
-{
-  return ifc_pk_syntax_empty_statement;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_syntax_empty_statement>();
 
 /*
 Functions for interacting with IFC SyntaxEnumSpecifier nodes.
@@ -21780,14 +20742,7 @@ get<an_ifc_syntax_enum_specifier_storage>(
                             a_boolean                            fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_enum_specifier>()
-/*
-Return the corresponding partition kind for SyntaxEnumSpecifier.
-*/
-{
-  return ifc_pk_syntax_enum_specifier;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_syntax_enum_specifier>();
 
 /*
 Functions for interacting with IFC SyntaxEnumeratorDefinition nodes.
@@ -21848,14 +20803,8 @@ get<an_ifc_syntax_enumerator_definition_storage>(
                      a_boolean                                   fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_enumerator_definition>()
-/*
-Return the corresponding partition kind for SyntaxEnumeratorDefinition.
-*/
-{
-  return ifc_pk_syntax_enumerator_definition;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind
+get_ifc_partition_kind<an_ifc_syntax_enumerator_definition>();
 
 /*
 Functions for interacting with IFC SyntaxExceptionDeclaration nodes.
@@ -21911,14 +20860,8 @@ get<an_ifc_syntax_exception_declaration_storage>(
                      a_boolean                                   fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_exception_declaration>()
-/*
-Return the corresponding partition kind for SyntaxExceptionDeclaration.
-*/
-{
-  return ifc_pk_syntax_exception_declaration;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind
+get_ifc_partition_kind<an_ifc_syntax_exception_declaration>();
 
 /*
 Functions for interacting with IFC SyntaxExplicitSpecifier nodes.
@@ -21973,14 +20916,8 @@ get<an_ifc_syntax_explicit_specifier_storage>(
                         a_boolean                                fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_explicit_specifier>()
-/*
-Return the corresponding partition kind for SyntaxExplicitSpecifier.
-*/
-{
-  return ifc_pk_syntax_explicit_specifier;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind
+get_ifc_partition_kind<an_ifc_syntax_explicit_specifier>();
 
 /*
 Functions for interacting with IFC SyntaxExpression nodes.
@@ -22011,14 +20948,7 @@ an_ifc_syntax_expression_storage* get<an_ifc_syntax_expression_storage>(
                                 a_boolean                        fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_expression>()
-/*
-Return the corresponding partition kind for SyntaxExpression.
-*/
-{
-  return ifc_pk_syntax_expression;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_syntax_expression>();
 
 /*
 Functions for interacting with IFC SyntaxExpressionStatement nodes.
@@ -22065,14 +20995,8 @@ get<an_ifc_syntax_expression_statement_storage>(
                       a_boolean                                  fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_expression_statement>()
-/*
-Return the corresponding partition kind for SyntaxExpressionStatement.
-*/
-{
-  return ifc_pk_syntax_expression_statement;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind
+get_ifc_partition_kind<an_ifc_syntax_expression_statement>();
 
 /*
 Functions for interacting with IFC SyntaxForRangeDeclaration nodes.
@@ -22113,14 +21037,8 @@ get<an_ifc_syntax_for_range_declaration_storage>(
                      a_boolean                                   fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_for_range_declaration>()
-/*
-Return the corresponding partition kind for SyntaxForRangeDeclaration.
-*/
-{
-  return ifc_pk_syntax_for_range_declaration;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind
+get_ifc_partition_kind<an_ifc_syntax_for_range_declaration>();
 
 /*
 Functions for interacting with IFC SyntaxForStatement nodes.
@@ -22206,14 +21124,7 @@ an_ifc_syntax_for_statement_storage* get<an_ifc_syntax_for_statement_storage>(
                              a_boolean                           fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_for_statement>()
-/*
-Return the corresponding partition kind for SyntaxForStatement.
-*/
-{
-  return ifc_pk_syntax_for_statement;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_syntax_for_statement>();
 
 /*
 Functions for interacting with IFC SyntaxFunctionBody nodes.
@@ -22279,14 +21190,7 @@ an_ifc_syntax_function_body_storage* get<an_ifc_syntax_function_body_storage>(
                              a_boolean                           fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_function_body>()
-/*
-Return the corresponding partition kind for SyntaxFunctionBody.
-*/
-{
-  return ifc_pk_syntax_function_body;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_syntax_function_body>();
 
 /*
 Functions for interacting with IFC SyntaxFunctionDeclarator nodes.
@@ -22342,14 +21246,8 @@ get<an_ifc_syntax_function_declarator_storage>(
                        a_boolean                                 fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_function_declarator>()
-/*
-Return the corresponding partition kind for SyntaxFunctionDeclarator.
-*/
-{
-  return ifc_pk_syntax_function_declarator;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind
+get_ifc_partition_kind<an_ifc_syntax_function_declarator>();
 
 /*
 Functions for interacting with IFC SyntaxFunctionDefinition nodes.
@@ -22420,14 +21318,8 @@ get<an_ifc_syntax_function_definition_storage>(
                        a_boolean                                 fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_function_definition>()
-/*
-Return the corresponding partition kind for SyntaxFunctionDefinition.
-*/
-{
-  return ifc_pk_syntax_function_definition;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind
+get_ifc_partition_kind<an_ifc_syntax_function_definition>();
 
 /*
 Functions for interacting with IFC SyntaxFunctionTryBlock nodes.
@@ -22474,14 +21366,8 @@ get<an_ifc_syntax_function_try_block_storage>(
                         a_boolean                                fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_function_try_block>()
-/*
-Return the corresponding partition kind for SyntaxFunctionTryBlock.
-*/
-{
-  return ifc_pk_syntax_function_try_block;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind
+get_ifc_partition_kind<an_ifc_syntax_function_try_block>();
 
 /*
 Functions for interacting with IFC SyntaxGotoStatement nodes.
@@ -22541,14 +21427,7 @@ get<an_ifc_syntax_goto_statement_storage>(
                             a_boolean                            fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_goto_statement>()
-/*
-Return the corresponding partition kind for SyntaxGotoStatement.
-*/
-{
-  return ifc_pk_syntax_goto_statement;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_syntax_goto_statement>();
 
 /*
 Functions for interacting with IFC SyntaxHandler nodes.
@@ -22609,13 +21488,7 @@ an_ifc_syntax_handler_storage* get<an_ifc_syntax_handler_storage>(
                                    a_boolean                     fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_syntax_handler>()
-/*
-Return the corresponding partition kind for SyntaxHandler.
-*/
-{
-  return ifc_pk_syntax_handler;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_syntax_handler>();
 
 /*
 Functions for interacting with IFC SyntaxHandlerSeq nodes.
@@ -22646,14 +21519,7 @@ an_ifc_syntax_handler_seq_storage* get<an_ifc_syntax_handler_seq_storage>(
                                a_boolean                         fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_handler_seq>()
-/*
-Return the corresponding partition kind for SyntaxHandlerSeq.
-*/
-{
-  return ifc_pk_syntax_handler_seq;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_syntax_handler_seq>();
 
 /*
 Functions for interacting with IFC SyntaxIfStatement nodes.
@@ -22731,14 +21597,7 @@ an_ifc_syntax_if_statement_storage* get<an_ifc_syntax_if_statement_storage>(
                               a_boolean                          fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_if_statement>()
-/*
-Return the corresponding partition kind for SyntaxIfStatement.
-*/
-{
-  return ifc_pk_syntax_if_statement;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_syntax_if_statement>();
 
 /*
 Functions for interacting with IFC SyntaxInitCapture nodes.
@@ -22796,14 +21655,7 @@ an_ifc_syntax_init_capture_storage* get<an_ifc_syntax_init_capture_storage>(
                               a_boolean                          fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_init_capture>()
-/*
-Return the corresponding partition kind for SyntaxInitCapture.
-*/
-{
-  return ifc_pk_syntax_init_capture;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_syntax_init_capture>();
 
 /*
 Functions for interacting with IFC SyntaxInitDeclarator nodes.
@@ -22856,14 +21708,7 @@ get<an_ifc_syntax_init_declarator_storage>(
                            a_boolean                             fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_init_declarator>()
-/*
-Return the corresponding partition kind for SyntaxInitDeclarator.
-*/
-{
-  return ifc_pk_syntax_init_declarator;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_syntax_init_declarator>();
 
 /*
 Functions for interacting with IFC SyntaxInitStatement nodes.
@@ -22902,14 +21747,7 @@ get<an_ifc_syntax_init_statement_storage>(
                             a_boolean                            fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_init_statement>()
-/*
-Return the corresponding partition kind for SyntaxInitStatement.
-*/
-{
-  return ifc_pk_syntax_init_statement;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_syntax_init_statement>();
 
 /*
 Functions for interacting with IFC SyntaxLabeledStatement nodes.
@@ -22969,14 +21807,8 @@ get<an_ifc_syntax_labeled_statement_storage>(
                          a_boolean                               fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_labeled_statement>()
-/*
-Return the corresponding partition kind for SyntaxLabeledStatement.
-*/
-{
-  return ifc_pk_syntax_labeled_statement;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind
+get_ifc_partition_kind<an_ifc_syntax_labeled_statement>();
 
 /*
 Functions for interacting with IFC SyntaxLambdaDeclarator nodes.
@@ -23052,14 +21884,8 @@ get<an_ifc_syntax_lambda_declarator_storage>(
                          a_boolean                               fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_lambda_declarator>()
-/*
-Return the corresponding partition kind for SyntaxLambdaDeclarator.
-*/
-{
-  return ifc_pk_syntax_lambda_declarator;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind
+get_ifc_partition_kind<an_ifc_syntax_lambda_declarator>();
 
 /*
 Functions for interacting with IFC SyntaxLambdaIntroducer nodes.
@@ -23107,14 +21933,8 @@ get<an_ifc_syntax_lambda_introducer_storage>(
                          a_boolean                               fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_lambda_introducer>()
-/*
-Return the corresponding partition kind for SyntaxLambdaIntroducer.
-*/
-{
-  return ifc_pk_syntax_lambda_introducer;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind
+get_ifc_partition_kind<an_ifc_syntax_lambda_introducer>();
 
 /*
 Functions for interacting with IFC SyntaxMemInitializer nodes.
@@ -23167,14 +21987,7 @@ get<an_ifc_syntax_mem_initializer_storage>(
                            a_boolean                             fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_mem_initializer>()
-/*
-Return the corresponding partition kind for SyntaxMemInitializer.
-*/
-{
-  return ifc_pk_syntax_mem_initializer;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_syntax_mem_initializer>();
 
 /*
 Functions for interacting with IFC SyntaxMemberDeclaration nodes.
@@ -23222,14 +22035,8 @@ get<an_ifc_syntax_member_declaration_storage>(
                         a_boolean                                fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_member_declaration>()
-/*
-Return the corresponding partition kind for SyntaxMemberDeclaration.
-*/
-{
-  return ifc_pk_syntax_member_declaration;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind
+get_ifc_partition_kind<an_ifc_syntax_member_declaration>();
 
 /*
 Functions for interacting with IFC SyntaxMemberDeclarator nodes.
@@ -23304,14 +22111,8 @@ get<an_ifc_syntax_member_declarator_storage>(
                          a_boolean                               fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_member_declarator>()
-/*
-Return the corresponding partition kind for SyntaxMemberDeclarator.
-*/
-{
-  return ifc_pk_syntax_member_declarator;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind
+get_ifc_partition_kind<an_ifc_syntax_member_declarator>();
 
 /*
 Functions for interacting with IFC SyntaxMemberFunctionDeclaration nodes.
@@ -23346,14 +22147,8 @@ get<an_ifc_syntax_member_function_declaration_storage>(
                a_boolean                                         fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_member_function_declaration>()
-/*
-Return the corresponding partition kind for SyntaxMemberFunctionDeclaration.
-*/
-{
-  return ifc_pk_syntax_member_function_declaration;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind
+get_ifc_partition_kind<an_ifc_syntax_member_function_declaration>();
 
 /*
 Functions for interacting with IFC SyntaxMemberSpecification nodes.
@@ -23386,14 +22181,8 @@ get<an_ifc_syntax_member_specification_storage>(
                       a_boolean                                  fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_member_specification>()
-/*
-Return the corresponding partition kind for SyntaxMemberSpecification.
-*/
-{
-  return ifc_pk_syntax_member_specification;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind
+get_ifc_partition_kind<an_ifc_syntax_member_specification>();
 
 /*
 Functions for interacting with IFC SyntaxNamespaceAliasDefinition nodes.
@@ -23458,14 +22247,8 @@ get<an_ifc_syntax_namespace_alias_definition_storage>(
                 a_boolean                                        fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_namespace_alias_definition>()
-/*
-Return the corresponding partition kind for SyntaxNamespaceAliasDefinition.
-*/
-{
-  return ifc_pk_syntax_namespace_alias_definition;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind
+get_ifc_partition_kind<an_ifc_syntax_namespace_alias_definition>();
 
 /*
 Functions for interacting with IFC SyntaxNestedRequirement nodes.
@@ -23504,14 +22287,8 @@ get<an_ifc_syntax_nested_requirement_storage>(
                         a_boolean                                fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_nested_requirement>()
-/*
-Return the corresponding partition kind for SyntaxNestedRequirement.
-*/
-{
-  return ifc_pk_syntax_nested_requirement;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind
+get_ifc_partition_kind<an_ifc_syntax_nested_requirement>();
 
 /*
 Functions for interacting with IFC SyntaxNewDeclarator nodes.
@@ -23543,14 +22320,7 @@ get<an_ifc_syntax_new_declarator_storage>(
                             a_boolean                            fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_new_declarator>()
-/*
-Return the corresponding partition kind for SyntaxNewDeclarator.
-*/
-{
-  return ifc_pk_syntax_new_declarator;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_syntax_new_declarator>();
 
 /*
 Functions for interacting with IFC SyntaxNoexceptSpecification nodes.
@@ -23605,14 +22375,8 @@ get<an_ifc_syntax_noexcept_specification_storage>(
                     a_boolean                                    fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_noexcept_specification>()
-/*
-Return the corresponding partition kind for SyntaxNoexceptSpecification.
-*/
-{
-  return ifc_pk_syntax_noexcept_specification;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind
+get_ifc_partition_kind<an_ifc_syntax_noexcept_specification>();
 
 /*
 Functions for interacting with IFC SyntaxNonTypeTemplateArgument nodes.
@@ -23661,14 +22425,8 @@ get<an_ifc_syntax_non_type_template_argument_storage>(
                 a_boolean                                        fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_non_type_template_argument>()
-/*
-Return the corresponding partition kind for SyntaxNonTypeTemplateArgument.
-*/
-{
-  return ifc_pk_syntax_non_type_template_argument;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind
+get_ifc_partition_kind<an_ifc_syntax_non_type_template_argument>();
 
 /*
 Functions for interacting with IFC SyntaxParameterDeclarator nodes.
@@ -23731,14 +22489,8 @@ get<an_ifc_syntax_parameter_declarator_storage>(
                       a_boolean                                  fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_parameter_declarator>()
-/*
-Return the corresponding partition kind for SyntaxParameterDeclarator.
-*/
-{
-  return ifc_pk_syntax_parameter_declarator;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind
+get_ifc_partition_kind<an_ifc_syntax_parameter_declarator>();
 
 /*
 Functions for interacting with IFC SyntaxPlaceholderTypeSpecifier nodes.
@@ -23795,14 +22547,8 @@ get<an_ifc_syntax_placeholder_type_specifier_storage>(
                 a_boolean                                        fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_placeholder_type_specifier>()
-/*
-Return the corresponding partition kind for SyntaxPlaceholderTypeSpecifier.
-*/
-{
-  return ifc_pk_syntax_placeholder_type_specifier;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind
+get_ifc_partition_kind<an_ifc_syntax_placeholder_type_specifier>();
 
 /*
 Functions for interacting with IFC SyntaxPointerDeclarator nodes.
@@ -23878,14 +22624,8 @@ get<an_ifc_syntax_pointer_declarator_storage>(
                         a_boolean                                fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_pointer_declarator>()
-/*
-Return the corresponding partition kind for SyntaxPointerDeclarator.
-*/
-{
-  return ifc_pk_syntax_pointer_declarator;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind
+get_ifc_partition_kind<an_ifc_syntax_pointer_declarator>();
 
 /*
 Functions for interacting with IFC SyntaxRangeBasedForStatement nodes.
@@ -23982,14 +22722,8 @@ get<an_ifc_syntax_range_based_for_statement_storage>(
                  a_boolean                                       fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_range_based_for_statement>()
-/*
-Return the corresponding partition kind for SyntaxRangeBasedForStatement.
-*/
-{
-  return ifc_pk_syntax_range_based_for_statement;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind
+get_ifc_partition_kind<an_ifc_syntax_range_based_for_statement>();
 
 /*
 Functions for interacting with IFC SyntaxRequirementBody nodes.
@@ -24036,14 +22770,7 @@ get<an_ifc_syntax_requirement_body_storage>(
                           a_boolean                              fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_requirement_body>()
-/*
-Return the corresponding partition kind for SyntaxRequirementBody.
-*/
-{
-  return ifc_pk_syntax_requirement_body;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_syntax_requirement_body>();
 
 /*
 Functions for interacting with IFC SyntaxRequiresClause nodes.
@@ -24082,14 +22809,7 @@ get<an_ifc_syntax_requires_clause_storage>(
                            a_boolean                             fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_requires_clause>()
-/*
-Return the corresponding partition kind for SyntaxRequiresClause.
-*/
-{
-  return ifc_pk_syntax_requires_clause;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_syntax_requires_clause>();
 
 /*
 Functions for interacting with IFC SyntaxReturnStatement nodes.
@@ -24149,14 +22869,7 @@ get<an_ifc_syntax_return_statement_storage>(
                           a_boolean                              fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_return_statement>()
-/*
-Return the corresponding partition kind for SyntaxReturnStatement.
-*/
-{
-  return ifc_pk_syntax_return_statement;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_syntax_return_statement>();
 
 /*
 Functions for interacting with IFC SyntaxSEHExcept nodes.
@@ -24213,14 +22926,7 @@ an_ifc_syntax_seh_except_storage* get<an_ifc_syntax_seh_except_storage>(
                                 a_boolean                        fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_seh_except>()
-/*
-Return the corresponding partition kind for SyntaxSEHExcept.
-*/
-{
-  return ifc_pk_syntax_seh_except;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_syntax_seh_except>();
 
 /*
 Functions for interacting with IFC SyntaxSEHFinally nodes.
@@ -24257,14 +22963,7 @@ an_ifc_syntax_seh_finally_storage* get<an_ifc_syntax_seh_finally_storage>(
                                a_boolean                         fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_seh_finally>()
-/*
-Return the corresponding partition kind for SyntaxSEHFinally.
-*/
-{
-  return ifc_pk_syntax_seh_finally;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_syntax_seh_finally>();
 
 /*
 Functions for interacting with IFC SyntaxSEHLeave nodes.
@@ -24301,14 +23000,7 @@ an_ifc_syntax_seh_leave_storage* get<an_ifc_syntax_seh_leave_storage>(
                                  a_boolean                       fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_seh_leave>()
-/*
-Return the corresponding partition kind for SyntaxSEHLeave.
-*/
-{
-  return ifc_pk_syntax_seh_leave;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_syntax_seh_leave>();
 
 /*
 Functions for interacting with IFC SyntaxSEHTry nodes.
@@ -24349,13 +23041,7 @@ an_ifc_syntax_seh_try_storage* get<an_ifc_syntax_seh_try_storage>(
                                    a_boolean                     fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_syntax_seh_try>()
-/*
-Return the corresponding partition kind for SyntaxSEHTry.
-*/
-{
-  return ifc_pk_syntax_seh_try;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_syntax_seh_try>();
 
 /*
 Functions for interacting with IFC SyntaxSimpleCapture nodes.
@@ -24407,14 +23093,7 @@ get<an_ifc_syntax_simple_capture_storage>(
                             a_boolean                            fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_simple_capture>()
-/*
-Return the corresponding partition kind for SyntaxSimpleCapture.
-*/
-{
-  return ifc_pk_syntax_simple_capture;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_syntax_simple_capture>();
 
 /*
 Functions for interacting with IFC SyntaxSimpleDeclaration nodes.
@@ -24469,14 +23148,8 @@ get<an_ifc_syntax_simple_declaration_storage>(
                         a_boolean                                fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_simple_declaration>()
-/*
-Return the corresponding partition kind for SyntaxSimpleDeclaration.
-*/
-{
-  return ifc_pk_syntax_simple_declaration;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind
+get_ifc_partition_kind<an_ifc_syntax_simple_declaration>();
 
 /*
 Functions for interacting with IFC SyntaxSimpleRequirement nodes.
@@ -24515,14 +23188,8 @@ get<an_ifc_syntax_simple_requirement_storage>(
                         a_boolean                                fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_simple_requirement>()
-/*
-Return the corresponding partition kind for SyntaxSimpleRequirement.
-*/
-{
-  return ifc_pk_syntax_simple_requirement;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind
+get_ifc_partition_kind<an_ifc_syntax_simple_requirement>();
 
 /*
 Functions for interacting with IFC SyntaxSimpleTypeSpecifier nodes.
@@ -24568,14 +23235,8 @@ get<an_ifc_syntax_simple_type_specifier_storage>(
                      a_boolean                                   fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_simple_type_specifier>()
-/*
-Return the corresponding partition kind for SyntaxSimpleTypeSpecifier.
-*/
-{
-  return ifc_pk_syntax_simple_type_specifier;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind
+get_ifc_partition_kind<an_ifc_syntax_simple_type_specifier>();
 
 /*
 Functions for interacting with IFC SyntaxStatementSeq nodes.
@@ -24606,14 +23267,7 @@ an_ifc_syntax_statement_seq_storage* get<an_ifc_syntax_statement_seq_storage>(
                              a_boolean                           fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_statement_seq>()
-/*
-Return the corresponding partition kind for SyntaxStatementSeq.
-*/
-{
-  return ifc_pk_syntax_statement_seq;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_syntax_statement_seq>();
 
 /*
 Functions for interacting with IFC SyntaxStaticAssertDeclaration nodes.
@@ -24694,14 +23348,8 @@ get<an_ifc_syntax_static_assert_declaration_storage>(
                  a_boolean                                       fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_static_assert_declaration>()
-/*
-Return the corresponding partition kind for SyntaxStaticAssertDeclaration.
-*/
-{
-  return ifc_pk_syntax_static_assert_declaration;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind
+get_ifc_partition_kind<an_ifc_syntax_static_assert_declaration>();
 
 /*
 Functions for interacting with IFC SyntaxStructuredBindingDeclaration nodes.
@@ -24769,14 +23417,8 @@ get<an_ifc_syntax_structured_binding_declaration_storage>(
             a_boolean                                            fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_structured_binding_declaration>()
-/*
-Return the corresponding partition kind for SyntaxStructuredBindingDeclaration.
-*/
-{
-  return ifc_pk_syntax_structured_binding_declaration;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind
+get_ifc_partition_kind<an_ifc_syntax_structured_binding_declaration>();
 
 /*
 Functions for interacting with IFC SyntaxStructuredBindingIdentifier nodes.
@@ -24820,14 +23462,8 @@ get<an_ifc_syntax_structured_binding_identifier_storage>(
              a_boolean                                           fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_structured_binding_identifier>()
-/*
-Return the corresponding partition kind for SyntaxStructuredBindingIdentifier.
-*/
-{
-  return ifc_pk_syntax_structured_binding_identifier;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind
+get_ifc_partition_kind<an_ifc_syntax_structured_binding_identifier>();
 
 /*
 Functions for interacting with IFC SyntaxSuper nodes.
@@ -24856,13 +23492,7 @@ an_ifc_syntax_super_storage* get<an_ifc_syntax_super_storage>(
                                      a_boolean                   fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_syntax_super>()
-/*
-Return the corresponding partition kind for SyntaxSuper.
-*/
-{
-  return ifc_pk_syntax_super;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_syntax_super>();
 
 /*
 Functions for interacting with IFC SyntaxSwitchStatement nodes.
@@ -24922,14 +23552,7 @@ get<an_ifc_syntax_switch_statement_storage>(
                           a_boolean                              fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_switch_statement>()
-/*
-Return the corresponding partition kind for SyntaxSwitchStatement.
-*/
-{
-  return ifc_pk_syntax_switch_statement;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_syntax_switch_statement>();
 
 /*
 Functions for interacting with IFC SyntaxTemplateArgumentList nodes.
@@ -24978,14 +23601,8 @@ get<an_ifc_syntax_template_argument_list_storage>(
                     a_boolean                                    fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_template_argument_list>()
-/*
-Return the corresponding partition kind for SyntaxTemplateArgumentList.
-*/
-{
-  return ifc_pk_syntax_template_argument_list;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind
+get_ifc_partition_kind<an_ifc_syntax_template_argument_list>();
 
 /*
 Functions for interacting with IFC SyntaxTemplateDeclaration nodes.
@@ -25032,14 +23649,8 @@ get<an_ifc_syntax_template_declaration_storage>(
                       a_boolean                                  fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_template_declaration>()
-/*
-Return the corresponding partition kind for SyntaxTemplateDeclaration.
-*/
-{
-  return ifc_pk_syntax_template_declaration;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind
+get_ifc_partition_kind<an_ifc_syntax_template_declaration>();
 
 /*
 Functions for interacting with IFC SyntaxTemplateId nodes.
@@ -25096,14 +23707,7 @@ an_ifc_syntax_template_id_storage* get<an_ifc_syntax_template_id_storage>(
                                a_boolean                         fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_template_id>()
-/*
-Return the corresponding partition kind for SyntaxTemplateId.
-*/
-{
-  return ifc_pk_syntax_template_id;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_syntax_template_id>();
 
 /*
 Functions for interacting with IFC SyntaxTemplateParameterList nodes.
@@ -25160,14 +23764,8 @@ get<an_ifc_syntax_template_parameter_list_storage>(
                    a_boolean                                     fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_template_parameter_list>()
-/*
-Return the corresponding partition kind for SyntaxTemplateParameterList.
-*/
-{
-  return ifc_pk_syntax_template_parameter_list;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind
+get_ifc_partition_kind<an_ifc_syntax_template_parameter_list>();
 
 /*
 Functions for interacting with IFC SyntaxTemplateTemplateParameter nodes.
@@ -25250,14 +23848,8 @@ get<an_ifc_syntax_template_template_parameter_storage>(
                a_boolean                                         fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_template_template_parameter>()
-/*
-Return the corresponding partition kind for SyntaxTemplateTemplateParameter.
-*/
-{
-  return ifc_pk_syntax_template_template_parameter;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind
+get_ifc_partition_kind<an_ifc_syntax_template_template_parameter>();
 
 /*
 Functions for interacting with IFC SyntaxThisCapture nodes.
@@ -25302,14 +23894,7 @@ an_ifc_syntax_this_capture_storage* get<an_ifc_syntax_this_capture_storage>(
                               a_boolean                          fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_this_capture>()
-/*
-Return the corresponding partition kind for SyntaxThisCapture.
-*/
-{
-  return ifc_pk_syntax_this_capture;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_syntax_this_capture>();
 
 /*
 Functions for interacting with IFC SyntaxTrailingReturnType nodes.
@@ -25348,14 +23933,8 @@ get<an_ifc_syntax_trailing_return_type_storage>(
                       a_boolean                                  fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_trailing_return_type>()
-/*
-Return the corresponding partition kind for SyntaxTrailingReturnType.
-*/
-{
-  return ifc_pk_syntax_trailing_return_type;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind
+get_ifc_partition_kind<an_ifc_syntax_trailing_return_type>();
 
 /*
 Functions for interacting with IFC SyntaxTryBlock nodes.
@@ -25402,14 +23981,7 @@ an_ifc_syntax_try_block_storage* get<an_ifc_syntax_try_block_storage>(
                                  a_boolean                       fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_try_block>()
-/*
-Return the corresponding partition kind for SyntaxTryBlock.
-*/
-{
-  return ifc_pk_syntax_try_block;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_syntax_try_block>();
 
 /*
 Functions for interacting with IFC SyntaxTuple nodes.
@@ -25444,13 +24016,7 @@ an_ifc_syntax_tuple_storage* get<an_ifc_syntax_tuple_storage>(
                                      a_boolean                   fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_syntax_tuple>()
-/*
-Return the corresponding partition kind for SyntaxTuple.
-*/
-{
-  return ifc_pk_syntax_tuple;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_syntax_tuple>();
 
 /*
 Functions for interacting with IFC SyntaxTypeId nodes.
@@ -25493,13 +24059,7 @@ an_ifc_syntax_type_id_storage* get<an_ifc_syntax_type_id_storage>(
                                    a_boolean                     fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_syntax_type_id>()
-/*
-Return the corresponding partition kind for SyntaxTypeId.
-*/
-{
-  return ifc_pk_syntax_type_id;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_syntax_type_id>();
 
 /*
 Functions for interacting with IFC SyntaxTypeIdListElement nodes.
@@ -25539,14 +24099,8 @@ get<an_ifc_syntax_type_id_list_element_storage>(
                       a_boolean                                  fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_type_id_list_element>()
-/*
-Return the corresponding partition kind for SyntaxTypeIdListElement.
-*/
-{
-  return ifc_pk_syntax_type_id_list_element;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind
+get_ifc_partition_kind<an_ifc_syntax_type_id_list_element>();
 
 /*
 Functions for interacting with IFC SyntaxTypeRequirement nodes.
@@ -25585,14 +24139,7 @@ get<an_ifc_syntax_type_requirement_storage>(
                           a_boolean                              fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_type_requirement>()
-/*
-Return the corresponding partition kind for SyntaxTypeRequirement.
-*/
-{
-  return ifc_pk_syntax_type_requirement;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_syntax_type_requirement>();
 
 /*
 Functions for interacting with IFC SyntaxTypeSpecifierSeq nodes.
@@ -25653,14 +24200,8 @@ get<an_ifc_syntax_type_specifier_seq_storage>(
                         a_boolean                                fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_type_specifier_seq>()
-/*
-Return the corresponding partition kind for SyntaxTypeSpecifierSeq.
-*/
-{
-  return ifc_pk_syntax_type_specifier_seq;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind
+get_ifc_partition_kind<an_ifc_syntax_type_specifier_seq>();
 
 /*
 Functions for interacting with IFC SyntaxTypeTemplateArgument nodes.
@@ -25708,14 +24249,8 @@ get<an_ifc_syntax_type_template_argument_storage>(
                     a_boolean                                    fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_type_template_argument>()
-/*
-Return the corresponding partition kind for SyntaxTypeTemplateArgument.
-*/
-{
-  return ifc_pk_syntax_type_template_argument;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind
+get_ifc_partition_kind<an_ifc_syntax_type_template_argument>();
 
 /*
 Functions for interacting with IFC SyntaxTypeTemplateParameter nodes.
@@ -25779,14 +24314,8 @@ get<an_ifc_syntax_type_template_parameter_storage>(
                    a_boolean                                     fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_type_template_parameter>()
-/*
-Return the corresponding partition kind for SyntaxTypeTemplateParameter.
-*/
-{
-  return ifc_pk_syntax_type_template_parameter;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind
+get_ifc_partition_kind<an_ifc_syntax_type_template_parameter>();
 
 /*
 Functions for interacting with IFC SyntaxTypeTraitIntrinsic nodes.
@@ -25834,14 +24363,8 @@ get<an_ifc_syntax_type_trait_intrinsic_storage>(
                       a_boolean                                  fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_type_trait_intrinsic>()
-/*
-Return the corresponding partition kind for SyntaxTypeTraitIntrinsic.
-*/
-{
-  return ifc_pk_syntax_type_trait_intrinsic;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind
+get_ifc_partition_kind<an_ifc_syntax_type_trait_intrinsic>();
 
 /*
 Functions for interacting with IFC SyntaxUnaryFoldExpression nodes.
@@ -25920,14 +24443,8 @@ get<an_ifc_syntax_unary_fold_expression_storage>(
                      a_boolean                                   fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_unary_fold_expression>()
-/*
-Return the corresponding partition kind for SyntaxUnaryFoldExpression.
-*/
-{
-  return ifc_pk_syntax_unary_fold_expression;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind
+get_ifc_partition_kind<an_ifc_syntax_unary_fold_expression>();
 
 /*
 Functions for interacting with IFC SyntaxUsingDeclaration nodes.
@@ -25974,14 +24491,8 @@ get<an_ifc_syntax_using_declaration_storage>(
                          a_boolean                               fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_using_declaration>()
-/*
-Return the corresponding partition kind for SyntaxUsingDeclaration.
-*/
-{
-  return ifc_pk_syntax_using_declaration;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind
+get_ifc_partition_kind<an_ifc_syntax_using_declaration>();
 
 /*
 Functions for interacting with IFC SyntaxUsingDeclarator nodes.
@@ -26035,14 +24546,7 @@ get<an_ifc_syntax_using_declarator_storage>(
                           a_boolean                              fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_using_declarator>()
-/*
-Return the corresponding partition kind for SyntaxUsingDeclarator.
-*/
-{
-  return ifc_pk_syntax_using_declarator;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_syntax_using_declarator>();
 
 /*
 Functions for interacting with IFC SyntaxUsingDirective nodes.
@@ -26096,14 +24600,7 @@ get<an_ifc_syntax_using_directive_storage>(
                            a_boolean                             fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_using_directive>()
-/*
-Return the corresponding partition kind for SyntaxUsingDirective.
-*/
-{
-  return ifc_pk_syntax_using_directive;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_syntax_using_directive>();
 
 /*
 Functions for interacting with IFC SyntaxUsingEnumDeclaration nodes.
@@ -26159,14 +24656,8 @@ get<an_ifc_syntax_using_enum_declaration_storage>(
                     a_boolean                                    fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_using_enum_declaration>()
-/*
-Return the corresponding partition kind for SyntaxUsingEnumDeclaration.
-*/
-{
-  return ifc_pk_syntax_using_enum_declaration;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind
+get_ifc_partition_kind<an_ifc_syntax_using_enum_declaration>();
 
 /*
 Functions for interacting with IFC SyntaxVirtualSpecifierSeq nodes.
@@ -26220,14 +24711,8 @@ get<an_ifc_syntax_virtual_specifier_seq_storage>(
                      a_boolean                                   fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_virtual_specifier_seq>()
-/*
-Return the corresponding partition kind for SyntaxVirtualSpecifierSeq.
-*/
-{
-  return ifc_pk_syntax_virtual_specifier_seq;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind
+get_ifc_partition_kind<an_ifc_syntax_virtual_specifier_seq>();
 
 /*
 Functions for interacting with IFC SyntaxWhileStatement nodes.
@@ -26280,14 +24765,7 @@ get<an_ifc_syntax_while_statement_storage>(
                            a_boolean                             fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_syntax_while_statement>()
-/*
-Return the corresponding partition kind for SyntaxWhileStatement.
-*/
-{
-  return ifc_pk_syntax_while_statement;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_syntax_while_statement>();
 
 /*
 Functions for interacting with IFC TraitAliasTemplate nodes.
@@ -26331,14 +24809,7 @@ an_ifc_trait_alias_template_storage* get<an_ifc_trait_alias_template_storage>(
                              a_boolean                           fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_trait_alias_template>()
-/*
-Return the corresponding partition kind for TraitAliasTemplate.
-*/
-{
-  return ifc_pk_trait_alias_template;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_trait_alias_template>();
 
 /*
 Functions for interacting with IFC TraitAttribute nodes.
@@ -26380,14 +24851,7 @@ an_ifc_trait_attribute_storage* get<an_ifc_trait_attribute_storage>(
                                   a_boolean                      fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_trait_attribute>()
-/*
-Return the corresponding partition kind for TraitAttribute.
-*/
-{
-  return ifc_pk_trait_attribute;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_trait_attribute>();
 
 /*
 Functions for interacting with IFC TraitDeductionGuide nodes.
@@ -26431,14 +24895,7 @@ get<an_ifc_trait_deduction_guide_storage>(
                             a_boolean                            fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_trait_deduction_guide>()
-/*
-Return the corresponding partition kind for TraitDeductionGuide.
-*/
-{
-  return ifc_pk_trait_deduction_guides;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_trait_deduction_guide>();
 
 /*
 Functions for interacting with IFC TraitDeprecated nodes.
@@ -26480,14 +24937,7 @@ an_ifc_trait_deprecated_storage* get<an_ifc_trait_deprecated_storage>(
                                  a_boolean                       fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_trait_deprecated>()
-/*
-Return the corresponding partition kind for TraitDeprecated.
-*/
-{
-  return ifc_pk_trait_deprecated;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_trait_deprecated>();
 
 /*
 Functions for interacting with IFC TraitFriend nodes.
@@ -26529,13 +24979,7 @@ an_ifc_trait_friend_storage* get<an_ifc_trait_friend_storage>(
                                      a_boolean                   fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_trait_friend>()
-/*
-Return the corresponding partition kind for TraitFriend.
-*/
-{
-  return ifc_pk_trait_friend;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_trait_friend>();
 
 /*
 Functions for interacting with IFC TraitFunctionDefinition nodes.
@@ -26598,14 +25042,8 @@ get<an_ifc_trait_function_definition_storage>(
                         a_boolean                                fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_trait_function_definition>()
-/*
-Return the corresponding partition kind for TraitFunctionDefinition.
-*/
-{
-  return ifc_pk_trait_mapping_expr;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind
+get_ifc_partition_kind<an_ifc_trait_function_definition>();
 
 /*
 Functions for interacting with IFC TraitMsvcDeclAttrs nodes.
@@ -26649,14 +25087,7 @@ get<an_ifc_trait_msvc_decl_attrs_storage>(
                             a_boolean                            fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_trait_msvc_decl_attrs>()
-/*
-Return the corresponding partition kind for TraitMsvcDeclAttrs.
-*/
-{
-  return ifc_pk_msvc_trait_decl_attrs;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_trait_msvc_decl_attrs>();
 
 /*
 Functions for interacting with IFC TraitMsvcFuncParams nodes.
@@ -26701,14 +25132,7 @@ get<an_ifc_trait_msvc_func_params_storage>(
                            a_boolean                             fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_trait_msvc_func_params>()
-/*
-Return the corresponding partition kind for TraitMsvcFuncParams.
-*/
-{
-  return ifc_pk_msvc_trait_named_function_parameters;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_trait_msvc_func_params>();
 
 /*
 Functions for interacting with IFC TraitMsvcUuid nodes.
@@ -26750,14 +25174,7 @@ an_ifc_trait_msvc_uuid_storage* get<an_ifc_trait_msvc_uuid_storage>(
                                   a_boolean                      fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_trait_msvc_uuid>()
-/*
-Return the corresponding partition kind for TraitMsvcUuid.
-*/
-{
-  return ifc_pk_msvc_trait_uuid;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_trait_msvc_uuid>();
 
 /*
 Functions for interacting with IFC TraitMsvcVendorTrait nodes.
@@ -26804,14 +25221,7 @@ get<an_ifc_trait_msvc_vendor_trait_storage>(
                           a_boolean                              fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_trait_msvc_vendor_trait>()
-/*
-Return the corresponding partition kind for TraitMsvcVendorTrait.
-*/
-{
-  return ifc_pk_msvc_trait_vendor_traits;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_trait_msvc_vendor_trait>();
 
 /*
 Functions for interacting with IFC TraitRequires nodes.
@@ -26853,13 +25263,7 @@ an_ifc_trait_requires_storage* get<an_ifc_trait_requires_storage>(
                                    a_boolean                     fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_trait_requires>()
-/*
-Return the corresponding partition kind for TraitRequires.
-*/
-{
-  return ifc_pk_trait_requires;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_trait_requires>();
 
 /*
 Functions for interacting with IFC TraitSpecialization nodes.
@@ -26902,14 +25306,7 @@ an_ifc_trait_specialization_storage* get<an_ifc_trait_specialization_storage>(
                              a_boolean                           fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_trait_specialization>()
-/*
-Return the corresponding partition kind for TraitSpecialization.
-*/
-{
-  return ifc_pk_trait_specialization;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_trait_specialization>();
 
 /*
 Functions for interacting with IFC TypeArray nodes.
@@ -26944,13 +25341,7 @@ an_ifc_type_array_storage* get<an_ifc_type_array_storage>(
                                        a_boolean                 fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_type_array>()
-/*
-Return the corresponding partition kind for TypeArray.
-*/
-{
-  return ifc_pk_type_array;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_type_array>();
 
 /*
 Functions for interacting with IFC TypeBase nodes.
@@ -26997,13 +25388,7 @@ an_ifc_type_base_storage* get<an_ifc_type_base_storage>(
                                         a_boolean                fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_type_base>()
-/*
-Return the corresponding partition kind for TypeBase.
-*/
-{
-  return ifc_pk_type_base;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_type_base>();
 
 /*
 Functions for interacting with IFC TypeDecltype nodes.
@@ -27032,13 +25417,7 @@ an_ifc_type_decltype_storage* get<an_ifc_type_decltype_storage>(
                                     a_boolean                    fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_type_decltype>()
-/*
-Return the corresponding partition kind for TypeDecltype.
-*/
-{
-  return ifc_pk_type_decltype;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_type_decltype>();
 
 /*
 Functions for interacting with IFC TypeDesignated nodes.
@@ -27067,14 +25446,7 @@ an_ifc_type_designated_storage* get<an_ifc_type_designated_storage>(
                                   a_boolean                      fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_type_designated>()
-/*
-Return the corresponding partition kind for TypeDesignated.
-*/
-{
-  return ifc_pk_type_designated;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_type_designated>();
 
 /*
 Functions for interacting with IFC TypeExpansion nodes.
@@ -27110,13 +25482,7 @@ an_ifc_type_expansion_storage* get<an_ifc_type_expansion_storage>(
                                    a_boolean                     fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_type_expansion>()
-/*
-Return the corresponding partition kind for TypeExpansion.
-*/
-{
-  return ifc_pk_type_expansion;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_type_expansion>();
 
 /*
 Functions for interacting with IFC TypeForall nodes.
@@ -27151,13 +25517,7 @@ an_ifc_type_forall_storage* get<an_ifc_type_forall_storage>(
                                       a_boolean                  fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_type_forall>()
-/*
-Return the corresponding partition kind for TypeForall.
-*/
-{
-  return ifc_pk_type_forall;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_type_forall>();
 
 /*
 Functions for interacting with IFC TypeFunction nodes.
@@ -27213,13 +25573,7 @@ an_ifc_type_function_storage* get<an_ifc_type_function_storage>(
                                     a_boolean                    fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_type_function>()
-/*
-Return the corresponding partition kind for TypeFunction.
-*/
-{
-  return ifc_pk_type_function;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_type_function>();
 
 /*
 Functions for interacting with IFC TypeFundamental nodes.
@@ -27261,14 +25615,7 @@ an_ifc_type_fundamental_storage* get<an_ifc_type_fundamental_storage>(
                                  a_boolean                       fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_type_fundamental>()
-/*
-Return the corresponding partition kind for TypeFundamental.
-*/
-{
-  return ifc_pk_type_fundamental;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_type_fundamental>();
 
 /*
 Functions for interacting with IFC TypeLvalueReference nodes.
@@ -27300,14 +25647,7 @@ get<an_ifc_type_lvalue_reference_storage>(
                             a_boolean                            fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_type_lvalue_reference>()
-/*
-Return the corresponding partition kind for TypeLvalueReference.
-*/
-{
-  return ifc_pk_type_lvalue_reference;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_type_lvalue_reference>();
 
 /*
 Functions for interacting with IFC TypeMethod nodes.
@@ -27369,13 +25709,7 @@ an_ifc_type_method_storage* get<an_ifc_type_method_storage>(
                                       a_boolean                  fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_type_method>()
-/*
-Return the corresponding partition kind for TypeMethod.
-*/
-{
-  return ifc_pk_type_nonstatic_member_function;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_type_method>();
 
 /*
 Functions for interacting with IFC TypePlaceholder nodes.
@@ -27417,14 +25751,7 @@ an_ifc_type_placeholder_storage* get<an_ifc_type_placeholder_storage>(
                                  a_boolean                       fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_type_placeholder>()
-/*
-Return the corresponding partition kind for TypePlaceholder.
-*/
-{
-  return ifc_pk_type_placeholder;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_type_placeholder>();
 
 /*
 Functions for interacting with IFC TypePointer nodes.
@@ -27453,13 +25780,7 @@ an_ifc_type_pointer_storage* get<an_ifc_type_pointer_storage>(
                                      a_boolean                   fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_type_pointer>()
-/*
-Return the corresponding partition kind for TypePointer.
-*/
-{
-  return ifc_pk_type_pointer;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_type_pointer>();
 
 /*
 Functions for interacting with IFC TypePointerToMember nodes.
@@ -27498,14 +25819,7 @@ get<an_ifc_type_pointer_to_member_storage>(
                            a_boolean                             fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_type_pointer_to_member>()
-/*
-Return the corresponding partition kind for TypePointerToMember.
-*/
-{
-  return ifc_pk_type_pointer_to_member;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_type_pointer_to_member>();
 
 /*
 Functions for interacting with IFC TypeQualified nodes.
@@ -27541,13 +25855,7 @@ an_ifc_type_qualified_storage* get<an_ifc_type_qualified_storage>(
                                    a_boolean                     fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_type_qualified>()
-/*
-Return the corresponding partition kind for TypeQualified.
-*/
-{
-  return ifc_pk_type_qualified;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_type_qualified>();
 
 /*
 Functions for interacting with IFC TypeRvalueReference nodes.
@@ -27579,14 +25887,7 @@ get<an_ifc_type_rvalue_reference_storage>(
                             a_boolean                            fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_type_rvalue_reference>()
-/*
-Return the corresponding partition kind for TypeRvalueReference.
-*/
-{
-  return ifc_pk_type_rvalue_reference;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_type_rvalue_reference>();
 
 /*
 Functions for interacting with IFC TypeSyntactic nodes.
@@ -27615,13 +25916,7 @@ an_ifc_type_syntactic_storage* get<an_ifc_type_syntactic_storage>(
                                    a_boolean                     fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_type_syntactic>()
-/*
-Return the corresponding partition kind for TypeSyntactic.
-*/
-{
-  return ifc_pk_type_syntactic;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_type_syntactic>();
 
 /*
 Functions for interacting with IFC TypeSyntaxTree nodes.
@@ -27650,14 +25945,7 @@ an_ifc_type_syntax_tree_storage* get<an_ifc_type_syntax_tree_storage>(
                                  a_boolean                       fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind
-get_ifc_partition_kind<an_ifc_type_syntax_tree>()
-/*
-Return the corresponding partition kind for TypeSyntaxTree.
-*/
-{
-  return ifc_pk_type_syntax_tree;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_type_syntax_tree>();
 
 /*
 Functions for interacting with IFC TypeTor nodes.
@@ -27700,13 +25988,7 @@ an_ifc_type_tor_storage* get<an_ifc_type_tor_storage>(
                                          a_boolean               fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_type_tor>()
-/*
-Return the corresponding partition kind for TypeTor.
-*/
-{
-  return ifc_pk_type_tor;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_type_tor>();
 
 /*
 Functions for interacting with IFC TypeTuple nodes.
@@ -27741,13 +26023,7 @@ an_ifc_type_tuple_storage* get<an_ifc_type_tuple_storage>(
                                        a_boolean                 fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_type_tuple>()
-/*
-Return the corresponding partition kind for TypeTuple.
-*/
-{
-  return ifc_pk_type_tuple;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_type_tuple>();
 
 /*
 Functions for interacting with IFC TypeTypename nodes.
@@ -27776,13 +26052,7 @@ an_ifc_type_typename_storage* get<an_ifc_type_typename_storage>(
                                     a_boolean                    fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_type_typename>()
-/*
-Return the corresponding partition kind for TypeTypename.
-*/
-{
-  return ifc_pk_type_typename;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_type_typename>();
 
 /*
 Functions for interacting with IFC TypeUnaligned nodes.
@@ -27811,13 +26081,7 @@ an_ifc_type_unaligned_storage* get<an_ifc_type_unaligned_storage>(
                                    a_boolean                     fill_storage);
 
 template<>
-constexpr an_ifc_partition_kind get_ifc_partition_kind<an_ifc_type_unaligned>()
-/*
-Return the corresponding partition kind for TypeUnaligned.
-*/
-{
-  return ifc_pk_type_unaligned;
-}  /* get_ifc_partition_kind */
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_type_unaligned>();
 
 extern an_ifc_entity_size_storage get_ifc_partition_element_size(
                                                    an_ifc_module         *mod,
