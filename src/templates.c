@@ -21504,9 +21504,9 @@ and "abstract") in the prototype instantiation associated with tssp.
 }  /* update_class_modifiers_for_class_template */
 
 
-void add_befriending_class_to_class_template
-                      (a_template_symbol_supplement_ptr     tssp,
-		       a_type_ptr                           class_declared_in)
+void add_befriending_class_to_class_template(
+                       a_template_symbol_supplement_ptr     tssp,
+                       a_type_ptr                           class_declared_in)
 /*
 Indicate that the template designated by tssp is a friend of the class
 specified by class_declared_in.  If any instances of the template have already
@@ -28789,8 +28789,8 @@ first declaration of the template.
 
 
 void add_befriending_class_to_function_template(
-                       a_template_symbol_supplement_ptr     tssp,
-		       a_type_ptr                           class_declared_in)
+                          a_template_symbol_supplement_ptr  tssp,
+                          a_type_ptr                        class_declared_in)
 /*
 Indicate that the template designated by tssp is a friend of the class
 specified by class_declared_in.  If any instances of the template have already

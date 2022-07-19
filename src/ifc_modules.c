@@ -4862,8 +4862,6 @@ function template.  If sym is NULL, it is simply ignored.
   } else if (symbol_is(sym, sk_class_template)) {
     add_befriending_class_to_class_template(sym->variant.template_info,
                                             class_type);
-  } else {
-    unexpected_condition();
   }  /* if */
 }  /* add_friend_to_class */
 

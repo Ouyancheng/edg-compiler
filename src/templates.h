@@ -1106,7 +1106,7 @@ extern a_boolean is_template_friend_decl(void);
 
 void add_befriending_class_to_function_template(
                          a_template_symbol_supplement_ptr  tssp,
-		         a_type_ptr                        class_declared_in);
+                         a_type_ptr                        class_declared_in);
 
 #if !STANDALONE_UTILITY_PROGRAM
 
@@ -1131,8 +1131,8 @@ extern void wrap_up_generic_lambda_scan(a_tmpl_decl_state   *templ_state);
 
 extern void update_friend_info_for_specialization(a_type_ptr	class_type);
 
-extern void add_befriending_class_to_class_template
-                         (a_template_symbol_supplement_ptr  tssp,
+extern void add_befriending_class_to_class_template(
+                          a_template_symbol_supplement_ptr  tssp,
                           a_type_ptr                        class_declared_in);
 
 extern

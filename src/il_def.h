@@ -1015,11 +1015,11 @@ enum a_token_kind : unsigned short {
                                associated index information should be
                                translated to type an_ifc_expr_index). */
   tok_ifc_decl,
-                            /* Generated when reading an IFC file to represent
-                               a class member declaration coming up next.
-                               Always generated in pairs, the second of which
-                               has associated index information that should be
-                               translated to type an_ifc_decl_index). */
+                            /* Generated when reading an IFC file to record the
+                               IFC index of a class member declaration in the
+                               token stream.  This token currently always
+                               follows the class member declaration (including
+                               the definition, if applicable). */
   tok_unimplemented         /* Token used to indicate keywords that are not
                                yet implemented. */,
   tok_last_complex_token = tok_unimplemented,
