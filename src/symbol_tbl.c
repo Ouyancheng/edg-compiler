@@ -9350,7 +9350,7 @@ Look up name in namespace std and return the symbol found, if any.
       clear_specific_symbol(loc);
       (void)file_scope_id_lookup(scope_stack[DEPTH_OF_FILE_SCOPE].il_scope,
                                  &loc, IDL_MUST_BE_NAMESPACE);
-    }  /*if */
+    }  /* if */
     std_nsp = symbol_for_namespace_std->variant.namespace_info.ptr;
     if (std_nsp != NULL) {
       result_sym = look_up_name_string_in_namespace(
