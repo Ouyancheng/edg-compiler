@@ -69,7 +69,7 @@ a_module_entity_stack_state
                 *curr_mep_state = NULL;
                         /* A global stack of module entity pointers currently
                            being processed.  This stack can be printed with
-                           db_mep_stack().*/
+                           db_mep_stack(). */
 
 /*
 A class used to represent an element on the module entity state stack.  This is
