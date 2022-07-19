@@ -17154,9 +17154,10 @@ where <typename-or-default> is either a type name or the keyword "default".
                   /*suppress_object_lifetime=*/FALSE);
   /* Scan the selector expression (not evaluated). */
   scan_expr(&operand, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
-  if (c18_mode || (gcc_mode && !clang_mode)) {
+  if (c18_mode || gcc_version_is(any_version) ||
+      clangc_version_is(any_version)) {
     /* The C11 standard does not specify the usual operand transformations for
-       the selector operand, but GCC does appear to perform them.  C18,
+       the selector operand, but GCC and Clang do appear to perform them.  C18,
        however, clarified that those transformations should be performed
        (through DR481). */
     do_operand_transformations(&operand, TOPT_NO_OPTIONS);
