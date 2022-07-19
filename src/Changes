@@ -1,5 +1,27 @@
 Version 6.4
 
+7/18/22  [EDGcpfe/25440]
+C++-generating back end: dependent default type template arguments
+
+In configurations in which template definitions are generated from the
+prototype instantiation IL, the C++-generating back end sometimes failed to
+perform template argument substitution in a template argument resulting
+from a default template argument.  In particular, if a type template
+argument of an instance is derived from a default template argument
+referring to a preceding template parameter and the instance is named
+inside a template definition, the C++-generating back end failed to
+substitute the template argument for the parameter used in that argument.
+This is now fixed.  For example, with --c++14:
+
+  template<int> struct S {
+    template<typename T, typename U = T> static constexpr int i = 0;
+    void f() {
+      int j = i<int>;  // Previously generated as "i<int, T>" instead of
+                       // "i<int, int>"
+    }
+  };
+
+
 7/18/22  [EDGcpfe/25346]
 Circular atomic constraints
 

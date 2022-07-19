@@ -19798,8 +19798,7 @@ next_integer_pack_element:
       } else if (is_template_templ_arg(arg_ptr)) {
         /* A template template argument. */
         if (param_for_default->has_default_arg) {
-          /* A type parameter with a default value.  The default can be
-             either a type or a token cache that needs to be scanned. */
+          /* A template parameter with a default value. */
           a_template_symbol_supplement_ptr	tssp1, tssp2;
           a_template_ptr			param_template;
           param_template = param_ptr->variant.templ->il_template_entry;
