@@ -3614,6 +3614,9 @@ etc.)
   a_type_ptr type;
   a_boolean  saved_suppress_parens = octl.suppress_ptr_to_data_member_parens;
   a_boolean  for_all_scopes = FALSE;
+  a_type_ptr *ptr_to_inaccessible_type =
+                       &skip_typerefs(rout->type)->variant.routine.return_type;
+  a_type_ptr replaced_type = NULL;
 
   write_tok_str("operator");
   write_space();
@@ -3622,24 +3625,61 @@ etc.)
   type = type->variant.routine.return_type;
   if (!entity_name_is_accessible(&type->source_corresp, iek_type,
                                  /*ignore_context=*/FALSE, &for_all_scopes)) {
-    /* The type with which the operator was defined is inaccessible.  If
-       it's a typedef, see if the underlying type can be used. */
-    a_type_ptr resolved_type = type;
-    while (type_is(resolved_type, tk_typeref) &&
-           typeref_is_typedef(resolved_type)) {
-      resolved_type = type->variant.typeref.type;
-    }  /* while */
-    if (resolved_type != type && has_name_before_mangling(resolved_type)) {
-      /* The underlying type is accessible; use it. */
-      type = resolved_type;
-    } else {
-      /* Still not accessible.  Look for an accessible typedef that can be
-         used in the name. */
-      a_source_correspondence_ptr scp = &resolved_type->source_corresp;
+    /* Find the type with the access issue, perhaps undef pointers,
+       references, and/or qualifiers, and see if we can replace it with
+       an accessible type to use in the name. */
+    a_type_ptr inaccessible_type = type;
+    for (;;) {
+      if (type_is(inaccessible_type, tk_pointer)) {
+        /* A pointer or reference modifier; advance to the pointed-to
+           type. */
+        ptr_to_inaccessible_type - &inaccessible_type->variant.pointer.type;
+        inaccessible_type = *ptr_to_inaccessible_type;
+      } else if (type_is(inaccessible_type, tk_typeref)) {
+        if (typeref_is_typedef(inaccessible_type) ||
+            typeref_is_type_operator(inaccessible_type)) {
+          /* This is the problematic type. */
+          break;
+        } else {
+          /* Advance to the target of the typeref. */
+          ptr_to_inaccessible_type = &inaccessible_type->variant.typeref.type;
+          inaccessible_type = *ptr_to_inaccessible_type;
+        }  /* if */
+      } else {
+        /* Neither a pointer or reference nor a typeref; this must be the
+           problematic type. */
+        break;
+      }  /* if */
+    }  /* for */
+    /* If this is an inaccessible typedef, see if we can find an accessible
+       underlying type. */
+    for (a_type_ptr tp = inaccessible_type;
+         replaced_type == NULL && type_is(tp, tk_typeref) &&
+                                                        typeref_is_typedef(tp);
+         tp = tp->variant.typeref.type) {
+      if (entity_name_is_accessible(&tp->variant.typeref.type->source_corresp,
+                                    iek_type, /*ignore_context=*/FALSE,
+                                    &for_all_scopes)) {
+        /* We can use this type in place of the inaccessible typedef. */
+        replaced_type = inaccessible_type;
+        *ptr_to_inaccessible_type = tp->variant.typeref.type;
+      }  /* if */
+    }  /* for */
+    if (replaced_type == NULL) {
+      /* The type is still inaccessible.  See if we can find an accessible
+         typedef that can be used in the name. */
+      a_source_correspondence_ptr scp = &inaccessible_type->source_corresp;
       replace_inaccessible_type_with_accessible_typedef(
                                                   &scp,
                                                   /*force_replacement=*/FALSE);
-      type = (a_type_ptr)scp;
+      if (scp != &inaccessible_type->source_corresp) {
+        /* Found a usable typedef. */
+        replaced_type = inaccessible_type;
+        *ptr_to_inaccessible_type = (a_type_ptr)scp;
+      }  /* if */
+    }  /* if */
+    if (type == replaced_type) {
+      type = *ptr_to_inaccessible_type;
     }  /* if */
   }  /* if */
   /* Parentheses are not allowed in the conversion-declarator of a
@@ -3649,6 +3689,10 @@ etc.)
      appropriately qualified if necessary. */
   push_name_context(rout->source_corresp.parent_scope);
   gen_type(type);
+  if (replaced_type != NULL) {
+    /* Restore the inaccessible type. */
+    *ptr_to_inaccessible_type = replaced_type;
+  }  /* if */
   octl.suppress_ptr_to_data_member_parens = saved_suppress_parens;
   pop_name_context();
 }  /* gen_conversion_function_name */
