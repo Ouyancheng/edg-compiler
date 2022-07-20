@@ -333,6 +333,7 @@ front end was compiled under.
       /* If the host is little endian then for purposes of IFC processing, the
          byte orders match based on the above architecture's endianness. */
       result = host_little_endian;
+      break;
     case ifc_as_unknown:
       /* Make a best guess based on the compiler's target. */
       result = targ_little_endian == host_little_endian;
@@ -618,7 +619,7 @@ occurred.
        the value_lambda to prevent double reading (though this is unlikely to
        ever represent a significant cost in terms of CPU time). */
     construct_node(result, part_idx);
-  } /* if */
+  }  /* if */
 }  /* find_trait */
 
 
