@@ -3627,7 +3627,9 @@ principal associated IL entity.
                                                   /*new_value=*/FALSE);
                     if (loc.symbol_header ==
                                            symbol_for_namespace_std->header &&
-                        scope_is(&scope_stack_top(), sck_module_decl_import) &&
+                        (scope_is(&scope_stack_top(),
+                                  sck_module_decl_import) ||
+                         scope_is(&scope_stack_top(), sck_file)) &&
                         !loc.is_error) {
                       /* Be sure to use the pre-created namespace std symbol.
                          It might not be entered in the symbol table yet:
