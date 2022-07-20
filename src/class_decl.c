@@ -26979,14 +26979,18 @@ current declarator was preceded by another one sharing the same specifiers
 }  /* check_if_function_defined_in_class */
 
 
-static void cache_in_class_function_definition(
-                                             a_func_info_block   *func_info,
-                                             a_member_decl_info  *decl_info,
-                                             a_class_def_state   *class_state)
+static void record_templ_info_for_inclass_func(
+                                         a_func_info_block   *func_info,
+                                         a_member_decl_info  *decl_info,
+                                         a_class_def_state   *class_state,
+                                         a_boolean           func_def_present)
 /*
-A function definition appears in a class definition described by class_state.
-*func_info and *decl_info describe the function declaration.  Skip past the
-function definition and cache its tokens if appropriate.
+A member or friend function declaration appears in a nonreal class definition
+described by class_state.  *func_info and *decl_info describe the function
+declaration.  func_def_present is true if a definition is present, and if so
+the current token is the first token of that definition.  If there is a
+definition, cache its tokens (and skip past them).  If appropriate record the
+parameterization implicit in being a member of a class template.
 */
 {
   a_symbol_ptr  rout_sym = decl_info->decl_state.sym;
@@ -26994,7 +26998,10 @@ function definition and cache its tokens if appropriate.
 
   is_friend = (decl_info->decl_state.dso_flags & DSO_FRIEND) != 0;
 #if CHECKING
-  if (is_friend) {
+  /* Check that the "is_inline" flag is marked inline if needed. */
+  if (!func_def_present) {
+    /* Nothing to check. */
+  } else if (is_friend) {
     /* The inline flag is set for friend functions in decl_friend_function,
        which also handles cases in which it should be left unset despite the
        presence of a function body. */
@@ -27023,21 +27030,25 @@ function definition and cache its tokens if appropriate.
     check_assertion(curr_token == tok_delete || curr_token == tok_default);
     (void)get_token();
     (void)required_token(tok_semicolon, ec_exp_semicolon);
-  } else {
+    func_def_present = FALSE;
+  }  /* if */
+  {
     /* Cache the tokens comprising the function definition so that they can be
        rescanned once the entire class definition has been processed. */
     a_token_sequence_number  first_token_number, last_token_number;
     a_token_cache            body_cache;
     a_type_ptr               class_type = class_state->class_type;
-    if (prescan_function_definition(&first_token_number, &last_token_number,
-                                    &body_cache,
-                                    (a_boolean)decl_info->is_constructor)) {
-      /* Advance past the terminating right brace. */
-      (void)get_token();
-    }  /* if */
-    if (curr_token == tok_semicolon) {
-      /* Advance past the optional semicolon. */
-      (void)get_token();
+    if (func_def_present) {
+      if (prescan_function_definition(&first_token_number, &last_token_number,
+                                      &body_cache,
+                                      (a_boolean)decl_info->is_constructor)) {
+        /* Advance past the terminating right brace. */
+        (void)get_token();
+      }  /* if */
+      if (curr_token == tok_semicolon) {
+        /* Advance past the optional semicolon. */
+        (void)get_token();
+      }  /* if */
     }  /* if */
     if ((class_state->is_nonreal_instantiation ||
          class_state->is_generic_definition) &&
@@ -27083,23 +27094,32 @@ function definition and cache its tokens if appropriate.
            routine fixup.  This is needed for the generation of template
            strings to be done properly. */
         if (class_tssp != NULL) {
-          set_template_cache_info(&tssp->cache, &body_cache,
+          set_template_cache_info(&tssp->cache,
+                                  func_def_present ? &body_cache : NULL,
                                   class_tssp->cache.decl_info);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        } else if (class_type->variant.class_struct_union
+                                      .is_generic_instance) {
+          /* The enclosing class is a Microsoft "generic", but not a
+             template. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         } else {
           /* We may get here with severe errors (e.g., with a class defined in
              an alias template). */
           expect_error();
         }  /* if */
-        tssp->cache_segment = get_template_cache_segment(rout_sym, tssp,
-                                                         first_token_number,
-                                                         last_token_number);
-        /* Save a checksum of this template to be used for cross
-           translation unit comparisons. */
-        record_cache_checksum(tssp, &body_cache);
+        if (func_def_present) {
+          tssp->cache_segment = get_template_cache_segment(rout_sym, tssp,
+                                                           first_token_number,
+                                                           last_token_number);
+          /* Save a checksum of this template to be used for cross
+             translation unit comparisons. */
+          record_cache_checksum(tssp, &body_cache);
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
-}  /* cache_in_class_function_definition */
+}  /* record_templ_info_for_inclass_func */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
@@ -30008,8 +30028,10 @@ block of information that is provided if this is a member template declaration.
       }  /* if */
       if (function_def_present) {
         remove_stop_token(tok_comma);
-        cache_in_class_function_definition(&func_info, &decl_info,
-                                           class_state);
+      }  /* if */
+      record_templ_info_for_inclass_func(&func_info, &decl_info,
+                                         class_state, function_def_present);
+      if (function_def_present) {
         /* A comma-list of function definitions is not allowed. */
         *skip_semicolon_check = TRUE;
         goto next_declaration;

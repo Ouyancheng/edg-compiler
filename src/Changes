@@ -1,5 +1,27 @@
 Version 6.4
 
+7/20/22  [EDGcpfe/25006]
+Incorrect handling of trailing requires-clause
+
+Consider:
+
+  struct S {
+    template<typename> class N {
+      static constexpr bool Cond = true;
+    public:
+      void f() requires Cond {}
+    };
+  };
+  int main() {
+    S::N<int> sni;
+    sni.f();
+  }
+
+Previously, this triggered a spurious error because the substitution of the
+trailing requires-clause occurred in a context that was not treated as a
+member of S::N<int>, and had no access to the Cond member.  That is now fixed.
+
+
 7/19/22  [EDGcpfe/25445]
 C++-generating back end: hang with inaccessible conversion operator name
 

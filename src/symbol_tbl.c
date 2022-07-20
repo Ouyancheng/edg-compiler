@@ -8543,23 +8543,24 @@ if the constraints fails, or FALSE otherwise.
   a_boolean              err = FALSE;
   a_type_ptr             enclosing_class, enclosing_template_class;
 
+  sym->variant.routine.pending_trailing_requires_clause = FALSE;
   if (symbol_is(sym, sk_member_function)) {
     enclosing_class = sym_parent_class(sym);
+    push_instantiation_scope_for_rescan(symbol_for(rp->assoc_template));
   } else {
     /* A friend function defined in a class template instance. */
     check_assertion(rp->routine_fixup != NULL);
     enclosing_class = class_from_routine_fixup(rp->routine_fixup);
+    enclosing_template_class = enclosing_class;
+    while (class_type_supp(enclosing_template_class)->assoc_template == 0) {
+      enclosing_template_class = parent_class_of(enclosing_template_class);
+    }  /* while */
+    push_class_reactivation_scope(enclosing_class, /*extend_namespace=*/FALSE);
+    push_instantiation_scope_for_rescan(
+       symbol_for(class_type_supp(enclosing_template_class)->assoc_template));
   }  /*if */
-  sym->variant.routine.pending_trailing_requires_clause = FALSE;
   /* Identify all the substitutions applicable to the constraint. */
   get_all_class_subst_pairs(enclosing_class, &subst_pairs);
-  enclosing_template_class = enclosing_class;
-  while (class_type_supp(enclosing_template_class)->assoc_template == 0) {
-    enclosing_template_class = parent_class_of(enclosing_template_class);
-  }  /* while */
-  push_class_reactivation_scope(enclosing_class, /*extend_namespace=*/FALSE);
-  push_instantiation_scope_for_rescan(
-       symbol_for(class_type_supp(enclosing_template_class)->assoc_template));
   /* We are going to substitute the constraint from the outside in.  All but
      the last substitution are ordinary expression substitutions, and the last
      one will go through the constraint satisfaction test. */
@@ -8603,7 +8604,9 @@ if the constraints fails, or FALSE otherwise.
     rp->is_ineligible = TRUE;
   }
   pop_instantiation_scope_for_rescan();
-  pop_class_reactivation_scope();
+  if (!symbol_is(sym, sk_member_function)) {
+    pop_class_reactivation_scope();
+  }  /* if */
   return err;
 }  /* resolve_pending_trailing_requires_clause */
 
