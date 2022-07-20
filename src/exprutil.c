@@ -12003,7 +12003,10 @@ by the caller and not here) may be different than the type of the operation.
               *op = (an_expr_operator_kind)eok_error;
             } else {
               *operation_type = op2_type;
+              cast_operand(op2_type, operand_1, /*is_implicit_cast=*/TRUE);
             }  /* if */
+          } else {
+            cast_operand(op1_type, operand_2, /*is_implicit_cast=*/TRUE);
           }  /* if */
       }  /* switch */
     }  /* if */
