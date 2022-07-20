@@ -11941,6 +11941,8 @@ error at *err_pos and set *op to eok_error and *operation_type to an error type
 (TRUE is still returned in such cases).  Note that in some cases (notably
 relational and logical operations), the result of the operation (determined
 by the caller and not here) may be different than the type of the operation.
+Also, in mixed signed/unsigned operations, the operands may be converted to
+a common (unsigned) type.
 */
 {
   a_type_ptr  op1_type = skip_typerefs(operand_1->type);
