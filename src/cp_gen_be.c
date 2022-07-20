@@ -3633,7 +3633,7 @@ etc.)
       if (type_is(inaccessible_type, tk_pointer)) {
         /* A pointer or reference modifier; advance to the pointed-to
            type. */
-        ptr_to_inaccessible_type - &inaccessible_type->variant.pointer.type;
+        ptr_to_inaccessible_type = &inaccessible_type->variant.pointer.type;
         inaccessible_type = *ptr_to_inaccessible_type;
       } else if (type_is(inaccessible_type, tk_typeref)) {
         if (typeref_is_typedef(inaccessible_type) ||
