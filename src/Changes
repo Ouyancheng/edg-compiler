@@ -1,5 +1,24 @@
 Version 6.4
 
+7/19/22  [EDGcpfe/25445]
+C++-generating back end: hang with inaccessible conversion operator name
+
+The C++-generating back end previously entered a non-terminating loop when
+attempting to generate the name of a user-defined conversion operator where
+the type is an inaccessible typedef whose underlying type is an accessible
+typedef.  This is now fixed.  For example:
+
+  typedef int T;
+  class B {
+    typedef T priv;   // priv is private, T is accessible
+  public:
+    operator priv();
+  };
+  struct D : B {
+    using B::operator int;   // previously resulted in a hang
+  };
+
+
 7/19/22  [EDGcpfe/19491,EDGcpfe/25473]
 Clang C compatibility: _Generic selector operand
 
