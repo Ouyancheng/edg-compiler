@@ -1764,7 +1764,7 @@ otherwise.
      diagnostics here results in significantly worse diagnostics for a matching
      module with a bad version. */
   if (!init_string_table_and_header(&mid, /*issue_diag=*/TRUE)) {
-    goto done;
+    goto done_with_close;
   }  /* if */
   {
     an_ifc_unit_index unit_idx = get_ifc_unit(header);
@@ -1786,8 +1786,9 @@ otherwise.
       default_is_unexpected();
     }  /* switch */
     result = (this_name == module_name);
-    close();
   }
+done_with_close:
+  close();
 done:
   return result;
 }  /* matches_module */
