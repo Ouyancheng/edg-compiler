@@ -410,6 +410,30 @@ Utility to print some debug information for every access to an IFC module file.
 #define db_get_byte(value_str, addr, len) /*nothing*/
 #endif /* DEBUG && EXPENSIVE_CHECKING */
 
+an_ifc_partition_metadata &an_ifc_module::get_partition_metadata(
+                                               an_ifc_partition_kind part_kind)
+/*
+Given a partition kind, return a reference to the corresponding metadata entry.
+*/
+{
+  /* Subtract 1 as ifc_pk_none isn't included in the partition metadata map. */
+  check_assertion(part_kind != ifc_pk_none);
+  return this->partitions[part_kind - 1];
+}  /* get_partition_metadata */
+
+
+const an_ifc_partition_metadata &an_ifc_module::get_partition_metadata(
+                                               an_ifc_partition_kind part_kind)
+                                                                          const
+/*
+Given a partition kind, return a reference to the corresponding metadata entry.
+*/
+{
+  /* Delegate to the non-const implementation. */
+  return const_cast<an_ifc_module*>(this)->get_partition_metadata(part_kind);
+}  /* get_partition_metadata */
+
+
 static an_ifc_partition_kind_index to_partition_kind_index(
                                                        a_module_entity_ptr mep)
 /*
@@ -422,13 +446,12 @@ offset stored on the given module entity pointer.
      the partition by dividing our offset by the size of entries in the
      partition.  Use the partition information and the index value to form an
      an_ifc_partition_kind_index. */
-  an_ifc_partition_kind partition = mep->variant.ifc_partition;
-  an_ifc_module         *mod =
+  an_ifc_partition_kind     partition = mep->variant.ifc_partition;
+  an_ifc_module             *mod =
                             (an_ifc_module*)mep->module_info->module_interface;
-  size_t                part_offset =
-                          mep->file_offset - mod->partitions[partition].offset;
-  an_ifc_index_type     part_index =
-                           part_offset / mod->partitions[partition].entry_size;
+  an_ifc_partition_metadata &metadata = mod->get_partition_metadata(partition);
+  size_t                    part_offset = mep->file_offset - metadata.offset;
+  an_ifc_index_type         part_index = part_offset / metadata.entry_size;
 
   return an_ifc_partition_kind_index{mod, partition, part_index};
 }  /* to_partition_kind_index */
@@ -1899,7 +1922,7 @@ time, as their symbols are not visible except when referenced by symbols within
 this module.
 */
 {
-  if (partitions[ifc_pk_module_exported].name != NULL) {
+  if (get_partition_metadata(ifc_pk_module_exported).name != NULL) {
     auto num_modules = get_num_entries(ifc_pk_module_exported);
 
     for (decltype(num_modules) idx = 0; idx < num_modules; ++idx) {
@@ -1988,9 +2011,9 @@ Export all macro definitions in this module (presumably a header unit).
   /* The IFC files split macros up into two forms - object-like and
      function-like.  Both need to be processed. */
   an_ifc_partition_metadata object_like_part =
-                                          partitions[ifc_pk_macro_object_like];
+                              get_partition_metadata(ifc_pk_macro_object_like);
   an_ifc_partition_metadata func_like_part =
-                                        partitions[ifc_pk_macro_function_like];
+                            get_partition_metadata(ifc_pk_macro_function_like);
   if (object_like_part.size > 0) {
     uint32_t n_macros = object_like_part.size / object_like_part.entry_size;
 
@@ -5052,7 +5075,7 @@ Print debug information related to a module entity that refers to this module.
   check_assertion(mep->module_info->module_interface == this);
   if (mep->variant.ifc_partition != ifc_pk_none) {
     const an_ifc_partition_metadata &part =
-                                        partitions[mep->variant.ifc_partition];
+                            get_partition_metadata(mep->variant.ifc_partition);
     (void)fprintf(f_debug, " IFC partition \"%s\", index %lu\n", part.name,
                   (unsigned long)(mep->file_offset - part.offset) /
                                                               part.entry_size);
@@ -5337,7 +5360,7 @@ diagnostics if issue_diag is TRUE.
         an_ifc_entity_size_storage expected_entry_size =
                                get_ifc_partition_element_size(this, part_kind);
 
-        pp = &partitions[part_kind];
+        pp = &get_partition_metadata(part_kind);
         pp->name = name_str;
         pp->offset = get_ifc_offset(ip);
         pp->size = cardinality * entry_size;
@@ -5356,19 +5379,20 @@ diagnostics if issue_diag is TRUE.
     }  /* for */
   }
   (void)fseek(f_module, 0L, SEEK_SET);
-  if (partitions[ifc_pk_name_source_file].name != NULL) {
+  if (get_partition_metadata(ifc_pk_name_source_file).name != NULL) {
     /* Allocate an array to map source locations to sequence numbers for each
        file referenced by the module.  No information about the sequence
        numbers is recorded yet (we do that only if the source file is later
        referenced). */
-    an_ifc_partition_metadata *nsf_pp = &partitions[ifc_pk_name_source_file];
+    an_ifc_partition_metadata *nsf_pp =
+                              &get_partition_metadata(ifc_pk_name_source_file);
     check_assertion(nsf_pp->entry_size != 0);
     size_t num_files = nsf_pp->size / nsf_pp->entry_size;
     size_t size = num_files * sizeof(a_module_sequence_number_mapping);
     sequence_numbers = (a_module_sequence_number_mapping *)alloc_fe(size);
     memzero((char *)sequence_numbers, size);
-    if (partitions[ifc_pk_src_line].name != NULL) {
-      check_assertion(partitions[ifc_pk_src_line].entry_size != 0);
+    if (get_partition_metadata(ifc_pk_src_line).name != NULL) {
+      check_assertion(get_partition_metadata(ifc_pk_src_line).entry_size != 0);
       /* As a (hopefully) temporary measure, for each file referenced in the
          module, we need to determine the largest line number that will be seen
          in that file (we don't actually need the last line number in the file,
@@ -5549,12 +5573,13 @@ uint32_t an_ifc_module::get_num_entries(an_ifc_partition_kind partition) const
 Return the number of entries in a given partition.
 */
 {
-  uint32_t num_entries = 0;
+  uint32_t                        num_entries = 0;
+  const an_ifc_partition_metadata &metadata =
+                                             get_partition_metadata(partition);
 
   /* If there is an entry size defined, calculate the number of entries. */
-  if (partitions[partition].entry_size != 0) {
-    num_entries = partitions[partition].size /
-                  partitions[partition].entry_size;
+  if (metadata.entry_size != 0) {
+    num_entries = metadata.size / metadata.entry_size;
   }  /* if */
   return num_entries;
 }  /* get_num_entries */
@@ -16364,7 +16389,8 @@ return the respective partition index.
      partition in the file, producing "part_offset".  Then compute the index
      into the partition by dividing the offset by the size of entries in the
      partition. */
-  an_ifc_partition_metadata &part_meta = mod->partitions[partition];
+  an_ifc_partition_metadata &part_meta =
+                                       mod->get_partition_metadata(partition);
   size_t                    part_offset = file_offset - part_meta.offset;
 
   return part_offset / part_meta.entry_size;

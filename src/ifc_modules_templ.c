@@ -78,7 +78,7 @@ Return a pointer to the ifc partition metadata object associated with the given
 index.
 */
 {
-  return &idx.mod->partitions[get_partition_kind(idx)];
+  return &idx.mod->get_partition_metadata(get_partition_kind(idx));
 }  /* get_partition_metadata */
 
 

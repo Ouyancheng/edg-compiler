@@ -105,10 +105,7 @@ struct an_ifc_module : public a_module_interface {
   an_ifc_partition_metadata
 		partitions[IFC_PARTITION_COUNT] = {};
 			/* Information about each of the IFC partitions that
-			   could exist in a module file.  Note that this must
-			   allow for indexing via partition enumerators, which
-			   may have gaps, and so ifc_last must be used here
-			   instead of num_ifc_partitions. */
+			   could exist in a module file. */
   a_module_sequence_number_mapping
 		*sequence_numbers = NULL;
 			/* A mapping of sequence numbers for the module,
@@ -186,6 +183,11 @@ public:
   a_boolean import(a_module_import_decl_ptr midp) OVERRIDE;
   void close() OVERRIDE;
   void pch_reset(a_module_import_decl_ptr midp) OVERRIDE;
+
+  an_ifc_partition_metadata &get_partition_metadata(
+                                              an_ifc_partition_kind part_kind);
+  const an_ifc_partition_metadata &get_partition_metadata(
+                                        an_ifc_partition_kind part_kind) const;
 
   inline a_module_entity_ptr get_ifc_module_entity_ptr(
                                                       an_ifc_type_index index);
