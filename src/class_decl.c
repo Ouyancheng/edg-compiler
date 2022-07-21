@@ -26987,9 +26987,9 @@ static void record_templ_info_for_inclass_func(
 /*
 A member or friend function declaration appears in a nonreal class definition
 described by class_state.  *func_info and *decl_info describe the function
-declaration.  func_def_present is TRUE if a definition is present, and if so
+declaration.  func_def_present is TRUE if a definition is present, and, if so,
 the current token is the first token of that definition.  If there is a
-definition, cache its tokens (and skip past them).  If appropriate record the
+definition, cache its tokens (and skip past them).  If appropriate, record the
 parameterization implicit in being a member of a class template.
 */
 {
