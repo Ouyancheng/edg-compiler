@@ -20237,12 +20237,9 @@ found_sym:
       goto error_exit;
     }  /* if */
   }  /* if */
-#if CHECKING
-  if ((sym == NULL || sym->kind != (a_symbol_kind)sk_member_function) &&
-      !is_at_least_one_error()) {
-    internal_error("find_member_function_template: no corresponding template");
-  }  /* if */
-#endif /* CHECKING */
+  check_assertion_or_expect_error_str(
+                  sym != NULL && symbol_is(sym, sk_member_function),
+                  "find_member_function_template: no corresponding template");
   if (sym == NULL) {
     /* An error must have occurred previously.  Don't create the template
        instance information in this case. */
