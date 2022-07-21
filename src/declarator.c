@@ -8811,8 +8811,9 @@ the parameters.
     state->type = error_type();
   }  /* if */
   if (curr_token == tok_requires && !state->is_trailing_return_type) {
-    if (!is_template_dependent_context() && type_is(state->type, tk_routine) &&
-        state->variant.auto_params != NULL) {
+    if (type_is(state->type, tk_routine) &&
+        state->variant.auto_params != NULL &&
+        !state->is_abbr_func_template) {
       /* Presumably this is the first pass scanning an abbreviated template.
          Ignore the requires-clause this time: It will be reparsed in a
          template context.  Note that this should be the last "declaration"

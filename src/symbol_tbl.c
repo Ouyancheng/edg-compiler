@@ -8545,6 +8545,13 @@ if the constraints fails, or FALSE otherwise.
 
   sym->variant.routine.pending_trailing_requires_clause = FALSE;
   if (symbol_is(sym, sk_member_function)) {
+    a_template_ptr  rout_templ = rp->assoc_template;
+    if (rout_templ == NULL) {
+      /* This can happen in severe error cases. */
+      expect_error();
+      err = TRUE;
+      goto done;
+    }  /* if */
     enclosing_class = sym_parent_class(sym);
     push_instantiation_scope_for_rescan(symbol_for(rp->assoc_template));
   } else {
@@ -8607,6 +8614,7 @@ if the constraints fails, or FALSE otherwise.
   if (!symbol_is(sym, sk_member_function)) {
     pop_class_reactivation_scope();
   }  /* if */
+done:
   return err;
 }  /* resolve_pending_trailing_requires_clause */
 

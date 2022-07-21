@@ -26987,7 +26987,7 @@ static void record_templ_info_for_inclass_func(
 /*
 A member or friend function declaration appears in a nonreal class definition
 described by class_state.  *func_info and *decl_info describe the function
-declaration.  func_def_present is true if a definition is present, and if so
+declaration.  func_def_present is TRUE if a definition is present, and if so
 the current token is the first token of that definition.  If there is a
 definition, cache its tokens (and skip past them).  If appropriate record the
 parameterization implicit in being a member of a class template.
@@ -27062,15 +27062,17 @@ parameterization implicit in being a member of a class template.
          but not a template of itself. */
       if (is_friend) {
 #if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-        /* A template cache segment entry is created for a friend function
-           that is defined in a class template.  This information is used
-           when creating template strings to eliminate the friend function
-           body from the template string. */
-        a_template_cache_segment_ptr	tcsp;
-        tcsp = get_template_cache_segment(
-                         rout_sym, (a_template_symbol_supplement_ptr)NULL,
-                         first_token_number, last_token_number);
-        tcsp->is_friend = TRUE;
+        if (func_def_present) {
+          /* A template cache segment entry is created for a friend function
+             that is defined in a class template.  This information is used
+             when creating template strings to eliminate the friend function
+             body from the template string. */
+          a_template_cache_segment_ptr	tcsp;
+          tcsp = get_template_cache_segment(
+                           rout_sym, (a_template_symbol_supplement_ptr)NULL,
+                           first_token_number, last_token_number);
+          tcsp->is_friend = TRUE;
+        }  /* if */
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
       } else if (rout_sym->variant.routine.instance_ptr == NULL) {
         /* Normally, rout_sym->variant.routine.instance_ptr should be non-
