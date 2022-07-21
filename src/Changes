@@ -1,5 +1,16 @@
 Version 6.4
 
+2/21/22  [EDGcpfe/25337]
+VLAs in GNU statement expressions
+
+Previously, the front end never accepted VLAs in GNU statement expressions.
+That limitation is there primarily because it interferes with certain C-mode
+IL representations, particularly when VLA_DEALLOCATIONS_IN_IL is configured to
+TRUE.  Now, VLAs are accepted in GNU statement expressions in any mode where
+the global variable vla_deallocations_in_il is FALSE (in particular, in all
+GNU C++ modes).
+
+
 7/20/22  [EDGcpfe/25006]
 Incorrect handling of trailing requires-clause
 
