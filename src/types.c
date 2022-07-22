@@ -8310,8 +8310,18 @@ Return TRUE if the integral types type_1 and type_2 are the same type
 except for signedness.
 */
 {
-  return (canonical_integer_kind_of(type_1) ==
-          canonical_integer_kind_of(type_2));
+  a_boolean  result = TRUE;
+
+  if (!type_is(type_1, tk_integer) || !type_is(type_2, tk_integer)) {
+    result = type_qualifiers_match(type_1, type_2);
+    type_1 = skip_typerefs(type_1);
+    type_2 = skip_typerefs(type_2);
+  }  /* if */
+  if (result) {
+    result = canonical_integer_kind_of(type_1) ==
+                                            canonical_integer_kind_of(type_2);
+  }  /* if */
+  return result;
 }  /* integral_types_the_same_except_for_signedness */
 
 
