@@ -1,5 +1,21 @@
 Version 6.4
 
+2/22/22  [EDGcpfe/22611,EDGcpfe/24625,EDGcpfe/25401]
+Abbreviated variadic function templates in class templates
+
+Consider:
+
+  template<typename ...Ts> struct S {
+    S(auto ...p) {} 
+  };
+  S<int> si{42};  // Previously triggered an error.  Now okay.
+
+Previously, this resulted in an error whose root cause was that the parsing of
+the variadic constructor during the instantiation of S<int> was incorrect (it
+was parsed as a default constructor instead of as an abbreviated constructor
+template).  That is now fixed.
+
+
 2/21/22  [EDGcpfe/25337]
 VLAs in GNU statement expressions
 

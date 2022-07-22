@@ -335,6 +335,22 @@ Add a routine fixup entry to the end of the current routine fixup list.
 }  /* add_to_routine_fixup_list */
 
 
+using an_abbr_mem_func_templ_map = Ptr_map<a_token_sequence_number,
+                                           an_auto_param_descr_ptr>;
+			/* The type of a map that associates "auto" parameter
+			   descriptions for abbreviated member function
+			   templates in class templates with the starting
+			   token sequence number of the abbreviated member
+			   function template declaration. */
+
+an_abbr_mem_func_templ_map
+		*abbr_mem_func_templates;
+			/* A map from token sequence numbers of member
+			   declarations to associated "auto" parameter
+			   descriptions. */
+
+
+
 static a_param_type_ptr corresponding_param_type(a_type_ptr        type,
                                                  a_param_type_ptr  ptp)
 /*
@@ -29239,7 +29255,10 @@ reparse_declarator:
           dps->variant.auto_params != NULL && !dps->is_abbr_func_template) {
         /* "auto" parameters were encountered that have no associated template
            parameters.  Generate those template parameters now and prepare to
-           repeat the declarator parsing. */
+           repeat the declarator parsing.  This handles the case where "auto"
+           parameters are added to an explicit template declaration (i.e.,
+           there was a "template<...>" clause since the current scope is of
+           kind sck_template_declaration). */
         prepare_to_reparse_func_template_declarator_with_auto_params(
                             reparse_tsn, reparse_actions, func_info, locator);
         goto reparse_declarator;
@@ -29736,6 +29755,19 @@ block of information that is provided if this is a member template declaration.
       /* We ran into "auto" parameters: Reparse the declaration as a template
          (i.e., this is an abbreviated function template). */
       a_token_kind  final_token = tok_semicolon;
+      if (is_prototype_instantiation_context()) {
+        /* There is an enclosing template and when that is instantiated, we
+           will see the abbreviated function template again.  Rather than
+           perform two parses again, we will reuse the information we found
+           during the prototype instantiation.  This is not just an
+           optimization: It avoids problem with empty expansions of variadic
+           parameters of the enclosing template.  To make this possible, map
+           the starting token sequence number of the declaration of the list
+           of "auto" parameter descriptions and ensure that those
+           descriptions won't be deallocated. */
+        abbr_mem_func_templates->map(dps->start_tsn, dps->variant.auto_params);
+        dps->reuse_auto_params_descr = TRUE;
+      }  /* if */
       reparse_abbr_func_template(dps, &final_token);
       if (final_token == tok_rbrace) {
         (void)required_token(tok_rbrace, ec_exp_rbrace);
@@ -32743,6 +32775,24 @@ classes.
             goto next_declaration;
           }  /* if */
           /* Check for template declaration. */
+          if (is_template_instantiation && il_template_entry == NULL &&
+              abbr_func_templates_enabled) {
+            /* Check if the prototype instantiation associated "auto"
+               parameters with the current member. */
+            an_auto_param_descr_ptr  auto_params;
+            auto_params = abbr_mem_func_templates->get(
+                                                  curr_token_sequence_number);
+            if (auto_params != NULL) {
+              a_decl_parse_state  mem_dps;
+              a_token_kind        final_token;
+              init_decl_parse_state(&mem_dps);
+              mem_dps.start_tsn = curr_token_sequence_number;
+              mem_dps.reuse_auto_params_descr = TRUE;
+              mem_dps.variant.auto_params = auto_params;
+              reparse_abbr_func_template(&mem_dps, &final_token);
+              goto next_declaration;
+            }  /* if */
+          }  /* if */
           if (curr_token == tok_template || curr_token == tok_cpp98_export ||
               (extern_template_allowed && curr_token == tok_extern &&
                next_token() == tok_template) ||
@@ -33587,6 +33637,7 @@ proper.
   dps->in_class_scope = TRUE;
   dps->declarator_start_pos = dps->declarator_pos = pos_curr_token;
   dps->is_lambda = TRUE;
+  dps->reuse_auto_params_descr = TRUE;
   dps->first_decl = TRUE;
   /* Check for explicit lambda template parameters (a C++20 feature). */
   if (curr_token == tok_lt && generic_lambdas_enabled &&
@@ -35067,6 +35118,7 @@ One-time initialization for class_decl.c static variables.
       pch_saved_var_array_elem(avail_override_registry_entries),
       pch_saved_var_array_elem(avail_pending_exception_check_entries),
       pch_saved_var_array_elem(pending_exception_check_entries),
+      pch_saved_var_array_elem(abbr_mem_func_templates),
       pch_saved_var_array_elem(avail_initializer_fixup),
 #if MICROSOFT_EXTENSIONS_ALLOWED
       pch_saved_var_array_elem(avail_quasi_override_descrs),
@@ -35094,6 +35146,7 @@ One-time initialization for class_decl.c static variables.
   register_trans_unit_variable(deferred_friend_fixup_list_tail);
   register_trans_unit_variable(use_deferred_friend_fixup_list);
   register_trans_unit_variable(pending_exception_check_entries);
+  register_trans_unit_variable(abbr_mem_func_templates);
 }  /* class_decl_one_time_init */
 
 
@@ -35147,6 +35200,8 @@ Initializations for class declaration processing.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   num_pending_exception_check_entries = 0;
 #endif /* DEBUG */
+  abbr_mem_func_templates = alloc_fe_of_type(an_abbr_mem_func_templ_map);
+  construct(abbr_mem_func_templates, /*mask_width=*/10);
   return;
 }  /* class_decl_init */
 

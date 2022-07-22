@@ -10384,7 +10384,8 @@ corresponding change in prescan_decl_specifiers (in disambig.c).
         } else if (is_parameter && auto_type_allowed &&
                    process_auto_parameter(state, /*concept_sym=*/NULL)) {
           /* "auto" as a parameter type specifier in what is presumably a
-             (generic) lambda parameter.  state->specifiers_type points to the
+             (generic) lambda parameter or a parameter of a C++20 abbreviated
+             function template.  state->specifiers_type points to the
              corresponding type entry. */
           state->auto_pos = pos_curr_token;
           state->has_deduced_type = TRUE;

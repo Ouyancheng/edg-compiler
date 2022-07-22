@@ -30070,10 +30070,10 @@ in a abbreviated function template or a generic lambda).
     apdp->template_type_parameter = *p_tpp;
     p_tpp = &(*p_tpp)->next;
   }  /* for */
-  if (!dps->is_lambda) {
+  if (!dps->reuse_auto_params_descr) {
     /* Free the list of auto parameter descriptions.  We don't do this for
-       lambdas, because it may be reused in some cases.  See
-       scan_lambda_declarator. */
+       some cases where the descriptions may be used multiple times (e.g., see
+       scan_lambda_declarator). */
     free_auto_param_descriptions(dps);
   }  /* if */
 }  /* add_implicit_templ_params_for_auto_func_params */
@@ -30086,7 +30086,7 @@ static void scan_template_param_clauses(
 /*
 Note that this routine has a forward declaration.
 
-Scan one or more template parameter lists of the form:
+Scan zero or more template parameter lists of the form:
 
 	template < param-list    >
                              opt
@@ -30094,6 +30094,8 @@ Scan one or more template parameter lists of the form:
 or generic parameter lists of the form:
 
 	generic <param-list>
+
+(the zero case only occurs if orig_dps != NULL).
 
 The parameter list can be empty for a template specialization declaration.
 Once a non-empty parameter list has been specified, all subsequent parameter
@@ -30105,6 +30107,10 @@ also for template template parameters (when is_template_param is TRUE).
 The parameter decl_state points to information describing the general state
 of the parsing of the template clause so far (and this routine adds to that
 information).  See the definition of a_tmpl_decl_state for details.
+
+orig_dps is non-NULL if this is called for a C++20-style abbreviated function
+template.  In that case, this function simulates a "template<...>" clause with
+parameters corresponding what is recorded in dps->variant.auto_params.
 */
 {
   a_boolean                 param_list_seen = FALSE;
@@ -30173,7 +30179,8 @@ information).  See the definition of a_tmpl_decl_state for details.
   }  /* while */
   if (orig_dps != NULL) {
     /* A C++20-style abbreviated function template declaration.  Simulate a
-       template<...> clause using the information in orig_dps->auto_params. */
+       template<...> clause using the information in
+       orig_dps->variant.auto_params. */
     check_assertion(orig_dps->variant.auto_params != NULL);
     if (!decl_state->is_specialization) {
       if (!is_template_param) decl_state->nesting_depth++;
@@ -34237,21 +34244,24 @@ declaration context first.  *final_token should be tok_semicolon and might be
 updated to tok_rbrace.
 */
 {
-  a_token_cache  reparse_cache;
-
+  if (orig_dps->start_tsn != curr_token_sequence_number) {
+    /* We have performed a first parse and must still "rewind" to the beginning
+       of the declaration. */
+    a_token_cache  reparse_cache;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  if (orig_dps->source_sequence_entry != NULL) {
-    /* Discard any previously-recorded source sequence entries.  A new one will
-       be recorded when the declaration is parsed as a template. */
-    remove_from_src_seq_list(orig_dps->source_sequence_entry);
-    orig_dps->source_sequence_entry = NULL;
-  }  /* if */
+    if (orig_dps->source_sequence_entry != NULL) {
+      /* Discard any previously-recorded source sequence entries.  A new one
+         will be recorded when the declaration is parsed as a template. */
+      remove_from_src_seq_list(orig_dps->source_sequence_entry);
+      orig_dps->source_sequence_entry = NULL;
+    }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  clear_token_cache(&reparse_cache, /*reusable=*/FALSE);
-  copy_tokens_from_cache(curr_lexical_state_cache(),
-                         orig_dps->start_tsn, curr_token_sequence_number,
-                         /*include_last_token=*/FALSE, &reparse_cache);
-  rescan_cached_tokens(&reparse_cache);
+    clear_token_cache(&reparse_cache, /*reusable=*/FALSE);
+    copy_tokens_from_cache(curr_lexical_state_cache(),
+                           orig_dps->start_tsn, curr_token_sequence_number,
+                           /*include_last_token=*/FALSE, &reparse_cache);
+    rescan_cached_tokens(&reparse_cache);
+  }  /* if */
   (void)template_or_specialization_declaration(
                                         final_token, /*export_present=*/FALSE,
                                         &null_source_position,

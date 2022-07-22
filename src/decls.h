@@ -1204,6 +1204,10 @@ typedef struct a_decl_parse_state {
 			   declaration being parsed after the template
 			   parameters associated with the "auto" function
 			   parameters have been declared. */
+  a_bit_field	reuse_auto_params_descr:1;
+			/* TRUE if the variant.auto_params entries may be
+			   reused, and thus should not be freed after their
+			   first use. */
   a_bit_field	decl_being_cached:1;
 			/* TRUE if background caching was started (and not
 			   ended) for this declaration even though it does not

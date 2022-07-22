@@ -320,6 +320,7 @@ be restored).
   dps->pending_trailing_requires_clause = FALSE;
   dps->ineligible = FALSE;
   dps->is_abbr_func_template = FALSE;
+  dps->reuse_auto_params_descr = FALSE;
   dps->is_explicit_this = FALSE;
   dps->lambda_with_omitted_parameters = FALSE;
   clear_init_state(&dps->init_state);

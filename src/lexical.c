@@ -25434,7 +25434,6 @@ of characters added.
       put_str_to_temp_text_buffer("__identifier(");
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    check_assertion_or_expect_error(!ctp->variant.locator.has_been_coalesced);
     put_str_to_temp_text_buffer(ctp->variant.locator.symbol_header->
                                                                identifier);
 #if MICROSOFT_EXTENSIONS_ALLOWED
