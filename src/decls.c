@@ -6827,7 +6827,7 @@ locator.
 static void check_for_vla_inside_statement_expression(a_source_position *pos)
 /*
 A VLA is being declared at the indicated position.  If we are inside a GNU
-statement expression, i.e., ({ ... }) and VLA deallocation statements are
+statement expression, i.e., ({ ... }), and VLA deallocation statements are
 explicitly represented in the IL (only possible in C mode), issue an error.
 VLAs are disallowed because they have cleanup issues in those circumstances -- 
 the allocated storage may have to be freed on exit from the statement
