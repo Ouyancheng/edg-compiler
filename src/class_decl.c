@@ -29760,7 +29760,7 @@ block of information that is provided if this is a member template declaration.
            will see the abbreviated function template again.  Rather than
            perform two parses again, we will reuse the information we found
            during the prototype instantiation.  This is not just an
-           optimization: It avoids problem with empty expansions of variadic
+           optimization: It avoids problems with empty expansions of variadic
            parameters of the enclosing template.  To make this possible, map
            the starting token sequence number of the declaration of the list
            of "auto" parameter descriptions and ensure that those

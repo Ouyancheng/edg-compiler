@@ -1,6 +1,6 @@
 Version 6.4
 
-2/22/22  [EDGcpfe/22611,EDGcpfe/24625,EDGcpfe/25401]
+7/22/22  [EDGcpfe/22611,EDGcpfe/24625,EDGcpfe/25401]
 Abbreviated variadic function templates in class templates
 
 Consider:
