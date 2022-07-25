@@ -41456,6 +41456,8 @@ identical).
   a_symbol_ptr				return_type_sym;
   a_boolean				ctor_is_template;
   a_template_symbol_supplement_ptr	ct_tssp;
+  a_requires_clause_ptr                 ctor_rcp;
+  an_expr_node_ptr                      trailing_constraint = NULL;
 
   ct_tssp = ct_sym->variant.template_info;
   if (symbol_is(ctor_sym, sk_member_function)) {
@@ -41551,6 +41553,18 @@ identical).
                                   &copy_error,
                                   &ctws_state);
   if (copy_error) goto done;
+  ctor_rcp = ctor_rout->trailing_requires_clause;
+  if (ctor_rcp != NULL) {
+    trailing_constraint = copy_expr_with_substitutions(
+                                            ctor_rcp->constraint,
+                                            class_templ_args,
+                                            orig_class_templ_params,
+                                            (CTWS_DEDUCTION_GUIDE |
+                                             CTWS_MAY_BE_RESCANNED |
+                                             CTWS_NON_CONSTANT_EXPR),
+                                            &copy_error, &ctws_state);
+    if (copy_error) goto done;
+  }  /* if */
   if (ctor_is_template) {
     init_ctws_state(&ctws_state);
     rout_type = copy_type_with_substitution(
@@ -41562,6 +41576,20 @@ identical).
                                   &copy_error,
                                   &ctws_state);
     if (copy_error) goto done;
+    if (trailing_constraint != NULL) {
+      trailing_constraint = copy_expr_with_substitutions(
+                                            trailing_constraint,
+                                            ctor_templ_args,
+                                            orig_ctor_templ_params,
+                                            (CTWS_DEDUCTION_GUIDE |
+                                             CTWS_MAY_BE_RESCANNED |
+                                             CTWS_NON_CONSTANT_EXPR),
+                                            &copy_error, &ctws_state);
+      if (copy_error) goto done;
+      rout->trailing_requires_clause = alloc_requires_clause();
+      rout->trailing_requires_clause->constraint = trailing_constraint;
+      rout->trailing_requires_clause->requires_pos = ctor_rcp->requires_pos;
+    }  /* if */
   }  /* if */
   rout_type->variant.routine.return_type = return_type;
   rout->type = rout_type;
