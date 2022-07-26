@@ -84,13 +84,7 @@ file.
 #if CONFIG_FOR_GPP_HEADER_COMPATIBILITY
 #define THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED 1
 #define FLOAT80_ENABLING_POSSIBLE 1
-/* Clang versions prior to 3.9 do not support 128-bit floats, do not
-   automatically enable 128-bit float for those versions. */
-#if !defined(__clang__) || \
-    (__clang_major__ > 4 || (__clang_major__ == 3 && __clang_minor__ >= 9))
 #define FLOAT128_ENABLING_POSSIBLE 1
-#define USE_FLOAT128_FOR_HOST_FP_VALUE 1
-#endif /* !defined(__clang__) || (__clang_major__ > 4 || (__clang...)) */
 /*
 For portability, APPROXIMATE_QUADMATH is used by default.
 USE_QUADMATH_LIBRARY is recommended if it is available.
@@ -100,6 +94,7 @@ USE_QUADMATH_LIBRARY is recommended if it is available.
 #define APPROXIMATE_QUADMATH 1
 #endif /* APPROXIMATE_QUADMATH */
 #endif /* !(!defined(USE_QUADMATH_LIBRARY) || USE_QUADMATH_LIBRARY==0) */
+#define USE_FLOAT128_FOR_HOST_FP_VALUE 1
 #define INT128_EXTENSIONS_ALLOWED 1
 #define GNU_VECTOR_TYPES_ALLOWED 1
 #define INTEGER_VALUE_REPR_IS_A_HOST_INTEGER 0
