@@ -2621,7 +2621,7 @@ from_auto is TRUE if the type was originally specified using an auto type.
 */
 {
   an_error_code  err_code = ec_no_error;
-  a_type_ptr     type = skip_nontemplate_typerefs(*p_type);
+  a_type_ptr     type = skip_typerefs(*p_type);
 
   switch (type->kind) {
     case tk_void:
@@ -11628,10 +11628,7 @@ doing C++17-style template template parameter matching.
                                     constant_type, new_list, templ_param_list,
 				    source_pos,
                                     CTWS_NO_OPTIONS, &copy_error, &ctws_state);
-            if (copy_error ||
-                !check_nontype_template_param_type(&constant_type,
-                                                   /*from_auto=*/FALSE,
-                                                   (a_source_position*)NULL)) {
+            if (copy_error) {
               /* The substitution of the type of the nontype parameter
                  resulted in an invalid type. */
               arg_kind_mismatch = TRUE;
