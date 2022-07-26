@@ -24540,10 +24540,12 @@ the conversion.
     if ((is_constant_operand(source_operand) &&
          is_any_reference_type(source_operand->variant.constant.type)) ||
         (template_case && operand_is_function_lvalue &&
-         is_auto_type(base_dest_type))) {
+         is_auto_type(base_dest_type) &&
+         is_expression_operand(source_operand) &&
+         node_is_operator(source_operand->variant.expression, eok_indirect))) {
       /* Don't perform this step if the operand is a reference constant or
-         a dependent function reference from which the type will be
-         deduced. */
+         a dependent function reference with an explicit indirection from
+         which the type will be deduced. */
     } else {
       take_reference_to_operand(source_operand, is_rvalue_ref);
     }  /* if */
