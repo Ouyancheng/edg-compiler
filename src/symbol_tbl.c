@@ -9361,6 +9361,13 @@ Look up name in namespace std and return the symbol found, if any.
       clear_specific_symbol(loc);
       (void)file_scope_id_lookup(scope_stack[DEPTH_OF_FILE_SCOPE].il_scope,
                                  &loc, IDL_MUST_BE_NAMESPACE);
+    } else if (symbol_for_namespace_std->header
+                                       ->deferred_module_entities != NULL &&
+               lazy_symbols_may_be_visible) {
+      /* Namespace std was already entered, but module files contain some
+         pending "std" declarations.  Make sure those are visible to lookup. */
+      define_names_from_scope(il_header.primary_scope,
+                              symbol_for_namespace_std->header);
     }  /* if */
     std_nsp = symbol_for_namespace_std->variant.namespace_info.ptr;
     if (std_nsp != NULL) {
