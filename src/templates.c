@@ -41583,13 +41583,15 @@ identical).
                                              CTWS_NON_CONSTANT_EXPR),
                                             &copy_error, &ctws_state);
       if (copy_error) goto done;
-      rout->trailing_requires_clause = alloc_requires_clause();
-      rout->trailing_requires_clause->constraint = trailing_constraint;
-      rout->trailing_requires_clause->requires_pos = ctor_rcp->requires_pos;
     }  /* if */
   }  /* if */
   rout_type->variant.routine.return_type = return_type;
   rout->type = rout_type;
+  if (trailing_constraint != NULL) {
+    rout->trailing_requires_clause = alloc_requires_clause();
+    rout->trailing_requires_clause->constraint = trailing_constraint;
+    rout->trailing_requires_clause->requires_pos = ctor_rcp->requires_pos;
+  }  /* if */
 #if DEBUG
   if (db_flag_is_set("impl_guide")) {
     db_type(ctor_rout->type);
