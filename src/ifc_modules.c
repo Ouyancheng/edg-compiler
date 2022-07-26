@@ -795,7 +795,7 @@ sequence is not valid.
 }  /* end */
 
 
-} /* namespace */
+}  /* namespace */
 
 /* Convenience aliases for a_Sequence_traverser. */
 using a_attr_heap_traverser = a_Sequence_traverser<an_ifc_heap_attr>;
@@ -5551,6 +5551,7 @@ done:
 
 
 namespace {
+
 /*
 An internal representation of an IFC partition name used to facilitate binary
 search of the partition map.
@@ -5564,6 +5565,7 @@ struct an_ifc_partition_name {
 
   a_const_char *name;
 };  /* an_ifc_partition_name */
+
 }  /* namespace */
 
 
