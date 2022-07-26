@@ -730,7 +730,7 @@ private:
   an_ifc_cardinality_storage
                 cardinality;
                         /* The number of elements in the sequence. */
-};  /* a_sequence_traverser */
+};  /* a_Sequence_traverser */
 
 
 template<typename an_ifc_Node_type>
@@ -757,7 +757,7 @@ associated with an_ifc_Node_type in the given module from "start" through
       this->cardinality = 0;
     }  /* if */
   }  /* if */
-}
+}  /* a_Sequence_traverser */
 
 
 template<typename an_ifc_Node_type>
@@ -2996,7 +2996,7 @@ FALSE otherwise.
          should not run into those here. */
       unexpected_condition();
       break;
-      default_is_unexpected_str("Unexpected ParameterSort");
+    default_is_unexpected_str("Unexpected ParameterSort");
   }  /* switch */
   if (name != 0) {
     cache_identifier(cache, get_string_at_offset(name), &pos);
