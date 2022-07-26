@@ -759,6 +759,7 @@ associated with an_ifc_Node_type in the given module from "start" through
   }  /* if */
 }
 
+
 template<typename an_ifc_Node_type>
 inline a_Sequence_traversal_iterator<an_ifc_Node_type>
 a_Sequence_traverser<an_ifc_Node_type>::begin() const
