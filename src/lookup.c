@@ -4857,7 +4857,6 @@ an attempt to declare a member of the same name as the parent class.)
   return sym;
 }  /* check_for_inheriting_constructor_decl */
 
-
 namespace {
 
 /*
@@ -6371,7 +6370,6 @@ namespace.  This routine is used only in C++ mode.
   db_exit();
   return sym;
 }  /* namespace_qualified_id_lookup */
-
 
 namespace {
 

@@ -60,7 +60,6 @@ an_error_severity
 			   file contains unhandled nodes.  Typically only one
 			   report per module will be issued. */
 
-
 namespace {
 
 struct a_module_entity_stack_state;
@@ -97,7 +96,6 @@ struct a_module_entity_stack_state {
 };  /* a_module_entity_stack_state */
 
 }  /* namespace */
-
 
 static void ifc_requirement_impl(ARG_UNUSED int          line_number,
                                  ARG_UNUSED a_const_char *function,
@@ -793,7 +791,6 @@ sequence is not valid.
   }  /* if */
   return result;
 }  /* end */
-
 
 }  /* namespace */
 
@@ -2409,7 +2406,6 @@ containing the partial specialization declaration.
   return decl_state.il_template_entry;
 }  /* parse_cached_partial_specialization */
 
-
 namespace {
 
 using an_ifc_function_body_map = Ptr_map<a_routine_ptr, an_ifc_decl_index>;
@@ -2424,7 +2420,6 @@ an_ifc_function_body_map
                            needed. */
 
 }  /* namespace */
-
 
 template<typename an_ifc_Node_type>
 static a_boolean function_is_user_defined(const an_ifc_Node_type &node)
@@ -3576,7 +3571,6 @@ already in the IL.
   return result;
 }  /* ifc_decl_is_ignorable_redecl */
 
-
 namespace {
 
 /*
@@ -3654,9 +3648,7 @@ Restore to the previous compiler modes.
   microsoft_mode = old_microsoft_mode;
 }  /* ~a_ms_mode_parse */
 
-
 }  /* namespace */
-
 
 static a_boolean is_from_gmf(an_ifc_basic_specifiers_bitfield specifier)
 /*
@@ -5549,7 +5541,6 @@ done:
   return result;
 }  /* init_string_table_and_header */
 
-
 namespace {
 
 /*
@@ -5567,7 +5558,6 @@ struct an_ifc_partition_name {
 };  /* an_ifc_partition_name */
 
 }  /* namespace */
-
 
 static an_ifc_partition_kind find_ifc_partition(a_const_char *name)
 /*

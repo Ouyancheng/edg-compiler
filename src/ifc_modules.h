@@ -36,12 +36,14 @@ typedef struct a_tmpl_decl_state *a_tmpl_decl_state_ptr;
 
 /*lint -e1751*/
 namespace {
+
 /*
 Magic numbers that identify the beginning of an IFC file.  Declared outside of
 MICROSOFT_EXTENSIONS_ALLOWED to facilitate identifying the kind of a mismatched
 module file.
 */
 constexpr a_byte ifc_magic_numbers[] = { 0x54, 0x51, 0x45, 0x1A };
+
 }  /* namespace */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED

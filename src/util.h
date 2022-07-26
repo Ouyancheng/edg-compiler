@@ -1991,7 +1991,6 @@ is FALSE.
 
 }  /* namespace pdqsort_impl */
 
-
 template<typename a_Ptr, typename a_Comparison>
 inline void sort(a_Ptr        begin,
                  a_Ptr        end,
