@@ -41453,8 +41453,8 @@ identical).
   a_symbol_ptr				return_type_sym;
   a_boolean				ctor_is_template;
   a_template_symbol_supplement_ptr	ct_tssp;
-  a_requires_clause_ptr                 ctor_rcp;
-  an_expr_node_ptr                      trailing_constraint = NULL;
+  a_requires_clause_ptr			ctor_rcp;
+  an_expr_node_ptr			trailing_constraint = NULL;
 
   ct_tssp = ct_sym->variant.template_info;
   if (symbol_is(ctor_sym, sk_member_function)) {
