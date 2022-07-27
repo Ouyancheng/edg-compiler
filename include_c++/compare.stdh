@@ -5,7 +5,8 @@ compare -- Include file for three-way comparison support
 #ifndef _COMPARE_STDH
 #define _COMPARE_STDH
 
-#if !defined(__cplusplus) || __cplusplus < 201103L
+#if (!defined(__cplusplus) || __cplusplus < 201103L) && \
+    !(defined(_MSC_VER) && _MSC_VER >= 1900)
  #error -- <compare> header requires C++11 mode
 #endif /* ifndef __cplusplus */
 #ifndef __EDG_CONSTEXPR_ENABLED__

@@ -8225,6 +8225,27 @@ constrained (N4849 [over.match.best] bullet (2.6)):
 }  /* compare_template_candidate_functions */
 
 
+static a_boolean same_prototype_template(a_symbol_ptr  sym1,
+                                         a_symbol_ptr  sym2)
+/*
+Return TRUE if the given symbols represents function templates corresponding
+to the same prototype template (e.g., if X<T>::f is a function template,
+symbols representing X<int>::f and X<double>::f produce a TRUE value).
+*/
+{
+  a_boolean  result;
+
+  if (symbol_is(sym1, sk_function_template) && sym1->kind == sym2->kind) {
+    sym1 = prototype_template_of(sym1);
+    sym2 = prototype_template_of(sym2);
+    result = sym1 == sym2;
+  } else {
+    result = FALSE;
+  }  /* if */
+  return result;
+}  /* same_prototype_template */
+
+
 static int compare_gpp_const_this_tiebreaker(a_candidate_function_ptr cfp1,
                                              a_candidate_function_ptr cfp2)
 /*
@@ -18575,9 +18596,14 @@ select_best_function:
         candidate_functions->function_symbol != NULL &&
         candidate_functions->function_symbol->is_class_member &&
         candidate_functions->arg_matches != NULL &&
-        same_candidate_types(candidate_functions, candidate_functions->next) &&
-        identical_types_ignoring_qualifiers(operand_1->type,
-                                            operand_2->type)) {
+        ((same_candidate_types(candidate_functions,
+                                candidate_functions->next) &&
+          identical_types_ignoring_qualifiers(operand_1->type,
+                                              operand_2->type)) ||
+         ((gpp_version_is(any_version) || ms_version_is(any_version)) &&
+          same_prototype_template(
+                              candidate_functions->function_symbol,
+                              candidate_functions->next->function_symbol)))) {
       /* This is an ambiguity between two candidates in a context where we
          considered reversed comparison operator candidates, and the operands
          have identical types.  For example:
@@ -18588,8 +18614,15 @@ select_best_function:
          C++20 made this an ambiguity error between the declared operator==
          and the synthesized "reversed-parameter" candidate.  Common practice
          is to accept such code, however.  (Note that the reversed candidate
-         is always the first candidate in such cases.)  A similar ambiguity
-         also occurs in the following case:
+         is always the first candidate in such cases.)  GCC and Microsoft also
+         appear to prefer the non-reversed candidate if the two candidates are
+         instances of the same prototype template.  E.g.:
+             template<typename T> struct X {
+               template<typename U>
+                   std::strong_ordering operator<=>(X<U> const&);
+             };
+             auto b = X<float>{} <=> X<double>{};
+         A similar ambiguity also occurs in the following case:
              struct X {
                bool operator!=(const X&);
                bool operator==(const X&);
