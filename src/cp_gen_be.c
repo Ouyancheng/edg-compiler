@@ -16252,6 +16252,8 @@ gen_expr that might end up generating this expr as a temporary.
        reference-producing expression directly.  (Do this here rather than
        in a case below to suppress parentheses around function calls that
        return references.) */
+    a_boolean suppress_parens =
+                             expr->variant.operation.suppress_top_level_parens;
     if (expr->keep_as_cast_for_cp_gen_be) {
       /* The reference indirection is required to get the correct type for
          the operand, so put out an explicit cast to the prvalue type.
@@ -16265,8 +16267,12 @@ gen_expr that might end up generating this expr as a temporary.
          in an overload resolution context. */
       gen_cast(expr->type);
       need_parens = TRUE;
+      suppress_parens = FALSE;
     }  /* if */
     expr = expr->variant.operation.operands;
+    if (is_operation_node(expr) && suppress_parens) {
+      expr->variant.operation.suppress_top_level_parens = suppress_parens;
+    }  /* if */
   }  /* if */
   switch (expr->kind) {
     case enk_operation:
