@@ -137,17 +137,15 @@ types
 In configurations in which template definitions are generated from the
 prototype instantiation IL, the C++-generating back end produced incorrect
 code when the type of a non-type template parameter is a dependent function
-type.  For example, with --c++17:
+type and that template parameter is passed as an argument to an "auto&"
+non-type template parameter.  This is now fixed.  For example, with
+--c++17:
 
   template<typename c> using e = c();   // e is "function returning c" type
-  template<auto&> int task_id;
-  template<typename h, e<h> TASK> void j() { task_id<*TASK>; }
-
-The C++-generating back end put out the last line as:
-
-  template<class h, e<h> *TASK> void j() { task_id<TASK> ; }
-
-This is now fixed.
+  template<auto&> int t;
+  template<typename h, e<h> T> void j() {
+    t<*T>;   // Previously omitted "*" in generated code
+  }
 
 
 7/12/22  [EDGcpfe/25335]
