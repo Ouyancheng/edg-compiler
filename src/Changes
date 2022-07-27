@@ -1,5 +1,23 @@
 Version 6.4
 
+7/27/22  [EDGcpfe/25399]
+Microsoft and GNU compatibility: Implicit reversed comparison operator template
+
+Consider:
+
+  #include <compare>
+  template<typename T> struct X {
+    template<typename U> std::strong_ordering operator<=>(X<U> const&);
+  };
+  auto b = X<float>{} <=> X<double>{};  // Now accepted in GNU and Microsoft
+                                        // C++20 modes.
+
+This example is ambiguous because X<float>::operator<=><double> and
+X<double>::operator<=><float> (with reversed operands) are equally good
+matches.  However, MSVC and GCC accept the case, and the front end now does
+also in Microsoft and GNU C++20 modes.
+
+
 7/22/22  [EDGcpfe/22611,EDGcpfe/24625,EDGcpfe/25401]
 Abbreviated variadic function templates in class templates
 
