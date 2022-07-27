@@ -36766,6 +36766,14 @@ unless the SIR_CLEAR_VALUE flag is set in "options".
       rout_is_constexpr = TRUE;
       if ((options & SIR_CONSTANT_CONTEXT) != 0) {
         constexpr_in_constant_context = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        if ((rp->decl_modifiers & DM_DLLIMPORT) != 0) {
+          /* Microsoft appears to instantiate constexpr function templates
+             when constant-evaluated even in a dllimport attribute previously
+             disabled that particular instance. */
+          tip->explicit_do_not_instantiate = FALSE;
+        }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       }  /* if */
     } else {
       if (microsoft_bugs || gpp_mode) {

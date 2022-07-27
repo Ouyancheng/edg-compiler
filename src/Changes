@@ -1,5 +1,25 @@
 Version 6.4
 
+7/27/22  [EDGcpfe/25436]
+Microsoft C++ compatibility: Evaluation of constexpr dllimport function
+
+Consider (in Microsoft C++ mode):
+
+  template<typename T> struct B {
+    constexpr B(T) {}
+  };
+  template<typename T> struct D: B<T> {
+    constexpr D(T p) : B<T>(p) {}
+  };
+  extern template struct __declspec(dllimport) D<int>;
+  constexpr D<int> d{42};  // Previously an error.  Now okay.
+
+Previously, this elicited an error from the front end because the "extern
+template" directive with the dllimport attribute was interpreted as a signal
+not to instantiate the members of D<int>.  Now, such instantiations are
+performed when needed for constant evaluation, which makes this example valid.
+
+
 7/27/22  [EDGcpfe/25399]
 Microsoft and GNU compatibility: Implicit reversed comparison operator template
 
