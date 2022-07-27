@@ -34,7 +34,7 @@ was parsed as a default constructor instead of as an abbreviated constructor
 template).  That is now fixed.
 
 
-2/21/22  [EDGcpfe/25337]
+7/21/22  [EDGcpfe/25337]
 VLAs in GNU statement expressions
 
 Previously, the front end never accepted VLAs in GNU statement expressions.
