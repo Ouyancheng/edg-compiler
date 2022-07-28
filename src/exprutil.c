@@ -12022,18 +12022,18 @@ a common (unsigned) type.
     a_constant_ptr  con = NULL;
     a_boolean       narrowing_okay = (op_token == tok_shift_left ||
                                       op_token == tok_shift_right);
+    an_operand      *scalar_opnd;
     if (op1_is_vec) {
       vec_type = op1_type;
       scalar_type = op2_type;
-      if (is_constant_operand(operand_2)) {
-        con = &operand_2->variant.constant;
-      }  /* if */
+      scalar_opnd = operand_2;
     } else {
       vec_type = op2_type;
       scalar_type = op1_type;
-      if (is_constant_operand(operand_1)) {
-        con = &operand_1->variant.constant;
-      }  /* if */
+      scalar_opnd = operand_1;
+    }  /* if */
+    if (is_constant_operand(scalar_opnd)) {
+      con = &scalar_opnd->variant.constant;
     }  /* if */
     if (op_token == tok_and_and || op_token == tok_or_or) {
       /* Allow a mixed-type logical operations.  An initial scalar operand
@@ -12044,10 +12044,12 @@ a common (unsigned) type.
       *operation_type = vec_type;
       *op = which_binary_operator(op_token, *operation_type);
     } else if (vector_and_scalar_types_are_compatible(vec_type, scalar_type,
-                                                      con, narrowing_okay)) {
+                                                      con, narrowing_okay) &&
+               !is_a_glvalue(scalar_opnd)) {
       /* The vector and scalar types are compatible.  Convert the scalar
-         operand to a vector. */
-      make_vector_fill_operand(op1_is_vec ? operand_2 : operand_1, vec_type);
+         operand to a vector.  (The "is_a_glvalue" test guards against
+         situations like "scalar += vector".) */
+      make_vector_fill_operand(scalar_opnd, vec_type);
       *operation_type = vec_type;
       *op = which_binary_operator(op_token, *operation_type);
     } else {
