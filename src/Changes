@@ -1,5 +1,25 @@
 Version 6.4
 
+7/28/22  [EDGcpfe/25129,EDGcpfe/23617,EDGcpfe/25468]
+C23 compatibility: Attributes
+
+As described in papers N2335, N2554, N2267, N2448, N2270, N2334, N2408, and
+N2764, the C++ attribute syntax has been adopted by C and the following
+attributes are now accepted in C23 mode: "deprecated", "fallthrough",
+"maybe_unused", "nodiscard", and "noreturn" (and its alias "_Noreturn").
+The behavior of these attributes is identical to the C++ versions.
+
+In addition, attributes with standard syntax are now enabled in GCC mode when
+gnu_version >= 100000 and in Microsoft mode when microsoft_version >= 1934.
+
+
+7/28/22  [EDGcpfe/25129,EDGcpfe/23617,EDGcpfe/25468]
+C23 mode
+
+The front end has been modified to accept the new --c23 command-line option
+to enable C23 mode.
+
+
 7/28/22  [EDGcpfe/25495]
 C++-generating back end: trailing requires-clause with function-call operand
 

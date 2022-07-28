@@ -1154,6 +1154,10 @@ Initialize the option information table.
                          "c17",
                          '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
                          pchek_command_line);
+  add_option_description(optk_c23_mode,
+                         "c23",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
   /* Usually, C89 is the default C mode.  However, in configurations that
      enable another ANSI-based dialect by default (e.g., C99 or SVR4 C), the
@@ -2358,7 +2362,8 @@ is specified.
   if (option_kind_used[(int)optk_c89_mode] ||
       option_kind_used[(int)optk_c99_mode] ||
       option_kind_used[(int)optk_c11_mode] ||
-      option_kind_used[(int)optk_c18_mode]) {
+      option_kind_used[(int)optk_c18_mode] ||
+      option_kind_used[(int)optk_c23_mode]) {
     /* C mode was enabled by a command line option. */
     result = TRUE;
   }  /* if */
@@ -2503,6 +2508,9 @@ option values if they were not already set by a command line option.
     if (ms_c17 && microsoft_version >= 1928) {
       /* Visual Studio version 16.8. */
       /* Currently equivalent to --ms_c11. */
+    }  /* if */
+    if (microsoft_version >= 1934) {
+      std_attributes_enabled = TRUE;
     }  /* if */
   } else {
     /* Microsoft C++ mode. */
@@ -3513,6 +3521,10 @@ process.
     func_prototype_tags_enabled = TRUE;
   }  /* if */
   relaxed_abstract_checking = FALSE;
+  if (std_version >= 202301) {
+    /* C23 features. */
+    std_attributes_enabled = TRUE;
+  }  /* if */
 }  /* set_c_mode_flags */
 
 
@@ -4350,7 +4362,8 @@ if C11 mode was enabled explicitly.
   if (c99_mode) {
     if (option_kind_used[(int)optk_c99_mode] ||
         option_kind_used[(int)optk_c11_mode] ||
-        option_kind_used[(int)optk_c18_mode]) {
+        option_kind_used[(int)optk_c18_mode] ||
+        option_kind_used[(int)optk_c23_mode]) {
       /* C99 mode was enabled by a command line option. */
       command_line_error(ec_cl_incompatible_language_modes);
     }  /* if */
@@ -5093,6 +5106,9 @@ This function is also called in clang mode.
     if (gnu_version >= 90000) {
       terse_static_assert_enabled = TRUE;
     }  /* if */
+    if (gnu_version >= 100000) {
+      std_attributes_enabled = TRUE;
+    }  /* if */
   }  /* if */
 }  /* check_and_set_gcc_mode_options */
 
@@ -5602,6 +5618,7 @@ command line switches.
       C99               std_version >= 199901            --c99
       C11               std_version >= 201112            --c11
       C18               std_version >= 201710            --c18, --c17
+      C23               std_version >= 202301            --c23,
         strict          strict_ansi_mode                 -A, -a, etc.
       "normal"            
         strict          strict_ansi_mode                 -A, -a, etc.
@@ -10898,6 +10915,12 @@ enable_microsoft_mode:
       case optk_parse_nonclass_templates:
         /* Enable prototype instantiation of nonclass templates. */
         nonclass_prototype_instantiations = opt_value;
+        break;
+      case optk_c23_mode:
+        /* Enable C23 mode.  This option implies ANSI C mode. */
+        check_assertion(opt_value == TRUE);
+        std_version = 202301;
+        set_C_dialect(C_dialect_ANSI);
         break;
       case optk_c18_mode:
         /* Enable C18 mode.  This option implies ANSI C mode. */

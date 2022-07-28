@@ -159,8 +159,8 @@ typedef struct an_attr_descr {
 			   attribute is accepted.  The encoding consists of an
 			   optional prefix (see below) followed by a condition
 			   string cstr.  cstr[0] indicates the attribute
-			   family: 'c' for [[...]] (standard C++11), 'g' for
-			   __attribute((...)) in GNU modes, 's' for
+			   family: 'c' for [[...]] (standard C++11 or C23),
+			   'g' for __attribute((...)) in GNU modes, 's' for
 			   __attribute((...)) in Sun mode, 'l' for
 			   __attribute((...)) in Clang mode, and 'm' for
 			   __declspec(...) in Microsoft mode.  cstr[1] is
@@ -224,7 +224,8 @@ separate entries).
 See also the complementary table known_attr_appl_table below.
 */
 static an_attr_descr known_attr_table[] = {
-  /* Standard attributes. */
+  /* C++ standard attributes (C++11 and later).  Note the use of "c+" to
+     indicate these are valid in C++ modes only. */
   { "align", "(ct)", "c+", ak_align },
   { "base_check", "", "1c+", ak_base_check },
   { "carries_dependency", "", "1c+", ak_carries_dependency },
@@ -242,6 +243,16 @@ static an_attr_descr known_attr_table[] = {
   { "likely", "", "1c+(202002-|G(80300-))", ak_likely },
   { "unlikely", "", "1c+(202002-|G(80300-))", ak_unlikely },
   { "no_unique_address", "", "1c+(202002-|G(80300-))", ak_no_unique_address },
+
+  /* C standard attributes (C23 and later).  Also accepted by default when
+     gnu_version >= 100000 or microsoft_version >= 1934 (see the setting of
+     std_attributes_enabled). */
+  { "deprecated", "?(sx)", "c", ak_deprecated },
+  { "fallthrough", "", "c", ak_fallthrough },
+  { "nodiscard", "?(sx)", "c", ak_nodiscard },
+  { "noreturn", "", "c", ak_noreturn },
+  { "_Noreturn", "", "c", ak_noreturn },
+  { "maybe_unused", "", "c", ak_maybe_unused },
 
   /* Nonstandard attributes. */
   { "enable_if", "(X,sn)", "lx(30500-)", ak_enable_if },
@@ -1385,13 +1396,22 @@ namespace (if any) matches the modes and namespace encoded in that string.
 {
   a_boolean  match = FALSE;
 
-  if (cond[0] == 'c' && cond[1] == '+') {
-    cond += 2;
-    /* See if the attribute namespace is a match. */
-    match = attribute_namespace_satisfied(&cond, ap);
-    /* Next check for a version constraint, if any. */
-    if (match && *cond == '(') {
-      match = attribute_condition_satisfied(std_version, cond, ap);
+  if (*cond == 'c') {
+    /* A 'c' by itself implies C mode only.  A 'c+' implies C++ mode only. */
+    cond++;
+    if (*cond == '+') {
+      match = !C_mode();
+      cond++;
+    } else {
+      match = C_mode();
+    }  /* if */
+    if (match) {
+      /* See if the attribute namespace is a match. */
+      match = attribute_namespace_satisfied(&cond, ap);
+      /* Next check for a version constraint, if any. */
+      if (match && *cond == '(') {
+        match = attribute_condition_satisfied(std_version, cond, ap);
+      }  /* if */
     }  /* if */
   }  /* if */
   return match;

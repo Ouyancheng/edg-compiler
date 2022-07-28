@@ -663,6 +663,7 @@ check_abbreviation()
 --c11
 --c17
 --c18
+--c23
 --c89
 --c99
 --c++
@@ -1443,6 +1444,7 @@ process_option()
          --c99 | \
          --c11 | \
          --c18 | --c17 | \
+         --c23 | \
          --no_c99 | \
          --no_c++0x | \
          --no_c++11 | \
@@ -1726,7 +1728,7 @@ process_option()
          --no_old_id_chars)
 #     Options that require additional processing
       case $arg in
-        -m | --c | --c89 | --c99 | --no_c99 | --c11 | --c18 | --c17 | \
+        -m | --c | --c89 | --c99 | --no_c99 | --c11 | --c18 | --c17 | --c23 | \
 	-K | --old_c | --svr4 | --no_svr4 | \
 	--gcc | --no_gcc | --upc | --no_upc)
           c_mode=1
