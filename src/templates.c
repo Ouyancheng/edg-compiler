@@ -36769,7 +36769,7 @@ unless the SIR_CLEAR_VALUE flag is set in "options".
 #if MICROSOFT_EXTENSIONS_ALLOWED
         if ((rp->decl_modifiers & DM_DLLIMPORT) != 0) {
           /* Microsoft appears to instantiate constexpr function templates
-             when constant-evaluated even in a dllimport attribute previously
+             when constant-evaluated even if a dllimport attribute previously
              disabled that particular instance. */
           tip->explicit_do_not_instantiate = FALSE;
         }  /* if */
