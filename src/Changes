@@ -1,5 +1,18 @@
 Version 6.4
 
+7/28/22  [EDGcpfe/25495]
+C++-generating back end: trailing requires-clause with function-call operand
+
+The C++-generating back end failed to enclose the operand of a trailing
+requires-clause in parentheses when it consists of a single function call,
+resulting in code that could not be compiled.  This is now fixed.  For
+example, with --c++20:
+
+  template<typename> constexpr bool f() { return true; }
+  template<typename T> void f() requires (f<T>()) { }  // Previously omitted ()
+                                                       // around f<T>()
+
+
 7/27/22  [EDGcpfe/21479,EDGcpfe/24646,EDGcpfe/25478]
 Spurious error on use of deleted defaulted move constructor
 

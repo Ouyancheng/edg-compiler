@@ -22159,7 +22159,9 @@ declarator (or NULL if it wasn't recorded).
       fpse.outside_parameter_list = TRUE;
       fpse.is_prototype_instantiation = FALSE;
       push_function_prototype(&fpse, &octl);
-      gen_expr_with_parens(rcp->constraint);
+      write_tok_ch('(');
+      gen_expression(rcp->constraint);
+      write_tok_ch(')');
       pop_function_prototype(&octl);
     }  /* if */
   }
