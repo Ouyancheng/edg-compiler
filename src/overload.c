@@ -28116,8 +28116,15 @@ traversal_start:
         /* sym should not be considered in this pass. */
         goto next_function;
       } else {
-        a_routine_ptr  rp = func_sym_routine(sym);
+        a_routine_ptr     rp = func_sym_routine(sym);
+        a_param_type_ptr  ptp = function_type_params(rp->type);
         if (ignore_explicit_ctors && rp->is_explicit_constructor) {
+          goto next_function;
+        }  /* if */
+        if (rp->is_defaulted && rp->is_deleted && ptp != NULL &&
+            is_rvalue_reference_type(ptp->type)) {
+          /* A defaulted move copy constructor that happens to be deleted
+             should just be ignored (Core issue 1402). */
           goto next_function;
         }  /* if */
         if (have_near_perfect_match &&
@@ -28126,7 +28133,6 @@ traversal_start:
              "exact match" we have already found.  We do this to avoid
              partially instantiating these templates, thereby avoiding
              potential errors resulting from those instantiations. */
-          a_param_type_ptr  ptp = function_type_params(rp->type);
           if (ptp != NULL &&
               (is_lvalue_reference_type(ptp->type) ||
                (!source_is_rvalue && is_rvalue_reference_type(ptp->type)))) {

@@ -1,5 +1,29 @@
 Version 6.4
 
+7/27/22  [EDGcpfe/21479,EDGcpfe/24646,EDGcpfe/25478]
+Spurious error on use of deleted defaulted move constructor
+
+Consider:
+
+  struct S {
+    S(int);
+    S(S&&) noexcept(false) = default;
+  };
+  S g() {
+    return 42;  // Previously an error in GNU C++11 and C++14 modes.
+  }             // Now okay.
+
+Previously, that elicited an error about an elided constructor being deleted
+in GNU C++11 and C++14 modes (but not GNU C++17 mode, because mandatory copy
+elision rules masked the issue in that case).  That error was spurious,
+however, since a deleted defaulted move constructor must be ignored altogether
+(by the resolution of Core issue 1402, which the front end generally already
+implemented but this particular context was overlooked).  This problem also
+existed (for more complex cases) in other C++11 and C++14 modes.  That is now
+fixed: The move constructor is now ignored and instead the (elided) copy
+constructor is considered instead.
+
+
 7/27/22  [EDGcpfe/25483]
 C++-generating back end: aggregate constant initialization
 
