@@ -20315,7 +20315,14 @@ when possible.
             (cexpr->next == NULL || cexpr->next->generated_default_arg)) {
           has_one_argument = TRUE;
         }  /* if */
-      } else if (dip->kind == (a_dynamic_init_kind)dik_expression) {
+      } else if (dip->kind == (a_dynamic_init_kind)dik_expression &&
+                 !(is_constant_node(dip->variant.expression) &&
+                   constant_is(node_constant(dip->variant.expression),
+                               ck_aggregate))) {
+        /* Generally, an expression operand can be handled with a C-style
+           cast.  If the operand is an aggregate constant, however, the
+           result would be something like (T)({}), which is
+           non-syntactic. */
         has_one_argument = TRUE;
         cexpr = dip->variant.expression;
       }  /* if */

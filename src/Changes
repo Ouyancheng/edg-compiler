@@ -1,5 +1,21 @@
 Version 6.4
 
+7/27/22  [EDGcpfe/25483]
+C++-generating back end: aggregate constant initialization
+
+In some cases involving aggregate constant initialization, the
+C++-generating back end generated code that could not be compiled because
+it represented a conversion as a C-style cast instead of a
+functional-notation cast.  This is now fixed.  For example, with --c++11:
+
+  struct A {
+    struct B { int arr[2]; };
+    constexpr A(const B &br) : b(br) {};
+    B b;
+  };
+  constexpr A a(A::B({{}}));  // Previously generated as a((A::B)({{}}))
+
+
 7/27/22  [EDGcpfe/25436]
 Microsoft C++ compatibility: Evaluation of constexpr dllimport function
 
