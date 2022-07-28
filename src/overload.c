@@ -8228,7 +8228,7 @@ constrained (N4849 [over.match.best] bullet (2.6)):
 static a_boolean same_prototype_template(a_symbol_ptr  sym1,
                                          a_symbol_ptr  sym2)
 /*
-Return TRUE if the given symbols represents function templates corresponding
+Return TRUE if the given symbols represent function templates corresponding
 to the same prototype template (e.g., if X<T>::f is a function template,
 symbols representing X<int>::f and X<double>::f produce a TRUE value).
 */
@@ -18597,14 +18597,14 @@ select_best_function:
         candidate_functions->function_symbol->is_class_member &&
         candidate_functions->arg_matches != NULL &&
         ((same_candidate_types(candidate_functions,
-                                candidate_functions->next) &&
+                               candidate_functions->next) &&
           identical_types_ignoring_qualifiers(operand_1->type,
                                               operand_2->type)) ||
          ((gpp_version_is(any_version) || ms_version_is(any_version)) &&
           same_prototype_template(
                               candidate_functions->function_symbol,
                               candidate_functions->next->function_symbol)))) {
-      /* This is an ambiguity between two candidates in a context where we
+      /* This handles an ambiguity between two candidates in a context where we
          considered reversed comparison operator candidates, and the operands
          have identical types.  For example:
              struct X { bool operator==(const X &b); };  // non-const(!)
