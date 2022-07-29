@@ -68,6 +68,7 @@ Consider:
 
   struct S {
     S(int);
+    S(S const&);
     S(S&&) noexcept(false) = default;
   };
   S g() {
