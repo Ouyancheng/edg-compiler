@@ -1,5 +1,15 @@
 Version 6.4
 
+7/29/22  [EDGcpfe/25291]
+C++-generating back end: protected member access
+
+The C++-generating back end previously failed to consider protected access
+when determining the accessibility of a name when generating code.  In some
+complex cases involving protected member types, this omission could result
+in an invalid substitution of a typedef in place of the member type.  This
+is now fixed.
+
+
 7/28/22  [EDGcpfe/25129,EDGcpfe/23617,EDGcpfe/25468]
 C23 compatibility: Attributes
 

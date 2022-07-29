@@ -2619,14 +2619,15 @@ names is not public, set *for_all_scopes to FALSE.
       if (opnd != NULL && !expr_is_unusable(opnd)) {
         is_accessible = TRUE;
       }  /* if */
-    } else if (scp->access == (an_access_specifier)as_public) {
+    } else if (scp->access == as_public) {
       /* Either a public class member or a non-member. */
       is_accessible = TRUE;
     } else if (!ignore_context) {
       local_for_all_scopes = FALSE;
-      /* Check to see if the containing class is in the context stack. */
+      /* Check to see if the containing class is in the context stack.
+         Include base classes if the member has protected access. */
       is_accessible = (class_is_in_name_context_stack(
-                                  parent_class, /*include_base_classes=*/FALSE,
+                                  parent_class, scp->access == as_protected,
                                   /*ignore_field_selection_contexts=*/FALSE) ||
                        (curr_name_context != NULL &&
                         curr_name_context->class_type_for_access_not_naming ==
