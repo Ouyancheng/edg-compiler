@@ -3350,6 +3350,7 @@ ec_ifc_partition_bad_entry_size;;"the partition %sq specified its entry size as 
 ec_ifc_requirement_failure;;"an unexpected IFC requirement was encountered while processing module %sq1"
 ec_ifc_requirement_failure_fill_in;;"condition failed at line %d in %s1: %sq2"
 ec_circular_constraint;;"atomic constraint depends on itself"
+ec_noreturn_with_return_type;;"declaring a \"noreturn\" routine with a non-void return type"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

@@ -5168,6 +5168,11 @@ entity.
     a_type_ptr  func_type = get_func_type_for_attr(ap, &entity, entity_kind);
     if (func_type != NULL) {
       func_type->variant.routine.extra_info->does_not_return = TRUE;
+      if (C_mode() && !is_void_type(func_type->variant.routine.return_type)) {
+        /* C23 suggests a diagnostic on noreturn routines with non-void
+           return types. */
+        pos_warning(ec_noreturn_with_return_type, &ap->position);
+      }  /* if */
     }  /* if */
   }  /* if */
   return entity;
