@@ -2200,9 +2200,9 @@ symbol should be accepted despite being invisible, FALSE otherwise.
 {
   a_boolean result = FALSE;
 
-  /* g++ versions >= 50000 make the function template symbol visible for
-     parsing purposes, but it is ignored by overload resolution. */
-  if (gpp_version_is(>= 50000) &&
+  /* GCC 5.x makes the function template symbol visible for parsing purposes,
+     but it is ignored by overload resolution. */
+  if (gpp_version_is(>= 50000) && gnu_version < 60000 && 
       symbol_is_or_contains_function_template(fund_sym)) {
     result = TRUE;
   } else if (lookup_state->is_linkage_lookup) {
@@ -2383,11 +2383,11 @@ found by a using-directive lookup.
 Operator names seem to be visible regardless of the location of the
 using-directive.
 
-ssep is the scope is the scope stack entry at which the using-directives apply
-that are being considered for this lookup.  locator identifies the kind of name
-being looked up.  new_sym is the symbol being considered.  nssp is the
-namespace of new_sym.  sym_from_scope is the symbol found by normal lookup
-in the scope in which the using-directives apply.
+ssep is the scope stack entry at which the using-directives apply that are
+being considered for this lookup.  locator identifies the kind of name being
+looked up.  new_sym is the symbol being considered.  nssp is the namespace of
+new_sym.  sym_from_scope is the symbol found by normal lookup in the scope in
+which the using-directives apply.
 */
 {
   a_boolean	visible_using_dir;

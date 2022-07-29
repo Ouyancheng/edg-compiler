@@ -1,5 +1,29 @@
 Version 6.4
 
+7/29/22  [EDGcpfe/19917,EDGcpfe/20112,EDGcpfe/25083]
+GNU C++ compatibility: Nonstandard using-directive lookup and friend injection
+
+The front end emulates various nonstandard GCC behaviors that affect lookup in
+the presence of using-directives and friend declarations (see, e.g., the entry
+for EDGcpfe/18114).  It appears that with GCC version 6.x, those nonstandard
+behaviors have been removed, and the front end now limits the former GCC
+behavior emulation to GNU C++ modes with gnu_version < 60000 in this regard.
+In particular, that causes the front end to accept the following example with
+--gnu_version=60100:
+
+  namespace N {
+    struct S { void operator()() const {} };
+    S f{};
+  }
+  using namespace N;
+  struct X {
+    template<typename T> friend void f() {}
+  };
+  int main() {
+    f();  // Previously ambiguous with --gnu=60100.  Now okay.
+  }
+
+
 7/29/22  [EDGcpfe/24711]
 Nested variadic templates and empty function parameter pack expansions
 
