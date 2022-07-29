@@ -2630,7 +2630,7 @@ enum an_attribute_family : a_byte {
 			   attribute-like construct.  E.g., on a template this
 			   might reflect the effect of a #pragma directive. */
   af_std,		/* An attribute specified using the standard C++11
-			   syntax [[ ... ]]. */
+			   or C23 syntax [[ ... ]]. */
   af_gnu,		/* An attribute specified using the GNU __attribute
 			   syntax.  (The GNU syntax is emulated by other
 			   compilers, including Sun's.) */
