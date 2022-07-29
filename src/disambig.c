@@ -410,7 +410,7 @@ called, the current token must be the initial keyword.
 
 static void prescan_std_attribute(a_disambig_flag_set   flags)
 /*
-Prescan a C++11 attribute list of the form:
+Prescan a C++11 or C23 attribute list of the form:
 
   [[ attribute-list [opt] ]]
 
@@ -1122,7 +1122,7 @@ part of a declarator is found, may_be_decl is set to FALSE.
       get_token_and_coalesce_if_identifier(flags);
       pointer_operator_seen = TRUE;
       if (std_attribute_tokens_next()) {
-        /* C++11 permits attributes after the pointer/reference operator. */
+        /* C++11/C23 permit attributes after the pointer/reference operator. */
         prescan_std_attribute(flags);
       }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -1149,7 +1149,7 @@ part of a declarator is found, may_be_decl is set to FALSE.
       /* Keywords allowed in declarators in Microsoft mode, e.g., __cdecl. */
       get_token_and_coalesce_if_identifier(flags);
       if (std_attribute_tokens_next()) {
-        /* C++11 permits attributes after the pointer/reference operator. */
+        /* C++11/C23 permit attributes after the pointer/reference operator. */
         prescan_std_attribute(flags);
       }  /* if */
     } else {
@@ -1327,7 +1327,7 @@ part of a declarator is found, may_be_decl is set to FALSE.
     }  /* if */
   }  /* if */
   if (std_attribute_tokens_next()) {
-    /* C++11 permits attributes in the declarator. */
+    /* C++11/C23 permit attributes in the declarator. */
     prescan_std_attribute(flags);
   }  /* if */
   /* The declarator can end at this point, or an array or function
