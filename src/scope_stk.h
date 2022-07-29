@@ -462,9 +462,10 @@ typedef struct a_pack_expansion_descr {
 			   otherwise. */
   a_symbol_header_ptr
 		param_symbol_header;
-			/* For a template parameter declaration that is a
-			   pack expansion, this is the symbol header of
-			   the parameter. */
+			/* For a template parameter declaration that is a pack
+			   expansion, this is the symbol header of the
+			   parameter.  Also recorded for function parameter
+			   packs. */
   int		tentative_pack_expansion_depth;
 			/* The number of nested tentative scans of function
 			   declarators in process at the time this pack

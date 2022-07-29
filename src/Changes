@@ -1,5 +1,23 @@
 Version 6.4
 
+7/29/22  [EDGcpfe/24711]
+Nested variadic templates and empty function parameter pack expansions
+
+Consider (in C++17 mode):
+
+  template<typename... Ts> inline bool g(Ts ...ps) {
+    return [&](auto &... xs) {
+             return ((xs < ps) && ...);  // Previously an error.  Now okay.
+           }();
+  }
+  bool r = g();
+
+When g<>() is instantiated (with an empty pack), there is no longer a parameter
+"ps" to refer to, but the prototype instantiation of the nested generic lambda
+still referred to that name.  Previously, this resulted in a spurious error.
+That is now fixed.
+
+
 7/29/22  [EDGcpfe/25291]
 C++-generating back end: protected member access
 

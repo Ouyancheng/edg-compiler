@@ -21326,7 +21326,8 @@ scope that is part of the indicated routine) to the file scope.
       variable = list;
       if (variable->source_corresp.decl_position.seq != 0 &&
           !variable->is_anonymous_parent_object &&
-          !variable->is_struct_binding) {
+          !variable->is_struct_binding &&
+          !type_is(variable->type, tk_template_param)) {
         /* Count the number of variables declared in the source (that excludes
            compiler-generated variables and binding variables for structured
            bindings).  The count is used later to optimize the removal of these
@@ -21334,8 +21335,14 @@ scope that is part of the indicated routine) to the file scope.
         n_promoted_source_vars += 1;
       }  /* if */
       list = list->next;
-      /* Promote the local static variable to file scope. */
-      promote_static_variable_out_of_function(variable, scope, routine);
+      if (type_is(variable->type, tk_template_param)) {
+        // XXX
+        variable->next = scope->variables;
+        scope->variables = variable;
+      } else {
+        /* Promote the local static variable to file scope. */
+        promote_static_variable_out_of_function(variable, scope, routine);
+      }  /* if */
     }  /* while */
     /* Reset the scope stack pointer to the last static variable (in case
        static variables were added during the lowering process). */
@@ -21344,7 +21351,8 @@ scope that is part of the indicated routine) to the file scope.
       for (last = scope->variables;
            last != NULL && last->next != NULL;
            last = last->next) {
-        check_assertion(last->lowering_generated);
+        check_assertion(last->lowering_generated ||
+                        type_is(last->type, tk_template_param));
       }  /* for */
       assoc_pointers_block_of(&scope_stack[depth])->last_variable = last;
     }  /* if */

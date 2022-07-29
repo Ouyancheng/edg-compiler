@@ -3200,6 +3200,7 @@ an error if a default argument expression is encountered.
     /* ANSI function prototype, as in "int f(int a, char *b)" or
        "int f(int, char *)". */
     a_pack_expansion_stack_entry_ptr  pesep = NULL;
+    a_pack_expansion_descr_ptr        pedp = NULL;
     a_boolean                         any_variadic_params = FALSE;
     uint32_t                          param_number = 0;
     if (any_params && !disallow_default_args) {
@@ -3244,11 +3245,27 @@ an error if a default argument expression is encountered.
     if (any_params) {
       /* If there appear to be parameters, check for empty function parameter
          packs. */
-      while ((any_params =
-                   begin_potential_pack_expansion_context(&pesep)) == FALSE) {
-        /* An empty pack expansions: Skip a parameter number (i.e., there is
-           no parameter in this instance that matches the parameter pack in
-           the template). */
+      for (;;) {
+        a_symbol_locator  loc;
+        any_params = begin_potential_pack_expansion_context_full(
+                                                &pesep, &pedp,
+                                                /*is_lookahead=*/FALSE,
+                                                /*allow_empty_list=*/FALSE,
+                                                /*ignore_suppression=*/FALSE);
+        if (any_params) break;
+        /* An empty pack expansions: Create a dummy parameter id entry in case
+           nested prototype instantiations refer to it. */
+        if (pedp != NULL && pedp->param_symbol_header != NULL) {
+          clear_locator(&loc, &pos_curr_token);
+          loc.symbol_header = pedp->param_symbol_header;
+          add_to_param_id_list(&loc, type_of_unknown_templ_param_nontype,
+                               &pos_curr_token, sc_auto, func_info,
+                               (a_source_sequence_entry*)NULL,
+                               &last_param_id, /*is_pack_element=*/FALSE);
+          last_param_id->is_empty_pack_parameter = TRUE;
+          last_param_id->declared_type = type_of_unknown_templ_param_nontype;
+          last_param_id->param_num = param_number;
+        }  /* if */
         param_number += 1;
         if (curr_token == tok_ellipsis) {
           /* An empty pack expansion immediately followed by an ellipsis: This
@@ -3262,7 +3279,7 @@ an error if a default argument expression is encountered.
         } else {
           /* Continue checking for additional empty expansions. */
         }  /* if */
-      }  /* while */
+      }  /* for */
       any_variadic_params = any_params;
     }  /* if */
     if (any_params) {
@@ -3720,6 +3737,7 @@ an error if a default argument expression is encountered.
                               local_decl_pos_block.identifier_range;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
           last_param_id->param_num = param_number;
+          ptp->param_num = param_number;
           if (param_state.eff_top_level_cv_quals != TQ_NONE) {
             /* Record qualifiers that are not necessarily part of the function
                type in template rescan cases. */
@@ -3727,14 +3745,19 @@ an error if a default argument expression is encountered.
                                            param_state.eff_top_level_cv_quals;
             must_adjust_param_type_qualifiers = state->is_template_rescan;
           }  /* if */
-          last_param_id->param_num = param_number;
           if (ptp->is_pack_element) {
             last_param_id->is_pack_element = TRUE;
             if (ptp->is_parameter_pack) {
               last_param_id->is_parameter_pack = TRUE;
             }  /* if */
           }  /* if */
-          ptp->param_num = param_number;
+          if (ptp->is_parameter_pack &&
+              pesep != NULL && pesep->instantiation_descr == NULL &&
+              pedp != NULL && last_param_id->symbol != NULL) {
+            /* Record the name of the parameter in the prototype instantiation.
+               That allows access to the name even for empty expansions. */
+            pedp->param_symbol_header = last_param_id->symbol->header;
+          }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
           if (last_param_id->symbol != NULL) {
             /* Record whether the name of this parameter is a duplicate of

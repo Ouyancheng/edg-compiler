@@ -1699,6 +1699,19 @@ typedef struct a_param_id {
 			                                 ->decltype(f(p...));
 			     };
 			   Parameter p will have this flag set. */
+  a_bit_field	is_empty_pack_parameter:1;
+			/* TRUE for "dummy" parameters created as placeholders
+			   for empty pack expansions.  For example:
+			     template<typename... Ts> inline bool g(Ts ...ps) {
+			       return [&](auto &... xs) {
+			                return ((xs < ps) && ...);
+			              }();
+			     }
+			     bool r = g();
+			   During the instantiation of g<>(), the identifier ps
+			   in "xs < ps" must still be resolved in the prototype
+			   instantiation of the nested lambda.  So we create a
+			   dummy dependent argument for it. */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_bit_field	is_decl_after_first_in_comma_list:1;
 			/* TRUE for an old-style parameter defined in a

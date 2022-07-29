@@ -36286,6 +36286,24 @@ if rescan_is_template_id is TRUE, and return the result in *operand
           goto variable;
         case sk_variable:
           var_ptr = sym_ptr->variant.variable.ptr;
+          if (var_ptr->compiler_generated &&
+              var_ptr->type == type_of_unknown_templ_param_nontype &&
+              !is_template_dependent_context()) {
+            /* This is a dummy variable needed for situation like this:
+                   template<typename... Ts> inline bool g(Ts ...ps) {
+                     return [&](auto &... xs) {
+                              return ((xs < ps) && ...);
+                            }();
+                   }
+                   bool r = g();
+               where "ps" will be encountered in the nested prototype
+               instantiation even though the outer instantiation expands it to
+               an empty pack.  However, if we are in a non-dependent context,
+               that can only be due to an error. */
+            expect_error();
+            make_error_operand(result);
+            break;
+          }  /* if */
 variable:
           okay_for_integral_const_expr = TRUE;
           if (!is_template_dependent_context()) {

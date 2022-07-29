@@ -694,7 +694,19 @@ associated with a variadic parameter, but not the initial one.
     tp = ptp->type = error_type();
   }  /* if */
   /* Create the parameter variable. */
-  vp = make_param_variable(tp, param_id->storage_class);
+  if (param_id->is_parameter_pack && ptp->param_num == 0) {
+    /* This is a "dummy" parameter produced for an empty parameter pack
+       expansion. */
+    vp = make_variable(type_of_unknown_templ_param_nontype, sc_static,
+                       depth_scope_stack);
+    vp->source_corresp.is_local_to_function = TRUE;
+    vp->is_parameter_pack = TRUE;
+    vp->compiler_generated = TRUE;
+    add_to_variables_list(vp, depth_scope_stack);
+  } else {
+    vp = make_param_variable(tp, param_id->storage_class);
+    add_to_parameters_list(vp);
+  }  /* if */
   vp->is_parameter_pack = ptp->is_parameter_pack;
   vp->is_pack_element = ptp->is_pack_element;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
@@ -706,7 +718,6 @@ associated with a variadic parameter, but not the initial one.
   vp->has_variably_modified_type = (vla_enabled &&
                                     is_variably_modified_type(tp));
 #endif /* VLA_ALLOWED */
-  add_to_parameters_list(vp);
   sym = param_id->symbol;
   if (gnu_mode && sym != NULL && sym->ambiguous) {
     /* In GNU C and C++ mode, a duplicate parameter name is only diagnosed in
@@ -807,9 +818,15 @@ associated with a variadic parameter, but not the initial one.
     vp->source_corresp.scope_depth = decl_scope_level;
 #endif /* RECORD_SCOPE_DEPTH_IN_IL */
   }  /* if */
-  vp->variant.assoc_param_type = ptp;
-  ptp->name = vp->source_corresp.name;
-  attach_param_variable_attributes(vp);
+  if (param_id->is_parameter_pack && ptp->param_num == 0) {
+    /* This is a dummy parameter variable for an empty parameter expansion.
+       The param-type entry is just a placeholder, and should not be recorded
+       in the variable. */
+  } else {
+    vp->variant.assoc_param_type = ptp;
+    ptp->name = vp->source_corresp.name;
+    attach_param_variable_attributes(vp);
+  }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   {
   a_decl_position_supplement_ptr  dpsp = vp->source_corresp.decl_pos_info;
@@ -1667,20 +1684,20 @@ of lambda expressions.
     }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     /* Be sure param-id and param-type lists are in sync. */
-    if ((param_id == NULL) != (ptp == NULL)) {
-      /* Getting here is unusual.  In most modes, it is the result of the
-         param_id list being discarded because severe syntax errors made it
+    if ((param_id == NULL) != (ptp == NULL) &&
+        !(param_id != NULL && param_id->is_parameter_pack)) {
+      /* Getting here is slightly unusual.  In most modes, it is the result of
+         the param_id list being discarded because severe syntax errors made it
          look like the declarator did not appear at the top level (param_id is
          NULL in such cases).  In Microsoft mode, however, it can also occur
          when a single template-dependent parameter became "void" after
-         instantiation (ptp is NULL in that case).  It can also occur for
-         variadic templates that are instantiated on empty parameter packs. */
+         instantiation (ptp is NULL in that case).  Note that the case where
+         there is a param_id representing an empty parameter pack expansion is
+         handled below (in which case ptp might be NULL if there are no actual
+         parameters that follow). */
 #if CHECKING
       if (param_id == NULL) {
         check_assertion(is_at_least_one_error());
-      } else if (param_id->is_parameter_pack) {
-        /* A variadic function can have a function parameter pack that ends
-           up having no elements. */
       } else {
         check_assertion_or_expect_error(
                                   microsoft_mode && param_id->next == NULL &&
@@ -1691,18 +1708,28 @@ of lambda expressions.
       param_id = NULL;
       ptp = NULL;
     }  /* if */
-    for (; param_id != NULL && ptp != NULL;
+    for (; param_id != NULL;
          advance_param_id_and_param_type(&param_id, &ptp, rout_ptr)) {
 #if GENERATE_SOURCE_SEQUENCE_LISTS
       a_type_ptr  declared_param_type;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       /* In some cases with empty pack expansions there can be no param
          type entry for a given parameter.   Skip over those param_ids. */
-      while (param_id != NULL && ptp != NULL &&
-             param_id->param_num < ptp->param_num &&
-             param_id->is_parameter_pack) {
+      while (param_id != NULL && param_id->is_parameter_pack &&
+             (ptp != NULL ?  param_id->param_num < ptp->param_num : TRUE)) {
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+        Value_saver<a_boolean>  saver(&source_sequence_entries_disallowed,
+                                      TRUE);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+        a_param_type_ptr        empty_ptp = alloc_param_type(param_id->type);
+        empty_ptp->type = type_of_unknown_templ_param_nontype;
+        empty_ptp->declared_type = type_of_unknown_templ_param_nontype;
+        decl_parameter(param_id, param_id->type, empty_ptp,
+                       is_instantiation, /*non_initial_variadic_param=*/FALSE);
+        free_param_type_list(empty_ptp);
         param_id = param_id->next;
       }  /* while */
+      if (ptp == NULL) break;
       if (param_id == NULL) {
         /* This can happen with severe errors (particularly with variadic
            template instantiations). */
