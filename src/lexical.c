@@ -15920,8 +15920,10 @@ return_end_of_source_token:
       ctoken = tok_compl;
       break;
     case ':':
-      /* In C++, may be "::" or ":>". */
-      if ((ch = *(curr_char_loc+1)) == ':' && !C_mode()) {
+      /* In C++, may be "::" or ":>".  Beginning with C23, "::" is a
+         separator (used for attribute namespaces). */
+      if ((ch = *(curr_char_loc+1)) == ':' &&
+          (!C_mode() || std_version >= 202301)) {
         ctoken = tok_colon_colon;
         goto two_char_token;
       } else if (ch == '>' && digraphs_allowed()) {
