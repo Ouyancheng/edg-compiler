@@ -2511,6 +2511,7 @@ option values if they were not already set by a command line option.
     }  /* if */
     if (microsoft_version >= 1934) {
       std_attributes_enabled = TRUE;
+      nodiscard_attribute_enabled = TRUE;
     }  /* if */
   } else {
     /* Microsoft C++ mode. */
@@ -3524,6 +3525,7 @@ process.
   if (std_version >= 202301) {
     /* C23 features. */
     std_attributes_enabled = TRUE;
+    nodiscard_attribute_enabled = TRUE;
   }  /* if */
 }  /* set_c_mode_flags */
 
@@ -5108,6 +5110,7 @@ This function is also called in clang mode.
     }  /* if */
     if (gnu_version >= 100000) {
       std_attributes_enabled = TRUE;
+      nodiscard_attribute_enabled = TRUE;
     }  /* if */
   }  /* if */
 }  /* check_and_set_gcc_mode_options */
