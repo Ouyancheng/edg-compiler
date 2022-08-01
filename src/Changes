@@ -65,11 +65,12 @@ In addition, attributes with standard syntax are now enabled in GCC mode when
 gnu_version >= 100000 and in Microsoft mode when microsoft_version >= 1934.
 
 
-7/28/22  [EDGcpfe/25129,EDGcpfe/23617,EDGcpfe/25468]
-C23 mode
+7/28/22  [EDGcpfe/23617,EDGcpfe/25129,EDGcpfe/25468]
+Add --c23 command-line option
 
-The front end has been modified to accept the new --c23 command-line option
-to enable C23 mode.
+In preparation for the next version of the C standard, currently referred
+to as C23, the --c23 command-line option has been added.  This option
+currently has the same effect as --c18.
 
 
 7/28/22  [EDGcpfe/25495]
