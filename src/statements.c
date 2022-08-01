@@ -8118,8 +8118,7 @@ is being parsed within the context of the __extension__ keyword.
         struct_stmt_stack_top().p_start_pos = &gnu_extension_pos;
         (void)get_token();
       }  /* if */
-      if (curr_token == tok_attribute ||
-          std_attribute_tokens_next()) {
+      if (curr_token == tok_attribute || std_attribute_tokens_next()) {
         /* Scan leading attributes.  Generally these are associated with
            a declaration, but the "fallthrough" attribute is associated with
            a statement and its presence would cause is_decl_start to
