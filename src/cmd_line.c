@@ -5189,7 +5189,7 @@ before this routine is called.
   gpp_dependent_name_lookup = TRUE;
   /* Earlier versions of GCC use special rules for determining which
      using-directives should be visible during template instantiations. */
-  gpp_using_directive_lookup = gnu_version < 60000;
+  gpp_using_directive_lookup = gnu_version < 120000;
   /* g++ 4.3.x and earlier do not make parameters visible in their own
      function prototype scope.  (Later versions still keep them invisible
      in default argument expressions, but not in other contexts.)  We disable
