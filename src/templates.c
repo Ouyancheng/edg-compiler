@@ -40386,7 +40386,8 @@ list.
   for (; *tap != NULL && is_start_of_pack_expansion_templ_arg(*tap);) {
     *tap = (*tap)->next;
     /* If there are no pack elements, advance to the next parameter. */
-    if ((!is_first_arg || (*tap != NULL && !(*tap)->is_pack_element)) &&
+    if ((!is_first_arg ||
+         (*tap != NULL && !(*tap)->is_pack_element && !(*tap)->is_pack)) &&
         tpp != NULL && *tpp != NULL) {
       *tpp = (*tpp)->next;
     }  /* if */
@@ -40515,7 +40516,9 @@ that routine for how this routine differs from advance_to_next_template_arg.
   check_assertion(tap != NULL);
   *tap = (*tap)->next;
   /* Skip over any pack elements. */
-  while ((*tap) != NULL && (*tap)->is_pack_element) *tap = (*tap)->next;
+  while ((*tap) != NULL && ((*tap)->is_pack_element || (*tap)->is_pack)) {
+    *tap = (*tap)->next;
+  }  /* if */
   param_num = (*tpp)->param_num;
   *tpp = (*tpp)->next;
   if (param_num > 0) {

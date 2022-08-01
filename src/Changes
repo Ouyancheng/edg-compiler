@@ -1,5 +1,24 @@
 Version 6.4
 
+8/1/22   [EDGcpfe/25111]
+Abort in template_arg_list_is_dependent_full on dependent variadic template
+argument
+
+Consider:
+
+  template<typename...> struct X { };
+  template<template<typename...> class TT> struct W {
+    template<typename... Ts> using Templ = TT<Ts...>;
+  };
+  template<typename T, typename... Args>
+    typename T::template Templ<Args...> f(Args...) { return {}; }
+  auto r = f<W<X>>();  // Previously aborted.  Now okay.
+
+Previously this abort due to a null pointer indirection in templates.c (in
+function template_arg_list_is_dependent_full) due to the incorrect handling of
+a dependent variadic template argument.  That is now fixed.
+
+
 7/29/22  [EDGcpfe/19917,EDGcpfe/20112,EDGcpfe/25083]
 GNU C++ compatibility: Nonstandard using-directive lookup and friend injection
 
