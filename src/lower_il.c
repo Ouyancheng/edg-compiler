@@ -21336,7 +21336,9 @@ scope that is part of the indicated routine) to the file scope.
       }  /* if */
       list = list->next;
       if (type_is(variable->type, tk_template_param)) {
-        // XXX
+        /* This is a dummy variable introduced in the function to represent
+           an empty function parameter pack expansion.  Ignore it for lowering
+           purposes. */
         variable->next = scope->variables;
         scope->variables = variable;
       } else {
