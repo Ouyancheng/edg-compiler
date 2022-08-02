@@ -14,7 +14,7 @@ Consider:
     typename T::template Templ<Args...> f(Args...) { return {}; }
   auto r = f<W<X>>();  // Previously aborted.  Now okay.
 
-Previously this abort due to a null pointer indirection in templates.c (in
+Previously this aborted due to a null pointer indirection in templates.c (in
 function template_arg_list_is_dependent_full) due to the incorrect handling of
 a dependent variadic template argument.  That is now fixed.
 
