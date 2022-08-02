@@ -2653,9 +2653,9 @@ EXTERN a_boolean
                            on each attribute (a C++17 feature). */
 
 EXTERN a_boolean
-                nodiscard_attribute_enabled;
-                        /* TRUE if the C++17 (or C23) standard "nodiscard"
-                           attribute is enabled. */
+		nodiscard_attribute_enabled;
+			/* TRUE if the C++17 (or C23) standard "nodiscard"
+			   attribute is enabled. */
 
 EXTERN a_boolean
 		direct_init_fixed_base_enum_enabled;
