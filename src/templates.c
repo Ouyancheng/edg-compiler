@@ -13182,8 +13182,7 @@ points to the template parameter list.
                type.  This is allows a Derived<T> to be passed to a function
                expecting a Base<T> as an argument. */
             complete_class_type_is_needed(type);
-            bcp = type->variant.class_struct_union.extra_info->base_classes;
-            while (bcp != NULL) {
+            for (bcp = base_classes_of(type); bcp != NULL; bcp = bcp->next) {
               a_template_arg_ptr	dummy_arg_list = NULL;
               /* Do the deduction using an empty template argument list.
                  We don't want the viability of the conversion to be
@@ -13200,7 +13199,8 @@ points to the template parameter list.
                 /* If we have already found one match, a second match should
                    cause deduction to fail. */
                 if (matching_base_class != NULL) {
-                  if (find_base_class_of(matching_base_class,
+                  if (matching_base_class == bcp->type ||
+                      find_base_class_of(matching_base_class,
                                          bcp->type) != NULL) {
                     /* The new base class is a base of the previously found
                        one.  Ignore the new one. */
@@ -13220,8 +13220,7 @@ points to the template parameter list.
                   matching_base_class = bcp->type;
                 }  /* if */
               }  /* if */
-              bcp = bcp->next;
-            }  /* while */
+            }  /* for */
             /* If exactly one base class matches, consider this a match. */
             match = FALSE;
             if (matching_base_class != NULL) {

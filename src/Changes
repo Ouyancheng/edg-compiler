@@ -1,5 +1,31 @@
 Version 6.4
 
+8/2/22   [EDGcpfe/25421]
+Class template deduction with an ambiguous base class
+
+Consider:
+
+  template<typename...> struct B {};
+  struct C1: B<int> {};
+  struct C2: B<int> {};
+  struct D: C1, C2 {};
+  template<template<typename...> typename TT, typename... As>
+    int f(TT<As...>*);
+  auto x = f<B>((D*)0);  // Previously a deduction failure.  Now deduction
+                         // succeeds but an ambiguity error is issued for the
+                         // D*-to-B<int>* conversion.
+
+Previously, this test case reported that no candidate "f" matches the call in
+the initializer for x because B<int> being an ambiguous base class of D caused
+deduction for the call "f<B>((D*)0)" to fail.  Although it is not entirely
+clear what the standard requires here, it appear that other implementations do
+not fail deduction in that case (i.e., they successfully deduce TT=B and
+As=<int>): The front end now matches that behavior.  In this case, that means
+that an error is issued that B<int> is an ambiguous base class when trying to
+convert (D*)0 to B<int>* (but in more complex cases, this may instead result
+in an enclosing level of deduction to fail).
+
+
 8/1/22   [EDGcpfe/25111]
 Abort in template_arg_list_is_dependent_full on dependent variadic template
 argument
