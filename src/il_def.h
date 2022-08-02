@@ -2716,6 +2716,10 @@ enum an_attribute_location : a_byte {
 			   __builtin_has_attribute builtin. */
   al_module,		/* The attribute follows a module-name in a module-
 			   import-declaration.  (Standard attributes only.) */
+  al_post_using_declaration,
+			/* The attribute follows a using-declaration.  This is
+			   non-standard and is used only for the clang
+			   using_if_exists attribute currently. */
   al_last
 };
 
@@ -2894,6 +2898,7 @@ enum an_attribute_kind : a_byte {
 #endif /* INCLUDE_EDG_TEST_ATTRIBUTES */
 
   ak_availability,      /* "availability" */
+  ak_using_if_exists,   /* "using_if_exists" */
 
   /* Other attributes. */
   ak_conditional_explicit,

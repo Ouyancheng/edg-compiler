@@ -16112,7 +16112,8 @@ void create_nonmember_using_declaration(a_symbol_ptr     sym,
                                         a_type_ptr       class_type,
                                         a_using_decl_ptr *prev_udp,
                                         a_boolean        is_list,
-                                        a_boolean        suppress_redecl_error)
+                                        a_boolean        suppress_redecl_error,
+                      /* Defaulted: */  an_attribute_ptr attributes)
 /*
 Create a projection for symbol "sym" from namespace "nsp" (or, in
 Microsoft bugs mode, from the class "class_type").  If this is part of
@@ -16122,7 +16123,8 @@ is not part of an overload set, we may need to create such a set
 because existing declarations in the scope are being overloaded.
 "*prev_udp" is the previous using-declaration structure for the
 using-declaration construct that is currently being processed (NULL if
-none).
+none).  If attributes is non-NULL, attach a copy of those attributes to
+the newly created using-declaration.
 */
 {
   a_symbol_locator   locator;
@@ -16151,6 +16153,12 @@ none).
       udp->qualifier.class_type = class_type;
     } else {
       udp->qualifier.namespace_ptr = nsp;
+    }  /* if */
+    if (attributes != NULL) {
+      /* If there are any applicable attributes, attach them (but make a copy
+         in case the attributes apply to multiple using-declarations). */
+      attach_attributes(copy_of_attributes_list(attributes),
+                        (char*)udp, iek_using_decl);
     }  /* if */
     if (scope_stack_top().exporting_decl &&
         source_corresp_entry_for_symbol(fund_sym)->name_linkage
@@ -16299,12 +16307,16 @@ static void nonmember_using_declaration(a_decl_parse_state  *dps)
 /*
 Scan a using_declaration in a nonclass scope.  Its syntax is:
 
-  using qualified-name ;
+  using qualified-name attributes    ;
+                                 opt
 
 The "using" token was consumed by the caller: The current token is (presumably)
 a qualified-name.
 A sk_namespace_projection is created and added to the symbol table for the
 current scope.
+No standard attributes are allowed after the qualified-name, but clang allows
+the using_if_exists attribute at that location.  If that attribute is present,
+it has been "unscanned" by the disambiguation process and must be scanned here.
 */
 {
   a_symbol_ptr             sym, fund_sym, overload_sym, other_decl,
@@ -16316,6 +16328,7 @@ current scope.
   a_pack_expansion_stack_entry_ptr
                            pesep;
   a_using_decl_ptr         prev_udp = NULL;
+  an_attribute_ptr         attributes = NULL;
 
   db_enter(3, "nonmember_using_declaration");
   /* A using declaration is outside the "Embedded C++" subset. */
@@ -16354,6 +16367,16 @@ current scope.
           err = TRUE;
         }  /* if */
       } else {
+        if (clang_mode) {
+          /* Attributes are not allowed here, but the clang using_if_exists
+             attribute can appear at this location.  If present, it has already
+             been scanned and unscanned.  Note that the current token continues
+             to be the tok_identifier (even though the attributes are
+             lexically after the identifier).  At present, these attributes
+             are scanned and applied to the using-declaration, but not
+             acted upon. */
+          attributes = scan_attributes(al_post_using_declaration);
+        }  /* if */
         if (!is_generalized_identifier_start(GID_TEMPLATE_ARGS_OPTIONAL)) {
          pos_error(ec_exp_identifier, &pos_curr_token);
          err = TRUE;
@@ -16547,7 +16570,8 @@ current scope.
               create_nonmember_using_declaration(sym, &overload_sym,
                                                  other_decl, nsp, class_type,
                                                  &prev_udp, is_list,
-                                                 suppress_redecl_error);
+                                                 suppress_redecl_error,
+                                                 attributes);
               if (rep_udp == NULL && prev_udp != NULL) {
                 rep_udp = prev_udp;
                 rep_udp->is_representative = TRUE;
@@ -16598,6 +16622,9 @@ semicolon.
 
 *dps describes the declaration (which can be a class member or not).
 *p_end_of_using_pos is the end position of the "using" token.
+
+There may be some unscanned attributes that are pending -- ensure that
+scan_attributes is called early in the processing to handle these.
 */
 {
   a_symbol_locator  loc;
@@ -20089,6 +20116,50 @@ modules.
 }  /* check_modules_enabled */
 
 
+static inline a_boolean is_alias_declaration(void)
+/*
+This helper routine disambiguates between an alias-declaration and a
+using-declaration and returns TRUE if it is determined to be the former.
+The "using" token has already been consumed.
+*/
+{
+  a_boolean result = FALSE;
+
+  if (alias_declarations_enabled &&
+      is_generalized_identifier_start(GID_NO_OPTIONS)) {
+    a_token_kind  next_tok = next_token();
+    if (next_tok == tok_assign) {
+      /* Easy case: "using identifier =". */
+      result = TRUE;
+    } else if ((next_tok == tok_lbracket && std_attributes_enabled) ||
+               (next_tok == tok_attribute && gnu_attributes_enabled)) {
+      /* Attributes follow the identifier.  That typically indicates
+         an alias-declaration (because standard attributes are not allowed
+         after the identifier), but clang's using_if_exists attribute can
+         be in this location, so pre-scan any attributes to look for a
+         potential "=" so we know for sure. */
+      a_token_cache  cache;
+      clear_token_cache(&cache, /*reusable=*/FALSE);
+      cache_curr_token(&cache);
+      /* Skip past tok_identifier. */
+      (void)get_token();
+      /* Bypass any attributes (saving them for later by "un-scanning"
+         them. */
+      an_attribute_ptr prescanned_attributes =
+                                           scan_attributes(al_declarator_id);
+      if (prescanned_attributes != NULL) {
+        unscan_attributes(prescanned_attributes);
+      }  /* if */
+      if (curr_token == tok_assign) {
+        result = TRUE;
+      }  /* if */
+      rescan_cached_tokens(&cache);
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* is_alias_declaration */
+
+
 static an_end_of_decl_action
               check_special_declaration_form(a_decl_parse_state  *state,
                                              a_token_kind        *final_token)
@@ -20230,17 +20301,10 @@ processing should proceed after the call.
         /* A C++20 "using enum" declaration. */
         using_enum_declaration();
       } else {
-        a_token_kind  next_tok;
         /* Attributes cannot precede a using-declaration (they are allowed
            on using-directives). */
         disallow_attributes(&state->prefix_attributes, es_error);
-        if (alias_declarations_enabled &&
-            is_generalized_identifier_start(GID_NO_OPTIONS) &&
-            ((next_tok = next_token()) == tok_assign ||
-             (std_attributes_enabled && next_tok == tok_lbracket) ||
-             (gnu_attributes_enabled && next_tok == tok_attribute))) {
-          /* An identifier followed by a "=" or something that looks like an
-             attribute: This looks like an alias declaration. */
+        if (is_alias_declaration()) {
           alias_declaration(state, &end_of_using_pos);
         } else {
           nonmember_using_declaration(state);

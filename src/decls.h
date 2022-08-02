@@ -1959,7 +1959,8 @@ extern void create_nonmember_using_declaration(
                                        a_type_ptr       class_type,
                                        a_using_decl_ptr *prev_udp,
                                        a_boolean        is_list,
-                                       a_boolean        suppress_redecl_error);
+                                       a_boolean        suppress_redecl_error,
+                                       an_attribute_ptr attributes = NULL);
 
 extern void add_implicit_using_directive(a_namespace_ptr nsp,
                                          a_boolean       inline_namespace,

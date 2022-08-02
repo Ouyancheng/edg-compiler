@@ -421,7 +421,9 @@ static an_attr_descr known_attr_table[] = {
   { "n1", "(*)", "c+[edg]", ak_edg_n1 },
 #endif /* INCLUDE_EDG_TEST_ATTRIBUTES */
 
+  /* Clang-specific attributes. */
   { "availability", "(*)", "lx{clang}", ak_availability },
+  { "using_if_exists", "", "l+{clang}", ak_using_if_exists },
 
   { NULL, NULL, NULL, ak_last }
 };
@@ -808,7 +810,9 @@ static an_attr_appl_descr known_attr_appl_table[(int)ak_last+1] = {
   { ak_edg_n1, "", apply_edg_n1_attr },
 #endif /* INCLUDE_EDG_TEST_ATTRIBUTES */
 
+  /* Clang-specific. */
   { ak_availability, "", apply_availability_attr },
+  { ak_using_if_exists, "u", NO_APPL_FN },
 
   /* Internal attributes. */
   { ak_conditional_explicit, "", apply_conditional_explicit },

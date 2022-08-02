@@ -6047,6 +6047,7 @@ Display the indicated attribute entry.
     case ak_edg_n1:              kind_name = "edg_n1";              break;
 #endif /* INCLUDE_EDG_TEST_ATTRIBUTES */
     case ak_availability:        kind_name = "availability";        break;
+    case ak_using_if_exists:     kind_name = "using_if_exists";     break;
     case ak_conditional_explicit:kind_name = "conditional_explicit";break;
     case ak_pragma_pack_state:   kind_name = "pragma_pack_state";   break;
     default:                     kind_name = "** BAD KIND **";      break;
@@ -6081,6 +6082,15 @@ Display the indicated attribute entry.
     case al_post_initializer:    loc_name = "post initializer";     break;
     case al_namespace:           loc_name = "namespace";            break;
     case al_label:               loc_name = "label";                break;
+    case al_explicit:            loc_name = "explicit";             break;
+    case al_enumerator:          loc_name = "enumerator";           break;
+    case al_id_equivalent_as_postfix:
+                                 loc_name = "id_equivalent_as_postfix"; break;
+    case al_builtin_has_attribute:
+                                 loc_name = "builtin_has_attribute"; break;
+    case al_module:              loc_name = "module";                break;
+    case al_post_using_declaration:
+                                 loc_name = "post_using_declaration"; break;
     default:                     loc_name = "** BAD LOCATION **";   break;
   }  /* switch */
   disp_name("syntactic_location");

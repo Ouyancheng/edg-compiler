@@ -1,5 +1,21 @@
 Version 6.4
 
+8/2/22   [EDGcpfe/25243,EDGcpfe/25501]
+Clang compatibility: "using_if_exists" attribute
+
+Clang has added a "using_if_exists" attribute that appears in a non-standard
+location for attributes on a using-declaration.  Such attributes are now
+parsed (and attached to the using-declaration), but are not currently acted
+upon.  For example, with --clang_version 100000:
+
+  struct A {};
+  namespace N {
+    using ::A __attribute((using_if_exists));   // Now okay.
+  }
+  using ::foo __attribute((using_if_exists));   // Still an error (since foo
+                                                // has not been declared).
+
+
 8/2/22   [EDGcpfe/25421]
 Class template deduction with an ambiguous base class
 
