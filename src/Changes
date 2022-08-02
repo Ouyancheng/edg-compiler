@@ -19,7 +19,7 @@ function template_arg_list_is_dependent_full) due to the incorrect handling of
 a dependent variadic template argument.  That is now fixed.
 
 
-7/29/22  [EDGcpfe/19917,EDGcpfe/20112,EDGcpfe/25083]
+7/29/22  [EDGcpfe/25083]
 GNU C++ compatibility: Nonstandard using-directive lookup and friend injection
 
 The front end emulates various nonstandard GCC behaviors that affect lookup in
