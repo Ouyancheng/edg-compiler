@@ -16312,8 +16312,10 @@ Scan a using_declaration in a nonclass scope.  Its syntax is:
 
 The "using" token was consumed by the caller: The current token is (presumably)
 a qualified-name.
+
 A sk_namespace_projection is created and added to the symbol table for the
 current scope.
+
 No standard attributes are allowed after the qualified-name, but clang allows
 the using_if_exists attribute at that location.  If that attribute is present,
 it has been "unscanned" by the disambiguation process and must be scanned here.
@@ -16623,8 +16625,10 @@ semicolon.
 *dps describes the declaration (which can be a class member or not).
 *p_end_of_using_pos is the end position of the "using" token.
 
-There may be some unscanned attributes that are pending -- ensure that
-scan_attributes is called early in the processing to handle these.
+At the time of this call, there may be some unscanned attributes that are
+pending -- this routine must ensure that scan_attributes is called early in the
+processing to handle these (to prevent them from erroneously being processed
+elsewhere).
 */
 {
   a_symbol_locator  loc;
