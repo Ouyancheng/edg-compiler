@@ -2792,6 +2792,8 @@ done.
     if (*expr_list == NULL) {
       *expr_list = alep;
     } else {
+      alep->preserved_deduced_pack =
+                         (rcblock->options & CTWS_PRESERVE_DEDUCED_PACKS) != 0;
       append_elem(*end_expr_list, alep);
     }  /* if */
     *end_expr_list = alep;
@@ -2921,6 +2923,17 @@ provide some additional ones over the basic ones implied for this case.
       (void)end_potential_pack_expansion_context(pesep,
                                                  /*is_declarator=*/FALSE);
       any_more = advance_to_next_pack_element(pesep);
+      if (any_more) {
+        a_pack_reference_ptr prp = pesep->instantiation_descr->pack_status;
+        if (prp->kind == prk_parameter &&
+            prp->curr_argument.param_type->is_parameter_pack) {
+          /* This is the parameter pack that terminates a substituted
+             parameter pack expansion that is created under the option
+             CTWS_PRESERVE_DEDUCED_PACKS.  It should not be treated as
+             another argument in the expansion. */
+          any_more = FALSE;
+        }  /* if */
+      }  /* if */
       first_time = FALSE;
     }  /* while */
   } else {
@@ -3320,7 +3333,8 @@ indication in *rcblock).
       /* For a pack expansion, rescan it as an expression list, but make sure
          the result is a singleton. */
       icp = rescan_expr_list(arg_list, rcblock);
-      if (icp == NULL || icp->next != NULL) {
+      if (icp == NULL || (icp->next != NULL &&
+                          !icp->next->preserved_deduced_pack)) {
         if (icp == NULL) {
           if (expr_not_present != NULL) *expr_not_present = TRUE;
         } else {

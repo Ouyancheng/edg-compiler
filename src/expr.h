@@ -196,6 +196,10 @@ typedef struct an_init_component {
 			/* TRUE if during the parsing of this component a
 			   function designator for a consteval function was
 			   seen. */
+  a_bit_field	preserved_deduced_pack:1;
+			/* TRUE if this element is a copy of a pack
+			   expansion preserved for future deduction rather
+			   than an actual element. */
   a_pack_expansion_descr_ptr
 		pack_expansion_descr;
 			/* If non-NULL, this entity is a pack expansion
