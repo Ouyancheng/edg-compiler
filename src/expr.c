@@ -2930,7 +2930,7 @@ provide some additional ones over the basic ones implied for this case.
           /* This is the parameter pack that terminates a substituted
              parameter pack expansion that is created under the option
              CTWS_PRESERVE_DEDUCED_PACKS.  It should not be treated as
-             another argument in the expansion. */
+             another expression in the expansion. */
           any_more = FALSE;
         }  /* if */
       }  /* if */
