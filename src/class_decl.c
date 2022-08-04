@@ -33194,7 +33194,14 @@ issue an error at the given position and return TRUE.  Otherwise, return FALSE.
       }  /* if */
     } else {
       /* Presumably a (direct or indirect) capture of an init-capture. */
-      a_field_ptr  source_field = lcp->capture_info.source_closure_field;
+      a_lambda_capture_ptr  eff_lcp = lcp;
+      a_field_ptr           source_field;
+      /* For pending transitive captures, look at the enclosing capture. */
+      while (eff_lcp->field_pending &&
+             eff_lcp->capture_info.source_capture != NULL) {
+        eff_lcp = eff_lcp->capture_info.source_capture;
+      }  /* while */
+      source_field = eff_lcp->capture_info.source_closure_field;
       if (source_field == NULL) {
         expect_error();
       } else if (symbol_for(source_field) != NULL &&

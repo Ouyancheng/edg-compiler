@@ -1,5 +1,24 @@
 Version 6.4
 
+8/4/22   [EDGcpfe/25246]
+Spurious duplicate capture error on nested lambda
+
+Consider (in C++14 mode):
+
+  struct S {
+    int i;
+    void f() {
+      [tmp = 0, this]{
+        [tmp, this]{ this->i = 0; };  // Previously elicited spurious errors.
+      };                              // Now okay.
+    }
+  };
+
+Previously, the inner capture of "this" was erroneously reported as a duplicate
+capture, and an additional spurious error was emitted about "this" not being
+captured by the inner lambda expression.  That is now fixed.
+
+
 8/3/22   [EDGcpfe/24949]
 Spurious error with explicit template argument and dependent return type
 
