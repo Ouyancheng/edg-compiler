@@ -9,9 +9,9 @@ macro argument.  This comma deletion is non-standard.  The previous
 implementation of the --ms_std_preprocessor command-line option followed
 the standard specification in this regard and always included the comma in
 the macro expansion.  However, MSVC still performs the comma deletion
-preceding the paste operator (##) even with /Zc:preprocessor command-line
-option, although not when the paste operator is omitted.  The front end now
-emulates this behavior.  For example, with --microsoft:
+preceding the paste operator (##) even with the /Zc:preprocessor
+command-line option, although not when the paste operator is omitted.  The
+front end now emulates this behavior.  For example, with --microsoft:
 
   void f(int);
   #define M1(x, ...) f(x, ## __VA_ARGS__)
