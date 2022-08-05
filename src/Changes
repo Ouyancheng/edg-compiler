@@ -1,5 +1,27 @@
 Version 6.4
 
+8/4/22   [EDGcpfe/25130]
+Microsoft compatibility: comma deletion with empty __VA_ARGS__
+
+The traditional Microsoft preprocessor omits from a macro expansion a comma
+that is pasted to, or simply followed by, an empty __VA_ARGS__ variadic
+macro argument.  This comma deletion is non-standard.  The previous
+implementation of the --ms_std_preprocessor command-line option followed
+the standard specification in this regard and always included the comma in
+the macro expansion.  However, MSVC still performs the comma deletion
+preceding the paste operator (##) even with /Zc:preprocessor command-line
+option, although not when the paste operator is omitted.  The front end now
+emulates this behavior.  For example, with --microsoft:
+
+  void f(int);
+  #define M1(x, ...) f(x, ## __VA_ARGS__)
+  #define M2(x, ...) f(x, __VA_ARGS__)
+  void g() {
+    M1(1);  // Now expands to f(1) in both preprocessor modes
+    M2(1);  // Expands to f(1) in traditional mode, f(1,) in standard mode
+  }
+
+
 8/4/22   [EDGcpfe/25246]
 Spurious duplicate capture error on nested lambda
 
