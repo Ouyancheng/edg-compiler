@@ -4055,15 +4055,34 @@ FALSE in all other cases.
        Microsoft mode, the argument is expanded, whether or not preceded by
        "##".) */
     a_macro_arg_ptr map;
+    a_boolean       do_deletion;
 
     get_macro_repl_text_number(arg_number, ahead);
     get_arg_value(arg_number, map);
-    if (arg_number == n_params &&
-        (map->raw_len == 0 ||
-         (ms_compat && !ms_std_preproc && map->expanded_len == 0))) {
-      /* The last macro parameter (presumably variadic) is empty or missing.
-         So we adjust the section length to not include the last chunk of
-         white space characters preceded by a comma: */
+    if (arg_number == n_params) {
+      if (ms_compat) {
+        if (ms_std_preproc) {
+          /* The conforming Microsoft preprocessor only deletes the comma
+             if the macro argument is omitted, not simply empty. */
+          do_deletion = (map->raw_len == 0 && !map->is_empty_arg);
+        } else {
+          /* The traditional Microsoft preprocessor expands the operands of
+             paste operations, so we check the expanded length instead of
+             the raw length. */
+          do_deletion = (map->expanded_len == 0);
+        }  /* if */
+      } else {
+        /* Extended variadic macros delete the comma if the unexpanded
+           argument is missing. */
+        do_deletion = (map->raw_len == 0);
+      }  /* if */
+    } else {
+      /* This isn't the argument for __VA_ARGS__. */
+      do_deletion = FALSE;
+    }  /* if */
+    if (do_deletion) {
+      /* Adjust the section length not to include the last chunk of white
+         space characters preceded by a comma. */
       if (kind == rt_text) {
         char *back = rtp-1;
         /* Skip preceding white space. */
@@ -4225,10 +4244,9 @@ treatment of rt_optional_text.
     }  /* if */
     /* When extended variadic macros are enabled, a "##" followed by an
        empty variadic argument has a special deletion effect.  The same is
-       true for Microsoft variadic macros; the traditional Microsoft
-       preprocessor performs the deletion even without the "##". */
-    if ((extended_variadic_macros_allowed || ms_compat) &&
-        mdp->variadic &&
+       true for Microsoft variadic macros, and, with the traditional
+       Microsoft preprocessor, even without the "##". */
+    if ((extended_variadic_macros_allowed || ms_compat) && mdp->variadic &&
         ((a_repl_text_seq_kind)*rtp == rt_paste ||
          (a_repl_text_seq_kind)*rtp == rt_microsoft_magic_arg_marker)) {
       adjust_length_for_magic_arg(rts_kind, rtp, n_params, arg_values,
@@ -7186,8 +7204,8 @@ end_arg_expansion:;
   /* Make enough room in macro_buffer for the expansion, an
      LE_END_OF_TOP_LEVEL_EXPANSION or LE_EMPTY_VARIADIC_MACRO escape, if
      needed, and the following LE_END_OF_INSERTION lexical escape. */
-  if (ms_compat && mdp->variadic && repl_text_len == 0 &&
-      space_for_end_of_top_level_expansion_escape == 0) {
+  if (ms_compat && !ms_std_preproc && mdp->variadic &&
+      repl_text_len == 0 && space_for_end_of_top_level_expansion_escape == 0) {
     /* The Microsoft traditional preprocessor suppresses a comma in a macro
        argument list when it appears prior to an empty variadic expansion.
        The inserted text will consist of an LE_EMPTY_VARIADIC_MACRO
@@ -7488,8 +7506,7 @@ end_arg_expansion:;
               *src_loc++ = LE_RAW_OR_EXPANDED_ARGUMENT;
               /* Calculate the effective length of the raw version. */
               sect_len = map->raw_len;
-              if ((extended_variadic_macros_allowed ||
-                   (ms_compat && !ms_std_preproc)) &&
+              if ((extended_variadic_macros_allowed || ms_compat) &&
                   mdp->variadic &&
                   ((a_repl_text_seq_kind)*rtp == rt_paste ||
                    (a_repl_text_seq_kind)*rtp ==
@@ -7549,8 +7566,8 @@ end_arg_expansion:;
       }  /* if */
       /* When extended variadic macros are enabled, a "##" followed by an
          empty variadic argument has a special deletion effect.  The same
-         is true for Microsoft variadic macros; the traditional
-         preprocessor performs the deletion even without the "##". */
+         is true for Microsoft traditional variadic macros, with or without
+         the "##". */
       if ((extended_variadic_macros_allowed || ms_compat) &&
           mdp->variadic &&
           ((a_repl_text_seq_kind)*rtp == rt_paste ||
