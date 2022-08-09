@@ -16330,7 +16330,6 @@ it has been "unscanned" by the disambiguation process and must be scanned here.
   a_pack_expansion_stack_entry_ptr
                            pesep;
   a_using_decl_ptr         prev_udp = NULL;
-  an_attribute_ptr         attributes = NULL;
 
   db_enter(3, "nonmember_using_declaration");
   /* A using declaration is outside the "Embedded C++" subset. */
@@ -16369,22 +16368,36 @@ it has been "unscanned" by the disambiguation process and must be scanned here.
           err = TRUE;
         }  /* if */
       } else {
-        if (clang_mode) {
-          /* Attributes are not allowed here, but the clang using_if_exists
-             attribute can appear at this location.  If present, it has already
-             been scanned and unscanned.  Note that the current token continues
-             to be the tok_identifier (even though the attributes are
-             lexically after the identifier).  At present, these attributes
-             are scanned and applied to the using-declaration, but not
-             acted upon. */
-          attributes = scan_attributes(al_post_using_declaration);
-        }  /* if */
         if (!is_generalized_identifier_start(GID_TEMPLATE_ARGS_OPTIONAL)) {
-         pos_error(ec_exp_identifier, &pos_curr_token);
-         err = TRUE;
+          pos_error(ec_exp_identifier, &pos_curr_token);
+          err = TRUE;
         } else {
           sym = coalesce_and_lookup_generalized_identifier(
                                  GID_TEMPLATE_ARGS_OPTIONAL, ilm_normal, &err);
+        }  /* if */
+        if (clang_mode) {
+          /* Attributes are not allowed here, but the clang using_if_exists
+             attribute can appear at this location.  These attributes may have
+             been scanned and unscanned. */
+          an_attribute_ptr attributes =
+                                    scan_attributes(al_post_using_declaration);
+          if (attributes != NULL) {
+            if (attributes->family == af_std) {
+              pos_warning(ec_only_gnu_attributes_here, &attributes->position);
+            }  /* if */
+            if (sym != NULL) {
+              /* Attach the attribute to the IL entity (if one exists).  Note
+                 that this is too late to do anything with (the lookup has
+                 already been done above), but for now just attach the
+                 attribute so a back end can see it. */
+              char              *entity;
+              an_il_entry_kind  entity_kind;
+              entity = il_entry_for_symbol_null_okay(sym, &entity_kind);
+              if (entity != NULL) {
+                attach_attributes(attributes, entity, entity_kind);
+              }  /* if */
+            }  /* if */
+          }  /* if */
         }  /* if */
       }  /* if */
       if (!err) {
@@ -16573,7 +16586,7 @@ it has been "unscanned" by the disambiguation process and must be scanned here.
                                                  other_decl, nsp, class_type,
                                                  &prev_udp, is_list,
                                                  suppress_redecl_error,
-                                                 attributes);
+                                                 dps->prefix_attributes);
               if (rep_udp == NULL && prev_udp != NULL) {
                 rep_udp = prev_udp;
                 rep_udp->is_representative = TRUE;
@@ -16585,7 +16598,7 @@ it has been "unscanned" by the disambiguation process and must be scanned here.
       /* Bypass the identifier. */
       (void)get_token();
     }  /* if */
-    if (!check_for_packs) break;
+    if (!check_for_packs && curr_token != tok_comma) break;
     pedep = end_potential_pack_expansion_context(pesep,
                                                  /*is_declarator=*/FALSE);
     if (pedep != NULL && prev_udp != NULL) {
@@ -20149,6 +20162,7 @@ The "using" token has already been consumed.
       (void)get_token();
       /* Bypass any attributes (saving them for later by "un-scanning"
          them. */
+      add_stop_token(tok_semicolon);
       an_attribute_ptr prescanned_attributes =
                                            scan_attributes(al_declarator_id);
       if (prescanned_attributes != NULL) {
@@ -20157,6 +20171,7 @@ The "using" token has already been consumed.
       if (curr_token == tok_assign) {
         result = TRUE;
       }  /* if */
+      remove_stop_token(tok_semicolon);
       rescan_cached_tokens(&cache);
     }  /* if */
   }  /* if */
@@ -20305,9 +20320,21 @@ processing should proceed after the call.
         /* A C++20 "using enum" declaration. */
         using_enum_declaration();
       } else {
-        /* Attributes cannot precede a using-declaration (they are allowed
-           on using-directives). */
-        disallow_attributes(&state->prefix_attributes, es_error);
+        if (clang_mode) {
+          /* Clang allows the using_if_exists attribute prior to a using-
+             declaration (and gives a warning if the standard attribute syntax
+             is used). */
+          if (state->prefix_attributes != NULL &&
+              state->prefix_attributes->family == af_std &&
+              state->prefix_attributes->kind == ak_using_if_exists) {
+            pos_warning(ec_only_gnu_attributes_here,
+                        &state->prefix_attributes->position);
+          }  /* if */
+        } else {
+          /* Attributes cannot precede a using-declaration (they are allowed
+             on using-directives). */
+          disallow_attributes(&state->prefix_attributes, es_error);
+        }  /* if */
         if (is_alias_declaration()) {
           alias_declaration(state, &end_of_using_pos);
         } else {

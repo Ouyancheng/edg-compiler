@@ -656,6 +656,7 @@ static an_attr_application_fn apply_edg_n1_attr;
 #endif /* INCLUDE_EDG_TEST_ATTRIBUTES */
 
 static an_attr_application_fn apply_availability_attr;
+static an_attr_application_fn apply_using_if_exists_attr;
 
 /*
 Table of entries describing how to apply a specific attribute kind to an IL
@@ -812,7 +813,7 @@ static an_attr_appl_descr known_attr_appl_table[(int)ak_last+1] = {
 
   /* Clang-specific. */
   { ak_availability, "", apply_availability_attr },
-  { ak_using_if_exists, "u", NO_APPL_FN },
+  { ak_using_if_exists, "u|t|r|v|n", apply_using_if_exists_attr },
 
   /* Internal attributes. */
   { ak_conditional_explicit, "", apply_conditional_explicit },
@@ -9077,6 +9078,39 @@ entire attribute syntax (not parsed here).
   }  /* if */
   return entity;
 }  /* apply_availability_attr */
+
+
+static char* apply_using_if_exists_attr(
+                                       an_attribute_ptr            ap,
+                                       ARG_UNUSED char             *entity,
+                                       ARG_UNUSED an_il_entry_kind entity_kind)
+/*
+Called to apply the "using_if_exists" attribute to a declared entity and return
+that entity.  Currently there is no semantic support for the "using_if_exists"
+attribute and this routine does nothing.  The "using_if_exists" attribute
+appears to be supported by clang in two locations, e.g.:
+
+  [[clang::using_if_exists]] using NS::not_there, NS::not_there2;
+  using NS::not_there3, NS::not_there4 [[clang::using_if_exists]];
+
+In the first case, this routine is called with entity being the
+using-declaration, in the second case, the attribute is applied to the
+"NS::not_there4" IL entity (if one exists).  In both cases the lookup that this
+attribute is intended to influence has already happened by the time this
+attribute is applied (so a spurious error may already have been issued).
+*/
+{
+  if (ap->syntactic_location == al_post_using_declaration ||
+      (ap->syntactic_location == al_prefix &&
+       entity_kind == iek_using_decl)) {
+    /* Looks okay. */
+  } else {
+    /* This attribute doesn't apply here. */
+    pos_st_diagnostic(es_discretionary_error, ec_wrong_entity_for_attribute,
+                      &ap->position, attribute_display_name(ap));
+  }  /* if */
+  return entity;
+}  /* apply_using_if_exists_attr */
 
 #if GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED
 /*
