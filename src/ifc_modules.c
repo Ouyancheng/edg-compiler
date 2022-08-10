@@ -336,10 +336,7 @@ header_bytes is TRUE, the bytes being retrieved correspond to the IFC file
 header or table of contents (and are therefore known to be little-endian).
 */
 {
-  a_boolean reading_little_endian =
-                              /*lint -e506*/ASSUME_LITTLE_ENDIAN_IFC_MODULES ||
-                                            targ_little_endian || header_bytes;
-  if (reading_little_endian == host_little_endian) {
+  if (has_matching_endianness(mod) || (header_bytes && host_little_endian)) {
     get_bytes_from_buffer(mod, entity, length);
   } else {
     get_mismatched_endian_bytes(mod, entity, length);
