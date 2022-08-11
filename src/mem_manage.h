@@ -128,6 +128,18 @@ extern void ensure_function_def_table_space(
 
 extern char *alloc_fe(sizeof_t     size);
 
+template<typename T> inline
+T* alloc_fe(void)
+/*
+Function to allocate front end memory for an entry of the given type.  This is
+similar to the older macro "alloc_fe_of_type" (see below), but it handles type
+names containing commas (e.g., "alloc_fe<Ptr_map<int, bool>>()").
+*/
+{
+  return (T*)alloc_fe(sizeof(T));
+}  /* alloc_fe */
+
+
 extern void free_fe(a_void_ptr   ptr,
                     sizeof_t     size);
 

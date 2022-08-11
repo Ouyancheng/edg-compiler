@@ -18660,7 +18660,7 @@ early so that cases like "auto [x] = x;" are diagnosed.
       vp->is_struct_binding = TRUE;
       vp->declared_with_auto_type_specifier = TRUE;
       vp->variant.container = container;
-      vp->init_kind = (an_init_kind)initk_deducing;
+      vars_being_deduced->map(vp, TRUE);
       list_entry->entity.kind = iek_variable;
       list_entry->entity.ptr = (char*)vp;
       *p_end_bindings = list_entry;
@@ -18740,7 +18740,7 @@ can be fully determined.
     /* The initializer kind was set to initk_deducing while scanning the
        associated initializer.  Reset it to initk_none for now, until the
        actual binding initializer is recorded. */
-    vp->init_kind = (an_init_kind)initk_none;
+    vars_being_deduced->unmap(vp);
     if (err || dependent_case) {
       /* Don't keep a count. */
     } else if (n == n_elements) {

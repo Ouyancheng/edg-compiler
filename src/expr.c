@@ -737,19 +737,16 @@ swallowed); otherwise, it's "="-form or "{...}" form.
                                        dps->sym != NULL;
   a_decl_parse_state    *saved_decl_parse_state = NULL;
   a_variable_ptr        var = NULL;
-  an_init_kind          saved_init_kind;
 
   check_assertion(dps->has_deduced_type && dps->auto_type != NULL);
   if (dps->sym != NULL) {
     /* Update the type in the IL entry. */
     if (symbol_is(dps->sym, sk_variable)) {
       var = dps->sym->variant.variable.ptr;
-      saved_init_kind = var->init_kind;
-      var->init_kind = (an_init_kind)initk_deducing;
+      vars_being_deduced->map(var, TRUE);
     } else if (symbol_is(dps->sym, sk_static_data_member)) {
       var = dps->sym->variant.static_data_member.variable;
-      saved_init_kind = var->init_kind;
-      var->init_kind = (an_init_kind)initk_deducing;
+      vars_being_deduced->map(var, TRUE);
     } else if (dps->is_init_capture) {
       /* No IL entry has been created yet: nothing to do. */
     } else {
@@ -980,7 +977,7 @@ swallowed); otherwise, it's "="-form or "{...}" form.
   if (var != NULL) {
     /* Update the type in the IL entry and restore the initializer kind. */
     var->type = dps->type;
-    var->init_kind = saved_init_kind;
+    vars_being_deduced->unmap(var);
   }  /* if */
   /* Pop the expression stack if needed. */
   if (is_full_expr) {
@@ -35291,8 +35288,8 @@ where the use of "x" within its own declaration is invalid.
 */
 {
   a_boolean auto_decl_underway =
-                         (var_declared_with_placeholder_type(var_ptr) &&
-                          var_ptr->init_kind == (an_init_kind)initk_deducing);
+                               (var_declared_with_placeholder_type(var_ptr) &&
+                                vars_being_deduced->get(var_ptr));
 
   return auto_decl_underway;
 }  /* variable_auto_decl_underway */

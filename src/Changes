@@ -1,5 +1,17 @@
 Version 6.4
 
+8/11/22  [EDGpcfe/24430]
+Elimination of initk_deducing
+
+The front end previously represented variables in the process of having their
+type deduced as temporarily having an "initialization kind" initk_deducing.
+That was used to detect circular dependencies.  However, some customer tools
+built on top of the front end need to have access to the original
+"initialization kind" during that process.  To accommodate such tools, the
+initk_deducing state has been eliminated, and the circular dependencies are
+detected using another mechanism.
+
+
 8/4/22   [EDGcpfe/25130]
 Microsoft compatibility: comma deletion with empty __VA_ARGS__
 

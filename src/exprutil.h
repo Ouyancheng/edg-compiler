@@ -3252,6 +3252,11 @@ EXTERN a_requires_range_map
 			   used to skip over those constructs during
 			   instantiations. */
 
+EXTERN Ptr_map<a_variable_ptr, a_boolean>
+		*vars_being_deduced;
+			/* A map containing variables whose type is in the
+			   process of being deduced. */
+
 
 #if DEBUG
 extern void count_rescan_fs_expr_nodes(unsigned long *p_count);

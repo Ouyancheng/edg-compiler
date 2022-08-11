@@ -10226,9 +10226,6 @@ enum an_init_kind : a_byte {
   initk_binding,	/* For the bindings in a structured binding, the
 			   lvalue expression they stand for.  (This is not
 			   an "initialization" in the traditional sense.) */
-  initk_deducing,	/* For placeholder variables, the initialization kind
-			   set while prescanning the initializer.  (Used in
-			   the front end only.) */
   initk_module, 	/* For module variables, the initialization kind
 			   set when an initializer is present (but not
 			   necessarily visible in this TU). */

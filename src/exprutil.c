@@ -26266,8 +26266,10 @@ re-initialized for each translation unit.
   internal_opnd_array = NULL;
   n_internal_opnds = 0;
   pending_consteval_failure.routine = NULL;
-  requires_ranges = alloc_fe_of_type(a_requires_range_map);
+  requires_ranges = alloc_fe<a_requires_range_map>();
   construct(requires_ranges, /*mask_width=*/10);
+  vars_being_deduced = alloc_fe<Ptr_map<a_variable_ptr, a_boolean>>();
+  construct(vars_being_deduced, /*mask_width=*/5);
 }  /* expr_trans_unit_init */
 
 
