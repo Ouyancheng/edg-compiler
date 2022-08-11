@@ -6089,8 +6089,8 @@ Display the indicated attribute entry.
     case al_builtin_has_attribute:
                                  loc_name = "builtin_has_attribute"; break;
     case al_module:              loc_name = "module";                break;
-    case al_post_using_declaration:
-                                 loc_name = "post_using_declaration"; break;
+    case al_post_using_declarator:
+                                 loc_name = "post_using_declarator"; break;
     default:                     loc_name = "** BAD LOCATION **";   break;
   }  /* switch */
   disp_name("syntactic_location");

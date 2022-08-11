@@ -2777,6 +2777,11 @@ EXTERN a_boolean
 			   described in WG21 document P1467R8 are
 			   supported. */
 
+EXTERN a_boolean
+		attributes_on_using_declarations;
+			/* TRUE if attributes are allowed in using-declarations
+			   (that's the case in clang C++ mode). */
+
 /* Process the command line arguments. */
 extern void proc_command_line(int argc, char *argv[]);
 #if COMPILE_MULTIPLE_SOURCE_FILES

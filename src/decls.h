@@ -1972,6 +1972,10 @@ a_namespace_ptr make_namespace_alias(a_symbol_ptr             ns_sym,
                                      a_symbol_ptr             aliased_sym,
                                      a_source_sequence_entry  *namespace_ssep);
 
+extern a_boolean is_alias_declaration(void);
+
+extern void scan_and_attach_using_declaration_attributes(a_symbol_ptr sym);
+
 extern void decls_one_time_init(void);
 
 extern void decls_trans_unit_init(void);

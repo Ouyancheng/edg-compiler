@@ -25207,7 +25207,8 @@ static void create_member_using_declaration(
                                           a_boolean            dummy_base,
                                           a_type_ptr           class_type,
                                           a_using_decl_ptr     *prev_udp,
-                                          an_access_specifier  access)
+                                          an_access_specifier  access,
+                                          an_attribute_ptr     attributes)
 /*
 Check that a valid explicit projection (a class-scope using-declaration) can
 be created for the symbol "sym", and if so create it.  "declared_sym" is
@@ -25218,7 +25219,8 @@ base class from which the symbol is being projected (or, when "dummy_base" is
 TRUE, a dummy entry created only to represent the using-declaration in a
 prototype instantiation).  "*prev_udp" is the previous a_using_decl structure
 created for the using-declaration that is currently being processed.  "access"
-is the access specifier applicable to the new declaration.
+is the access specifier applicable to the new declaration.  Any attributes
+that appertain to the member-using-declaration are copied and applied.
 */
 {
   a_symbol_ptr       fund_sym = fundamental_symbol_of(sym);
@@ -25355,6 +25357,12 @@ is the access specifier applicable to the new declaration.
     udp->qualifier.class_type = sym_parent_class(declared_sym);
     udp->access = access;
     udp->is_class_member = TRUE;
+    if (attributes != NULL) {
+      /* If there are any applicable attributes, attach them (but make a copy
+         in case the attributes apply to multiple using-declarations). */
+      attach_attributes(copy_of_attributes_list(attributes),
+                        (char*)udp, iek_using_decl);
+    }  /* if */
     /* Update cross-reference and source-sequence info, if required. */
     record_using_decl(fund_sym, &decl_pos, udp, *prev_udp);
     *prev_udp = udp;
@@ -25515,8 +25523,6 @@ Otherwise, *result will be NULL.
       *result = udp;
     }  /* if */
   }  /* if */
-  /* Bypass the identifier. */
-  (void)get_token();
 }  /* record_inheriting_ctor_using_decl */
 
 
@@ -25551,6 +25557,7 @@ alias declaration from a using-declaration.)
   a_source_position    decl_pos, using_pos, end_of_using_pos;
   a_boolean            saved_record_form_of_name_reference;
   a_boolean            saved_record_dependent_name_references;
+  an_attribute_ptr     using_attributes = NULL;
 
   db_enter(3, "member_using_or_alias_declaration");
   /* Record name referencing during member using-declaration processing as they
@@ -25563,10 +25570,14 @@ alias declaration from a using-declaration.)
                             scope_stack_top().record_dependent_name_references;
   scope_stack_top().record_dependent_name_references =
                                                inheriting_constructors_enabled;
+  if (attributes_on_using_declarations) {
+    /* Get any attributes (previously scanned and unscanned) that might apply
+       to this using-declaration. */
+    using_attributes = scan_attributes(al_prefix);
+  }  /* if */
   add_stop_token(tok_semicolon);
   using_pos = pos_curr_token;
   if (curr_token == tok_using) {
-    a_token_kind  next_tok;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     end_of_using_pos = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -25577,11 +25588,7 @@ alias declaration from a using-declaration.)
       check_for_packs = TRUE;
       add_stop_token(tok_comma);
     }  /* if */
-    if (alias_declarations_enabled &&
-        is_generalized_identifier_start(GID_NO_OPTIONS) &&
-        ((next_tok = next_token()) == tok_assign ||
-         ((std_attributes_enabled && next_tok == tok_lbracket) ||
-          (gnu_attributes_enabled && next_tok == tok_attribute)))) {
+    if (is_alias_declaration()) {
       /* An identifier followed by "=" or some attributes: This looks like an
          alias declaration. */
       a_decl_parse_state  dps;
@@ -25897,23 +25904,25 @@ alias declaration from a using-declaration.)
              such symbols. */
           create_member_using_declaration(tag_sym, tag_sym, &overload_sym, bcp,
                                           bcp_is_dummy, class_type, &prev_udp,
-                                          access);
+                                          access, using_attributes);
           if (rep_udp == NULL) rep_udp = prev_udp;
         }  /* if */
       }  /* if */
       for (;;) {
         create_member_using_declaration(sym, declared_sym, &other_sym, bcp,
                                         bcp_is_dummy, class_type, &prev_udp,
-                                        access);
+                                        access, using_attributes);
         if (rep_udp == NULL) rep_udp = prev_udp;
         if (!is_overloaded) break;
         if ((sym = sym->next) == NULL) break;
       }  /* for */
       if (rep_udp != NULL) rep_udp->is_representative = TRUE;
     }  /* if */
+next_using_declarator_if_any:
     /* Bypass the identifier. */
     (void)get_token();
-next_using_declarator_if_any:
+    /* Attributes are not allowed here, but clang accepts them. */
+    scan_and_attach_using_declaration_attributes(declared_sym);
     if (!check_for_packs) break;
     pedep = end_potential_pack_expansion_context(pesep,
                                                  /*is_declarator=*/FALSE);
@@ -32734,6 +32743,15 @@ classes.
             (void)required_token(tok_semicolon, ec_exp_semicolon);
             goto next_declaration;
           }  /* if */
+          if (attributes_on_using_declarations) {
+            /* Scan and unscan any attributes that might be on a
+               using-declaration (so we can disambiguate properly).  The
+               unscanned attributes will be dealt with later. */
+            an_attribute_ptr prescanned_attributes= scan_attributes(al_prefix);
+            if (prescanned_attributes != NULL) {
+              unscan_attributes(prescanned_attributes);
+            }  /* if */
+          }  /* if */
           /* Check for a using declaration or an alias declaration. */
           if (curr_token == tok_using) {
             if (next_token() == tok_enum) {
@@ -32875,6 +32893,8 @@ classes.
           }  /* if */
         }  /* if */
 next_declaration:
+        /* The should be no "unscanned" attributes at this point. */
+        check_assertion(!unscanned_attributes_pending());
         if (curr_routine_fixup != NULL) dispose_of_curr_routine_fixup();
         remove_stop_token(tok_semicolon);
 #if MICROSOFT_EXTENSIONS_ALLOWED

@@ -69,6 +69,11 @@ upon.  For example, with --clang_version 100000:
   using ::foo __attribute((using_if_exists));   // Still an error (since foo
                                                 // has not been declared).
 
+In addition, the clang __has_extension(cxx_attributes_on_using_declarations)
+macro now returns true to indicate that syntactic acceptance of attributes
+on using declarations is accepted (though the semantics are not yet
+implemented).
+
 
 8/2/22   [EDGcpfe/25421]
 Class template deduction with an ambiguous base class

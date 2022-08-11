@@ -16303,6 +16303,40 @@ TRUE if and only if a redeclaration error is issued.
 }  /* import_any_hidden_tags */
 
 
+void scan_and_attach_using_declaration_attributes(a_symbol_ptr sym)
+/*
+In clang mode, the using_if_exists attribute can appear after the
+using-declarator in a using-declaration.  If such attributes exist, scan them
+and attach them to the IL entity associated with sym (which may be NULL).
+*/
+{
+  if (attributes_on_using_declarations) {
+    /* Attributes are not allowed here, but the clang using_if_exists
+       attribute can appear at this location.  These attributes may have been
+       scanned and unscanned. */
+    an_attribute_ptr attributes = scan_attributes(al_post_using_declarator);
+    if (attributes != NULL) {
+      if (clang_mode && attributes->family == af_std) {
+        /* Clang warns on standard attributes in this position. */
+        pos_warning(ec_only_gnu_attributes_here, &attributes->position);
+      }  /* if */
+      if (sym != NULL) {
+        /* Attach the attribute to the IL entity (if one exists).  Note
+           that this is too late to do anything with (the lookup has already
+           been done above), but for now just attach the attribute so a back
+           end can see it. */
+        char              *entity;
+        an_il_entry_kind  entity_kind;
+        entity = il_entry_for_symbol_null_okay(sym, &entity_kind);
+        if (entity != NULL) {
+          attach_attributes(attributes, entity, entity_kind);
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}  /* scan_and_attach_using_declaration_attributes */
+
+
 static void nonmember_using_declaration(a_decl_parse_state  *dps)
 /*
 Scan a using_declaration in a nonclass scope.  Its syntax is:
@@ -16321,7 +16355,7 @@ the using_if_exists attribute at that location.  If that attribute is present,
 it has been "unscanned" by the disambiguation process and must be scanned here.
 */
 {
-  a_symbol_ptr             sym, fund_sym, overload_sym, other_decl,
+  a_symbol_ptr             sym = NULL, fund_sym, overload_sym, other_decl,
                              fund_other_decl;
   a_boolean                err = FALSE;
   a_symbol_locator         locator;
@@ -16374,30 +16408,6 @@ it has been "unscanned" by the disambiguation process and must be scanned here.
         } else {
           sym = coalesce_and_lookup_generalized_identifier(
                                  GID_TEMPLATE_ARGS_OPTIONAL, ilm_normal, &err);
-        }  /* if */
-        if (clang_mode) {
-          /* Attributes are not allowed here, but the clang using_if_exists
-             attribute can appear at this location.  These attributes may have
-             been scanned and unscanned. */
-          an_attribute_ptr attributes =
-                                    scan_attributes(al_post_using_declaration);
-          if (attributes != NULL) {
-            if (attributes->family == af_std) {
-              pos_warning(ec_only_gnu_attributes_here, &attributes->position);
-            }  /* if */
-            if (sym != NULL) {
-              /* Attach the attribute to the IL entity (if one exists).  Note
-                 that this is too late to do anything with (the lookup has
-                 already been done above), but for now just attach the
-                 attribute so a back end can see it. */
-              char              *entity;
-              an_il_entry_kind  entity_kind;
-              entity = il_entry_for_symbol_null_okay(sym, &entity_kind);
-              if (entity != NULL) {
-                attach_attributes(attributes, entity, entity_kind);
-              }  /* if */
-            }  /* if */
-          }  /* if */
         }  /* if */
       }  /* if */
       if (!err) {
@@ -16598,13 +16608,23 @@ it has been "unscanned" by the disambiguation process and must be scanned here.
       /* Bypass the identifier. */
       (void)get_token();
     }  /* if */
-    if (!check_for_packs && curr_token != tok_comma) break;
-    pedep = end_potential_pack_expansion_context(pesep,
-                                                 /*is_declarator=*/FALSE);
-    if (pedep != NULL && prev_udp != NULL) {
-      prev_udp->is_pack_expansion = TRUE;
+    /* Attributes are not allowed here, but clang allows attributes at this
+       location. */
+    scan_and_attach_using_declaration_attributes(sym);
+    if (check_for_packs) {
+      pedep = end_potential_pack_expansion_context(pesep,
+                                                   /*is_declarator=*/FALSE);
+      if (pedep != NULL && prev_udp != NULL) {
+        prev_udp->is_pack_expansion = TRUE;
+      }  /* if */
+      any_more = advance_to_next_pack_element(pesep);
+    } else if (curr_token == tok_comma) {
+      /* No packs, but there's a comma, so keep looping. */
+      any_more = FALSE;
+    } else {
+      /* No packs or commas -- we're done. */
+      break;
     }  /* if */
-    any_more = advance_to_next_pack_element(pesep);
     if (!any_more) {
       /* Check for an explicit comma, indicating more using-declarators were
          specified. */
@@ -20133,7 +20153,7 @@ modules.
 }  /* check_modules_enabled */
 
 
-static inline a_boolean is_alias_declaration(void)
+a_boolean is_alias_declaration(void)
 /*
 This helper routine disambiguates between an alias-declaration and a
 using-declaration and returns TRUE if it is determined to be the former.
@@ -20155,24 +20175,28 @@ The "using" token has already been consumed.
          after the identifier), but clang's using_if_exists attribute can
          be in this location, so pre-scan any attributes to look for a
          potential "=" so we know for sure. */
-      a_token_cache  cache;
-      clear_token_cache(&cache, /*reusable=*/FALSE);
-      cache_curr_token(&cache);
-      /* Skip past tok_identifier. */
-      (void)get_token();
-      /* Bypass any attributes (saving them for later by "un-scanning"
-         them. */
-      add_stop_token(tok_semicolon);
-      an_attribute_ptr prescanned_attributes =
-                                           scan_attributes(al_declarator_id);
-      if (prescanned_attributes != NULL) {
-        unscan_attributes(prescanned_attributes);
-      }  /* if */
-      if (curr_token == tok_assign) {
+      if (!attributes_on_using_declarations) {
         result = TRUE;
+      } else {
+        a_token_cache  cache;
+        clear_token_cache(&cache, /*reusable=*/FALSE);
+        cache_curr_token(&cache);
+        /* Skip past tok_identifier. */
+        (void)get_token();
+        /* Bypass any attributes (saving them for later by "un-scanning"
+           them. */
+        add_stop_token(tok_semicolon);
+        an_attribute_ptr prescanned_attributes =
+                                             scan_attributes(al_declarator_id);
+        if (prescanned_attributes != NULL) {
+          unscan_attributes(prescanned_attributes);
+        }  /* if */
+        if (curr_token == tok_assign) {
+          result = TRUE;
+        }  /* if */
+        remove_stop_token(tok_semicolon);
+        rescan_cached_tokens(&cache);
       }  /* if */
-      remove_stop_token(tok_semicolon);
-      rescan_cached_tokens(&cache);
     }  /* if */
   }  /* if */
   return result;
@@ -20320,7 +20344,7 @@ processing should proceed after the call.
         /* A C++20 "using enum" declaration. */
         using_enum_declaration();
       } else {
-        if (clang_mode) {
+        if (attributes_on_using_declarations) {
           /* Clang allows the using_if_exists attribute prior to a using-
              declaration (and gives a warning if the standard attribute syntax
              is used). */
@@ -20341,6 +20365,8 @@ processing should proceed after the call.
           nonmember_using_declaration(state);
           state->decl_okay_in_constexpr_body = TRUE;
         }  /* if */
+        /* The should be no "unscanned" attributes at this point. */
+        check_assertion(!unscanned_attributes_pending());
       }  /* if */
       cannot_bind_to_curr_construct();
       end_of_decl_action = eoda_check_semicolon;

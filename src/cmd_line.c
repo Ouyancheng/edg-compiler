@@ -5432,6 +5432,7 @@ before this routine is called.
   if (clang_mode) {
     /* All versions of clang appear to accept attributes on enumerators. */
     enumerator_attributes_enabled = TRUE;
+    attributes_on_using_declarations = TRUE;
     if (cpp11_mode) {
       /* Clang enables terse static assert (with a warning) in C++11 mode. */
       terse_static_assert_enabled = TRUE;
@@ -12935,6 +12936,7 @@ variables declared in cmd_line.h.
 #endif /* UNICODE_VULNERABILITY_DETECTION_SUPPORTED */
   old_id_chars = FALSE;
   keep_restrict_in_signatures = FALSE;
+  attributes_on_using_declarations = FALSE;
 }  /* cmd_line_static_var_init */
 
 

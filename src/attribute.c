@@ -9100,7 +9100,7 @@ attribute is intended to influence has already happened by the time this
 attribute is applied (so a spurious error may already have been issued).
 */
 {
-  if (ap->syntactic_location == al_post_using_declaration ||
+  if (ap->syntactic_location == al_post_using_declarator ||
       (ap->syntactic_location == al_prefix &&
        entity_kind == iek_using_decl)) {
     /* Looks okay. */
