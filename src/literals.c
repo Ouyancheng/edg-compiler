@@ -1917,10 +1917,8 @@ fewer characters than the number of bytes in the UTF-8 encoding.
       case chk_char:
       case chk_char8_t:
         conv_single_char(
-                 &conv_state,
-                 /*process_escapes=*/(lit_kind & SCLK_RAW_STRING_LITERAL) == 0,
-                 &ch, centity_mask, /*narrow_literal=*/TRUE,
-                 (prefix_kind == SCLK_UTF8_LITERAL));
+                 &conv_state, process_escapes, &ch, centity_mask,
+                 /*narrow_literal=*/TRUE, (prefix_kind == SCLK_UTF8_LITERAL));
         *pstr++ = (char)ch;
         break;
       case chk_wchar_t:
