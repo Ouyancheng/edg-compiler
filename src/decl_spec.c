@@ -647,7 +647,7 @@ al_tag_name in that case).
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (curr_token == tok_declspec) {
       /* __declspec(...) */
-      /* The should be no "unscanned" attributes at this point. */
+      /* There should be no "unscanned" attributes at this point. */
       check_assertion(!unscanned_attributes_pending());
       *last_attribute_link(p_attr) = scan_attributes(syn_loc);
       continue;

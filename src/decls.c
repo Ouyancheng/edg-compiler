@@ -16124,7 +16124,7 @@ because existing declarations in the scope are being overloaded.
 "*prev_udp" is the previous using-declaration structure for the
 using-declaration construct that is currently being processed (NULL if
 none).  If attributes is non-NULL, attach a copy of those attributes to
-the newly created using-declaration.
+the newly-created using-declaration.
 */
 {
   a_symbol_locator   locator;
@@ -16322,8 +16322,8 @@ and attach them to the IL entity associated with sym (which may be NULL).
       }  /* if */
       if (sym != NULL) {
         /* Attach the attribute to the IL entity (if one exists).  Note
-           that this is too late to do anything with (the lookup has already
-           been done above), but for now just attach the attribute so a back
+           that this is too late to do anything with it (the lookup has already
+           been performed), but for now just attach the attribute so a back
            end can see it. */
         char              *entity;
         an_il_entry_kind  entity_kind;
@@ -16356,7 +16356,7 @@ it has been "unscanned" by the disambiguation process and must be scanned here.
 */
 {
   a_symbol_ptr             sym = NULL, fund_sym, overload_sym, other_decl,
-                             fund_other_decl;
+                           fund_other_decl;
   a_boolean                err = FALSE;
   a_symbol_locator         locator;
   a_boolean                check_for_packs = FALSE, any_more = TRUE;
@@ -20365,7 +20365,7 @@ processing should proceed after the call.
           nonmember_using_declaration(state);
           state->decl_okay_in_constexpr_body = TRUE;
         }  /* if */
-        /* The should be no "unscanned" attributes at this point. */
+        /* There should be no "unscanned" attributes at this point. */
         check_assertion(!unscanned_attributes_pending());
       }  /* if */
       cannot_bind_to_curr_construct();

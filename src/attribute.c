@@ -9080,10 +9080,9 @@ entire attribute syntax (not parsed here).
 }  /* apply_availability_attr */
 
 
-static char* apply_using_if_exists_attr(
-                                       an_attribute_ptr            ap,
-                                       ARG_UNUSED char             *entity,
-                                       ARG_UNUSED an_il_entry_kind entity_kind)
+static char* apply_using_if_exists_attr(an_attribute_ptr ap,
+                                        char             *entity,
+                                        an_il_entry_kind entity_kind)
 /*
 Called to apply the "using_if_exists" attribute to a declared entity and return
 that entity.  Currently there is no semantic support for the "using_if_exists"

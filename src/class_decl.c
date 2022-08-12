@@ -32893,7 +32893,7 @@ classes.
           }  /* if */
         }  /* if */
 next_declaration:
-        /* The should be no "unscanned" attributes at this point. */
+        /* There should be no "unscanned" attributes at this point. */
         check_assertion(!unscanned_attributes_pending());
         if (curr_routine_fixup != NULL) dispose_of_curr_routine_fixup();
         remove_stop_token(tok_semicolon);
