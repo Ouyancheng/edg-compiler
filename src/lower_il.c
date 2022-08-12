@@ -324,6 +324,20 @@ IL lowering.
 }  /* alloc_lowered_name_string */
 
 
+char *alloc_lowered_name(const char *str)
+/*
+Allocate a name string of the appropriate size and copy the string to it.
+This is used for names added or replaced (e.g., mangled names) during
+IL lowering.
+*/
+{
+  sizeof_t size = strlen(str) + 1;
+  char *ptr = alloc_lowered_name_string(size);
+  (void)strcpy(ptr, str);
+  return ptr;
+}  /* alloc_lowered_name */
+
+
 a_boolean is_or_was_nullptr_type(a_type_ptr tp)
 /*
 Return TRUE if the given type is either a nullptr type or a lowered version

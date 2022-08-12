@@ -49,6 +49,8 @@ extern void repr_for_ptr_to_member_function_constant(a_constant_ptr   constant,
 
 extern char *alloc_lowered_name_string(sizeof_t size);
 
+extern char *alloc_lowered_name(const char *str);
+
 extern a_boolean is_or_was_nullptr_type(a_type_ptr tp);
 
 #if DO_IL_LOWERING

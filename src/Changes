@@ -1,5 +1,19 @@
 Version 6.4
 
+8/12/22  [EDGcpfe/25485]
+Assertion failure in mangled_simple_id
+
+The mangling of a captured "this" had caused an assertion failure in
+mangled_simple_id.  That is now fixed.  For example (with --c++14):
+
+  template <class> bool v;
+  template <class T> struct A {
+    typename T::X mf() {
+      [&]() { v<decltype(mf())>; };
+    }
+  };
+
+
 8/11/22  [EDGpcfe/24430]
 Elimination of initk_deducing
 

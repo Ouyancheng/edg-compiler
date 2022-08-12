@@ -5623,6 +5623,11 @@ expression that was used to select expr (NULL if no selector was used).
          through the normal mechanism. */
       name_reference = NULL;
       scp = NULL;
+    } else if (unmangled_or_fabricated_name_of(scp) == NULL &&
+               node_field(expr)->is_captured_this) {
+      /* This unnamed field represents the captured "this" of a lambda.  Give
+         the field a (non-standard) name so that it can be mangled. */
+      scp->name = alloc_lowered_name("__captured_this");
     }  /* if */
   }  /* if */
   /* The code above has determined how to mangle the entity (i.e., whether
