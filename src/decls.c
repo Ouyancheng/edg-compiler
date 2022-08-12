@@ -18737,10 +18737,6 @@ can be fully determined.
     a_variable_ptr      vp = (a_variable_ptr)binding_entry->entity.ptr;
     a_type_ptr          btype;
     an_init_component   *icp = NULL;
-    /* The initializer kind was set to initk_deducing while scanning the
-       associated initializer.  Reset it to initk_none for now, until the
-       actual binding initializer is recorded. */
-    vars_being_deduced->unmap(vp);
     if (err || dependent_case) {
       /* Don't keep a count. */
     } else if (n == n_elements) {
@@ -18799,6 +18795,9 @@ can be fully determined.
     /* Update the type of the variable describing the binding. */
     vp->type = btype;
     vp->declared_with_auto_type_specifier = FALSE;
+    /* Since the type is now determined, we can remove the binding from the
+       set of variables being deduced. */
+    vars_being_deduced->unmap(vp);
     /* Record an initializer for the binding variable (if applicable). */
     if (err || dependent_case) {
       /* No initializer to record. */
