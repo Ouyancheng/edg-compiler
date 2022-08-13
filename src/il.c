@@ -294,6 +294,21 @@ Shorthand for db_template_arg_list.
 }  /* db_tap */
 
 
+void db_subst_pairs(a_subst_pairs_array const  &pairs)
+/*
+Output descriptions of paired template parameter/argument lists.
+*/
+{
+  for (int k = 0; k < pairs.length(); ++k) {
+    fprintf(f_debug, "Pair #%d:\n", k);
+    db_tpp(pairs[k].params);
+    fprintf(f_debug, "\n");
+    db_tap(pairs[k].args);
+    fprintf(f_debug, "\n");
+  }  /* for */
+}  /* db_subst_pairs */
+
+
 void db_template_name(a_template_ptr	tp)
 /*
 Dump the name of a template.

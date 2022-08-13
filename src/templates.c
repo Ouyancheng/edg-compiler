@@ -15655,15 +15655,15 @@ a pointer over a reference type or creating an array of references.
     fputc('\n', f_debug);
   }  /* if */
 #endif /* DEBUG */
-  /* Normally copying a type such as A<T>::X won't result in a change if
-     A<T> is a prototype instantiation and T is not replaced with a real
-     type.  But such a type will be replaced in deduction guides.  If
-     the type is a typedef, use the underlying type so that we don't
-     end up with an incorrect A<T'>::X. */
-  if (type->source_corresp.is_class_member &&
-      (options & CTWS_DEDUCTION_GUIDE) != 0 &&
-      type->kind == (a_type_kind)tk_typeref) {
-    type = skip_typerefs_not_dependent_decltypes(type);
+  if (type->source_corresp.is_class_member && type_is(type, tk_typeref)) {
+    /* Normally copying a type such as A<T>::X won't result in a change if
+       A<T> is a prototype instantiation and T is not replaced with a real
+       type.  But such a type will be replaced in deduction guides.  If
+       the type is a typedef, use the underlying type so that we don't
+       end up with an incorrect A<T'>::X. */
+    if ((options & CTWS_DEDUCTION_GUIDE) != 0) {
+      type = skip_typerefs_not_dependent_decltypes(type);
+    }  /* if */
   }  /* if */
   /* The CTWS_IS_OVERLOAD_CANDIDATE only applies to a top-level function
      type. */
@@ -15676,30 +15676,39 @@ a pointer over a reference type or creating an array of references.
     sym = symbol_for(type);
     check_assertion(sym != NULL);
     parent_type = parent_class_of(type);
-    if ((is_immediate_class_type(parent_type) &&
-         (parent_type->variant.class_struct_union.is_nonreal_class ||
-          is_cli_open_constructed_instance(parent_type))) ||
-        is_template_param_type(parent_type)) {
-      sym = copy_parent_type_with_substitution(
+    if (is_immediate_class_type(parent_type)) {
+      if (type_is_typedef(type) &&
+          parent_type->variant.class_struct_union.is_prototype_instantiation &&
+          !is_template_dependent_type(type)) {
+        /* With something like:
+             template<typename T> struct X { using Y = int; };
+           X<T>::Y is nondependent within the prototype instantiation.  Just
+           return the underlying type without substituting X<T>. */
+        new_type = type->variant.typeref.type;
+        goto done;
+      } else if (parent_type->variant.class_struct_union.is_nonreal_class ||
+                 is_cli_open_constructed_instance(parent_type)) {
+        sym = copy_parent_type_with_substitution(
                                              sym, parent_type,
                                              templ_arg_list, templ_param_list,
                                              source_pos, /*is_type=*/TRUE,
                                              options, copy_error, ctws_state);
-      if (sym != NULL) sym = fundamental_symbol_of(sym);
-      if (sym == NULL || !is_type_symbol(sym)) {
-        /* The type was specified as something like A<T>::B, but the
-           substituted "A<T>" does not contain a B, or the B found is not
-           a type. */
-        subst_fail(*copy_error);
-        type = error_type();
-      } else {
-        type = type_symbol_type(sym);
-      }  /* if */
-      if (type != type_before_parent_subst) {
-        /* When the parent type is substituted, the member type is also
-           processed so no additional work is needed for this type. */
-        new_type = type;
-        goto done;
+        if (sym != NULL) sym = fundamental_symbol_of(sym);
+        if (sym == NULL || !is_type_symbol(sym)) {
+          /* The type was specified as something like A<T>::B, but the
+             substituted "A<T>" does not contain a B, or the B found is not
+             a type. */
+          subst_fail(*copy_error);
+          type = error_type();
+        } else {
+          type = type_symbol_type(sym);
+        }  /* if */
+        if (type != type_before_parent_subst) {
+          /* When the parent type is substituted, the member type is also
+             processed so no additional work is needed for this type. */
+          new_type = type;
+          goto done;
+        }  /* if */
       }  /* if */
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
