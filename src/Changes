@@ -1,5 +1,26 @@
 Version 6.4
 
+8/15/22  [EDGcpfe/25388]
+Nondependent alias templates in prototype instantiations
+
+Consider:
+
+   template<typename> concept C = true;
+   template<C T> constexpr T g(T t) { return t; }
+   template<typename T> struct S {
+     using Type = unsigned;
+     void f(Type x) {
+       g(x);  // Nondependent call.
+     }
+   };
+
+The call g(x) is nondependent because the type of x is known during the
+prototype instantiation of S<T>::f.  However, the front end did not correctly
+handle this case: It attempted to substitute S<T>::Type in the wrong context,
+which resulted in an internal error in a call to get_template_arg_by_list_pos.
+That is now fixed.
+
+
 8/15/22  [EDGcpfe/25530]
 Microsoft mode regression with __restrict parameter
 
