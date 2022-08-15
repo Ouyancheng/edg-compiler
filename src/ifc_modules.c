@@ -2918,6 +2918,9 @@ to the given cache if options & cso_no_final_semicolon is nonzero.
         }  /* if */
       }
       break;
+    case ifc_ss_stmt_labeled:
+      issue_unsupported_node_diag("StmtSort::Labeled", &error_position);
+      break;
     case ifc_ss_stmt_return:
       { Opt<an_ifc_stmt_return> opt_isr;
 
