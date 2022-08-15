@@ -900,6 +900,12 @@ INST_CONSTRUCT_NODE_ALL(an_ifc_stmt_if, an_ifc_stmt_index)
 
 
 /*
+Explicit instantiations of functions for StmtLabeled.
+*/
+INST_CONSTRUCT_NODE_ALL(an_ifc_stmt_labeled, an_ifc_stmt_index)
+
+
+/*
 Explicit instantiations of functions for StmtReturn.
 */
 INST_CONSTRUCT_NODE_ALL(an_ifc_stmt_return, an_ifc_stmt_index)

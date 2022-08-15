@@ -1569,6 +1569,7 @@ represents a valid enumerator; otherwise, return FALSE.
     case ifc_0_42_ss_stmt_goto:
     case ifc_0_42_ss_stmt_if:
     case ifc_0_42_ss_stmt_for:
+    case ifc_0_42_ss_stmt_labeled:
     case ifc_0_42_ss_stmt_while:
     case ifc_0_42_ss_stmt_block:
     case ifc_0_42_ss_stmt_break:

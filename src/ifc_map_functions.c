@@ -9108,6 +9108,9 @@ form of a c-string.
     case ifc_ss_stmt_if:
       result = "StmtSort::StmtIf";
       break;
+    case ifc_ss_stmt_labeled:
+      result = "StmtSort::StmtLabeled";
+      break;
     case ifc_ss_stmt_return:
       result = "StmtSort::StmtReturn";
       break;
@@ -9160,6 +9163,9 @@ return a reencoded sort value.
         break;
       case ifc_ss_stmt_for:
         result = (ue_ty)ifc_0_42_ss_stmt_for;
+        break;
+      case ifc_ss_stmt_labeled:
+        result = (ue_ty)ifc_0_42_ss_stmt_labeled;
         break;
       case ifc_ss_stmt_while:
         result = (ue_ty)ifc_0_42_ss_stmt_while;
@@ -9354,6 +9360,9 @@ universal representation.
       break;
     case ifc_0_42_ss_stmt_for:
       result = ifc_ss_stmt_for;
+      break;
+    case ifc_0_42_ss_stmt_labeled:
+      result = ifc_ss_stmt_labeled;
       break;
     case ifc_0_42_ss_stmt_while:
       result = ifc_ss_stmt_while;
@@ -33982,6 +33991,9 @@ StmtSort.  If no corresponding sort kind exists for StmtSort, abort.
     case ifc_pk_stmt_if:
       result = ifc_ss_stmt_if;
       break;
+    case ifc_pk_stmt_labeled:
+      result = ifc_ss_stmt_labeled;
+      break;
     case ifc_pk_stmt_return:
       result = ifc_ss_stmt_return;
       break;
@@ -35190,6 +35202,7 @@ corresponding partition kind; otherwise, return FALSE.
     case ifc_ss_stmt_goto:
     case ifc_ss_stmt_handler:
     case ifc_ss_stmt_if:
+    case ifc_ss_stmt_labeled:
     case ifc_ss_stmt_return:
     case ifc_ss_stmt_switch:
     case ifc_ss_stmt_variable_decl:
@@ -35254,6 +35267,9 @@ partition kind.  If no corresponding partition kind exists, abort.
       break;
     case ifc_ss_stmt_if:
       result = ifc_pk_stmt_if;
+      break;
+    case ifc_ss_stmt_labeled:
+      result = ifc_pk_stmt_labeled;
       break;
     case ifc_ss_stmt_return:
       result = ifc_pk_stmt_return;
