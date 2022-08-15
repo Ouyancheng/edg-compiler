@@ -1570,8 +1570,7 @@ declaration.  error_pos is the default position for diagnostics.
   } else {
     /* Verify that the parameter type is not a qualified function type. */
     a_type_ptr  rtp = skip_typerefs(dps->type);
-    if (type_is_typedef(dps->type) &&
-        rtp->kind == (a_type_kind)tk_routine &&
+    if (type_is_typedef(dps->type) && type_is(rtp, tk_routine) &&
         is_qualified_function_type(rtp)) {
       pos_error(ec_bad_qualified_function_type_parameter, error_pos);
     }  /* if */
@@ -1597,21 +1596,33 @@ declaration.  error_pos is the default position for diagnostics.
       pos_error(ec_named_address_space_for_parameter, error_pos);
 #endif /* NAMED_ADDRESS_SPACES_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    } else if (cli_or_cx_enabled && is_pin_ptr_type(dps->type)) { 
-      /* A pin pointer cannot be used as a parameter type. */
-      pos_error(ec_pin_ptr_param_not_allowed, error_pos);
-    } else if (cli_or_cx_enabled && is_cli_interface_type(dps->type)) { 
-      /* A C++/CLI interface cannot be used as a parameter type. */
-      pos_error(ec_parameter_with_interface_type, error_pos);
-      dps->type = error_type();
-    } else if (cppcx_enabled &&
-               is_handle_to_nonconst_cppcx_plain_array_type(dps->type) &&
-               in_cppcx_externally_visible_parameter_scope()) {
-      /* If the function is a delegate definition or a class member with
-         external visibility, issue an error if the parameter is of type
-         "Platform::Array<T>^". */
-      pos_error(ec_cppcx_non_const_array_parameter, error_pos);
-      dps->type = error_type();
+    } else if (microsoft_mode) {
+      a_type_ptr            tp = dps->type;
+      a_type_qualifier_set  tqs = get_type_qualifiers(tp);
+      tp = skip_nontemplate_typerefs(tp);
+      if (cli_or_cx_enabled && is_pin_ptr_type(tp)) { 
+        /* A pin pointer cannot be used as a parameter type. */
+        pos_error(ec_pin_ptr_param_not_allowed, error_pos);
+      } else if (cli_or_cx_enabled && is_cli_interface_type(tp)) { 
+        /* A C++/CLI interface cannot be used as a parameter type. */
+        pos_error(ec_parameter_with_interface_type, error_pos);
+        dps->type = error_type();
+      } else if (cppcx_enabled &&
+                 is_handle_to_nonconst_cppcx_plain_array_type(tp) &&
+                 in_cppcx_externally_visible_parameter_scope()) {
+        /* If the function is a delegate definition or a class member with
+           external visibility, issue an error if the parameter is of type
+           "Platform::Array<T>^". */
+        pos_error(ec_cppcx_non_const_array_parameter, error_pos);
+        dps->type = error_type();
+      } else if ((tqs & TQ_RESTRICT) != 0 && dps->is_param_decl) {
+        /* __restrict on parameter declarations are ignored on type aliases. */
+        a_decl_parse_state  *func_dps = dps->assoc_func_decl_state;
+        if (func_dps->is_type_name ||
+            func_dps->declared_storage_class == sc_typedef) {
+          dps->type = make_qualified_type(tp, (tqs & ~TQ_RESTRICT));
+        }  /* if */
+      }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
   }  /* if */
