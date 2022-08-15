@@ -48,6 +48,7 @@ supported, otherwise return FALSE.
   switch (major_version) {
     case 0:
       switch (minor_version) {
+        case 42:
         case 41:
         case 33:
           result = TRUE;
@@ -2276,6 +2277,9 @@ form of a c-string.
     case ifc_es_expr_initializer_list:
       result = "ExprSort::ExprInitializerList";
       break;
+    case ifc_es_expr_label:
+      result = "ExprSort::ExprLabel";
+      break;
     case ifc_es_expr_lambda:
       result = "ExprSort::ExprLambda";
       break;
@@ -2411,194 +2415,379 @@ return a reencoded sort value.
   using ue_ty = an_ifc_encoded_expr_sort_storage;
   an_ifc_encoded_expr_sort_storage result;
 
-  switch (universal) {
-    case ifc_es_expr_vendor_extension:
-      result = (ue_ty)ifc_0_33_es_expr_vendor_extension;
-      break;
-    case ifc_es_expr_empty:
-      result = (ue_ty)ifc_0_33_es_expr_empty;
-      break;
-    case ifc_es_expr_literal:
-      result = (ue_ty)ifc_0_33_es_expr_literal;
-      break;
-    case ifc_es_expr_lambda:
-      result = (ue_ty)ifc_0_33_es_expr_lambda;
-      break;
-    case ifc_es_expr_type:
-      result = (ue_ty)ifc_0_33_es_expr_type;
-      break;
-    case ifc_es_expr_named_decl:
-      result = (ue_ty)ifc_0_33_es_expr_named_decl;
-      break;
-    case ifc_es_expr_unresolved_id:
-      result = (ue_ty)ifc_0_33_es_expr_unresolved_id;
-      break;
-    case ifc_es_expr_template_id:
-      result = (ue_ty)ifc_0_33_es_expr_template_id;
-      break;
-    case ifc_es_expr_unqualified_id:
-      result = (ue_ty)ifc_0_33_es_expr_unqualified_id;
-      break;
-    case ifc_es_expr_simple_identifier:
-      result = (ue_ty)ifc_0_33_es_expr_simple_identifier;
-      break;
-    case ifc_es_expr_pointer:
-      result = (ue_ty)ifc_0_33_es_expr_pointer;
-      break;
-    case ifc_es_expr_qualified_name:
-      result = (ue_ty)ifc_0_33_es_expr_qualified_name;
-      break;
-    case ifc_es_expr_path:
-      result = (ue_ty)ifc_0_33_es_expr_path;
-      break;
-    case ifc_es_expr_read:
-      result = (ue_ty)ifc_0_33_es_expr_read;
-      break;
-    case ifc_es_expr_monad:
-      result = (ue_ty)ifc_0_33_es_expr_monad;
-      break;
-    case ifc_es_expr_dyad:
-      result = (ue_ty)ifc_0_33_es_expr_dyad;
-      break;
-    case ifc_es_expr_triad:
-      result = (ue_ty)ifc_0_33_es_expr_triad;
-      break;
-    case ifc_es_expr_string:
-      result = (ue_ty)ifc_0_33_es_expr_string;
-      break;
-    case ifc_es_expr_temporary:
-      result = (ue_ty)ifc_0_33_es_expr_temporary;
-      break;
-    case ifc_es_expr_call:
-      result = (ue_ty)ifc_0_33_es_expr_call;
-      break;
-    case ifc_es_expr_member_initializer:
-      result = (ue_ty)ifc_0_33_es_expr_member_initializer;
-      break;
-    case ifc_es_expr_member_access:
-      result = (ue_ty)ifc_0_33_es_expr_member_access;
-      break;
-    case ifc_es_expr_inheritance_path:
-      result = (ue_ty)ifc_0_33_es_expr_inheritance_path;
-      break;
-    case ifc_es_expr_initializer_list:
-      result = (ue_ty)ifc_0_33_es_expr_initializer_list;
-      break;
-    case ifc_es_expr_cast:
-      result = (ue_ty)ifc_0_33_es_expr_cast;
-      break;
-    case ifc_es_expr_condition:
-      result = (ue_ty)ifc_0_33_es_expr_condition;
-      break;
-    case ifc_es_expr_expression_list:
-      result = (ue_ty)ifc_0_33_es_expr_expression_list;
-      break;
-    case ifc_es_expr_sizeof_type:
-      result = (ue_ty)ifc_0_33_es_expr_sizeof_type;
-      break;
-    case ifc_es_expr_alignof:
-      result = (ue_ty)ifc_0_33_es_expr_alignof;
-      break;
-    case ifc_es_expr_new:
-      result = (ue_ty)ifc_0_33_es_expr_new;
-      break;
-    case ifc_es_expr_delete:
-      result = (ue_ty)ifc_0_33_es_expr_delete;
-      break;
-    case ifc_es_expr_typeid:
-      result = (ue_ty)ifc_0_33_es_expr_typeid;
-      break;
-    case ifc_es_expr_destructor_call:
-      result = (ue_ty)ifc_0_33_es_expr_destructor_call;
-      break;
-    case ifc_es_expr_syntax_tree:
-      result = (ue_ty)ifc_0_33_es_expr_syntax_tree;
-      break;
-    case ifc_es_expr_function_string:
-      result = (ue_ty)ifc_0_33_es_expr_function_string;
-      break;
-    case ifc_es_expr_compound_string:
-      result = (ue_ty)ifc_0_33_es_expr_compound_string;
-      break;
-    case ifc_es_expr_string_sequence:
-      result = (ue_ty)ifc_0_33_es_expr_string_sequence;
-      break;
-    case ifc_es_expr_initializer:
-      result = (ue_ty)ifc_0_33_es_expr_initializer;
-      break;
-    case ifc_es_expr_requires:
-      result = (ue_ty)ifc_0_33_es_expr_requires;
-      break;
-    case ifc_es_expr_unary_fold:
-      result = (ue_ty)ifc_0_33_es_expr_unary_fold;
-      break;
-    case ifc_es_expr_binary_fold:
-      result = (ue_ty)ifc_0_33_es_expr_binary_fold;
-      break;
-    case ifc_es_expr_hierarchy_conversion:
-      result = (ue_ty)ifc_0_33_es_expr_hierarchy_conversion;
-      break;
-    case ifc_es_expr_product_type_value:
-      result = (ue_ty)ifc_0_33_es_expr_product_type_value;
-      break;
-    case ifc_es_expr_sum_type_value:
-      result = (ue_ty)ifc_0_33_es_expr_sum_type_value;
-      break;
-    case ifc_es_expr_subobject_value:
-      result = (ue_ty)ifc_0_33_es_expr_subobject_value;
-      break;
-    case ifc_es_expr_array_value:
-      result = (ue_ty)ifc_0_33_es_expr_array_value;
-      break;
-    case ifc_es_expr_dynamic_dispatch:
-      result = (ue_ty)ifc_0_33_es_expr_dynamic_dispatch;
-      break;
-    case ifc_es_expr_virtual_function_conversion:
-      result = (ue_ty)ifc_0_33_es_expr_virtual_function_conversion;
-      break;
-    case ifc_es_expr_placeholder:
-      result = (ue_ty)ifc_0_33_es_expr_placeholder;
-      break;
-    case ifc_es_expr_expansion:
-      result = (ue_ty)ifc_0_33_es_expr_expansion;
-      break;
-    case ifc_es_expr_generic:
-      result = (ue_ty)ifc_0_33_es_expr_generic;
-      break;
-    case ifc_es_expr_tuple:
-      result = (ue_ty)ifc_0_33_es_expr_tuple;
-      break;
-    case ifc_es_expr_nullptr:
-      result = (ue_ty)ifc_0_33_es_expr_nullptr;
-      break;
-    case ifc_es_expr_this:
-      result = (ue_ty)ifc_0_33_es_expr_this;
-      break;
-    case ifc_es_expr_template_reference:
-      result = (ue_ty)ifc_0_33_es_expr_template_reference;
-      break;
-    case ifc_es_expr_push_state:
-      result = (ue_ty)ifc_0_33_es_expr_push_state;
-      break;
-    case ifc_es_expr_type_trait_intrinsic:
-      result = (ue_ty)ifc_0_33_es_expr_type_trait_intrinsic;
-      break;
-    case ifc_es_expr_designated_initializer:
-      result = (ue_ty)ifc_0_33_es_expr_designated_initializer;
-      break;
-    case ifc_es_expr_packed_template_arguments:
-      result = (ue_ty)ifc_0_33_es_expr_packed_template_arguments;
-      break;
-    case ifc_es_expr_tokens:
-      result = (ue_ty)ifc_0_33_es_expr_tokens;
-      break;
-    case ifc_es_expr_assign_initializer:
-      result = (ue_ty)ifc_0_33_es_expr_assign_initializer;
-      break;
-    default:
-      unexpected_condition_str("Invalid value for a ExprSort.");
-      break;
-  }  /* switch */
+  if (is_at_least(mod, 0, 42)) {
+    switch (universal) {
+      case ifc_es_expr_vendor_extension:
+        result = (ue_ty)ifc_0_42_es_expr_vendor_extension;
+        break;
+      case ifc_es_expr_empty:
+        result = (ue_ty)ifc_0_42_es_expr_empty;
+        break;
+      case ifc_es_expr_literal:
+        result = (ue_ty)ifc_0_42_es_expr_literal;
+        break;
+      case ifc_es_expr_lambda:
+        result = (ue_ty)ifc_0_42_es_expr_lambda;
+        break;
+      case ifc_es_expr_type:
+        result = (ue_ty)ifc_0_42_es_expr_type;
+        break;
+      case ifc_es_expr_named_decl:
+        result = (ue_ty)ifc_0_42_es_expr_named_decl;
+        break;
+      case ifc_es_expr_unresolved_id:
+        result = (ue_ty)ifc_0_42_es_expr_unresolved_id;
+        break;
+      case ifc_es_expr_template_id:
+        result = (ue_ty)ifc_0_42_es_expr_template_id;
+        break;
+      case ifc_es_expr_unqualified_id:
+        result = (ue_ty)ifc_0_42_es_expr_unqualified_id;
+        break;
+      case ifc_es_expr_simple_identifier:
+        result = (ue_ty)ifc_0_42_es_expr_simple_identifier;
+        break;
+      case ifc_es_expr_pointer:
+        result = (ue_ty)ifc_0_42_es_expr_pointer;
+        break;
+      case ifc_es_expr_qualified_name:
+        result = (ue_ty)ifc_0_42_es_expr_qualified_name;
+        break;
+      case ifc_es_expr_path:
+        result = (ue_ty)ifc_0_42_es_expr_path;
+        break;
+      case ifc_es_expr_read:
+        result = (ue_ty)ifc_0_42_es_expr_read;
+        break;
+      case ifc_es_expr_monad:
+        result = (ue_ty)ifc_0_42_es_expr_monad;
+        break;
+      case ifc_es_expr_dyad:
+        result = (ue_ty)ifc_0_42_es_expr_dyad;
+        break;
+      case ifc_es_expr_triad:
+        result = (ue_ty)ifc_0_42_es_expr_triad;
+        break;
+      case ifc_es_expr_string:
+        result = (ue_ty)ifc_0_42_es_expr_string;
+        break;
+      case ifc_es_expr_temporary:
+        result = (ue_ty)ifc_0_42_es_expr_temporary;
+        break;
+      case ifc_es_expr_call:
+        result = (ue_ty)ifc_0_42_es_expr_call;
+        break;
+      case ifc_es_expr_member_initializer:
+        result = (ue_ty)ifc_0_42_es_expr_member_initializer;
+        break;
+      case ifc_es_expr_member_access:
+        result = (ue_ty)ifc_0_42_es_expr_member_access;
+        break;
+      case ifc_es_expr_inheritance_path:
+        result = (ue_ty)ifc_0_42_es_expr_inheritance_path;
+        break;
+      case ifc_es_expr_initializer_list:
+        result = (ue_ty)ifc_0_42_es_expr_initializer_list;
+        break;
+      case ifc_es_expr_cast:
+        result = (ue_ty)ifc_0_42_es_expr_cast;
+        break;
+      case ifc_es_expr_condition:
+        result = (ue_ty)ifc_0_42_es_expr_condition;
+        break;
+      case ifc_es_expr_expression_list:
+        result = (ue_ty)ifc_0_42_es_expr_expression_list;
+        break;
+      case ifc_es_expr_sizeof_type:
+        result = (ue_ty)ifc_0_42_es_expr_sizeof_type;
+        break;
+      case ifc_es_expr_alignof:
+        result = (ue_ty)ifc_0_42_es_expr_alignof;
+        break;
+      case ifc_es_expr_label:
+        result = (ue_ty)ifc_0_42_es_expr_label;
+        break;
+      case ifc_es_expr_typeid:
+        result = (ue_ty)ifc_0_42_es_expr_typeid;
+        break;
+      case ifc_es_expr_destructor_call:
+        result = (ue_ty)ifc_0_42_es_expr_destructor_call;
+        break;
+      case ifc_es_expr_syntax_tree:
+        result = (ue_ty)ifc_0_42_es_expr_syntax_tree;
+        break;
+      case ifc_es_expr_function_string:
+        result = (ue_ty)ifc_0_42_es_expr_function_string;
+        break;
+      case ifc_es_expr_compound_string:
+        result = (ue_ty)ifc_0_42_es_expr_compound_string;
+        break;
+      case ifc_es_expr_string_sequence:
+        result = (ue_ty)ifc_0_42_es_expr_string_sequence;
+        break;
+      case ifc_es_expr_initializer:
+        result = (ue_ty)ifc_0_42_es_expr_initializer;
+        break;
+      case ifc_es_expr_requires:
+        result = (ue_ty)ifc_0_42_es_expr_requires;
+        break;
+      case ifc_es_expr_unary_fold:
+        result = (ue_ty)ifc_0_42_es_expr_unary_fold;
+        break;
+      case ifc_es_expr_binary_fold:
+        result = (ue_ty)ifc_0_42_es_expr_binary_fold;
+        break;
+      case ifc_es_expr_hierarchy_conversion:
+        result = (ue_ty)ifc_0_42_es_expr_hierarchy_conversion;
+        break;
+      case ifc_es_expr_product_type_value:
+        result = (ue_ty)ifc_0_42_es_expr_product_type_value;
+        break;
+      case ifc_es_expr_sum_type_value:
+        result = (ue_ty)ifc_0_42_es_expr_sum_type_value;
+        break;
+      case ifc_es_expr_subobject_value:
+        result = (ue_ty)ifc_0_42_es_expr_subobject_value;
+        break;
+      case ifc_es_expr_array_value:
+        result = (ue_ty)ifc_0_42_es_expr_array_value;
+        break;
+      case ifc_es_expr_dynamic_dispatch:
+        result = (ue_ty)ifc_0_42_es_expr_dynamic_dispatch;
+        break;
+      case ifc_es_expr_virtual_function_conversion:
+        result = (ue_ty)ifc_0_42_es_expr_virtual_function_conversion;
+        break;
+      case ifc_es_expr_placeholder:
+        result = (ue_ty)ifc_0_42_es_expr_placeholder;
+        break;
+      case ifc_es_expr_expansion:
+        result = (ue_ty)ifc_0_42_es_expr_expansion;
+        break;
+      case ifc_es_expr_generic:
+        result = (ue_ty)ifc_0_42_es_expr_generic;
+        break;
+      case ifc_es_expr_tuple:
+        result = (ue_ty)ifc_0_42_es_expr_tuple;
+        break;
+      case ifc_es_expr_nullptr:
+        result = (ue_ty)ifc_0_42_es_expr_nullptr;
+        break;
+      case ifc_es_expr_this:
+        result = (ue_ty)ifc_0_42_es_expr_this;
+        break;
+      case ifc_es_expr_template_reference:
+        result = (ue_ty)ifc_0_42_es_expr_template_reference;
+        break;
+      case ifc_es_expr_type_trait_intrinsic:
+        result = (ue_ty)ifc_0_42_es_expr_type_trait_intrinsic;
+        break;
+      case ifc_es_expr_designated_initializer:
+        result = (ue_ty)ifc_0_42_es_expr_designated_initializer;
+        break;
+      case ifc_es_expr_packed_template_arguments:
+        result = (ue_ty)ifc_0_42_es_expr_packed_template_arguments;
+        break;
+      case ifc_es_expr_tokens:
+        result = (ue_ty)ifc_0_42_es_expr_tokens;
+        break;
+      case ifc_es_expr_assign_initializer:
+        result = (ue_ty)ifc_0_42_es_expr_assign_initializer;
+        break;
+      default:
+        unexpected_condition_str("Invalid value for a ExprSort.");
+        break;
+    }  /* switch */
+  } else {
+    switch (universal) {
+      case ifc_es_expr_vendor_extension:
+        result = (ue_ty)ifc_0_33_es_expr_vendor_extension;
+        break;
+      case ifc_es_expr_empty:
+        result = (ue_ty)ifc_0_33_es_expr_empty;
+        break;
+      case ifc_es_expr_literal:
+        result = (ue_ty)ifc_0_33_es_expr_literal;
+        break;
+      case ifc_es_expr_lambda:
+        result = (ue_ty)ifc_0_33_es_expr_lambda;
+        break;
+      case ifc_es_expr_type:
+        result = (ue_ty)ifc_0_33_es_expr_type;
+        break;
+      case ifc_es_expr_named_decl:
+        result = (ue_ty)ifc_0_33_es_expr_named_decl;
+        break;
+      case ifc_es_expr_unresolved_id:
+        result = (ue_ty)ifc_0_33_es_expr_unresolved_id;
+        break;
+      case ifc_es_expr_template_id:
+        result = (ue_ty)ifc_0_33_es_expr_template_id;
+        break;
+      case ifc_es_expr_unqualified_id:
+        result = (ue_ty)ifc_0_33_es_expr_unqualified_id;
+        break;
+      case ifc_es_expr_simple_identifier:
+        result = (ue_ty)ifc_0_33_es_expr_simple_identifier;
+        break;
+      case ifc_es_expr_pointer:
+        result = (ue_ty)ifc_0_33_es_expr_pointer;
+        break;
+      case ifc_es_expr_qualified_name:
+        result = (ue_ty)ifc_0_33_es_expr_qualified_name;
+        break;
+      case ifc_es_expr_path:
+        result = (ue_ty)ifc_0_33_es_expr_path;
+        break;
+      case ifc_es_expr_read:
+        result = (ue_ty)ifc_0_33_es_expr_read;
+        break;
+      case ifc_es_expr_monad:
+        result = (ue_ty)ifc_0_33_es_expr_monad;
+        break;
+      case ifc_es_expr_dyad:
+        result = (ue_ty)ifc_0_33_es_expr_dyad;
+        break;
+      case ifc_es_expr_triad:
+        result = (ue_ty)ifc_0_33_es_expr_triad;
+        break;
+      case ifc_es_expr_string:
+        result = (ue_ty)ifc_0_33_es_expr_string;
+        break;
+      case ifc_es_expr_temporary:
+        result = (ue_ty)ifc_0_33_es_expr_temporary;
+        break;
+      case ifc_es_expr_call:
+        result = (ue_ty)ifc_0_33_es_expr_call;
+        break;
+      case ifc_es_expr_member_initializer:
+        result = (ue_ty)ifc_0_33_es_expr_member_initializer;
+        break;
+      case ifc_es_expr_member_access:
+        result = (ue_ty)ifc_0_33_es_expr_member_access;
+        break;
+      case ifc_es_expr_inheritance_path:
+        result = (ue_ty)ifc_0_33_es_expr_inheritance_path;
+        break;
+      case ifc_es_expr_initializer_list:
+        result = (ue_ty)ifc_0_33_es_expr_initializer_list;
+        break;
+      case ifc_es_expr_cast:
+        result = (ue_ty)ifc_0_33_es_expr_cast;
+        break;
+      case ifc_es_expr_condition:
+        result = (ue_ty)ifc_0_33_es_expr_condition;
+        break;
+      case ifc_es_expr_expression_list:
+        result = (ue_ty)ifc_0_33_es_expr_expression_list;
+        break;
+      case ifc_es_expr_sizeof_type:
+        result = (ue_ty)ifc_0_33_es_expr_sizeof_type;
+        break;
+      case ifc_es_expr_alignof:
+        result = (ue_ty)ifc_0_33_es_expr_alignof;
+        break;
+      case ifc_es_expr_new:
+        result = (ue_ty)ifc_0_33_es_expr_new;
+        break;
+      case ifc_es_expr_delete:
+        result = (ue_ty)ifc_0_33_es_expr_delete;
+        break;
+      case ifc_es_expr_typeid:
+        result = (ue_ty)ifc_0_33_es_expr_typeid;
+        break;
+      case ifc_es_expr_destructor_call:
+        result = (ue_ty)ifc_0_33_es_expr_destructor_call;
+        break;
+      case ifc_es_expr_syntax_tree:
+        result = (ue_ty)ifc_0_33_es_expr_syntax_tree;
+        break;
+      case ifc_es_expr_function_string:
+        result = (ue_ty)ifc_0_33_es_expr_function_string;
+        break;
+      case ifc_es_expr_compound_string:
+        result = (ue_ty)ifc_0_33_es_expr_compound_string;
+        break;
+      case ifc_es_expr_string_sequence:
+        result = (ue_ty)ifc_0_33_es_expr_string_sequence;
+        break;
+      case ifc_es_expr_initializer:
+        result = (ue_ty)ifc_0_33_es_expr_initializer;
+        break;
+      case ifc_es_expr_requires:
+        result = (ue_ty)ifc_0_33_es_expr_requires;
+        break;
+      case ifc_es_expr_unary_fold:
+        result = (ue_ty)ifc_0_33_es_expr_unary_fold;
+        break;
+      case ifc_es_expr_binary_fold:
+        result = (ue_ty)ifc_0_33_es_expr_binary_fold;
+        break;
+      case ifc_es_expr_hierarchy_conversion:
+        result = (ue_ty)ifc_0_33_es_expr_hierarchy_conversion;
+        break;
+      case ifc_es_expr_product_type_value:
+        result = (ue_ty)ifc_0_33_es_expr_product_type_value;
+        break;
+      case ifc_es_expr_sum_type_value:
+        result = (ue_ty)ifc_0_33_es_expr_sum_type_value;
+        break;
+      case ifc_es_expr_subobject_value:
+        result = (ue_ty)ifc_0_33_es_expr_subobject_value;
+        break;
+      case ifc_es_expr_array_value:
+        result = (ue_ty)ifc_0_33_es_expr_array_value;
+        break;
+      case ifc_es_expr_dynamic_dispatch:
+        result = (ue_ty)ifc_0_33_es_expr_dynamic_dispatch;
+        break;
+      case ifc_es_expr_virtual_function_conversion:
+        result = (ue_ty)ifc_0_33_es_expr_virtual_function_conversion;
+        break;
+      case ifc_es_expr_placeholder:
+        result = (ue_ty)ifc_0_33_es_expr_placeholder;
+        break;
+      case ifc_es_expr_expansion:
+        result = (ue_ty)ifc_0_33_es_expr_expansion;
+        break;
+      case ifc_es_expr_generic:
+        result = (ue_ty)ifc_0_33_es_expr_generic;
+        break;
+      case ifc_es_expr_tuple:
+        result = (ue_ty)ifc_0_33_es_expr_tuple;
+        break;
+      case ifc_es_expr_nullptr:
+        result = (ue_ty)ifc_0_33_es_expr_nullptr;
+        break;
+      case ifc_es_expr_this:
+        result = (ue_ty)ifc_0_33_es_expr_this;
+        break;
+      case ifc_es_expr_template_reference:
+        result = (ue_ty)ifc_0_33_es_expr_template_reference;
+        break;
+      case ifc_es_expr_push_state:
+        result = (ue_ty)ifc_0_33_es_expr_push_state;
+        break;
+      case ifc_es_expr_type_trait_intrinsic:
+        result = (ue_ty)ifc_0_33_es_expr_type_trait_intrinsic;
+        break;
+      case ifc_es_expr_designated_initializer:
+        result = (ue_ty)ifc_0_33_es_expr_designated_initializer;
+        break;
+      case ifc_es_expr_packed_template_arguments:
+        result = (ue_ty)ifc_0_33_es_expr_packed_template_arguments;
+        break;
+      case ifc_es_expr_tokens:
+        result = (ue_ty)ifc_0_33_es_expr_tokens;
+        break;
+      case ifc_es_expr_assign_initializer:
+        result = (ue_ty)ifc_0_33_es_expr_assign_initializer;
+        break;
+      default:
+        unexpected_condition_str("Invalid value for a ExprSort.");
+        break;
+    }  /* switch */
+  }  /* if */
   return an_ifc_encoded_expr_sort{mod, result};
 }  /* to_encoded */
 
@@ -2793,6 +2982,200 @@ universal representation.
       result = ifc_es_expr_tokens;
       break;
     case ifc_0_33_es_expr_assign_initializer:
+      result = ifc_es_expr_assign_initializer;
+      break;
+    default:
+      unexpected_condition_str("Invalid value for a ExprSort.");
+      break;
+  }  /* switch */
+  return result;
+}  /* to_universal_sort */
+
+
+an_ifc_expr_sort to_universal_sort(an_ifc_expr_sort_0_42 versioned)
+/*
+Given the versioned representation of ExprSort, return the corresponding
+universal representation.
+*/
+{
+  an_ifc_expr_sort result;
+
+  switch (versioned) {
+    case ifc_0_42_es_expr_vendor_extension:
+      result = ifc_es_expr_vendor_extension;
+      break;
+    case ifc_0_42_es_expr_empty:
+      result = ifc_es_expr_empty;
+      break;
+    case ifc_0_42_es_expr_literal:
+      result = ifc_es_expr_literal;
+      break;
+    case ifc_0_42_es_expr_lambda:
+      result = ifc_es_expr_lambda;
+      break;
+    case ifc_0_42_es_expr_type:
+      result = ifc_es_expr_type;
+      break;
+    case ifc_0_42_es_expr_named_decl:
+      result = ifc_es_expr_named_decl;
+      break;
+    case ifc_0_42_es_expr_unresolved_id:
+      result = ifc_es_expr_unresolved_id;
+      break;
+    case ifc_0_42_es_expr_template_id:
+      result = ifc_es_expr_template_id;
+      break;
+    case ifc_0_42_es_expr_unqualified_id:
+      result = ifc_es_expr_unqualified_id;
+      break;
+    case ifc_0_42_es_expr_simple_identifier:
+      result = ifc_es_expr_simple_identifier;
+      break;
+    case ifc_0_42_es_expr_pointer:
+      result = ifc_es_expr_pointer;
+      break;
+    case ifc_0_42_es_expr_qualified_name:
+      result = ifc_es_expr_qualified_name;
+      break;
+    case ifc_0_42_es_expr_path:
+      result = ifc_es_expr_path;
+      break;
+    case ifc_0_42_es_expr_read:
+      result = ifc_es_expr_read;
+      break;
+    case ifc_0_42_es_expr_monad:
+      result = ifc_es_expr_monad;
+      break;
+    case ifc_0_42_es_expr_dyad:
+      result = ifc_es_expr_dyad;
+      break;
+    case ifc_0_42_es_expr_triad:
+      result = ifc_es_expr_triad;
+      break;
+    case ifc_0_42_es_expr_string:
+      result = ifc_es_expr_string;
+      break;
+    case ifc_0_42_es_expr_temporary:
+      result = ifc_es_expr_temporary;
+      break;
+    case ifc_0_42_es_expr_call:
+      result = ifc_es_expr_call;
+      break;
+    case ifc_0_42_es_expr_member_initializer:
+      result = ifc_es_expr_member_initializer;
+      break;
+    case ifc_0_42_es_expr_member_access:
+      result = ifc_es_expr_member_access;
+      break;
+    case ifc_0_42_es_expr_inheritance_path:
+      result = ifc_es_expr_inheritance_path;
+      break;
+    case ifc_0_42_es_expr_initializer_list:
+      result = ifc_es_expr_initializer_list;
+      break;
+    case ifc_0_42_es_expr_cast:
+      result = ifc_es_expr_cast;
+      break;
+    case ifc_0_42_es_expr_condition:
+      result = ifc_es_expr_condition;
+      break;
+    case ifc_0_42_es_expr_expression_list:
+      result = ifc_es_expr_expression_list;
+      break;
+    case ifc_0_42_es_expr_sizeof_type:
+      result = ifc_es_expr_sizeof_type;
+      break;
+    case ifc_0_42_es_expr_alignof:
+      result = ifc_es_expr_alignof;
+      break;
+    case ifc_0_42_es_expr_label:
+      result = ifc_es_expr_label;
+      break;
+    case ifc_0_42_es_expr_typeid:
+      result = ifc_es_expr_typeid;
+      break;
+    case ifc_0_42_es_expr_destructor_call:
+      result = ifc_es_expr_destructor_call;
+      break;
+    case ifc_0_42_es_expr_syntax_tree:
+      result = ifc_es_expr_syntax_tree;
+      break;
+    case ifc_0_42_es_expr_function_string:
+      result = ifc_es_expr_function_string;
+      break;
+    case ifc_0_42_es_expr_compound_string:
+      result = ifc_es_expr_compound_string;
+      break;
+    case ifc_0_42_es_expr_string_sequence:
+      result = ifc_es_expr_string_sequence;
+      break;
+    case ifc_0_42_es_expr_initializer:
+      result = ifc_es_expr_initializer;
+      break;
+    case ifc_0_42_es_expr_requires:
+      result = ifc_es_expr_requires;
+      break;
+    case ifc_0_42_es_expr_unary_fold:
+      result = ifc_es_expr_unary_fold;
+      break;
+    case ifc_0_42_es_expr_binary_fold:
+      result = ifc_es_expr_binary_fold;
+      break;
+    case ifc_0_42_es_expr_hierarchy_conversion:
+      result = ifc_es_expr_hierarchy_conversion;
+      break;
+    case ifc_0_42_es_expr_product_type_value:
+      result = ifc_es_expr_product_type_value;
+      break;
+    case ifc_0_42_es_expr_sum_type_value:
+      result = ifc_es_expr_sum_type_value;
+      break;
+    case ifc_0_42_es_expr_subobject_value:
+      result = ifc_es_expr_subobject_value;
+      break;
+    case ifc_0_42_es_expr_array_value:
+      result = ifc_es_expr_array_value;
+      break;
+    case ifc_0_42_es_expr_dynamic_dispatch:
+      result = ifc_es_expr_dynamic_dispatch;
+      break;
+    case ifc_0_42_es_expr_virtual_function_conversion:
+      result = ifc_es_expr_virtual_function_conversion;
+      break;
+    case ifc_0_42_es_expr_placeholder:
+      result = ifc_es_expr_placeholder;
+      break;
+    case ifc_0_42_es_expr_expansion:
+      result = ifc_es_expr_expansion;
+      break;
+    case ifc_0_42_es_expr_generic:
+      result = ifc_es_expr_generic;
+      break;
+    case ifc_0_42_es_expr_tuple:
+      result = ifc_es_expr_tuple;
+      break;
+    case ifc_0_42_es_expr_nullptr:
+      result = ifc_es_expr_nullptr;
+      break;
+    case ifc_0_42_es_expr_this:
+      result = ifc_es_expr_this;
+      break;
+    case ifc_0_42_es_expr_template_reference:
+      result = ifc_es_expr_template_reference;
+      break;
+    case ifc_0_42_es_expr_type_trait_intrinsic:
+      result = ifc_es_expr_type_trait_intrinsic;
+      break;
+    case ifc_0_42_es_expr_designated_initializer:
+      result = ifc_es_expr_designated_initializer;
+      break;
+    case ifc_0_42_es_expr_packed_template_arguments:
+      result = ifc_es_expr_packed_template_arguments;
+      break;
+    case ifc_0_42_es_expr_tokens:
+      result = ifc_es_expr_tokens;
+      break;
+    case ifc_0_42_es_expr_assign_initializer:
       result = ifc_es_expr_assign_initializer;
       break;
     default:
@@ -8695,6 +9078,9 @@ form of a c-string.
     case ifc_ss_stmt_continue:
       result = "StmtSort::StmtContinue";
       break;
+    case ifc_ss_stmt_decl:
+      result = "StmtSort::StmtDecl";
+      break;
     case ifc_ss_stmt_default:
       result = "StmtSort::StmtDefault";
       break;
@@ -8713,6 +9099,12 @@ form of a c-string.
     case ifc_ss_stmt_for:
       result = "StmtSort::StmtFor";
       break;
+    case ifc_ss_stmt_goto:
+      result = "StmtSort::StmtGoto";
+      break;
+    case ifc_ss_stmt_handler:
+      result = "StmtSort::StmtHandler";
+      break;
     case ifc_ss_stmt_if:
       result = "StmtSort::StmtIf";
       break;
@@ -8724,6 +9116,9 @@ form of a c-string.
       break;
     case ifc_ss_stmt_syntax_tree:
       result = "StmtSort::StmtSyntaxTree";
+      break;
+    case ifc_ss_stmt_tuple:
+      result = "StmtSort::StmtTuple";
       break;
     case ifc_ss_stmt_variable_decl:
       result = "StmtSort::StmtVariableDecl";
@@ -8752,62 +9147,121 @@ return a reencoded sort value.
   using ue_ty = an_ifc_encoded_stmt_sort_storage;
   an_ifc_encoded_stmt_sort_storage result;
 
-  switch (universal) {
-    case ifc_ss_stmt_vendor_extension:
-      result = (ue_ty)ifc_0_33_ss_stmt_vendor_extension;
-      break;
-    case ifc_ss_stmt_empty:
-      result = (ue_ty)ifc_0_33_ss_stmt_empty;
-      break;
-    case ifc_ss_stmt_if:
-      result = (ue_ty)ifc_0_33_ss_stmt_if;
-      break;
-    case ifc_ss_stmt_for:
-      result = (ue_ty)ifc_0_33_ss_stmt_for;
-      break;
-    case ifc_ss_stmt_case:
-      result = (ue_ty)ifc_0_33_ss_stmt_case;
-      break;
-    case ifc_ss_stmt_while:
-      result = (ue_ty)ifc_0_33_ss_stmt_while;
-      break;
-    case ifc_ss_stmt_block:
-      result = (ue_ty)ifc_0_33_ss_stmt_block;
-      break;
-    case ifc_ss_stmt_break:
-      result = (ue_ty)ifc_0_33_ss_stmt_break;
-      break;
-    case ifc_ss_stmt_switch:
-      result = (ue_ty)ifc_0_33_ss_stmt_switch;
-      break;
-    case ifc_ss_stmt_do_while:
-      result = (ue_ty)ifc_0_33_ss_stmt_do_while;
-      break;
-    case ifc_ss_stmt_default:
-      result = (ue_ty)ifc_0_33_ss_stmt_default;
-      break;
-    case ifc_ss_stmt_continue:
-      result = (ue_ty)ifc_0_33_ss_stmt_continue;
-      break;
-    case ifc_ss_stmt_expression:
-      result = (ue_ty)ifc_0_33_ss_stmt_expression;
-      break;
-    case ifc_ss_stmt_return:
-      result = (ue_ty)ifc_0_33_ss_stmt_return;
-      break;
-    case ifc_ss_stmt_variable_decl:
-      result = (ue_ty)ifc_0_33_ss_stmt_variable_decl;
-      break;
-    case ifc_ss_stmt_expansion:
-      result = (ue_ty)ifc_0_33_ss_stmt_expansion;
-      break;
-    case ifc_ss_stmt_syntax_tree:
-      result = (ue_ty)ifc_0_33_ss_stmt_syntax_tree;
-      break;
-    default:
-      unexpected_condition_str("Invalid value for a StmtSort.");
-      break;
-  }  /* switch */
+  if (is_at_least(mod, 0, 42)) {
+    switch (universal) {
+      case ifc_ss_stmt_vendor_extension:
+        result = (ue_ty)ifc_0_42_ss_stmt_vendor_extension;
+        break;
+      case ifc_ss_stmt_goto:
+        result = (ue_ty)ifc_0_42_ss_stmt_goto;
+        break;
+      case ifc_ss_stmt_if:
+        result = (ue_ty)ifc_0_42_ss_stmt_if;
+        break;
+      case ifc_ss_stmt_for:
+        result = (ue_ty)ifc_0_42_ss_stmt_for;
+        break;
+      case ifc_ss_stmt_while:
+        result = (ue_ty)ifc_0_42_ss_stmt_while;
+        break;
+      case ifc_ss_stmt_block:
+        result = (ue_ty)ifc_0_42_ss_stmt_block;
+        break;
+      case ifc_ss_stmt_break:
+        result = (ue_ty)ifc_0_42_ss_stmt_break;
+        break;
+      case ifc_ss_stmt_switch:
+        result = (ue_ty)ifc_0_42_ss_stmt_switch;
+        break;
+      case ifc_ss_stmt_do_while:
+        result = (ue_ty)ifc_0_42_ss_stmt_do_while;
+        break;
+      case ifc_ss_stmt_continue:
+        result = (ue_ty)ifc_0_42_ss_stmt_continue;
+        break;
+      case ifc_ss_stmt_expression:
+        result = (ue_ty)ifc_0_42_ss_stmt_expression;
+        break;
+      case ifc_ss_stmt_return:
+        result = (ue_ty)ifc_0_42_ss_stmt_return;
+        break;
+      case ifc_ss_stmt_decl:
+        result = (ue_ty)ifc_0_42_ss_stmt_decl;
+        break;
+      case ifc_ss_stmt_expansion:
+        result = (ue_ty)ifc_0_42_ss_stmt_expansion;
+        break;
+      case ifc_ss_stmt_syntax_tree:
+        result = (ue_ty)ifc_0_42_ss_stmt_syntax_tree;
+        break;
+      case ifc_ss_stmt_handler:
+        result = (ue_ty)ifc_0_42_ss_stmt_handler;
+        break;
+      case ifc_ss_stmt_tuple:
+        result = (ue_ty)ifc_0_42_ss_stmt_tuple;
+        break;
+      default:
+        unexpected_condition_str("Invalid value for a StmtSort.");
+        break;
+    }  /* switch */
+  } else {
+    switch (universal) {
+      case ifc_ss_stmt_vendor_extension:
+        result = (ue_ty)ifc_0_33_ss_stmt_vendor_extension;
+        break;
+      case ifc_ss_stmt_empty:
+        result = (ue_ty)ifc_0_33_ss_stmt_empty;
+        break;
+      case ifc_ss_stmt_if:
+        result = (ue_ty)ifc_0_33_ss_stmt_if;
+        break;
+      case ifc_ss_stmt_for:
+        result = (ue_ty)ifc_0_33_ss_stmt_for;
+        break;
+      case ifc_ss_stmt_case:
+        result = (ue_ty)ifc_0_33_ss_stmt_case;
+        break;
+      case ifc_ss_stmt_while:
+        result = (ue_ty)ifc_0_33_ss_stmt_while;
+        break;
+      case ifc_ss_stmt_block:
+        result = (ue_ty)ifc_0_33_ss_stmt_block;
+        break;
+      case ifc_ss_stmt_break:
+        result = (ue_ty)ifc_0_33_ss_stmt_break;
+        break;
+      case ifc_ss_stmt_switch:
+        result = (ue_ty)ifc_0_33_ss_stmt_switch;
+        break;
+      case ifc_ss_stmt_do_while:
+        result = (ue_ty)ifc_0_33_ss_stmt_do_while;
+        break;
+      case ifc_ss_stmt_default:
+        result = (ue_ty)ifc_0_33_ss_stmt_default;
+        break;
+      case ifc_ss_stmt_continue:
+        result = (ue_ty)ifc_0_33_ss_stmt_continue;
+        break;
+      case ifc_ss_stmt_expression:
+        result = (ue_ty)ifc_0_33_ss_stmt_expression;
+        break;
+      case ifc_ss_stmt_return:
+        result = (ue_ty)ifc_0_33_ss_stmt_return;
+        break;
+      case ifc_ss_stmt_variable_decl:
+        result = (ue_ty)ifc_0_33_ss_stmt_variable_decl;
+        break;
+      case ifc_ss_stmt_expansion:
+        result = (ue_ty)ifc_0_33_ss_stmt_expansion;
+        break;
+      case ifc_ss_stmt_syntax_tree:
+        result = (ue_ty)ifc_0_33_ss_stmt_syntax_tree;
+        break;
+      default:
+        unexpected_condition_str("Invalid value for a StmtSort.");
+        break;
+    }  /* switch */
+  }  /* if */
   return an_ifc_encoded_stmt_sort{mod, result};
 }  /* to_encoded */
 
@@ -8871,6 +9325,74 @@ universal representation.
       break;
     case ifc_0_33_ss_stmt_syntax_tree:
       result = ifc_ss_stmt_syntax_tree;
+      break;
+    default:
+      unexpected_condition_str("Invalid value for a StmtSort.");
+      break;
+  }  /* switch */
+  return result;
+}  /* to_universal_sort */
+
+
+an_ifc_stmt_sort to_universal_sort(an_ifc_stmt_sort_0_42 versioned)
+/*
+Given the versioned representation of StmtSort, return the corresponding
+universal representation.
+*/
+{
+  an_ifc_stmt_sort result;
+
+  switch (versioned) {
+    case ifc_0_42_ss_stmt_vendor_extension:
+      result = ifc_ss_stmt_vendor_extension;
+      break;
+    case ifc_0_42_ss_stmt_goto:
+      result = ifc_ss_stmt_goto;
+      break;
+    case ifc_0_42_ss_stmt_if:
+      result = ifc_ss_stmt_if;
+      break;
+    case ifc_0_42_ss_stmt_for:
+      result = ifc_ss_stmt_for;
+      break;
+    case ifc_0_42_ss_stmt_while:
+      result = ifc_ss_stmt_while;
+      break;
+    case ifc_0_42_ss_stmt_block:
+      result = ifc_ss_stmt_block;
+      break;
+    case ifc_0_42_ss_stmt_break:
+      result = ifc_ss_stmt_break;
+      break;
+    case ifc_0_42_ss_stmt_switch:
+      result = ifc_ss_stmt_switch;
+      break;
+    case ifc_0_42_ss_stmt_do_while:
+      result = ifc_ss_stmt_do_while;
+      break;
+    case ifc_0_42_ss_stmt_continue:
+      result = ifc_ss_stmt_continue;
+      break;
+    case ifc_0_42_ss_stmt_expression:
+      result = ifc_ss_stmt_expression;
+      break;
+    case ifc_0_42_ss_stmt_return:
+      result = ifc_ss_stmt_return;
+      break;
+    case ifc_0_42_ss_stmt_decl:
+      result = ifc_ss_stmt_decl;
+      break;
+    case ifc_0_42_ss_stmt_expansion:
+      result = ifc_ss_stmt_expansion;
+      break;
+    case ifc_0_42_ss_stmt_syntax_tree:
+      result = ifc_ss_stmt_syntax_tree;
+      break;
+    case ifc_0_42_ss_stmt_handler:
+      result = ifc_ss_stmt_handler;
+      break;
+    case ifc_0_42_ss_stmt_tuple:
+      result = ifc_ss_stmt_tuple;
       break;
     default:
       unexpected_condition_str("Invalid value for a StmtSort.");
@@ -10174,6 +10696,15 @@ name in the form of a c-string.
     case ifc_tos_msvc:
       result = "TriadicOperatorSort::Msvc";
       break;
+    case ifc_tos_msvc_confused_choice:
+      result = "TriadicOperatorSort::MsvcConfusedChoice";
+      break;
+    case ifc_tos_msvc_confused_push_state:
+      result = "TriadicOperatorSort::MsvcConfusedPushState";
+      break;
+    case ifc_tos_msvc_confusion:
+      result = "TriadicOperatorSort::MsvcConfusion";
+      break;
     case ifc_tos_unknown:
       result = "TriadicOperatorSort::Unknown";
       break;
@@ -10196,26 +10727,58 @@ module, return a reencoded sort value.
   using ue_ty = an_ifc_encoded_triadic_operator_sort_storage;
   an_ifc_encoded_triadic_operator_sort_storage result;
 
-  switch (universal) {
-    case ifc_tos_unknown:
-      result = (ue_ty)ifc_0_33_tos_unknown;
-      break;
-    case ifc_tos_choice:
-      result = (ue_ty)ifc_0_33_tos_choice;
-      break;
-    case ifc_tos_construct_at:
-      result = (ue_ty)ifc_0_33_tos_construct_at;
-      break;
-    case ifc_tos_initialize:
-      result = (ue_ty)ifc_0_33_tos_initialize;
-      break;
-    case ifc_tos_msvc:
-      result = (ue_ty)ifc_0_33_tos_msvc;
-      break;
-    default:
-      unexpected_condition_str("Invalid value for a TriadicOperatorSort.");
-      break;
-  }  /* switch */
+  if (is_at_least(mod, 0, 42)) {
+    switch (universal) {
+      case ifc_tos_unknown:
+        result = (ue_ty)ifc_0_42_tos_unknown;
+        break;
+      case ifc_tos_choice:
+        result = (ue_ty)ifc_0_42_tos_choice;
+        break;
+      case ifc_tos_construct_at:
+        result = (ue_ty)ifc_0_42_tos_construct_at;
+        break;
+      case ifc_tos_initialize:
+        result = (ue_ty)ifc_0_42_tos_initialize;
+        break;
+      case ifc_tos_msvc:
+        result = (ue_ty)ifc_0_42_tos_msvc;
+        break;
+      case ifc_tos_msvc_confusion:
+        result = (ue_ty)ifc_0_42_tos_msvc_confusion;
+        break;
+      case ifc_tos_msvc_confused_push_state:
+        result = (ue_ty)ifc_0_42_tos_msvc_confused_push_state;
+        break;
+      case ifc_tos_msvc_confused_choice:
+        result = (ue_ty)ifc_0_42_tos_msvc_confused_choice;
+        break;
+      default:
+        unexpected_condition_str("Invalid value for a TriadicOperatorSort.");
+        break;
+    }  /* switch */
+  } else {
+    switch (universal) {
+      case ifc_tos_unknown:
+        result = (ue_ty)ifc_0_33_tos_unknown;
+        break;
+      case ifc_tos_choice:
+        result = (ue_ty)ifc_0_33_tos_choice;
+        break;
+      case ifc_tos_construct_at:
+        result = (ue_ty)ifc_0_33_tos_construct_at;
+        break;
+      case ifc_tos_initialize:
+        result = (ue_ty)ifc_0_33_tos_initialize;
+        break;
+      case ifc_tos_msvc:
+        result = (ue_ty)ifc_0_33_tos_msvc;
+        break;
+      default:
+        unexpected_condition_str("Invalid value for a TriadicOperatorSort.");
+        break;
+    }  /* switch */
+  }  /* if */
   return an_ifc_encoded_triadic_operator_sort{mod, result};
 }  /* to_encoded */
 
@@ -10244,6 +10807,48 @@ corresponding universal representation.
       break;
     case ifc_0_33_tos_msvc:
       result = ifc_tos_msvc;
+      break;
+    default:
+      unexpected_condition_str("Invalid value for a TriadicOperatorSort.");
+      break;
+  }  /* switch */
+  return result;
+}  /* to_universal_sort */
+
+
+an_ifc_triadic_operator_sort to_universal_sort(
+                                   an_ifc_triadic_operator_sort_0_42 versioned)
+/*
+Given the versioned representation of TriadicOperatorSort, return the
+corresponding universal representation.
+*/
+{
+  an_ifc_triadic_operator_sort result;
+
+  switch (versioned) {
+    case ifc_0_42_tos_unknown:
+      result = ifc_tos_unknown;
+      break;
+    case ifc_0_42_tos_choice:
+      result = ifc_tos_choice;
+      break;
+    case ifc_0_42_tos_construct_at:
+      result = ifc_tos_construct_at;
+      break;
+    case ifc_0_42_tos_initialize:
+      result = ifc_tos_initialize;
+      break;
+    case ifc_0_42_tos_msvc:
+      result = ifc_tos_msvc;
+      break;
+    case ifc_0_42_tos_msvc_confusion:
+      result = ifc_tos_msvc_confusion;
+      break;
+    case ifc_0_42_tos_msvc_confused_push_state:
+      result = ifc_tos_msvc_confused_push_state;
+      break;
+    case ifc_0_42_tos_msvc_confused_choice:
+      result = ifc_tos_msvc_confused_choice;
       break;
     default:
       unexpected_condition_str("Invalid value for a TriadicOperatorSort.");
@@ -11648,6 +12253,40 @@ return the corresponding universal representation.
 }  /* to_universal_index */
 
 
+an_ifc_expr_sort_0_42 expr_sort(an_ifc_expr_index_0_42 versioned)
+/*
+Given the versioned representation of ExprIndex, return the extracted versioned
+representation of ExprSort.
+*/
+{
+  return (an_ifc_expr_sort_0_42)(0x3f & (uint32_t)versioned);
+
+}  /* expr_sort */
+
+
+uint32_t expr_value(an_ifc_expr_index_0_42 versioned)
+/*
+Given the versioned representation of ExprIndex, return the extracted value.
+*/
+{
+  return versioned >> 6;
+}  /* expr_value */
+
+
+an_ifc_expr_index to_universal_index(an_ifc_module          *mod,
+                                     an_ifc_expr_index_0_42 versioned)
+/*
+Given the versioned representation of ExprIndex and the associated module,
+return the corresponding universal representation.
+*/
+{
+  an_ifc_expr_sort sort = to_universal_sort(expr_sort(versioned));
+  uint32_t         index = expr_value(versioned);
+
+  return an_ifc_expr_index{mod, sort, index};
+}  /* to_universal_index */
+
+
 an_ifc_encoded_expr_index to_encoded(an_ifc_module     *mod,
                                      an_ifc_expr_index universal)
 /*
@@ -12074,6 +12713,40 @@ Given the versioned representation of StmtIndex, return the extracted value.
 
 an_ifc_stmt_index to_universal_index(an_ifc_module          *mod,
                                      an_ifc_stmt_index_0_33 versioned)
+/*
+Given the versioned representation of StmtIndex and the associated module,
+return the corresponding universal representation.
+*/
+{
+  an_ifc_stmt_sort sort = to_universal_sort(stmt_sort(versioned));
+  uint32_t         index = stmt_value(versioned);
+
+  return an_ifc_stmt_index{mod, sort, index};
+}  /* to_universal_index */
+
+
+an_ifc_stmt_sort_0_42 stmt_sort(an_ifc_stmt_index_0_42 versioned)
+/*
+Given the versioned representation of StmtIndex, return the extracted versioned
+representation of StmtSort.
+*/
+{
+  return (an_ifc_stmt_sort_0_42)(0x1f & (uint32_t)versioned);
+
+}  /* stmt_sort */
+
+
+uint32_t stmt_value(an_ifc_stmt_index_0_42 versioned)
+/*
+Given the versioned representation of StmtIndex, return the extracted value.
+*/
+{
+  return versioned >> 5;
+}  /* stmt_value */
+
+
+an_ifc_stmt_index to_universal_index(an_ifc_module          *mod,
+                                     an_ifc_stmt_index_0_42 versioned)
 /*
 Given the versioned representation of StmtIndex and the associated module,
 return the corresponding universal representation.
@@ -13010,6 +13683,102 @@ corresponding universal representation.
     case ifc_0_33_os_triadic_operator:
       { an_ifc_triadic_operator_sort_0_33 versioned_value =
                                   (an_ifc_triadic_operator_sort_0_33)raw_value;
+        an_ifc_triadic_operator_sort      universal_value;
+
+        universal_value = to_universal_sort(versioned_value);
+        result.variant.triadic_operator = universal_value;
+      }
+      break;
+    case ifc_0_33_os_variadic_operator:
+      { an_ifc_variadic_operator_sort_0_33 versioned_value =
+                                 (an_ifc_variadic_operator_sort_0_33)raw_value;
+        an_ifc_variadic_operator_sort      universal_value;
+
+        universal_value = to_universal_sort(versioned_value);
+        result.variant.variadic_operator = universal_value;
+      }
+      break;
+    default_is_unexpected();
+  }  /* switch */
+  return result;
+}  /* to_universal_category */
+
+
+an_ifc_operator_sort_0_33 operator_sort(
+                                       an_ifc_operator_category_0_42 versioned)
+/*
+Given the versioned representation of OperatorCategory, return the extracted
+versioned representation of OperatorSort.
+*/
+{
+  return (an_ifc_operator_sort_0_33)(0xf & (uint16_t)versioned);
+
+}  /* operator_sort */
+
+
+uint16_t operator_value(an_ifc_operator_category_0_42 versioned)
+/*
+Given the versioned representation of OperatorCategory, return the extracted
+value.
+*/
+{
+  return versioned >> 4;
+}  /* operator_value */
+
+
+an_ifc_operator_category to_universal_category(
+                                       an_ifc_module                 *mod,
+                                       an_ifc_operator_category_0_42 versioned)
+/*
+Given the versioned representation of OperatorCategory, return the
+corresponding universal representation.
+*/
+{
+  an_ifc_operator_sort_0_33 versioned_sort = operator_sort(versioned);
+  an_ifc_operator_sort      sort = to_universal_sort(versioned_sort);
+  uint16_t                  raw_value = operator_value(versioned);
+  an_ifc_operator_category  result = {sort, {}};
+
+  switch (versioned_sort) {
+    case ifc_0_33_os_dyadic_operator:
+      { an_ifc_dyadic_operator_sort_0_33 versioned_value =
+                                   (an_ifc_dyadic_operator_sort_0_33)raw_value;
+        an_ifc_dyadic_operator_sort      universal_value;
+
+        universal_value = to_universal_sort(versioned_value);
+        result.variant.dyadic_operator = universal_value;
+      }
+      break;
+    case ifc_0_33_os_monadic_operator:
+      { an_ifc_monadic_operator_sort_0_33 versioned_value =
+                                  (an_ifc_monadic_operator_sort_0_33)raw_value;
+        an_ifc_monadic_operator_sort      universal_value;
+
+        universal_value = to_universal_sort(versioned_value);
+        result.variant.monadic_operator = universal_value;
+      }
+      break;
+    case ifc_0_33_os_niladic_operator:
+      { an_ifc_niladic_operator_sort_0_33 versioned_value =
+                                  (an_ifc_niladic_operator_sort_0_33)raw_value;
+        an_ifc_niladic_operator_sort      universal_value;
+
+        universal_value = to_universal_sort(versioned_value);
+        result.variant.niladic_operator = universal_value;
+      }
+      break;
+    case ifc_0_33_os_storage_instruction_operator:
+      { an_ifc_storage_instruction_operator_sort_0_33 versioned_value =
+                      (an_ifc_storage_instruction_operator_sort_0_33)raw_value;
+        an_ifc_storage_instruction_operator_sort      universal_value;
+
+        universal_value = to_universal_sort(versioned_value);
+        result.variant.storage_instruction_operator = universal_value;
+      }
+      break;
+    case ifc_0_33_os_triadic_operator:
+      { an_ifc_triadic_operator_sort_0_42 versioned_value =
+                                  (an_ifc_triadic_operator_sort_0_42)raw_value;
         an_ifc_triadic_operator_sort      universal_value;
 
         universal_value = to_universal_sort(versioned_value);
@@ -17374,6 +18143,63 @@ Return the corresponding partition kind for ExprInitializerList.
 */
 {
   return ifc_pk_expr_initializer_list;
+}  /* get_ifc_partition_kind */
+
+
+template<>
+an_ifc_expr_label_storage* get<an_ifc_expr_label_storage>(
+                                        an_ifc_module             *mod,
+                                        an_ifc_expr_label_storage *storage,
+                                        a_boolean                 fill_storage)
+/*
+Retrieve an instance of ExprLabel from the IFC module file associated with mod.
+
+If memory mapping is used and both the host and the target have the same
+endianness, then the file layout and the alignment/padding of the host must
+have exactly the same characteristics.  In this case, simply return a pointer
+to a suitably-cast byte_buffer and increment it as appropriate (the storage
+argument is unused in this scenario).
+
+Otherwise, the storage passed in to the function is used to store copies of
+each field of the structure and each field is individually copied (and
+byte-swapped if necessary).
+
+If fill_storage is TRUE, always copy the data into the passed storage (i.e.,
+the storage specified by the storage argument).
+*/
+{
+#if USE_MMAP_FOR_MODULES
+  using storage_type = an_ifc_expr_label_storage;
+  if (has_matching_endianness(mod)) {
+    if (fill_storage) {
+      memcpy(*storage, mod->byte_buffer, /*size=*/16);
+    } else {
+      storage = (storage_type*)(mod->byte_buffer);
+    }  /* if */
+  } else
+#endif /* USE_MMAP_FOR_MODULES */
+  /* Do not put code here. */
+  {
+    /* locus.line */
+    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    /* locus.column */
+    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    /* type */
+    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    /* designator */
+    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+  }  /* if */
+  return storage;
+}  /* get<an_ifc_expr_label_storage> */
+
+
+template<>
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_label>()
+/*
+Return the corresponding partition kind for ExprLabel.
+*/
+{
+  return ifc_pk_expr_label;
 }  /* get_ifc_partition_kind */
 
 
@@ -21829,7 +22655,11 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_stmt_block_storage;
   if (has_matching_endianness(mod)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/8);
+      if (is_at_least(mod, 0, 42)) {
+        memcpy(*storage, mod->byte_buffer, /*size=*/16);
+      } else {
+        memcpy(*storage, mod->byte_buffer, /*size=*/8);
+      }  /* if */
     } else {
       storage = (storage_type*)(mod->byte_buffer);
     }  /* if */
@@ -21837,10 +22667,21 @@ the storage specified by the storage argument).
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
-    /* start */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
-    /* cardinality */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    if (is_at_least(mod, 0, 42)) {
+      /* locus.line */
+      get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+      /* locus.column */
+      get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+      /* start */
+      get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+      /* cardinality */
+      get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    } else {
+      /* start */
+      get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+      /* cardinality */
+      get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    }  /* if */
   }  /* if */
   return storage;
 }  /* get<an_ifc_stmt_block_storage> */
@@ -22019,6 +22860,61 @@ Return the corresponding partition kind for StmtContinue.
 
 
 template<>
+an_ifc_stmt_decl_storage* get<an_ifc_stmt_decl_storage>(
+                                         an_ifc_module            *mod,
+                                         an_ifc_stmt_decl_storage *storage,
+                                         a_boolean                fill_storage)
+/*
+Retrieve an instance of StmtDecl from the IFC module file associated with mod.
+
+If memory mapping is used and both the host and the target have the same
+endianness, then the file layout and the alignment/padding of the host must
+have exactly the same characteristics.  In this case, simply return a pointer
+to a suitably-cast byte_buffer and increment it as appropriate (the storage
+argument is unused in this scenario).
+
+Otherwise, the storage passed in to the function is used to store copies of
+each field of the structure and each field is individually copied (and
+byte-swapped if necessary).
+
+If fill_storage is TRUE, always copy the data into the passed storage (i.e.,
+the storage specified by the storage argument).
+*/
+{
+#if USE_MMAP_FOR_MODULES
+  using storage_type = an_ifc_stmt_decl_storage;
+  if (has_matching_endianness(mod)) {
+    if (fill_storage) {
+      memcpy(*storage, mod->byte_buffer, /*size=*/12);
+    } else {
+      storage = (storage_type*)(mod->byte_buffer);
+    }  /* if */
+  } else
+#endif /* USE_MMAP_FOR_MODULES */
+  /* Do not put code here. */
+  {
+    /* locus.line */
+    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    /* locus.column */
+    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    /* decl */
+    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+  }  /* if */
+  return storage;
+}  /* get<an_ifc_stmt_decl_storage> */
+
+
+template<>
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_stmt_decl>()
+/*
+Return the corresponding partition kind for StmtDecl.
+*/
+{
+  return ifc_pk_stmt_decl;
+}  /* get_ifc_partition_kind */
+
+
+template<>
 an_ifc_stmt_default_storage* get<an_ifc_stmt_default_storage>(
                                       an_ifc_module               *mod,
                                       an_ifc_stmt_default_storage *storage,
@@ -22107,14 +23003,25 @@ the storage specified by the storage argument).
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
-    /* condition */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
-    /* body */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
-    /* locus.line */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
-    /* locus.column */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    if (is_at_least(mod, 0, 42)) {
+      /* locus.line */
+      get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+      /* locus.column */
+      get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+      /* condition */
+      get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+      /* body */
+      get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    } else {
+      /* condition */
+      get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+      /* body */
+      get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+      /* locus.line */
+      get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+      /* locus.column */
+      get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    }  /* if */
   }  /* if */
   return storage;
 }  /* get<an_ifc_stmt_do_while_storage> */
@@ -22210,7 +23117,11 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_stmt_expansion_storage;
   if (has_matching_endianness(mod)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/4);
+      if (is_at_least(mod, 0, 42)) {
+        memcpy(*storage, mod->byte_buffer, /*size=*/12);
+      } else {
+        memcpy(*storage, mod->byte_buffer, /*size=*/4);
+      }  /* if */
     } else {
       storage = (storage_type*)(mod->byte_buffer);
     }  /* if */
@@ -22218,8 +23129,17 @@ the storage specified by the storage argument).
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
-    /* operand */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    if (is_at_least(mod, 0, 42)) {
+      /* locus.line */
+      get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+      /* locus.column */
+      get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+      /* operand */
+      get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    } else {
+      /* operand */
+      get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    }  /* if */
   }  /* if */
   return storage;
 }  /* get<an_ifc_stmt_expansion_storage> */
@@ -22270,12 +23190,21 @@ the storage specified by the storage argument).
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
-    /* expr */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
-    /* locus.line */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
-    /* locus.column */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    if (is_at_least(mod, 0, 42)) {
+      /* locus.line */
+      get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+      /* locus.column */
+      get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+      /* expr */
+      get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    } else {
+      /* expr */
+      get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+      /* locus.line */
+      get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+      /* locus.column */
+      get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    }  /* if */
   }  /* if */
   return storage;
 }  /* get<an_ifc_stmt_expression_storage> */
@@ -22325,18 +23254,33 @@ the storage specified by the storage argument).
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
-    /* initialization */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
-    /* condition */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
-    /* continuation */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
-    /* body */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
-    /* locus.line */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
-    /* locus.column */
-    get_bytes(mod, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
+    if (is_at_least(mod, 0, 42)) {
+      /* locus.line */
+      get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+      /* locus.column */
+      get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+      /* initialization */
+      get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+      /* condition */
+      get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+      /* continuation */
+      get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+      /* body */
+      get_bytes(mod, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
+    } else {
+      /* initialization */
+      get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+      /* condition */
+      get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+      /* continuation */
+      get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+      /* body */
+      get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+      /* locus.line */
+      get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+      /* locus.column */
+      get_bytes(mod, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
+    }  /* if */
   }  /* if */
   return storage;
 }  /* get<an_ifc_stmt_for_storage> */
@@ -22349,6 +23293,119 @@ Return the corresponding partition kind for StmtFor.
 */
 {
   return ifc_pk_stmt_for;
+}  /* get_ifc_partition_kind */
+
+
+template<>
+an_ifc_stmt_goto_storage* get<an_ifc_stmt_goto_storage>(
+                                         an_ifc_module            *mod,
+                                         an_ifc_stmt_goto_storage *storage,
+                                         a_boolean                fill_storage)
+/*
+Retrieve an instance of StmtGoto from the IFC module file associated with mod.
+
+If memory mapping is used and both the host and the target have the same
+endianness, then the file layout and the alignment/padding of the host must
+have exactly the same characteristics.  In this case, simply return a pointer
+to a suitably-cast byte_buffer and increment it as appropriate (the storage
+argument is unused in this scenario).
+
+Otherwise, the storage passed in to the function is used to store copies of
+each field of the structure and each field is individually copied (and
+byte-swapped if necessary).
+
+If fill_storage is TRUE, always copy the data into the passed storage (i.e.,
+the storage specified by the storage argument).
+*/
+{
+#if USE_MMAP_FOR_MODULES
+  using storage_type = an_ifc_stmt_goto_storage;
+  if (has_matching_endianness(mod)) {
+    if (fill_storage) {
+      memcpy(*storage, mod->byte_buffer, /*size=*/12);
+    } else {
+      storage = (storage_type*)(mod->byte_buffer);
+    }  /* if */
+  } else
+#endif /* USE_MMAP_FOR_MODULES */
+  /* Do not put code here. */
+  {
+    /* locus.line */
+    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    /* locus.column */
+    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    /* target */
+    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+  }  /* if */
+  return storage;
+}  /* get<an_ifc_stmt_goto_storage> */
+
+
+template<>
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_stmt_goto>()
+/*
+Return the corresponding partition kind for StmtGoto.
+*/
+{
+  return ifc_pk_stmt_goto;
+}  /* get_ifc_partition_kind */
+
+
+template<>
+an_ifc_stmt_handler_storage* get<an_ifc_stmt_handler_storage>(
+                                      an_ifc_module               *mod,
+                                      an_ifc_stmt_handler_storage *storage,
+                                      a_boolean                   fill_storage)
+/*
+Retrieve an instance of StmtHandler from the IFC module file associated with
+mod.
+
+If memory mapping is used and both the host and the target have the same
+endianness, then the file layout and the alignment/padding of the host must
+have exactly the same characteristics.  In this case, simply return a pointer
+to a suitably-cast byte_buffer and increment it as appropriate (the storage
+argument is unused in this scenario).
+
+Otherwise, the storage passed in to the function is used to store copies of
+each field of the structure and each field is individually copied (and
+byte-swapped if necessary).
+
+If fill_storage is TRUE, always copy the data into the passed storage (i.e.,
+the storage specified by the storage argument).
+*/
+{
+#if USE_MMAP_FOR_MODULES
+  using storage_type = an_ifc_stmt_handler_storage;
+  if (has_matching_endianness(mod)) {
+    if (fill_storage) {
+      memcpy(*storage, mod->byte_buffer, /*size=*/16);
+    } else {
+      storage = (storage_type*)(mod->byte_buffer);
+    }  /* if */
+  } else
+#endif /* USE_MMAP_FOR_MODULES */
+  /* Do not put code here. */
+  {
+    /* locus.line */
+    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    /* locus.column */
+    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    /* exception */
+    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    /* body */
+    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+  }  /* if */
+  return storage;
+}  /* get<an_ifc_stmt_handler_storage> */
+
+
+template<>
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_stmt_handler>()
+/*
+Return the corresponding partition kind for StmtHandler.
+*/
+{
+  return ifc_pk_stmt_handler;
 }  /* get_ifc_partition_kind */
 
 
@@ -22386,18 +23443,33 @@ the storage specified by the storage argument).
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
-    /* initialization */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
-    /* condition */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
-    /* consequence */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
-    /* alternative */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
-    /* locus.line */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
-    /* locus.column */
-    get_bytes(mod, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
+    if (is_at_least(mod, 0, 42)) {
+      /* locus.line */
+      get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+      /* locus.column */
+      get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+      /* initialization */
+      get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+      /* condition */
+      get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+      /* consequence */
+      get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+      /* alternative */
+      get_bytes(mod, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
+    } else {
+      /* initialization */
+      get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+      /* condition */
+      get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+      /* consequence */
+      get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+      /* alternative */
+      get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+      /* locus.line */
+      get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+      /* locus.column */
+      get_bytes(mod, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
+    }  /* if */
   }  /* if */
   return storage;
 }  /* get<an_ifc_stmt_if_storage> */
@@ -22410,6 +23482,66 @@ Return the corresponding partition kind for StmtIf.
 */
 {
   return ifc_pk_stmt_if;
+}  /* get_ifc_partition_kind */
+
+
+template<>
+an_ifc_stmt_labeled_storage* get<an_ifc_stmt_labeled_storage>(
+                                      an_ifc_module               *mod,
+                                      an_ifc_stmt_labeled_storage *storage,
+                                      a_boolean                   fill_storage)
+/*
+Retrieve an instance of StmtLabeled from the IFC module file associated with
+mod.
+
+If memory mapping is used and both the host and the target have the same
+endianness, then the file layout and the alignment/padding of the host must
+have exactly the same characteristics.  In this case, simply return a pointer
+to a suitably-cast byte_buffer and increment it as appropriate (the storage
+argument is unused in this scenario).
+
+Otherwise, the storage passed in to the function is used to store copies of
+each field of the structure and each field is individually copied (and
+byte-swapped if necessary).
+
+If fill_storage is TRUE, always copy the data into the passed storage (i.e.,
+the storage specified by the storage argument).
+*/
+{
+#if USE_MMAP_FOR_MODULES
+  using storage_type = an_ifc_stmt_labeled_storage;
+  if (has_matching_endianness(mod)) {
+    if (fill_storage) {
+      memcpy(*storage, mod->byte_buffer, /*size=*/20);
+    } else {
+      storage = (storage_type*)(mod->byte_buffer);
+    }  /* if */
+  } else
+#endif /* USE_MMAP_FOR_MODULES */
+  /* Do not put code here. */
+  {
+    /* locus.line */
+    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    /* locus.column */
+    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    /* type */
+    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    /* label */
+    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    /* stmt */
+    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+  }  /* if */
+  return storage;
+}  /* get<an_ifc_stmt_labeled_storage> */
+
+
+template<>
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_stmt_labeled>()
+/*
+Return the corresponding partition kind for StmtLabeled.
+*/
+{
+  return ifc_pk_stmt_labeled;
 }  /* get_ifc_partition_kind */
 
 
@@ -22448,16 +23580,29 @@ the storage specified by the storage argument).
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
-    /* expr */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
-    /* function_type */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
-    /* expression_type */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
-    /* locus.line */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
-    /* locus.column */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    if (is_at_least(mod, 0, 42)) {
+      /* locus.line */
+      get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+      /* locus.column */
+      get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+      /* type */
+      get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+      /* expr */
+      get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+      /* function_type */
+      get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    } else {
+      /* expr */
+      get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+      /* function_type */
+      get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+      /* expression_type */
+      get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+      /* locus.line */
+      get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+      /* locus.column */
+      get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    }  /* if */
   }  /* if */
   return storage;
 }  /* get<an_ifc_stmt_return_storage> */
@@ -22508,16 +23653,29 @@ the storage specified by the storage argument).
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
-    /* initialization */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
-    /* condition */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
-    /* body */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
-    /* locus.line */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
-    /* locus.column */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    if (is_at_least(mod, 0, 42)) {
+      /* locus.line */
+      get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+      /* locus.column */
+      get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+      /* initialization */
+      get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+      /* condition */
+      get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+      /* body */
+      get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    } else {
+      /* initialization */
+      get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+      /* condition */
+      get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+      /* body */
+      get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+      /* locus.line */
+      get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+      /* locus.column */
+      get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    }  /* if */
   }  /* if */
   return storage;
 }  /* get<an_ifc_stmt_switch_storage> */
@@ -22623,14 +23781,25 @@ the storage specified by the storage argument).
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
-    /* condition */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
-    /* body */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
-    /* locus.line */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
-    /* locus.column */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    if (is_at_least(mod, 0, 42)) {
+      /* locus.line */
+      get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+      /* locus.column */
+      get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+      /* condition */
+      get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+      /* body */
+      get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    } else {
+      /* condition */
+      get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+      /* body */
+      get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+      /* locus.line */
+      get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+      /* locus.column */
+      get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    }  /* if */
   }  /* if */
   return storage;
 }  /* get<an_ifc_stmt_while_storage> */
@@ -31555,6 +32724,9 @@ expected partition element size.
     case ifc_pk_expr_initializer_list:
       result = 16;
       break;
+    case ifc_pk_expr_label:
+      result = 16;
+      break;
     case ifc_pk_expr_lambda:
       result = 20;
       break;
@@ -31784,7 +32956,11 @@ expected partition element size.
       result = 16;
       break;
     case ifc_pk_stmt_block:
-      result = 8;
+      if (is_at_least(mod, 0, 42)) {
+        result = 16;
+      } else {
+        result = 8;
+      }  /* if */
       break;
     case ifc_pk_stmt_break:
       result = 8;
@@ -31794,6 +32970,9 @@ expected partition element size.
       break;
     case ifc_pk_stmt_continue:
       result = 8;
+      break;
+    case ifc_pk_stmt_decl:
+      result = 12;
       break;
     case ifc_pk_stmt_default:
       result = 8;
@@ -31805,7 +32984,11 @@ expected partition element size.
       result = 8;
       break;
     case ifc_pk_stmt_expansion:
-      result = 4;
+      if (is_at_least(mod, 0, 42)) {
+        result = 12;
+      } else {
+        result = 4;
+      }  /* if */
       break;
     case ifc_pk_stmt_expression:
       result = 12;
@@ -31813,8 +32996,17 @@ expected partition element size.
     case ifc_pk_stmt_for:
       result = 24;
       break;
+    case ifc_pk_stmt_goto:
+      result = 12;
+      break;
+    case ifc_pk_stmt_handler:
+      result = 16;
+      break;
     case ifc_pk_stmt_if:
       result = 24;
+      break;
+    case ifc_pk_stmt_labeled:
+      result = 20;
       break;
     case ifc_pk_stmt_return:
       result = 20;
@@ -32494,6 +33686,9 @@ ExprSort.  If no corresponding sort kind exists for ExprSort, abort.
     case ifc_pk_expr_initializer_list:
       result = ifc_es_expr_initializer_list;
       break;
+    case ifc_pk_expr_label:
+      result = ifc_es_expr_label;
+      break;
     case ifc_pk_expr_lambda:
       result = ifc_es_expr_lambda;
       break;
@@ -32757,6 +33952,9 @@ StmtSort.  If no corresponding sort kind exists for StmtSort, abort.
     case ifc_pk_stmt_continue:
       result = ifc_ss_stmt_continue;
       break;
+    case ifc_pk_stmt_decl:
+      result = ifc_ss_stmt_decl;
+      break;
     case ifc_pk_stmt_default:
       result = ifc_ss_stmt_default;
       break;
@@ -32774,6 +33972,12 @@ StmtSort.  If no corresponding sort kind exists for StmtSort, abort.
       break;
     case ifc_pk_stmt_for:
       result = ifc_ss_stmt_for;
+      break;
+    case ifc_pk_stmt_goto:
+      result = ifc_ss_stmt_goto;
+      break;
+    case ifc_pk_stmt_handler:
+      result = ifc_ss_stmt_handler;
       break;
     case ifc_pk_stmt_if:
       result = ifc_ss_stmt_if;
@@ -33520,6 +34724,7 @@ corresponding partition kind; otherwise, return FALSE.
     case ifc_es_expr_inheritance_path:
     case ifc_es_expr_initializer:
     case ifc_es_expr_initializer_list:
+    case ifc_es_expr_label:
     case ifc_es_expr_lambda:
     case ifc_es_expr_literal:
     case ifc_es_expr_member_access:
@@ -33635,6 +34840,9 @@ partition kind.  If no corresponding partition kind exists, abort.
       break;
     case ifc_es_expr_initializer_list:
       result = ifc_pk_expr_initializer_list;
+      break;
+    case ifc_es_expr_label:
+      result = ifc_pk_expr_label;
       break;
     case ifc_es_expr_lambda:
       result = ifc_pk_expr_lambda;
@@ -33972,12 +35180,15 @@ corresponding partition kind; otherwise, return FALSE.
     case ifc_ss_stmt_break:
     case ifc_ss_stmt_case:
     case ifc_ss_stmt_continue:
+    case ifc_ss_stmt_decl:
     case ifc_ss_stmt_default:
     case ifc_ss_stmt_do_while:
     case ifc_ss_stmt_empty:
     case ifc_ss_stmt_expansion:
     case ifc_ss_stmt_expression:
     case ifc_ss_stmt_for:
+    case ifc_ss_stmt_goto:
+    case ifc_ss_stmt_handler:
     case ifc_ss_stmt_if:
     case ifc_ss_stmt_return:
     case ifc_ss_stmt_switch:
@@ -34014,6 +35225,9 @@ partition kind.  If no corresponding partition kind exists, abort.
     case ifc_ss_stmt_continue:
       result = ifc_pk_stmt_continue;
       break;
+    case ifc_ss_stmt_decl:
+      result = ifc_pk_stmt_decl;
+      break;
     case ifc_ss_stmt_default:
       result = ifc_pk_stmt_default;
       break;
@@ -34031,6 +35245,12 @@ partition kind.  If no corresponding partition kind exists, abort.
       break;
     case ifc_ss_stmt_for:
       result = ifc_pk_stmt_for;
+      break;
+    case ifc_ss_stmt_goto:
+      result = ifc_pk_stmt_goto;
+      break;
+    case ifc_ss_stmt_handler:
+      result = ifc_pk_stmt_handler;
       break;
     case ifc_ss_stmt_if:
       result = ifc_pk_stmt_if;
@@ -35022,6 +36242,13 @@ representation is valid; otherwise, return FALSE.
       break;
     case ifc_es_expr_initializer_list:
       { Opt<an_ifc_expr_initializer_list> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_es_expr_label:
+      { Opt<an_ifc_expr_label> opt_universal;
 
         construct_node(&opt_universal, idx);
         result = opt_universal.has_value();
@@ -36620,6 +37847,11 @@ Return TRUE if the node has the field "locus"; otherwise, return FALSE.
         result = TRUE;
       }  /* if */
       break;
+    case ifc_es_expr_label:
+      if (is_at_least(mod, 0, 42)) {
+        result = TRUE;
+      }  /* if */
+      break;
     case ifc_es_expr_literal:
       if (is_at_least(mod, 0, 33)) {
         result = TRUE;
@@ -36676,7 +37908,9 @@ Return TRUE if the node has the field "locus"; otherwise, return FALSE.
       }  /* if */
       break;
     case ifc_es_expr_push_state:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(mod, 0, 42)) {
+        result = FALSE;
+      } else if (is_at_least(mod, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
@@ -36928,6 +38162,13 @@ node's "locus" field value.
       break;
     case ifc_es_expr_initializer_list:
       { an_ifc_expr_initializer_list universal;
+
+        construct_node_prechecked(&universal, idx);
+        result = get_ifc_locus(universal);
+      }
+      break;
+    case ifc_es_expr_label:
+      { an_ifc_expr_label universal;
 
         construct_node_prechecked(&universal, idx);
         result = get_ifc_locus(universal);

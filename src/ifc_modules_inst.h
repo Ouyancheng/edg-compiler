@@ -442,6 +442,12 @@ INST_CONSTRUCT_NODE_ALL(an_ifc_expr_initializer_list, an_ifc_expr_index)
 
 
 /*
+Explicit instantiations of functions for ExprLabel.
+*/
+INST_CONSTRUCT_NODE_ALL(an_ifc_expr_label, an_ifc_expr_index)
+
+
+/*
 Explicit instantiations of functions for ExprLambda.
 */
 INST_CONSTRUCT_NODE_ALL(an_ifc_expr_lambda, an_ifc_expr_index)
@@ -834,6 +840,12 @@ INST_CONSTRUCT_NODE_ALL(an_ifc_stmt_continue, an_ifc_stmt_index)
 
 
 /*
+Explicit instantiations of functions for StmtDecl.
+*/
+INST_CONSTRUCT_NODE_ALL(an_ifc_stmt_decl, an_ifc_stmt_index)
+
+
+/*
 Explicit instantiations of functions for StmtDefault.
 */
 INST_CONSTRUCT_NODE_ALL(an_ifc_stmt_default, an_ifc_stmt_index)
@@ -867,6 +879,18 @@ INST_CONSTRUCT_NODE_ALL(an_ifc_stmt_expression, an_ifc_stmt_index)
 Explicit instantiations of functions for StmtFor.
 */
 INST_CONSTRUCT_NODE_ALL(an_ifc_stmt_for, an_ifc_stmt_index)
+
+
+/*
+Explicit instantiations of functions for StmtGoto.
+*/
+INST_CONSTRUCT_NODE_ALL(an_ifc_stmt_goto, an_ifc_stmt_index)
+
+
+/*
+Explicit instantiations of functions for StmtHandler.
+*/
+INST_CONSTRUCT_NODE_ALL(an_ifc_stmt_handler, an_ifc_stmt_index)
 
 
 /*

@@ -183,6 +183,11 @@ extern a_boolean validate_sort(an_ifc_expr_sort_0_33         versioned,
 
 extern an_ifc_expr_sort to_universal_sort(an_ifc_expr_sort_0_33 versioned);
 
+extern a_boolean validate_sort(an_ifc_expr_sort_0_42         versioned,
+                               const an_ifc_validation_trace *parent);
+
+extern an_ifc_expr_sort to_universal_sort(an_ifc_expr_sort_0_42 versioned);
+
 /*
 Functions for interacting with IFC FoldDirectionSort sorts.
 */
@@ -564,6 +569,11 @@ extern a_boolean validate_sort(an_ifc_stmt_sort_0_33         versioned,
 
 extern an_ifc_stmt_sort to_universal_sort(an_ifc_stmt_sort_0_33 versioned);
 
+extern a_boolean validate_sort(an_ifc_stmt_sort_0_42         versioned,
+                               const an_ifc_validation_trace *parent);
+
+extern an_ifc_stmt_sort to_universal_sort(an_ifc_stmt_sort_0_42 versioned);
+
 /*
 Functions for interacting with IFC StorageInstructionOperatorSort sorts.
 */
@@ -625,6 +635,12 @@ extern a_boolean validate_sort(an_ifc_triadic_operator_sort_0_33 versioned,
 
 extern an_ifc_triadic_operator_sort to_universal_sort(
                                   an_ifc_triadic_operator_sort_0_33 versioned);
+
+extern a_boolean validate_sort(an_ifc_triadic_operator_sort_0_42 versioned,
+                               const an_ifc_validation_trace     *parent);
+
+extern an_ifc_triadic_operator_sort to_universal_sort(
+                                  an_ifc_triadic_operator_sort_0_42 versioned);
 
 /*
 Functions for interacting with IFC TypeBasisSort sorts.
@@ -819,6 +835,17 @@ extern a_boolean validate_index(an_ifc_module                 *mod,
 extern an_ifc_expr_index to_universal_index(an_ifc_module          *mod,
                                             an_ifc_expr_index_0_33 versioned);
 
+extern an_ifc_expr_sort_0_42 expr_sort(an_ifc_expr_index_0_42 versioned);
+
+extern uint32_t expr_value(an_ifc_expr_index_0_42 versioned);
+
+extern a_boolean validate_index(an_ifc_module                 *mod,
+                                an_ifc_expr_index_0_42        versioned,
+                                const an_ifc_validation_trace *parent);
+
+extern an_ifc_expr_index to_universal_index(an_ifc_module          *mod,
+                                            an_ifc_expr_index_0_42 versioned);
+
 extern an_ifc_encoded_expr_index to_encoded(an_ifc_module     *mod,
                                             an_ifc_expr_index universal);
 
@@ -940,6 +967,17 @@ extern a_boolean validate_index(an_ifc_module                 *mod,
 
 extern an_ifc_stmt_index to_universal_index(an_ifc_module          *mod,
                                             an_ifc_stmt_index_0_33 versioned);
+
+extern an_ifc_stmt_sort_0_42 stmt_sort(an_ifc_stmt_index_0_42 versioned);
+
+extern uint32_t stmt_value(an_ifc_stmt_index_0_42 versioned);
+
+extern a_boolean validate_index(an_ifc_module                 *mod,
+                                an_ifc_stmt_index_0_42        versioned,
+                                const an_ifc_validation_trace *parent);
+
+extern an_ifc_stmt_index to_universal_index(an_ifc_module          *mod,
+                                            an_ifc_stmt_index_0_42 versioned);
 
 extern an_ifc_encoded_stmt_index to_encoded(an_ifc_module     *mod,
                                             an_ifc_stmt_index universal);
@@ -1371,6 +1409,19 @@ extern a_boolean validate_category(an_ifc_module                 *mod,
 extern an_ifc_operator_category to_universal_category(
                                       an_ifc_module                 *mod,
                                       an_ifc_operator_category_0_33 versioned);
+
+extern an_ifc_operator_sort_0_33 operator_sort(
+                                      an_ifc_operator_category_0_42 versioned);
+
+extern uint16_t operator_value(an_ifc_operator_category_0_42 versioned);
+
+extern a_boolean validate_category(an_ifc_module                 *mod,
+                                   an_ifc_operator_category_0_42 versioned,
+                                   const an_ifc_validation_trace *parent);
+
+extern an_ifc_operator_category to_universal_category(
+                                      an_ifc_module                 *mod,
+                                      an_ifc_operator_category_0_42 versioned);
 
 /*
 Functions for interacting with IFC SourceIdentifierCategory indexes.
@@ -2201,6 +2252,16 @@ struct an_ifc_body_metadata<an_ifc_stmt_for> {
 
 /*
 The IFC body field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for StmtHandler nodes.
+*/
+template<>
+struct an_ifc_body_metadata<an_ifc_stmt_handler> {
+  using return_type = an_ifc_stmt_index;
+};  /* an_ifc_body_metadata */
+
+
+/*
+The IFC body field has multiple return types.  This type is a metadata type
 that allows resolution of the return type for StmtSwitch nodes.
 */
 template<>
@@ -2746,6 +2807,16 @@ struct an_ifc_decl_metadata<an_ifc_parameterized_entity> {
 
 /*
 The IFC decl field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for StmtDecl nodes.
+*/
+template<>
+struct an_ifc_decl_metadata<an_ifc_stmt_decl> {
+  using return_type = an_ifc_decl_index;
+};  /* an_ifc_decl_metadata */
+
+
+/*
+The IFC decl field has multiple return types.  This type is a metadata type
 that allows resolution of the return type for StmtVariableDecl nodes.
 */
 template<>
@@ -3030,6 +3101,35 @@ template<>
 struct an_ifc_entity_metadata<an_ifc_decl_temploid> {
   using return_type = an_ifc_parameterized_entity;
 };  /* an_ifc_entity_metadata */
+
+
+/*
+The IFC exception field has multiple return types.  This type is a metadata
+type that allows resolution of those return types based on the respective node
+type.
+*/
+template<typename an_ifc_Node_type>
+struct an_ifc_exception_metadata;
+
+
+/*
+The IFC exception field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for StmtHandler nodes.
+*/
+template<>
+struct an_ifc_exception_metadata<an_ifc_stmt_handler> {
+  using return_type = an_ifc_decl_index;
+};  /* an_ifc_exception_metadata */
+
+
+/*
+The IFC exception field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for SyntaxHandler nodes.
+*/
+template<>
+struct an_ifc_exception_metadata<an_ifc_syntax_handler> {
+  using return_type = an_ifc_syntax_index;
+};  /* an_ifc_exception_metadata */
 
 
 /*
@@ -3592,6 +3692,16 @@ that allows resolution of the return type for AttrLabeled nodes.
 template<>
 struct an_ifc_label_metadata<an_ifc_attr_labeled> {
   using return_type = an_ifc_nestable_word;
+};  /* an_ifc_label_metadata */
+
+
+/*
+The IFC label field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for StmtLabeled nodes.
+*/
+template<>
+struct an_ifc_label_metadata<an_ifc_stmt_labeled> {
+  using return_type = an_ifc_expr_index;
 };  /* an_ifc_label_metadata */
 
 
@@ -4229,6 +4339,16 @@ struct an_ifc_locus_metadata<an_ifc_expr_initializer_list> {
 
 /*
 The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprLabel nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_expr_label> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
 that allows resolution of the return type for ExprLiteral nodes.
 */
 template<>
@@ -4771,6 +4891,16 @@ struct an_ifc_locus_metadata<an_ifc_source_word> {
 
 /*
 The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for StmtBlock nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_stmt_block> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
 that allows resolution of the return type for StmtBreak nodes.
 */
 template<>
@@ -4795,6 +4925,16 @@ that allows resolution of the return type for StmtContinue nodes.
 */
 template<>
 struct an_ifc_locus_metadata<an_ifc_stmt_continue> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for StmtDecl nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_stmt_decl> {
   using return_type = an_ifc_source_location;
 };  /* an_ifc_locus_metadata */
 
@@ -4831,6 +4971,16 @@ struct an_ifc_locus_metadata<an_ifc_stmt_empty> {
 
 /*
 The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for StmtExpansion nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_stmt_expansion> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
 that allows resolution of the return type for StmtExpression nodes.
 */
 template<>
@@ -4851,10 +5001,40 @@ struct an_ifc_locus_metadata<an_ifc_stmt_for> {
 
 /*
 The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for StmtGoto nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_stmt_goto> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for StmtHandler nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_stmt_handler> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
 that allows resolution of the return type for StmtIf nodes.
 */
 template<>
 struct an_ifc_locus_metadata<an_ifc_stmt_if> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for StmtLabeled nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_stmt_labeled> {
   using return_type = an_ifc_source_location;
 };  /* an_ifc_locus_metadata */
 
@@ -7249,6 +7429,44 @@ struct an_ifc_start_metadata<an_ifc_type_tuple> {
 
 
 /*
+The IFC stmt field has multiple return types.  This type is a metadata type
+that allows resolution of those return types based on the respective node type.
+*/
+template<typename an_ifc_Node_type>
+struct an_ifc_stmt_metadata;
+
+
+/*
+The IFC stmt field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for StmtLabeled nodes.
+*/
+template<>
+struct an_ifc_stmt_metadata<an_ifc_stmt_labeled> {
+  using return_type = an_ifc_stmt_index;
+};  /* an_ifc_stmt_metadata */
+
+
+/*
+The IFC stmt field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxAttributedStatement nodes.
+*/
+template<>
+struct an_ifc_stmt_metadata<an_ifc_syntax_attributed_statement> {
+  using return_type = an_ifc_syntax_index;
+};  /* an_ifc_stmt_metadata */
+
+
+/*
+The IFC stmt field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxLabeledStatement nodes.
+*/
+template<>
+struct an_ifc_stmt_metadata<an_ifc_syntax_labeled_statement> {
+  using return_type = an_ifc_syntax_index;
+};  /* an_ifc_stmt_metadata */
+
+
+/*
 The IFC subject field has multiple return types.  This type is a metadata type
 that allows resolution of those return types based on the respective node type.
 */
@@ -7321,6 +7539,16 @@ that allows resolution of the return type for NameConversion nodes.
 template<>
 struct an_ifc_target_metadata<an_ifc_name_conversion> {
   using return_type = an_ifc_type_index;
+};  /* an_ifc_target_metadata */
+
+
+/*
+The IFC target field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for StmtGoto nodes.
+*/
+template<>
+struct an_ifc_target_metadata<an_ifc_stmt_goto> {
+  using return_type = an_ifc_expr_index;
 };  /* an_ifc_target_metadata */
 
 
@@ -7961,6 +8189,16 @@ struct an_ifc_type_metadata<an_ifc_expr_initializer_list> {
 
 /*
 The IFC type field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprLabel nodes.
+*/
+template<>
+struct an_ifc_type_metadata<an_ifc_expr_label> {
+  using return_type = an_ifc_type_index;
+};  /* an_ifc_type_metadata */
+
+
+/*
+The IFC type field has multiple return types.  This type is a metadata type
 that allows resolution of the return type for ExprLiteral nodes.
 */
 template<>
@@ -8287,6 +8525,26 @@ nodes.
 */
 template<>
 struct an_ifc_type_metadata<an_ifc_expr_virtual_function_conversion> {
+  using return_type = an_ifc_type_index;
+};  /* an_ifc_type_metadata */
+
+
+/*
+The IFC type field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for StmtLabeled nodes.
+*/
+template<>
+struct an_ifc_type_metadata<an_ifc_stmt_labeled> {
+  using return_type = an_ifc_type_index;
+};  /* an_ifc_type_metadata */
+
+
+/*
+The IFC type field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for StmtReturn nodes.
+*/
+template<>
+struct an_ifc_type_metadata<an_ifc_stmt_return> {
   using return_type = an_ifc_type_index;
 };  /* an_ifc_type_metadata */
 
@@ -9533,8 +9791,8 @@ extern a_boolean has_ifc_exception(
 
 
 template<typename an_ifc_Node_type>
-extern an_ifc_syntax_index get_ifc_exception(
-                              const an_ifc_Node_type &universal) DELETED_FN_DEF
+extern typename an_ifc_exception_metadata<an_ifc_Node_type>::return_type
+get_ifc_exception(const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
@@ -10870,8 +11128,8 @@ extern a_boolean has_ifc_stmt(const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern an_ifc_syntax_index get_ifc_stmt(
-                              const an_ifc_Node_type &universal) DELETED_FN_DEF
+extern typename an_ifc_stmt_metadata<an_ifc_Node_type>::return_type
+get_ifc_stmt(const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
@@ -15141,6 +15399,47 @@ template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_initializer_list>();
 
 /*
+Functions for interacting with IFC ExprLabel nodes.
+*/
+
+template<>
+a_boolean has_ifc_designator(const an_ifc_expr_label &universal);
+
+template<>
+an_ifc_expr_index get_ifc_designator(const an_ifc_expr_label &universal);
+
+template<>
+a_boolean has_ifc_locus(const an_ifc_expr_label &universal);
+
+template<>
+an_ifc_source_location get_ifc_locus(const an_ifc_expr_label &universal);
+
+template<>
+a_boolean has_ifc_type(const an_ifc_expr_label &universal);
+
+template<>
+an_ifc_type_index get_ifc_type(const an_ifc_expr_label &universal);
+
+template<>
+a_boolean validate(const an_ifc_expr_label       &universal,
+                   const an_ifc_validation_trace *parent);
+
+#if DEBUG
+extern void db_node(const an_ifc_expr_label &universal, unsigned indent);
+
+extern void db_node(const an_ifc_expr_label &universal);
+#endif /* DEBUG */
+
+template<>
+an_ifc_expr_label_storage* get<an_ifc_expr_label_storage>(
+                                       an_ifc_module             *mod,
+                                       an_ifc_expr_label_storage *storage,
+                                       a_boolean                 fill_storage);
+
+template<>
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_label>();
+
+/*
 Functions for interacting with IFC ExprLambda nodes.
 */
 
@@ -18300,6 +18599,12 @@ template<>
 an_ifc_cardinality get_ifc_cardinality(const an_ifc_stmt_block &universal);
 
 template<>
+a_boolean has_ifc_locus(const an_ifc_stmt_block &universal);
+
+template<>
+an_ifc_source_location get_ifc_locus(const an_ifc_stmt_block &universal);
+
+template<>
 a_boolean has_ifc_start(const an_ifc_stmt_block &universal);
 
 template<>
@@ -18418,6 +18723,41 @@ template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_stmt_continue>();
 
 /*
+Functions for interacting with IFC StmtDecl nodes.
+*/
+
+template<>
+a_boolean has_ifc_decl(const an_ifc_stmt_decl &universal);
+
+template<>
+an_ifc_decl_index get_ifc_decl(const an_ifc_stmt_decl &universal);
+
+template<>
+a_boolean has_ifc_locus(const an_ifc_stmt_decl &universal);
+
+template<>
+an_ifc_source_location get_ifc_locus(const an_ifc_stmt_decl &universal);
+
+template<>
+a_boolean validate(const an_ifc_stmt_decl        &universal,
+                   const an_ifc_validation_trace *parent);
+
+#if DEBUG
+extern void db_node(const an_ifc_stmt_decl &universal, unsigned indent);
+
+extern void db_node(const an_ifc_stmt_decl &universal);
+#endif /* DEBUG */
+
+template<>
+an_ifc_stmt_decl_storage* get<an_ifc_stmt_decl_storage>(
+                                        an_ifc_module            *mod,
+                                        an_ifc_stmt_decl_storage *storage,
+                                        a_boolean                fill_storage);
+
+template<>
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_stmt_decl>();
+
+/*
 Functions for interacting with IFC StmtDefault nodes.
 */
 
@@ -18519,6 +18859,12 @@ an_ifc_partition_kind get_ifc_partition_kind<an_ifc_stmt_empty>();
 /*
 Functions for interacting with IFC StmtExpansion nodes.
 */
+
+template<>
+a_boolean has_ifc_locus(const an_ifc_stmt_expansion &universal);
+
+template<>
+an_ifc_source_location get_ifc_locus(const an_ifc_stmt_expansion &universal);
 
 template<>
 a_boolean has_ifc_operand(const an_ifc_stmt_expansion &universal);
@@ -18634,6 +18980,82 @@ template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_stmt_for>();
 
 /*
+Functions for interacting with IFC StmtGoto nodes.
+*/
+
+template<>
+a_boolean has_ifc_locus(const an_ifc_stmt_goto &universal);
+
+template<>
+an_ifc_source_location get_ifc_locus(const an_ifc_stmt_goto &universal);
+
+template<>
+a_boolean has_ifc_target(const an_ifc_stmt_goto &universal);
+
+template<>
+an_ifc_expr_index get_ifc_target(const an_ifc_stmt_goto &universal);
+
+template<>
+a_boolean validate(const an_ifc_stmt_goto        &universal,
+                   const an_ifc_validation_trace *parent);
+
+#if DEBUG
+extern void db_node(const an_ifc_stmt_goto &universal, unsigned indent);
+
+extern void db_node(const an_ifc_stmt_goto &universal);
+#endif /* DEBUG */
+
+template<>
+an_ifc_stmt_goto_storage* get<an_ifc_stmt_goto_storage>(
+                                        an_ifc_module            *mod,
+                                        an_ifc_stmt_goto_storage *storage,
+                                        a_boolean                fill_storage);
+
+template<>
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_stmt_goto>();
+
+/*
+Functions for interacting with IFC StmtHandler nodes.
+*/
+
+template<>
+a_boolean has_ifc_body(const an_ifc_stmt_handler &universal);
+
+template<>
+an_ifc_stmt_index get_ifc_body(const an_ifc_stmt_handler &universal);
+
+template<>
+a_boolean has_ifc_exception(const an_ifc_stmt_handler &universal);
+
+template<>
+an_ifc_decl_index get_ifc_exception(const an_ifc_stmt_handler &universal);
+
+template<>
+a_boolean has_ifc_locus(const an_ifc_stmt_handler &universal);
+
+template<>
+an_ifc_source_location get_ifc_locus(const an_ifc_stmt_handler &universal);
+
+template<>
+a_boolean validate(const an_ifc_stmt_handler     &universal,
+                   const an_ifc_validation_trace *parent);
+
+#if DEBUG
+extern void db_node(const an_ifc_stmt_handler &universal, unsigned indent);
+
+extern void db_node(const an_ifc_stmt_handler &universal);
+#endif /* DEBUG */
+
+template<>
+an_ifc_stmt_handler_storage* get<an_ifc_stmt_handler_storage>(
+                                     an_ifc_module               *mod,
+                                     an_ifc_stmt_handler_storage *storage,
+                                     a_boolean                   fill_storage);
+
+template<>
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_stmt_handler>();
+
+/*
 Functions for interacting with IFC StmtIf nodes.
 */
 
@@ -18687,6 +19109,53 @@ template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_stmt_if>();
 
 /*
+Functions for interacting with IFC StmtLabeled nodes.
+*/
+
+template<>
+a_boolean has_ifc_label(const an_ifc_stmt_labeled &universal);
+
+template<>
+an_ifc_expr_index get_ifc_label(const an_ifc_stmt_labeled &universal);
+
+template<>
+a_boolean has_ifc_locus(const an_ifc_stmt_labeled &universal);
+
+template<>
+an_ifc_source_location get_ifc_locus(const an_ifc_stmt_labeled &universal);
+
+template<>
+a_boolean has_ifc_stmt(const an_ifc_stmt_labeled &universal);
+
+template<>
+an_ifc_stmt_index get_ifc_stmt(const an_ifc_stmt_labeled &universal);
+
+template<>
+a_boolean has_ifc_type(const an_ifc_stmt_labeled &universal);
+
+template<>
+an_ifc_type_index get_ifc_type(const an_ifc_stmt_labeled &universal);
+
+template<>
+a_boolean validate(const an_ifc_stmt_labeled     &universal,
+                   const an_ifc_validation_trace *parent);
+
+#if DEBUG
+extern void db_node(const an_ifc_stmt_labeled &universal, unsigned indent);
+
+extern void db_node(const an_ifc_stmt_labeled &universal);
+#endif /* DEBUG */
+
+template<>
+an_ifc_stmt_labeled_storage* get<an_ifc_stmt_labeled_storage>(
+                                     an_ifc_module               *mod,
+                                     an_ifc_stmt_labeled_storage *storage,
+                                     a_boolean                   fill_storage);
+
+template<>
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_stmt_labeled>();
+
+/*
 Functions for interacting with IFC StmtReturn nodes.
 */
 
@@ -18713,6 +19182,12 @@ a_boolean has_ifc_locus(const an_ifc_stmt_return &universal);
 
 template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_stmt_return &universal);
+
+template<>
+a_boolean has_ifc_type(const an_ifc_stmt_return &universal);
+
+template<>
+an_ifc_type_index get_ifc_type(const an_ifc_stmt_return &universal);
 
 template<>
 a_boolean validate(const an_ifc_stmt_return      &universal,

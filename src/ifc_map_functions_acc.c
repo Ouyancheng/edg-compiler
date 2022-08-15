@@ -1864,16 +1864,29 @@ representation of the field "expression".
 
   /* Ensure the expression field exists in the current module version. */
   check_assertion(has_ifc_expression(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (AttrElaborated::expression - ExprIndex) into
-     version-specific storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (AttrElaborated::expression - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (AttrElaborated::expression - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_expression */
 
@@ -2466,16 +2479,29 @@ representation of the field "constraint".
 
   /* Ensure the constraint field exists in the current module version. */
   check_assertion(has_ifc_constraint(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (ChartUnilevel::constraint - ExprIndex) into
-     version-specific storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (ChartUnilevel::constraint - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (ChartUnilevel::constraint - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_constraint */
 
@@ -3261,16 +3287,29 @@ representation of the field "initializer".
 
   /* Ensure the initializer field exists in the current module version. */
   check_assertion(has_ifc_initializer(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (DeclBitfield::initializer - ExprIndex) into
-     version-specific storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (DeclBitfield::initializer - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (DeclBitfield::initializer - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_initializer */
 
@@ -3565,16 +3604,29 @@ representation of the field "width".
 
   /* Ensure the width field exists in the current module version. */
   check_assertion(has_ifc_width(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (DeclBitfield::width - ExprIndex) into version-specific
-     storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (DeclBitfield::width - ExprIndex) into version-specific
+       storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (DeclBitfield::width - ExprIndex) into version-specific
+       storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_width */
 
@@ -3738,16 +3790,29 @@ representation of the field "constraint".
 
   /* Ensure the constraint field exists in the current module version. */
   check_assertion(has_ifc_constraint(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (DeclConcept::constraint - ExprIndex) into version-specific
-     storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (DeclConcept::constraint - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (DeclConcept::constraint - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_constraint */
 
@@ -4868,16 +4933,29 @@ representation of the field "target".
 
   /* Ensure the target field exists in the current module version. */
   check_assertion(has_ifc_target(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (DeclDeductionGuide::target - ExprIndex) into
-     version-specific storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (DeclDeductionGuide::target - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (DeclDeductionGuide::target - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_target */
 
@@ -5484,16 +5562,29 @@ representation of the field "alignment".
 
   /* Ensure the alignment field exists in the current module version. */
   check_assertion(has_ifc_alignment(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (DeclEnumeration::alignment - ExprIndex) into
-     version-specific storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/32);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (DeclEnumeration::alignment - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/32);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (DeclEnumeration::alignment - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/32);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_alignment */
 
@@ -6080,16 +6171,29 @@ representation of the field "initializer".
 
   /* Ensure the initializer field exists in the current module version. */
   check_assertion(has_ifc_initializer(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (DeclEnumerator::initializer - ExprIndex) into
-     version-specific storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (DeclEnumerator::initializer - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (DeclEnumerator::initializer - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_initializer */
 
@@ -6639,16 +6743,29 @@ representation of the field "alignment".
 
   /* Ensure the alignment field exists in the current module version. */
   check_assertion(has_ifc_alignment(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (DeclField::alignment - ExprIndex) into version-specific
-     storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (DeclField::alignment - ExprIndex) into version-specific
+       storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (DeclField::alignment - ExprIndex) into version-specific
+       storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_alignment */
 
@@ -6768,16 +6885,29 @@ representation of the field "initializer".
 
   /* Ensure the initializer field exists in the current module version. */
   check_assertion(has_ifc_initializer(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (DeclField::initializer - ExprIndex) into version-specific
-     storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (DeclField::initializer - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (DeclField::initializer - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_initializer */
 
@@ -7077,16 +7207,29 @@ representation of the field "entity".
 
   /* Ensure the entity field exists in the current module version. */
   check_assertion(has_ifc_entity(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (DeclFriend::entity - ExprIndex) into version-specific
-     storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (DeclFriend::entity - ExprIndex) into version-specific
+       storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (DeclFriend::entity - ExprIndex) into version-specific
+       storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_entity */
 
@@ -8940,16 +9083,29 @@ representation of the field "constraint".
 
   /* Ensure the constraint field exists in the current module version. */
   check_assertion(has_ifc_constraint(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (DeclParameter::constraint - ExprIndex) into
-     version-specific storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (DeclParameter::constraint - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (DeclParameter::constraint - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_constraint */
 
@@ -8982,16 +9138,29 @@ representation of the field "initializer".
 
   /* Ensure the initializer field exists in the current module version. */
   check_assertion(has_ifc_initializer(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (DeclParameter::initializer - ExprIndex) into
-     version-specific storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (DeclParameter::initializer - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (DeclParameter::initializer - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_initializer */
 
@@ -10210,16 +10379,29 @@ representation of the field "alignment".
 
   /* Ensure the alignment field exists in the current module version. */
   check_assertion(has_ifc_alignment(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (DeclScope::alignment - ExprIndex) into version-specific
-     storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/28);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (DeclScope::alignment - ExprIndex) into version-specific
+       storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/28);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (DeclScope::alignment - ExprIndex) into version-specific
+       storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/28);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_alignment */
 
@@ -12126,16 +12308,29 @@ universal representation of the field "parent".
 
   /* Ensure the parent field exists in the current module version. */
   check_assertion(has_ifc_parent(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (DeclUsingDeclaration::parent - ExprIndex) into
-     version-specific storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (DeclUsingDeclaration::parent - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (DeclUsingDeclaration::parent - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_parent */
 
@@ -12315,16 +12510,29 @@ representation of the field "alignment".
 
   /* Ensure the alignment field exists in the current module version. */
   check_assertion(has_ifc_alignment(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (DeclVariable::alignment - ExprIndex) into version-specific
-     storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (DeclVariable::alignment - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (DeclVariable::alignment - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_alignment */
 
@@ -12444,16 +12652,29 @@ representation of the field "initializer".
 
   /* Ensure the initializer field exists in the current module version. */
   check_assertion(has_ifc_initializer(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (DeclVariable::initializer - ExprIndex) into
-     version-specific storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (DeclVariable::initializer - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (DeclVariable::initializer - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_initializer */
 
@@ -12931,16 +13152,29 @@ representation of the field "elements".
 
   /* Ensure the elements field exists in the current module version. */
   check_assertion(has_ifc_elements(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (ExprArrayValue::elements - ExprIndex) into
-     version-specific storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (ExprArrayValue::elements - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (ExprArrayValue::elements - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_elements */
 
@@ -13114,16 +13348,29 @@ universal representation of the field "initializer".
 
   /* Ensure the initializer field exists in the current module version. */
   check_assertion(has_ifc_initializer(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (ExprAssignInitializer::initializer - ExprIndex) into
-     version-specific storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (ExprAssignInitializer::initializer - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (ExprAssignInitializer::initializer - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_initializer */
 
@@ -13204,16 +13451,29 @@ representation of the field "left".
 
   /* Ensure the left field exists in the current module version. */
   check_assertion(has_ifc_left(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (ExprBinaryFold::left - ExprIndex) into version-specific
-     storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (ExprBinaryFold::left - ExprIndex) into version-specific
+       storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (ExprBinaryFold::left - ExprIndex) into version-specific
+       storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_left */
 
@@ -13335,16 +13595,29 @@ representation of the field "right".
 
   /* Ensure the right field exists in the current module version. */
   check_assertion(has_ifc_right(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (ExprBinaryFold::right - ExprIndex) into version-specific
-     storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (ExprBinaryFold::right - ExprIndex) into version-specific
+       storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (ExprBinaryFold::right - ExprIndex) into version-specific
+       storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_right */
 
@@ -13424,16 +13697,29 @@ representation of the field "arguments".
 
   /* Ensure the arguments field exists in the current module version. */
   check_assertion(has_ifc_arguments(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (ExprCall::arguments - ExprIndex) into version-specific
-     storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (ExprCall::arguments - ExprIndex) into version-specific
+       storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (ExprCall::arguments - ExprIndex) into version-specific
+       storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_arguments */
 
@@ -13512,16 +13798,29 @@ representation of the field "operation".
 
   /* Ensure the operation field exists in the current module version. */
   check_assertion(has_ifc_operation(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (ExprCall::operation - ExprIndex) into version-specific
-     storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (ExprCall::operation - ExprIndex) into version-specific
+       storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (ExprCall::operation - ExprIndex) into version-specific
+       storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_operation */
 
@@ -13689,16 +13988,29 @@ representation of the field "source".
 
   /* Ensure the source field exists in the current module version. */
   check_assertion(has_ifc_source(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (ExprCast::source - ExprIndex) into version-specific
-     storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (ExprCast::source - ExprIndex) into version-specific
+       storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (ExprCast::source - ExprIndex) into version-specific
+       storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_source */
 
@@ -13909,16 +14221,29 @@ representation of the field "string".
 
   /* Ensure the string field exists in the current module version. */
   check_assertion(has_ifc_string(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (ExprCompoundString::string - ExprIndex) into
-     version-specific storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (ExprCompoundString::string - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (ExprCompoundString::string - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_string */
 
@@ -13998,16 +14323,29 @@ representation of the field "expr".
 
   /* Ensure the expr field exists in the current module version. */
   check_assertion(has_ifc_expr(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (ExprCondition::expr - ExprIndex) into version-specific
-     storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (ExprCondition::expr - ExprIndex) into version-specific
+       storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (ExprCondition::expr - ExprIndex) into version-specific
+       storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_expr */
 
@@ -14135,16 +14473,29 @@ universal representation of the field "initializer".
 
   /* Ensure the initializer field exists in the current module version. */
   check_assertion(has_ifc_initializer(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (ExprDesignatedInitializer::initializer - ExprIndex) into
-     version-specific storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (ExprDesignatedInitializer::initializer - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (ExprDesignatedInitializer::initializer - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_initializer */
 
@@ -14450,16 +14801,29 @@ representation of the field "name".
 
   /* Ensure the name field exists in the current module version. */
   check_assertion(has_ifc_name(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (ExprDestructorCall::name - ExprIndex) into
-     version-specific storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (ExprDestructorCall::name - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (ExprDestructorCall::name - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_name */
 
@@ -14539,16 +14903,29 @@ representation of the field "argument_0".
 
   /* Ensure the argument_0 field exists in the current module version. */
   check_assertion(has_ifc_argument_0(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (ExprDyad::argument_0 - ExprIndex) into version-specific
-     storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (ExprDyad::argument_0 - ExprIndex) into version-specific
+       storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (ExprDyad::argument_0 - ExprIndex) into version-specific
+       storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_argument_0 */
 
@@ -14581,16 +14958,29 @@ representation of the field "argument_1".
 
   /* Ensure the argument_1 field exists in the current module version. */
   check_assertion(has_ifc_argument_1(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (ExprDyad::argument_1 - ExprIndex) into version-specific
-     storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (ExprDyad::argument_1 - ExprIndex) into version-specific
+       storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (ExprDyad::argument_1 - ExprIndex) into version-specific
+       storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_argument_1 */
 
@@ -14860,16 +15250,29 @@ representation of the field "pivot".
 
   /* Ensure the pivot field exists in the current module version. */
   check_assertion(has_ifc_pivot(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (ExprDynamicDispatch::pivot - ExprIndex) into
-     version-specific storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (ExprDynamicDispatch::pivot - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (ExprDynamicDispatch::pivot - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_pivot */
 
@@ -15088,16 +15491,29 @@ representation of the field "operand".
 
   /* Ensure the operand field exists in the current module version. */
   check_assertion(has_ifc_operand(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (ExprExpansion::operand - ExprIndex) into version-specific
-     storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (ExprExpansion::operand - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (ExprExpansion::operand - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_operand */
 
@@ -15178,16 +15594,29 @@ representation of the field "contents".
 
   /* Ensure the contents field exists in the current module version. */
   check_assertion(has_ifc_contents(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (ExprExpressionList::contents - ExprIndex) into
-     version-specific storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (ExprExpressionList::contents - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (ExprExpressionList::contents - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_contents */
 
@@ -15500,16 +15929,29 @@ universal representation of the field "inheritance".
 
   /* Ensure the inheritance field exists in the current module version. */
   check_assertion(has_ifc_inheritance(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (ExprHierarchyConversion::inheritance - ExprIndex) into
-     version-specific storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (ExprHierarchyConversion::inheritance - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (ExprHierarchyConversion::inheritance - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_inheritance */
 
@@ -15633,16 +16075,29 @@ universal representation of the field "override".
 
   /* Ensure the override field exists in the current module version. */
   check_assertion(has_ifc_override(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (ExprHierarchyConversion::override - ExprIndex) into
-     version-specific storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (ExprHierarchyConversion::override - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (ExprHierarchyConversion::override - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_override */
 
@@ -15676,16 +16131,29 @@ universal representation of the field "source".
 
   /* Ensure the source field exists in the current module version. */
   check_assertion(has_ifc_source(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (ExprHierarchyConversion::source - ExprIndex) into
-     version-specific storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (ExprHierarchyConversion::source - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (ExprHierarchyConversion::source - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_source */
 
@@ -15856,16 +16324,29 @@ representation of the field "path".
 
   /* Ensure the path field exists in the current module version. */
   check_assertion(has_ifc_path(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (ExprInheritancePath::path - ExprIndex) into
-     version-specific storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (ExprInheritancePath::path - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (ExprInheritancePath::path - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_path */
 
@@ -15945,16 +16426,29 @@ representation of the field "expr".
 
   /* Ensure the expr field exists in the current module version. */
   check_assertion(has_ifc_expr(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (ExprInitializer::expr - ExprIndex) into version-specific
-     storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (ExprInitializer::expr - ExprIndex) into version-specific
+       storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (ExprInitializer::expr - ExprIndex) into version-specific
+       storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_expr */
 
@@ -16123,16 +16617,29 @@ representation of the field "elements".
 
   /* Ensure the elements field exists in the current module version. */
   check_assertion(has_ifc_elements(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (ExprInitializerList::elements - ExprIndex) into
-     version-specific storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (ExprInitializerList::elements - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (ExprInitializerList::elements - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_elements */
 
@@ -16217,6 +16724,141 @@ representation of the field "type".
 
   /* Copy the field (ExprInitializerList::type - TypeIndex) into
      version-specific storage. */
+  static_assert(sizeof(stage_0) == 4,
+                "stage_0 is not properly sized storage!");
+  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  stage_1 = to_universal_index(universal.get_module(), stage_0);
+  result = stage_1;
+  return result;
+}  /* get_ifc_type */
+
+
+/*
+Functions for reading data from IFC ExprLabel nodes.
+*/
+
+
+template<>
+a_boolean has_ifc_designator(const an_ifc_expr_label &universal)
+/*
+Return TRUE if the given universal representation has the field "designator";
+otherwise, return FALSE.
+*/
+{
+  an_ifc_module *mod = universal.get_module();
+  a_boolean     result = get_fallback_presence_value(mod);
+
+  if (is_at_least(mod, 0, 42)) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* has_ifc_designator */
+
+
+template<>
+an_ifc_expr_index get_ifc_designator(const an_ifc_expr_label &universal)
+/*
+Given the universal representation of ExprLabel, return the universal
+representation of the field "designator".
+*/
+{
+  an_ifc_expr_index result;
+
+  /* Ensure the designator field exists in the current module version. */
+  check_assertion(has_ifc_designator(universal));
+  an_ifc_expr_index_0_42 stage_0;
+  an_ifc_expr_index      stage_1;
+
+  /* Copy the field (ExprLabel::designator - ExprIndex) into version-specific
+     storage. */
+  static_assert(sizeof(stage_0) == 4,
+                "stage_0 is not properly sized storage!");
+  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+  stage_1 = to_universal_index(universal.get_module(), stage_0);
+  result = stage_1;
+  return result;
+}  /* get_ifc_designator */
+
+
+template<>
+a_boolean has_ifc_locus(const an_ifc_expr_label &universal)
+/*
+Return TRUE if the given universal representation has the field "locus";
+otherwise, return FALSE.
+*/
+{
+  an_ifc_module *mod = universal.get_module();
+  a_boolean     result = get_fallback_presence_value(mod);
+
+  if (is_at_least(mod, 0, 42)) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* has_ifc_locus */
+
+
+template<>
+an_ifc_source_location get_ifc_locus(const an_ifc_expr_label &universal)
+/*
+Given the universal representation of ExprLabel, return the universal
+representation of the field "locus".
+*/
+{
+  an_ifc_source_location result;
+
+  /* Ensure the locus field exists in the current module version. */
+  check_assertion(has_ifc_locus(universal));
+  an_ifc_source_location_bytes stage_0;
+  an_ifc_source_location       stage_1;
+
+#if USE_MMAP_FOR_MODULES
+  /* Update the universal storage pointer to the start of the field
+     (ExprLabel::locus - SourceLocation). */
+  stage_0 = (an_ifc_source_location_bytes)((*universal.get_storage()) + 0);
+#else /* !USE_MMAP_FOR_MODULES */
+  /* Copy the field (ExprLabel::locus - SourceLocation) into universal
+     storage. */
+  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+#endif /* USE_MMAP_FOR_MODULES */
+  stage_1 = {universal.get_module(), stage_0};
+  result = stage_1;
+  return result;
+}  /* get_ifc_locus */
+
+
+template<>
+a_boolean has_ifc_type(const an_ifc_expr_label &universal)
+/*
+Return TRUE if the given universal representation has the field "type";
+otherwise, return FALSE.
+*/
+{
+  an_ifc_module *mod = universal.get_module();
+  a_boolean     result = get_fallback_presence_value(mod);
+
+  if (is_at_least(mod, 0, 42)) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* has_ifc_type */
+
+
+template<>
+an_ifc_type_index get_ifc_type(const an_ifc_expr_label &universal)
+/*
+Given the universal representation of ExprLabel, return the universal
+representation of the field "type".
+*/
+{
+  an_ifc_type_index result;
+
+  /* Ensure the type field exists in the current module version. */
+  check_assertion(has_ifc_type(universal));
+  an_ifc_type_index_0_33 stage_0;
+  an_ifc_type_index      stage_1;
+
+  /* Copy the field (ExprLabel::type - TypeIndex) into version-specific
+     storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
@@ -16742,16 +17384,29 @@ representation of the field "offset".
 
   /* Ensure the offset field exists in the current module version. */
   check_assertion(has_ifc_offset(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (ExprMemberAccess::offset - ExprIndex) into
-     version-specific storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (ExprMemberAccess::offset - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (ExprMemberAccess::offset - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_offset */
 
@@ -16874,16 +17529,29 @@ universal representation of the field "initializer".
 
   /* Ensure the initializer field exists in the current module version. */
   check_assertion(has_ifc_initializer(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (ExprMemberInitializer::initializer - ExprIndex) into
-     version-specific storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (ExprMemberInitializer::initializer - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (ExprMemberInitializer::initializer - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_initializer */
 
@@ -17066,16 +17734,29 @@ representation of the field "argument".
 
   /* Ensure the argument field exists in the current module version. */
   check_assertion(has_ifc_argument(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (ExprMonad::argument - ExprIndex) into version-specific
-     storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (ExprMonad::argument - ExprIndex) into version-specific
+       storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (ExprMonad::argument - ExprIndex) into version-specific
+       storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_argument */
 
@@ -17541,16 +18222,29 @@ universal representation of the field "arguments".
 
   /* Ensure the arguments field exists in the current module version. */
   check_assertion(has_ifc_arguments(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (ExprPackedTemplateArguments::arguments - ExprIndex) into
-     version-specific storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (ExprPackedTemplateArguments::arguments - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (ExprPackedTemplateArguments::arguments - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_arguments */
 
@@ -17724,16 +18418,29 @@ representation of the field "member".
 
   /* Ensure the member field exists in the current module version. */
   check_assertion(has_ifc_member(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (ExprPath::member - ExprIndex) into version-specific
-     storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (ExprPath::member - ExprIndex) into version-specific
+       storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (ExprPath::member - ExprIndex) into version-specific
+       storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_member */
 
@@ -17766,16 +18473,29 @@ representation of the field "scope".
 
   /* Ensure the scope field exists in the current module version. */
   check_assertion(has_ifc_scope(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (ExprPath::scope - ExprIndex) into version-specific
-     storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (ExprPath::scope - ExprIndex) into version-specific
+       storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (ExprPath::scope - ExprIndex) into version-specific
+       storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_scope */
 
@@ -18001,16 +18721,29 @@ universal representation of the field "base_subobjects".
 
   /* Ensure the base_subobjects field exists in the current module version. */
   check_assertion(has_ifc_base_subobjects(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (ExprProductTypeValue::base_subobjects - ExprIndex) into
-     version-specific storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (ExprProductTypeValue::base_subobjects - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (ExprProductTypeValue::base_subobjects - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_base_subobjects */
 
@@ -18134,16 +18867,29 @@ universal representation of the field "members".
 
   /* Ensure the members field exists in the current module version. */
   check_assertion(has_ifc_members(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (ExprProductTypeValue::members - ExprIndex) into
-     version-specific storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (ExprProductTypeValue::members - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (ExprProductTypeValue::members - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_members */
 
@@ -18205,7 +18951,9 @@ otherwise, return FALSE.
   an_ifc_module *mod = universal.get_module();
   a_boolean     result = get_fallback_presence_value(mod);
 
-  if (is_at_least(mod, 0, 33)) {
+  if (is_at_least(mod, 0, 42)) {
+    result = FALSE;
+  } else if (is_at_least(mod, 0, 33)) {
     result = TRUE;
   }  /* if */
   return result;
@@ -18247,7 +18995,9 @@ otherwise, return FALSE.
   an_ifc_module *mod = universal.get_module();
   a_boolean     result = get_fallback_presence_value(mod);
 
-  if (is_at_least(mod, 0, 33)) {
+  if (is_at_least(mod, 0, 42)) {
+    result = FALSE;
+  } else if (is_at_least(mod, 0, 33)) {
     result = TRUE;
   }  /* if */
   return result;
@@ -18289,7 +19039,9 @@ otherwise, return FALSE.
   an_ifc_module *mod = universal.get_module();
   a_boolean     result = get_fallback_presence_value(mod);
 
-  if (is_at_least(mod, 0, 33)) {
+  if (is_at_least(mod, 0, 42)) {
+    result = FALSE;
+  } else if (is_at_least(mod, 0, 33)) {
     result = TRUE;
   }  /* if */
   return result;
@@ -18331,7 +19083,9 @@ otherwise, return FALSE.
   an_ifc_module *mod = universal.get_module();
   a_boolean     result = get_fallback_presence_value(mod);
 
-  if (is_at_least(mod, 0, 33)) {
+  if (is_at_least(mod, 0, 42)) {
+    result = FALSE;
+  } else if (is_at_least(mod, 0, 33)) {
     result = TRUE;
   }  /* if */
   return result;
@@ -18377,7 +19131,9 @@ otherwise, return FALSE.
   an_ifc_module *mod = universal.get_module();
   a_boolean     result = get_fallback_presence_value(mod);
 
-  if (is_at_least(mod, 0, 33)) {
+  if (is_at_least(mod, 0, 42)) {
+    result = FALSE;
+  } else if (is_at_least(mod, 0, 33)) {
     result = TRUE;
   }  /* if */
   return result;
@@ -18442,16 +19198,29 @@ representation of the field "elements".
 
   /* Ensure the elements field exists in the current module version. */
   check_assertion(has_ifc_elements(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (ExprQualifiedName::elements - ExprIndex) into
-     version-specific storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (ExprQualifiedName::elements - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (ExprQualifiedName::elements - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_elements */
 
@@ -18626,16 +19395,29 @@ representation of the field "address".
 
   /* Ensure the address field exists in the current module version. */
   check_assertion(has_ifc_address(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (ExprRead::address - ExprIndex) into version-specific
-     storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (ExprRead::address - ExprIndex) into version-specific
+       storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (ExprRead::address - ExprIndex) into version-specific
+       storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_address */
 
@@ -19433,16 +20215,29 @@ representation of the field "strings".
 
   /* Ensure the strings field exists in the current module version. */
   check_assertion(has_ifc_strings(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (ExprStringSequence::strings - ExprIndex) into
-     version-specific storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (ExprStringSequence::strings - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (ExprStringSequence::strings - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_strings */
 
@@ -19522,16 +20317,29 @@ representation of the field "value".
 
   /* Ensure the value field exists in the current module version. */
   check_assertion(has_ifc_value(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (ExprSubobjectValue::value - ExprIndex) into
-     version-specific storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (ExprSubobjectValue::value - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (ExprSubobjectValue::value - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_value */
 
@@ -19701,16 +20509,29 @@ representation of the field "value".
 
   /* Ensure the value field exists in the current module version. */
   check_assertion(has_ifc_value(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (ExprSumTypeValue::value - ExprIndex) into version-specific
-     storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (ExprSumTypeValue::value - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (ExprSumTypeValue::value - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_value */
 
@@ -19850,16 +20671,29 @@ representation of the field "arguments".
 
   /* Ensure the arguments field exists in the current module version. */
   check_assertion(has_ifc_arguments(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (ExprTemplateId::arguments - ExprIndex) into
-     version-specific storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (ExprTemplateId::arguments - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (ExprTemplateId::arguments - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_arguments */
 
@@ -19938,16 +20772,29 @@ representation of the field "primary".
 
   /* Ensure the primary field exists in the current module version. */
   check_assertion(has_ifc_primary(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (ExprTemplateId::primary - ExprIndex) into version-specific
-     storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (ExprTemplateId::primary - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (ExprTemplateId::primary - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_primary */
 
@@ -20028,16 +20875,29 @@ universal representation of the field "arguments".
 
   /* Ensure the arguments field exists in the current module version. */
   check_assertion(has_ifc_arguments(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (ExprTemplateReference::arguments - ExprIndex) into
-     version-specific storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/28);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (ExprTemplateReference::arguments - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/28);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (ExprTemplateReference::arguments - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/28);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_arguments */
 
@@ -20661,16 +21521,29 @@ representation of the field "argument_0".
 
   /* Ensure the argument_0 field exists in the current module version. */
   check_assertion(has_ifc_argument_0(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (ExprTriad::argument_0 - ExprIndex) into version-specific
-     storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (ExprTriad::argument_0 - ExprIndex) into version-specific
+       storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (ExprTriad::argument_0 - ExprIndex) into version-specific
+       storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_argument_0 */
 
@@ -20703,16 +21576,29 @@ representation of the field "argument_1".
 
   /* Ensure the argument_1 field exists in the current module version. */
   check_assertion(has_ifc_argument_1(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (ExprTriad::argument_1 - ExprIndex) into version-specific
-     storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (ExprTriad::argument_1 - ExprIndex) into version-specific
+       storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (ExprTriad::argument_1 - ExprIndex) into version-specific
+       storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_argument_1 */
 
@@ -20745,16 +21631,29 @@ representation of the field "argument_2".
 
   /* Ensure the argument_2 field exists in the current module version. */
   check_assertion(has_ifc_argument_2(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (ExprTriad::argument_2 - ExprIndex) into version-specific
-     storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (ExprTriad::argument_2 - ExprIndex) into version-specific
+       storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (ExprTriad::argument_2 - ExprIndex) into version-specific
+       storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_argument_2 */
 
@@ -20787,16 +21686,29 @@ representation of the field "assoc".
 
   /* Ensure the assoc field exists in the current module version. */
   check_assertion(has_ifc_assoc(universal));
-  an_ifc_triadic_operator_sort_0_33 stage_0;
-  an_ifc_triadic_operator_sort      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_triadic_operator_sort_0_42 stage_0;
+    an_ifc_triadic_operator_sort      stage_1;
 
-  /* Copy the field (ExprTriad::assoc - TriadicOperatorSort) into
-     version-specific storage. */
-  static_assert(sizeof(stage_0) == 2,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/28);
-  stage_1 = to_universal_sort(stage_0);
-  result = stage_1;
+    /* Copy the field (ExprTriad::assoc - TriadicOperatorSort) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 2,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/28);
+    stage_1 = to_universal_sort(stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_triadic_operator_sort_0_33 stage_0;
+    an_ifc_triadic_operator_sort      stage_1;
+
+    /* Copy the field (ExprTriad::assoc - TriadicOperatorSort) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 2,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/28);
+    stage_1 = to_universal_sort(stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_assoc */
 
@@ -21333,16 +22245,29 @@ universal representation of the field "intrinsic".
 
   /* Ensure the intrinsic field exists in the current module version. */
   check_assertion(has_ifc_intrinsic(universal));
-  an_ifc_operator_category_0_33 stage_0;
-  an_ifc_operator_category      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_operator_category_0_42 stage_0;
+    an_ifc_operator_category      stage_1;
 
-  /* Copy the field (ExprTypeTraitIntrinsic::intrinsic - OperatorCategory) into
-     version-specific storage. */
-  static_assert(sizeof(stage_0) == 2,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-  stage_1 = to_universal_category(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (ExprTypeTraitIntrinsic::intrinsic - OperatorCategory)
+       into version-specific storage. */
+    static_assert(sizeof(stage_0) == 2,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+    stage_1 = to_universal_category(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_operator_category_0_33 stage_0;
+    an_ifc_operator_category      stage_1;
+
+    /* Copy the field (ExprTypeTraitIntrinsic::intrinsic - OperatorCategory)
+       into version-specific storage. */
+    static_assert(sizeof(stage_0) == 2,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+    stage_1 = to_universal_category(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_intrinsic */
 
@@ -21648,16 +22573,29 @@ representation of the field "expr".
 
   /* Ensure the expr field exists in the current module version. */
   check_assertion(has_ifc_expr(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (ExprUnaryFold::expr - ExprIndex) into version-specific
-     storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (ExprUnaryFold::expr - ExprIndex) into version-specific
+       storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (ExprUnaryFold::expr - ExprIndex) into version-specific
+       storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_expr */
 
@@ -21916,16 +22854,29 @@ representation of the field "resolution".
 
   /* Ensure the resolution field exists in the current module version. */
   check_assertion(has_ifc_resolution(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (ExprUnqualifiedId::resolution - ExprIndex) into
-     version-specific storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (ExprUnqualifiedId::resolution - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (ExprUnqualifiedId::resolution - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_resolution */
 
@@ -23452,16 +24403,29 @@ representation of the field "arguments".
 
   /* Ensure the arguments field exists in the current module version. */
   check_assertion(has_ifc_arguments(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (FormSpec::arguments - ExprIndex) into version-specific
-     storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (FormSpec::arguments - ExprIndex) into version-specific
+       storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (FormSpec::arguments - ExprIndex) into version-specific
+       storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_arguments */
 
@@ -24034,16 +24998,29 @@ representation of the field "value".
 
   /* Ensure the value field exists in the current module version. */
   check_assertion(has_ifc_value(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (HeapExpr::value - ExprIndex) into version-specific
-     storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (HeapExpr::value - ExprIndex) into version-specific
+       storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (HeapExpr::value - ExprIndex) into version-specific
+       storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_value */
 
@@ -24175,16 +25152,29 @@ representation of the field "value".
 
   /* Ensure the value field exists in the current module version. */
   check_assertion(has_ifc_value(universal));
-  an_ifc_stmt_index_0_33 stage_0;
-  an_ifc_stmt_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_stmt_index_0_42 stage_0;
+    an_ifc_stmt_index      stage_1;
 
-  /* Copy the field (HeapStmt::value - StmtIndex) into version-specific
-     storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (HeapStmt::value - StmtIndex) into version-specific
+       storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_stmt_index_0_33 stage_0;
+    an_ifc_stmt_index      stage_1;
+
+    /* Copy the field (HeapStmt::value - StmtIndex) into version-specific
+       storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_value */
 
@@ -25021,16 +26011,29 @@ representation of the field "operator".
 
   /* Ensure the operator field exists in the current module version. */
   check_assertion(has_ifc_operator(universal));
-  an_ifc_operator_category_0_33 stage_0;
-  an_ifc_operator_category      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_operator_category_0_42 stage_0;
+    an_ifc_operator_category      stage_1;
 
-  /* Copy the field (NameOperator::operator - OperatorCategory) into
-     version-specific storage. */
-  static_assert(sizeof(stage_0) == 2,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-  stage_1 = to_universal_category(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (NameOperator::operator - OperatorCategory) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 2,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    stage_1 = to_universal_category(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_operator_category_0_33 stage_0;
+    an_ifc_operator_category      stage_1;
+
+    /* Copy the field (NameOperator::operator - OperatorCategory) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 2,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    stage_1 = to_universal_category(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_operator */
 
@@ -25158,16 +26161,29 @@ representation of the field "arguments".
 
   /* Ensure the arguments field exists in the current module version. */
   check_assertion(has_ifc_arguments(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (NameSpecialization::arguments - ExprIndex) into
-     version-specific storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (NameSpecialization::arguments - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (NameSpecialization::arguments - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_arguments */
 
@@ -25909,18 +26925,77 @@ representation of the field "cardinality".
 
   /* Ensure the cardinality field exists in the current module version. */
   check_assertion(has_ifc_cardinality(universal));
-  an_ifc_cardinality_0_33 stage_0;
-  an_ifc_cardinality      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_cardinality_0_33 stage_0;
+    an_ifc_cardinality      stage_1;
 
-  /* Copy the field (StmtBlock::cardinality - Cardinality) into
-     version-specific storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-  stage_1 = {universal.get_module(), (an_ifc_cardinality_storage)stage_0};
-  result = stage_1;
+    /* Copy the field (StmtBlock::cardinality - Cardinality) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    stage_1 = {universal.get_module(), (an_ifc_cardinality_storage)stage_0};
+    result = stage_1;
+  } else {
+    an_ifc_cardinality_0_33 stage_0;
+    an_ifc_cardinality      stage_1;
+
+    /* Copy the field (StmtBlock::cardinality - Cardinality) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    stage_1 = {universal.get_module(), (an_ifc_cardinality_storage)stage_0};
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_cardinality */
+
+
+template<>
+a_boolean has_ifc_locus(const an_ifc_stmt_block &universal)
+/*
+Return TRUE if the given universal representation has the field "locus";
+otherwise, return FALSE.
+*/
+{
+  an_ifc_module *mod = universal.get_module();
+  a_boolean     result = get_fallback_presence_value(mod);
+
+  if (is_at_least(mod, 0, 42)) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* has_ifc_locus */
+
+
+template<>
+an_ifc_source_location get_ifc_locus(const an_ifc_stmt_block &universal)
+/*
+Given the universal representation of StmtBlock, return the universal
+representation of the field "locus".
+*/
+{
+  an_ifc_source_location result;
+
+  /* Ensure the locus field exists in the current module version. */
+  check_assertion(has_ifc_locus(universal));
+  an_ifc_source_location_bytes stage_0;
+  an_ifc_source_location       stage_1;
+
+#if USE_MMAP_FOR_MODULES
+  /* Update the universal storage pointer to the start of the field
+     (StmtBlock::locus - SourceLocation). */
+  stage_0 = (an_ifc_source_location_bytes)((*universal.get_storage()) + 0);
+#else /* !USE_MMAP_FOR_MODULES */
+  /* Copy the field (StmtBlock::locus - SourceLocation) into universal
+     storage. */
+  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+#endif /* USE_MMAP_FOR_MODULES */
+  stage_1 = {universal.get_module(), stage_0};
+  result = stage_1;
+  return result;
+}  /* get_ifc_locus */
 
 
 template<>
@@ -25951,16 +27026,29 @@ representation of the field "start".
 
   /* Ensure the start field exists in the current module version. */
   check_assertion(has_ifc_start(universal));
-  an_ifc_index_0_33 stage_0;
-  an_ifc_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_index_0_33 stage_0;
+    an_ifc_index      stage_1;
 
-  /* Copy the field (StmtBlock::start - Index) into version-specific
-     storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-  stage_1 = {universal.get_module(), (an_ifc_index_storage)stage_0};
-  result = stage_1;
+    /* Copy the field (StmtBlock::start - Index) into version-specific
+       storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+    stage_1 = {universal.get_module(), (an_ifc_index_storage)stage_0};
+    result = stage_1;
+  } else {
+    an_ifc_index_0_33 stage_0;
+    an_ifc_index      stage_1;
+
+    /* Copy the field (StmtBlock::start - Index) into version-specific
+       storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    stage_1 = {universal.get_module(), (an_ifc_index_storage)stage_0};
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_start */
 
@@ -26049,16 +27137,29 @@ representation of the field "expr".
 
   /* Ensure the expr field exists in the current module version. */
   check_assertion(has_ifc_expr(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (StmtCase::expr - ExprIndex) into version-specific
-     storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (StmtCase::expr - ExprIndex) into version-specific
+       storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (StmtCase::expr - ExprIndex) into version-specific
+       storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_expr */
 
@@ -26161,6 +27262,99 @@ representation of the field "locus".
 
 
 /*
+Functions for reading data from IFC StmtDecl nodes.
+*/
+
+
+template<>
+a_boolean has_ifc_decl(const an_ifc_stmt_decl &universal)
+/*
+Return TRUE if the given universal representation has the field "decl";
+otherwise, return FALSE.
+*/
+{
+  an_ifc_module *mod = universal.get_module();
+  a_boolean     result = get_fallback_presence_value(mod);
+
+  if (is_at_least(mod, 0, 42)) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* has_ifc_decl */
+
+
+template<>
+an_ifc_decl_index get_ifc_decl(const an_ifc_stmt_decl &universal)
+/*
+Given the universal representation of StmtDecl, return the universal
+representation of the field "decl".
+*/
+{
+  an_ifc_decl_index result;
+
+  /* Ensure the decl field exists in the current module version. */
+  check_assertion(has_ifc_decl(universal));
+  an_ifc_decl_index_0_41 stage_0;
+  an_ifc_decl_index      stage_1;
+
+  /* Copy the field (StmtDecl::decl - DeclIndex) into version-specific
+     storage. */
+  static_assert(sizeof(stage_0) == 4,
+                "stage_0 is not properly sized storage!");
+  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  stage_1 = to_universal_index(universal.get_module(), stage_0);
+  result = stage_1;
+  return result;
+}  /* get_ifc_decl */
+
+
+template<>
+a_boolean has_ifc_locus(const an_ifc_stmt_decl &universal)
+/*
+Return TRUE if the given universal representation has the field "locus";
+otherwise, return FALSE.
+*/
+{
+  an_ifc_module *mod = universal.get_module();
+  a_boolean     result = get_fallback_presence_value(mod);
+
+  if (is_at_least(mod, 0, 42)) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* has_ifc_locus */
+
+
+template<>
+an_ifc_source_location get_ifc_locus(const an_ifc_stmt_decl &universal)
+/*
+Given the universal representation of StmtDecl, return the universal
+representation of the field "locus".
+*/
+{
+  an_ifc_source_location result;
+
+  /* Ensure the locus field exists in the current module version. */
+  check_assertion(has_ifc_locus(universal));
+  an_ifc_source_location_bytes stage_0;
+  an_ifc_source_location       stage_1;
+
+#if USE_MMAP_FOR_MODULES
+  /* Update the universal storage pointer to the start of the field
+     (StmtDecl::locus - SourceLocation). */
+  stage_0 = (an_ifc_source_location_bytes)((*universal.get_storage()) + 0);
+#else /* !USE_MMAP_FOR_MODULES */
+  /* Copy the field (StmtDecl::locus - SourceLocation) into universal
+     storage. */
+  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+#endif /* USE_MMAP_FOR_MODULES */
+  stage_1 = {universal.get_module(), stage_0};
+  result = stage_1;
+  return result;
+}  /* get_ifc_locus */
+
+
+/*
 Functions for reading data from IFC StmtDefault nodes.
 */
 
@@ -26175,7 +27369,9 @@ otherwise, return FALSE.
   an_ifc_module *mod = universal.get_module();
   a_boolean     result = get_fallback_presence_value(mod);
 
-  if (is_at_least(mod, 0, 33)) {
+  if (is_at_least(mod, 0, 42)) {
+    result = FALSE;
+  } else if (is_at_least(mod, 0, 33)) {
     result = TRUE;
   }  /* if */
   return result;
@@ -26244,16 +27440,29 @@ representation of the field "body".
 
   /* Ensure the body field exists in the current module version. */
   check_assertion(has_ifc_body(universal));
-  an_ifc_stmt_index_0_33 stage_0;
-  an_ifc_stmt_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_stmt_index_0_42 stage_0;
+    an_ifc_stmt_index      stage_1;
 
-  /* Copy the field (StmtDoWhile::body - StmtIndex) into version-specific
-     storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (StmtDoWhile::body - StmtIndex) into version-specific
+       storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_stmt_index_0_33 stage_0;
+    an_ifc_stmt_index      stage_1;
+
+    /* Copy the field (StmtDoWhile::body - StmtIndex) into version-specific
+       storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_body */
 
@@ -26286,16 +27495,29 @@ representation of the field "condition".
 
   /* Ensure the condition field exists in the current module version. */
   check_assertion(has_ifc_condition(universal));
-  an_ifc_stmt_index_0_33 stage_0;
-  an_ifc_stmt_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_stmt_index_0_42 stage_0;
+    an_ifc_stmt_index      stage_1;
 
-  /* Copy the field (StmtDoWhile::condition - StmtIndex) into version-specific
-     storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (StmtDoWhile::condition - StmtIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_stmt_index_0_33 stage_0;
+    an_ifc_stmt_index      stage_1;
+
+    /* Copy the field (StmtDoWhile::condition - StmtIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_condition */
 
@@ -26328,20 +27550,39 @@ representation of the field "locus".
 
   /* Ensure the locus field exists in the current module version. */
   check_assertion(has_ifc_locus(universal));
-  an_ifc_source_location_bytes stage_0;
-  an_ifc_source_location       stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_source_location_bytes stage_0;
+    an_ifc_source_location       stage_1;
 
 #if USE_MMAP_FOR_MODULES
-  /* Update the universal storage pointer to the start of the field
-     (StmtDoWhile::locus - SourceLocation). */
-  stage_0 = (an_ifc_source_location_bytes)((*universal.get_storage()) + 8);
+    /* Update the universal storage pointer to the start of the field
+       (StmtDoWhile::locus - SourceLocation). */
+    stage_0 = (an_ifc_source_location_bytes)((*universal.get_storage()) + 0);
 #else /* !USE_MMAP_FOR_MODULES */
-  /* Copy the field (StmtDoWhile::locus - SourceLocation) into universal
-     storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8, /*size=*/8);
+    /* Copy the field (StmtDoWhile::locus - SourceLocation) into universal
+       storage. */
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                   /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-  stage_1 = {universal.get_module(), stage_0};
-  result = stage_1;
+    stage_1 = {universal.get_module(), stage_0};
+    result = stage_1;
+  } else {
+    an_ifc_source_location_bytes stage_0;
+    an_ifc_source_location       stage_1;
+
+#if USE_MMAP_FOR_MODULES
+    /* Update the universal storage pointer to the start of the field
+       (StmtDoWhile::locus - SourceLocation). */
+    stage_0 = (an_ifc_source_location_bytes)((*universal.get_storage()) + 8);
+#else /* !USE_MMAP_FOR_MODULES */
+    /* Copy the field (StmtDoWhile::locus - SourceLocation) into universal
+       storage. */
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8,
+                   /*size=*/8);
+#endif /* USE_MMAP_FOR_MODULES */
+    stage_1 = {universal.get_module(), stage_0};
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_locus */
 
@@ -26361,7 +27602,9 @@ otherwise, return FALSE.
   an_ifc_module *mod = universal.get_module();
   a_boolean     result = get_fallback_presence_value(mod);
 
-  if (is_at_least(mod, 0, 33)) {
+  if (is_at_least(mod, 0, 42)) {
+    result = FALSE;
+  } else if (is_at_least(mod, 0, 33)) {
     result = TRUE;
   }  /* if */
   return result;
@@ -26403,6 +27646,52 @@ Functions for reading data from IFC StmtExpansion nodes.
 
 
 template<>
+a_boolean has_ifc_locus(const an_ifc_stmt_expansion &universal)
+/*
+Return TRUE if the given universal representation has the field "locus";
+otherwise, return FALSE.
+*/
+{
+  an_ifc_module *mod = universal.get_module();
+  a_boolean     result = get_fallback_presence_value(mod);
+
+  if (is_at_least(mod, 0, 42)) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* has_ifc_locus */
+
+
+template<>
+an_ifc_source_location get_ifc_locus(const an_ifc_stmt_expansion &universal)
+/*
+Given the universal representation of StmtExpansion, return the universal
+representation of the field "locus".
+*/
+{
+  an_ifc_source_location result;
+
+  /* Ensure the locus field exists in the current module version. */
+  check_assertion(has_ifc_locus(universal));
+  an_ifc_source_location_bytes stage_0;
+  an_ifc_source_location       stage_1;
+
+#if USE_MMAP_FOR_MODULES
+  /* Update the universal storage pointer to the start of the field
+     (StmtExpansion::locus - SourceLocation). */
+  stage_0 = (an_ifc_source_location_bytes)((*universal.get_storage()) + 0);
+#else /* !USE_MMAP_FOR_MODULES */
+  /* Copy the field (StmtExpansion::locus - SourceLocation) into universal
+     storage. */
+  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+#endif /* USE_MMAP_FOR_MODULES */
+  stage_1 = {universal.get_module(), stage_0};
+  result = stage_1;
+  return result;
+}  /* get_ifc_locus */
+
+
+template<>
 a_boolean has_ifc_operand(const an_ifc_stmt_expansion &universal)
 /*
 Return TRUE if the given universal representation has the field "operand";
@@ -26430,16 +27719,29 @@ representation of the field "operand".
 
   /* Ensure the operand field exists in the current module version. */
   check_assertion(has_ifc_operand(universal));
-  an_ifc_stmt_index_0_33 stage_0;
-  an_ifc_stmt_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_stmt_index_0_42 stage_0;
+    an_ifc_stmt_index      stage_1;
 
-  /* Copy the field (StmtExpansion::operand - StmtIndex) into version-specific
-     storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (StmtExpansion::operand - StmtIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_stmt_index_0_33 stage_0;
+    an_ifc_stmt_index      stage_1;
+
+    /* Copy the field (StmtExpansion::operand - StmtIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_operand */
 
@@ -26477,16 +27779,29 @@ representation of the field "expr".
 
   /* Ensure the expr field exists in the current module version. */
   check_assertion(has_ifc_expr(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (StmtExpression::expr - ExprIndex) into version-specific
-     storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (StmtExpression::expr - ExprIndex) into version-specific
+       storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (StmtExpression::expr - ExprIndex) into version-specific
+       storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_expr */
 
@@ -26519,20 +27834,39 @@ representation of the field "locus".
 
   /* Ensure the locus field exists in the current module version. */
   check_assertion(has_ifc_locus(universal));
-  an_ifc_source_location_bytes stage_0;
-  an_ifc_source_location       stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_source_location_bytes stage_0;
+    an_ifc_source_location       stage_1;
 
 #if USE_MMAP_FOR_MODULES
-  /* Update the universal storage pointer to the start of the field
-     (StmtExpression::locus - SourceLocation). */
-  stage_0 = (an_ifc_source_location_bytes)((*universal.get_storage()) + 4);
+    /* Update the universal storage pointer to the start of the field
+       (StmtExpression::locus - SourceLocation). */
+    stage_0 = (an_ifc_source_location_bytes)((*universal.get_storage()) + 0);
 #else /* !USE_MMAP_FOR_MODULES */
-  /* Copy the field (StmtExpression::locus - SourceLocation) into universal
-     storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4, /*size=*/8);
+    /* Copy the field (StmtExpression::locus - SourceLocation) into universal
+       storage. */
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                   /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-  stage_1 = {universal.get_module(), stage_0};
-  result = stage_1;
+    stage_1 = {universal.get_module(), stage_0};
+    result = stage_1;
+  } else {
+    an_ifc_source_location_bytes stage_0;
+    an_ifc_source_location       stage_1;
+
+#if USE_MMAP_FOR_MODULES
+    /* Update the universal storage pointer to the start of the field
+       (StmtExpression::locus - SourceLocation). */
+    stage_0 = (an_ifc_source_location_bytes)((*universal.get_storage()) + 4);
+#else /* !USE_MMAP_FOR_MODULES */
+    /* Copy the field (StmtExpression::locus - SourceLocation) into universal
+       storage. */
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4,
+                   /*size=*/8);
+#endif /* USE_MMAP_FOR_MODULES */
+    stage_1 = {universal.get_module(), stage_0};
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_locus */
 
@@ -26570,16 +27904,29 @@ representation of the field "body".
 
   /* Ensure the body field exists in the current module version. */
   check_assertion(has_ifc_body(universal));
-  an_ifc_stmt_index_0_33 stage_0;
-  an_ifc_stmt_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_stmt_index_0_42 stage_0;
+    an_ifc_stmt_index      stage_1;
 
-  /* Copy the field (StmtFor::body - StmtIndex) into version-specific
-     storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (StmtFor::body - StmtIndex) into version-specific
+       storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_stmt_index_0_33 stage_0;
+    an_ifc_stmt_index      stage_1;
+
+    /* Copy the field (StmtFor::body - StmtIndex) into version-specific
+       storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_body */
 
@@ -26612,16 +27959,29 @@ representation of the field "condition".
 
   /* Ensure the condition field exists in the current module version. */
   check_assertion(has_ifc_condition(universal));
-  an_ifc_stmt_index_0_33 stage_0;
-  an_ifc_stmt_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_stmt_index_0_42 stage_0;
+    an_ifc_stmt_index      stage_1;
 
-  /* Copy the field (StmtFor::condition - StmtIndex) into version-specific
-     storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (StmtFor::condition - StmtIndex) into version-specific
+       storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_stmt_index_0_33 stage_0;
+    an_ifc_stmt_index      stage_1;
+
+    /* Copy the field (StmtFor::condition - StmtIndex) into version-specific
+       storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_condition */
 
@@ -26654,16 +28014,29 @@ representation of the field "continuation".
 
   /* Ensure the continuation field exists in the current module version. */
   check_assertion(has_ifc_continuation(universal));
-  an_ifc_stmt_index_0_33 stage_0;
-  an_ifc_stmt_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_stmt_index_0_42 stage_0;
+    an_ifc_stmt_index      stage_1;
 
-  /* Copy the field (StmtFor::continuation - StmtIndex) into version-specific
-     storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (StmtFor::continuation - StmtIndex) into version-specific
+       storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_stmt_index_0_33 stage_0;
+    an_ifc_stmt_index      stage_1;
+
+    /* Copy the field (StmtFor::continuation - StmtIndex) into version-specific
+       storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_continuation */
 
@@ -26696,16 +28069,29 @@ representation of the field "initialization".
 
   /* Ensure the initialization field exists in the current module version. */
   check_assertion(has_ifc_initialization(universal));
-  an_ifc_stmt_index_0_33 stage_0;
-  an_ifc_stmt_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_stmt_index_0_42 stage_0;
+    an_ifc_stmt_index      stage_1;
 
-  /* Copy the field (StmtFor::initialization - StmtIndex) into version-specific
-     storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (StmtFor::initialization - StmtIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_stmt_index_0_33 stage_0;
+    an_ifc_stmt_index      stage_1;
+
+    /* Copy the field (StmtFor::initialization - StmtIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_initialization */
 
@@ -26738,18 +28124,264 @@ representation of the field "locus".
 
   /* Ensure the locus field exists in the current module version. */
   check_assertion(has_ifc_locus(universal));
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_source_location_bytes stage_0;
+    an_ifc_source_location       stage_1;
+
+#if USE_MMAP_FOR_MODULES
+    /* Update the universal storage pointer to the start of the field
+       (StmtFor::locus - SourceLocation). */
+    stage_0 = (an_ifc_source_location_bytes)((*universal.get_storage()) + 0);
+#else /* !USE_MMAP_FOR_MODULES */
+    /* Copy the field (StmtFor::locus - SourceLocation) into universal
+       storage. */
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                   /*size=*/8);
+#endif /* USE_MMAP_FOR_MODULES */
+    stage_1 = {universal.get_module(), stage_0};
+    result = stage_1;
+  } else {
+    an_ifc_source_location_bytes stage_0;
+    an_ifc_source_location       stage_1;
+
+#if USE_MMAP_FOR_MODULES
+    /* Update the universal storage pointer to the start of the field
+       (StmtFor::locus - SourceLocation). */
+    stage_0 = (an_ifc_source_location_bytes)((*universal.get_storage()) + 16);
+#else /* !USE_MMAP_FOR_MODULES */
+    /* Copy the field (StmtFor::locus - SourceLocation) into universal
+       storage. */
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16,
+                   /*size=*/8);
+#endif /* USE_MMAP_FOR_MODULES */
+    stage_1 = {universal.get_module(), stage_0};
+    result = stage_1;
+  }  /* if */
+  return result;
+}  /* get_ifc_locus */
+
+
+/*
+Functions for reading data from IFC StmtGoto nodes.
+*/
+
+
+template<>
+a_boolean has_ifc_locus(const an_ifc_stmt_goto &universal)
+/*
+Return TRUE if the given universal representation has the field "locus";
+otherwise, return FALSE.
+*/
+{
+  an_ifc_module *mod = universal.get_module();
+  a_boolean     result = get_fallback_presence_value(mod);
+
+  if (is_at_least(mod, 0, 42)) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* has_ifc_locus */
+
+
+template<>
+an_ifc_source_location get_ifc_locus(const an_ifc_stmt_goto &universal)
+/*
+Given the universal representation of StmtGoto, return the universal
+representation of the field "locus".
+*/
+{
+  an_ifc_source_location result;
+
+  /* Ensure the locus field exists in the current module version. */
+  check_assertion(has_ifc_locus(universal));
   an_ifc_source_location_bytes stage_0;
   an_ifc_source_location       stage_1;
 
 #if USE_MMAP_FOR_MODULES
   /* Update the universal storage pointer to the start of the field
-     (StmtFor::locus - SourceLocation). */
-  stage_0 = (an_ifc_source_location_bytes)((*universal.get_storage()) + 16);
+     (StmtGoto::locus - SourceLocation). */
+  stage_0 = (an_ifc_source_location_bytes)((*universal.get_storage()) + 0);
 #else /* !USE_MMAP_FOR_MODULES */
-  /* Copy the field (StmtFor::locus - SourceLocation) into universal
+  /* Copy the field (StmtGoto::locus - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16,
-                 /*size=*/8);
+  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+#endif /* USE_MMAP_FOR_MODULES */
+  stage_1 = {universal.get_module(), stage_0};
+  result = stage_1;
+  return result;
+}  /* get_ifc_locus */
+
+
+template<>
+a_boolean has_ifc_target(const an_ifc_stmt_goto &universal)
+/*
+Return TRUE if the given universal representation has the field "target";
+otherwise, return FALSE.
+*/
+{
+  an_ifc_module *mod = universal.get_module();
+  a_boolean     result = get_fallback_presence_value(mod);
+
+  if (is_at_least(mod, 0, 42)) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* has_ifc_target */
+
+
+template<>
+an_ifc_expr_index get_ifc_target(const an_ifc_stmt_goto &universal)
+/*
+Given the universal representation of StmtGoto, return the universal
+representation of the field "target".
+*/
+{
+  an_ifc_expr_index result;
+
+  /* Ensure the target field exists in the current module version. */
+  check_assertion(has_ifc_target(universal));
+  an_ifc_expr_index_0_42 stage_0;
+  an_ifc_expr_index      stage_1;
+
+  /* Copy the field (StmtGoto::target - ExprIndex) into version-specific
+     storage. */
+  static_assert(sizeof(stage_0) == 4,
+                "stage_0 is not properly sized storage!");
+  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  stage_1 = to_universal_index(universal.get_module(), stage_0);
+  result = stage_1;
+  return result;
+}  /* get_ifc_target */
+
+
+/*
+Functions for reading data from IFC StmtHandler nodes.
+*/
+
+
+template<>
+a_boolean has_ifc_body(const an_ifc_stmt_handler &universal)
+/*
+Return TRUE if the given universal representation has the field "body";
+otherwise, return FALSE.
+*/
+{
+  an_ifc_module *mod = universal.get_module();
+  a_boolean     result = get_fallback_presence_value(mod);
+
+  if (is_at_least(mod, 0, 42)) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* has_ifc_body */
+
+
+template<>
+an_ifc_stmt_index get_ifc_body(const an_ifc_stmt_handler &universal)
+/*
+Given the universal representation of StmtHandler, return the universal
+representation of the field "body".
+*/
+{
+  an_ifc_stmt_index result;
+
+  /* Ensure the body field exists in the current module version. */
+  check_assertion(has_ifc_body(universal));
+  an_ifc_stmt_index_0_42 stage_0;
+  an_ifc_stmt_index      stage_1;
+
+  /* Copy the field (StmtHandler::body - StmtIndex) into version-specific
+     storage. */
+  static_assert(sizeof(stage_0) == 4,
+                "stage_0 is not properly sized storage!");
+  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+  stage_1 = to_universal_index(universal.get_module(), stage_0);
+  result = stage_1;
+  return result;
+}  /* get_ifc_body */
+
+
+template<>
+a_boolean has_ifc_exception(const an_ifc_stmt_handler &universal)
+/*
+Return TRUE if the given universal representation has the field "exception";
+otherwise, return FALSE.
+*/
+{
+  an_ifc_module *mod = universal.get_module();
+  a_boolean     result = get_fallback_presence_value(mod);
+
+  if (is_at_least(mod, 0, 42)) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* has_ifc_exception */
+
+
+template<>
+an_ifc_decl_index get_ifc_exception(const an_ifc_stmt_handler &universal)
+/*
+Given the universal representation of StmtHandler, return the universal
+representation of the field "exception".
+*/
+{
+  an_ifc_decl_index result;
+
+  /* Ensure the exception field exists in the current module version. */
+  check_assertion(has_ifc_exception(universal));
+  an_ifc_decl_index_0_41 stage_0;
+  an_ifc_decl_index      stage_1;
+
+  /* Copy the field (StmtHandler::exception - DeclIndex) into version-specific
+     storage. */
+  static_assert(sizeof(stage_0) == 4,
+                "stage_0 is not properly sized storage!");
+  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  stage_1 = to_universal_index(universal.get_module(), stage_0);
+  result = stage_1;
+  return result;
+}  /* get_ifc_exception */
+
+
+template<>
+a_boolean has_ifc_locus(const an_ifc_stmt_handler &universal)
+/*
+Return TRUE if the given universal representation has the field "locus";
+otherwise, return FALSE.
+*/
+{
+  an_ifc_module *mod = universal.get_module();
+  a_boolean     result = get_fallback_presence_value(mod);
+
+  if (is_at_least(mod, 0, 42)) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* has_ifc_locus */
+
+
+template<>
+an_ifc_source_location get_ifc_locus(const an_ifc_stmt_handler &universal)
+/*
+Given the universal representation of StmtHandler, return the universal
+representation of the field "locus".
+*/
+{
+  an_ifc_source_location result;
+
+  /* Ensure the locus field exists in the current module version. */
+  check_assertion(has_ifc_locus(universal));
+  an_ifc_source_location_bytes stage_0;
+  an_ifc_source_location       stage_1;
+
+#if USE_MMAP_FOR_MODULES
+  /* Update the universal storage pointer to the start of the field
+     (StmtHandler::locus - SourceLocation). */
+  stage_0 = (an_ifc_source_location_bytes)((*universal.get_storage()) + 0);
+#else /* !USE_MMAP_FOR_MODULES */
+  /* Copy the field (StmtHandler::locus - SourceLocation) into universal
+     storage. */
+  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_module(), stage_0};
   result = stage_1;
@@ -26790,16 +28422,29 @@ representation of the field "alternative".
 
   /* Ensure the alternative field exists in the current module version. */
   check_assertion(has_ifc_alternative(universal));
-  an_ifc_stmt_index_0_33 stage_0;
-  an_ifc_stmt_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_stmt_index_0_42 stage_0;
+    an_ifc_stmt_index      stage_1;
 
-  /* Copy the field (StmtIf::alternative - StmtIndex) into version-specific
-     storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (StmtIf::alternative - StmtIndex) into version-specific
+       storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_stmt_index_0_33 stage_0;
+    an_ifc_stmt_index      stage_1;
+
+    /* Copy the field (StmtIf::alternative - StmtIndex) into version-specific
+       storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_alternative */
 
@@ -26832,16 +28477,29 @@ representation of the field "condition".
 
   /* Ensure the condition field exists in the current module version. */
   check_assertion(has_ifc_condition(universal));
-  an_ifc_stmt_index_0_33 stage_0;
-  an_ifc_stmt_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_stmt_index_0_42 stage_0;
+    an_ifc_stmt_index      stage_1;
 
-  /* Copy the field (StmtIf::condition - StmtIndex) into version-specific
-     storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (StmtIf::condition - StmtIndex) into version-specific
+       storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_stmt_index_0_33 stage_0;
+    an_ifc_stmt_index      stage_1;
+
+    /* Copy the field (StmtIf::condition - StmtIndex) into version-specific
+       storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_condition */
 
@@ -26874,16 +28532,29 @@ representation of the field "consequence".
 
   /* Ensure the consequence field exists in the current module version. */
   check_assertion(has_ifc_consequence(universal));
-  an_ifc_stmt_index_0_33 stage_0;
-  an_ifc_stmt_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_stmt_index_0_42 stage_0;
+    an_ifc_stmt_index      stage_1;
 
-  /* Copy the field (StmtIf::consequence - StmtIndex) into version-specific
-     storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (StmtIf::consequence - StmtIndex) into version-specific
+       storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_stmt_index_0_33 stage_0;
+    an_ifc_stmt_index      stage_1;
+
+    /* Copy the field (StmtIf::consequence - StmtIndex) into version-specific
+       storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_consequence */
 
@@ -26916,16 +28587,29 @@ representation of the field "initialization".
 
   /* Ensure the initialization field exists in the current module version. */
   check_assertion(has_ifc_initialization(universal));
-  an_ifc_stmt_index_0_33 stage_0;
-  an_ifc_stmt_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_stmt_index_0_42 stage_0;
+    an_ifc_stmt_index      stage_1;
 
-  /* Copy the field (StmtIf::initialization - StmtIndex) into version-specific
-     storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (StmtIf::initialization - StmtIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_stmt_index_0_33 stage_0;
+    an_ifc_stmt_index      stage_1;
+
+    /* Copy the field (StmtIf::initialization - StmtIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_initialization */
 
@@ -26958,22 +28642,218 @@ representation of the field "locus".
 
   /* Ensure the locus field exists in the current module version. */
   check_assertion(has_ifc_locus(universal));
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_source_location_bytes stage_0;
+    an_ifc_source_location       stage_1;
+
+#if USE_MMAP_FOR_MODULES
+    /* Update the universal storage pointer to the start of the field
+       (StmtIf::locus - SourceLocation). */
+    stage_0 = (an_ifc_source_location_bytes)((*universal.get_storage()) + 0);
+#else /* !USE_MMAP_FOR_MODULES */
+    /* Copy the field (StmtIf::locus - SourceLocation) into universal
+       storage. */
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                   /*size=*/8);
+#endif /* USE_MMAP_FOR_MODULES */
+    stage_1 = {universal.get_module(), stage_0};
+    result = stage_1;
+  } else {
+    an_ifc_source_location_bytes stage_0;
+    an_ifc_source_location       stage_1;
+
+#if USE_MMAP_FOR_MODULES
+    /* Update the universal storage pointer to the start of the field
+       (StmtIf::locus - SourceLocation). */
+    stage_0 = (an_ifc_source_location_bytes)((*universal.get_storage()) + 16);
+#else /* !USE_MMAP_FOR_MODULES */
+    /* Copy the field (StmtIf::locus - SourceLocation) into universal
+       storage. */
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16,
+                   /*size=*/8);
+#endif /* USE_MMAP_FOR_MODULES */
+    stage_1 = {universal.get_module(), stage_0};
+    result = stage_1;
+  }  /* if */
+  return result;
+}  /* get_ifc_locus */
+
+
+/*
+Functions for reading data from IFC StmtLabeled nodes.
+*/
+
+
+template<>
+a_boolean has_ifc_label(const an_ifc_stmt_labeled &universal)
+/*
+Return TRUE if the given universal representation has the field "label";
+otherwise, return FALSE.
+*/
+{
+  an_ifc_module *mod = universal.get_module();
+  a_boolean     result = get_fallback_presence_value(mod);
+
+  if (is_at_least(mod, 0, 42)) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* has_ifc_label */
+
+
+template<>
+an_ifc_expr_index get_ifc_label(const an_ifc_stmt_labeled &universal)
+/*
+Given the universal representation of StmtLabeled, return the universal
+representation of the field "label".
+*/
+{
+  an_ifc_expr_index result;
+
+  /* Ensure the label field exists in the current module version. */
+  check_assertion(has_ifc_label(universal));
+  an_ifc_expr_index_0_42 stage_0;
+  an_ifc_expr_index      stage_1;
+
+  /* Copy the field (StmtLabeled::label - ExprIndex) into version-specific
+     storage. */
+  static_assert(sizeof(stage_0) == 4,
+                "stage_0 is not properly sized storage!");
+  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+  stage_1 = to_universal_index(universal.get_module(), stage_0);
+  result = stage_1;
+  return result;
+}  /* get_ifc_label */
+
+
+template<>
+a_boolean has_ifc_locus(const an_ifc_stmt_labeled &universal)
+/*
+Return TRUE if the given universal representation has the field "locus";
+otherwise, return FALSE.
+*/
+{
+  an_ifc_module *mod = universal.get_module();
+  a_boolean     result = get_fallback_presence_value(mod);
+
+  if (is_at_least(mod, 0, 42)) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* has_ifc_locus */
+
+
+template<>
+an_ifc_source_location get_ifc_locus(const an_ifc_stmt_labeled &universal)
+/*
+Given the universal representation of StmtLabeled, return the universal
+representation of the field "locus".
+*/
+{
+  an_ifc_source_location result;
+
+  /* Ensure the locus field exists in the current module version. */
+  check_assertion(has_ifc_locus(universal));
   an_ifc_source_location_bytes stage_0;
   an_ifc_source_location       stage_1;
 
 #if USE_MMAP_FOR_MODULES
   /* Update the universal storage pointer to the start of the field
-     (StmtIf::locus - SourceLocation). */
-  stage_0 = (an_ifc_source_location_bytes)((*universal.get_storage()) + 16);
+     (StmtLabeled::locus - SourceLocation). */
+  stage_0 = (an_ifc_source_location_bytes)((*universal.get_storage()) + 0);
 #else /* !USE_MMAP_FOR_MODULES */
-  /* Copy the field (StmtIf::locus - SourceLocation) into universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16,
-                 /*size=*/8);
+  /* Copy the field (StmtLabeled::locus - SourceLocation) into universal
+     storage. */
+  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_module(), stage_0};
   result = stage_1;
   return result;
 }  /* get_ifc_locus */
+
+
+template<>
+a_boolean has_ifc_stmt(const an_ifc_stmt_labeled &universal)
+/*
+Return TRUE if the given universal representation has the field "stmt";
+otherwise, return FALSE.
+*/
+{
+  an_ifc_module *mod = universal.get_module();
+  a_boolean     result = get_fallback_presence_value(mod);
+
+  if (is_at_least(mod, 0, 42)) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* has_ifc_stmt */
+
+
+template<>
+an_ifc_stmt_index get_ifc_stmt(const an_ifc_stmt_labeled &universal)
+/*
+Given the universal representation of StmtLabeled, return the universal
+representation of the field "stmt".
+*/
+{
+  an_ifc_stmt_index result;
+
+  /* Ensure the stmt field exists in the current module version. */
+  check_assertion(has_ifc_stmt(universal));
+  an_ifc_stmt_index_0_42 stage_0;
+  an_ifc_stmt_index      stage_1;
+
+  /* Copy the field (StmtLabeled::stmt - StmtIndex) into version-specific
+     storage. */
+  static_assert(sizeof(stage_0) == 4,
+                "stage_0 is not properly sized storage!");
+  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+  stage_1 = to_universal_index(universal.get_module(), stage_0);
+  result = stage_1;
+  return result;
+}  /* get_ifc_stmt */
+
+
+template<>
+a_boolean has_ifc_type(const an_ifc_stmt_labeled &universal)
+/*
+Return TRUE if the given universal representation has the field "type";
+otherwise, return FALSE.
+*/
+{
+  an_ifc_module *mod = universal.get_module();
+  a_boolean     result = get_fallback_presence_value(mod);
+
+  if (is_at_least(mod, 0, 42)) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* has_ifc_type */
+
+
+template<>
+an_ifc_type_index get_ifc_type(const an_ifc_stmt_labeled &universal)
+/*
+Given the universal representation of StmtLabeled, return the universal
+representation of the field "type".
+*/
+{
+  an_ifc_type_index result;
+
+  /* Ensure the type field exists in the current module version. */
+  check_assertion(has_ifc_type(universal));
+  an_ifc_type_index_0_33 stage_0;
+  an_ifc_type_index      stage_1;
+
+  /* Copy the field (StmtLabeled::type - TypeIndex) into version-specific
+     storage. */
+  static_assert(sizeof(stage_0) == 4,
+                "stage_0 is not properly sized storage!");
+  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  stage_1 = to_universal_index(universal.get_module(), stage_0);
+  result = stage_1;
+  return result;
+}  /* get_ifc_type */
 
 
 /*
@@ -27009,16 +28889,29 @@ representation of the field "expr".
 
   /* Ensure the expr field exists in the current module version. */
   check_assertion(has_ifc_expr(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (StmtReturn::expr - ExprIndex) into version-specific
-     storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (StmtReturn::expr - ExprIndex) into version-specific
+       storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (StmtReturn::expr - ExprIndex) into version-specific
+       storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_expr */
 
@@ -27033,7 +28926,9 @@ Return TRUE if the given universal representation has the field
   an_ifc_module *mod = universal.get_module();
   a_boolean     result = get_fallback_presence_value(mod);
 
-  if (is_at_least(mod, 0, 33)) {
+  if (is_at_least(mod, 0, 42)) {
+    result = FALSE;
+  } else if (is_at_least(mod, 0, 33)) {
     result = TRUE;
   }  /* if */
   return result;
@@ -27093,16 +28988,29 @@ representation of the field "function_type".
 
   /* Ensure the function_type field exists in the current module version. */
   check_assertion(has_ifc_function_type(universal));
-  an_ifc_type_index_0_33 stage_0;
-  an_ifc_type_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_type_index_0_33 stage_0;
+    an_ifc_type_index      stage_1;
 
-  /* Copy the field (StmtReturn::function_type - TypeIndex) into
-     version-specific storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (StmtReturn::function_type - TypeIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_type_index_0_33 stage_0;
+    an_ifc_type_index      stage_1;
+
+    /* Copy the field (StmtReturn::function_type - TypeIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_function_type */
 
@@ -27135,23 +29043,83 @@ representation of the field "locus".
 
   /* Ensure the locus field exists in the current module version. */
   check_assertion(has_ifc_locus(universal));
-  an_ifc_source_location_bytes stage_0;
-  an_ifc_source_location       stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_source_location_bytes stage_0;
+    an_ifc_source_location       stage_1;
 
 #if USE_MMAP_FOR_MODULES
-  /* Update the universal storage pointer to the start of the field
-     (StmtReturn::locus - SourceLocation). */
-  stage_0 = (an_ifc_source_location_bytes)((*universal.get_storage()) + 12);
+    /* Update the universal storage pointer to the start of the field
+       (StmtReturn::locus - SourceLocation). */
+    stage_0 = (an_ifc_source_location_bytes)((*universal.get_storage()) + 0);
 #else /* !USE_MMAP_FOR_MODULES */
-  /* Copy the field (StmtReturn::locus - SourceLocation) into universal
-     storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12,
-                 /*size=*/8);
+    /* Copy the field (StmtReturn::locus - SourceLocation) into universal
+       storage. */
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                   /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-  stage_1 = {universal.get_module(), stage_0};
-  result = stage_1;
+    stage_1 = {universal.get_module(), stage_0};
+    result = stage_1;
+  } else {
+    an_ifc_source_location_bytes stage_0;
+    an_ifc_source_location       stage_1;
+
+#if USE_MMAP_FOR_MODULES
+    /* Update the universal storage pointer to the start of the field
+       (StmtReturn::locus - SourceLocation). */
+    stage_0 = (an_ifc_source_location_bytes)((*universal.get_storage()) + 12);
+#else /* !USE_MMAP_FOR_MODULES */
+    /* Copy the field (StmtReturn::locus - SourceLocation) into universal
+       storage. */
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12,
+                   /*size=*/8);
+#endif /* USE_MMAP_FOR_MODULES */
+    stage_1 = {universal.get_module(), stage_0};
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_locus */
+
+
+template<>
+a_boolean has_ifc_type(const an_ifc_stmt_return &universal)
+/*
+Return TRUE if the given universal representation has the field "type";
+otherwise, return FALSE.
+*/
+{
+  an_ifc_module *mod = universal.get_module();
+  a_boolean     result = get_fallback_presence_value(mod);
+
+  if (is_at_least(mod, 0, 42)) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* has_ifc_type */
+
+
+template<>
+an_ifc_type_index get_ifc_type(const an_ifc_stmt_return &universal)
+/*
+Given the universal representation of StmtReturn, return the universal
+representation of the field "type".
+*/
+{
+  an_ifc_type_index result;
+
+  /* Ensure the type field exists in the current module version. */
+  check_assertion(has_ifc_type(universal));
+  an_ifc_type_index_0_33 stage_0;
+  an_ifc_type_index      stage_1;
+
+  /* Copy the field (StmtReturn::type - TypeIndex) into version-specific
+     storage. */
+  static_assert(sizeof(stage_0) == 4,
+                "stage_0 is not properly sized storage!");
+  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  stage_1 = to_universal_index(universal.get_module(), stage_0);
+  result = stage_1;
+  return result;
+}  /* get_ifc_type */
 
 
 /*
@@ -27187,16 +29155,29 @@ representation of the field "body".
 
   /* Ensure the body field exists in the current module version. */
   check_assertion(has_ifc_body(universal));
-  an_ifc_stmt_index_0_33 stage_0;
-  an_ifc_stmt_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_stmt_index_0_42 stage_0;
+    an_ifc_stmt_index      stage_1;
 
-  /* Copy the field (StmtSwitch::body - StmtIndex) into version-specific
-     storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (StmtSwitch::body - StmtIndex) into version-specific
+       storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_stmt_index_0_33 stage_0;
+    an_ifc_stmt_index      stage_1;
+
+    /* Copy the field (StmtSwitch::body - StmtIndex) into version-specific
+       storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_body */
 
@@ -27229,16 +29210,29 @@ representation of the field "condition".
 
   /* Ensure the condition field exists in the current module version. */
   check_assertion(has_ifc_condition(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (StmtSwitch::condition - ExprIndex) into version-specific
-     storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (StmtSwitch::condition - ExprIndex) into version-specific
+       storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (StmtSwitch::condition - ExprIndex) into version-specific
+       storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_condition */
 
@@ -27271,16 +29265,29 @@ representation of the field "initialization".
 
   /* Ensure the initialization field exists in the current module version. */
   check_assertion(has_ifc_initialization(universal));
-  an_ifc_stmt_index_0_33 stage_0;
-  an_ifc_stmt_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_stmt_index_0_42 stage_0;
+    an_ifc_stmt_index      stage_1;
 
-  /* Copy the field (StmtSwitch::initialization - StmtIndex) into
-     version-specific storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (StmtSwitch::initialization - StmtIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_stmt_index_0_33 stage_0;
+    an_ifc_stmt_index      stage_1;
+
+    /* Copy the field (StmtSwitch::initialization - StmtIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_initialization */
 
@@ -27313,21 +29320,39 @@ representation of the field "locus".
 
   /* Ensure the locus field exists in the current module version. */
   check_assertion(has_ifc_locus(universal));
-  an_ifc_source_location_bytes stage_0;
-  an_ifc_source_location       stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_source_location_bytes stage_0;
+    an_ifc_source_location       stage_1;
 
 #if USE_MMAP_FOR_MODULES
-  /* Update the universal storage pointer to the start of the field
-     (StmtSwitch::locus - SourceLocation). */
-  stage_0 = (an_ifc_source_location_bytes)((*universal.get_storage()) + 12);
+    /* Update the universal storage pointer to the start of the field
+       (StmtSwitch::locus - SourceLocation). */
+    stage_0 = (an_ifc_source_location_bytes)((*universal.get_storage()) + 0);
 #else /* !USE_MMAP_FOR_MODULES */
-  /* Copy the field (StmtSwitch::locus - SourceLocation) into universal
-     storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12,
-                 /*size=*/8);
+    /* Copy the field (StmtSwitch::locus - SourceLocation) into universal
+       storage. */
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                   /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-  stage_1 = {universal.get_module(), stage_0};
-  result = stage_1;
+    stage_1 = {universal.get_module(), stage_0};
+    result = stage_1;
+  } else {
+    an_ifc_source_location_bytes stage_0;
+    an_ifc_source_location       stage_1;
+
+#if USE_MMAP_FOR_MODULES
+    /* Update the universal storage pointer to the start of the field
+       (StmtSwitch::locus - SourceLocation). */
+    stage_0 = (an_ifc_source_location_bytes)((*universal.get_storage()) + 12);
+#else /* !USE_MMAP_FOR_MODULES */
+    /* Copy the field (StmtSwitch::locus - SourceLocation) into universal
+       storage. */
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12,
+                   /*size=*/8);
+#endif /* USE_MMAP_FOR_MODULES */
+    stage_1 = {universal.get_module(), stage_0};
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_locus */
 
@@ -27347,7 +29372,9 @@ otherwise, return FALSE.
   an_ifc_module *mod = universal.get_module();
   a_boolean     result = get_fallback_presence_value(mod);
 
-  if (is_at_least(mod, 0, 33)) {
+  if (is_at_least(mod, 0, 42)) {
+    result = FALSE;
+  } else if (is_at_least(mod, 0, 33)) {
     result = TRUE;
   }  /* if */
   return result;
@@ -27402,7 +29429,9 @@ otherwise, return FALSE.
   an_ifc_module *mod = universal.get_module();
   a_boolean     result = get_fallback_presence_value(mod);
 
-  if (is_at_least(mod, 0, 33)) {
+  if (is_at_least(mod, 0, 42)) {
+    result = FALSE;
+  } else if (is_at_least(mod, 0, 33)) {
     result = TRUE;
   }  /* if */
   return result;
@@ -27472,16 +29501,29 @@ representation of the field "body".
 
   /* Ensure the body field exists in the current module version. */
   check_assertion(has_ifc_body(universal));
-  an_ifc_stmt_index_0_33 stage_0;
-  an_ifc_stmt_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_stmt_index_0_42 stage_0;
+    an_ifc_stmt_index      stage_1;
 
-  /* Copy the field (StmtWhile::body - StmtIndex) into version-specific
-     storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (StmtWhile::body - StmtIndex) into version-specific
+       storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_stmt_index_0_33 stage_0;
+    an_ifc_stmt_index      stage_1;
+
+    /* Copy the field (StmtWhile::body - StmtIndex) into version-specific
+       storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_body */
 
@@ -27514,16 +29556,29 @@ representation of the field "condition".
 
   /* Ensure the condition field exists in the current module version. */
   check_assertion(has_ifc_condition(universal));
-  an_ifc_stmt_index_0_33 stage_0;
-  an_ifc_stmt_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_stmt_index_0_42 stage_0;
+    an_ifc_stmt_index      stage_1;
 
-  /* Copy the field (StmtWhile::condition - StmtIndex) into version-specific
-     storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (StmtWhile::condition - StmtIndex) into version-specific
+       storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_stmt_index_0_33 stage_0;
+    an_ifc_stmt_index      stage_1;
+
+    /* Copy the field (StmtWhile::condition - StmtIndex) into version-specific
+       storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_condition */
 
@@ -27556,20 +29611,39 @@ representation of the field "locus".
 
   /* Ensure the locus field exists in the current module version. */
   check_assertion(has_ifc_locus(universal));
-  an_ifc_source_location_bytes stage_0;
-  an_ifc_source_location       stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_source_location_bytes stage_0;
+    an_ifc_source_location       stage_1;
 
 #if USE_MMAP_FOR_MODULES
-  /* Update the universal storage pointer to the start of the field
-     (StmtWhile::locus - SourceLocation). */
-  stage_0 = (an_ifc_source_location_bytes)((*universal.get_storage()) + 8);
+    /* Update the universal storage pointer to the start of the field
+       (StmtWhile::locus - SourceLocation). */
+    stage_0 = (an_ifc_source_location_bytes)((*universal.get_storage()) + 0);
 #else /* !USE_MMAP_FOR_MODULES */
-  /* Copy the field (StmtWhile::locus - SourceLocation) into universal
-     storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8, /*size=*/8);
+    /* Copy the field (StmtWhile::locus - SourceLocation) into universal
+       storage. */
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                   /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-  stage_1 = {universal.get_module(), stage_0};
-  result = stage_1;
+    stage_1 = {universal.get_module(), stage_0};
+    result = stage_1;
+  } else {
+    an_ifc_source_location_bytes stage_0;
+    an_ifc_source_location       stage_1;
+
+#if USE_MMAP_FOR_MODULES
+    /* Update the universal storage pointer to the start of the field
+       (StmtWhile::locus - SourceLocation). */
+    stage_0 = (an_ifc_source_location_bytes)((*universal.get_storage()) + 8);
+#else /* !USE_MMAP_FOR_MODULES */
+    /* Copy the field (StmtWhile::locus - SourceLocation) into universal
+       storage. */
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8,
+                   /*size=*/8);
+#endif /* USE_MMAP_FOR_MODULES */
+    stage_1 = {universal.get_module(), stage_0};
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_locus */
 
@@ -27704,16 +29778,29 @@ universal representation of the field "designator".
 
   /* Ensure the designator field exists in the current module version. */
   check_assertion(has_ifc_designator(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (SyntaxAccessSpecifier::designator - ExprIndex) into
-     version-specific storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (SyntaxAccessSpecifier::designator - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (SyntaxAccessSpecifier::designator - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_designator */
 
@@ -28034,16 +30121,29 @@ universal representation of the field "name".
 
   /* Ensure the name field exists in the current module version. */
   check_assertion(has_ifc_name(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (SyntaxAliasDeclaration::name - ExprIndex) into
-     version-specific storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (SyntaxAliasDeclaration::name - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (SyntaxAliasDeclaration::name - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_name */
 
@@ -28319,16 +30419,29 @@ universal representation of the field "bound".
 
   /* Ensure the bound field exists in the current module version. */
   check_assertion(has_ifc_bound(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (SyntaxArrayDeclarator::bound - ExprIndex) into
-     version-specific storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (SyntaxArrayDeclarator::bound - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (SyntaxArrayDeclarator::bound - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_bound */
 
@@ -28462,16 +30575,29 @@ representation of the field "array".
 
   /* Ensure the array field exists in the current module version. */
   check_assertion(has_ifc_array(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (SyntaxArrayIndex::array - ExprIndex) into version-specific
-     storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (SyntaxArrayIndex::array - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (SyntaxArrayIndex::array - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_array */
 
@@ -28504,16 +30630,29 @@ representation of the field "index".
 
   /* Ensure the index field exists in the current module version. */
   check_assertion(has_ifc_index(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (SyntaxArrayIndex::index - ExprIndex) into version-specific
-     storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (SyntaxArrayIndex::index - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (SyntaxArrayIndex::index - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_index */
 
@@ -29019,16 +31158,29 @@ representation of the field "name".
 
   /* Ensure the name field exists in the current module version. */
   check_assertion(has_ifc_name(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (SyntaxAttribute::name - ExprIndex) into version-specific
-     storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (SyntaxAttribute::name - ExprIndex) into version-specific
+       storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (SyntaxAttribute::name - ExprIndex) into version-specific
+       storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_name */
 
@@ -29061,16 +31213,29 @@ representation of the field "scope".
 
   /* Ensure the scope field exists in the current module version. */
   check_assertion(has_ifc_scope(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (SyntaxAttribute::scope - ExprIndex) into version-specific
-     storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (SyntaxAttribute::scope - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (SyntaxAttribute::scope - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_scope */
 
@@ -30444,16 +32609,29 @@ universal representation of the field "operand_1".
 
   /* Ensure the operand_1 field exists in the current module version. */
   check_assertion(has_ifc_operand_1(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (SyntaxBinaryFoldExpression::operand_1 - ExprIndex) into
-     version-specific storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (SyntaxBinaryFoldExpression::operand_1 - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (SyntaxBinaryFoldExpression::operand_1 - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_operand_1 */
 
@@ -30488,16 +32666,29 @@ universal representation of the field "operand_2".
 
   /* Ensure the operand_2 field exists in the current module version. */
   check_assertion(has_ifc_operand_2(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (SyntaxBinaryFoldExpression::operand_2 - ExprIndex) into
-     version-specific storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (SyntaxBinaryFoldExpression::operand_2 - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (SyntaxBinaryFoldExpression::operand_2 - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_operand_2 */
 
@@ -31001,16 +33192,29 @@ universal representation of the field "name".
 
   /* Ensure the name field exists in the current module version. */
   check_assertion(has_ifc_name(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (SyntaxClassSpecifier::name - ExprIndex) into
-     version-specific storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (SyntaxClassSpecifier::name - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (SyntaxClassSpecifier::name - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_name */
 
@@ -31093,16 +33297,29 @@ universal representation of the field "condition".
 
   /* Ensure the condition field exists in the current module version. */
   check_assertion(has_ifc_condition(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (SyntaxCompoundRequirement::condition - ExprIndex) into
-     version-specific storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (SyntaxCompoundRequirement::condition - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (SyntaxCompoundRequirement::condition - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_condition */
 
@@ -31137,16 +33354,29 @@ universal representation of the field "constraint".
 
   /* Ensure the constraint field exists in the current module version. */
   check_assertion(has_ifc_constraint(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (SyntaxCompoundRequirement::constraint - ExprIndex) into
-     version-specific storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (SyntaxCompoundRequirement::constraint - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (SyntaxCompoundRequirement::constraint - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_constraint */
 
@@ -31615,16 +33845,29 @@ universal representation of the field "initializer".
 
   /* Ensure the initializer field exists in the current module version. */
   check_assertion(has_ifc_initializer(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (SyntaxConceptDefinition::initializer - ExprIndex) into
-     version-specific storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (SyntaxConceptDefinition::initializer - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (SyntaxConceptDefinition::initializer - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_initializer */
 
@@ -32810,16 +35053,29 @@ representation of the field "name".
 
   /* Ensure the name field exists in the current module version. */
   check_assertion(has_ifc_name(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (SyntaxDeclarator::name - ExprIndex) into version-specific
-     storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (SyntaxDeclarator::name - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (SyntaxDeclarator::name - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_name */
 
@@ -33122,16 +35378,29 @@ universal representation of the field "expr".
 
   /* Ensure the expr field exists in the current module version. */
   check_assertion(has_ifc_expr(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (SyntaxDecltypeSpecifier::expr - ExprIndex) into
-     version-specific storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (SyntaxDecltypeSpecifier::expr - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (SyntaxDecltypeSpecifier::expr - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_expr */
 
@@ -33310,16 +35579,29 @@ universal representation of the field "condition".
 
   /* Ensure the condition field exists in the current module version. */
   check_assertion(has_ifc_condition(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (SyntaxDoWhileStatement::condition - ExprIndex) into
-     version-specific storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (SyntaxDoWhileStatement::condition - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (SyntaxDoWhileStatement::condition - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_condition */
 
@@ -34116,16 +36398,29 @@ representation of the field "name".
 
   /* Ensure the name field exists in the current module version. */
   check_assertion(has_ifc_name(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (SyntaxEnumSpecifier::name - ExprIndex) into
-     version-specific storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (SyntaxEnumSpecifier::name - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (SyntaxEnumSpecifier::name - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_name */
 
@@ -34309,16 +36604,29 @@ universal representation of the field "initializer".
 
   /* Ensure the initializer field exists in the current module version. */
   check_assertion(has_ifc_initializer(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (SyntaxEnumeratorDefinition::initializer - ExprIndex) into
-     version-specific storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (SyntaxEnumeratorDefinition::initializer - ExprIndex)
+       into version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (SyntaxEnumeratorDefinition::initializer - ExprIndex)
+       into version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_initializer */
 
@@ -34636,16 +36944,29 @@ universal representation of the field "condition".
 
   /* Ensure the condition field exists in the current module version. */
   check_assertion(has_ifc_condition(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (SyntaxExplicitSpecifier::condition - ExprIndex) into
-     version-specific storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (SyntaxExplicitSpecifier::condition - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (SyntaxExplicitSpecifier::condition - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_condition */
 
@@ -34827,16 +37148,29 @@ representation of the field "expression".
 
   /* Ensure the expression field exists in the current module version. */
   check_assertion(has_ifc_expression(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (SyntaxExpression::expression - ExprIndex) into
-     version-specific storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (SyntaxExpression::expression - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (SyntaxExpression::expression - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_expression */
 
@@ -34875,16 +37209,29 @@ universal representation of the field "expr".
 
   /* Ensure the expr field exists in the current module version. */
   check_assertion(has_ifc_expr(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (SyntaxExpressionStatement::expr - ExprIndex) into
-     version-specific storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (SyntaxExpressionStatement::expr - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (SyntaxExpressionStatement::expr - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_expr */
 
@@ -35149,16 +37496,29 @@ representation of the field "condition".
 
   /* Ensure the condition field exists in the current module version. */
   check_assertion(has_ifc_condition(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (SyntaxForStatement::condition - ExprIndex) into
-     version-specific storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (SyntaxForStatement::condition - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (SyntaxForStatement::condition - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_condition */
 
@@ -35192,16 +37552,29 @@ representation of the field "continuation".
 
   /* Ensure the continuation field exists in the current module version. */
   check_assertion(has_ifc_continuation(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (SyntaxForStatement::continuation - ExprIndex) into
-     version-specific storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (SyntaxForStatement::continuation - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (SyntaxForStatement::continuation - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_continuation */
 
@@ -37459,16 +39832,29 @@ representation of the field "initializer".
 
   /* Ensure the initializer field exists in the current module version. */
   check_assertion(has_ifc_initializer(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (SyntaxInitCapture::initializer - ExprIndex) into
-     version-specific storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (SyntaxInitCapture::initializer - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (SyntaxInitCapture::initializer - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_initializer */
 
@@ -37501,16 +39887,29 @@ representation of the field "name".
 
   /* Ensure the name field exists in the current module version. */
   check_assertion(has_ifc_name(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (SyntaxInitCapture::name - ExprIndex) into version-specific
-     storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (SyntaxInitCapture::name - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (SyntaxInitCapture::name - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_name */
 
@@ -37683,16 +40082,29 @@ universal representation of the field "initializer".
 
   /* Ensure the initializer field exists in the current module version. */
   check_assertion(has_ifc_initializer(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (SyntaxInitDeclarator::initializer - ExprIndex) into
-     version-specific storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (SyntaxInitDeclarator::initializer - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (SyntaxInitDeclarator::initializer - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_initializer */
 
@@ -37821,16 +40233,29 @@ universal representation of the field "label".
 
   /* Ensure the label field exists in the current module version. */
   check_assertion(has_ifc_label(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (SyntaxLabeledStatement::label - ExprIndex) into
-     version-specific storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (SyntaxLabeledStatement::label - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (SyntaxLabeledStatement::label - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_label */
 
@@ -38603,16 +41028,29 @@ universal representation of the field "initializer".
 
   /* Ensure the initializer field exists in the current module version. */
   check_assertion(has_ifc_initializer(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (SyntaxMemInitializer::initializer - ExprIndex) into
-     version-specific storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (SyntaxMemInitializer::initializer - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (SyntaxMemInitializer::initializer - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_initializer */
 
@@ -38646,16 +41084,29 @@ universal representation of the field "member".
 
   /* Ensure the member field exists in the current module version. */
   check_assertion(has_ifc_member(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (SyntaxMemInitializer::member - ExprIndex) into
-     version-specific storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (SyntaxMemInitializer::member - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (SyntaxMemInitializer::member - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_member */
 
@@ -38834,16 +41285,29 @@ universal representation of the field "bitwidth".
 
   /* Ensure the bitwidth field exists in the current module version. */
   check_assertion(has_ifc_bitwidth(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (SyntaxMemberDeclarator::bitwidth - ExprIndex) into
-     version-specific storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (SyntaxMemberDeclarator::bitwidth - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (SyntaxMemberDeclarator::bitwidth - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_bitwidth */
 
@@ -39059,16 +41523,29 @@ universal representation of the field "initializer".
 
   /* Ensure the initializer field exists in the current module version. */
   check_assertion(has_ifc_initializer(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (SyntaxMemberDeclarator::initializer - ExprIndex) into
-     version-specific storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (SyntaxMemberDeclarator::initializer - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (SyntaxMemberDeclarator::initializer - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_initializer */
 
@@ -39304,16 +41781,29 @@ the universal representation of the field "name".
 
   /* Ensure the name field exists in the current module version. */
   check_assertion(has_ifc_name(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (SyntaxNamespaceAliasDefinition::name - ExprIndex) into
-     version-specific storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (SyntaxNamespaceAliasDefinition::name - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (SyntaxNamespaceAliasDefinition::name - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_name */
 
@@ -39445,16 +41935,29 @@ the universal representation of the field "target".
 
   /* Ensure the target field exists in the current module version. */
   check_assertion(has_ifc_target(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (SyntaxNamespaceAliasDefinition::target - ExprIndex) into
-     version-specific storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (SyntaxNamespaceAliasDefinition::target - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (SyntaxNamespaceAliasDefinition::target - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_target */
 
@@ -39493,16 +41996,29 @@ universal representation of the field "condition".
 
   /* Ensure the condition field exists in the current module version. */
   check_assertion(has_ifc_condition(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (SyntaxNestedRequirement::condition - ExprIndex) into
-     version-specific storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (SyntaxNestedRequirement::condition - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (SyntaxNestedRequirement::condition - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_condition */
 
@@ -39830,16 +42346,29 @@ universal representation of the field "argument".
 
   /* Ensure the argument field exists in the current module version. */
   check_assertion(has_ifc_argument(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (SyntaxNonTypeTemplateArgument::argument - ExprIndex) into
-     version-specific storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (SyntaxNonTypeTemplateArgument::argument - ExprIndex)
+       into version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (SyntaxNonTypeTemplateArgument::argument - ExprIndex)
+       into version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_argument */
 
@@ -40064,16 +42593,29 @@ universal representation of the field "default_expr".
 
   /* Ensure the default_expr field exists in the current module version. */
   check_assertion(has_ifc_default_expr(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (SyntaxParameterDeclarator::default_expr - ExprIndex) into
-     version-specific storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (SyntaxParameterDeclarator::default_expr - ExprIndex)
+       into version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (SyntaxParameterDeclarator::default_expr - ExprIndex)
+       into version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_default_expr */
 
@@ -40248,16 +42790,29 @@ the universal representation of the field "constraint".
 
   /* Ensure the constraint field exists in the current module version. */
   check_assertion(has_ifc_constraint(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (SyntaxPlaceholderTypeSpecifier::constraint - ExprIndex)
-     into version-specific storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (SyntaxPlaceholderTypeSpecifier::constraint - ExprIndex)
+       into version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (SyntaxPlaceholderTypeSpecifier::constraint - ExprIndex)
+       into version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_constraint */
 
@@ -41266,16 +43821,29 @@ universal representation of the field "condition".
 
   /* Ensure the condition field exists in the current module version. */
   check_assertion(has_ifc_condition(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (SyntaxRequiresClause::condition - ExprIndex) into
-     version-specific storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (SyntaxRequiresClause::condition - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (SyntaxRequiresClause::condition - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_condition */
 
@@ -41360,16 +43928,29 @@ universal representation of the field "expr".
 
   /* Ensure the expr field exists in the current module version. */
   check_assertion(has_ifc_expr(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (SyntaxReturnStatement::expr - ExprIndex) into
-     version-specific storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (SyntaxReturnStatement::expr - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (SyntaxReturnStatement::expr - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_expr */
 
@@ -41630,16 +44211,29 @@ representation of the field "condition".
 
   /* Ensure the condition field exists in the current module version. */
   check_assertion(has_ifc_condition(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (SyntaxSEHExcept::condition - ExprIndex) into
-     version-specific storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (SyntaxSEHExcept::condition - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (SyntaxSEHExcept::condition - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_condition */
 
@@ -42291,16 +44885,29 @@ representation of the field "name".
 
   /* Ensure the name field exists in the current module version. */
   check_assertion(has_ifc_name(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (SyntaxSimpleCapture::name - ExprIndex) into
-     version-specific storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (SyntaxSimpleCapture::name - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (SyntaxSimpleCapture::name - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_name */
 
@@ -42527,16 +45134,29 @@ universal representation of the field "condition".
 
   /* Ensure the condition field exists in the current module version. */
   check_assertion(has_ifc_condition(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (SyntaxSimpleRequirement::condition - ExprIndex) into
-     version-specific storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (SyntaxSimpleRequirement::condition - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (SyntaxSimpleRequirement::condition - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_condition */
 
@@ -42622,16 +45242,29 @@ universal representation of the field "expr".
 
   /* Ensure the expr field exists in the current module version. */
   check_assertion(has_ifc_expr(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (SyntaxSimpleTypeSpecifier::expr - ExprIndex) into
-     version-specific storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (SyntaxSimpleTypeSpecifier::expr - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (SyntaxSimpleTypeSpecifier::expr - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_expr */
 
@@ -42857,16 +45490,29 @@ universal representation of the field "condition".
 
   /* Ensure the condition field exists in the current module version. */
   check_assertion(has_ifc_condition(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (SyntaxStaticAssertDeclaration::condition - ExprIndex) into
-     version-specific storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (SyntaxStaticAssertDeclaration::condition - ExprIndex)
+       into version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (SyntaxStaticAssertDeclaration::condition - ExprIndex)
+       into version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_condition */
 
@@ -42998,16 +45644,29 @@ universal representation of the field "message".
 
   /* Ensure the message field exists in the current module version. */
   check_assertion(has_ifc_message(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (SyntaxStaticAssertDeclaration::message - ExprIndex) into
-     version-specific storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (SyntaxStaticAssertDeclaration::message - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (SyntaxStaticAssertDeclaration::message - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_message */
 
@@ -43145,16 +45804,29 @@ return the universal representation of the field "initializer".
 
   /* Ensure the initializer field exists in the current module version. */
   check_assertion(has_ifc_initializer(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (SyntaxStructuredBindingDeclaration::initializer -
-     ExprIndex) into version-specific storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (SyntaxStructuredBindingDeclaration::initializer -
+       ExprIndex) into version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (SyntaxStructuredBindingDeclaration::initializer -
+       ExprIndex) into version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_initializer */
 
@@ -43426,16 +46098,29 @@ the universal representation of the field "name".
 
   /* Ensure the name field exists in the current module version. */
   check_assertion(has_ifc_name(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (SyntaxStructuredBindingIdentifier::name - ExprIndex) into
-     version-specific storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (SyntaxStructuredBindingIdentifier::name - ExprIndex)
+       into version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (SyntaxStructuredBindingIdentifier::name - ExprIndex)
+       into version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_name */
 
@@ -44167,16 +46852,29 @@ representation of the field "symbol".
 
   /* Ensure the symbol field exists in the current module version. */
   check_assertion(has_ifc_symbol(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (SyntaxTemplateId::symbol - ExprIndex) into
-     version-specific storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (SyntaxTemplateId::symbol - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (SyntaxTemplateId::symbol - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_symbol */
 
@@ -45574,16 +48272,29 @@ universal representation of the field "type".
 
   /* Ensure the type field exists in the current module version. */
   check_assertion(has_ifc_type(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (SyntaxTypeRequirement::type - ExprIndex) into
-     version-specific storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (SyntaxTypeRequirement::type - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (SyntaxTypeRequirement::type - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_type */
 
@@ -46269,16 +48980,29 @@ universal representation of the field "intrinsic".
 
   /* Ensure the intrinsic field exists in the current module version. */
   check_assertion(has_ifc_intrinsic(universal));
-  an_ifc_operator_category_0_33 stage_0;
-  an_ifc_operator_category      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_operator_category_0_42 stage_0;
+    an_ifc_operator_category      stage_1;
 
-  /* Copy the field (SyntaxTypeTraitIntrinsic::intrinsic - OperatorCategory)
-     into version-specific storage. */
-  static_assert(sizeof(stage_0) == 2,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-  stage_1 = to_universal_category(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (SyntaxTypeTraitIntrinsic::intrinsic - OperatorCategory)
+       into version-specific storage. */
+    static_assert(sizeof(stage_0) == 2,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    stage_1 = to_universal_category(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_operator_category_0_33 stage_0;
+    an_ifc_operator_category      stage_1;
+
+    /* Copy the field (SyntaxTypeTraitIntrinsic::intrinsic - OperatorCategory)
+       into version-specific storage. */
+    static_assert(sizeof(stage_0) == 2,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    stage_1 = to_universal_category(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_intrinsic */
 
@@ -46597,16 +49321,29 @@ universal representation of the field "operand".
 
   /* Ensure the operand field exists in the current module version. */
   check_assertion(has_ifc_operand(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (SyntaxUnaryFoldExpression::operand - ExprIndex) into
-     version-specific storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (SyntaxUnaryFoldExpression::operand - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (SyntaxUnaryFoldExpression::operand - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_operand */
 
@@ -46934,16 +49671,29 @@ universal representation of the field "qualified_name".
 
   /* Ensure the qualified_name field exists in the current module version. */
   check_assertion(has_ifc_qualified_name(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (SyntaxUsingDeclarator::qualified_name - ExprIndex) into
-     version-specific storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (SyntaxUsingDeclarator::qualified_name - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (SyntaxUsingDeclarator::qualified_name - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_qualified_name */
 
@@ -47078,16 +49828,29 @@ universal representation of the field "qualified_name".
 
   /* Ensure the qualified_name field exists in the current module version. */
   check_assertion(has_ifc_qualified_name(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (SyntaxUsingDirective::qualified_name - ExprIndex) into
-     version-specific storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (SyntaxUsingDirective::qualified_name - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (SyntaxUsingDirective::qualified_name - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_qualified_name */
 
@@ -47270,16 +50033,29 @@ universal representation of the field "name".
 
   /* Ensure the name field exists in the current module version. */
   check_assertion(has_ifc_name(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (SyntaxUsingEnumDeclaration::name - ExprIndex) into
-     version-specific storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (SyntaxUsingEnumDeclaration::name - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (SyntaxUsingEnumDeclaration::name - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_name */
 
@@ -47649,16 +50425,29 @@ universal representation of the field "condition".
 
   /* Ensure the condition field exists in the current module version. */
   check_assertion(has_ifc_condition(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (SyntaxWhileStatement::condition - ExprIndex) into
-     version-specific storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (SyntaxWhileStatement::condition - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (SyntaxWhileStatement::condition - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_condition */
 
@@ -48644,16 +51433,29 @@ universal representation of the field "body".
 
   /* Ensure the body field exists in the current module version. */
   check_assertion(has_ifc_body(universal));
-  an_ifc_stmt_index_0_33 stage_0;
-  an_ifc_stmt_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_stmt_index_0_42 stage_0;
+    an_ifc_stmt_index      stage_1;
 
-  /* Copy the field (TraitFunctionDefinition::body - StmtIndex) into
-     version-specific storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (TraitFunctionDefinition::body - StmtIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_stmt_index_0_33 stage_0;
+    an_ifc_stmt_index      stage_1;
+
+    /* Copy the field (TraitFunctionDefinition::body - StmtIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_body */
 
@@ -48811,16 +51613,29 @@ universal representation of the field "initializers".
 
   /* Ensure the initializers field exists in the current module version. */
   check_assertion(has_ifc_initializers(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (TraitFunctionDefinition::initializers - ExprIndex) into
-     version-specific storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (TraitFunctionDefinition::initializers - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (TraitFunctionDefinition::initializers - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_initializers */
 
@@ -49961,16 +52776,29 @@ representation of the field "extent".
 
   /* Ensure the extent field exists in the current module version. */
   check_assertion(has_ifc_extent(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (TypeArray::extent - ExprIndex) into version-specific
-     storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (TypeArray::extent - ExprIndex) into version-specific
+       storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (TypeArray::extent - ExprIndex) into version-specific
+       storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_extent */
 
@@ -51178,16 +54006,29 @@ representation of the field "constraint".
 
   /* Ensure the constraint field exists in the current module version. */
   check_assertion(has_ifc_constraint(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (TypePlaceholder::constraint - ExprIndex) into
-     version-specific storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (TypePlaceholder::constraint - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (TypePlaceholder::constraint - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_constraint */
 
@@ -51543,16 +54384,29 @@ representation of the field "expr".
 
   /* Ensure the expr field exists in the current module version. */
   check_assertion(has_ifc_expr(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (TypeSyntactic::expr - ExprIndex) into version-specific
-     storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (TypeSyntactic::expr - ExprIndex) into version-specific
+       storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (TypeSyntactic::expr - ExprIndex) into version-specific
+       storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_expr */
 
@@ -51863,16 +54717,29 @@ representation of the field "path".
 
   /* Ensure the path field exists in the current module version. */
   check_assertion(has_ifc_path(universal));
-  an_ifc_expr_index_0_33 stage_0;
-  an_ifc_expr_index      stage_1;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_expr_index_0_42 stage_0;
+    an_ifc_expr_index      stage_1;
 
-  /* Copy the field (TypeTypename::path - ExprIndex) into version-specific
-     storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
+    /* Copy the field (TypeTypename::path - ExprIndex) into version-specific
+       storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  } else {
+    an_ifc_expr_index_0_33 stage_0;
+    an_ifc_expr_index      stage_1;
+
+    /* Copy the field (TypeTypename::path - ExprIndex) into version-specific
+       storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    result = stage_1;
+  }  /* if */
   return result;
 }  /* get_ifc_path */
 
