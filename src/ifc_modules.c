@@ -1402,6 +1402,9 @@ Map an IFC TriadicOperator to an_opname_kind.
   switch (triadic_op) {
     case ifc_tos_unknown:
     case ifc_tos_msvc:
+    case ifc_tos_msvc_confusion:
+    case ifc_tos_msvc_confused_choice:
+    case ifc_tos_msvc_confused_push_state:
       pos_st_diagnostic(es_discretionary_error,
                         ec_ifc_no_corresponding_operator, &error_position,
                         str_for(triadic_op));
@@ -1522,9 +1525,10 @@ enum an_operator_kind : uint8_t {
 };
 
 
-static an_operator_kind get_operator_kind(an_ifc_niladic_operator_sort op)
+static an_operator_kind get_operator_kind(an_ifc_module                *mod,
+                                          an_ifc_niladic_operator_sort op)
 /*
-Return the kind of operator described by op.
+Return the kind of operator described by op in the context of the given module.
 */
 {
   an_operator_kind kind;
@@ -1532,7 +1536,7 @@ Return the kind of operator described by op.
   switch (op) {
     case ifc_nos_unknown:
     case ifc_nos_msvc:
-      unexpected_condition();
+      ifc_unexpected(mod, "unsupported NiladicOperator");
       break;
     case ifc_nos_phantom:
     case ifc_nos_constant:
@@ -1547,9 +1551,10 @@ Return the kind of operator described by op.
 }  /* get_operator_kind */
 
 
-static an_operator_kind get_operator_kind(an_ifc_monadic_operator_sort op)
+static an_operator_kind get_operator_kind(an_ifc_module                *mod,
+                                          an_ifc_monadic_operator_sort op)
 /*
-Return the kind of operator described by op.
+Return the kind of operator described by op in the context of the given module.
 */
 {
   an_operator_kind kind;
@@ -1558,7 +1563,7 @@ Return the kind of operator described by op.
     case ifc_mos_unknown:
     case ifc_mos_msvc:
     case ifc_mos_msvc_confusion:
-      unexpected_condition();
+      ifc_unexpected(mod, "unsupported MonadicOperator");
       break;
     case ifc_mos_plus:
     case ifc_mos_negate:
@@ -1653,9 +1658,10 @@ Return the kind of operator described by op.
 }  /* get_operator_kind */
 
 
-static an_operator_kind get_operator_kind(an_ifc_dyadic_operator_sort op)
+static an_operator_kind get_operator_kind(an_ifc_module               *mod,
+                                          an_ifc_dyadic_operator_sort op)
 /*
-Return the kind of operator described by op.
+Return the kind of operator described by op in the context of the given module.
 */
 {
   an_operator_kind kind;
@@ -1665,7 +1671,7 @@ Return the kind of operator described by op.
     case ifc_dos_msvc:
     case ifc_dos_msvc_saturated_arithmetic:
     case ifc_dos_select:
-      unexpected_condition();
+      ifc_unexpected(mod, "unsupported DyadicOperator");
       break;
     case ifc_dos_plus:
     case ifc_dos_minus:
@@ -1767,9 +1773,10 @@ Return the kind of operator described by op.
 }  /* get_operator_kind */
 
 
-static an_operator_kind get_operator_kind(an_ifc_triadic_operator_sort op)
+static an_operator_kind get_operator_kind(an_ifc_module                *mod,
+                                          an_ifc_triadic_operator_sort op)
 /*
-Return the kind of operator described by op.
+Return the kind of operator described by op in the context of the given module.
 */
 {
   an_operator_kind kind;
@@ -1777,7 +1784,10 @@ Return the kind of operator described by op.
   switch (op) {
     case ifc_tos_unknown:
     case ifc_tos_msvc:
-      unexpected_condition();
+    case ifc_tos_msvc_confusion:
+    case ifc_tos_msvc_confused_choice:
+    case ifc_tos_msvc_confused_push_state:
+      ifc_unexpected(mod, "unsupported TriadicOperator");
       break;
     case ifc_tos_choice:
     case ifc_tos_construct_at:
@@ -1791,9 +1801,10 @@ Return the kind of operator described by op.
 
 
 static an_operator_kind get_operator_kind(
-                                   an_ifc_storage_instruction_operator_sort op)
+                                 an_ifc_module                            *mod,
+                                 an_ifc_storage_instruction_operator_sort op)
 /*
-Return the kind of operator described by op.
+Return the kind of operator described by op in the context of the given module.
 */
 {
   an_operator_kind kind;
@@ -1801,7 +1812,7 @@ Return the kind of operator described by op.
   switch (op) {
     case ifc_sios_unknown:
     case ifc_sios_msvc:
-      unexpected_condition();
+      ifc_unexpected(mod, "unsupported StorageInstructionOperator");
       break;
     case ifc_sios_allocate_single:
     case ifc_sios_allocate_array:
@@ -1815,9 +1826,10 @@ Return the kind of operator described by op.
 }  /* get_operator_kind */
 
 
-static an_operator_kind get_operator_kind(an_ifc_variadic_operator_sort op)
+static an_operator_kind get_operator_kind(an_ifc_module                 *mod,
+                                          an_ifc_variadic_operator_sort op)
 /*
-Return the kind of operator described by op.
+Return the kind of operator described by op in the context of the given module.
 */
 {
   an_operator_kind kind;
@@ -1825,7 +1837,7 @@ Return the kind of operator described by op.
   switch (op) {
     case ifc_vos_unknown:
     case ifc_vos_msvc:
-      unexpected_condition();
+      ifc_unexpected(mod, "unsupported VariadicOperator");
       break;
     case ifc_vos_collection:
     case ifc_vos_sequence:
@@ -1843,31 +1855,32 @@ Return the kind of operator described by op.
 }  /* get_operator_kind */
 
 
-static an_operator_kind get_operator_kind(an_ifc_operator_category op)
+static an_operator_kind get_operator_kind(an_ifc_module            *mod,
+                                          an_ifc_operator_category op)
 /*
-Return the kind of operator described by op.
+Return the kind of operator described by op in the context of the given module.
 */
 {
   an_operator_kind kind;
 
   switch (op.sort) {
     case ifc_os_dyadic_operator:
-      kind = get_operator_kind(op.variant.dyadic_operator);
+      kind = get_operator_kind(mod, op.variant.dyadic_operator);
       break;
     case ifc_os_monadic_operator:
-      kind = get_operator_kind(op.variant.monadic_operator);
+      kind = get_operator_kind(mod, op.variant.monadic_operator);
       break;
     case ifc_os_niladic_operator:
-      kind = get_operator_kind(op.variant.niladic_operator);
+      kind = get_operator_kind(mod, op.variant.niladic_operator);
       break;
     case ifc_os_storage_instruction_operator:
-      kind = get_operator_kind(op.variant.storage_instruction_operator);
+      kind = get_operator_kind(mod, op.variant.storage_instruction_operator);
       break;
     case ifc_os_triadic_operator:
-      kind = get_operator_kind(op.variant.triadic_operator);
+      kind = get_operator_kind(mod, op.variant.triadic_operator);
       break;
     case ifc_os_variadic_operator:
-      kind = get_operator_kind(op.variant.variadic_operator);
+      kind = get_operator_kind(mod, op.variant.variadic_operator);
       break;
     default_is_unexpected_str("Unexpected OperatorSort");
   }  /* switch */
@@ -2642,6 +2655,37 @@ of the "friend" keyword.
 }  /* load_ifc_friend_entity_ref */
 
 
+template<typename an_ifc_Node_type>
+static a_boolean cache_decl_stmt(a_token_cache_ptr        cache,
+                                 const an_ifc_Node_type   &node)
+/*
+Cache the given stmt.decl (StmtDecl) or stmt.variable (StmtVariableDecl) node
+into the given cache.  Return TRUE if caching succeeded; otherwise, return
+FALSE.
+*/
+{
+  a_boolean                 result = FALSE;
+  Opt<an_ifc_decl_variable> opt_idv;
+  an_ifc_decl_index         decl_idx = get_ifc_decl(node);
+
+  construct_node(&opt_idv, decl_idx);
+  if (opt_idv.has_value()) {
+    an_ifc_module *mod = node.get_module();
+
+    mod->cache_variable_decl(cache, decl_idx, /*is_class_member=*/FALSE,
+                             ifc_as_none, get_ifc_specifiers(*opt_idv),
+                             get_ifc_traits(*opt_idv),
+                             get_ifc_alignment(*opt_idv),
+                             get_ifc_type(*opt_idv), get_ifc_name(*opt_idv),
+                             an_ifc_text_offset{}, an_ifc_expr_index{},
+                             /*get_ifc_initializer(node)*/
+                             an_ifc_expr_index{}, get_ifc_locus(*opt_idv));
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* cache_decl_stmt */
+
+
 void an_ifc_module::cache_statement(a_token_cache_ptr         cache,
                                     an_ifc_stmt_index         stmt_idx,
                   /* Defaulted: */  a_cache_statement_option  options)
@@ -2717,6 +2761,12 @@ to the given cache if options & cso_no_final_semicolon is nonzero.
         cache_token(cache, tok_rparen, &pos);
         cache_statement(cache, get_ifc_body(*opt_isf));
       }
+      break;
+    case ifc_ss_stmt_goto:
+      issue_unsupported_node_diag("StmtSort::Goto", &error_position);
+      break;
+    case ifc_ss_stmt_handler:
+      issue_unsupported_node_diag("StmtSort::Handler", &error_position);
       break;
     case ifc_ss_stmt_case:
       { Opt<an_ifc_stmt_case> opt_isc;
@@ -2819,6 +2869,18 @@ to the given cache if options & cso_no_final_semicolon is nonzero.
         cache_token(cache, tok_semicolon, &pos);
       }
       break;
+    case ifc_ss_stmt_decl:
+      { Opt<an_ifc_stmt_decl> opt_isd;
+
+        construct_node(&opt_isd, stmt_idx);
+        if (!opt_isd.has_value()) {
+          goto invalid;
+        }  /* if */
+        if (!cache_decl_stmt(cache, *opt_isd)) {
+          goto invalid;
+        }  /* if */
+      }
+      break;
     case ifc_ss_stmt_default:
       { Opt<an_ifc_stmt_default> opt_isd;
 
@@ -2873,6 +2935,9 @@ to the given cache if options & cso_no_final_semicolon is nonzero.
         cache_token(cache, tok_semicolon, &null_source_position);
       }
       break;
+    case ifc_ss_stmt_tuple:
+      issue_unsupported_node_diag("StmtSort::Tuple", &error_position);
+      break;
     case ifc_ss_stmt_variable_decl:
       { Opt<an_ifc_stmt_variable_decl> opt_isvd;
 
@@ -2880,21 +2945,9 @@ to the given cache if options & cso_no_final_semicolon is nonzero.
         if (!opt_isvd.has_value()) {
           goto invalid;
         }  /* if */
-
-        Opt<an_ifc_decl_variable> opt_idv;
-        an_ifc_decl_index         decl_idx = get_ifc_decl(*opt_isvd);
-        construct_node(&opt_idv, decl_idx);
-        if (!opt_idv.has_value()) {
+        if (!cache_decl_stmt(cache, *opt_isvd)) {
           goto invalid;
         }  /* if */
-        cache_variable_decl(cache, decl_idx, /*is_class_member=*/FALSE,
-                            ifc_as_none, get_ifc_specifiers(*opt_idv),
-                            get_ifc_traits(*opt_idv),
-                            get_ifc_alignment(*opt_idv),
-                            get_ifc_type(*opt_idv), get_ifc_name(*opt_idv),
-                            an_ifc_text_offset{}, an_ifc_expr_index{},
-                            /*get_ifc_initializer(*opt_isvd)*/
-                            an_ifc_expr_index{}, get_ifc_locus(*opt_idv));
       }
       break;
     case ifc_ss_stmt_expansion:
@@ -12206,7 +12259,10 @@ the location of the operator.
   source_position_from_locus(&pos, locus);
   switch (op) {
     case ifc_tos_unknown:
-      unexpected_condition();
+    case ifc_tos_msvc_confusion:
+    case ifc_tos_msvc_confused_choice:
+    case ifc_tos_msvc_confused_push_state:
+      ifc_unexpected(this, "unsupported TriadicOperator");
       break;
     case ifc_tos_choice:
       cache_token(cache, tok_quest_mark, &pos);
@@ -14075,6 +14131,7 @@ second operand of an assignment.
     case ifc_es_expr_vendor_extension:
     case ifc_es_expr_delete:
     case ifc_es_expr_new:
+    case ifc_es_expr_label:
       issue_unsupported_node_diag(str_for(expr.sort), &error_position);
       break;
     case ifc_es_expr_empty:
@@ -14304,7 +14361,7 @@ second operand of an assignment.
           cache_token(cache, tok_rparen, &pos);
         };  /* cache_arg */
         source_position_from_locus(&pos, locus);
-        switch (get_operator_kind(assoc)) {
+        switch (get_operator_kind(expr.mod, assoc)) {
           case opkind_basic:
           case opkind_func_like:
             cache_operator(cache, assoc, locus);
@@ -14354,7 +14411,8 @@ second operand of an assignment.
         an_ifc_expr_dyad            ied = *opt_ied;
         an_ifc_source_location      locus = get_ifc_locus(ied);
         an_ifc_dyadic_operator_sort assoc = get_ifc_assoc(ied);
-        an_operator_kind            opkind = get_operator_kind(assoc);
+        an_operator_kind            opkind =
+                                    get_operator_kind(ied.get_module(), assoc);
         an_ifc_expr_index           arg_0 = get_ifc_argument_0(ied);
         an_ifc_expr_index           arg_1 = get_ifc_argument_1(ied);
         source_position_from_locus(&pos, locus);
@@ -16055,7 +16113,8 @@ of the name.
         }  /* if */
 
         an_ifc_name_operator ino = *opt_ino;
-        an_operator_kind     opkind = get_operator_kind(get_ifc_operator(ino));
+        an_operator_kind     opkind = get_operator_kind(ino.get_module(),
+                                                        get_ifc_operator(ino));
         an_ifc_text_offset   encoded = get_ifc_encoded(ino);
         if (opkind == opkind_c_cast || opkind == opkind_cpp_cast) {
           unexpected_condition_str("Unexpected operator kind");
