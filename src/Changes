@@ -1,5 +1,19 @@
 Version 6.4
 
+8/15/22  [EDGcpfe/25285]
+C++-generating back end: direct-list-initialization of non-static data members
+
+In some modes, the C++-generating back end failed to put out the outer
+braces for a default member initializer that it a braced initializer list,
+effectively concatenating the type with the member name.  This is now fixed.
+for example, with --c++17:
+
+  struct A { };
+  struct B {
+    A a{ A{} };   // Previously generated as "A aA{}"
+  };
+
+
 8/15/22  [EDGcpfe/25388]
 Nondependent alias templates in prototype instantiations
 

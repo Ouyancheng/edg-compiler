@@ -10166,8 +10166,12 @@ static void gen_field_initializer(a_field_ptr  field)
           need_braces = TRUE;
         }  /* if */
       } else {
-        /* An aggregate constant with no backing expression; braces will
-           be supplied by gen_dynamic_init. */
+        /* An aggregate constant with no backing expression; braces will be
+           supplied by gen_dynamic_init unless the initializer is an
+           explicit cast.  In that case, the braces supplied by
+           gen_dynamic_init will be those belonging to the cast and we must
+           provide the outer braces here. */
+        need_braces = cp->explicit_cast_applied;
       }  /* if */
     } else if (dip->kind == (a_dynamic_init_kind)dik_expression) {
       /* A non-constant braced expression: braces must be supplied here. */
