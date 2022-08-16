@@ -4,9 +4,9 @@ Version 6.4
 C++-generating back end: direct-list-initialization of non-static data members
 
 In some modes, the C++-generating back end failed to put out the outer
-braces for a default member initializer that it a braced initializer list,
-effectively concatenating the type with the member name.  This is now fixed.
-for example, with --c++17:
+braces for a default member initializer that is a braced initializer list,
+effectively concatenating the member name with the initializer.  This is
+now fixed.  for example, with --c++17:
 
   struct A { };
   struct B {
