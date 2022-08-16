@@ -1616,7 +1616,7 @@ declaration.  error_pos is the default position for diagnostics.
         pos_error(ec_cppcx_non_const_array_parameter, error_pos);
         dps->type = error_type();
       } else if ((tqs & TQ_RESTRICT) != 0 && dps->is_param_decl) {
-        /* __restrict on parameter declarations are ignored on type aliases. */
+        /* __restrict in a parameter declaration is ignored in a type alias. */
         a_decl_parse_state  *func_dps = dps->assoc_func_decl_state;
         if (func_dps->is_type_name ||
             func_dps->declared_storage_class == sc_typedef) {
