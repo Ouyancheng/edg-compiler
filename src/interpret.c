@@ -7383,8 +7383,10 @@ successfully interpreted, FALSE otherwise.
                     break;
                   }  /* if */
                 }  /* if */
+                if (parent_stmt->parent == NULL) {
+                  break;
+                }  /* if */
                 parent_stmt = parent_stmt->parent;
-                check_assertion(parent_stmt != NULL);
               }  /* if */
             }  /* if */
             info_with_pos(ec_constexpr_missing_return_value, pos, ips);
