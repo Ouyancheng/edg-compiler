@@ -38,8 +38,8 @@ That is now fixed.
 8/15/22  [EDGcpfe/25530]
 Microsoft mode regression with __restrict parameter
 
-The changes for EDGcpfe/24520 introduced a regression in Microsoft mode.  For
-example:
+The changes for EDGcpfe/24520 (in version 6.3) introduced a regression in
+Microsoft mode.  For example:
 
   using F = void (void *__restrict);
   using F = void (void *);  // Previously an error.  Now okay.
