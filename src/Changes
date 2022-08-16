@@ -1,5 +1,25 @@
 Version 6.4
 
+8/16/22  [EDGcpfe/25540]
+C++-generating back end: implicit return in handler of function try block
+
+The IL includes explicit stmk_return statements wherever the language rules
+specify an implicit return.  The C++-generating back end generally
+suppresses these implicit return statements in the IL so that they do not
+appear in the generated code.  However, it failed to do so in the handlers
+of function try blocks.  This failure resulted in errors in a
+value-returning function when the generated code was compiled by g++, which
+accepts an implicit return with a warning in such cases but issues an error
+for an explicit return with no operand.  This is now fixed.  For example,
+with --g++:
+
+  int f() try {
+    throw 0;
+  } catch (...) {
+    // implicit return, previously generated as "return;"
+  }
+
+
 8/15/22  [EDGcpfe/25285]
 C++-generating back end: direct-list-initialization of non-static data members
 

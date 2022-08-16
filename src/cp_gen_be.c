@@ -19340,7 +19340,8 @@ Return TRUE if the indicated return statement is the return at the end of
 the current function.
 */
 {
-  a_boolean is_return_at_end = FALSE;
+  a_boolean     is_return_at_end = FALSE;
+  a_handler_ptr hp = NULL;
 
   /* Check first that the return is the last statement in its block.  This
      rules out things like
@@ -19351,7 +19352,9 @@ the current function.
     /* Look in the top block of the function. */
     a_statement_ptr stmt = innermost_function_scope->assoc_block;
     if (stmt->kind == (a_statement_kind)stmk_try_block) {
-      /* For a function try block, look at the dependent block of the try. */
+      /* For a function try block, look at the dependent block of the try
+         and remember the list of handlers. */
+      hp = stmt->variant.try_block->handlers;
       stmt = stmt->variant.try_block->statement;
     }  /* if */
     check_assertion(stmt->kind == (a_statement_kind)stmk_block);
@@ -19365,6 +19368,19 @@ the current function.
         break;
       }  /* if */
     }  /* for */
+    while (!is_return_at_end && hp != NULL) {
+      /* Check to see if the return is at the end of one of the handlers
+         of the function try block. */
+      for (stmt = hp->statement->variant.block.statements;
+           !is_return_at_end && stmt != NULL;
+           stmt = stmt->next) {
+        if (stmt == return_stmt) {
+          /* The return statement is at the end of a handler. */
+          is_return_at_end = TRUE;
+        }  /* if */
+      }  /* for */
+      hp = hp->next;
+    }  /* while */
   }  /* if */
   return is_return_at_end;
 }  /* is_return_at_end_of_function */
