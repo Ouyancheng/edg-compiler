@@ -1,5 +1,24 @@
 Version 6.4
 
+8/16/22  [EDGcpfe/21159,EDGcpfe/24861,EDGcpfe/25474]
+GNU C++ compatibility: Substitution of nondependent type aliases
+
+Consider:
+
+  template<bool> using Int = int;
+  template<typename> struct X;
+  template<typename U, Int<X<U>::f> = 0> int operator<<(int, U);
+  struct C {};
+  int r = 0 << C{};  // Normally an error.  Now okay in GNU C++ mode.
+
+Normally, this should elicit an error because the substitution of X<U>::f fails
+(since template X has no definition).  However, it appears that GCC does not
+perform the substitution of X<U>::f in Int<X<U>::f> because alias template Int
+aliases a nondependent type (int, in this case).  It is not entirely clear when
+GCC fails to perform such substitutions, but the front end now emulates that
+behavior in GNU C++ mode to cover all the cases we are currently aware of.
+
+
 8/16/22  [EDGcpfe/25540]
 C++-generating back end: implicit return in handler of function try block
 

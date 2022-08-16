@@ -15902,6 +15902,30 @@ a pointer over a reference type or creating an array of references.
                               templ_param_list, source_pos, options,
                               copy_error,
                               ctws_state);
+                if (gpp_version_is(any_version) && *copy_error &&
+                    (options & CTWS_IS_PARTIAL_SPECIALIZATION_CHECK) == 0 &&
+                    (options & CTWS_RETURN_TYPE) == 0 &&
+                    !template_sym->is_class_member &&
+                    type != NULL && !is_template_dependent_type(type)) {
+                  /* GCC appears to ignore substitution failures in
+                     parameterized type aliases that have a nondependent
+                     underlying type.  For example:
+                       template<bool> using Int = int;
+                       template<typename> struct X;
+                       template<typename U, Int<X<U>::f> = 0>
+                           int operator<<(int, U);
+                       struct C {};
+                       int r = 0 << C{};
+                     GCC accepts that because it doesn't attempt to substitute
+                     B<U>::f (which would fail since B<...> is incomplete).
+                  */
+                  a_type_qualifier_set  tqs = get_type_qualifiers(type);
+                  type = skip_typerefs(type);
+                  if (tqs != TQ_NONE) {
+                    type = make_qualified_type(type, tqs);
+                  }  /* if*/
+                  *copy_error = FALSE;
+                }  /*if */
                 new_type = type;
               }  /* if */
             }  /* if */
