@@ -15905,7 +15905,6 @@ a pointer over a reference type or creating an array of references.
                 if (gpp_version_is(any_version) && *copy_error &&
                     tssp != NULL &&
                     (options & CTWS_IS_PARTIAL_SPECIALIZATION_CHECK) == 0 &&
-                    (options & CTWS_RETURN_TYPE) == 0 &&
                     !template_sym->is_class_member) {
                   a_type_ptr gtp = tssp->il_template_entry
                                        ->prototype_instantiation.type;
