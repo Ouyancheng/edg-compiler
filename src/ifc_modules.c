@@ -2661,8 +2661,8 @@ static void cache_token_with_index(a_token_cache_ptr     cache,
                                    Index_Type            index,
                                    a_source_position_ptr pos)
 /*
-Add tok_to_cache to cache, and associate it with init_expr.  mod is the module
-associated with init_expr, and pos is the position of the initializer.
+Add tok_to_cache to cache and associate it with index.  pos is the position of
+the initializer.
 */
 {
   cache_token(cache, tok_to_cache, pos);
@@ -13542,7 +13542,7 @@ list (individual parameters will have their own locus associated with them).
       first = FALSE;
     }  /* for */
   } else if (!is_null_index(param_types)) {
-    /* The only information we have on the parameters are their types. */
+    /* The only information we have on the parameters is their types. */
     cache_type(cache, param_types, locus);
   }  /* if */
 invalid:
