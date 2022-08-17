@@ -13606,6 +13606,8 @@ it is always NULL.
      tentative comparison. */
   templ_arg_list = copy_template_arg_list(templ_arg_list);
   if (pack_expansion_stack != NULL &&
+      pack_expansion_stack->instantiation_descr != NULL &&
+      pack_expansion_stack->instantiation_descr->pack_status != NULL &&
       pack_expansion_stack->instantiation_descr->pack_status->
                                                    prev_template_arg != NULL) {
     prp = pack_expansion_stack->instantiation_descr->pack_status;
