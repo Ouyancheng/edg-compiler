@@ -25397,6 +25397,29 @@ a parameter list whose depth is not nesting_depth.
 }  /* type_uses_enclosing_pack */
 
 
+static void update_auto_template_param_type(a_type_ptr	param_type)
+/*
+Update the "auto" or "decltype(auto)" type of param_type to record that it
+is used in an auto template parameter.
+*/
+{
+  a_type_ptr	type;
+
+  type = find_bottom_of_type(param_type);
+  if (type_is(type, tk_template_param)) {
+    a_template_param_type_supplement_ptr	tptsp;
+    tptsp = type->variant.template_param.extra_info;
+    if (tptsp->coordinates.depth == AUTO_TYPE_NESTING_DEPTH) {
+      /* Translate the "auto" information encoded in the coordinates to
+         the flags used for nontype template parameter types. */
+      type->variant.template_param.is_auto_param = TRUE;
+      type->variant.template_param.is_decltype_auto =
+                      tptsp->coordinates.position == DECLTYPE_AUTO_POS_NUMBER;
+    }  /* if */
+  }  /* if */
+}  /* update_auto_template_param_type */
+
+
 static void scan_a_template_parameter_declaration(
 			a_symbol_locator		*param_locator,
 			a_type_ptr			*param_type_ptr,
@@ -25469,6 +25492,7 @@ the components of the declaration.
     /* has_deduced_type can be set in some error cases even when auto
        template parameters are not enabled. */
     if (uses_auto != NULL) *uses_auto = TRUE;
+    update_auto_template_param_type(state.type);
   }  /* if */
   if (template_dependent != NULL && uses_auto != NULL) {
     /* Check whether the type depends on a template parameter.  This is
@@ -25536,9 +25560,10 @@ the associated concept; otherwise, set it to NULL.
                                                gid_options, ilm_normal, &err);
       if (concept_templ == NULL ||
           (!symbol_is(concept_templ, sk_concept_template) ||
-           type_constraint_followed_by_auto())) {
+           type_constraint_followed_by_auto(/*decltype_auto_okay=*/true))) {
         /* An identifier other than a concept template: This is a nontype
-           template parameter. */
+           template parameter.  A concept-based constraint followed by "auto"
+           or "decltype(auto)" also introduces a nontype template parameter. */
         result = (a_symbol_kind)sk_constant;
         concept_templ = NULL;
       } else {
@@ -26120,29 +26145,6 @@ Scan the default argument of the nontype template parameter specified by tpp.
      are still template dependent. */
   tpp->default_arg.constant = default_arg_constant;
 }  /* scan_nontype_template_param_default_arg */
-
-
-static void update_auto_template_param_type(a_type_ptr	param_type)
-/*
-Update the "auto" or "decltype(auto)" type of param_type to record that it
-is used in an auto template parameter.
-*/
-{
-  a_type_ptr	type;
-
-  type = find_bottom_of_type(param_type);
-  if (type_is(type, tk_template_param)) {
-    a_template_param_type_supplement_ptr	tptsp;
-    tptsp = type->variant.template_param.extra_info;
-    if (tptsp->coordinates.depth == AUTO_TYPE_NESTING_DEPTH) {
-      /* Translate the "auto" information encoded in the coordinates to
-         the flags used for nontype template parameter types. */
-      type->variant.template_param.is_auto_param = TRUE;
-      type->variant.template_param.is_decltype_auto =
-                      tptsp->coordinates.position == DECLTYPE_AUTO_POS_NUMBER;
-    }  /* if */
-  }  /* if */
-}  /* update_auto_template_param_type */
 
 
 static a_symbol_ptr make_nontype_template_param_symbol(

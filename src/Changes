@@ -1,5 +1,23 @@
 Version 6.4
 
+8/17/22  [EDGcpfe/24377,EDGcpfe/25527]
+Constrained "decltype(auto)" nontype template parameters
+
+The front end now accepts:
+
+  template<typename> concept C = true;
+  template<C decltype(auto)> struct X;
+
+Not accepting that variation of nontype template parameters declared with a
+placeholder type was an oversight.  Furthermore, the front end now also
+correctly diagnoses some constrained "auto" nontype template parameters where
+is previously failed to do so.  For example:
+
+  template<typename> concept C = false;
+  template<C auto = 42> struct S {};
+  S<> s;  // Previously erroneously accepted.  Now okay.
+
+
 8/16/22  [EDGcpfe/21159,EDGcpfe/24861,EDGcpfe/25474]
 GNU C++ compatibility: Substitution of nondependent type aliases
 
