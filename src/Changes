@@ -1,6 +1,6 @@
 Version 6.4
 
-8/16/22  [EDGcpfe/21159,EDGcpfe/24861,EDGcpfe/25474]
+8/16/22  [EDGcpfe/21159,EDGcpfe/25474]
 GNU C++ compatibility: Substitution of nondependent type aliases
 
 Consider:
