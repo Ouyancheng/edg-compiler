@@ -1522,6 +1522,7 @@ enum an_operator_kind : uint8_t {
   opkind_c_cast,    /* A C-style cast (e.g., (X*)Y). */
   opkind_cpp_cast,  /* A C++-style cast (e.g., reinterpret_cast<X*>Y). */
   opkind_other,     /* Something else. */
+  opkind_error      /* Invalid/error operator value. */
 };
 
 
@@ -1531,7 +1532,7 @@ static an_operator_kind get_operator_kind(an_ifc_module                *mod,
 Return the kind of operator described by op in the context of the given module.
 */
 {
-  an_operator_kind kind;
+  an_operator_kind kind = opkind_error;
 
   switch (op) {
     case ifc_nos_unknown:
@@ -1557,7 +1558,7 @@ static an_operator_kind get_operator_kind(an_ifc_module                *mod,
 Return the kind of operator described by op in the context of the given module.
 */
 {
-  an_operator_kind kind;
+  an_operator_kind kind = opkind_error;
 
   switch (op) {
     case ifc_mos_unknown:
@@ -1664,7 +1665,7 @@ static an_operator_kind get_operator_kind(an_ifc_module               *mod,
 Return the kind of operator described by op in the context of the given module.
 */
 {
-  an_operator_kind kind;
+  an_operator_kind kind = opkind_error;
 
   switch (op) {
     case ifc_dos_unknown:
@@ -1779,7 +1780,7 @@ static an_operator_kind get_operator_kind(an_ifc_module                *mod,
 Return the kind of operator described by op in the context of the given module.
 */
 {
-  an_operator_kind kind;
+  an_operator_kind kind = opkind_error;
 
   switch (op) {
     case ifc_tos_unknown:
@@ -1807,7 +1808,7 @@ static an_operator_kind get_operator_kind(
 Return the kind of operator described by op in the context of the given module.
 */
 {
-  an_operator_kind kind;
+  an_operator_kind kind = opkind_error;
 
   switch (op) {
     case ifc_sios_unknown:
@@ -1832,7 +1833,7 @@ static an_operator_kind get_operator_kind(an_ifc_module                 *mod,
 Return the kind of operator described by op in the context of the given module.
 */
 {
-  an_operator_kind kind;
+  an_operator_kind kind = opkind_error;
 
   switch (op) {
     case ifc_vos_unknown:
@@ -1861,7 +1862,7 @@ static an_operator_kind get_operator_kind(an_ifc_module            *mod,
 Return the kind of operator described by op in the context of the given module.
 */
 {
-  an_operator_kind kind;
+  an_operator_kind kind = opkind_error;
 
   switch (op.sort) {
     case ifc_os_dyadic_operator:
@@ -14458,8 +14459,9 @@ second operand of an assignment.
             break;
           case opkind_c_cast:
           case opkind_cpp_cast:
-            unexpected_condition();
-            break;
+            ifc_unexpected(this, "Unexpected operator kind");
+          case opkind_error:
+            goto invalid;
           default_is_unexpected();
         }  /* switch */
       }
@@ -14530,8 +14532,9 @@ second operand of an assignment.
             break;
           case opkind_post:
           case opkind_other:
-            unexpected_condition();
-            break;
+            ifc_unexpected(this, "Unexpected operator kind");
+          case opkind_error:
+            goto invalid;
           default_is_unexpected();
         }  /* switch */
       }
@@ -16181,7 +16184,8 @@ of the name.
                                                         get_ifc_operator(ino));
         an_ifc_text_offset   encoded = get_ifc_encoded(ino);
         if (opkind == opkind_c_cast || opkind == opkind_cpp_cast) {
-          unexpected_condition_str("Unexpected operator kind");
+          ifc_unexpected(this, "Unexpected operator kind");
+          goto invalid;
         }  /* if */
         cache_token(cache, tok_operator, &pos);
         cache_tokens_from_string(get_string_at_offset(encoded), cache, &pos);
