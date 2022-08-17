@@ -19353,8 +19353,19 @@ the current function.
     a_statement_ptr stmt = innermost_function_scope->assoc_block;
     if (stmt->kind == (a_statement_kind)stmk_try_block) {
       /* For a function try block, look at the dependent block of the try
-         and remember the list of handlers. */
-      hp = stmt->variant.try_block->handlers;
+         and, in cases where flowing off the end of a handler is equivalent
+         to a return statement, remember the list of handlers for later
+         processing.  (That is not true for constructors and destructors,
+         for which flowing off the end of a handler rethrows the exception,
+         so we don't consider handlers in those cases.) */
+      a_routine_ptr rp;
+      check_assertion(innermost_function_scope != NULL &&
+                      innermost_function_scope->kind == sck_function);
+      rp = innermost_function_scope->variant.routine.ptr;
+      if (!special_kind_is(rp, sfk_constructor) &&
+          !special_kind_is(rp, sfk_destructor)) {
+        hp = stmt->variant.try_block->handlers;
+      }  /* if */
       stmt = stmt->variant.try_block->statement;
     }  /* if */
     check_assertion(stmt->kind == (a_statement_kind)stmk_block);
