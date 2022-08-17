@@ -333,7 +333,8 @@ block size is returned through upc_block_size (when non-NULL).
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   if (decl_pos_block != NULL) {
     check_assertion(local_decl_pos_block.specifiers_range.end.seq != 0 ||
-                    scanning_generated_code);
+                    scanning_generated_code ||
+                    scope_stack_top().module_load_context_count > 0);
     decl_pos_block->declarator_range.end =
                        local_decl_pos_block.specifiers_range.end;
   }  /* if */

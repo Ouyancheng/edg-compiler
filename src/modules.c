@@ -1170,6 +1170,28 @@ initializer.
   return result;
 }  /* load_variable_init_from_module */
 
+
+void extract_tokens_for_module_expr(
+                               ARG_UNUSED a_lexical_ifc_index_reference *index)
+/*
+Extract the tokens corresponding to the expression referred to by index and
+insert them into the token stream.
+*/
+{
+  a_token_cache cache;
+
+  clear_token_cache(&cache, /*reusable=*/FALSE);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  {
+    an_ifc_expr_index expr_index{(an_ifc_module*)index->module,
+                                 (an_ifc_expr_sort)index->sort, index->index};
+    expr_index.mod->cache_expr(&cache, expr_index);
+    terminate_token_cache(&cache);
+    rescan_cached_tokens(&cache);
+  }
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+}  /* extract_tokens_for_module_expr */
+
 #if DEBUG
 
 void db_module(a_module_ptr mod)

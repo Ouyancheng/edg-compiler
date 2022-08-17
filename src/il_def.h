@@ -325,6 +325,7 @@ Create an assembly scope index from an assembly index and a scope index.
   ((an_assembly_scope_index)(((scope_index) & 0xFFFF) |                      \
                              (((assembly_index) & 0xFFFF) << 16)))
 
+
 /*
 Entry used to represent a CLI metadata file.  This is used for metadata
 files made available by actual #using directives that appear in the source
@@ -1008,6 +1009,10 @@ enum a_token_kind : unsigned short {
                             /* Generated when reading an IFC file to indicate
                                that the declaration for a variable has an
                                initializer that hasn't yet been processed. */
+  tok_pending_ifc_expr,
+                            /* Generated when reading an IFC file to indicate
+                               that there exists an expression that has not yet
+                               been processed. */
   tok_ifc_entity_ref,
                             /* Generated when reading an IFC file to represent
                                a reference to another IFC entity.  Only appears
@@ -1473,7 +1478,7 @@ EXTERN a_const_char
    "cli typeid",
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
    "decltype construct", "pending IFC body", "pending IFC var init",
-   "IFC entity ref", "IFC decl",
+   "pending IFC expression", "IFC entity ref", "IFC decl",
    "unimplemented",
    "[", "]", "(", ")", ".", "->", "++", "--", "&", "*", "+", "-",
    "~", "!", "/", "%", "<<", ">>", "<", ">", "<=", ">=", "==", "!=", "<=>",

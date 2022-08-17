@@ -21112,6 +21112,7 @@ information about the member declaration, respectively.
                          (curr_token == tok_assign ||
                           curr_token == tok_lbrace ||
                           curr_token == tok_pending_ifc_var_init ||
+                          curr_token == tok_pending_ifc_expr ||
                           curr_token == tok_removed_expr) &&
                          !locator->is_error;
   /* Create the IL for the field, enter the symbol (if needed), etc. */

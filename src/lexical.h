@@ -318,6 +318,7 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
    (an_opname_kind)onk_none,          /* tok_decltype_construct */
    (an_opname_kind)onk_none,          /* tok_pending_ifc_func_body */
    (an_opname_kind)onk_none,          /* tok_pending_ifc_var_init */
+   (an_opname_kind)onk_none,          /* tok_pending_ifc_expr  */
    (an_opname_kind)onk_none,          /* tok_ifc_entity_ref */
    (an_opname_kind)onk_none,          /* tok_ifc_decl */
    (an_opname_kind)onk_none,          /* tok_unimplemented */
@@ -3059,6 +3060,7 @@ extern void flush_tokens_with_stop_tokens_and_warning_flag(
                                          a_token_set_array  stop_tokens,
                                          a_boolean          suppress_warning);
 extern void flush_to_closing_paren(void);
+extern void flush_to_end_of_source(a_boolean suppress_warning);
 extern void flush_if_or_else_statement(void);
 extern void flush_tokens(void);
 extern void flush_tokens_without_warning(void);

@@ -2655,6 +2655,23 @@ of the "friend" keyword.
 }  /* load_ifc_friend_entity_ref */
 
 
+template<typename Index_Type>
+static void cache_token_with_index(a_token_cache_ptr     cache,
+                                   a_token_kind          tok_to_cache,
+                                   Index_Type            index,
+                                   a_source_position_ptr pos)
+/*
+Add tok_to_cache to cache, and associate it with init_expr.  mod is the module
+associated with init_expr, and pos is the position of the initializer.
+*/
+{
+  cache_token(cache, tok_to_cache, pos);
+  cache->last_token->extra_info_kind = teik_ifc_index;
+  cache->last_token->variant.ifc_index = {index.sort, index.value,
+                                          index.mod};
+}  /* cache_token_with_index */
+
+
 template<typename an_ifc_Node_type>
 static a_boolean cache_decl_stmt(a_token_cache_ptr        cache,
                                  const an_ifc_Node_type   &node)
@@ -3016,6 +3033,7 @@ FALSE otherwise.
   an_ifc_expr_index      initializer = get_ifc_initializer(idp);
   a_source_position      pos;
   a_boolean              need_second_pass = FALSE;
+  a_boolean              defer_initializer_expr = FALSE;
 
   source_position_from_locus(&pos, locus);
   switch (get_ifc_sort(idp)) {
@@ -3026,6 +3044,14 @@ FALSE otherwise.
                                          is_pack, &pos);
       }
       break;
+    case ifc_ps_object:
+      /* This is a function parameter rather than a template parameter, but is
+         handled the same as non-type template parameters.  We do need to
+         apply special handling to defer the initializer (if one exists),
+         however, as the default argument expression could reference a parent
+         class that's in the process of being completed. */
+      defer_initializer_expr = TRUE;
+      FALLTHROUGH
     case ifc_ps_non_type:
       mod->cache_type_first_part(cache, type, locus);
       need_second_pass = TRUE;
@@ -3044,11 +3070,6 @@ FALSE otherwise.
         mod->cache_type(cache, type, locus);
       }  /* if */
       break;
-    case ifc_ps_object:
-      /* This is a function parameter rather than a template parameter.  We
-         should not run into those here. */
-      unexpected_condition();
-      break;
     default_is_unexpected_str("Unexpected ParameterSort");
   }  /* switch */
   if (name != 0) {
@@ -3059,7 +3080,11 @@ FALSE otherwise.
   }  /* if */
   if (!is_null_index(initializer) && !mod->suppress_default_arguments) {
     cache_token(cache, tok_assign, &pos);
-    mod->cache_expr(cache, initializer);
+    if (defer_initializer_expr) {
+      cache_token_with_index(cache, tok_pending_ifc_expr, initializer, &pos);
+    } else {
+      mod->cache_expr(cache, initializer);
+    }  /* if */
   }  /* if */
   return TRUE;
 }  /* cache_decl */
@@ -3900,10 +3925,6 @@ principal associated IL entity.
             } else if (test_bitmask<ifc_ftb_inline>(traits)) {
               dps.dso_flags |= DSO_INLINE;
             }  /* if */
-            if (!fill_in_routine_parameter_defaults(get_ifc_chart(idf),
-                                                    dps.type, is_consteval)) {
-              goto invalid;
-            }  /* if */
             clear_func_info(&func_info);
             clear_decl_pos_block(&decl_pos_block);
             decl_routine(&loc, &dps, &func_info, SRK_DECLARATION, &linkage_ptr,
@@ -3912,6 +3933,10 @@ principal associated IL entity.
             rp = dps.sym->variant.routine.ptr;
             il_entity = (char *)rp;
             kind = iek_routine;
+            if (!fill_in_routine_parameter_defaults(get_ifc_chart(idf),
+                                                    dps.type, is_consteval)) {
+              goto invalid;
+            }  /* if */
             if (function_is_user_defined(idf)) {
               /* A body is available: Record this availability in case it is
                  needed. */
@@ -3991,10 +4016,16 @@ principal associated IL entity.
             a_type_ptr   parent_class = mep->scope->variant.assoc_type;
             a_symbol_ptr sym;
 
+            /* The parent class may contain references to this child class.
+               Clear the imminent flag to allow re-processing to occur if need
+               be (otherwise, we may fail to find the type of this entity
+               during completion of the parent class). */
+            mep->imminent = FALSE;
             sym = look_up_name_string_in_class(loc.symbol_header->identifier,
                                                parent_class,
                                                IDL_TENTATIVE_TYPE_LOOKUP |
                                                               IDL_MUST_BE_TAG);
+            mep->imminent = TRUE;
             check_assertion(sym != NULL && is_class_struct_union_symbol(sym));
             il_entity = (char*)(sym->variant.class_struct_union.type);
             kind = iek_type;
@@ -5358,11 +5389,8 @@ Complete the definition of the class referred to by mep (if needed).
           auto cache_member = [this, &cache](const an_ifc_scope_member  &ism) {
             an_ifc_decl_index  member_idx = get_ifc_index(ism);
             this->cache_decl(&cache, member_idx);
-            cache_token(&cache, tok_ifc_decl, &error_position);
-            cache.last_token->extra_info_kind = teik_ifc_index;
-            cache.last_token->variant.ifc_index = {member_idx.sort,
-                                                   member_idx.value,
-                                                   member_idx.mod};
+            cache_token_with_index(&cache, tok_ifc_decl, member_idx,
+                                   &error_position);
           };
           traverse_scope_members(class_members, cache_member);
           cache_token(&cache, tok_rbrace, &error_position);
@@ -5401,6 +5429,8 @@ Complete the definition of the class referred to by mep (if needed).
          that of the class. */
       scope_stack_top().default_name_linkage =
                                        class_type->source_corresp.name_linkage;
+      curr_class_fixup_header(/*for_instantiation=*/TRUE)->
+                                                   pending_class_definitions++;
       (void)scan_class_definition(class_type, (a_decl_parse_state*)NULL,
                                   depth_innermost_namespace_scope,
                                   /*is_partial=*/FALSE,
@@ -5412,6 +5442,8 @@ Complete the definition of the class referred to by mep (if needed).
                                   (a_template_ptr)NULL,
                                   (a_decl_pos_block_ptr)NULL);
       add_ifc_friends_to_class(this, class_type, decl_idx);
+      curr_class_fixup_header(/*for_instantiation=*/TRUE)->
+                                                   pending_class_definitions--;
       process_deferred_class_fixups_and_instantiations(
                                                    /*for_instantiation=*/TRUE);
       {
@@ -5472,7 +5504,11 @@ Print information about the module entity pointer.
     (void)fprintf(f_debug, "[%s]: ", mep->module_info->name);
   }  /* if */
   if (mep->entity.kind != iek_none) {
-    db_scp((a_source_correspondence*)mep->entity.ptr);
+    if (mep->invalid) {
+      (void)fprintf(f_debug, "(Invalid)\n");
+    } else {
+      db_scp((a_source_correspondence*)mep->entity.ptr);
+    }  /* if */
   } else {
     if (mep->scope != NULL) {
       db_scope(mep->scope);
@@ -8650,6 +8686,10 @@ successful, FALSE if any errors were encountered.
       }  /* if */
       an_ifc_decl_parameter curr_param = *opt_param;
       an_ifc_expr_index     initializer_expr = get_ifc_initializer(curr_param);
+      /* FIXME: Should we issue a diagnostic or attempt to determine expression
+         equivalencies here if the parameter already has a default argument?
+         Due to the way that IFC handles these, duplicate expressions are very
+         possible. */
       if (!is_null_index(initializer_expr)) {
         ptp->has_default_arg = TRUE;
         clear_token_cache(&cache, /*reusable=*/FALSE);
@@ -8660,7 +8700,7 @@ successful, FALSE if any errors were encountered.
                               is_consteval);
         if (curr_token != tok_end_of_source) {
           expect_error();
-          flush_tokens_without_warning();
+          flush_to_end_of_source(/*suppress_warning=*/TRUE);
         }  /* if */
         check_assertion(curr_token == tok_end_of_source);
         (void)get_token();
@@ -8844,22 +8884,6 @@ position of the constant.
   cache->last_token->variant.constant = alloc_cached_constant();
   copy_constant(cp, cache->last_token->variant.constant);
 }  /* cache_aggr_constant */
-
-
-static void cache_var_initializer(a_token_cache_ptr     cache,
-                                  an_ifc_expr_index     init_expr,
-                                  a_source_position_ptr pos)
-/*
-Add a tok_pending_ifc_var_init token to cache, and associate it with init_expr.
-mod is the module associated with init_expr, and pos is the position of the
-initializer.
-*/
-{
-  cache_token(cache, tok_pending_ifc_var_init, pos);
-  cache->last_token->extra_info_kind = teik_ifc_index;
-  cache->last_token->variant.ifc_index = {init_expr.sort, init_expr.value,
-                                          init_expr.mod};
-}  /* cache_var_initializer */
 
 
 a_dynamic_init_ptr load_variable_init_from_ifc_module(
@@ -12498,7 +12522,8 @@ initializer expression.  locus is the source location for the declaration.
            a constant expression.  These initializers may include recursive
            self-references.  Cache a special pseudo-token to indicate that such
            an initializer exists, along with its constant value. */
-        cache_var_initializer(cache, initializer, pos);
+        cache_token_with_index(cache, tok_pending_ifc_var_init, initializer,
+                               pos);
       }  /* if */
       cache_token(cache, tok_semicolon, pos);
     };
@@ -12599,14 +12624,7 @@ properly for specializations using a NameIndex.
   }  /* if */
   cache_name_fn(&pos);
   cache_token(cache, tok_lparen, &pos);
-  if (!is_null_index(params)) {
-    /* The parameters have detailed information associated with them, use
-       that. */
-    cache_chart(cache, params, locus);
-  } else if (!is_null_index(param_types)) {
-    /* The only information we have on the parameters are their types. */
-    cache_type(cache, param_types, locus);
-  }  /* if */
+  cache_function_parameters(cache, params, param_types, locus);
   cache_token(cache, tok_rparen, &pos);
   cache_func_type_traits(cache, func_type_traits, &pos);
   cache_exception_spec(cache, eh_spec, &pos);
@@ -12669,10 +12687,8 @@ presence of a lazy-loadable definition.
     /* A body is likely available: Record this availability using a
        pseudo-token that will be translated when the declaration is
        parsed. */
-    cache_token(cache, tok_pending_ifc_func_body, &null_source_position);
-    cache->last_token->extra_info_kind = teik_ifc_index;
-    cache->last_token->variant.ifc_index = {decl_idx.sort, decl_idx.value,
-                                            decl_idx.mod};
+    cache_token_with_index(cache, tok_pending_ifc_func_body, decl_idx,
+                           &null_source_position);
     /* FIXME: We cache a new semicolon here to avoid complicating
        full_specialization logic (which does not provide an easy way to
        suppress the semicolon check), it might be better to rework this logic
@@ -13079,9 +13095,9 @@ END_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
         }  /* if */
 
         an_ifc_type_function itf = *opt_itf;
-        an_ifc_chart_index   params = {};
+        an_ifc_chart_index   params = get_ifc_chart(idf);
         an_ifc_type_index    source = get_ifc_source(itf);
-        if (!is_null_index(source)) {
+        if (is_null_index(params) && !is_null_index(source)) {
           params = get_func_params_from_trait(decl_idx);
         }  /* if */
 
@@ -13124,9 +13140,9 @@ END_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
         }  /* if */
 
         an_ifc_type_method itm = *opt_itm;
-        an_ifc_chart_index params = {};
+        an_ifc_chart_index params = get_ifc_chart(idm);
         an_ifc_type_index  source = get_ifc_source(itm);
-        if (!is_null_index(source)) {
+        if (is_null_index(params) && !is_null_index(source)) {
           params = get_func_params_from_trait(decl_idx);
         }  /* if */
 
@@ -13168,9 +13184,9 @@ END_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
         }  /* if */
 
         an_ifc_type_tor    itt = *opt_itt;
-        an_ifc_chart_index params = {};
+        an_ifc_chart_index params = get_ifc_chart(idc);
         an_ifc_type_index  source = get_ifc_source(itt);
-        if (!is_null_index(source)) {
+        if (is_null_index(params) && !is_null_index(source)) {
           params = get_func_params_from_trait(decl_idx);
         }  /* if */
 
@@ -13487,6 +13503,54 @@ specialization.
 }  /* cache_template_head */
 
 
+void an_ifc_module::cache_function_parameters(
+                                      a_token_cache_ptr            cache,
+                                      an_ifc_chart_index           params,
+                                      an_ifc_type_index            param_types,
+                                      const an_ifc_source_location &locus)
+/*
+Add the tokens corresponding to the function parameters described by params and
+param_types to the cache.  locus is the IFC source location for the parameter
+list (individual parameters will have their own locus associated with them).
+*/
+{
+  if (!is_null_index(params)) {
+    /* The parameters have detailed information associated with them, use
+       that. */
+    ifc_requirement(this, params.sort == ifc_cs_chart_unilevel,
+                    "Function parameter charts should only be unilevel");
+    Opt<an_ifc_chart_unilevel> opt_icu;
+    construct_node(&opt_icu, params);
+    if (!opt_icu.has_value()) {
+      goto invalid;
+    }  /* if */
+
+    a_decl_parameter_traverser traverser(*opt_icu);
+    a_source_position          pos;
+    a_boolean                  first = TRUE;
+    source_position_from_locus(&pos, locus);
+    for (Opt<an_ifc_decl_parameter> opt_idp : traverser) {
+      if (!opt_idp.has_value()) {
+        goto invalid;
+      }  /* if */
+      if (!first) {
+        cache_token(cache, tok_comma, &pos);
+      }  /* if */
+      if (!EDG_PREFIX::cache_decl(cache, *opt_idp)) {
+        goto invalid;
+      }  /* if */
+      first = FALSE;
+    }  /* for */
+  } else if (!is_null_index(param_types)) {
+    /* The only information we have on the parameters are their types. */
+    cache_type(cache, param_types, locus);
+  }  /* if */
+invalid:
+  /* FIXME: Perhaps we need better error handling here. */
+  ;
+}  /* cache_function_parameters */
+
+
 void an_ifc_module::cache_decl(a_token_cache_ptr cache,
                                an_ifc_decl_index decl)
 /*
@@ -13790,9 +13854,9 @@ Add the tokens corresponding to the given declaration (decl) to cache.
         }  /* if */
 
         an_ifc_type_function itf = *opt_itf;
-        an_ifc_chart_index   params = {};
+        an_ifc_chart_index   params = get_ifc_chart(idf);
         an_ifc_type_index    source = get_ifc_source(itf);
-        if (!is_null_index(source)) {
+        if (is_null_index(params) && !is_null_index(source)) {
           params = get_func_params_from_trait(decl);
         }  /* if */
         cache_function_decl(cache, decl, /*class_member=*/FALSE,
@@ -13824,7 +13888,7 @@ Add the tokens corresponding to the given declaration (decl) to cache.
         an_ifc_type_method itm = *opt_itm;
         an_ifc_name_index  name = get_ifc_name(idm);
         an_ifc_type_index  target = {};
-        an_ifc_chart_index params = {};
+        an_ifc_chart_index params = get_ifc_chart(idm);
         an_ifc_type_index  source = get_ifc_source(itm);
         if (name.sort == ifc_ns_name_conversion) {
           /* This is a conversion function, so the return type should not be
@@ -13832,7 +13896,7 @@ Add the tokens corresponding to the given declaration (decl) to cache.
         } else {
           target = get_ifc_target(itm);
         }  /* if */
-        if (!is_null_index(source)) {
+        if (is_null_index(params) && !is_null_index(source)) {
           params = get_func_params_from_trait(decl);
         }  /* if */
         cache_function_decl(cache, decl, /*class_member=*/TRUE,
@@ -13861,9 +13925,9 @@ Add the tokens corresponding to the given declaration (decl) to cache.
         }  /* if */
 
         an_ifc_type_tor    itt = *opt_itt;
-        an_ifc_chart_index params = {};
+        an_ifc_chart_index params = get_ifc_chart(idc);
         an_ifc_type_index  source = get_ifc_source(itt);
-        if (!is_null_index(source)) {
+        if (is_null_index(params) && !is_null_index(source)) {
           params = get_func_params_from_trait(decl);
         }  /* if */
         cache_function_decl(cache, decl, /*class_member=*/TRUE,
@@ -13968,11 +14032,8 @@ Add the tokens corresponding to the given declaration (decl) to cache.
           pos = error_position;
         }  /* if */
         cache_token(cache, tok_friend, &pos);
-        cache_token(cache, tok_ifc_entity_ref, &null_source_position);
-        cache->last_token->extra_info_kind = teik_ifc_index;
-        cache->last_token->variant.ifc_index = {friend_id.sort,
-                                                friend_id.value,
-                                                friend_id.mod};
+        cache_token_with_index(cache, tok_ifc_entity_ref, friend_id,
+                               &null_source_position);
         cache_token(cache, tok_semicolon, &null_source_position);
       }
       break;

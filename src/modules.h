@@ -262,6 +262,9 @@ extern a_dynamic_init_ptr load_variable_init_from_module(
                                          a_type_ptr                    tp,
                                          a_lexical_ifc_index_reference *index);
 
+extern void extract_tokens_for_module_expr(
+                                         a_lexical_ifc_index_reference *index);
+
 #if DEBUG
 extern void db_module(a_module_ptr mod);
 

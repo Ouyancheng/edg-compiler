@@ -349,6 +349,10 @@ public:
   void cache_template_head(a_token_cache_ptr     cache,
                            an_ifc_chart_index    chart_idx,
                            a_source_position_ptr pos);
+  void cache_function_parameters(a_token_cache_ptr            cache,
+                                 an_ifc_chart_index           params,
+                                 an_ifc_type_index            param_types,
+                                 const an_ifc_source_location &pos);
   void cache_decl(a_token_cache_ptr cache,
                   an_ifc_decl_index decl);
   inline void update_name_qualification_suppression(

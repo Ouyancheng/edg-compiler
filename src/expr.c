@@ -39486,6 +39486,7 @@ see expr.h).
   a_source_position typename_position;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_boolean         in_subscript_op = FALSE;
+  a_boolean         scanning_deferred_module_expr = FALSE;
   a_boolean         saved_allow_call_with_incomplete_return_type =
                            expr_stack->allow_call_with_incomplete_return_type;
 
@@ -39495,6 +39496,11 @@ see expr.h).
     fprintf(f_debug, "precedence level = %d\n", prec_level);
   }  /* if */
 #endif /* DEBUG */
+  if (curr_token == tok_pending_ifc_expr) {
+    (void)get_token();
+    extract_tokens_for_module_expr(&ifc_index_for_curr_token);
+    scanning_deferred_module_expr = TRUE;
+  }  /* if */
   if (local_options & EOPT_SUBSCRIPT_OP) {
     /* Clear the subscript operator flag as this is irrelevant for any
        sub-expressions. */
@@ -40928,6 +40934,17 @@ end_of_routine:
      become TRUE again. */
   expr_stack->allow_call_with_incomplete_return_type =
                                  saved_allow_call_with_incomplete_return_type;
+  if (scanning_deferred_module_expr) {
+    /* The rescanned tokens for a deferred module expr are terminated.
+       Confirm that we've reached that termination point and consume the token
+       if so. */
+    if (curr_token != tok_end_of_source) {
+      expect_error();
+      flush_to_end_of_source(/*suppress_warning=*/TRUE);
+    }  /* if */
+    check_assertion(curr_token == tok_end_of_source);
+    (void)get_token();
+  }  /* if */
   db_exit();
 }  /* scan_expr_full */
 
@@ -45724,7 +45741,7 @@ function.
 
   db_enter(3, "scan_default_arg_expr");
   check_assertion(scope_stack_top().kind == sck_func_prototype ||
-                  scope_stack_top().module_load_context_count > 0);
+                  scope_stack_top().kind == sck_module_decl_import);
   if (gpp_mode && !parameters_visible_late) {
     /* GCC does not consider parameter declarations while scanning default
        arguments.  Some versions don't consider parameters visible at all

@@ -3210,6 +3210,7 @@ This is used to save tokens for later rescanning.
     copy_constant(&const_for_curr_token, ctp->variant.constant);
   } else if (curr_token == tok_pending_ifc_var_init ||
              curr_token == tok_pending_ifc_func_body ||
+             curr_token == tok_pending_ifc_expr ||
              curr_token == tok_ifc_entity_ref ||
              curr_token == tok_ifc_decl) {
     /* This token has an associated index. */
@@ -17572,6 +17573,21 @@ Flush tokens until we reach an unmatched right parenthesis or brace.
   incr_token_set_array_element(stop_tokens, tok_rparen);
   flush_tokens_with_stop_tokens(stop_tokens);
 }  /* flush_to_closing_paren */
+
+
+void flush_to_end_of_source(a_boolean suppress_warning)
+/*
+Flush tokens until we reach the end of source (this is useful when encountering
+an error while rescanning a terminated token cache).  Suppress any diagnostics
+when suppress_warning is TRUE.
+*/
+{
+  a_token_set_array  stop_tokens;
+
+  clear_token_set_array(stop_tokens);
+  flush_tokens_with_stop_tokens_and_warning_flag(stop_tokens,
+                                                 suppress_warning);
+}  /* flush_to_end_of_source */
 
 
 void flush_if_or_else_statement(void)
