@@ -2277,20 +2277,32 @@ typedef unsigned int a_cts_flag_set;
 			   coalescing identifiers. */
 
 
-inline void assign_curr_token_sequence_number()
+inline a_token_sequence_number assign_new_token_sequence_number()
 /*
-A new token is being created (e.g., being scanned from the input stream).
-Assign a token sequence number to this token.  The value is incremented by two
-to reserve a slot in case the token is a ">>" that needs to be split into two
-tokens because it closes two template argument lists.  This availability is
-also taken advantage of when associating token sequence numbers with calls to
-"begin(...)" and "end(...)" in some cases of range-based for loops.
+A new token is being created (either from the input stream, or from a token
+cache request).  Assign a token sequence number to this token.  The value is
+incremented by two to reserve a slot in case the token is a ">>" that needs to
+be split into two tokens because it closes two template argument lists.  This
+availability is also taken advantage of when associating token sequence numbers
+with calls to "begin(...)" and "end(...)" in some cases of range-based for
+loops. The new token sequence number is returned.
 */
 {
   last_token_sequence_number_used += 2;
-  curr_token_sequence_number = last_token_sequence_number_used;
-  last_token_sequence_number_of_token = curr_token_sequence_number;
   curr_cached_token_handle = NO_CACHED_TOKEN_HANDLE;
+  return last_token_sequence_number_used;
+}  /* assign_new_token_sequence_number */
+
+
+inline void assign_curr_token_sequence_number()
+/*
+A new token is being created (e.g., being scanned from the input stream).
+Assign a token sequence number to this token, and update the current token
+sequence number information.
+*/
+{
+  curr_token_sequence_number = assign_new_token_sequence_number();
+  last_token_sequence_number_of_token = curr_token_sequence_number;
 }  /* assign_curr_token_sequence_number */
 
 
@@ -2318,9 +2330,7 @@ Add tok to cache.  pos is the position of the token.
   a_token_sequence_number seq = NO_TOKEN_SEQUENCE_NUMBER;
 
   if (tok != tok_error) {
-    assign_curr_token_sequence_number();
-    seq = curr_token_sequence_number;
-    last_token_sequence_number_of_token = seq;
+    seq = assign_new_token_sequence_number();
   }  /* if */
   ctp = build_cached_token(tok, seq, pos);
   if (cache->first_token == NULL) {
