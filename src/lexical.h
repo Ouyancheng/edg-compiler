@@ -2289,7 +2289,6 @@ loops. The new token sequence number is returned.
 */
 {
   last_token_sequence_number_used += 2;
-  curr_cached_token_handle = NO_CACHED_TOKEN_HANDLE;
   return last_token_sequence_number_used;
 }  /* assign_new_token_sequence_number */
 
@@ -2303,6 +2302,7 @@ sequence number information.
 {
   curr_token_sequence_number = assign_new_token_sequence_number();
   last_token_sequence_number_of_token = curr_token_sequence_number;
+  curr_cached_token_handle = NO_CACHED_TOKEN_HANDLE;
 }  /* assign_curr_token_sequence_number */
 
 
