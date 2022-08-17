@@ -1537,7 +1537,7 @@ Return the kind of operator described by op in the context of the given module.
   switch (op) {
     case ifc_nos_unknown:
     case ifc_nos_msvc:
-      ifc_unexpected(mod, "unsupported NiladicOperator");
+      ifc_unexpected(mod, "Unsupported NiladicOperator");
       break;
     case ifc_nos_phantom:
     case ifc_nos_constant:
@@ -1564,7 +1564,7 @@ Return the kind of operator described by op in the context of the given module.
     case ifc_mos_unknown:
     case ifc_mos_msvc:
     case ifc_mos_msvc_confusion:
-      ifc_unexpected(mod, "unsupported MonadicOperator");
+      ifc_unexpected(mod, "Unsupported MonadicOperator");
       break;
     case ifc_mos_plus:
     case ifc_mos_negate:
@@ -1672,7 +1672,7 @@ Return the kind of operator described by op in the context of the given module.
     case ifc_dos_msvc:
     case ifc_dos_msvc_saturated_arithmetic:
     case ifc_dos_select:
-      ifc_unexpected(mod, "unsupported DyadicOperator");
+      ifc_unexpected(mod, "Unsupported DyadicOperator");
       break;
     case ifc_dos_plus:
     case ifc_dos_minus:
@@ -1788,7 +1788,7 @@ Return the kind of operator described by op in the context of the given module.
     case ifc_tos_msvc_confusion:
     case ifc_tos_msvc_confused_choice:
     case ifc_tos_msvc_confused_push_state:
-      ifc_unexpected(mod, "unsupported TriadicOperator");
+      ifc_unexpected(mod, "Unsupported TriadicOperator");
       break;
     case ifc_tos_choice:
     case ifc_tos_construct_at:
@@ -1813,7 +1813,7 @@ Return the kind of operator described by op in the context of the given module.
   switch (op) {
     case ifc_sios_unknown:
     case ifc_sios_msvc:
-      ifc_unexpected(mod, "unsupported StorageInstructionOperator");
+      ifc_unexpected(mod, "Unsupported StorageInstructionOperator");
       break;
     case ifc_sios_allocate_single:
     case ifc_sios_allocate_array:
@@ -1838,7 +1838,7 @@ Return the kind of operator described by op in the context of the given module.
   switch (op) {
     case ifc_vos_unknown:
     case ifc_vos_msvc:
-      ifc_unexpected(mod, "unsupported VariadicOperator");
+      ifc_unexpected(mod, "Unsupported VariadicOperator");
       break;
     case ifc_vos_collection:
     case ifc_vos_sequence:
