@@ -9835,16 +9835,6 @@ extern an_ifc_expr_index get_ifc_expression(
 
 
 template<typename an_ifc_Node_type>
-extern a_boolean has_ifc_expression_type(
-                              const an_ifc_Node_type &universal) DELETED_FN_DEF
-
-
-template<typename an_ifc_Node_type>
-extern an_ifc_type_index get_ifc_expression_type(
-                              const an_ifc_Node_type &universal) DELETED_FN_DEF
-
-
-template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_extent(
                               const an_ifc_Node_type &universal) DELETED_FN_DEF
 
@@ -19164,12 +19154,6 @@ a_boolean has_ifc_expr(const an_ifc_stmt_return &universal);
 
 template<>
 an_ifc_expr_index get_ifc_expr(const an_ifc_stmt_return &universal);
-
-template<>
-a_boolean has_ifc_expression_type(const an_ifc_stmt_return &universal);
-
-template<>
-an_ifc_type_index get_ifc_expression_type(const an_ifc_stmt_return &universal);
 
 template<>
 a_boolean has_ifc_function_type(const an_ifc_stmt_return &universal);

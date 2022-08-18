@@ -23605,7 +23605,7 @@ the storage specified by the storage argument).
       get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
       /* function_type */
       get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
-      /* expression_type */
+      /* type */
       get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
       /* locus.line */
       get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);

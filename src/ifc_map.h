@@ -12439,16 +12439,16 @@ struct an_ifc_stmt_labeled : an_ifc_Byte_buffer<an_ifc_stmt_labeled_storage> {
 };  /* an_ifc_stmt_labeled */
 
 /*
-  |---------------------------------------------------|
-  |           StmtReturn - 0.33 (20 bytes)            |
-  |-----------------|----------------|---------|------|
-  | Name            | Type           | Version | Size |
-  |-----------------|----------------|---------|------|
-  | expr            | ExprIndex      | 0.33    | 4    |
-  | function_type   | TypeIndex      | 0.33    | 4    |
-  | expression_type | TypeIndex      | 0.33    | 4    |
-  | locus           | SourceLocation | 0.33    | 8    |
-  |-----------------|----------------|---------|------|
+  |-------------------------------------------------|
+  |          StmtReturn - 0.33 (20 bytes)           |
+  |---------------|----------------|---------|------|
+  | Name          | Type           | Version | Size |
+  |---------------|----------------|---------|------|
+  | expr          | ExprIndex      | 0.33    | 4    |
+  | function_type | TypeIndex      | 0.33    | 4    |
+  | type          | TypeIndex      | 0.33    | 4    |
+  | locus         | SourceLocation | 0.33    | 8    |
+  |---------------|----------------|---------|------|
 
   |-------------------------------------------------|
   |          StmtReturn - 0.42 (20 bytes)           |

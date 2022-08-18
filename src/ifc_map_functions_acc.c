@@ -28917,50 +28917,6 @@ representation of the field "expr".
 
 
 template<>
-a_boolean has_ifc_expression_type(const an_ifc_stmt_return &universal)
-/*
-Return TRUE if the given universal representation has the field
-"expression_type"; otherwise, return FALSE.
-*/
-{
-  an_ifc_module *mod = universal.get_module();
-  a_boolean     result = get_fallback_presence_value(mod);
-
-  if (is_at_least(mod, 0, 42)) {
-    result = FALSE;
-  } else if (is_at_least(mod, 0, 33)) {
-    result = TRUE;
-  }  /* if */
-  return result;
-}  /* has_ifc_expression_type */
-
-
-template<>
-an_ifc_type_index get_ifc_expression_type(const an_ifc_stmt_return &universal)
-/*
-Given the universal representation of StmtReturn, return the universal
-representation of the field "expression_type".
-*/
-{
-  an_ifc_type_index result;
-
-  /* Ensure the expression_type field exists in the current module version. */
-  check_assertion(has_ifc_expression_type(universal));
-  an_ifc_type_index_0_33 stage_0;
-  an_ifc_type_index      stage_1;
-
-  /* Copy the field (StmtReturn::expression_type - TypeIndex) into
-     version-specific storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-  stage_1 = to_universal_index(universal.get_module(), stage_0);
-  result = stage_1;
-  return result;
-}  /* get_ifc_expression_type */
-
-
-template<>
 a_boolean has_ifc_function_type(const an_ifc_stmt_return &universal)
 /*
 Return TRUE if the given universal representation has the field
@@ -29090,7 +29046,7 @@ otherwise, return FALSE.
   an_ifc_module *mod = universal.get_module();
   a_boolean     result = get_fallback_presence_value(mod);
 
-  if (is_at_least(mod, 0, 42)) {
+  if (is_at_least(mod, 0, 33)) {
     result = TRUE;
   }  /* if */
   return result;

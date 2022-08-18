@@ -11695,21 +11695,6 @@ representation with the given indent.
       fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
     }  /* if */
   }  /* if */
-  if (has_ifc_expression_type(universal)) {
-    an_ifc_type_index field = get_ifc_expression_type(universal);
-
-    db_print_indent(indent);
-    fprintf(f_debug, "expression_type:");
-    if (is_null_index(field)) {
-      fprintf(f_debug, " NULL\n");
-    } else {
-      fprintf(f_debug, "\n");
-      db_print_indent(indent);
-      fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
-      db_print_indent(indent);
-      fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
-    }  /* if */
-  }  /* if */
   if (has_ifc_function_type(universal)) {
     an_ifc_type_index field = get_ifc_function_type(universal);
 
