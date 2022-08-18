@@ -1155,7 +1155,7 @@ Define system-specific predefined macros and builtin #assert predicates
 #endif /* ifdef __sparc */
 #endif /* ATT_PREPROCESSING_EXTENSIONS_ALLOWED */
 #ifdef __linux__
-  enter_linux_predefined_macros();
+  // FIXME enter_linux_predefined_macros();
 #else /* !defined(__linux__) */
 #ifdef __sparc
   enter_sparc_predefined_macros();
