@@ -3122,27 +3122,6 @@ associated function definition, with the given error severity.
 }  /* start_rp_diag */
 
 
-static a_boolean should_perform_implicit_this_correction(
-                                            a_routine_ptr    rp,
-                                            unsigned         chart_param_count,
-                                            a_param_type_ptr params)
-/*
-Check to see if the given routine pointer needs to have an implicit this
-parameter dropped to be processed correctly (with respect to the current
-parameter counts so if this bug is resolved we don't emit hard errors).  IFC
-files appear to regularly misrepresent the "this" parameter as an ordinary
-unnamed parameter.  Skip the implicit this parameter and issue a warning.
-*/
-{
-  /* FIXME: Note that count_list_elements can be "expensive" if the function
-     has many parameters.  This is considered acceptable for ease of
-     implementation since this code is presumed to be temporary pending the
-     removal of the implicit this parameter. */
-  return routine_type_is_nonstatic_member_function(rp->type) &&
-         (chart_param_count - 1 == count_list_elements(params));
-}  /* should_perform_implicit_this_correction */
-
-
 static void add_bad_parameter_count_info(a_diagnostic_ptr diag_ptr,
                                          unsigned         chart_param_count,
                                          unsigned         type_param_count)
@@ -3168,36 +3147,147 @@ parameter count.
 }  /* add_bad_parameter_count_info */
 
 
-static a_boolean check_parameter_counts(a_routine_ptr    rp,
-                                        unsigned         chart_param_count,
-                                        a_param_type_ptr params)
+static a_boolean check_parameter_counts(
+                               a_routine_ptr              rp,
+                               an_ifc_cardinality_storage chart_param_count,
+                               unsigned                   decl_param_count)
 /*
 Check for a mismatch between the number of parameters declared by the IFC
-parameter chart and the number of parameters declared by the type.  Return TRUE
-if parameter counts match, return FALSE otherwise.
+parameter chart and the number of parameters declared by the type.  rp is the
+IL routine for which parameter counts are being check.  chart_param_count is
+the number of parameters specified by the IFC function
+definition. decl_param_count is the number of parameters specified by the IL
+function type's parameters (which corresponds to the IFC declaration's
+parameter count information).  Return TRUE if parameter counts match, return
+FALSE otherwise.
 */
 {
   a_boolean result = TRUE;
-  unsigned  type_param_count = count_list_elements(params);
 
-  if (should_perform_implicit_this_correction(rp, chart_param_count, params)) {
-    a_diagnostic_ptr diag_ptr = start_rp_diag(rp, es_warning);
-
-    add_bad_parameter_count_info(diag_ptr, chart_param_count,
-                                 type_param_count);
-    /* The actual adjustment will be performed when the parameters are added to
-       the function info (see "should_perform_implicit_this_correction" in
-       "add_function_def_parameters"), but the issue is reported here for ease
-       of implementation. */
-    add_diag_info(diag_ptr, ec_ifc_bad_function_param_implicit_this);
-    end_diagnostic(diag_ptr);
-  } else if (chart_param_count != type_param_count) {
+  if (chart_param_count != decl_param_count) {
     a_diagnostic_ptr diag_ptr = start_rp_diag(rp);
 
     add_bad_parameter_count_info(diag_ptr, chart_param_count,
-                                 type_param_count);
+                                 decl_param_count);
     end_diagnostic(diag_ptr);
     result = FALSE;
+  }  /* if */
+  return result;
+}  /* check_parameter_counts */
+
+
+static a_boolean is_bad_ifc_parameter(const an_ifc_decl_parameter &param)
+/*
+Given an IFC parameter, check to see if the parameter has defects that suggest
+it should be skipped.
+*/
+{
+  a_boolean    result = FALSE;
+  a_const_char *name = get_string_at_offset(get_ifc_name(param));
+  size_t       name_len = strlen(name);
+
+  switch (name_len) {
+    case 4:
+      if (strcmp(name, "this") == 0) {
+        result = TRUE;
+      }  /* if */
+      break;
+    case 12:
+      if (strcmp(name, "__$ReturnUdt") == 0) {
+        result = TRUE;
+      }  /* if */
+      break;
+    default:
+      break;
+  }  /* switch */
+  return result;
+}  /* is_bad_ifc_parameter */
+
+
+static a_boolean check_for_param_count_correction(
+                                        an_ifc_chart_unilevel icul,
+                                        unsigned              decl_param_count)
+/*
+Check to see if one or more of the parameters specified by icul is a bad
+(implicitly generated as part of the calling convention) parameter.  Return
+TRUE if dropping these parameters would correct a parameter count mismatch;
+otherwise, return FALSE.
+*/
+{
+  a_boolean                  valid_data = TRUE;
+  an_ifc_cardinality_storage used_param_count = 0;
+  a_decl_parameter_traverser traverser(icul);
+
+  for (Opt<an_ifc_decl_parameter> opt_idp : traverser) {
+    if (!opt_idp.has_value()) {
+      valid_data = FALSE;
+      break;
+    }  /* if */
+    if (is_bad_ifc_parameter(*opt_idp)) {
+      continue;
+    }  /* if */
+    ++used_param_count;
+  }  /* for */
+  return valid_data && used_param_count == decl_param_count;
+}  /* check_for_param_count_correction */
+
+
+static a_boolean check_parameter_counts(
+                               a_routine_ptr         rp,
+                               an_ifc_chart_unilevel icul,
+                               a_param_type_ptr      params,
+                               a_boolean             *perform_param_correction)
+/*
+Check for a mismatch between the number of parameters declared by the IFC
+parameter chart and the number of parameters declared by the type.  rp is the
+IL routine for which parameter counts are being check.  icul is the unilevel
+chart being considered that defines the definition's parameters.  params is the
+first param in the list of the function type's parameters (which corresponds to
+the IFC declaration's parameter count information).  perform_param_correction
+is a pointer to a boolean that will be set to TRUE if the parameter processing
+logic should check for bad parameters, and omit them.  Return TRUE if
+parameter counts are "effectively" compatible, return FALSE otherwise.
+*/
+{
+  a_boolean                  result = TRUE;
+  an_ifc_cardinality_storage chart_param_count = get_ifc_cardinality(icul);
+  unsigned                   decl_param_count = count_list_elements(params);
+
+  if (chart_param_count != decl_param_count) {
+    /* FIXME: This is a hack to work around an IFC defect. */
+    if (check_for_param_count_correction(icul, decl_param_count)) {
+      /* The front end has determined that dropping problematic parameters will
+         correct this mismatch.  Create a diagnostic warning about what's going
+         to happen. */
+      a_diagnostic_ptr diag_ptr = start_rp_diag(rp, es_warning);
+
+      add_bad_parameter_count_info(diag_ptr, chart_param_count,
+                                   decl_param_count);
+
+      a_decl_parameter_traverser traverser(icul);
+      unsigned                   parameter_idx = 0;
+      for (Opt<an_ifc_decl_parameter> opt_idp : traverser) {
+        /* Already constructed by check_for_param_count_correction, which
+           fails if there was a problem. */
+        check_assertion(opt_idp.has_value());
+        if (is_bad_ifc_parameter(*opt_idp)) {
+          a_const_char *name = get_string_at_offset(get_ifc_name(*opt_idp));
+
+          st_num_add_diag_info(diag_ptr, ec_ifc_bad_function_param_name, name,
+                               parameter_idx);
+        }  /* if */
+        ++parameter_idx;
+      }  /* if */
+      end_diagnostic(diag_ptr);
+      *perform_param_correction = TRUE;
+    } else {
+      a_diagnostic_ptr diag_ptr = start_rp_diag(rp);
+
+      add_bad_parameter_count_info(diag_ptr, chart_param_count,
+                                   decl_param_count);
+      end_diagnostic(diag_ptr);
+      result = FALSE;
+    }  /* if */
   }  /* if */
   return result;
 }  /* check_parameter_counts */
@@ -3270,9 +3360,9 @@ added successfully, return FALSE otherwise.
       goto done;
     }  /* if */
 
-    an_ifc_chart_unilevel      icul = *opt_icul;
-    an_ifc_cardinality_storage num_params = get_ifc_cardinality(icul);
-    if (!check_parameter_counts(rp, num_params, params)) {
+    an_ifc_chart_unilevel icul = *opt_icul;
+    a_boolean             perform_param_correction = FALSE;
+    if (!check_parameter_counts(rp, icul, params, &perform_param_correction)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -3282,31 +3372,29 @@ added successfully, return FALSE otherwise.
                      rp->type, (a_routine_ptr)NULL);
 
     a_param_type_ptr  ptp = params;
-    an_ifc_index_type offset = 0;
-    /* Check for the implicit this parameter.  If implicit this is detected,
-       adjust the starting offset. */
-    if (should_perform_implicit_this_correction(rp, num_params, ptp)) {
-      ++offset;
-    }  /* if */
     func_info->scope_number = scope_stack_top().number;
 
     a_param_id_ptr             last_param_id = nullptr;
-    a_decl_parameter_traverser traverser(icul, offset);
+    a_decl_parameter_traverser traverser(icul);
     for (Opt<an_ifc_decl_parameter> opt_idp : traverser) {
       if (!opt_idp.has_value()) {
         result = FALSE;
         goto done;
       }  /* if */
+      /* FIXME: This is a hack to work around an IFC defect. */
+      if (perform_param_correction && is_bad_ifc_parameter(*opt_idp)) {
+        continue;
+      }  /* if */
       add_function_def_parameter(*opt_idp, ptp, func_info, &last_param_id);
       ptp = ptp->next;
     }  /* for */
     func_info->prototype_scope_symbols =
-      assoc_pointers_block_of(&scope_stack_top())->symbols;
+                          assoc_pointers_block_of(&scope_stack_top())->symbols;
     pop_scope();
   } else if (chart_params.sort == ifc_cs_chart_none) {
     /* The associated chart is empty, verify the type information also isn't
        specifying parameters. */
-    if (!check_parameter_counts(rp, 0, params)) {
+    if (!check_parameter_counts(rp, 0, count_list_elements(params))) {
       result = FALSE;
     }  /* if */
   } else {
