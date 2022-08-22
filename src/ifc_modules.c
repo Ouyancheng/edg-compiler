@@ -14460,6 +14460,7 @@ second operand of an assignment.
           case opkind_c_cast:
           case opkind_cpp_cast:
             ifc_unexpected(this, "Unexpected operator kind");
+            FALLTHROUGH
           case opkind_error:
             goto invalid;
           default_is_unexpected();
@@ -14533,6 +14534,7 @@ second operand of an assignment.
           case opkind_post:
           case opkind_other:
             ifc_unexpected(this, "Unexpected operator kind");
+            FALLTHROUGH
           case opkind_error:
             goto invalid;
           default_is_unexpected();
