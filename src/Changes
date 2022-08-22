@@ -1,5 +1,32 @@
 Version 6.4
 
+8/22/22  [EDGcpfe/25384]
+Microsoft compatibility: commas preceding empty variadic macro expansions
+
+As described in the entry for EDGcpfe/17519, the traditional Microsoft
+preprocessor suppresses commas in macro expansions that appear before an
+empty variadic macro expansion.  The change for EDGcpfe/17519, however,
+resulted in the deletion of some commas that the Microsoft preprocessor
+does not delete.  In particular, the deletion does not occur when the empty
+variadic macro expansion results from omitting the replacement text in the
+macro definition, but only when the replacement text is __VA_ARGS__ and the
+corresponding argument is omitted.  For example, with -E --microsoft:
+
+  #define CAT_(X, ...)  X ## __VA_ARGS__
+  #define CAT(X, ...)   CAT_(X, __VA_ARGS__)
+
+  #define EVAL_(X, ARGS) X ARGS
+  #define EVAL(X, ...) EVAL_(X, (__VA_ARGS__))
+
+  #define EAT(...)  /* nothing */
+
+  EVAL(CAT, a, EAT(x) b)  // Previously expanded to "a b", now to "ab"
+
+Previously, the empty expansion of "EAT(x)" resulted in incorrectly
+deleting the comma following "a", which in turn resulted in passing "a b"
+as a single argument to the CAT macro.  This is now fixed.
+
+
 8/17/22  [EDGcpfe/24377,EDGcpfe/25527]
 Constrained "decltype(auto)" nontype template parameters
 

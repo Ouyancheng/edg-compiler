@@ -2277,8 +2277,10 @@ print the replacement text and expansions of macros.
         /* Marker indicating the presence of an empty variadic macro
            expansion. */
         ch = '/';
+        p += LE_ESCAPE_LEN;
       } else {
         (void)fprintf(f_debug, "**BAD LEXICAL ESCAPE**");
+        p += LE_ESCAPE_LEN;
         break;
       }  /* if */
     } else if (ch == ATTENTION_MARKER) {
@@ -6338,16 +6340,19 @@ do_argument_again:
                    escape with LE_END_OF_TOKEN (an innocuous substitution,
                    since all commas start new tokens). */
                 char *cp = (char *)start_of_curr_token;
-                /* The LE_COMMA_FROM_ARGUMENT escape might be followed by an
-                   LE_END_OF_TOKEN escape and/or a single space character,
-                   in that order, as per add_curr_token_text_to_buffer. */
-                if (cp[-1] == ' ') {
-                  --cp;
-                }  /* if */
-                if (cp[-LE_ESCAPE_LEN  ] == LE_ESCAPE &&
-                    cp[-LE_ESCAPE_LEN+1] == LE_END_OF_TOKEN) {
-                  cp -= LE_ESCAPE_LEN;
-                }  /* if */
+                /* The LE_COMMA_FROM_ARGUMENT escape might be followed by a
+                   sequence of LE_END_OF_TOKEN escapes and/or space
+                   characters. */
+                for (;;) {
+                  if (cp[-1] == ' ') {
+                    --cp;
+                  } else if (cp[-LE_ESCAPE_LEN  ] == LE_ESCAPE &&
+                             cp[-LE_ESCAPE_LEN+1] == LE_END_OF_TOKEN) {
+                    cp -= LE_ESCAPE_LEN;
+                  } else {
+                    break;
+                  }  /* if */
+                }  /* for */
                 check_assertion(
                                cp[-LE_ESCAPE_LEN  ] == LE_ESCAPE &&
                                cp[-LE_ESCAPE_LEN+1] == LE_COMMA_FROM_ARGUMENT);
@@ -7229,7 +7234,16 @@ end_arg_expansion:;
     *next_avail_in_macro_buffer++ = LE_ESCAPE;
     *next_avail_in_macro_buffer++ = LE_END_OF_TOP_LEVEL_EXPANSION;
   } else if (ms_compat && !ms_std_preproc && mdp->variadic &&
-             repl_text_len == 0) {
+             repl_text_len == 0 && *mdp->repl_text != (int)rt_null) {
+    /* In the traditional Microsoft preprocessor, a variadic macro whose
+       expansion is empty has the effect of deleting a preceding comma from
+       the expansion of a containing macro.  (Note, however, that this
+       effect only occurs when the empty expansion is the result of an
+       empty __VA_ARGS__ argument appearing as the macro's replacement
+       text.  If, instead, the replacement text of the variadic macro is
+       simply omitted, the deletion does not occur.)  Record the occurrence
+       of the empty expansion so that the rescan will be able to perform
+       the deletion of a preceding comma if necessary. */
     *next_avail_in_macro_buffer++ = LE_ESCAPE;
     *next_avail_in_macro_buffer++ = LE_EMPTY_VARIADIC_MACRO;
     repl_text_len = LE_ESCAPE_LEN;
