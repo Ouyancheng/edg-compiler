@@ -3155,11 +3155,10 @@ static a_boolean check_parameter_counts(
 Check for a mismatch between the number of parameters declared by the IFC
 parameter chart and the number of parameters declared by the type.  rp is the
 IL routine for which parameter counts are being check.  chart_param_count is
-the number of parameters specified by the IFC function
-definition. decl_param_count is the number of parameters specified by the IL
-function type's parameters (which corresponds to the IFC declaration's
-parameter count information).  Return TRUE if parameter counts match, return
-FALSE otherwise.
+the number of parameters specified by the IFC function definition.
+decl_param_count is the number of parameters specified by the IL function
+type's parameters (which corresponds to the IFC declaration's parameter count
+information).  Return TRUE if parameter counts match, return FALSE otherwise.
 */
 {
   a_boolean result = TRUE;
