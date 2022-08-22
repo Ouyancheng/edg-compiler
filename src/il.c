@@ -14151,28 +14151,7 @@ type, or NULL if the lambda body routine does not exist yet.
   return rp;
 }  /* lambda_body_for_closure */
 
-#if !STANDALONE_UTILITY_PROGRAM
 
-a_lambda_ptr get_current_lambda(void)
-/*
-If we're inside a function scope and the innermost function scope is that of
-a lambda body, return the associated lambda entry.  Otherwise, return NULL.
-*/
-{
-  a_lambda_ptr  lambda = NULL;
-
-  if (depth_innermost_function_scope != NO_SCOPE_DEPTH) {
-    lambda = get_lambda_for_scope_depth(depth_innermost_function_scope);
-#if CHECKING
-    { a_routine_ptr  rp = innermost_function_scope->variant.routine.ptr;
-      check_assertion(rp->is_lambda_body == (lambda != NULL));
-    }
-#endif /* CHECKING */
-  }  /* if */
-  return lambda;
-}  /* get_current_lambda */
-
-#endif /* !STANDALONE_UTILITY_PROGRAM */
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
 
 an_expr_node_ptr generic_sizeof_arg_expr(a_constant_ptr  con)

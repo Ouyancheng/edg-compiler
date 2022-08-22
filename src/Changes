@@ -1,5 +1,22 @@
 Version 6.4
 
+8/22/22  [EDGcpfe/25555]
+Abort on init-capture in nested lambda
+
+Consider:
+
+  void g(auto fn) {
+    [=] { auto lam1 = [f = fn]() {}; };
+  }
+  int main() {
+    g([](){});  // Previously triggered an abort.  Now okay.
+  }
+
+Previously this triggered an abort due to a null pointer indirection in
+find_lambda_capture (class_decl.c) during the instantiation of g.  That is now
+fixed.
+
+
 8/22/22  [EDGcpfe/25562]
 Incorrect builtin in generated C++
 

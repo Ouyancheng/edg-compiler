@@ -36542,7 +36542,8 @@ normal_function:
               an_expr_node_ptr  this_var_node;
               /* Create a "this" operand explicitly (the ordinary path ignores
                  closure types). */
-              this_var_node = this_expr_node_for_lambda_closure();
+              this_var_node = this_expr_node_for_lambda_closure(
+                                                     get_curr_lambda_depth());
               this_var_node->position = pos_curr_token;
               make_expression_operand(this_var_node, &this_pointer_operand);
               this_operand_set = TRUE;

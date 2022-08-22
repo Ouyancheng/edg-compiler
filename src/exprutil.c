@@ -5799,12 +5799,13 @@ selection.
   if (is_error_node(node) || is_error_type(node->type)) {
     /* Leave the node unchanged. */
   } else {
-    a_lambda_ptr          lambda = get_current_lambda();
     a_lambda_capture_ptr  lcp;
     a_field_ptr           closure_field;
     an_expr_node_ptr      sel_expr, vnode = node;
     a_boolean             is_lvalue = node->is_lvalue,
                           is_xvalue = node->is_xvalue;
+    a_scope_depth         depth_lambda = get_curr_lambda_depth();
+    a_lambda_ptr          lambda = get_lambda_for_scope_depth(depth_lambda);
     opnd->pending_capture = FALSE;
     while (!is_variable_node(vnode)) {
       check_assertion(vnode->compiler_generated);
@@ -5812,7 +5813,8 @@ selection.
     }  /* if */
     lcp = find_lambda_capture(lambda, node_variable(vnode), (a_field*)NULL);
     closure_field = field_for_lambda_capture(lambda, lcp);
-    sel_expr = make_selection_for_captured_variable(lcp, /*is_lvalue=*/TRUE);
+    sel_expr = make_selection_for_captured_variable(lcp, depth_lambda,
+                                                    /*is_lvalue=*/TRUE);
     set_expr_position(sel_expr, &node->position, &node->expr_range.end,
                       &node->position);
     if (is_any_reference_type(closure_field->type)) {

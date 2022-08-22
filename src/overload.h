@@ -822,10 +822,12 @@ extern a_boolean this_exists_for_member_access(a_symbol_ptr member_sym,
 
 extern a_variable_ptr this_variable_for_lambda_closure(void);
 
-extern an_expr_node_ptr this_expr_node_for_lambda_closure(void);
+extern an_expr_node_ptr this_expr_node_for_lambda_closure(
+                                                 a_scope_depth  depth_lambda);
 
 extern an_expr_node_ptr make_selection_for_captured_variable(
                                               a_lambda_capture *lambda_capture,
+                                              a_scope_depth    depth_lambda,
                                               a_boolean        is_lvalue);
 
 extern void make_this_variable_operand(a_variable_ptr    this_var,

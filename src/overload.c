@@ -12308,56 +12308,46 @@ allow_lambda_this is TRUE.
 }  /* this_exists_for_member_access */
 
 
-static bool in_explicit_this_lambda()
+a_variable_ptr this_variable_for_lambda_closure(a_scope_depth  depth_lambda)
 /*
-We're currently inside a lambda body.  Return TRUE if this lambda takes an
-explicit "this" parameter.
-*/
-{
-  check_assertion(current_routine_entry()->is_lambda_body);
-  return has_explicit_this_parameter(
-                         innermost_function_scope->variant.routine.ptr->type);
-}  /* in_explicit_this_lambda */
-
-
-a_variable_ptr this_variable_for_lambda_closure(void)
-/*
-We're currently inside a lambda body.  Return a pointer to the "this" variable
-for the lambda closure class, which is used among other things to access the
-fields that contain the captures of local variables.
+depth_lambda is the scope depth of a lambda body.  Return a pointer to the
+"this" variable for the corresponding lambda closure class, which is used among
+other things to access the fields that contain the captures of local variables.
 */
 {
   a_variable_ptr  this_var;
   a_type_ptr      routine_type;
+  a_scope_ptr     lm_scope = scope_stack[depth_lambda].il_scope;
+  a_routine_ptr   lm_rout = lm_scope->variant.routine.ptr;
 
-  check_assertion(current_routine_entry()->is_lambda_body);
-  routine_type = skip_typerefs(
-                         innermost_function_scope->variant.routine.ptr->type);
+  check_assertion(lm_rout->is_lambda_body);
+  routine_type = skip_typerefs(lm_rout->type);
   if (has_explicit_this_parameter(routine_type)) {
     /* A lambda with an explicit "this" parameter, which is the first entry on
        the ordinary parameter variables list. */
-    this_var = innermost_function_scope->variant.routine.parameters;
+    this_var = lm_scope->variant.routine.parameters;
     /* We have to make a variable for the explicit "this" parameter. */
     check_assertion(this_var != NULL);
   } else {
     /* A normal lambda: Use the implicit this. */
-    this_var = innermost_function_scope->variant.routine.this_param_variable;
+    this_var = lm_scope->variant.routine.this_param_variable;
     check_assertion(this_var != NULL && this_var->is_this_parameter);
   }
   return this_var;
 }  /* this_variable_for_lambda_closure */
 
 
-an_expr_node_ptr this_expr_node_for_lambda_closure(void)
+an_expr_node_ptr this_expr_node_for_lambda_closure(a_scope_depth  depth_lambda)
 /*
-We are currently inside a lambda body.  If the lambda has an explicit "this"
-parameter, return an lvalue expression for that parameter.  Otherwise, return
-the usual "this" rvalue expression.
+depth_lambda is the scope depth of a lambda body.  If the lambda has an
+explicit "this" parameter, return an lvalue expression for that parameter.
+Otherwise, return the usual "this" rvalue expression.
 */
 {
-  if (in_explicit_this_lambda()) {
-    a_variable_ptr     first_param =
-                         innermost_function_scope->variant.routine.parameters;
+  a_scope_ptr  lm_scope = scope_stack[depth_lambda].il_scope;
+
+  if (has_explicit_this_parameter(lm_scope->variant.routine.ptr->type)) {
+    a_variable_ptr     first_param = lm_scope->variant.routine.parameters;
     a_source_position  *start_pos, *end_pos = NULL;
     an_operand         opnd;
     check_assertion(first_param != NULL);
@@ -12370,7 +12360,7 @@ the usual "this" rvalue expression.
     take_address_of_lvalue(&opnd, start_pos);
     return make_node_from_operand(&opnd);
   } else {
-    a_variable_ptr this_var = this_variable_for_lambda_closure();
+    a_variable_ptr this_var = this_variable_for_lambda_closure(depth_lambda);
     return var_rvalue_expr(this_var);
   }  /* if */
 }  /* this_expr_node_for_lambda_closure */
@@ -12378,14 +12368,16 @@ the usual "this" rvalue expression.
 
 an_expr_node_ptr make_selection_for_captured_variable(
                                               a_lambda_capture *lambda_capture,
+                                              a_scope_depth    depth_lambda,
                                               a_boolean        is_lvalue)
 /*
-Make a field selection expression for a captured variable in a lambda.
-lambda_capture describes the variable.  The selection is an lvalue selection
-if is_lvalue is TRUE.
+Make a field selection expression for a captured variable in a lambda whose
+body scope is at the given scope depth.  lambda_capture describes the variable.
+The selection is an lvalue selection if is_lvalue is TRUE.
 */
 {
-  an_expr_node_ptr  lambda_expr = this_expr_node_for_lambda_closure();
+  an_expr_node_ptr  lambda_expr = this_expr_node_for_lambda_closure(
+                                                                depth_lambda);
   a_field_ptr       closure_field = lambda_capture->closure_field;
   an_expr_node_ptr  sel_expr;
 
@@ -12463,6 +12455,7 @@ that case, and this_type is used for the type.
                                                            /*no_diag=*/TRUE);
     if (lambda_capture != NULL) {
       node = make_selection_for_captured_variable(lambda_capture,
+                                                  get_curr_lambda_depth(),
                                                   /*is_lvalue=*/FALSE);
       make_expression_operand(node, result);
     } else if (!curr_expr_is_potentially_evaluated()) {
@@ -12553,7 +12546,7 @@ wondering if it's available.
   } else if (symbol_is(member_sym, sk_field) &&
              member_sym->variant.field.ptr->is_init_capture) {
     an_expr_node_ptr  lambda_this;
-    this_var = this_variable_for_lambda_closure();
+    this_var = this_variable_for_lambda_closure(get_curr_lambda_depth());
     lambda_this = var_rvalue_expr(this_var);
     make_expression_operand(lambda_this, result);
     okay = TRUE;

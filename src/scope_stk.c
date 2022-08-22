@@ -973,6 +973,42 @@ parent for name mangling purposes.
 }  /* set_parent_routine_for_closure_types_in_default_args */
 
 #endif /* NEED_NAME_MANGLING */
+#if !STANDALONE_UTILITY_PROGRAM
+
+a_scope_depth get_curr_lambda_depth(void)
+/*
+Return the depth in the scope stack of the current lambda body or
+NO_SCOPE_DEPTH if there is none.  Note that while parsing the header of a
+nested lambda, the "current lambda body" is that of the enclosing lambda
+expression.
+*/
+{
+  a_scope_depth  depth_lambda = depth_scope_stack;
+
+  for (;;) {
+    a_scope_stack_entry  *ssep = &scope_stack[depth_lambda];
+    if (ssep->depth_innermost_function_scope != NO_SCOPE_DEPTH) {
+      depth_lambda = ssep->depth_innermost_function_scope;
+      break;
+    } else if (scope_is(ssep, sck_class_struct_union) &&
+               class_type_supp(ssep->assoc_type)->is_lambda_closure_class) {
+      /* Presumably a reference to an enclosing class from an init-capture
+         list.  For example:
+              void f(auto fn) {
+                [=]{ return [f = fn]() {}; }
+              }
+         Here, innermost_function_scope will be NO_SCOPE_DEPTH while parsing
+         the initializer in "f = fn". */
+      depth_lambda = ssep->previous_scope;
+    } else {
+      depth_lambda = NO_SCOPE_DEPTH;
+      break;
+    }  /* if */
+  }  /* for */
+  return depth_lambda;
+}  /* get_curr_lambda_depth */
+
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 #if DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS
 

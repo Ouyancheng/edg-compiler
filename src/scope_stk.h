@@ -2629,6 +2629,21 @@ return NULL.
   return call_op_to_lambda_map->get(scope_stack[sd].assoc_routine);
 }  /* get_lambda_for_scope_depth */
 
+extern a_scope_depth get_curr_lambda_depth(void);
+
+inline a_lambda_ptr get_current_lambda(void)
+/*
+Return the lambda associated with the innermost currently-active lambda body,
+or NULL if there is no such lambda.  Note that while parsing the header of a
+nested lambda, this produces the enclosing lambda.
+*/
+{
+  a_scope_depth  depth = get_curr_lambda_depth();
+
+  return depth != NO_SCOPE_DEPTH ? get_lambda_for_scope_depth(depth)
+                                 : (a_lambda_ptr)NULL;
+}  /* get_current_lambda */
+
 
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE

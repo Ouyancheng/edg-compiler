@@ -590,8 +590,6 @@ In cases where we're not doing lowering, process prototype instantiations
 
 extern a_routine_ptr lambda_body_for_closure(a_type_ptr	type);
 
-extern a_lambda_ptr get_current_lambda(void);
-
 extern a_namespace_ptr namespace_enclosing_class(a_type_ptr  tp);
 
 extern a_routine_ptr routine_and_node_from_function_expr(
