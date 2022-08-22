@@ -1074,12 +1074,27 @@ NORETURN: specifies that a function will not return to its caller.
 #define __has_cpp_attribute(x) 0
 #endif /* !defined(__has_cpp_attribute) */
 
+/*
+If the front end is compiled in C++17 mode, use the standard fallthrough
+attribute.  Otherwise, if this is a compatible version of GCC or Clang, use the
+appropriate non-standard attribute.
+*/
 #if __has_cpp_attribute(fallthrough) && \
     (__cplusplus >= __has_cpp_attribute(fallthrough))
 /*lint -estring(823,FALLTHROUGH)*/
 #define FALLTHROUGH [[fallthrough]];
 #else /* !(__has_cpp_attribute(fallthrough) && ...) */
+#if defined(__GNUC__) && \
+    (__GNUC__ > 7 || (__GNUC__ == 7 && __GNUC_MINOR__ >= 1))
+#define FALLTHROUGH [[gnu::fallthrough]];
+#else  /* !(defined(__GNUC__) && __GNUC__ > 7 || (__GNUC__ == 7 && ...)) */
+#if defined(__clang__) && \
+    (__clang_major__ > 3 || (__clang_major__ == 3 && __clang_minor__ >= 2))
+#define FALLTHROUGH [[clang::fallthrough]];
+#else  /* !(defined(__clang__) && (__clang_major__ > 3 || ...)) */
 #define FALLTHROUGH /*nothing*/
+#endif /* defined(__clang__) && (__clang_major__ > 3 || ...) */
+#endif /* defined(__GNUC__) && __GNUC__ > 7 || (__GNUC__ == 7 && ...) */
 #endif /* __has_cpp_attribute(fallthrough) && ... */
 
 #if __has_cpp_attribute(maybe_unused)
