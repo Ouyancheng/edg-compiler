@@ -13488,13 +13488,13 @@ enum a_builtin_operation_kind : a_byte {
 			/* Clang's __builtin_convertvector operator.  A vector
 			   operand followed by a type operand. */
   bok_is_assignable,    /* Microsoft's __is_assignable.  Two type operands. */
+  bok_is_trivially_copy_assignable,
+			/* Microsoft's __is_trivially_copy_assignable.  One
+			   type operand. */
   bok_is_assignable_no_precondition_check,
 			/* Microsoft's __is_assignable_no_precondition_check.
 			   Two type operands (treated the same as
 			   __is_assignable). */
-  bok_is_trivially_copy_assignable,
-			/* Microsoft's __is_trivially_copy_assignable.  One
-			   type operand. */
   bok_builtin_addressof,/* __builtin_addressof.  One lvalue operand. */
   bok_has_unique_object_representations,
 			/* __has_unique_object_representations.  One type
