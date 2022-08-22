@@ -3320,7 +3320,7 @@ ec_address_of_unqualified_explicit_this_function;;"taking the address of an expl
 ec_implicit_address_of_explicit_this_function;;"forming the address of an explicit \"this\" function requires the \"&\" operator"
 ec_string_literal_cannot_initialize_flexible_array_member;;"a string literal cannot be used to initialize a flexible array member"
 ec_ifc_bad_function_definition;;"The IFC representation of the definition of function %sq is invalid"
-REMOVED;ec_ifc_bad_function_param_implicit_this;;"a correction has been made to drop an implicit \"this\" parameter"
+ec_ifc_bad_function_param_implicit_this;;"a correction has been made to drop an implicit \"this\" parameter"
 ec_ifc_bad_function_param_wrong_chart;;"a UniLevel IFC chart wasn't used to specify parameters"
 ec_ifc_bad_function_param_counts_multi_multi;;"%d1 parameters were specified by the IFC parameter definition chart while %d2 parameters were specified by the IFC declaration"
 ec_ifc_bad_function_param_counts_single_multi;;"%d1 parameter was specified by the IFC parameter definition chart while %d2 parameters were specified by the IFC declaration"
@@ -3351,7 +3351,6 @@ ec_ifc_requirement_failure;;"an unexpected IFC requirement was encountered while
 ec_ifc_requirement_failure_fill_in;;"condition failed at line %d in %s1: %sq2"
 ec_circular_constraint;;"atomic constraint depends on itself"
 ec_noreturn_with_return_type;;"\"noreturn\" function has non-void return type"
-ec_ifc_bad_function_param_name;;"a correction has been made by dropping the parameter %sq (at relative index %d)"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
