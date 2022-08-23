@@ -21177,7 +21177,8 @@ error_severity is the severity at which any diagnostics should be issued.
         /* A default argument was specified on a member of a class template.
            This is not permitted. */
         an_error_code error_code;
-        if (sym_parent_class(class_sym)->
+        if (!class_sym->is_class_member ||
+            sym_parent_class(class_sym)->
                                 variant.class_struct_union.is_template_class) {
           error_code = ec_default_arg_on_member_decl;
         } else {
