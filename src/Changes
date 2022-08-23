@@ -38,11 +38,11 @@ fixed.
 
 
 8/22/22  [EDGcpfe/25562]
-Incorrect builtin in generated C++
+C++-generating back end: incorrect builtin in generated code
 
-Uses of __is_assignable_no_precondition_check in C++-generating modes had
-inadvertently been mapped to __is_trivially_copy_assignable.  For example,
-with --microsoft_version=1932 --ms_c++20:
+Uses of __is_assignable_no_precondition_check were previously put out as
+__is_trivially_copy_assignable in the output of the C++-generating back end.
+For example, with --microsoft_version=1932 --ms_c++20:
 
   template<typename _T>
   constexpr bool check = __is_assignable_no_precondition_check(_T, const _T);
