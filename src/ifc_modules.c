@@ -8067,7 +8067,13 @@ this routine need to handle the case where dps->alignment is 0.
       case ifc_as_none:      unexpected_condition();   break;
       default_is_unexpected();
     }  /* switch */
-    save_partial_scope_stack(psssp);
+    if (!psssp->saved) {
+      /* Save some elements from the scope stack before temporarily changing
+         some of them.  Don't do this if we already made such changes above,
+         since that would promote the earlier temporary changes to be part of
+         the "original" state. */
+      save_partial_scope_stack(psssp);
+    }  /* if */
     scope_stack[decl_scope_level].current_access = il_access;
   }  /* if */
   if (!is_null_index(alignment)) {
