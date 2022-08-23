@@ -16343,8 +16343,7 @@ and attach them to the IL entity associated with sym (which may be NULL).
 {
   if (attributes_on_using_declarations) {
     /* Attributes are not allowed here, but the Clang using_if_exists
-       attribute can appear at this location.  These attributes may have been
-       scanned and unscanned. */
+       attribute can appear at this location. */
     an_attribute_ptr attributes = scan_attributes(al_post_using_declarator);
     if (attributes != NULL) {
       if (clang_mode && attributes->family == af_std) {
@@ -16382,8 +16381,7 @@ A sk_namespace_projection is created and added to the symbol table for the
 current scope.
 
 No standard attributes are allowed after the qualified-name, but clang allows
-the using_if_exists attribute at that location.  If that attribute is present,
-it has been "unscanned" by the disambiguation process and must be scanned here.
+the using_if_exists attribute at that location.
 */
 {
   a_symbol_ptr             sym = NULL, fund_sym, overload_sym, other_decl,
@@ -16687,11 +16685,6 @@ semicolon.
 
 *dps describes the declaration (which can be a class member or not).
 *p_end_of_using_pos is the end position of the "using" token.
-
-At the time of this call, there may be some unscanned attributes that are
-pending -- this routine must ensure that scan_attributes is called early in the
-processing to handle these (to prevent them from erroneously being processed
-elsewhere).
 */
 {
   a_symbol_locator  loc;
@@ -20212,14 +20205,9 @@ The "using" token has already been consumed.
         cache_curr_token(&cache);
         /* Skip past tok_identifier. */
         (void)get_token();
-        /* Bypass any attributes (saving them for later by "un-scanning"
-           them. */
         add_stop_token(tok_semicolon);
-        an_attribute_ptr prescanned_attributes =
-                                             scan_attributes(al_declarator_id);
-        if (prescanned_attributes != NULL) {
-          unscan_attributes(prescanned_attributes);
-        }  /* if */
+        /* Skip attributes. */
+        cache_attributes(&cache);
         if (curr_token == tok_assign) {
           result = TRUE;
         }  /* if */
@@ -20394,8 +20382,6 @@ processing should proceed after the call.
           nonmember_using_declaration(state);
           state->decl_okay_in_constexpr_body = TRUE;
         }  /* if */
-        /* There should be no "unscanned" attributes at this point. */
-        check_assertion(!unscanned_attributes_pending());
       }  /* if */
       cannot_bind_to_curr_construct();
       end_of_decl_action = eoda_check_semicolon;

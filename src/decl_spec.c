@@ -9380,7 +9380,7 @@ issued if it is not valid.
 }  /* check_gnu_c_auto_type */
 
 
-static void cache_attributes(a_token_cache  *cache)
+void cache_attributes(a_token_cache  *cache)
 /*
 If the current tokens introduce GNU or standard attributes, cache those
 attributes in the given cache.  If the attributes are malformed, an arbitrary
