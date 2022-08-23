@@ -2780,7 +2780,7 @@ EXTERN a_boolean
 EXTERN a_boolean
 		attributes_on_using_declarations;
 			/* TRUE if attributes are allowed in using-declarations
-			   (that's the case in clang C++ mode). */
+			   (that's the case in Clang C++ mode). */
 
 /* Process the command line arguments. */
 extern void proc_command_line(int argc, char *argv[]);

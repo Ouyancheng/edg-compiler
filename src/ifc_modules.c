@@ -5144,7 +5144,9 @@ class_struct_union_case:
                                                (a_type_ptr)NULL,
                                                &prev_udp,
                                                /*is_list=*/FALSE,
-                                               /*suppress_redecl_error=*/TRUE);
+                                               /*suppress_redecl_error=*/TRUE,
+                                               (an_attribute_ptr)NULL,
+                                               /*copy_attributes=*/FALSE);
               }  /* if */
             }  /* if */
           }  /* if */

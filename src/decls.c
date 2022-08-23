@@ -16138,7 +16138,8 @@ void create_nonmember_using_declaration(a_symbol_ptr     sym,
                                         a_using_decl_ptr *prev_udp,
                                         a_boolean        is_list,
                                         a_boolean        suppress_redecl_error,
-                      /* Defaulted: */  an_attribute_ptr attributes)
+                                        an_attribute_ptr attributes,
+                                        a_boolean        copy_attributes)
 /*
 Create a projection for symbol "sym" from namespace "nsp" (or, in
 Microsoft bugs mode, from the class "class_type").  If this is part of
@@ -16148,8 +16149,9 @@ is not part of an overload set, we may need to create such a set
 because existing declarations in the scope are being overloaded.
 "*prev_udp" is the previous using-declaration structure for the
 using-declaration construct that is currently being processed (NULL if
-none).  If attributes is non-NULL, attach a copy of those attributes to
-the newly-created using-declaration.
+none).  If attributes is non-NULL, attach those attributes to the
+newly-created using-declaration (a copy of the attributes is made if
+copy_attributes is TRUE).
 */
 {
   a_symbol_locator   locator;
@@ -16181,9 +16183,11 @@ the newly-created using-declaration.
     }  /* if */
     if (attributes != NULL) {
       /* If there are any applicable attributes, attach them (but make a copy
-         in case the attributes apply to multiple using-declarations). */
-      attach_attributes(copy_of_attributes_list(attributes),
-                        (char*)udp, iek_using_decl);
+         in if necessary). */
+      if (copy_attributes) {
+        attributes = copy_of_attributes_list(attributes);
+      }  /* if */
+      attach_attributes(attributes, (char*)udp, iek_using_decl);
     }  /* if */
     if (scope_stack_top().exporting_decl &&
         source_corresp_entry_for_symbol(fund_sym)->name_linkage
@@ -16318,7 +16322,9 @@ TRUE if and only if a redeclaration error is issued.
       create_nonmember_using_declaration(tag_sym, &null_sym_ptr,
                                          other_decl, nsp, (a_type_ptr)NULL,
                                          prev_udp, /*is_list=*/FALSE,
-                                         /*suppress_redecl_error=*/FALSE);
+                                         /*suppress_redecl_error=*/FALSE,
+                                         (an_attribute_ptr)NULL,
+                                         /*copy_attributes=*/FALSE);
       clear_specific_symbol(locator);
       *redecl_error = (curr_scope_id_lookup(
                           &locator, IDL_MUST_BE_TAG | IDL_PROJ_SYMBOL_ALLOWED)
@@ -16330,13 +16336,13 @@ TRUE if and only if a redeclaration error is issued.
 
 void scan_and_attach_using_declaration_attributes(a_symbol_ptr sym)
 /*
-In clang mode, the using_if_exists attribute can appear after the
+In Clang mode, the using_if_exists attribute can appear after the
 using-declarator in a using-declaration.  If such attributes exist, scan them
 and attach them to the IL entity associated with sym (which may be NULL).
 */
 {
   if (attributes_on_using_declarations) {
-    /* Attributes are not allowed here, but the clang using_if_exists
+    /* Attributes are not allowed here, but the Clang using_if_exists
        attribute can appear at this location.  These attributes may have been
        scanned and unscanned. */
     an_attribute_ptr attributes = scan_attributes(al_post_using_declarator);
@@ -16618,10 +16624,9 @@ it has been "unscanned" by the disambiguation process and must be scanned here.
             }  /* if */
             for (; sym != NULL; sym = is_list ? sym->next : NULL) {
               create_nonmember_using_declaration(sym, &overload_sym,
-                                                 other_decl, nsp, class_type,
-                                                 &prev_udp, is_list,
-                                                 suppress_redecl_error,
-                                                 dps->prefix_attributes);
+                    other_decl, nsp, class_type, &prev_udp, is_list,
+                    suppress_redecl_error, dps->prefix_attributes,
+                    /*copy_attributes=*/(is_list ? sym->next != NULL : FALSE));
               if (rep_udp == NULL && prev_udp != NULL) {
                 rep_udp = prev_udp;
                 rep_udp->is_representative = TRUE;

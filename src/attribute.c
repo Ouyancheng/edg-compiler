@@ -811,7 +811,7 @@ static an_attr_appl_descr known_attr_appl_table[(int)ak_last+1] = {
   { ak_edg_n1, "", apply_edg_n1_attr },
 #endif /* INCLUDE_EDG_TEST_ATTRIBUTES */
 
-  /* Clang-specific. */
+  /* Clang-specific attributes. */
   { ak_availability, "", apply_availability_attr },
   { ak_using_if_exists, "u|t|r|v|n", apply_using_if_exists_attr },
 

@@ -25209,7 +25209,8 @@ static void create_member_using_declaration(
                                           a_type_ptr           class_type,
                                           a_using_decl_ptr     *prev_udp,
                                           an_access_specifier  access,
-                                          an_attribute_ptr     attributes)
+                                          an_attribute_ptr     attributes,
+                                          a_boolean            copy_attributes)
 /*
 Check that a valid explicit projection (a class-scope using-declaration) can
 be created for the symbol "sym", and if so create it.  "declared_sym" is
@@ -25221,7 +25222,8 @@ TRUE, a dummy entry created only to represent the using-declaration in a
 prototype instantiation).  "*prev_udp" is the previous a_using_decl structure
 created for the using-declaration that is currently being processed.  "access"
 is the access specifier applicable to the new declaration.  Any attributes
-that appertain to the member-using-declaration are copied and applied.
+that appertain to the using-declaration are applied (they are copied if
+copy_attributes is TRUE).
 */
 {
   a_symbol_ptr       fund_sym = fundamental_symbol_of(sym);
@@ -25360,9 +25362,11 @@ that appertain to the member-using-declaration are copied and applied.
     udp->is_class_member = TRUE;
     if (attributes != NULL) {
       /* If there are any applicable attributes, attach them (but make a copy
-         in case the attributes apply to multiple using-declarations). */
-      attach_attributes(copy_of_attributes_list(attributes),
-                        (char*)udp, iek_using_decl);
+         if needed). */
+      if (copy_attributes) {
+        attributes = copy_of_attributes_list(attributes);
+      }  /* if */
+      attach_attributes(attributes, (char*)udp, iek_using_decl);
     }  /* if */
     /* Update cross-reference and source-sequence info, if required. */
     record_using_decl(fund_sym, &decl_pos, udp, *prev_udp);
@@ -25905,14 +25909,16 @@ alias declaration from a using-declaration.)
              such symbols. */
           create_member_using_declaration(tag_sym, tag_sym, &overload_sym, bcp,
                                           bcp_is_dummy, class_type, &prev_udp,
-                                          access, using_attributes);
+                                          access, using_attributes,
+                                          /*copy_attributes=*/FALSE);
           if (rep_udp == NULL) rep_udp = prev_udp;
         }  /* if */
       }  /* if */
       for (;;) {
         create_member_using_declaration(sym, declared_sym, &other_sym, bcp,
                                         bcp_is_dummy, class_type, &prev_udp,
-                                        access, using_attributes);
+                                        access, using_attributes,
+                                        /*copy_attributes=*/sym->next != NULL);
         if (rep_udp == NULL) rep_udp = prev_udp;
         if (!is_overloaded) break;
         if ((sym = sym->next) == NULL) break;

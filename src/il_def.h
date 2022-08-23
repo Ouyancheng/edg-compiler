@@ -2723,7 +2723,7 @@ enum an_attribute_location : a_byte {
 			   import-declaration.  (Standard attributes only.) */
   al_post_using_declarator,
 			/* The attribute follows a using-declarator.  This is
-			   non-standard and is used only for the clang
+			   non-standard and is used only for the Clang
 			   using_if_exists attribute currently. */
   al_last
 };
