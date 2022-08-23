@@ -10817,16 +10817,19 @@ definition of a member function of a class template.
         /* Merge type information from the two declarations. */
         a_type_ptr  prev_type;
         a_boolean   default_allowed;
-        if ((strict_ansi_mode || gpp_version_is(>= 120000) ||
+        if ((strict_ansi_mode || gpp_version_is(>= 60000) ||
              clang_version_is(any_version)) &&
             !parent_class->variant.class_struct_union.is_template_class) {
-          /* G++ versions 12 and higher and all clang versions allow adding
+          /* G++ versions 6 and higher and all clang versions allow adding
              default template arguments to out-of-class definitions of
-             member templates of non-template classes.  This appears to be
-             consistent with the wording of the Standard, although there is
-             some question as to whether that is intentional, so we also
-             accept it in strict mode but issue an error in default and
-             Microsoft modes. */
+             member templates of non-template classes.  (Note that g++ only
+             started using the default argument for a non-deducible
+             parameter in version 12, so the front end's behavior will be a
+             superset of g++'s for the intervening versions.)  This appears
+             to be consistent with the wording of the Standard, although
+             there is some question as to whether that is intentional, so
+             we also accept it in strict mode but issue an error in default
+             and Microsoft modes. */
           default_allowed = TRUE;
         } else {
           default_allowed = FALSE;
