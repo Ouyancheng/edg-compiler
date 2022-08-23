@@ -12317,9 +12317,12 @@ other things to access the fields that contain the captures of local variables.
 {
   a_variable_ptr  this_var;
   a_type_ptr      routine_type;
-  a_scope_ptr     lm_scope = scope_stack[depth_lambda].il_scope;
-  a_routine_ptr   lm_rout = lm_scope->variant.routine.ptr;
+  a_scope_ptr     lm_scope;
+  a_routine_ptr   lm_rout;
 
+  check_assertion(depth_lambda != NO_SCOPE_DEPTH);
+  lm_scope = scope_stack[depth_lambda].il_scope;
+  lm_rout = lm_scope->variant.routine.ptr;
   check_assertion(lm_rout->is_lambda_body);
   routine_type = skip_typerefs(lm_rout->type);
   if (has_explicit_this_parameter(routine_type)) {
@@ -12344,8 +12347,10 @@ explicit "this" parameter, return an lvalue expression for that parameter.
 Otherwise, return the usual "this" rvalue expression.
 */
 {
-  a_scope_ptr  lm_scope = scope_stack[depth_lambda].il_scope;
+  a_scope_ptr  lm_scope;
 
+  check_assertion(depth_lambda != NO_SCOPE_DEPTH);
+  lm_scope = scope_stack[depth_lambda].il_scope;
   if (has_explicit_this_parameter(lm_scope->variant.routine.ptr->type)) {
     a_variable_ptr     first_param = lm_scope->variant.routine.parameters;
     a_source_position  *start_pos, *end_pos = NULL;

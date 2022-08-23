@@ -2626,6 +2626,7 @@ is a lambda call operator, return the corresponding a_lambda entry.  Otherwise,
 return NULL.
 */
 {
+  check_assertion(sd != NO_SCOPE_DEPTH);
   return call_op_to_lambda_map->get(scope_stack[sd].assoc_routine);
 }  /* get_lambda_for_scope_depth */
 
