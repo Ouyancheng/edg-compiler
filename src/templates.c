@@ -21176,8 +21176,14 @@ error_severity is the severity at which any diagnostics should be issued.
       if (new_has_default && !default_allowed) {
         /* A default argument was specified on a member of a class template.
            This is not permitted. */
-        pos_diagnostic(default_on_member_severity,
-                       ec_default_arg_on_member_decl,
+        an_error_code error_code;
+        if (sym_parent_class(class_sym)->
+                                variant.class_struct_union.is_template_class) {
+          error_code = ec_default_arg_on_member_decl;
+        } else {
+          error_code = ec_default_arg_on_member_template_def;
+        }  /* if */
+        pos_diagnostic(default_on_member_severity, error_code,
                        &new_tpp->param_symbol->decl_position);
       } else if (old_has_default && new_has_default &&
                  !(microsoft_bugs && microsoft_version <= 1300)) {
