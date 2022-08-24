@@ -20126,6 +20126,28 @@ the representation is valid; otherwise, return FALSE.
       goto done;
     }  /* if */
   }  /* if */
+  if (has_ifc_ellipsis(universal)) {
+    an_ifc_source_location_bytes stage_0;
+    an_ifc_validation_trace      stage_0_trace =
+                                           {"ellipsis", /*offset=*/24, parent};
+    an_ifc_source_location       stage_1;
+
+#if USE_MMAP_FOR_MODULES
+    /* Update the universal storage pointer to the start of the field
+       (SyntaxFunctionDeclarator::ellipsis - SourceLocation). */
+    stage_0 = (an_ifc_source_location_bytes)((*universal.get_storage()) + 24);
+#else /* !USE_MMAP_FOR_MODULES */
+    /* Copy the field (SyntaxFunctionDeclarator::ellipsis - SourceLocation)
+       into universal storage. */
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24,
+                   /*size=*/8);
+#endif /* USE_MMAP_FOR_MODULES */
+    stage_1 = {universal.get_module(), stage_0};
+    if (!validate(stage_1, &stage_0_trace)) {
+      result = FALSE;
+      goto done;
+    }  /* if */
+  }  /* if */
   if (has_ifc_left_paren(universal)) {
     an_ifc_source_location_bytes stage_0;
     an_ifc_validation_trace      stage_0_trace =
@@ -20159,6 +20181,28 @@ the representation is valid; otherwise, return FALSE.
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
     if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      result = FALSE;
+      goto done;
+    }  /* if */
+  }  /* if */
+  if (has_ifc_ref(universal)) {
+    an_ifc_source_location_bytes stage_0;
+    an_ifc_validation_trace      stage_0_trace =
+                                                {"ref", /*offset=*/32, parent};
+    an_ifc_source_location       stage_1;
+
+#if USE_MMAP_FOR_MODULES
+    /* Update the universal storage pointer to the start of the field
+       (SyntaxFunctionDeclarator::ref - SourceLocation). */
+    stage_0 = (an_ifc_source_location_bytes)((*universal.get_storage()) + 32);
+#else /* !USE_MMAP_FOR_MODULES */
+    /* Copy the field (SyntaxFunctionDeclarator::ref - SourceLocation) into
+       universal storage. */
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/32,
+                   /*size=*/8);
+#endif /* USE_MMAP_FOR_MODULES */
+    stage_1 = {universal.get_module(), stage_0};
+    if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */

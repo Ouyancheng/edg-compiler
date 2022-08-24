@@ -26568,6 +26568,16 @@ the storage specified by the storage argument).
     get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* right_paren.column */
     get_bytes(mod, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
+    /* ellipsis.line */
+    get_bytes(mod, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
+    /* ellipsis.column */
+    get_bytes(mod, (*storage) + 28, /*num_bytes=*/4, /*from_header=*/FALSE);
+    /* ref.line */
+    get_bytes(mod, (*storage) + 32, /*num_bytes=*/4, /*from_header=*/FALSE);
+    /* ref.column */
+    get_bytes(mod, (*storage) + 36, /*num_bytes=*/4, /*from_header=*/FALSE);
+    /* traits */
+    get_bytes(mod, (*storage) + 40, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_function_declarator_storage> */

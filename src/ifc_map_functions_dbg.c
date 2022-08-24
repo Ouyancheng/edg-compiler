@@ -14669,6 +14669,13 @@ diagnostic textual representation with the given indent.
       fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
     }  /* if */
   }  /* if */
+  if (has_ifc_ellipsis(universal)) {
+    an_ifc_source_location field = get_ifc_ellipsis(universal);
+
+    db_print_indent(indent);
+    fprintf(f_debug, "ellipsis:\n");
+    db_node(field, indent + 1);
+  }  /* if */
   if (has_ifc_left_paren(universal)) {
     an_ifc_source_location field = get_ifc_left_paren(universal);
 
@@ -14691,12 +14698,46 @@ diagnostic textual representation with the given indent.
       fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
     }  /* if */
   }  /* if */
+  if (has_ifc_ref(universal)) {
+    an_ifc_source_location field = get_ifc_ref(universal);
+
+    db_print_indent(indent);
+    fprintf(f_debug, "ref:\n");
+    db_node(field, indent + 1);
+  }  /* if */
   if (has_ifc_right_paren(universal)) {
     an_ifc_source_location field = get_ifc_right_paren(universal);
 
     db_print_indent(indent);
     fprintf(f_debug, "right_paren:\n");
     db_node(field, indent + 1);
+  }  /* if */
+  if (has_ifc_traits(universal)) {
+    an_ifc_function_type_traits_bitfield field = get_ifc_traits(universal);
+
+    fprintf(f_debug, "traits:\n");
+    ++indent;
+    if (test_bitmask<ifc_fttb_const>(field)) {
+      db_print_indent(indent);
+      fprintf(f_debug, "- Const\n");
+    }  /* if */
+    if (test_bitmask<ifc_fttb_lvalue>(field)) {
+      db_print_indent(indent);
+      fprintf(f_debug, "- Lvalue\n");
+    }  /* if */
+    if (test_bitmask<ifc_fttb_none>(field)) {
+      db_print_indent(indent);
+      fprintf(f_debug, "- None\n");
+    }  /* if */
+    if (test_bitmask<ifc_fttb_rvalue>(field)) {
+      db_print_indent(indent);
+      fprintf(f_debug, "- Rvalue\n");
+    }  /* if */
+    if (test_bitmask<ifc_fttb_volatile>(field)) {
+      db_print_indent(indent);
+      fprintf(f_debug, "- Volatile\n");
+    }  /* if */
+    --indent;
   }  /* if */
 }  /* db_node */
 

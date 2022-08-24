@@ -7821,6 +7821,16 @@ struct an_ifc_traits_metadata<an_ifc_decl_variable> {
 
 /*
 The IFC traits field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxFunctionDeclarator nodes.
+*/
+template<>
+struct an_ifc_traits_metadata<an_ifc_syntax_function_declarator> {
+  using return_type = an_ifc_function_type_traits_bitfield;
+};  /* an_ifc_traits_metadata */
+
+
+/*
+The IFC traits field has multiple return types.  This type is a metadata type
 that allows resolution of the return type for TypeFunction nodes.
 */
 template<>
@@ -21663,6 +21673,13 @@ an_ifc_syntax_index get_ifc_eh_spec(
                            const an_ifc_syntax_function_declarator &universal);
 
 template<>
+a_boolean has_ifc_ellipsis(const an_ifc_syntax_function_declarator &universal);
+
+template<>
+an_ifc_source_location get_ifc_ellipsis(
+                           const an_ifc_syntax_function_declarator &universal);
+
+template<>
 a_boolean has_ifc_left_paren(
                            const an_ifc_syntax_function_declarator &universal);
 
@@ -21679,11 +21696,25 @@ an_ifc_syntax_index get_ifc_parameters(
                            const an_ifc_syntax_function_declarator &universal);
 
 template<>
+a_boolean has_ifc_ref(const an_ifc_syntax_function_declarator &universal);
+
+template<>
+an_ifc_source_location get_ifc_ref(
+                           const an_ifc_syntax_function_declarator &universal);
+
+template<>
 a_boolean has_ifc_right_paren(
                            const an_ifc_syntax_function_declarator &universal);
 
 template<>
 an_ifc_source_location get_ifc_right_paren(
+                           const an_ifc_syntax_function_declarator &universal);
+
+template<>
+a_boolean has_ifc_traits(const an_ifc_syntax_function_declarator &universal);
+
+template<>
+an_ifc_function_type_traits_bitfield get_ifc_traits(
                            const an_ifc_syntax_function_declarator &universal);
 
 template<>

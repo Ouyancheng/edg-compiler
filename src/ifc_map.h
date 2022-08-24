@@ -14294,17 +14294,20 @@ struct an_ifc_syntax_function_body :
 };  /* an_ifc_syntax_function_body */
 
 /*
-  |-----------------------------------------------|
-  |  SyntaxFunctionDeclarator - 0.33 (44 bytes)   |
-  |-------------|----------------|---------|------|
-  | Name        | Type           | Version | Size |
-  |-------------|----------------|---------|------|
-  | parameters  | SyntaxIndex    | 0.33    | 4    |
-  | eh_spec     | SyntaxIndex    | 0.33    | 4    |
-  | left_paren  | SourceLocation | 0.33    | 8    |
-  | right_paren | SourceLocation | 0.33    | 8    |
-  | __padding__ | uint8_t[20]    |         | 20   |
-  |-------------|----------------|---------|------|
+  |-----------------------------------------------------------|
+  |        SyntaxFunctionDeclarator - 0.33 (44 bytes)         |
+  |-------------|----------------------------|---------|------|
+  | Name        | Type                       | Version | Size |
+  |-------------|----------------------------|---------|------|
+  | parameters  | SyntaxIndex                | 0.33    | 4    |
+  | eh_spec     | SyntaxIndex                | 0.33    | 4    |
+  | left_paren  | SourceLocation             | 0.33    | 8    |
+  | right_paren | SourceLocation             | 0.33    | 8    |
+  | ellipsis    | SourceLocation             | 0.33    | 8    |
+  | ref         | SourceLocation             | 0.33    | 8    |
+  | traits      | FunctionTypeTraitsBitfield | 0.33    | 1    |
+  | __padding__ | uint8_t[3]                 |         | 3    |
+  |-------------|----------------------------|---------|------|
 */
 enum an_ifc_syntax_function_declarator_part : uint8_t {};
 using an_ifc_syntax_function_declarator_storage =

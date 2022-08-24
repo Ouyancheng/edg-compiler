@@ -38139,6 +38139,54 @@ universal representation of the field "eh_spec".
 
 
 template<>
+a_boolean has_ifc_ellipsis(const an_ifc_syntax_function_declarator &universal)
+/*
+Return TRUE if the given universal representation has the field "ellipsis";
+otherwise, return FALSE.
+*/
+{
+  an_ifc_module *mod = universal.get_module();
+  a_boolean     result = get_fallback_presence_value(mod);
+
+  if (is_at_least(mod, 0, 33)) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* has_ifc_ellipsis */
+
+
+template<>
+an_ifc_source_location get_ifc_ellipsis(
+                            const an_ifc_syntax_function_declarator &universal)
+/*
+Given the universal representation of SyntaxFunctionDeclarator, return the
+universal representation of the field "ellipsis".
+*/
+{
+  an_ifc_source_location result;
+
+  /* Ensure the ellipsis field exists in the current module version. */
+  check_assertion(has_ifc_ellipsis(universal));
+  an_ifc_source_location_bytes stage_0;
+  an_ifc_source_location       stage_1;
+
+#if USE_MMAP_FOR_MODULES
+  /* Update the universal storage pointer to the start of the field
+     (SyntaxFunctionDeclarator::ellipsis - SourceLocation). */
+  stage_0 = (an_ifc_source_location_bytes)((*universal.get_storage()) + 24);
+#else /* !USE_MMAP_FOR_MODULES */
+  /* Copy the field (SyntaxFunctionDeclarator::ellipsis - SourceLocation) into
+     universal storage. */
+  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24,
+                 /*size=*/8);
+#endif /* USE_MMAP_FOR_MODULES */
+  stage_1 = {universal.get_module(), stage_0};
+  result = stage_1;
+  return result;
+}  /* get_ifc_ellipsis */
+
+
+template<>
 a_boolean has_ifc_left_paren(
                             const an_ifc_syntax_function_declarator &universal)
 /*
@@ -38231,6 +38279,54 @@ universal representation of the field "parameters".
 
 
 template<>
+a_boolean has_ifc_ref(const an_ifc_syntax_function_declarator &universal)
+/*
+Return TRUE if the given universal representation has the field "ref";
+otherwise, return FALSE.
+*/
+{
+  an_ifc_module *mod = universal.get_module();
+  a_boolean     result = get_fallback_presence_value(mod);
+
+  if (is_at_least(mod, 0, 33)) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* has_ifc_ref */
+
+
+template<>
+an_ifc_source_location get_ifc_ref(
+                            const an_ifc_syntax_function_declarator &universal)
+/*
+Given the universal representation of SyntaxFunctionDeclarator, return the
+universal representation of the field "ref".
+*/
+{
+  an_ifc_source_location result;
+
+  /* Ensure the ref field exists in the current module version. */
+  check_assertion(has_ifc_ref(universal));
+  an_ifc_source_location_bytes stage_0;
+  an_ifc_source_location       stage_1;
+
+#if USE_MMAP_FOR_MODULES
+  /* Update the universal storage pointer to the start of the field
+     (SyntaxFunctionDeclarator::ref - SourceLocation). */
+  stage_0 = (an_ifc_source_location_bytes)((*universal.get_storage()) + 32);
+#else /* !USE_MMAP_FOR_MODULES */
+  /* Copy the field (SyntaxFunctionDeclarator::ref - SourceLocation) into
+     universal storage. */
+  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/32,
+                 /*size=*/8);
+#endif /* USE_MMAP_FOR_MODULES */
+  stage_1 = {universal.get_module(), stage_0};
+  result = stage_1;
+  return result;
+}  /* get_ifc_ref */
+
+
+template<>
 a_boolean has_ifc_right_paren(
                             const an_ifc_syntax_function_declarator &universal)
 /*
@@ -38277,6 +38373,50 @@ universal representation of the field "right_paren".
   result = stage_1;
   return result;
 }  /* get_ifc_right_paren */
+
+
+template<>
+a_boolean has_ifc_traits(const an_ifc_syntax_function_declarator &universal)
+/*
+Return TRUE if the given universal representation has the field "traits";
+otherwise, return FALSE.
+*/
+{
+  an_ifc_module *mod = universal.get_module();
+  a_boolean     result = get_fallback_presence_value(mod);
+
+  if (is_at_least(mod, 0, 33)) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* has_ifc_traits */
+
+
+template<>
+an_ifc_function_type_traits_bitfield get_ifc_traits(
+                            const an_ifc_syntax_function_declarator &universal)
+/*
+Given the universal representation of SyntaxFunctionDeclarator, return the
+universal representation of the field "traits".
+*/
+{
+  an_ifc_function_type_traits_bitfield result;
+
+  /* Ensure the traits field exists in the current module version. */
+  check_assertion(has_ifc_traits(universal));
+  an_ifc_function_type_traits_bitfield_0_33 stage_0;
+  an_ifc_function_type_traits_bitfield      stage_1;
+
+  /* Copy the field (SyntaxFunctionDeclarator::traits -
+     FunctionTypeTraitsBitfield) into version-specific storage. */
+  static_assert(sizeof(stage_0) == 1,
+                "stage_0 is not properly sized storage!");
+  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/40);
+  stage_1 = {universal.get_module(),
+             (an_ifc_function_type_traits_bitfield_storage)stage_0};
+  result = stage_1;
+  return result;
+}  /* get_ifc_traits */
 
 
 /*
