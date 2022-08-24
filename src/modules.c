@@ -1117,10 +1117,29 @@ Import the given module.  assoc_sym is the associated symbol for the module.
 }  /* import_module */
 
 
+a_boolean has_routine_definition_from_module(ARG_UNUSED a_routine_ptr  rp)
+/*
+If the given routine has a definition available in an imported module, return
+TRUE.  Otherwise, return FALSE.
+*/
+{
+  a_boolean  result = FALSE;
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  result = has_routine_definition_from_ifc_module(rp);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  return result;
+}  /* load_routine_definition_from_module */
+
+
 a_boolean load_routine_definition_from_module(ARG_UNUSED a_routine_ptr  rp)
 /*
 If the given routine has a definition available in an imported module, load and
 process that definition now, and return TRUE.  Otherwise, return FALSE.
+
+The presence of a routine definition should be checked for via
+has_routine_definition_from_module prior to attempting to load the a routine
+definition.
 */
 {
   a_boolean  result = FALSE;

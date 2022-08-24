@@ -3531,44 +3531,60 @@ done:
 }  /* cache_function_body */
 
 
-a_boolean load_routine_definition_from_ifc_module(a_routine_ptr  rp)
+a_boolean has_routine_definition_from_ifc_module(a_routine_ptr  rp)
 /*
 If the given routine has a definition in a currently-imported IFC module
-process that definition and return TRUE.
+return TRUE.
 */
 {
-  a_boolean         result = FALSE;
   an_ifc_decl_index ifb = ifc_function_bodies->get(rp);
 
-  if (ifb.mod != NULL) {
-    a_func_info_block           func_info;
-    a_module_token_cache        def_cache;
-    a_decl_flag_set             flags = SFB_NEW_STRUCT_STMT_STACK_REQUIRED;
-    a_curr_token_preserver      guard;
-    a_module_entity_stack_state mep_state(
+  return ifb.mod != NULL;
+}  /* has_routine_definition_from_ifc_module */
+
+
+a_boolean load_routine_definition_from_ifc_module(a_routine_ptr  rp)
+/*
+The given routine claims to have a definition in a currently-imported IFC
+module, process that definition and return TRUE.  If problems our encountered
+during processing, return FALSE.
+
+The presence of a routine definition should be checked for via
+has_routine_definition_from_ifc_module prior to attempting to load the a
+routine definition.
+*/
+{
+  check_assertion(has_routine_definition_from_ifc_module(rp));
+  a_boolean                   result = FALSE;
+  an_ifc_decl_index           ifb = ifc_function_bodies->get(rp);
+  a_func_info_block           func_info;
+  a_module_token_cache        def_cache;
+  a_decl_flag_set             flags = SFB_NEW_STRUCT_STMT_STACK_REQUIRED;
+  a_curr_token_preserver      guard;
+  a_module_entity_stack_state mep_state(
                                       ifb.mod->get_ifc_module_entity_ptr(ifb));
-    a_diagnostic_suppression    diag_suppress(
+  a_diagnostic_suppression    diag_suppress(
                                            &ifb.mod->suppressed_diagnostics,
                                            !display_module_import_diagnostics);
 
 
-    /* We are about to load the definition.  So the "pending definition" entry
-       can be dropped now. */
-    ifc_function_bodies->unmap(rp);
-    clear_func_info(&func_info);
-    push_new_top_level_declaration();
-    if (ifb.mod->cache_function_body(&def_cache, ifb, rp, &func_info)) {
-      if (def_cache.is_valid()) {
-        a_module_entity_rescan rescan(&def_cache);
+  /* We are about to load the definition.  So the "pending definition" entry
+     can be dropped now. */
+  ifc_function_bodies->unmap(rp);
+  clear_func_info(&func_info);
+  push_new_top_level_declaration();
+  if (ifb.mod->cache_function_body(&def_cache, ifb, rp, &func_info)) {
+    if (def_cache.is_valid()) {
+      a_token_kind           expected_tok = tok_rbrace;
+      a_module_entity_rescan rescan(&def_cache, &expected_tok);
 
-        scan_function_body(rp, &func_info, flags);
-        if (curr_token == tok_rbrace) {
-          result = TRUE;
-        }  /* if */
+      scan_function_body(rp, &func_info, flags);
+      if (curr_token == expected_tok) {
+        result = TRUE;
       }  /* if */
     }  /* if */
-    pop_scope();
   }  /* if */
+  pop_scope();
   return result;
 }  /* load_routine_definition_from_ifc_module */
 

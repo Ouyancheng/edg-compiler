@@ -10644,8 +10644,12 @@ otherwise, return FALSE and update *ips accordingly.
         /* Nontemplate friends defined in class templates require special
            handling. */
         add_to_deferred_friend_function_fixup_list(callee->routine_fixup);
-      } else if (load_routine_definition_from_module(callee)) {
+      } else if (has_routine_definition_from_module(callee)) {
         /* The definition was stored in a module file. */
+        if (!load_routine_definition_from_module(callee)) {
+          ips->input_error = TRUE;
+          do_constexpr_fail(result);
+        }  /* if */
       } else {
         set_instance_required(symbol_for(callee), TRUE, SIR_CONSTANT_CONTEXT);
         if (!callee->defined && callee->is_defaulted) {
@@ -10940,8 +10944,12 @@ the body of the (constructor) function proper.
     goto done;
   }  /* if */
   if (!callee->defined) {
-    if (load_routine_definition_from_module(callee)) {
+    if (has_routine_definition_from_module(callee)) {
       /* The definition was stored in a module file. */
+      if (!load_routine_definition_from_module(callee)) {
+        ips->input_error = TRUE;
+        do_constexpr_fail(result);
+      }  /* if */
     } else {
       set_instance_required(symbol_for(callee), TRUE, SIR_CONSTANT_CONTEXT);
     }  /* if */

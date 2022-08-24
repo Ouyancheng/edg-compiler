@@ -25149,7 +25149,9 @@ routine as actually referenced.
        require instantiation, it would also require being loaded from the
        module file.  In the case of consteval functions, that can be postponed
        until the constant-evaluator needs the function definition. */
-    (void)load_routine_definition_from_module(routine);
+    if (has_routine_definition_from_module(routine)) {
+      (void)load_routine_definition_from_module(routine);
+    }  /* if */
   }  /* if */
   /* If the function is an instance of a function template, mark it as
      requiring an instantiation.  This is also done for extern inline functions
