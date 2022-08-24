@@ -274,21 +274,39 @@ representation with the given indent.
               }
               break;
             case ifc_sls_msvc_cast_target_type:
-              { an_ifc_source_unknown_literal &mctt_ref =
+              { an_ifc_type_index &mctt_ref =
                                           sl_ref.variant.msvc_cast_target_type;
 
                 db_print_indent(indent);
-                fprintf(f_debug, "msvc_cast_target_type: %llu\n",
-                        (unsigned long long)mctt_ref.value);
+                fprintf(f_debug, "msvc_cast_target_type:");
+                if (is_null_index(mctt_ref)) {
+                  fprintf(f_debug, " NULL\n");
+                } else {
+                  fprintf(f_debug, "\n");
+                  db_print_indent(indent);
+                  fprintf(f_debug, "  sort: %s\n", str_for(mctt_ref.sort));
+                  db_print_indent(indent);
+                  fprintf(f_debug, "  value: %llu\n",
+                          (unsigned long long)mctt_ref.value);
+                }  /* if */
               }
               break;
             case ifc_sls_msvc_defined_constant:
-              { an_ifc_source_unknown_literal &mdc_ref =
+              { an_ifc_expr_index &mdc_ref =
                                           sl_ref.variant.msvc_defined_constant;
 
                 db_print_indent(indent);
-                fprintf(f_debug, "msvc_defined_constant: %llu\n",
-                        (unsigned long long)mdc_ref.value);
+                fprintf(f_debug, "msvc_defined_constant:");
+                if (is_null_index(mdc_ref)) {
+                  fprintf(f_debug, " NULL\n");
+                } else {
+                  fprintf(f_debug, "\n");
+                  db_print_indent(indent);
+                  fprintf(f_debug, "  sort: %s\n", str_for(mdc_ref.sort));
+                  db_print_indent(indent);
+                  fprintf(f_debug, "  value: %llu\n",
+                          (unsigned long long)mdc_ref.value);
+                }  /* if */
               }
               break;
             case ifc_sls_msvc_function_name_macro:
@@ -301,12 +319,20 @@ representation with the given indent.
               }
               break;
             case ifc_sls_msvc_resolved_type:
-              { an_ifc_source_unknown_literal &mrt_ref =
-                                             sl_ref.variant.msvc_resolved_type;
+              { an_ifc_type_index &mrt_ref = sl_ref.variant.msvc_resolved_type;
 
                 db_print_indent(indent);
-                fprintf(f_debug, "msvc_resolved_type: %llu\n",
-                        (unsigned long long)mrt_ref.value);
+                fprintf(f_debug, "msvc_resolved_type:");
+                if (is_null_index(mrt_ref)) {
+                  fprintf(f_debug, " NULL\n");
+                } else {
+                  fprintf(f_debug, "\n");
+                  db_print_indent(indent);
+                  fprintf(f_debug, "  sort: %s\n", str_for(mrt_ref.sort));
+                  db_print_indent(indent);
+                  fprintf(f_debug, "  value: %llu\n",
+                          (unsigned long long)mrt_ref.value);
+                }  /* if */
               }
               break;
             case ifc_sls_msvc_string_prefix_macro:
@@ -10768,21 +10794,39 @@ representation with the given indent.
               }
               break;
             case ifc_sls_msvc_cast_target_type:
-              { an_ifc_source_unknown_literal &mctt_ref =
+              { an_ifc_type_index &mctt_ref =
                                           sl_ref.variant.msvc_cast_target_type;
 
                 db_print_indent(indent);
-                fprintf(f_debug, "msvc_cast_target_type: %llu\n",
-                        (unsigned long long)mctt_ref.value);
+                fprintf(f_debug, "msvc_cast_target_type:");
+                if (is_null_index(mctt_ref)) {
+                  fprintf(f_debug, " NULL\n");
+                } else {
+                  fprintf(f_debug, "\n");
+                  db_print_indent(indent);
+                  fprintf(f_debug, "  sort: %s\n", str_for(mctt_ref.sort));
+                  db_print_indent(indent);
+                  fprintf(f_debug, "  value: %llu\n",
+                          (unsigned long long)mctt_ref.value);
+                }  /* if */
               }
               break;
             case ifc_sls_msvc_defined_constant:
-              { an_ifc_source_unknown_literal &mdc_ref =
+              { an_ifc_expr_index &mdc_ref =
                                           sl_ref.variant.msvc_defined_constant;
 
                 db_print_indent(indent);
-                fprintf(f_debug, "msvc_defined_constant: %llu\n",
-                        (unsigned long long)mdc_ref.value);
+                fprintf(f_debug, "msvc_defined_constant:");
+                if (is_null_index(mdc_ref)) {
+                  fprintf(f_debug, " NULL\n");
+                } else {
+                  fprintf(f_debug, "\n");
+                  db_print_indent(indent);
+                  fprintf(f_debug, "  sort: %s\n", str_for(mdc_ref.sort));
+                  db_print_indent(indent);
+                  fprintf(f_debug, "  value: %llu\n",
+                          (unsigned long long)mdc_ref.value);
+                }  /* if */
               }
               break;
             case ifc_sls_msvc_function_name_macro:
@@ -10795,12 +10839,20 @@ representation with the given indent.
               }
               break;
             case ifc_sls_msvc_resolved_type:
-              { an_ifc_source_unknown_literal &mrt_ref =
-                                             sl_ref.variant.msvc_resolved_type;
+              { an_ifc_type_index &mrt_ref = sl_ref.variant.msvc_resolved_type;
 
                 db_print_indent(indent);
-                fprintf(f_debug, "msvc_resolved_type: %llu\n",
-                        (unsigned long long)mrt_ref.value);
+                fprintf(f_debug, "msvc_resolved_type:");
+                if (is_null_index(mrt_ref)) {
+                  fprintf(f_debug, " NULL\n");
+                } else {
+                  fprintf(f_debug, "\n");
+                  db_print_indent(indent);
+                  fprintf(f_debug, "  sort: %s\n", str_for(mrt_ref.sort));
+                  db_print_indent(indent);
+                  fprintf(f_debug, "  value: %llu\n",
+                          (unsigned long long)mrt_ref.value);
+                }  /* if */
               }
               break;
             case ifc_sls_msvc_string_prefix_macro:

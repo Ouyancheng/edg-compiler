@@ -1171,25 +1171,28 @@ initializer.
 }  /* load_variable_init_from_module */
 
 
-void extract_tokens_for_module_expr(
+a_boolean extract_tokens_for_module_expr(
                                ARG_UNUSED a_lexical_ifc_index_reference *index)
 /*
 Extract the tokens corresponding to the expression referred to by index and
-insert them into the token stream.
+insert them into the token stream.  The caller is responsible for calling
+exit_ifc_rescan.  Return TRUE if the token extraction was successful, tokens
+were rescanned, and a call to exit_ifc_rescan is required; otherwise, return
+FALSE.
 */
 {
-  a_token_cache cache;
-
-  clear_token_cache(&cache, /*reusable=*/FALSE);
+  a_boolean            result = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  {
-    an_ifc_expr_index expr_index{(an_ifc_module*)index->module,
-                                 (an_ifc_expr_sort)index->sort, index->index};
-    expr_index.mod->cache_expr(&cache, expr_index);
-    terminate_token_cache(&cache);
-    rescan_cached_tokens(&cache);
-  }
+  a_module_token_cache cache;
+  an_ifc_expr_index    expr_index{(an_ifc_module*)index->module,
+                                  (an_ifc_expr_sort)index->sort, index->index};
+  expr_index.mod->cache_expr(&cache, expr_index);
+  if (cache.is_valid()) {
+    (void)enter_module_token_rescan(&cache);
+    result = TRUE;
+  }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  return result;
 }  /* extract_tokens_for_module_expr */
 
 #if DEBUG

@@ -2786,6 +2786,36 @@ value represents a valid categorized sort; otherwise, return FALSE.
         }  /* if */
       }
       break;
+    case ifc_0_33_sls_msvc_cast_target_type:
+      { an_ifc_type_index_0_33 versioned_value =
+                                             (an_ifc_type_index_0_33)raw_value;
+
+        if (!validate_index(mod, versioned_value, parent)) {
+          result = FALSE;
+          goto done;
+        }  /* if */
+      }
+      break;
+    case ifc_0_33_sls_msvc_defined_constant:
+      { an_ifc_expr_index_0_33 versioned_value =
+                                             (an_ifc_expr_index_0_33)raw_value;
+
+        if (!validate_index(mod, versioned_value, parent)) {
+          result = FALSE;
+          goto done;
+        }  /* if */
+      }
+      break;
+    case ifc_0_33_sls_msvc_resolved_type:
+      { an_ifc_type_index_0_33 versioned_value =
+                                             (an_ifc_type_index_0_33)raw_value;
+
+        if (!validate_index(mod, versioned_value, parent)) {
+          result = FALSE;
+          goto done;
+        }  /* if */
+      }
+      break;
     case ifc_0_33_sls_scalar:
       { an_ifc_expr_index_0_33 versioned_value =
                                              (an_ifc_expr_index_0_33)raw_value;

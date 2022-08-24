@@ -39500,8 +39500,8 @@ see expr.h).
 #endif /* DEBUG */
   if (curr_token == tok_pending_ifc_expr) {
     (void)get_token();
-    extract_tokens_for_module_expr(&ifc_index_for_curr_token);
-    scanning_deferred_module_expr = TRUE;
+    scanning_deferred_module_expr =
+                     extract_tokens_for_module_expr(&ifc_index_for_curr_token);
   }  /* if */
   if (local_options & EOPT_SUBSCRIPT_OP) {
     /* Clear the subscript operator flag as this is irrelevant for any
@@ -40937,15 +40937,8 @@ end_of_routine:
   expr_stack->allow_call_with_incomplete_return_type =
                                  saved_allow_call_with_incomplete_return_type;
   if (scanning_deferred_module_expr) {
-    /* The rescanned tokens for a deferred module expr are terminated.
-       Confirm that we've reached that termination point and consume the token
-       if so. */
-    if (curr_token != tok_end_of_source) {
-      expect_error();
-      flush_to_end_of_source(/*suppress_warning=*/TRUE);
-    }  /* if */
-    check_assertion(curr_token == tok_end_of_source);
-    (void)get_token();
+    /* Cleanup the module token rescan. */
+    exit_module_token_rescan();
   }  /* if */
   db_exit();
 }  /* scan_expr_full */

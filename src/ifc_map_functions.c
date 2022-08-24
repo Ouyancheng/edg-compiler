@@ -14009,22 +14009,20 @@ corresponding universal representation.
       }
       break;
     case ifc_0_33_sls_msvc_cast_target_type:
-      { an_ifc_source_unknown_literal_0_33 versioned_value =
-                                 (an_ifc_source_unknown_literal_0_33)raw_value;
-        an_ifc_source_unknown_literal      universal_value;
+      { an_ifc_type_index_0_33 versioned_value =
+                                             (an_ifc_type_index_0_33)raw_value;
+        an_ifc_type_index      universal_value;
 
-        universal_value = {mod,
-                       (an_ifc_source_unknown_literal_storage)versioned_value};
+        universal_value = to_universal_index(mod, versioned_value);
         result.variant.msvc_cast_target_type = universal_value;
       }
       break;
     case ifc_0_33_sls_msvc_defined_constant:
-      { an_ifc_source_unknown_literal_0_33 versioned_value =
-                                 (an_ifc_source_unknown_literal_0_33)raw_value;
-        an_ifc_source_unknown_literal      universal_value;
+      { an_ifc_expr_index_0_33 versioned_value =
+                                             (an_ifc_expr_index_0_33)raw_value;
+        an_ifc_expr_index      universal_value;
 
-        universal_value = {mod,
-                       (an_ifc_source_unknown_literal_storage)versioned_value};
+        universal_value = to_universal_index(mod, versioned_value);
         result.variant.msvc_defined_constant = universal_value;
       }
       break;
@@ -14038,12 +14036,11 @@ corresponding universal representation.
       }
       break;
     case ifc_0_33_sls_msvc_resolved_type:
-      { an_ifc_source_unknown_literal_0_33 versioned_value =
-                                 (an_ifc_source_unknown_literal_0_33)raw_value;
-        an_ifc_source_unknown_literal      universal_value;
+      { an_ifc_type_index_0_33 versioned_value =
+                                             (an_ifc_type_index_0_33)raw_value;
+        an_ifc_type_index      universal_value;
 
-        universal_value = {mod,
-                       (an_ifc_source_unknown_literal_storage)versioned_value};
+        universal_value = to_universal_index(mod, versioned_value);
         result.variant.msvc_resolved_type = universal_value;
       }
       break;

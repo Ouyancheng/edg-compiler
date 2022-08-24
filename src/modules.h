@@ -262,8 +262,105 @@ extern a_dynamic_init_ptr load_variable_init_from_module(
                                          a_type_ptr                    tp,
                                          a_lexical_ifc_index_reference *index);
 
-extern void extract_tokens_for_module_expr(
+extern a_boolean extract_tokens_for_module_expr(
                                          a_lexical_ifc_index_reference *index);
+
+
+/*
+An internal token cache wrapper structure that represents additional state for
+modules.
+*/
+struct a_module_token_cache {
+  a_module_token_cache()
+    : underlying_cache(), valid(TRUE)
+    { clear_token_cache(&(this->underlying_cache), /*reusable=*/FALSE); }
+  a_module_token_cache(const a_module_token_cache&) = delete;
+
+  a_boolean is_valid() const
+    { return valid; }
+  void invalidate()
+    { this->valid = FALSE; }
+
+  a_token_cache_ptr as_canonical()
+    { return &(this->underlying_cache); }
+  const a_token_cache* as_canonical() const
+    { return &(this->underlying_cache); }
+
+  a_cached_token_ptr get_first_token()
+    { return this->underlying_cache.first_token; }
+  a_cached_token_ptr get_last_token()
+    { return this->underlying_cache.last_token; }
+private:
+  a_token_cache
+                underlying_cache;
+                        /* The underlying cache to insert tokens into. */
+  a_boolean     valid;  /* TRUE if the underlying cache should be parsed after
+                           caching; otherwise, FALSE. */
+};  /* a_module_token_cache */
+
+using a_module_token_cache_ptr = a_module_token_cache*;
+
+
+inline void enter_module_token_rescan(a_module_token_cache_ptr cache)
+{
+  push_stop_token_stack();
+  terminate_token_cache(cache->as_canonical());
+  rescan_cached_tokens(cache->as_canonical());
+}  /* enter_module_token_rescan */
+
+
+inline void exit_module_token_rescan(a_token_kind final_token = tok_error)
+{
+  if (final_token != tok_error && curr_token != final_token) {
+    expect_error();
+  }  /* if */
+  clear_stop_tokens();
+  flush_to_end_of_source(/*suppress_warning=*/TRUE);
+  pop_stop_token_stack();
+  check_assertion(curr_token == tok_end_of_source);
+  (void)get_token();
+}  /* exit_module_token_rescan */
+
+
+/*
+A structure for representing an automatically cleaned up module token rescan
+operation.  This class should be used to reenter a module token cache for
+parsing.
+*/
+struct a_module_entity_rescan {
+  a_module_entity_rescan(a_module_token_cache_ptr cache,
+                         a_token_kind             *final_token_ptr_val = NULL)
+    : valid(cache->is_valid()), final_token_ptr(final_token_ptr_val)
+    { if (this->valid) enter_module_token_rescan(cache); }
+  inline ~a_module_entity_rescan();
+private:
+  a_boolean     valid;  /* TRUE if the rescan successfully cached one or more
+                           tokens; otherwise, FALSE. */
+  a_token_kind  *final_token_ptr;
+                        /* A pointer to the variable storing the final token
+                           value token to be used on deconstruction, or NULL if
+                           tok_error should be passed to
+                           exit_module_token_rescan. */
+
+};  /* a_module_entity_rescan */
+
+
+a_module_entity_rescan::~a_module_entity_rescan()
+/*
+Apply the appropriate token cleanup logic to restore the parser state prior to
+the module entity rescan.
+*/
+{
+  if (this->valid) {
+    a_token_kind final_token = tok_error;
+
+    if (this->final_token_ptr != NULL) {
+      final_token = *(this->final_token_ptr);
+    }  /* if */
+    exit_module_token_rescan(final_token);
+  }
+}  /* ~a_module_entity_rescan */
+
 
 #if DEBUG
 extern void db_module(a_module_ptr mod);

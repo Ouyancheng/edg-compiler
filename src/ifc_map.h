@@ -5869,25 +5869,25 @@ struct an_ifc_source_literal_category {
                         /* The represented universal value when this category
                            sort represents a ExprIndex value. */
     /* When sort == ifc_sls_msvc_cast_target_type: */
-    an_ifc_source_unknown_literal
+    an_ifc_type_index
                 msvc_cast_target_type;
                         /* The represented universal value when this category
-                           sort represents a SourceUnknownLiteral value. */
+                           sort represents a TypeIndex value. */
     /* When sort == ifc_sls_msvc_defined_constant: */
-    an_ifc_source_unknown_literal
+    an_ifc_expr_index
                 msvc_defined_constant;
                         /* The represented universal value when this category
-                           sort represents a SourceUnknownLiteral value. */
+                           sort represents a ExprIndex value. */
     /* When sort == ifc_sls_msvc_function_name_macro: */
     an_ifc_text_offset
                 msvc_function_name_macro;
                         /* The represented universal value when this category
                            sort represents a TextOffset value. */
     /* When sort == ifc_sls_msvc_resolved_type: */
-    an_ifc_source_unknown_literal
+    an_ifc_type_index
                 msvc_resolved_type;
                         /* The represented universal value when this category
-                           sort represents a SourceUnknownLiteral value. */
+                           sort represents a TypeIndex value. */
     /* When sort == ifc_sls_msvc_string_prefix_macro: */
     an_ifc_text_offset
                 msvc_string_prefix_macro;

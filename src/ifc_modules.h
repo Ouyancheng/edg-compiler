@@ -78,7 +78,6 @@ struct an_ifc_partition_metadata {
                            path." */
 };  /* an_ifc_partition_metadata */
 
-
 struct a_str_control_block;
 struct a_partial_scope_stack_state;
 
@@ -199,10 +198,10 @@ public:
                                a_boolean           defer,
                                a_type_ptr          enumeration_type);
   void complete_definition_of_module_class(a_module_entity_ptr mep) OVERRIDE;
-  a_boolean cache_function_body(a_token_cache_ptr  cache,
-                                an_ifc_decl_index  decl_idx,
-                                a_routine_ptr      rp,
-                                a_func_info_block  *func_info);
+  a_boolean cache_function_body(a_module_token_cache_ptr cache,
+                                an_ifc_decl_index        decl_idx,
+                                a_routine_ptr            rp,
+                                a_func_info_block        *func_info);
   static a_boolean process_template_definition(
                                   a_module_entity_ptr        mep,
                                   const an_ifc_decl_template &idst,
@@ -311,50 +310,50 @@ public:
                                               a_type_ptr         rout_type,
                                               a_boolean          is_consteval);
   /* Token caching. */
-  void cache_scope_member_sequence(a_token_cache_ptr     cache,
-                                   an_ifc_decl_index     scope_decl,
-                                   const an_ifc_sequence &seq);
+  void cache_scope_member_sequence(a_module_token_cache_ptr cache,
+                                   an_ifc_decl_index        scope_decl,
+                                   const an_ifc_sequence    &seq);
   template<typename a_Name_Cache_Fn, typename a_Scope_Cache_Fn>
-  inline void cache_scope_decl(a_token_cache_ptr            cache,
+  inline void cache_scope_decl(a_module_token_cache_ptr     cache,
                                an_ifc_decl_index            decl_idx,
                                an_ifc_type_index            type,
                                a_Name_Cache_Fn              cache_name_fn,
                                a_Scope_Cache_Fn             cache_scope_fn,
                                const an_ifc_source_location &locus);
-  void cache_scope_decl(a_token_cache_ptr            cache,
+  void cache_scope_decl(a_module_token_cache_ptr     cache,
                         an_ifc_decl_index            decl_idx,
                         an_ifc_type_index            type,
                         an_ifc_name_index            name,
                         an_ifc_type_index            base,
                         an_ifc_scope_index           scope,
                         const an_ifc_source_location &locus);
-  void cache_type_first_part(a_token_cache_ptr            cache,
+  void cache_type_first_part(a_module_token_cache_ptr     cache,
                              an_ifc_type_index            type,
                              const an_ifc_source_location &locus);
-  void cache_type_second_part(a_token_cache_ptr            cache,
+  void cache_type_second_part(a_module_token_cache_ptr     cache,
                               an_ifc_type_index            type,
                               const an_ifc_source_location &locus);
-  void cache_type(a_token_cache_ptr            cache,
+  void cache_type(a_module_token_cache_ptr     cache,
                   an_ifc_type_index            type,
                   const an_ifc_source_location &locus);
-  void cache_type_param_introducer(a_token_cache_ptr  cache,
-                                   an_ifc_expr_index  constraint,
-                                   a_boolean          is_pack,
-                                   a_source_position  *pos);
-  void cache_attr(a_token_cache_ptr  cache,
-                  an_ifc_attr_index  attr,
-                  a_boolean          cache_brackets);
-  void cache_attrs(a_token_cache_ptr cache,
-                   an_ifc_decl_index decl_idx);
-  void cache_template_head(a_token_cache_ptr     cache,
-                           an_ifc_chart_index    chart_idx,
-                           a_source_position_ptr pos);
-  void cache_function_parameters(a_token_cache_ptr            cache,
+  void cache_type_param_introducer(a_module_token_cache_ptr cache,
+                                   an_ifc_expr_index        constraint,
+                                   a_boolean                is_pack,
+                                   a_source_position        *pos);
+  void cache_attr(a_module_token_cache_ptr cache,
+                  an_ifc_attr_index        attr,
+                  a_boolean                cache_brackets);
+  void cache_attrs(a_module_token_cache_ptr cache,
+                   an_ifc_decl_index        decl_idx);
+  void cache_template_head(a_module_token_cache_ptr cache,
+                           an_ifc_chart_index       chart_idx,
+                           a_source_position_ptr    pos);
+  void cache_function_parameters(a_module_token_cache_ptr     cache,
                                  an_ifc_chart_index           params,
                                  an_ifc_type_index            param_types,
                                  const an_ifc_source_location &pos);
-  void cache_decl(a_token_cache_ptr cache,
-                  an_ifc_decl_index decl);
+  void cache_decl(a_module_token_cache_ptr cache,
+                  an_ifc_decl_index        decl);
   inline void update_name_qualification_suppression(
                                                 const an_ifc_expr_path &iespp);
   enum a_cache_expr_option {
@@ -363,100 +362,103 @@ public:
     ceo_skip_assign             = 0x1 << 1,
     ceo_possible_temporary_decl = 0x1 << 2,
   };
-  void cache_expr(a_token_cache_ptr    cache,
-                  an_ifc_expr_index    expr,
-                  a_cache_expr_option  options = ceo_none);
+  void cache_expr(a_module_token_cache_ptr cache,
+                  an_ifc_expr_index        expr,
+                  a_cache_expr_option      options = ceo_none);
   enum a_cache_statement_option {
     cso_none = 0x0,
     cso_func_body = 0x1,
     cso_no_final_semicolon = 0x2
   };
-  void cache_statement(a_token_cache_ptr         cache,
-                       an_ifc_stmt_index         stmt_idx,
-                       a_cache_statement_option  options = cso_none);
-  void cache_syntax(a_token_cache_ptr   cache,
-                    an_ifc_syntax_index syntax);
-  void cache_chart(a_token_cache_ptr     cache,
-                   an_ifc_chart_index    chart,
-                   a_source_position_ptr pos);
-  void cache_chart(a_token_cache_ptr            cache,
+  void cache_statement(a_module_token_cache_ptr cache,
+                       an_ifc_stmt_index        stmt_idx,
+                       a_cache_statement_option options = cso_none);
+  void cache_syntax(a_module_token_cache_ptr cache,
+                    an_ifc_syntax_index      syntax);
+  void cache_chart(a_module_token_cache_ptr cache,
+                   an_ifc_chart_index       chart,
+                   a_source_position_ptr    pos);
+  void cache_chart(a_module_token_cache_ptr     cache,
                    an_ifc_chart_index           chart,
                    const an_ifc_source_location &locus);
-  void cache_operator(a_token_cache_ptr            cache,
+  void cache_operator(a_module_token_cache_ptr     cache,
                       an_ifc_operator_category     op,
                       const an_ifc_source_location &locus);
-  void cache_operator(a_token_cache_ptr            cache,
+  void cache_operator(a_module_token_cache_ptr     cache,
                       an_ifc_niladic_operator_sort op,
                       const an_ifc_source_location &locus);
-  void cache_operator(a_token_cache_ptr            cache,
+  void cache_operator(a_module_token_cache_ptr     cache,
                       an_ifc_monadic_operator_sort op,
                       const an_ifc_source_location &locus);
-  void cache_operator(a_token_cache_ptr            cache,
+  void cache_operator(a_module_token_cache_ptr     cache,
                       an_ifc_dyadic_operator_sort  op,
                       const an_ifc_source_location &locus);
-  void cache_operator(a_token_cache_ptr            cache,
+  void cache_operator(a_module_token_cache_ptr     cache,
                       an_ifc_triadic_operator_sort op,
                       const an_ifc_source_location &locus);
-  void cache_operator(a_token_cache_ptr                        cache,
+  void cache_operator(a_module_token_cache_ptr                 cache,
                       an_ifc_storage_instruction_operator_sort op,
                       const an_ifc_source_location             &locus);
-  void cache_operator(a_token_cache_ptr             cache,
+  void cache_operator(a_module_token_cache_ptr      cache,
                       an_ifc_variadic_operator_sort op,
-                      const an_ifc_source_location &locus);
-  void cache_exception_spec(a_token_cache_ptr                   cache,
+                      const an_ifc_source_location  &locus);
+  void cache_exception_spec(a_module_token_cache_ptr              cache,
                             const an_ifc_noexcept_specification &eh_spec,
                             a_source_position_ptr               pos);
-  uint32_t cache_sentence(a_token_cache_ptr     cache,
-                          an_ifc_sentence_index sentence,
-                          uint32_t              offset = 0,
-                          a_boolean             look_for_stop_token = FALSE);
+  uint32_t cache_sentence(
+                         a_module_token_cache_ptr cache,
+                         an_ifc_sentence_index    sentence,
+                         uint32_t                 offset = 0,
+                         a_boolean                look_for_stop_token = FALSE);
   a_boolean sentence_is_deleted(an_ifc_sentence_index sentence);
-  void cache_word(a_token_cache_ptr cache, const an_ifc_source_word &word);
-  void cache_word(a_token_cache_ptr cache, const an_ifc_nestable_word &word);
-  void cache_source_directive(a_token_cache_ptr            cache,
+  void cache_word(a_module_token_cache_ptr cache,
+                  const an_ifc_source_word &word);
+  void cache_word(a_module_token_cache_ptr   cache,
+                  const an_ifc_nestable_word &word);
+  void cache_source_directive(a_module_token_cache_ptr     cache,
                               an_ifc_source_directive_sort directive,
                               const an_ifc_source_location &locus);
-  void cache_source_punctuator(a_token_cache_ptr             cache,
+  void cache_source_punctuator(a_module_token_cache_ptr      cache,
                                an_ifc_source_punctuator_sort punctuator,
                                const an_ifc_source_location  &locus);
-  void cache_source_literal(a_token_cache_ptr                    cache,
+  void cache_source_literal(a_module_token_cache_ptr             cache,
                             const an_ifc_source_literal_category &literal,
                             const an_ifc_source_location         &locus);
-  void cache_source_operator(a_token_cache_ptr            cache,
+  void cache_source_operator(a_module_token_cache_ptr     cache,
                              an_ifc_source_operator_sort  op,
                              const an_ifc_source_location &locus);
-  void cache_source_keyword(a_token_cache_ptr            cache,
+  void cache_source_keyword(a_module_token_cache_ptr     cache,
                             an_ifc_source_keyword_sort   keyword,
                             const an_ifc_source_location &locus);
-  void cache_source_identifier(a_token_cache_ptr                       cache,
+  void cache_source_identifier(a_module_token_cache_ptr                cache,
                                const an_ifc_source_identifier_category &id,
                                const an_ifc_source_location            &locus);
-  void cache_string(a_token_cache_ptr            cache,
+  void cache_string(a_module_token_cache_ptr     cache,
                     an_ifc_string_index          string,
                     const an_ifc_source_location &locus);
   uint32_t try_cache_class_attributes_from_body(
-                                          a_token_cache_ptr     cache,
-                                          an_ifc_sentence_index body_sentence);
+                                       a_module_token_cache_ptr cache,
+                                       an_ifc_sentence_index    body_sentence);
   uint32_t cache_decl_template_declaration(
-                                     a_token_cache_ptr          cache,
+                                     a_module_token_cache_ptr   cache,
                                      const an_ifc_decl_template &decl,
                                      a_boolean                  add_semicolon);
-  void cache_decl_template(a_token_cache_ptr          cache,
+  void cache_decl_template(a_module_token_cache_ptr   cache,
                            const an_ifc_decl_template &decl);
   void cache_decl_partial_specialization_declaration(
-                             a_token_cache_ptr                        cache,
+                             a_module_token_cache_ptr                 cache,
                              an_ifc_decl_index                        decl_idx,
                              const an_ifc_decl_partial_specialization &decl);
   void cache_decl_partial_specialization(
-                             a_token_cache_ptr                        cache,
+                             a_module_token_cache_ptr                 cache,
                              an_ifc_decl_index                        decl_idx,
                              const an_ifc_decl_partial_specialization &decl);
-  void cache_decl_specialization(a_token_cache_ptr                cache,
+  void cache_decl_specialization(a_module_token_cache_ptr         cache,
                                  an_ifc_decl_index                decl_idx,
                                  const an_ifc_decl_specialization &decl);
   template<typename a_Name_Cache_Fn, typename an_Init_Cache_Fn>
   inline void cache_variable_decl(
-                            a_token_cache_ptr                cache,
+                            a_module_token_cache_ptr         cache,
                             an_ifc_decl_index                decl_idx,
                             a_boolean                        is_class_member,
                             an_ifc_access_sort               access,
@@ -469,7 +471,7 @@ public:
                             an_ifc_expr_index                width,
                             an_Init_Cache_Fn                 cache_init_fn,
                             const an_ifc_source_location     &locus);
-  void cache_variable_decl(a_token_cache_ptr                cache,
+  void cache_variable_decl(a_module_token_cache_ptr         cache,
                            an_ifc_decl_index                decl_idx,
                            a_boolean                        is_class_member,
                            an_ifc_access_sort               access,
@@ -484,7 +486,7 @@ public:
                            const an_ifc_source_location     &locus);
   template<typename a_Name_Cache_Fn>
   inline void cache_function_decl(
-                        a_token_cache_ptr                    cache,
+                        a_module_token_cache_ptr             cache,
                         an_ifc_decl_index                    decl_idx,
                         a_boolean                            is_class_member,
                         a_boolean                            is_dtor,
@@ -501,7 +503,7 @@ public:
                         const an_ifc_noexcept_specification  &eh_spec,
                         const an_ifc_source_location         &locus);
   void cache_function_decl(
-                         a_token_cache_ptr                    cache,
+                         a_module_token_cache_ptr             cache,
                          an_ifc_decl_index                    decl_idx,
                          a_boolean                            is_class_member,
                          a_boolean                            is_dtor,
@@ -516,28 +518,28 @@ public:
                          an_ifc_type_index                    param_types,
                          const an_ifc_noexcept_specification  &eh_spec,
                          const an_ifc_source_location         &locus);
-  void cache_name(a_token_cache_ptr            cache,
+  void cache_name(a_module_token_cache_ptr     cache,
                   an_ifc_name_index            name,
                   const an_ifc_source_location &locus);
   inline a_boolean should_cache_nested_name_specifier_for_scope(
                                                             a_scope_ptr scope);
-  void cache_scope_as_nested_name_specifier(a_token_cache_ptr     cache,
-                                            a_scope_ptr           scope,
-                                            a_source_position_ptr pos);
-  void cache_nested_name_specifier_from_decl(a_token_cache_ptr     cache,
-                                             an_ifc_decl_index     decl,
-                                             a_source_position_ptr pos);
-  void cache_qualified_name_from_decl(a_token_cache_ptr            cache,
+  void cache_scope_as_nested_name_specifier(a_module_token_cache_ptr cache,
+                                            a_scope_ptr              scope,
+                                            a_source_position_ptr    pos);
+  void cache_nested_name_specifier_from_decl(a_module_token_cache_ptr cache,
+                                             an_ifc_decl_index        decl,
+                                             a_source_position_ptr    pos);
+  void cache_qualified_name_from_decl(a_module_token_cache_ptr     cache,
                                       an_ifc_decl_index            decl,
                                       const an_ifc_source_location &locus);
-  void cache_name_from_decl(a_token_cache_ptr            cache,
+  void cache_name_from_decl(a_module_token_cache_ptr     cache,
                             an_ifc_decl_index            decl,
                             const an_ifc_source_location &locus);
-  void cache_macro(a_token_cache_ptr  cache,
-                   an_ifc_macro_index macro);
-  void cache_form(a_token_cache_ptr cache,
-                  an_ifc_form_index form,
-                  a_boolean         is_parameter_form = FALSE);
+  void cache_macro(a_module_token_cache_ptr cache,
+                   an_ifc_macro_index       macro);
+  void cache_form(a_module_token_cache_ptr cache,
+                  an_ifc_form_index        form,
+                  a_boolean                is_parameter_form = FALSE);
   /* Index helpers. */
   inline an_ifc_decl_index decl_index_of(an_ifc_partition_kind partition,
                                          size_t                file_offset);
@@ -551,11 +553,11 @@ public:
   Opt<an_ifc_sequence> get_specialization_sequence_from_trait(
                                                        an_ifc_decl_index decl);
   a_template_ptr parse_cached_explicit_specialization(
-                                   a_token_cache_ptr                cache,
+                                   a_module_token_cache_ptr         cache,
                                    a_scope_ptr                      encl_scope,
                                    const an_ifc_decl_specialization &decl);
   char *parse_cached_explicit_instantiation(
-                                       a_token_cache_ptr                cache,
+                                       a_module_token_cache_ptr         cache,
                                        const an_ifc_decl_specialization &decl,
                                        an_il_entry_kind                 *kind);
 #if CHECKING
