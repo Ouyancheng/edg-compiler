@@ -3547,6 +3547,10 @@ process that definition and return TRUE.
     a_curr_token_preserver      guard;
     a_module_entity_stack_state mep_state(
                                       ifb.mod->get_ifc_module_entity_ptr(ifb));
+    a_diagnostic_suppression    diag_suppress(
+                                           &ifb.mod->suppressed_diagnostics,
+                                           !display_module_import_diagnostics);
+
 
     /* We are about to load the definition.  So the "pending definition" entry
        can be dropped now. */
