@@ -1,5 +1,15 @@
 Version 6.4
 
+8/24/22  [EDGcpfe/15165,EDGcpfe/19247,EDGcpfe/21823,EDGcpfe/25560]
+Microsoft compatibility: __declspec(nothrow) and noexcept
+
+In Microsoft C++ modes, __declspec(nothrow) applied to a function now implies
+"noexcept".  For example:
+
+  __declspec(nothrow) void g() {}
+  void (*f)() noexcept = g;  // Previously an error.  Now okay.
+
+
 8/22/22  [EDGcpfe/25533]
 GNU/clang compatibility: default template arguments on class member templates
 

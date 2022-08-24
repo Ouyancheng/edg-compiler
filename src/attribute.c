@@ -5559,6 +5559,15 @@ entity.
     a_routine_ptr  rp = (a_routine_ptr)entity;
     if (!is_unrecognized_attr(ap)) {
       rp->never_throws = TRUE;
+      if (ap->family == af_ms_declspec && C_mode()) {
+        /* The Microsoft __declspec(nothrow) attribute implies "noexcept". */
+        a_type_ptr  func_tp;
+        an_exception_specification_ptr
+                    esp = alloc_exception_specification();
+        esp->is_noexcept = TRUE;
+        ensure_underlying_function_type_is_modifiable(&rp->type, &func_tp);
+        rout_type_supp(func_tp)->exception_specification = esp;
+      }  /* if */
     }  /* if */
   }  /* if */
 done:
