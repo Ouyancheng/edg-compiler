@@ -16186,7 +16186,7 @@ copy_attributes is TRUE).
     }  /* if */
     if (attributes != NULL) {
       /* If there are any applicable attributes, attach them (but make a copy
-         in if necessary). */
+         if necessary). */
       if (copy_attributes) {
         attributes = copy_of_attributes_list(attributes);
       }  /* if */
