@@ -10529,11 +10529,13 @@ issue a diagnostic if diagnose is TRUE.
 }  /* requires_constraint_satisfied */
 
 
-a_boolean template_param_constraint_satisfied(a_type_ptr            param_type,
-                                              a_type_ptr            arg_type,
-                                              a_template_arg_ptr    arg_list,
-                                              a_template_param_ptr  param_list,
-                                              a_source_position     *diag_pos)
+a_boolean template_param_constraint_satisfied(
+                                            a_type_ptr            param_type,
+                                            a_type_ptr            arg_type,
+                                            a_template_arg_ptr    arg_list,
+                                            a_template_param_ptr  param_list,
+                                            a_type_ptr            parent_type,
+                                            a_source_position     *diag_pos)
 /*
 param_type is a template parameter type (possible "auto" in a non-type template
 parameter) and arg_type the corresponding argument type.  If param_type has an
@@ -10541,7 +10543,9 @@ associated type constraint, check that constraint for arg_type.  Return TRUE if
 the constraint is satisfied.  Otherwise, return FALSE and, if diag_pos is not
 NULL, issue a diagnostic at the given position.  param_list is the list of
 template parameters for which this is being checked, and arg_list the
-corresponding template arguments that have been determined so far.
+corresponding template arguments that have been determined so far.  If the
+constraint appears in the context of a templated class, parent_type is that
+type; otherwise, parent_type is NULL.
 */
 {
   a_boolean         result;
@@ -10562,6 +10566,11 @@ corresponding template arguments that have been determined so far.
     if (diag_pos != NULL) {
       clear_diag_list(&diag_list);
       p_diag_list = &diag_list;
+    }  /* if */
+    if (parent_type != NULL) {
+      /* Ensure that enclosing template parameters are also substituted if we
+         are in the context of a templated class. */
+      get_all_class_subst_pairs(parent_type, &subst_pairs);
     }  /* if */
     subst_pairs.push_back(a_subst_pairs_descr{ param_list, arg_list,
                                                FALSE, FALSE });
@@ -10619,7 +10628,10 @@ TRUE, issue a diagnostic explaining the failure.
     while (tpp != NULL && tap != NULL) {
       a_symbol_ptr      param_sym = tpp->param_symbol;
       if (symbol_is(param_sym, sk_type)) {
-        a_type_ptr        tp = tpp->variant.type;
+        a_type_ptr        tp = tpp->variant.type, parent_type = NULL;
+        if (template_sym->is_class_member) {
+          parent_type = sym_parent_class(template_sym);
+        }  /* if */
         if (!auto_param_seen && tp->variant.template_param.is_auto_param) {
           /* The template requires clause comes between ordinary template
              parameter type constraints and type constraints resulting from
@@ -10637,6 +10649,7 @@ TRUE, issue a diagnostic explaining the failure.
         }  /* if */
         if (!template_param_constraint_satisfied(
                                           tp, tap->variant.type, args, params,
+                                          parent_type,
                                           diagnose ? &diag_pos : NULL)) {
           result = FALSE;
           break;

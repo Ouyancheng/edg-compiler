@@ -625,6 +625,7 @@ processed so far.  arg_list and param_list are NULL by default.
                                     CLASS_TEMPLATE_PLACEHOLDER_NESTING_DEPTH &&
           !template_param_constraint_satisfied(bottom_type, deduced_auto_type,
                                                arg_list, param_list,
+                                               /*parent_type=*/(a_type*)NULL,
                                                position)) {
         /* The constraint was not satisfied. */
       } else {

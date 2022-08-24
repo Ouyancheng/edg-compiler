@@ -562,11 +562,13 @@ Return the list of template parameters for the given template.
 
 
 extern
-a_boolean template_param_constraint_satisfied(a_type_ptr            param_type,
-                                              a_type_ptr            arg_type,
-                                              a_template_arg_ptr    arg_list,
-                                              a_template_param_ptr  param_list,
-                                              a_source_position     *diag_pos);
+a_boolean template_param_constraint_satisfied(
+                                            a_type_ptr            param_type,
+                                            a_type_ptr            arg_type,
+                                            a_template_arg_ptr    arg_list,
+                                            a_template_param_ptr  param_list,
+                                            a_type_ptr            parent_type,
+                                            a_source_position     *diag_pos);
 
 extern a_boolean check_template_constraints(a_symbol_ptr        template_sym,
                                             a_template_arg_ptr  args,
