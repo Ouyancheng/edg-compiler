@@ -1090,11 +1090,32 @@ the IFC file are NULL-terminated.
 {
   an_ifc_module              *mod = offset.mod;
   an_ifc_text_offset_storage raw_offset = offset;
+  char                       *result;
 
 #if EXPENSIVE_CHECKING
   check_assertion(raw_offset < get_ifc_string_table_size(mod->header));
 #endif /* EXPENSIVE_CHECKING */
-  return mod->string_table + raw_offset;
+  result = mod->string_table + raw_offset;
+  if (*result == '<') {
+    /* Unnamed entities get "synthesized" names that start with "<unnamed-".
+       Turn such names into valid reserved C identifiers, except for
+       "<unnamed-tag>" which is used for anonymous struct/unions. */
+#define UNNAMED_TAG_NAME "<unnamed-tag>"
+#define UNNAMED_PREFIX "<unnamed-"
+#define REPLACE_PREFIX "__noname_"
+    static_assert(sizeof(UNNAMED_PREFIX) == sizeof(REPLACE_PREFIX), "");
+    if (strncmp(result, UNNAMED_PREFIX, sizeof(UNNAMED_PREFIX)-1) == 0 &&
+        strcmp(result, UNNAMED_TAG_NAME) != 0) {
+      memcpy(result, (void*)REPLACE_PREFIX, sizeof(UNNAMED_PREFIX)-1);
+      for (char  *p = result+sizeof(UNNAMED_PREFIX); *p; ++p) {
+        if (*p == '-' || *p == '>') *p = '_';
+      }  /* while */
+    }  /* if */
+#undef REPLACE_PREFIX
+#undef UNNAMED_PREFIX
+#undef UNNAMED_TAG_NAME
+  }  /* if */
+  return (a_const_char*)result;
 }  /* get_string_at_offset */
 
 
@@ -3834,6 +3855,18 @@ global module fragment, FALSE otherwise.
 }  /* is_from_gmf */
 
 
+static inline
+a_boolean is_unnamed_tag(a_const_char  *name)
+/*
+Return TRUE If the given string is "<unnamed-tag>".
+*/
+{
+#define UNNAMED_TAG_NAME "<unnamed-tag>"
+  return strncmp(name, UNNAMED_TAG_NAME, sizeof(UNNAMED_TAG_NAME)-1) == 0;
+#undef UNNAMED_TAG_NAME
+}  /* is_unnamed_tag */
+
+
 /* FIXME: might be able to get rid of enumeration_type now that enums aren't
    deferred */
 void an_ifc_module::process_ifc_declaration(
@@ -4453,6 +4486,7 @@ class_struct_union_case:
             a_type_ptr        enum_type;
             a_scope_ptr       enum_scope;
             a_symbol_ptr      tag_sym;
+            a_scope_depth     scope_depth;
 
             check_assertion(!is_null_index(base));
             if (mep->scope == NULL) {
@@ -4461,6 +4495,7 @@ class_struct_union_case:
             }  /* if */
             check_assertion(mep->scope != NULL);
             enum_scope = mep->scope;
+            scope_depth = enum_scope->depth_in_scope_stack;
             if (ifc_decl_is_ignorable_redecl(&loc, mep, &error_position,
                                              iek_type, &il_entity, &kind)) {
               break;
@@ -4503,12 +4538,22 @@ class_struct_union_case:
               enum_type->variant.integer.enum_info.assoc_scope = enum_scope;
             }  /* if */
             /* Create a symbol for the enumeration. */
-            tag_sym = enter_local_symbol(sk_enum_tag, &loc,
-                                         mep->scope->depth_in_scope_stack,
-                                         /*suppress_redecl_error=*/FALSE);
+            if (is_unnamed_tag(loc.symbol_header->identifier)) {
+              Value_saver<a_scope_depth>  saver(&decl_scope_level,
+                                                /*new_value=*/scope_depth);
+              tag_sym = make_unnamed_tag_symbol((a_symbol_kind)sk_enum_tag,
+                                                &loc.source_position);
+              enum_type->variant.integer.originally_unnamed = TRUE;
+            } else {
+              tag_sym = enter_local_symbol(sk_enum_tag, &loc, scope_depth,
+                                           /*suppress_redecl_error=*/FALSE);
+            } /* if */
             tag_sym->variant.enumeration.type = enum_type;
             set_source_corresp(&(enum_type->source_corresp), tag_sym);
-            add_to_types_list(enum_type, mep->scope->depth_in_scope_stack);
+#if NEED_NAME_MANGLING
+            compute_name_collision_discriminator(tag_sym, scope_depth);
+#endif /* NEED_NAME_MANGLING */
+            add_to_types_list(enum_type, scope_depth);
             /* Set parent membership. */
             if (scope_is(mep->scope, sck_class_struct_union)) {
               /* FIXME: never get here because enumerations in classes are
@@ -5702,7 +5747,7 @@ FALSE, and issue diagnostics if issue_diag is TRUE.
     an_ifc_byte_offset string_table_bytes = get_ifc_string_table_bytes(
                                                                  this->header);
 #if USE_MMAP_FOR_MEMORY_REGIONS
-    this->string_table = (a_const_char*)this->mmap_addr + string_table_bytes;
+    this->string_table = (char*)this->mmap_addr + string_table_bytes;
 #else /* !USE_MMAP_FOR_MEMORY_REGIONS */
 
     an_ifc_cardinality string_table_size = get_ifc_string_table_size(
@@ -5973,7 +6018,10 @@ TRUE) otherwise.
     }  /* if */
     if (!err) {
       /* Map the module file into the address space of the process.  The
-         process is a little different on Windows environments. */
+         process is a little different on Windows environments.  Note that we
+         do not map the file "read-only" because some strings from the string
+         table are rewritten to become valid C names (e.g., "<unnamed-enum-x>"
+         becomes "__noname_enum_x_"). */
 #if USE_MMAP_FOR_MEMORY_REGIONS
 #if EDG_WIN32
       open_mapped_input_file(mod->full_name, &mapped_input, &map_object);
@@ -5985,7 +6033,7 @@ TRUE) otherwise.
 #else /* !EDG_WIN32 */
                                            (a_windows_handle)0,
 #endif /* EDG_WIN32 */
-                                           /*read_only=*/TRUE, (sizeof_t)0,
+                                           /*read_only=*/FALSE, (sizeof_t)0,
                                            mmap_size, NULL, mod->full_name);
       check_assertion(mmap_addr != NULL);
       f_size = mmap_size;
@@ -8820,12 +8868,17 @@ static void cache_identifier(a_token_cache_ptr     cache,
 Add a tok_identifier for name to cache.  pos is the position of the identifier.
 */
 {
-  a_symbol_locator  loc;
-  sizeof_t          len;
 
   check_assertion(name != NULL);
-  len = strlen(name);
-  if (strncmp(name, "<unnamed-tag>", len) != 0) {
+  /* The IFC files also contain synthesized names for "unnamed" types.  E.g.,
+        enum { x };
+     may be given a name like "<unnamed-enum-x>", but that is rewritten as
+     "__noname_enum_x_"
+     prefix "<unnamed" in common.  For such synthesized names, just ignore
+     the request to cache an identifier. */
+  if (!is_unnamed_tag(name)) {
+    a_symbol_locator  loc;
+    sizeof_t          len = strlen(name);
     clear_locator(&loc, pos);
     (void)find_symbol(name, len, &loc);
     cache_token(cache, tok_identifier, pos);

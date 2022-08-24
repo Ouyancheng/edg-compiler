@@ -135,7 +135,7 @@ struct an_ifc_module : public a_module_interface {
 			/* Pointer to the last byte of the buffer used by
 			   get_byte, etc. */
 #endif /* USE_MMAP_FOR_MEMORY_REGIONS */
-  a_const_char	*string_table = NULL;
+  char		*string_table = NULL;
 			/* The string table of the IFC file. */
   a_tmpl_decl_state_ptr
 		curr_templ_decl_state = NULL;
