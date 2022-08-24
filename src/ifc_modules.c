@@ -3550,8 +3550,8 @@ module, process that definition and return TRUE.  If problems our encountered
 during processing, return FALSE.
 
 The presence of a routine definition should be checked for via
-has_routine_definition_from_ifc_module prior to attempting to load the a
-routine definition.
+has_routine_definition_from_ifc_module prior to attempting to load the routine
+definition.
 */
 {
   check_assertion(has_routine_definition_from_ifc_module(rp));
@@ -9514,9 +9514,6 @@ locus is the location of the Sentence containing literal.
   source_position_from_locus(&pos, locus);
   switch (literal.sort) {
     case ifc_sls_unknown:
-    case ifc_sls_msvc_cast_target_type:
-    case ifc_sls_msvc_defined_constant:
-    case ifc_sls_msvc_resolved_type:
       unexpected_condition();
       break;
     case ifc_sls_scalar:
@@ -9609,6 +9606,21 @@ locus is the location of the Sentence containing literal.
                                      "SourceLiteral::MsvcBinding");
         }  /* switch */
       }
+      break;
+    case ifc_sls_msvc_resolved_type:
+      cache_type(cache, literal.variant.msvc_resolved_type, locus);
+      break;
+    case ifc_sls_msvc_defined_constant:
+      /* FIXME: Is this correct? */
+      cache_expr(cache, literal.variant.msvc_defined_constant);
+      issue_unsupported_node_diag("SourceLiteral::MsvcDefinedConstant", &pos);
+      break;
+    case ifc_sls_msvc_cast_target_type:
+      /* FIXME: Is this correct? */
+      cache_token(cache, tok_lparen, &pos);
+      cache_type(cache, literal.variant.msvc_cast_target_type, locus);
+      cache_token(cache, tok_rparen, &pos);
+      issue_unsupported_node_diag("SourceLiteral::MsvcCastTargetType", &pos);
       break;
     default_is_unexpected_str("Unknown SourceLiteral");
   }  /* switch */
@@ -14511,7 +14523,7 @@ suppress_automatic_namespace_qualification.
     }  /* if */
   }  /* if */
 invalid:;
-}  /* suppress_automatic_qualification */
+}  /* update_name_qualification_suppression */
 
 
 static void cache_args_with_parens(a_module_token_cache_ptr cache,
@@ -14676,10 +14688,9 @@ second operand of an assignment.
            the first element of the ExprSort::Tuple will refer to the empty
            string that precedes the first "::". */
         if (!is_null_index(resolution)) {
-          Value_saver<a_boolean> suppression(
-                                        &suppress_automatic_name_qualification,
-                                        /*new_value=*/TRUE);
-
+          /* Note: Do not suppress automatic name qualification here, as the
+             resolution can contain a qualified identifier, despite this being
+             an "unqualified" identifier. */
           cache_expr(cache, resolution);
         } else if (!is_null_index(name)) {
           cache_name(cache, name, locus);
@@ -14728,6 +14739,8 @@ second operand of an assignment.
     case ifc_es_expr_path:
       { Value_saver<a_boolean> suppression(
                                   &suppress_automatic_namespace_qualification);
+        Value_saver<a_boolean> automatic_name_qualification(
+                                       &suppress_automatic_name_qualification);
         Opt<an_ifc_expr_path>  opt_iep;
 
         construct_node(&opt_iep, expr);
@@ -14737,13 +14750,12 @@ second operand of an assignment.
 
         an_ifc_expr_path iep = *opt_iep;
         if (!suppress_automatic_name_qualification) {
-          /* FIXME: It shouldn't be possible to enter this switch case when
-             processing an ifc_ExprSort_UnqualifiedId (i.e., when
-             suppress_automatic_name_qualification is TRUE).  That implies an
-             unqualified id contains a qualifier. */
           cache_expr(cache, get_ifc_scope(iep));
           cache_token(cache, tok_colon_colon, &null_source_position);
           update_name_qualification_suppression(iep);
+          /* We've already cached the name qualification - suppress any
+             attempts to qualify the member. */
+          suppress_automatic_name_qualification = TRUE;
         }  /* if */
         cache_expr(cache, get_ifc_member(iep));
       }
@@ -15271,6 +15283,15 @@ common_cast:
         an_expr_heap_traverser traverser(iet);
         source_position_from_locus(&pos, locus);
         a_boolean              first = TRUE;
+        Value_saver<a_boolean> suppression(
+                                       &suppress_automatic_name_qualification);
+
+        if ((options & ceo_qualified_name) != 0) {
+          /* This tuple contains a series of name qualifiers - we don't want to
+             perform automatic name qualification, as this would result in
+             duplicate qualifiers. */
+          suppress_automatic_name_qualification = TRUE;
+        }  /* if */
         for (Opt<an_ifc_heap_expr> opt_ihe : traverser) {
           if (!opt_ihe.has_value()) {
             goto invalid;
@@ -15368,10 +15389,8 @@ done:;
 }  /* cache_expr */
 
 
-/*lint -e2707*/ /* Remove when the routine returns to its caller. */
-/* Remove ARG_UNUSED as well. */
-void an_ifc_module::cache_syntax(ARG_UNUSED a_module_token_cache_ptr cache,
-                                 an_ifc_syntax_index                 syntax)
+void an_ifc_module::cache_syntax(a_module_token_cache_ptr cache,
+                                 an_ifc_syntax_index      syntax)
 /*
 Add the tokens corresponding to the given syntax tree to cache.
 */
@@ -15454,7 +15473,13 @@ Add the tokens corresponding to the given syntax tree to cache.
         an_ifc_source_location           locus = get_ifc_locus(istss);
         an_ifc_type_index                type = get_ifc_type(istss);
         an_ifc_syntax_index              type_name = get_ifc_type_name(istss);
+        Value_saver<a_boolean>           suppression(
+                                        &suppress_automatic_name_qualification,
+                                        /*new_value=*/TRUE);
+
         source_position_from_locus(&pos, locus);
+        /* We have explicit qualifiers - don't do automatic name qualification
+           (flag set above). */
         cache_qualifiers(cache, get_ifc_qualifiers(istss), &pos);
         if (is_null_index(type)) {
           check_assertion(!is_null_index(type_name));
@@ -16662,7 +16687,7 @@ nested-name-specifier is part of.
 {
   a_module_entity_ptr mep = this->get_ifc_module_entity_ptr(decl);
 
-  if (mep->scope == NULL) {
+  if (mep->scope == NULL && has_ifc_home_scope(decl)) {
     /* Load the module entity pointer scope if not already processed. */
     mep->scope = get_home_scope(decl);
   }  /* if */
