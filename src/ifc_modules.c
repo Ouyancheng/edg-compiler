@@ -5635,9 +5635,12 @@ Complete the definition of the class referred to by mep (if needed).
       }  /* if */
 #endif /* DEBUG */
       if (cache.is_valid()) {
+        a_boolean template_scope_pushed;
+
         tdip = alloc_template_decl_info();
         set_template_decl_info_for_class_definition(tdip, class_type);
-        push_template_instantiation_scope(tdip, class_type,
+        template_scope_pushed = push_template_instantiation_scope(
+                                          tdip, class_type,
                                           (a_routine_ptr)NULL, class_sym,
                                           class_sym, (a_template_arg_ptr)NULL,
                                           /*push_lex_state=*/TRUE,
@@ -5674,7 +5677,9 @@ Complete the definition of the class referred to by mep (if needed).
         process_deferred_class_fixups_and_instantiations(
                                                    /*for_instantiation=*/TRUE);
         non_local_class_fixup_depth = saved_non_local_class_fixup_depth;
-        pop_template_instantiation_scope();
+        if (template_scope_pushed) {
+          pop_template_instantiation_scope();
+        }  /* if */
         free_template_decl_info(tdip);
         pop_module_declaration_context(scope_push_status);
       }  /* if */
