@@ -8931,9 +8931,11 @@ otherwise, return FALSE.
   int                    char_len;
   /* Force on UTF-8 relevant compiler flags to ensure the identifier is
      properly interpreted. */
+#if UNICODE_SOURCE_SUPPORTED
   Value_saver<a_unicode_source_kind>
                          force_unicode(&curr_file_unicode_source_kind,
                                        /*new_value=*/usk_utf8);
+#endif /* UNICODE_SOURCE_SUPPORTED */
   Value_saver<a_boolean> force_multibyte(&multibyte_chars_in_source_enabled,
                                          /*new_value=*/TRUE);
 
