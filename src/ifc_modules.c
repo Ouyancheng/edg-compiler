@@ -7150,7 +7150,7 @@ argument.
   a_template_arg_ptr result = NULL;
   a_templ_arg_kind   kind;
   a_type_ptr         type;
-  a_constant_ptr     cp;
+  a_constant_ptr     cp = NULL;
 
   switch (expr_idx.sort) {
     case ifc_es_expr_type:
@@ -7264,6 +7264,10 @@ argument.
   if (kind == (a_templ_arg_kind)tak_type) {
     result->variant.type = type;
   } else if (kind == (a_templ_arg_kind)tak_nontype) {
+    /* If no valid constant was formed, use an error constant. */
+    if (cp == NULL) {
+      cp = alloc_error_constant();
+    }  /* if */
     result->variant.constant = cp;
   }  /* if */
 invalid:
