@@ -8976,27 +8976,6 @@ otherwise, return FALSE.
 }  /* identifier_is_valid */
 
 
-static a_boolean is_skippable_mangled_identifier(a_const_char *name)
-/*
-Return TRUE if the given string starts with a recognized mangled IFC name
-pattern of the form "<unnamed-..." or "<lambda_..." that can be skipped.
-*/
-{
-  a_boolean result = FALSE;
-
-  if (name[0] == '<') {
-    a_const_char *inner_name = name + 1;
-
-#define UNNAMED_PRFX "unnamed-"
-    if (strncmp(inner_name, UNNAMED_PRFX, sizeof(UNNAMED_PRFX)-1) == 0) {
-      result = TRUE;
-    }  /* if */
-#undef UNNAMED_PRFX
-  }  /* if */
-  return result;
-}  /* is_skippable_mangled_identifier */
-
-
 static an_ifc_identifier_resolution get_ident_res(a_const_char *name)
 /*
 Check the given name and return TRUE if it's a valid C++ identifier; otherwise,
@@ -9008,12 +8987,21 @@ return FALSE.
   check_assertion(name != NULL);
   if (!identifier_is_valid(name)) {
     result = iir_error;
+    /* The IFC files also contain synthesized names for "unnamed" types of the
+       form "<unnamed-XXX>" (where XXX is a placeholder).
 
-    /* See if this is an mangled IFC name following a known pattern.
+       As an example, the following may be given the name "<unnamed-enum-x>".
 
-       Check this after checking identifier validity as doing so prevents
+         enum { x };
+
+       This will be written before getting to this point as
+       "__noname_enum_x_". However, at the time of writing no such special
+       handling exists for "<unnamed-tag>", instead we handle it by skipping
+       the generation of the identifier token at this point.
+
+       This is checked after identifier validity as doing so prevents any
        negative performance impact on the "happy path." */
-    if (is_skippable_mangled_identifier(name)) {
+    if (is_unnamed_tag(name)) {
       result = iir_recover_via_skip;
     }  /* if */
   }  /* if */
@@ -9039,10 +9027,6 @@ Add a tok_identifier for name to cache.  pos is the position of the identifier.
       pos_st_error(ec_ifc_bad_identifier, pos, name);
       break;
     case iir_recover_via_skip:
-      /* The IFC files also contain mangled names, for some instances of these
-         the front end can reasonably correct by dropping the name.  Other
-         cases like "<unnamed-tag>" have further special handling to aid in
-         recovery (see calls to is_unnamed_tag for further context). */
       pos_st_warning(ec_ifc_bad_identifier_skipped, pos, name);
       break;
     case iir_direct_cache:
