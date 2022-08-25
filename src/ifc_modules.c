@@ -2478,9 +2478,8 @@ using an_ifc_function_body_map = Ptr_map<a_routine_ptr, an_ifc_decl_index>;
 an_ifc_function_body_map
                 *ifc_function_bodies;
                         /* A map from IL routine entry pointers to entries of
-                           type an_ifc_function_body that can be used to
-                           retrieve the definition of a function body when
-                           needed. */
+                           type an_ifc_decl_index that can be used to retrieve
+                           the definition of a function body when needed. */
 
 }  /* namespace */
 
@@ -3530,6 +3529,21 @@ done:
   return result;
 }  /* cache_function_body */
 
+namespace {
+
+using an_ifc_function_failure_map = Ptr_map<a_routine_ptr, a_boolean>;
+                        /* The type of a map that pairs a routine with a
+                           failure flag state to prevent reprocessing. */
+
+an_ifc_function_failure_map
+                *ifc_bad_function_bodies;
+                        /* A map from IL routine entry pointers to boolean
+                           values.  This is conceptually a set where routines
+                           with previously processed (failed) function bodies
+                           are stored. */
+
+}  /* namespace */
+
 
 a_boolean has_routine_definition_from_ifc_module(a_routine_ptr  rp)
 /*
@@ -3554,37 +3568,50 @@ has_routine_definition_from_ifc_module prior to attempting to load the routine
 definition.
 */
 {
+  a_boolean  result = FALSE;
+
   check_assertion(has_routine_definition_from_ifc_module(rp));
-  a_boolean                   result = FALSE;
-  an_ifc_decl_index           ifb = ifc_function_bodies->get(rp);
-  a_func_info_block           func_info;
-  a_module_token_cache        def_cache;
-  a_decl_flag_set             flags = SFB_NEW_STRUCT_STMT_STACK_REQUIRED;
-  a_curr_token_preserver      guard;
-  a_module_entity_stack_state mep_state(
+  /* Check the (effective) set of routine's that have previously failed
+     definition processing.  This prevents repeating errors, and the associated
+     mitigates the performance impact if a problematic routine is called many
+     times. */
+  if (!ifc_bad_function_bodies->get(rp)) {
+    an_ifc_decl_index           ifb = ifc_function_bodies->get(rp);
+    a_func_info_block           func_info;
+    a_module_token_cache        def_cache;
+    a_decl_flag_set             flags = SFB_NEW_STRUCT_STMT_STACK_REQUIRED;
+    a_curr_token_preserver      guard;
+    a_module_entity_stack_state mep_state(
                                       ifb.mod->get_ifc_module_entity_ptr(ifb));
-  a_diagnostic_suppression    diag_suppress(
+    a_diagnostic_suppression    diag_suppress(
                                            &ifb.mod->suppressed_diagnostics,
                                            !display_module_import_diagnostics);
 
 
-  /* We are about to load the definition.  So the "pending definition" entry
-     can be dropped now. */
-  ifc_function_bodies->unmap(rp);
-  clear_func_info(&func_info);
-  push_new_top_level_declaration();
-  if (ifb.mod->cache_function_body(&def_cache, ifb, rp, &func_info)) {
-    if (def_cache.is_valid()) {
-      a_token_kind           expected_tok = tok_rbrace;
-      a_module_entity_rescan rescan(&def_cache, &expected_tok);
+    clear_func_info(&func_info);
+    push_new_top_level_declaration();
+    if (ifb.mod->cache_function_body(&def_cache, ifb, rp, &func_info)) {
+      if (def_cache.is_valid()) {
+        a_token_kind           expected_tok = tok_rbrace;
+        a_module_entity_rescan rescan(&def_cache, &expected_tok);
 
-      scan_function_body(rp, &func_info, flags);
-      if (curr_token == expected_tok) {
-        result = TRUE;
+        scan_function_body(rp, &func_info, flags);
+        if (curr_token == expected_tok) {
+          result = TRUE;
+          /* We have successfully loaded the definition.  So the "pending
+             definition" entry can be dropped now.  Dropping it without
+             successful completion will result in errors at call sites. */
+          ifc_function_bodies->unmap(rp);
+        }  /* if */
       }  /* if */
     }  /* if */
+    pop_scope();
+    /* If this function failed to process successfully, mark the failure so we
+       don't reenter this branch. */
+    if (!result) {
+      ifc_bad_function_bodies->map(rp, TRUE);
+    }  /* if */
   }  /* if */
-  pop_scope();
   return result;
 }  /* load_routine_definition_from_ifc_module */
 
@@ -17587,6 +17614,8 @@ for each compilation.
 #endif /* DEBUG && EXPENSIVE_CHECKING */
   ifc_function_bodies = alloc_fe_of_type(an_ifc_function_body_map);
   construct(ifc_function_bodies, /*mask_width=*/10);
+  ifc_bad_function_bodies = alloc_fe_of_type(an_ifc_function_failure_map);
+  construct(ifc_bad_function_bodies, /*mask_width=*/10);
   ifc_decl_lookup_table = alloc_fe_of_type(an_ifc_decl_lookup_table);
   construct(ifc_decl_lookup_table, /*mask_width=*/10);
 }  /* ifc_modules_init */
