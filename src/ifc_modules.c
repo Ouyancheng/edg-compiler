@@ -8919,12 +8919,15 @@ successful, FALSE if any errors were encountered.
 
         ptp->has_default_arg = TRUE;
         cache_expr(&cache, initializer_expr);
-        if (cache.is_valid()) {
-          a_module_entity_rescan rescan(&cache);
-
-          scan_default_arg_expr(ptp, /*is_member_or_friend=*/FALSE,
-                                is_consteval);
+        if (!cache.is_valid()) {
+          ptp->default_arg_expr = error_node();
+          result = FALSE;
+          continue;
         }  /* if */
+
+        a_module_entity_rescan rescan(&cache);
+        scan_default_arg_expr(ptp, /*is_member_or_friend=*/FALSE,
+                              is_consteval);
       }  /* if */
       ptp = ptp->next;
 #if CHECKING
