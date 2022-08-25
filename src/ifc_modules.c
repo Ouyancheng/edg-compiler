@@ -215,7 +215,7 @@ This function proxies calls to the common cache_token function when
 using an IFC token cache pointer.
 */
 {
-  EDG_PREFIX::cache_token(cache->as_canonical(), tok, pos);
+  cache_token(cache->as_canonical(), tok, pos);
 }  /* cache_token */
 
 #if DEBUG
@@ -226,7 +226,7 @@ This function proxies calls to the common db_tokens function when using
 an IFC token cache pointer.
 */
 {
-  EDG_PREFIX::db_tokens(cache->as_canonical());
+  db_tokens(cache->as_canonical());
 }  /* db_tokens */
 
 #endif /* DEBUG */
