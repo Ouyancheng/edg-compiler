@@ -8487,7 +8487,6 @@ FIXME: what other expressions can we get here?
           constant_type = type_for_type_index(type, /*kind=*/NULL);
         }  /* if */
         if (constant_type != NULL && is_error_type(constant_type)) {
-          cp = alloc_error_constant();
           expect_error();
           goto invalid;
         }  /* if */
@@ -8684,13 +8683,13 @@ FIXME: what other expressions can we get here?
         a_decl_parse_state   dps;
         a_type_ptr           tp;
         init_decl_parse_state(&dps);
-        cp = alloc_constant(ck_error);
         tp = type_for_type_index(get_ifc_type(ied), /*kind=*/NULL);
         complete_type_is_needed(tp);
         cache_expr(&cache, expr_idx);
         if (cache.is_valid()) {
           a_module_entity_rescan rescan(&cache);
 
+          cp = alloc_constant(ck_error);
           scan_constant_initializer_expression(tp, &dps, cp);
         }  /* if */
       }
@@ -8711,7 +8710,6 @@ FIXME: what other expressions can we get here?
         an_init_component_ptr icp;
         an_expr_stack_entry   expr_stack_entry, *saved_expr_stack;
         init_decl_parse_state(&dps);
-        cp = alloc_constant(ck_error);
         if (!is_null_index(type)) {
           tp = type_for_type_index(type, /*kind=*/NULL);
         } else {
@@ -8726,6 +8724,7 @@ FIXME: what other expressions can we get here?
         {
           a_module_entity_rescan rescan(&cache);
 
+          cp = alloc_constant(ck_error);
           if (curr_token == tok_assign) {
             dps.init_state.direct_init = FALSE;
             (void)get_token();
@@ -8817,7 +8816,10 @@ FIXME: what other expressions can we get here?
     default:
       unexpected_condition();
   }  /* switch */
+  goto done;
 invalid:
+  cp = alloc_error_constant();
+done:
   return cp;
 }  /* constant_for_expr_index */
 
