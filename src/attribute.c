@@ -5559,7 +5559,7 @@ entity.
     a_routine_ptr  rp = (a_routine_ptr)entity;
     if (!is_unrecognized_attr(ap)) {
       rp->never_throws = TRUE;
-      if (ap->family == af_ms_declspec && C_mode()) {
+      if (ap->family == af_ms_declspec && !C_mode()) {
         /* The Microsoft __declspec(nothrow) attribute implies "noexcept". */
         a_type_ptr  func_tp;
         an_exception_specification_ptr
