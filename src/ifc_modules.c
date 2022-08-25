@@ -8088,7 +8088,7 @@ this routine need to handle the case where dps->alignment is 0.
   an_attribute_ptr ap = NULL;
 
   init_decl_parse_state(dps);
-  if (psssp != NULL) psssp->saved = FALSE;
+  psssp->saved = FALSE;
   if (!is_null_index(type_index)) {
     dps->type = type_for_type_index(type_index, /*kind=*/NULL);
   }  /* if */
