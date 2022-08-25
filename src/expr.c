@@ -39500,8 +39500,11 @@ see expr.h).
 #endif /* DEBUG */
   if (curr_token == tok_pending_ifc_expr) {
     (void)get_token();
-    scanning_deferred_module_expr =
-                     extract_tokens_for_module_expr(&ifc_index_for_curr_token);
+    if (extract_tokens_for_module_expr(&ifc_index_for_curr_token)) {
+      scanning_deferred_module_expr = TRUE;
+    } else {
+      goto end_of_routine;
+    }  /* if */
   }  /* if */
   if (local_options & EOPT_SUBSCRIPT_OP) {
     /* Clear the subscript operator flag as this is irrelevant for any
