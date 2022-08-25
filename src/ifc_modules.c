@@ -8958,7 +8958,7 @@ otherwise, return FALSE.
 */
 {
   a_boolean              valid = TRUE;
-  int                    char_len;
+  int                    char_len = 1;
   /* Force on UTF-8 relevant compiler flags to ensure the identifier is
      properly interpreted. */
 #if UNICODE_SOURCE_SUPPORTED
