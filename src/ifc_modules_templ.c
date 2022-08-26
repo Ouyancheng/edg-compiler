@@ -351,6 +351,7 @@ call).
       mark_validated(idx);
       if (!is_valid) {
         mark_invalid(idx);
+        expect_error();
       } /* if */
     }  /* if */
     /* Then, checking the result, return the read value. */

@@ -3610,6 +3610,7 @@ definition.
        don't reenter this branch. */
     if (!result) {
       ifc_bad_function_bodies->map(rp, TRUE);
+      expect_error();
     }  /* if */
   }  /* if */
   return result;
