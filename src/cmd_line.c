@@ -1050,6 +1050,12 @@ Initialize the option information table.
   add_option_description(optk_ms_mod_interface, "no_ms_mod_interface", '\0',
                          /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
+  add_option_description(optk_ms_internal_partition, "ms_internal_partition",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_ms_internal_partition,"no_ms_internal_partition",
+                         '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
   add_option_description(optk_ms_mod_translate_include, "ms_translate_include",
                          '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
                          pchek_command_line);
@@ -3127,6 +3133,13 @@ option values if they were not already set by a command line option.
     }  /* if */
     /* Microsoft allows specializations to use inaccessible members. */
     relaxed_specialization_access_checking = TRUE;
+    if (!option_kind_used[optk_ms_internal_partition]) {
+      /* Microsoft treats module partitions differently from the Standard,
+         and has module partitions treated the same as primary partitions
+         (i.e., an implementation partition implicitly imports an interface
+         partition of the same name).  See N4868 [module.unit]p3. */
+      module_partition_implicitly_imports_self = TRUE;
+    }  /* if */
   }  /* if */
   /* In C++ mode, the Microsoft compiler sometimes finds typedefs when
      looking up names in elaborated type specifiers.  This flag causes
@@ -10236,6 +10249,9 @@ Process the arguments on the command line that invoked the compiler.
       case optk_ms_mod_interface:
         tu_is_module_interface = opt_value;
         break;
+      case optk_ms_internal_partition:
+        module_partition_implicitly_imports_self = !opt_value;
+        break;
       case optk_ms_mod_translate_include:
         import_includes_from_header_map = opt_value;
         break;
@@ -12925,6 +12941,7 @@ variables declared in cmd_line.h.
   display_module_import_diagnostics = DEFAULT_MODULE_IMPORT_DIAG_ENABLED;
   module_keywords_enabled = FALSE;
   tu_is_module_interface = FALSE;
+  module_partition_implicitly_imports_self = FALSE;
   import_includes_from_header_map = FALSE;
   ignore_absolute_paths_for_header_units = FALSE;
   lazy_symbols_may_be_visible = FALSE;

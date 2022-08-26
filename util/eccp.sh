@@ -807,6 +807,7 @@ check_abbreviation()
 --ms_header_unit
 --ms_header_unit_angle
 --ms_header_unit_quote
+--ms_internal_partition
 --ms_mod_file_map
 --ms_mod_interface
 --ms_permissive
@@ -901,6 +902,7 @@ check_abbreviation()
 --no_ms_std_preprocessor
 --no_ms_cplusplus_std_value
 --no_ms_extensions
+--no_ms_internal_partition
 --no_ms_mod_interface
 --no_ms_permissive
 --no_ms_rvalue_cast
@@ -1480,6 +1482,8 @@ process_option()
          --no_ms_cplusplus_std_value | \
          --ms_extensions | \
          --no_ms_extensions | \
+         --ms_internal_partition | \
+         --no_ms_internal_partition | \
          --ms_mod_interface | \
          --no_ms_mod_interface | \
          --ms_permissive | \

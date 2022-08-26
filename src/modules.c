@@ -93,7 +93,8 @@ any).  Return TRUE if there exists an interface dependency, FALSE otherwise.
      implementation unit which imports its own primary interface unit. */
   if (interface_sym != NULL &&
       (module_sym->variant.module_info.is_interface_unit ||
-       module_sym->variant.module_info.partition_name != NULL) &&
+       (!module_partition_implicitly_imports_self &&
+        module_sym->variant.module_info.partition_name != NULL)) &&
       same_module_name(module_sym->variant.module_info.primary_name,
                        interface_sym->variant.module_info.primary_name) &&
       same_module_name(module_sym->variant.module_info.partition_name,
@@ -1138,7 +1139,7 @@ If the given routine has a definition available in an imported module, load and
 process that definition now, and return TRUE.  Otherwise, return FALSE.
 
 The presence of a routine definition should be checked for via
-has_routine_definition_from_module prior to attempting to load the a routine
+has_routine_definition_from_module prior to attempting to load the routine
 definition.
 */
 {

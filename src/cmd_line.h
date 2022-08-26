@@ -354,6 +354,7 @@ enum an_option_kind {
   optk_ms_header_unit_quote,
   optk_ms_header_unit_angle,
   optk_ms_mod_interface,
+  optk_ms_internal_partition,
   optk_ms_mod_translate_include,
   optk_modules,
   optk_module_import_diagnostics,
@@ -1556,6 +1557,12 @@ EXTERN a_boolean
 			/* TRUE if module declarations should be treated as if
 			   they were exported.  This is ignored unless a module
 			   declaration is encountered. */
+
+EXTERN a_boolean
+		module_partition_implicitly_imports_self;
+			/* TRUE if module partition units should be treated the
+			   same as primary units (i.e., a non-exported module
+			   declaration implicitly imports itself). */
 
 EXTERN a_boolean
 		import_includes_from_header_map;

@@ -19963,7 +19963,8 @@ left unchanged.
       curr_module_sym = make_module_symbol(primary_name, partition_name,
                                            is_interface, &module_pos);
       set_tu_stage(tud_module_unit);
-      if (!is_interface && partition_name == NULL) {
+      if (!is_interface && (module_partition_implicitly_imports_self ||
+                            partition_name == NULL)) {
         /* A non-interface module declaration with no partition implicitly
            imports its own primary interface unit. */
         import_curr_module();
