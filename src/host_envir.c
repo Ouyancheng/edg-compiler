@@ -1318,8 +1318,12 @@ is the name of the file, which is used for diagnostic purposes.
     /* The first character of the file is not the start of a byte order
        mark.  Unget the character so that it will be fetched when the
        source line is read. */
-    int	ungetc_result;
-    ungetc_result = ungetc(ch, f_file);
+#if CHECKING
+    int ungetc_result =
+#else /* !CHECKING */
+    (void)
+#endif /* CHECKING */
+    ungetc(ch, f_file);
     check_assertion(ungetc_result != EOF);
   } else {
     a_boolean is_bom = FALSE;

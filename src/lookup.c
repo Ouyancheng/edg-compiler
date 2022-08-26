@@ -5845,6 +5845,8 @@ Microsoft __super keyword.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+#if CHECKING
+
 static inline a_boolean is_acceptable_enum_symbol(a_symbol_ptr sym,
                                                   a_type_ptr   enum_type)
 /*
@@ -5864,6 +5866,7 @@ otherwise.
   return result;
 }  /* is_acceptable_enum_symbol */
 
+#endif /* CHECKING */
 
 a_symbol_ptr enum_qualified_id_lookup(a_symbol_locator		*locator,
 				      a_type_ptr		enum_type)

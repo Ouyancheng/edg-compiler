@@ -1402,6 +1402,7 @@ given position.
   }  /* if */
 }  /* scan_eh_spec_type */
 
+namespace {
 
 /*
 Structure recording information to establish the context of a noexcept
@@ -1419,9 +1420,10 @@ struct a_noexcept_arg_descr {
 			   cached. */
 };
 
-static inline
-a_boolean operator==(a_noexcept_arg_descr  const &nad1,
-                     a_noexcept_arg_descr  const &nad2)
+#if EXPENSIVE_CHECKING
+
+inline a_boolean operator==(a_noexcept_arg_descr const &nad1,
+                            a_noexcept_arg_descr const &nad2)
 /*
 Return TRUE if and only if the given descriptors are equivalent.
 */
@@ -1431,16 +1433,18 @@ Return TRUE if and only if the given descriptors are equivalent.
 }  /* operator== */
 
 
-static inline
-a_boolean operator!=(a_noexcept_arg_descr  const &nad1,
-                     a_noexcept_arg_descr  const &nad2)
+inline a_boolean operator!=(a_noexcept_arg_descr const &nad1,
+                            a_noexcept_arg_descr const &nad2)
 /*
-Return FALSE if and only if the given descriptors are equivalent.
+Return FALSE if the given descriptors are not equivalent.
 */
 {
   return !(nad1 == nad2);
 }  /* operator!= */
 
+#endif /* EXPENSIVE_CHECKING */
+
+}  /* namespace */
 
 typedef Ptr_map<an_exception_specification_ptr, a_noexcept_arg_descr>
 		a_noexcept_arg_map;
