@@ -3299,8 +3299,8 @@ chart being considered that defines the definition's parameters.  params is the
 first param in the list of the function type's parameters (which corresponds to
 the IFC declaration's parameter count information).  perform_param_correction
 is a pointer to a boolean that will be set to TRUE if the parameter processing
-logic should check for bad parameters and omit them.  Return TRUE if parameter
-the counts are equivalent or a correction can be applied to make them
+logic should check for bad parameters and omit them.  Return TRUE if the
+parameter counts are equivalent or a correction can be applied to make them
 equivalent; otherwise, return FALSE.
 */
 {
@@ -3560,7 +3560,7 @@ return TRUE.
 a_boolean load_routine_definition_from_ifc_module(a_routine_ptr  rp)
 /*
 The given routine claims to have a definition in a currently-imported IFC
-module, process that definition and return TRUE.  If problems our encountered
+module; process said definition and return TRUE.  If problems our encountered
 during processing, return FALSE.
 
 The presence of a routine definition should be checked for via
@@ -3571,10 +3571,9 @@ definition.
   a_boolean  result = FALSE;
 
   check_assertion(has_routine_definition_from_ifc_module(rp));
-  /* Check the (effective) set of routine's that have previously failed
-     definition processing.  This prevents repeating errors, and the associated
-     mitigates the performance impact if a problematic routine is called many
-     times. */
+  /* Check the (effective) set of routines that have previously failed
+     definition processing.  This prevents repeating errors, and mitigates the
+     performance impact if a problematic routine is called many times. */
   if (!ifc_bad_function_bodies->get(rp)) {
     an_ifc_decl_index           ifb = ifc_function_bodies->get(rp);
     a_func_info_block           func_info;
@@ -5661,16 +5660,17 @@ Complete the definition of the class referred to by mep (if needed).
         {
           a_module_entity_rescan rescan(&cache);
 
-          (void)scan_class_definition(class_type, (a_decl_parse_state*)NULL,
-                                      depth_innermost_namespace_scope,
-                                      /*is_partial=*/FALSE,
-                                      /*is_local_class=*/FALSE,
-                                      /*delayed_nested_class_def=*/
+          (void)scan_class_definition(
+                                    class_type, (a_decl_parse_state*)NULL,
+                                    depth_innermost_namespace_scope,
+                                    /*is_partial=*/FALSE,
+                                    /*is_local_class=*/FALSE,
+                                    /*delayed_nested_class_def=*/
                                     class_type->source_corresp.is_class_member,
-                                      /*is_template_instantiation=*/FALSE,
-                                      /*is_template_specialization=*/FALSE,
-                                      (a_template_ptr)NULL,
-                                      (a_decl_pos_block_ptr)NULL);
+                                    /*is_template_instantiation=*/FALSE,
+                                    /*is_template_specialization=*/FALSE,
+                                    (a_template_ptr)NULL,
+                                    (a_decl_pos_block_ptr)NULL);
         }
         add_ifc_friends_to_class(this, class_type, decl_idx);
         curr_class_fixup_header(/*for_instantiation=*/TRUE)->
@@ -8965,7 +8965,7 @@ enum an_ifc_identifier_resolution {
 static a_boolean identifier_is_valid(a_const_char *id_start)
 /*
 Given the start of a null-terminated IFC character sequence, determine if the
-character is a valid UTF-8 identifier.  Return TRUE if the identifier is valid;
+sequence is a valid UTF-8 identifier.  Return TRUE if the identifier is valid;
 otherwise, return FALSE.
 */
 {
@@ -8991,16 +8991,19 @@ otherwise, return FALSE.
 }  /* identifier_is_valid */
 
 
-static an_ifc_identifier_resolution get_ident_res(a_const_char *name)
+static an_ifc_identifier_resolution get_ident_res(a_const_char *id_start)
 /*
-Check the given name and return TRUE if it's a valid C++ identifier; otherwise,
-return FALSE.
+Consider the given null-terminated IFC character sequence as a C++ identifier.
+If the sequence is a valid C++ identifier return iir_direct_cache.  If the
+sequence is an invalid identifier conceptually representing "no identifier"
+return iir_recover_via_skip.  Otherwise, the sequence is an invalid identifier
+with no known special meaning and iir_error will be returned.
 */
 {
   an_ifc_identifier_resolution result = iir_direct_cache;
 
-  check_assertion(name != NULL);
-  if (!identifier_is_valid(name)) {
+  check_assertion(id_start != NULL);
+  if (!identifier_is_valid(id_start)) {
     result = iir_error;
     /* The IFC files also contain synthesized names for "unnamed" types of the
        form "<unnamed-XXX>" (where XXX is a placeholder).
@@ -9009,14 +9012,14 @@ return FALSE.
 
          enum { x };
 
-       This will be written before getting to this point as
-       "__noname_enum_x_". However, at the time of writing no such special
-       handling exists for "<unnamed-tag>", instead we handle it by skipping
-       the generation of the identifier token at this point.
+       This will be written before getting to this point as "__noname_enum_x_".
+       However, at the time of writing no such special handling exists for
+       "<unnamed-tag>", instead we handle it by skipping the generation of the
+       identifier token at this point.
 
        This is checked after identifier validity as doing so prevents any
        negative performance impact on the "happy path." */
-    if (is_unnamed_tag(name)) {
+    if (is_unnamed_tag(id_start)) {
       result = iir_recover_via_skip;
     }  /* if */
   }  /* if */
@@ -9025,8 +9028,8 @@ return FALSE.
 
 
 static void cache_identifier(a_module_token_cache_ptr cache,
-                             a_const_char           *name,
-                             a_source_position_ptr  pos)
+                             a_const_char             *name,
+                             a_source_position_ptr    pos)
 /*
 Add a tok_identifier for name to cache.  pos is the position of the identifier.
 */

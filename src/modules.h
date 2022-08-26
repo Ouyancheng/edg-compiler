@@ -304,6 +304,14 @@ using a_module_token_cache_ptr = a_module_token_cache*;
 
 
 inline void enter_module_token_rescan(a_module_token_cache_ptr cache)
+/*
+Begin a token rescan of the given module token cache ptr.  The caller is
+responsible for calling exit_module_token_rescan after the rescanned tokens
+have been used.
+
+If possible, prefer use of the RAII class a_module_entity_rescan which handles
+calls to exit_module_token_rescan automatically upon destruction.
+*/
 {
   push_stop_token_stack();
   terminate_token_cache(cache->as_canonical());
@@ -311,11 +319,21 @@ inline void enter_module_token_rescan(a_module_token_cache_ptr cache)
 }  /* enter_module_token_rescan */
 
 
-inline void exit_module_token_rescan(a_token_kind final_token = tok_error)
+inline void exit_module_token_rescan(
+                               ARG_UNUSED a_token_kind final_token = tok_error)
+/*
+Restore the token stream state after processing a module token cache.  The
+given final token argument is the expected current token at the time this
+function is called.  If the given final token doesn't match the current token,
+the front end will expect an error in CHECKING modes.  If there is no specific
+expected token, tok_error can be used to safely skip this check.
+*/
 {
+#if CHECKING
   if (final_token != tok_error && curr_token != final_token) {
     expect_error();
   }  /* if */
+#endif /* CHECKING */
   clear_stop_tokens();
   flush_to_end_of_source(/*suppress_warning=*/TRUE);
   pop_stop_token_stack();
