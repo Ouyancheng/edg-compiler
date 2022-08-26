@@ -36,11 +36,10 @@ more about, the tool that generated this file.
 BEGIN_EDG_NAMESPACE
 
 
-a_boolean validate_sort(an_ifc_access_sort_0_33       versioned,
-                        const an_ifc_validation_trace *parent)
+a_boolean is_known_sort(an_ifc_access_sort_0_33 versioned)
 /*
 Given the versioned representation of AccessSort, return TRUE if the value
-represents a valid enumerator; otherwise, return FALSE.
+represents a valid sort value; otherwise, return FALSE.
 */
 {
   a_boolean result = FALSE;
@@ -56,14 +55,31 @@ represents a valid enumerator; otherwise, return FALSE.
       break;
   }  /* switch */
   return result;
+}  /* is_known_sort */
+
+
+a_boolean validate_sort(an_ifc_module                 *mod,
+                        an_ifc_access_sort_0_33       versioned,
+                        const an_ifc_validation_trace *parent)
+/*
+Given the versioned representation of AccessSort, return TRUE if the value
+represents a valid sort value; otherwise, return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (!is_known_sort(versioned)) {
+    invalid_sort(mod, parent);
+    result = FALSE;
+  }  /* if */
+  return result;
 }  /* validate_sort */
 
 
-a_boolean validate_sort(an_ifc_architecture_sort_0_33 versioned,
-                        const an_ifc_validation_trace *parent)
+a_boolean is_known_sort(an_ifc_architecture_sort_0_33 versioned)
 /*
 Given the versioned representation of ArchitectureSort, return TRUE if the
-value represents a valid enumerator; otherwise, return FALSE.
+value represents a valid sort value; otherwise, return FALSE.
 */
 {
   a_boolean result = FALSE;
@@ -81,14 +97,31 @@ value represents a valid enumerator; otherwise, return FALSE.
       break;
   }  /* switch */
   return result;
+}  /* is_known_sort */
+
+
+a_boolean validate_sort(an_ifc_module                 *mod,
+                        an_ifc_architecture_sort_0_33 versioned,
+                        const an_ifc_validation_trace *parent)
+/*
+Given the versioned representation of ArchitectureSort, return TRUE if the
+value represents a valid sort value; otherwise, return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (!is_known_sort(versioned)) {
+    invalid_sort(mod, parent);
+    result = FALSE;
+  }  /* if */
+  return result;
 }  /* validate_sort */
 
 
-a_boolean validate_sort(an_ifc_attr_sort_0_33         versioned,
-                        const an_ifc_validation_trace *parent)
+a_boolean is_known_sort(an_ifc_attr_sort_0_33 versioned)
 /*
 Given the versioned representation of AttrSort, return TRUE if the value
-represents a valid enumerator; otherwise, return FALSE.
+represents a valid sort value; otherwise, return FALSE.
 */
 {
   a_boolean result = FALSE;
@@ -109,14 +142,31 @@ represents a valid enumerator; otherwise, return FALSE.
       break;
   }  /* switch */
   return result;
+}  /* is_known_sort */
+
+
+a_boolean validate_sort(an_ifc_module                 *mod,
+                        an_ifc_attr_sort_0_33         versioned,
+                        const an_ifc_validation_trace *parent)
+/*
+Given the versioned representation of AttrSort, return TRUE if the value
+represents a valid sort value; otherwise, return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (!is_known_sort(versioned)) {
+    invalid_sort(mod, parent);
+    result = FALSE;
+  }  /* if */
+  return result;
 }  /* validate_sort */
 
 
-a_boolean validate_sort(an_ifc_calling_convention_sort_0_33 versioned,
-                        const an_ifc_validation_trace       *parent)
+a_boolean is_known_sort(an_ifc_calling_convention_sort_0_33 versioned)
 /*
 Given the versioned representation of CallingConventionSort, return TRUE if the
-value represents a valid enumerator; otherwise, return FALSE.
+value represents a valid sort value; otherwise, return FALSE.
 */
 {
   a_boolean result = FALSE;
@@ -135,14 +185,31 @@ value represents a valid enumerator; otherwise, return FALSE.
       break;
   }  /* switch */
   return result;
+}  /* is_known_sort */
+
+
+a_boolean validate_sort(an_ifc_module                       *mod,
+                        an_ifc_calling_convention_sort_0_33 versioned,
+                        const an_ifc_validation_trace       *parent)
+/*
+Given the versioned representation of CallingConventionSort, return TRUE if the
+value represents a valid sort value; otherwise, return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (!is_known_sort(versioned)) {
+    invalid_sort(mod, parent);
+    result = FALSE;
+  }  /* if */
+  return result;
 }  /* validate_sort */
 
 
-a_boolean validate_sort(an_ifc_chart_sort_0_33        versioned,
-                        const an_ifc_validation_trace *parent)
+a_boolean is_known_sort(an_ifc_chart_sort_0_33 versioned)
 /*
 Given the versioned representation of ChartSort, return TRUE if the value
-represents a valid enumerator; otherwise, return FALSE.
+represents a valid sort value; otherwise, return FALSE.
 */
 {
   a_boolean result = FALSE;
@@ -157,14 +224,31 @@ represents a valid enumerator; otherwise, return FALSE.
       break;
   }  /* switch */
   return result;
+}  /* is_known_sort */
+
+
+a_boolean validate_sort(an_ifc_module                 *mod,
+                        an_ifc_chart_sort_0_33        versioned,
+                        const an_ifc_validation_trace *parent)
+/*
+Given the versioned representation of ChartSort, return TRUE if the value
+represents a valid sort value; otherwise, return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (!is_known_sort(versioned)) {
+    invalid_sort(mod, parent);
+    result = FALSE;
+  }  /* if */
+  return result;
 }  /* validate_sort */
 
 
-a_boolean validate_sort(an_ifc_decl_sort_0_33         versioned,
-                        const an_ifc_validation_trace *parent)
+a_boolean is_known_sort(an_ifc_decl_sort_0_33 versioned)
 /*
 Given the versioned representation of DeclSort, return TRUE if the value
-represents a valid enumerator; otherwise, return FALSE.
+represents a valid sort value; otherwise, return FALSE.
 */
 {
   a_boolean result = FALSE;
@@ -208,14 +292,31 @@ represents a valid enumerator; otherwise, return FALSE.
       break;
   }  /* switch */
   return result;
-}  /* validate_sort */
+}  /* is_known_sort */
 
 
-a_boolean validate_sort(an_ifc_decl_sort_0_41         versioned,
+a_boolean validate_sort(an_ifc_module                 *mod,
+                        an_ifc_decl_sort_0_33         versioned,
                         const an_ifc_validation_trace *parent)
 /*
 Given the versioned representation of DeclSort, return TRUE if the value
-represents a valid enumerator; otherwise, return FALSE.
+represents a valid sort value; otherwise, return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (!is_known_sort(versioned)) {
+    invalid_sort(mod, parent);
+    result = FALSE;
+  }  /* if */
+  return result;
+}  /* validate_sort */
+
+
+a_boolean is_known_sort(an_ifc_decl_sort_0_41 versioned)
+/*
+Given the versioned representation of DeclSort, return TRUE if the value
+represents a valid sort value; otherwise, return FALSE.
 */
 {
   a_boolean result = FALSE;
@@ -258,14 +359,31 @@ represents a valid enumerator; otherwise, return FALSE.
       break;
   }  /* switch */
   return result;
+}  /* is_known_sort */
+
+
+a_boolean validate_sort(an_ifc_module                 *mod,
+                        an_ifc_decl_sort_0_41         versioned,
+                        const an_ifc_validation_trace *parent)
+/*
+Given the versioned representation of DeclSort, return TRUE if the value
+represents a valid sort value; otherwise, return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (!is_known_sort(versioned)) {
+    invalid_sort(mod, parent);
+    result = FALSE;
+  }  /* if */
+  return result;
 }  /* validate_sort */
 
 
-a_boolean validate_sort(an_ifc_delimiter_sort_0_33    versioned,
-                        const an_ifc_validation_trace *parent)
+a_boolean is_known_sort(an_ifc_delimiter_sort_0_33 versioned)
 /*
 Given the versioned representation of DelimiterSort, return TRUE if the value
-represents a valid enumerator; otherwise, return FALSE.
+represents a valid sort value; otherwise, return FALSE.
 */
 {
   a_boolean result = FALSE;
@@ -280,14 +398,31 @@ represents a valid enumerator; otherwise, return FALSE.
       break;
   }  /* switch */
   return result;
+}  /* is_known_sort */
+
+
+a_boolean validate_sort(an_ifc_module                 *mod,
+                        an_ifc_delimiter_sort_0_33    versioned,
+                        const an_ifc_validation_trace *parent)
+/*
+Given the versioned representation of DelimiterSort, return TRUE if the value
+represents a valid sort value; otherwise, return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (!is_known_sort(versioned)) {
+    invalid_sort(mod, parent);
+    result = FALSE;
+  }  /* if */
+  return result;
 }  /* validate_sort */
 
 
-a_boolean validate_sort(an_ifc_dyadic_operator_sort_0_33 versioned,
-                        const an_ifc_validation_trace    *parent)
+a_boolean is_known_sort(an_ifc_dyadic_operator_sort_0_33 versioned)
 /*
 Given the versioned representation of DyadicOperatorSort, return TRUE if the
-value represents a valid enumerator; otherwise, return FALSE.
+value represents a valid sort value; otherwise, return FALSE.
 */
 {
   a_boolean result = FALSE;
@@ -387,14 +522,31 @@ value represents a valid enumerator; otherwise, return FALSE.
       break;
   }  /* switch */
   return result;
+}  /* is_known_sort */
+
+
+a_boolean validate_sort(an_ifc_module                    *mod,
+                        an_ifc_dyadic_operator_sort_0_33 versioned,
+                        const an_ifc_validation_trace    *parent)
+/*
+Given the versioned representation of DyadicOperatorSort, return TRUE if the
+value represents a valid sort value; otherwise, return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (!is_known_sort(versioned)) {
+    invalid_sort(mod, parent);
+    result = FALSE;
+  }  /* if */
+  return result;
 }  /* validate_sort */
 
 
-a_boolean validate_sort(an_ifc_expansion_mode_sort_0_33 versioned,
-                        const an_ifc_validation_trace   *parent)
+a_boolean is_known_sort(an_ifc_expansion_mode_sort_0_33 versioned)
 /*
 Given the versioned representation of ExpansionModeSort, return TRUE if the
-value represents a valid enumerator; otherwise, return FALSE.
+value represents a valid sort value; otherwise, return FALSE.
 */
 {
   a_boolean result = FALSE;
@@ -408,14 +560,31 @@ value represents a valid enumerator; otherwise, return FALSE.
       break;
   }  /* switch */
   return result;
+}  /* is_known_sort */
+
+
+a_boolean validate_sort(an_ifc_module                   *mod,
+                        an_ifc_expansion_mode_sort_0_33 versioned,
+                        const an_ifc_validation_trace   *parent)
+/*
+Given the versioned representation of ExpansionModeSort, return TRUE if the
+value represents a valid sort value; otherwise, return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (!is_known_sort(versioned)) {
+    invalid_sort(mod, parent);
+    result = FALSE;
+  }  /* if */
+  return result;
 }  /* validate_sort */
 
 
-a_boolean validate_sort(an_ifc_expr_sort_0_33         versioned,
-                        const an_ifc_validation_trace *parent)
+a_boolean is_known_sort(an_ifc_expr_sort_0_33 versioned)
 /*
 Given the versioned representation of ExprSort, return TRUE if the value
-represents a valid enumerator; otherwise, return FALSE.
+represents a valid sort value; otherwise, return FALSE.
 */
 {
   a_boolean result = FALSE;
@@ -488,14 +657,31 @@ represents a valid enumerator; otherwise, return FALSE.
       break;
   }  /* switch */
   return result;
-}  /* validate_sort */
+}  /* is_known_sort */
 
 
-a_boolean validate_sort(an_ifc_expr_sort_0_42         versioned,
+a_boolean validate_sort(an_ifc_module                 *mod,
+                        an_ifc_expr_sort_0_33         versioned,
                         const an_ifc_validation_trace *parent)
 /*
 Given the versioned representation of ExprSort, return TRUE if the value
-represents a valid enumerator; otherwise, return FALSE.
+represents a valid sort value; otherwise, return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (!is_known_sort(versioned)) {
+    invalid_sort(mod, parent);
+    result = FALSE;
+  }  /* if */
+  return result;
+}  /* validate_sort */
+
+
+a_boolean is_known_sort(an_ifc_expr_sort_0_42 versioned)
+/*
+Given the versioned representation of ExprSort, return TRUE if the value
+represents a valid sort value; otherwise, return FALSE.
 */
 {
   a_boolean result = FALSE;
@@ -566,14 +752,31 @@ represents a valid enumerator; otherwise, return FALSE.
       break;
   }  /* switch */
   return result;
+}  /* is_known_sort */
+
+
+a_boolean validate_sort(an_ifc_module                 *mod,
+                        an_ifc_expr_sort_0_42         versioned,
+                        const an_ifc_validation_trace *parent)
+/*
+Given the versioned representation of ExprSort, return TRUE if the value
+represents a valid sort value; otherwise, return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (!is_known_sort(versioned)) {
+    invalid_sort(mod, parent);
+    result = FALSE;
+  }  /* if */
+  return result;
 }  /* validate_sort */
 
 
-a_boolean validate_sort(an_ifc_fold_direction_sort_0_33 versioned,
-                        const an_ifc_validation_trace   *parent)
+a_boolean is_known_sort(an_ifc_fold_direction_sort_0_33 versioned)
 /*
 Given the versioned representation of FoldDirectionSort, return TRUE if the
-value represents a valid enumerator; otherwise, return FALSE.
+value represents a valid sort value; otherwise, return FALSE.
 */
 {
   a_boolean result = FALSE;
@@ -588,14 +791,31 @@ value represents a valid enumerator; otherwise, return FALSE.
       break;
   }  /* switch */
   return result;
+}  /* is_known_sort */
+
+
+a_boolean validate_sort(an_ifc_module                   *mod,
+                        an_ifc_fold_direction_sort_0_33 versioned,
+                        const an_ifc_validation_trace   *parent)
+/*
+Given the versioned representation of FoldDirectionSort, return TRUE if the
+value represents a valid sort value; otherwise, return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (!is_known_sort(versioned)) {
+    invalid_sort(mod, parent);
+    result = FALSE;
+  }  /* if */
+  return result;
 }  /* validate_sort */
 
 
-a_boolean validate_sort(an_ifc_form_sort_0_33         versioned,
-                        const an_ifc_validation_trace *parent)
+a_boolean is_known_sort(an_ifc_form_sort_0_33 versioned)
 /*
 Given the versioned representation of FormSort, return TRUE if the value
-represents a valid enumerator; otherwise, return FALSE.
+represents a valid sort value; otherwise, return FALSE.
 */
 {
   a_boolean result = FALSE;
@@ -622,14 +842,31 @@ represents a valid enumerator; otherwise, return FALSE.
       break;
   }  /* switch */
   return result;
+}  /* is_known_sort */
+
+
+a_boolean validate_sort(an_ifc_module                 *mod,
+                        an_ifc_form_sort_0_33         versioned,
+                        const an_ifc_validation_trace *parent)
+/*
+Given the versioned representation of FormSort, return TRUE if the value
+represents a valid sort value; otherwise, return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (!is_known_sort(versioned)) {
+    invalid_sort(mod, parent);
+    result = FALSE;
+  }  /* if */
+  return result;
 }  /* validate_sort */
 
 
-a_boolean validate_sort(an_ifc_initializer_sort_0_33  versioned,
-                        const an_ifc_validation_trace *parent)
+a_boolean is_known_sort(an_ifc_initializer_sort_0_33 versioned)
 /*
 Given the versioned representation of InitializerSort, return TRUE if the value
-represents a valid enumerator; otherwise, return FALSE.
+represents a valid sort value; otherwise, return FALSE.
 */
 {
   a_boolean result = FALSE;
@@ -644,14 +881,31 @@ represents a valid enumerator; otherwise, return FALSE.
       break;
   }  /* switch */
   return result;
+}  /* is_known_sort */
+
+
+a_boolean validate_sort(an_ifc_module                 *mod,
+                        an_ifc_initializer_sort_0_33  versioned,
+                        const an_ifc_validation_trace *parent)
+/*
+Given the versioned representation of InitializerSort, return TRUE if the value
+represents a valid sort value; otherwise, return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (!is_known_sort(versioned)) {
+    invalid_sort(mod, parent);
+    result = FALSE;
+  }  /* if */
+  return result;
 }  /* validate_sort */
 
 
-a_boolean validate_sort(an_ifc_keyword_sort_0_33      versioned,
-                        const an_ifc_validation_trace *parent)
+a_boolean is_known_sort(an_ifc_keyword_sort_0_33 versioned)
 /*
 Given the versioned representation of KeywordSort, return TRUE if the value
-represents a valid enumerator; otherwise, return FALSE.
+represents a valid sort value; otherwise, return FALSE.
 */
 {
   a_boolean result = FALSE;
@@ -676,14 +930,31 @@ represents a valid enumerator; otherwise, return FALSE.
       break;
   }  /* switch */
   return result;
+}  /* is_known_sort */
+
+
+a_boolean validate_sort(an_ifc_module                 *mod,
+                        an_ifc_keyword_sort_0_33      versioned,
+                        const an_ifc_validation_trace *parent)
+/*
+Given the versioned representation of KeywordSort, return TRUE if the value
+represents a valid sort value; otherwise, return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (!is_known_sort(versioned)) {
+    invalid_sort(mod, parent);
+    result = FALSE;
+  }  /* if */
+  return result;
 }  /* validate_sort */
 
 
-a_boolean validate_sort(an_ifc_label_sort_0_33        versioned,
-                        const an_ifc_validation_trace *parent)
+a_boolean is_known_sort(an_ifc_label_sort_0_33 versioned)
 /*
 Given the versioned representation of LabelSort, return TRUE if the value
-represents a valid enumerator; otherwise, return FALSE.
+represents a valid sort value; otherwise, return FALSE.
 */
 {
   a_boolean result = FALSE;
@@ -699,14 +970,31 @@ represents a valid enumerator; otherwise, return FALSE.
       break;
   }  /* switch */
   return result;
+}  /* is_known_sort */
+
+
+a_boolean validate_sort(an_ifc_module                 *mod,
+                        an_ifc_label_sort_0_33        versioned,
+                        const an_ifc_validation_trace *parent)
+/*
+Given the versioned representation of LabelSort, return TRUE if the value
+represents a valid sort value; otherwise, return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (!is_known_sort(versioned)) {
+    invalid_sort(mod, parent);
+    result = FALSE;
+  }  /* if */
+  return result;
 }  /* validate_sort */
 
 
-a_boolean validate_sort(an_ifc_lit_sort_0_33          versioned,
-                        const an_ifc_validation_trace *parent)
+a_boolean is_known_sort(an_ifc_lit_sort_0_33 versioned)
 /*
 Given the versioned representation of LitSort, return TRUE if the value
-represents a valid enumerator; otherwise, return FALSE.
+represents a valid sort value; otherwise, return FALSE.
 */
 {
   a_boolean result = FALSE;
@@ -721,14 +1009,31 @@ represents a valid enumerator; otherwise, return FALSE.
       break;
   }  /* switch */
   return result;
+}  /* is_known_sort */
+
+
+a_boolean validate_sort(an_ifc_module                 *mod,
+                        an_ifc_lit_sort_0_33          versioned,
+                        const an_ifc_validation_trace *parent)
+/*
+Given the versioned representation of LitSort, return TRUE if the value
+represents a valid sort value; otherwise, return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (!is_known_sort(versioned)) {
+    invalid_sort(mod, parent);
+    result = FALSE;
+  }  /* if */
+  return result;
 }  /* validate_sort */
 
 
-a_boolean validate_sort(an_ifc_macro_sort_0_33        versioned,
-                        const an_ifc_validation_trace *parent)
+a_boolean is_known_sort(an_ifc_macro_sort_0_33 versioned)
 /*
 Given the versioned representation of MacroSort, return TRUE if the value
-represents a valid enumerator; otherwise, return FALSE.
+represents a valid sort value; otherwise, return FALSE.
 */
 {
   a_boolean result = FALSE;
@@ -742,14 +1047,31 @@ represents a valid enumerator; otherwise, return FALSE.
       break;
   }  /* switch */
   return result;
+}  /* is_known_sort */
+
+
+a_boolean validate_sort(an_ifc_module                 *mod,
+                        an_ifc_macro_sort_0_33        versioned,
+                        const an_ifc_validation_trace *parent)
+/*
+Given the versioned representation of MacroSort, return TRUE if the value
+represents a valid sort value; otherwise, return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (!is_known_sort(versioned)) {
+    invalid_sort(mod, parent);
+    result = FALSE;
+  }  /* if */
+  return result;
 }  /* validate_sort */
 
 
-a_boolean validate_sort(an_ifc_monadic_operator_sort_0_33 versioned,
-                        const an_ifc_validation_trace     *parent)
+a_boolean is_known_sort(an_ifc_monadic_operator_sort_0_33 versioned)
 /*
 Given the versioned representation of MonadicOperatorSort, return TRUE if the
-value represents a valid enumerator; otherwise, return FALSE.
+value represents a valid sort value; otherwise, return FALSE.
 */
 {
   a_boolean result = FALSE;
@@ -841,14 +1163,31 @@ value represents a valid enumerator; otherwise, return FALSE.
       break;
   }  /* switch */
   return result;
+}  /* is_known_sort */
+
+
+a_boolean validate_sort(an_ifc_module                     *mod,
+                        an_ifc_monadic_operator_sort_0_33 versioned,
+                        const an_ifc_validation_trace     *parent)
+/*
+Given the versioned representation of MonadicOperatorSort, return TRUE if the
+value represents a valid sort value; otherwise, return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (!is_known_sort(versioned)) {
+    invalid_sort(mod, parent);
+    result = FALSE;
+  }  /* if */
+  return result;
 }  /* validate_sort */
 
 
-a_boolean validate_sort(an_ifc_name_sort_0_33         versioned,
-                        const an_ifc_validation_trace *parent)
+a_boolean is_known_sort(an_ifc_name_sort_0_33 versioned)
 /*
 Given the versioned representation of NameSort, return TRUE if the value
-represents a valid enumerator; otherwise, return FALSE.
+represents a valid sort value; otherwise, return FALSE.
 */
 {
   a_boolean result = FALSE;
@@ -868,14 +1207,31 @@ represents a valid enumerator; otherwise, return FALSE.
       break;
   }  /* switch */
   return result;
+}  /* is_known_sort */
+
+
+a_boolean validate_sort(an_ifc_module                 *mod,
+                        an_ifc_name_sort_0_33         versioned,
+                        const an_ifc_validation_trace *parent)
+/*
+Given the versioned representation of NameSort, return TRUE if the value
+represents a valid sort value; otherwise, return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (!is_known_sort(versioned)) {
+    invalid_sort(mod, parent);
+    result = FALSE;
+  }  /* if */
+  return result;
 }  /* validate_sort */
 
 
-a_boolean validate_sort(an_ifc_niladic_operator_sort_0_33 versioned,
-                        const an_ifc_validation_trace     *parent)
+a_boolean is_known_sort(an_ifc_niladic_operator_sort_0_33 versioned)
 /*
 Given the versioned representation of NiladicOperatorSort, return TRUE if the
-value represents a valid enumerator; otherwise, return FALSE.
+value represents a valid sort value; otherwise, return FALSE.
 */
 {
   a_boolean result = FALSE;
@@ -894,14 +1250,31 @@ value represents a valid enumerator; otherwise, return FALSE.
       break;
   }  /* switch */
   return result;
+}  /* is_known_sort */
+
+
+a_boolean validate_sort(an_ifc_module                     *mod,
+                        an_ifc_niladic_operator_sort_0_33 versioned,
+                        const an_ifc_validation_trace     *parent)
+/*
+Given the versioned representation of NiladicOperatorSort, return TRUE if the
+value represents a valid sort value; otherwise, return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (!is_known_sort(versioned)) {
+    invalid_sort(mod, parent);
+    result = FALSE;
+  }  /* if */
+  return result;
 }  /* validate_sort */
 
 
-a_boolean validate_sort(an_ifc_noexcept_sort_0_33     versioned,
-                        const an_ifc_validation_trace *parent)
+a_boolean is_known_sort(an_ifc_noexcept_sort_0_33 versioned)
 /*
 Given the versioned representation of NoexceptSort, return TRUE if the value
-represents a valid enumerator; otherwise, return FALSE.
+represents a valid sort value; otherwise, return FALSE.
 */
 {
   a_boolean result = FALSE;
@@ -919,14 +1292,31 @@ represents a valid enumerator; otherwise, return FALSE.
       break;
   }  /* switch */
   return result;
+}  /* is_known_sort */
+
+
+a_boolean validate_sort(an_ifc_module                 *mod,
+                        an_ifc_noexcept_sort_0_33     versioned,
+                        const an_ifc_validation_trace *parent)
+/*
+Given the versioned representation of NoexceptSort, return TRUE if the value
+represents a valid sort value; otherwise, return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (!is_known_sort(versioned)) {
+    invalid_sort(mod, parent);
+    result = FALSE;
+  }  /* if */
+  return result;
 }  /* validate_sort */
 
 
-a_boolean validate_sort(an_ifc_operator_sort_0_33     versioned,
-                        const an_ifc_validation_trace *parent)
+a_boolean is_known_sort(an_ifc_operator_sort_0_33 versioned)
 /*
 Given the versioned representation of OperatorSort, return TRUE if the value
-represents a valid enumerator; otherwise, return FALSE.
+represents a valid sort value; otherwise, return FALSE.
 */
 {
   a_boolean result = FALSE;
@@ -944,14 +1334,31 @@ represents a valid enumerator; otherwise, return FALSE.
       break;
   }  /* switch */
   return result;
+}  /* is_known_sort */
+
+
+a_boolean validate_sort(an_ifc_module                 *mod,
+                        an_ifc_operator_sort_0_33     versioned,
+                        const an_ifc_validation_trace *parent)
+/*
+Given the versioned representation of OperatorSort, return TRUE if the value
+represents a valid sort value; otherwise, return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (!is_known_sort(versioned)) {
+    invalid_sort(mod, parent);
+    result = FALSE;
+  }  /* if */
+  return result;
 }  /* validate_sort */
 
 
-a_boolean validate_sort(an_ifc_parameter_sort_0_33    versioned,
-                        const an_ifc_validation_trace *parent)
+a_boolean is_known_sort(an_ifc_parameter_sort_0_33 versioned)
 /*
 Given the versioned representation of ParameterSort, return TRUE if the value
-represents a valid enumerator; otherwise, return FALSE.
+represents a valid sort value; otherwise, return FALSE.
 */
 {
   a_boolean result = FALSE;
@@ -967,14 +1374,31 @@ represents a valid enumerator; otherwise, return FALSE.
       break;
   }  /* switch */
   return result;
+}  /* is_known_sort */
+
+
+a_boolean validate_sort(an_ifc_module                 *mod,
+                        an_ifc_parameter_sort_0_33    versioned,
+                        const an_ifc_validation_trace *parent)
+/*
+Given the versioned representation of ParameterSort, return TRUE if the value
+represents a valid sort value; otherwise, return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (!is_known_sort(versioned)) {
+    invalid_sort(mod, parent);
+    result = FALSE;
+  }  /* if */
+  return result;
 }  /* validate_sort */
 
 
-a_boolean validate_sort(an_ifc_pointer_declarator_sort_0_33 versioned,
-                        const an_ifc_validation_trace       *parent)
+a_boolean is_known_sort(an_ifc_pointer_declarator_sort_0_33 versioned)
 /*
 Given the versioned representation of PointerDeclaratorSort, return TRUE if the
-value represents a valid enumerator; otherwise, return FALSE.
+value represents a valid sort value; otherwise, return FALSE.
 */
 {
   a_boolean result = FALSE;
@@ -991,14 +1415,31 @@ value represents a valid enumerator; otherwise, return FALSE.
       break;
   }  /* switch */
   return result;
+}  /* is_known_sort */
+
+
+a_boolean validate_sort(an_ifc_module                       *mod,
+                        an_ifc_pointer_declarator_sort_0_33 versioned,
+                        const an_ifc_validation_trace       *parent)
+/*
+Given the versioned representation of PointerDeclaratorSort, return TRUE if the
+value represents a valid sort value; otherwise, return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (!is_known_sort(versioned)) {
+    invalid_sort(mod, parent);
+    result = FALSE;
+  }  /* if */
+  return result;
 }  /* validate_sort */
 
 
-a_boolean validate_sort(an_ifc_pragma_sort_0_33       versioned,
-                        const an_ifc_validation_trace *parent)
+a_boolean is_known_sort(an_ifc_pragma_sort_0_33 versioned)
 /*
 Given the versioned representation of PragmaSort, return TRUE if the value
-represents a valid enumerator; otherwise, return FALSE.
+represents a valid sort value; otherwise, return FALSE.
 */
 {
   a_boolean result = FALSE;
@@ -1011,14 +1452,31 @@ represents a valid enumerator; otherwise, return FALSE.
       break;
   }  /* switch */
   return result;
+}  /* is_known_sort */
+
+
+a_boolean validate_sort(an_ifc_module                 *mod,
+                        an_ifc_pragma_sort_0_33       versioned,
+                        const an_ifc_validation_trace *parent)
+/*
+Given the versioned representation of PragmaSort, return TRUE if the value
+represents a valid sort value; otherwise, return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (!is_known_sort(versioned)) {
+    invalid_sort(mod, parent);
+    result = FALSE;
+  }  /* if */
+  return result;
 }  /* validate_sort */
 
 
-a_boolean validate_sort(an_ifc_read_conversion_sort_0_33 versioned,
-                        const an_ifc_validation_trace    *parent)
+a_boolean is_known_sort(an_ifc_read_conversion_sort_0_33 versioned)
 /*
 Given the versioned representation of ReadConversionSort, return TRUE if the
-value represents a valid enumerator; otherwise, return FALSE.
+value represents a valid sort value; otherwise, return FALSE.
 */
 {
   a_boolean result = FALSE;
@@ -1035,14 +1493,31 @@ value represents a valid enumerator; otherwise, return FALSE.
       break;
   }  /* switch */
   return result;
+}  /* is_known_sort */
+
+
+a_boolean validate_sort(an_ifc_module                    *mod,
+                        an_ifc_read_conversion_sort_0_33 versioned,
+                        const an_ifc_validation_trace    *parent)
+/*
+Given the versioned representation of ReadConversionSort, return TRUE if the
+value represents a valid sort value; otherwise, return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (!is_known_sort(versioned)) {
+    invalid_sort(mod, parent);
+    result = FALSE;
+  }  /* if */
+  return result;
 }  /* validate_sort */
 
 
-a_boolean validate_sort(an_ifc_return_sort_0_33       versioned,
-                        const an_ifc_validation_trace *parent)
+a_boolean is_known_sort(an_ifc_return_sort_0_33 versioned)
 /*
 Given the versioned representation of ReturnSort, return TRUE if the value
-represents a valid enumerator; otherwise, return FALSE.
+represents a valid sort value; otherwise, return FALSE.
 */
 {
   a_boolean result = FALSE;
@@ -1056,14 +1531,31 @@ represents a valid enumerator; otherwise, return FALSE.
       break;
   }  /* switch */
   return result;
+}  /* is_known_sort */
+
+
+a_boolean validate_sort(an_ifc_module                 *mod,
+                        an_ifc_return_sort_0_33       versioned,
+                        const an_ifc_validation_trace *parent)
+/*
+Given the versioned representation of ReturnSort, return TRUE if the value
+represents a valid sort value; otherwise, return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (!is_known_sort(versioned)) {
+    invalid_sort(mod, parent);
+    result = FALSE;
+  }  /* if */
+  return result;
 }  /* validate_sort */
 
 
-a_boolean validate_sort(an_ifc_source_directive_sort_0_33 versioned,
-                        const an_ifc_validation_trace     *parent)
+a_boolean is_known_sort(an_ifc_source_directive_sort_0_33 versioned)
 /*
 Given the versioned representation of SourceDirectiveSort, return TRUE if the
-value represents a valid enumerator; otherwise, return FALSE.
+value represents a valid sort value; otherwise, return FALSE.
 */
 {
   a_boolean result = FALSE;
@@ -1133,14 +1625,31 @@ value represents a valid enumerator; otherwise, return FALSE.
       break;
   }  /* switch */
   return result;
+}  /* is_known_sort */
+
+
+a_boolean validate_sort(an_ifc_module                     *mod,
+                        an_ifc_source_directive_sort_0_33 versioned,
+                        const an_ifc_validation_trace     *parent)
+/*
+Given the versioned representation of SourceDirectiveSort, return TRUE if the
+value represents a valid sort value; otherwise, return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (!is_known_sort(versioned)) {
+    invalid_sort(mod, parent);
+    result = FALSE;
+  }  /* if */
+  return result;
 }  /* validate_sort */
 
 
-a_boolean validate_sort(an_ifc_source_identifier_sort_0_33 versioned,
-                        const an_ifc_validation_trace      *parent)
+a_boolean is_known_sort(an_ifc_source_identifier_sort_0_33 versioned)
 /*
 Given the versioned representation of SourceIdentifierSort, return TRUE if the
-value represents a valid enumerator; otherwise, return FALSE.
+value represents a valid sort value; otherwise, return FALSE.
 */
 {
   a_boolean result = FALSE;
@@ -1160,14 +1669,31 @@ value represents a valid enumerator; otherwise, return FALSE.
       break;
   }  /* switch */
   return result;
+}  /* is_known_sort */
+
+
+a_boolean validate_sort(an_ifc_module                      *mod,
+                        an_ifc_source_identifier_sort_0_33 versioned,
+                        const an_ifc_validation_trace      *parent)
+/*
+Given the versioned representation of SourceIdentifierSort, return TRUE if the
+value represents a valid sort value; otherwise, return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (!is_known_sort(versioned)) {
+    invalid_sort(mod, parent);
+    result = FALSE;
+  }  /* if */
+  return result;
 }  /* validate_sort */
 
 
-a_boolean validate_sort(an_ifc_source_keyword_sort_0_33 versioned,
-                        const an_ifc_validation_trace   *parent)
+a_boolean is_known_sort(an_ifc_source_keyword_sort_0_33 versioned)
 /*
 Given the versioned representation of SourceKeywordSort, return TRUE if the
-value represents a valid enumerator; otherwise, return FALSE.
+value represents a valid sort value; otherwise, return FALSE.
 */
 {
   a_boolean result = FALSE;
@@ -1366,14 +1892,31 @@ value represents a valid enumerator; otherwise, return FALSE.
       break;
   }  /* switch */
   return result;
+}  /* is_known_sort */
+
+
+a_boolean validate_sort(an_ifc_module                   *mod,
+                        an_ifc_source_keyword_sort_0_33 versioned,
+                        const an_ifc_validation_trace   *parent)
+/*
+Given the versioned representation of SourceKeywordSort, return TRUE if the
+value represents a valid sort value; otherwise, return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (!is_known_sort(versioned)) {
+    invalid_sort(mod, parent);
+    result = FALSE;
+  }  /* if */
+  return result;
 }  /* validate_sort */
 
 
-a_boolean validate_sort(an_ifc_source_literal_sort_0_33 versioned,
-                        const an_ifc_validation_trace   *parent)
+a_boolean is_known_sort(an_ifc_source_literal_sort_0_33 versioned)
 /*
 Given the versioned representation of SourceLiteralSort, return TRUE if the
-value represents a valid enumerator; otherwise, return FALSE.
+value represents a valid sort value; otherwise, return FALSE.
 */
 {
   a_boolean result = FALSE;
@@ -1396,14 +1939,31 @@ value represents a valid enumerator; otherwise, return FALSE.
       break;
   }  /* switch */
   return result;
+}  /* is_known_sort */
+
+
+a_boolean validate_sort(an_ifc_module                   *mod,
+                        an_ifc_source_literal_sort_0_33 versioned,
+                        const an_ifc_validation_trace   *parent)
+/*
+Given the versioned representation of SourceLiteralSort, return TRUE if the
+value represents a valid sort value; otherwise, return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (!is_known_sort(versioned)) {
+    invalid_sort(mod, parent);
+    result = FALSE;
+  }  /* if */
+  return result;
 }  /* validate_sort */
 
 
-a_boolean validate_sort(an_ifc_source_operator_sort_0_33 versioned,
-                        const an_ifc_validation_trace    *parent)
+a_boolean is_known_sort(an_ifc_source_operator_sort_0_33 versioned)
 /*
 Given the versioned representation of SourceOperatorSort, return TRUE if the
-value represents a valid enumerator; otherwise, return FALSE.
+value represents a valid sort value; otherwise, return FALSE.
 */
 {
   a_boolean result = FALSE;
@@ -1456,14 +2016,31 @@ value represents a valid enumerator; otherwise, return FALSE.
       break;
   }  /* switch */
   return result;
+}  /* is_known_sort */
+
+
+a_boolean validate_sort(an_ifc_module                    *mod,
+                        an_ifc_source_operator_sort_0_33 versioned,
+                        const an_ifc_validation_trace    *parent)
+/*
+Given the versioned representation of SourceOperatorSort, return TRUE if the
+value represents a valid sort value; otherwise, return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (!is_known_sort(versioned)) {
+    invalid_sort(mod, parent);
+    result = FALSE;
+  }  /* if */
+  return result;
 }  /* validate_sort */
 
 
-a_boolean validate_sort(an_ifc_source_punctuator_sort_0_33 versioned,
-                        const an_ifc_validation_trace      *parent)
+a_boolean is_known_sort(an_ifc_source_punctuator_sort_0_33 versioned)
 /*
 Given the versioned representation of SourcePunctuatorSort, return TRUE if the
-value represents a valid enumerator; otherwise, return FALSE.
+value represents a valid sort value; otherwise, return FALSE.
 */
 {
   a_boolean result = FALSE;
@@ -1494,14 +2071,31 @@ value represents a valid enumerator; otherwise, return FALSE.
       break;
   }  /* switch */
   return result;
+}  /* is_known_sort */
+
+
+a_boolean validate_sort(an_ifc_module                      *mod,
+                        an_ifc_source_punctuator_sort_0_33 versioned,
+                        const an_ifc_validation_trace      *parent)
+/*
+Given the versioned representation of SourcePunctuatorSort, return TRUE if the
+value represents a valid sort value; otherwise, return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (!is_known_sort(versioned)) {
+    invalid_sort(mod, parent);
+    result = FALSE;
+  }  /* if */
+  return result;
 }  /* validate_sort */
 
 
-a_boolean validate_sort(an_ifc_specialization_sort_0_33 versioned,
-                        const an_ifc_validation_trace   *parent)
+a_boolean is_known_sort(an_ifc_specialization_sort_0_33 versioned)
 /*
 Given the versioned representation of SpecializationSort, return TRUE if the
-value represents a valid enumerator; otherwise, return FALSE.
+value represents a valid sort value; otherwise, return FALSE.
 */
 {
   a_boolean result = FALSE;
@@ -1516,14 +2110,31 @@ value represents a valid enumerator; otherwise, return FALSE.
       break;
   }  /* switch */
   return result;
+}  /* is_known_sort */
+
+
+a_boolean validate_sort(an_ifc_module                   *mod,
+                        an_ifc_specialization_sort_0_33 versioned,
+                        const an_ifc_validation_trace   *parent)
+/*
+Given the versioned representation of SpecializationSort, return TRUE if the
+value represents a valid sort value; otherwise, return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (!is_known_sort(versioned)) {
+    invalid_sort(mod, parent);
+    result = FALSE;
+  }  /* if */
+  return result;
 }  /* validate_sort */
 
 
-a_boolean validate_sort(an_ifc_stmt_sort_0_33         versioned,
-                        const an_ifc_validation_trace *parent)
+a_boolean is_known_sort(an_ifc_stmt_sort_0_33 versioned)
 /*
 Given the versioned representation of StmtSort, return TRUE if the value
-represents a valid enumerator; otherwise, return FALSE.
+represents a valid sort value; otherwise, return FALSE.
 */
 {
   a_boolean result = FALSE;
@@ -1552,14 +2163,31 @@ represents a valid enumerator; otherwise, return FALSE.
       break;
   }  /* switch */
   return result;
-}  /* validate_sort */
+}  /* is_known_sort */
 
 
-a_boolean validate_sort(an_ifc_stmt_sort_0_42         versioned,
+a_boolean validate_sort(an_ifc_module                 *mod,
+                        an_ifc_stmt_sort_0_33         versioned,
                         const an_ifc_validation_trace *parent)
 /*
 Given the versioned representation of StmtSort, return TRUE if the value
-represents a valid enumerator; otherwise, return FALSE.
+represents a valid sort value; otherwise, return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (!is_known_sort(versioned)) {
+    invalid_sort(mod, parent);
+    result = FALSE;
+  }  /* if */
+  return result;
+}  /* validate_sort */
+
+
+a_boolean is_known_sort(an_ifc_stmt_sort_0_42 versioned)
+/*
+Given the versioned representation of StmtSort, return TRUE if the value
+represents a valid sort value; otherwise, return FALSE.
 */
 {
   a_boolean result = FALSE;
@@ -1589,15 +2217,32 @@ represents a valid enumerator; otherwise, return FALSE.
       break;
   }  /* switch */
   return result;
+}  /* is_known_sort */
+
+
+a_boolean validate_sort(an_ifc_module                 *mod,
+                        an_ifc_stmt_sort_0_42         versioned,
+                        const an_ifc_validation_trace *parent)
+/*
+Given the versioned representation of StmtSort, return TRUE if the value
+represents a valid sort value; otherwise, return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (!is_known_sort(versioned)) {
+    invalid_sort(mod, parent);
+    result = FALSE;
+  }  /* if */
+  return result;
 }  /* validate_sort */
 
 
-a_boolean validate_sort(
-                       an_ifc_storage_instruction_operator_sort_0_33 versioned,
-                       const an_ifc_validation_trace                 *parent)
+a_boolean is_known_sort(
+                       an_ifc_storage_instruction_operator_sort_0_33 versioned)
 /*
 Given the versioned representation of StorageInstructionOperatorSort, return
-TRUE if the value represents a valid enumerator; otherwise, return FALSE.
+TRUE if the value represents a valid sort value; otherwise, return FALSE.
 */
 {
   a_boolean result = FALSE;
@@ -1615,14 +2260,32 @@ TRUE if the value represents a valid enumerator; otherwise, return FALSE.
       break;
   }  /* switch */
   return result;
+}  /* is_known_sort */
+
+
+a_boolean validate_sort(
+                       an_ifc_module                                 *mod,
+                       an_ifc_storage_instruction_operator_sort_0_33 versioned,
+                       const an_ifc_validation_trace                 *parent)
+/*
+Given the versioned representation of StorageInstructionOperatorSort, return
+TRUE if the value represents a valid sort value; otherwise, return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (!is_known_sort(versioned)) {
+    invalid_sort(mod, parent);
+    result = FALSE;
+  }  /* if */
+  return result;
 }  /* validate_sort */
 
 
-a_boolean validate_sort(an_ifc_string_sort_0_33       versioned,
-                        const an_ifc_validation_trace *parent)
+a_boolean is_known_sort(an_ifc_string_sort_0_33 versioned)
 /*
 Given the versioned representation of StringSort, return TRUE if the value
-represents a valid enumerator; otherwise, return FALSE.
+represents a valid sort value; otherwise, return FALSE.
 */
 {
   a_boolean result = FALSE;
@@ -1639,14 +2302,31 @@ represents a valid enumerator; otherwise, return FALSE.
       break;
   }  /* switch */
   return result;
+}  /* is_known_sort */
+
+
+a_boolean validate_sort(an_ifc_module                 *mod,
+                        an_ifc_string_sort_0_33       versioned,
+                        const an_ifc_validation_trace *parent)
+/*
+Given the versioned representation of StringSort, return TRUE if the value
+represents a valid sort value; otherwise, return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (!is_known_sort(versioned)) {
+    invalid_sort(mod, parent);
+    result = FALSE;
+  }  /* if */
+  return result;
 }  /* validate_sort */
 
 
-a_boolean validate_sort(an_ifc_syntax_sort_0_33       versioned,
-                        const an_ifc_validation_trace *parent)
+a_boolean is_known_sort(an_ifc_syntax_sort_0_33 versioned)
 /*
 Given the versioned representation of SyntaxSort, return TRUE if the value
-represents a valid enumerator; otherwise, return FALSE.
+represents a valid sort value; otherwise, return FALSE.
 */
 {
   a_boolean result = FALSE;
@@ -1768,14 +2448,31 @@ represents a valid enumerator; otherwise, return FALSE.
       break;
   }  /* switch */
   return result;
+}  /* is_known_sort */
+
+
+a_boolean validate_sort(an_ifc_module                 *mod,
+                        an_ifc_syntax_sort_0_33       versioned,
+                        const an_ifc_validation_trace *parent)
+/*
+Given the versioned representation of SyntaxSort, return TRUE if the value
+represents a valid sort value; otherwise, return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (!is_known_sort(versioned)) {
+    invalid_sort(mod, parent);
+    result = FALSE;
+  }  /* if */
+  return result;
 }  /* validate_sort */
 
 
-a_boolean validate_sort(an_ifc_triadic_operator_sort_0_33 versioned,
-                        const an_ifc_validation_trace     *parent)
+a_boolean is_known_sort(an_ifc_triadic_operator_sort_0_33 versioned)
 /*
 Given the versioned representation of TriadicOperatorSort, return TRUE if the
-value represents a valid enumerator; otherwise, return FALSE.
+value represents a valid sort value; otherwise, return FALSE.
 */
 {
   a_boolean result = FALSE;
@@ -1792,14 +2489,31 @@ value represents a valid enumerator; otherwise, return FALSE.
       break;
   }  /* switch */
   return result;
-}  /* validate_sort */
+}  /* is_known_sort */
 
 
-a_boolean validate_sort(an_ifc_triadic_operator_sort_0_42 versioned,
+a_boolean validate_sort(an_ifc_module                     *mod,
+                        an_ifc_triadic_operator_sort_0_33 versioned,
                         const an_ifc_validation_trace     *parent)
 /*
 Given the versioned representation of TriadicOperatorSort, return TRUE if the
-value represents a valid enumerator; otherwise, return FALSE.
+value represents a valid sort value; otherwise, return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (!is_known_sort(versioned)) {
+    invalid_sort(mod, parent);
+    result = FALSE;
+  }  /* if */
+  return result;
+}  /* validate_sort */
+
+
+a_boolean is_known_sort(an_ifc_triadic_operator_sort_0_42 versioned)
+/*
+Given the versioned representation of TriadicOperatorSort, return TRUE if the
+value represents a valid sort value; otherwise, return FALSE.
 */
 {
   a_boolean result = FALSE;
@@ -1819,14 +2533,31 @@ value represents a valid enumerator; otherwise, return FALSE.
       break;
   }  /* switch */
   return result;
+}  /* is_known_sort */
+
+
+a_boolean validate_sort(an_ifc_module                     *mod,
+                        an_ifc_triadic_operator_sort_0_42 versioned,
+                        const an_ifc_validation_trace     *parent)
+/*
+Given the versioned representation of TriadicOperatorSort, return TRUE if the
+value represents a valid sort value; otherwise, return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (!is_known_sort(versioned)) {
+    invalid_sort(mod, parent);
+    result = FALSE;
+  }  /* if */
+  return result;
 }  /* validate_sort */
 
 
-a_boolean validate_sort(an_ifc_type_basis_sort_0_33   versioned,
-                        const an_ifc_validation_trace *parent)
+a_boolean is_known_sort(an_ifc_type_basis_sort_0_33 versioned)
 /*
 Given the versioned representation of TypeBasisSort, return TRUE if the value
-represents a valid enumerator; otherwise, return FALSE.
+represents a valid sort value; otherwise, return FALSE.
 */
 {
   a_boolean result = FALSE;
@@ -1862,14 +2593,31 @@ represents a valid enumerator; otherwise, return FALSE.
       break;
   }  /* switch */
   return result;
+}  /* is_known_sort */
+
+
+a_boolean validate_sort(an_ifc_module                 *mod,
+                        an_ifc_type_basis_sort_0_33   versioned,
+                        const an_ifc_validation_trace *parent)
+/*
+Given the versioned representation of TypeBasisSort, return TRUE if the value
+represents a valid sort value; otherwise, return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (!is_known_sort(versioned)) {
+    invalid_sort(mod, parent);
+    result = FALSE;
+  }  /* if */
+  return result;
 }  /* validate_sort */
 
 
-a_boolean validate_sort(an_ifc_type_precision_sort_0_33 versioned,
-                        const an_ifc_validation_trace   *parent)
+a_boolean is_known_sort(an_ifc_type_precision_sort_0_33 versioned)
 /*
 Given the versioned representation of TypePrecisionSort, return TRUE if the
-value represents a valid enumerator; otherwise, return FALSE.
+value represents a valid sort value; otherwise, return FALSE.
 */
 {
   a_boolean result = FALSE;
@@ -1889,14 +2637,31 @@ value represents a valid enumerator; otherwise, return FALSE.
       break;
   }  /* switch */
   return result;
+}  /* is_known_sort */
+
+
+a_boolean validate_sort(an_ifc_module                   *mod,
+                        an_ifc_type_precision_sort_0_33 versioned,
+                        const an_ifc_validation_trace   *parent)
+/*
+Given the versioned representation of TypePrecisionSort, return TRUE if the
+value represents a valid sort value; otherwise, return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (!is_known_sort(versioned)) {
+    invalid_sort(mod, parent);
+    result = FALSE;
+  }  /* if */
+  return result;
 }  /* validate_sort */
 
 
-a_boolean validate_sort(an_ifc_type_sign_sort_0_33    versioned,
-                        const an_ifc_validation_trace *parent)
+a_boolean is_known_sort(an_ifc_type_sign_sort_0_33 versioned)
 /*
 Given the versioned representation of TypeSignSort, return TRUE if the value
-represents a valid enumerator; otherwise, return FALSE.
+represents a valid sort value; otherwise, return FALSE.
 */
 {
   a_boolean result = FALSE;
@@ -1911,14 +2676,31 @@ represents a valid enumerator; otherwise, return FALSE.
       break;
   }  /* switch */
   return result;
+}  /* is_known_sort */
+
+
+a_boolean validate_sort(an_ifc_module                 *mod,
+                        an_ifc_type_sign_sort_0_33    versioned,
+                        const an_ifc_validation_trace *parent)
+/*
+Given the versioned representation of TypeSignSort, return TRUE if the value
+represents a valid sort value; otherwise, return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (!is_known_sort(versioned)) {
+    invalid_sort(mod, parent);
+    result = FALSE;
+  }  /* if */
+  return result;
 }  /* validate_sort */
 
 
-a_boolean validate_sort(an_ifc_type_sort_0_33         versioned,
-                        const an_ifc_validation_trace *parent)
+a_boolean is_known_sort(an_ifc_type_sort_0_33 versioned)
 /*
 Given the versioned representation of TypeSort, return TRUE if the value
-represents a valid enumerator; otherwise, return FALSE.
+represents a valid sort value; otherwise, return FALSE.
 */
 {
   a_boolean result = FALSE;
@@ -1952,14 +2734,31 @@ represents a valid enumerator; otherwise, return FALSE.
       break;
   }  /* switch */
   return result;
+}  /* is_known_sort */
+
+
+a_boolean validate_sort(an_ifc_module                 *mod,
+                        an_ifc_type_sort_0_33         versioned,
+                        const an_ifc_validation_trace *parent)
+/*
+Given the versioned representation of TypeSort, return TRUE if the value
+represents a valid sort value; otherwise, return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (!is_known_sort(versioned)) {
+    invalid_sort(mod, parent);
+    result = FALSE;
+  }  /* if */
+  return result;
 }  /* validate_sort */
 
 
-a_boolean validate_sort(an_ifc_unit_sort_0_33         versioned,
-                        const an_ifc_validation_trace *parent)
+a_boolean is_known_sort(an_ifc_unit_sort_0_33 versioned)
 /*
 Given the versioned representation of UnitSort, return TRUE if the value
-represents a valid enumerator; otherwise, return FALSE.
+represents a valid sort value; otherwise, return FALSE.
 */
 {
   a_boolean result = FALSE;
@@ -1976,14 +2775,31 @@ represents a valid enumerator; otherwise, return FALSE.
       break;
   }  /* switch */
   return result;
+}  /* is_known_sort */
+
+
+a_boolean validate_sort(an_ifc_module                 *mod,
+                        an_ifc_unit_sort_0_33         versioned,
+                        const an_ifc_validation_trace *parent)
+/*
+Given the versioned representation of UnitSort, return TRUE if the value
+represents a valid sort value; otherwise, return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (!is_known_sort(versioned)) {
+    invalid_sort(mod, parent);
+    result = FALSE;
+  }  /* if */
+  return result;
 }  /* validate_sort */
 
 
-a_boolean validate_sort(an_ifc_variadic_operator_sort_0_33 versioned,
-                        const an_ifc_validation_trace      *parent)
+a_boolean is_known_sort(an_ifc_variadic_operator_sort_0_33 versioned)
 /*
 Given the versioned representation of VariadicOperatorSort, return TRUE if the
-value represents a valid enumerator; otherwise, return FALSE.
+value represents a valid sort value; otherwise, return FALSE.
 */
 {
   a_boolean result = FALSE;
@@ -2003,14 +2819,31 @@ value represents a valid enumerator; otherwise, return FALSE.
       break;
   }  /* switch */
   return result;
+}  /* is_known_sort */
+
+
+a_boolean validate_sort(an_ifc_module                      *mod,
+                        an_ifc_variadic_operator_sort_0_33 versioned,
+                        const an_ifc_validation_trace      *parent)
+/*
+Given the versioned representation of VariadicOperatorSort, return TRUE if the
+value represents a valid sort value; otherwise, return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (!is_known_sort(versioned)) {
+    invalid_sort(mod, parent);
+    result = FALSE;
+  }  /* if */
+  return result;
 }  /* validate_sort */
 
 
-a_boolean validate_sort(an_ifc_word_sort_0_33         versioned,
-                        const an_ifc_validation_trace *parent)
+a_boolean is_known_sort(an_ifc_word_sort_0_33 versioned)
 /*
 Given the versioned representation of WordSort, return TRUE if the value
-represents a valid enumerator; otherwise, return FALSE.
+represents a valid sort value; otherwise, return FALSE.
 */
 {
   a_boolean result = FALSE;
@@ -2029,6 +2862,24 @@ represents a valid enumerator; otherwise, return FALSE.
       break;
   }  /* switch */
   return result;
+}  /* is_known_sort */
+
+
+a_boolean validate_sort(an_ifc_module                 *mod,
+                        an_ifc_word_sort_0_33         versioned,
+                        const an_ifc_validation_trace *parent)
+/*
+Given the versioned representation of WordSort, return TRUE if the value
+represents a valid sort value; otherwise, return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (!is_known_sort(versioned)) {
+    invalid_sort(mod, parent);
+    result = FALSE;
+  }  /* if */
+  return result;
 }  /* validate_sort */
 
 
@@ -2044,7 +2895,7 @@ FALSE.
   a_boolean             result = TRUE;
   an_ifc_attr_sort_0_33 sort = attr_sort(versioned);
 
-  if (!validate_sort(sort, parent)) {
+  if (!is_known_sort(sort)) {
     invalid_partition(mod, parent);
     result = FALSE;
   } else {
@@ -2075,7 +2926,7 @@ FALSE.
   a_boolean              result = TRUE;
   an_ifc_chart_sort_0_33 sort = chart_sort(versioned);
 
-  if (!validate_sort(sort, parent)) {
+  if (!is_known_sort(sort)) {
     invalid_partition(mod, parent);
     result = FALSE;
   } else {
@@ -2106,7 +2957,7 @@ FALSE.
   a_boolean             result = TRUE;
   an_ifc_decl_sort_0_33 sort = decl_sort(versioned);
 
-  if (!validate_sort(sort, parent)) {
+  if (!is_known_sort(sort)) {
     invalid_partition(mod, parent);
     result = FALSE;
   } else {
@@ -2137,7 +2988,7 @@ FALSE.
   a_boolean             result = TRUE;
   an_ifc_decl_sort_0_41 sort = decl_sort(versioned);
 
-  if (!validate_sort(sort, parent)) {
+  if (!is_known_sort(sort)) {
     invalid_partition(mod, parent);
     result = FALSE;
   } else {
@@ -2168,7 +3019,7 @@ FALSE.
   a_boolean             result = TRUE;
   an_ifc_expr_sort_0_33 sort = expr_sort(versioned);
 
-  if (!validate_sort(sort, parent)) {
+  if (!is_known_sort(sort)) {
     invalid_partition(mod, parent);
     result = FALSE;
   } else {
@@ -2199,7 +3050,7 @@ FALSE.
   a_boolean             result = TRUE;
   an_ifc_expr_sort_0_42 sort = expr_sort(versioned);
 
-  if (!validate_sort(sort, parent)) {
+  if (!is_known_sort(sort)) {
     invalid_partition(mod, parent);
     result = FALSE;
   } else {
@@ -2230,7 +3081,7 @@ FALSE.
   a_boolean             result = TRUE;
   an_ifc_form_sort_0_33 sort = form_sort(versioned);
 
-  if (!validate_sort(sort, parent)) {
+  if (!is_known_sort(sort)) {
     invalid_partition(mod, parent);
     result = FALSE;
   } else {
@@ -2261,7 +3112,7 @@ FALSE.
   a_boolean            result = TRUE;
   an_ifc_lit_sort_0_33 sort = lit_sort(versioned);
 
-  if (!validate_sort(sort, parent)) {
+  if (!is_known_sort(sort)) {
     invalid_partition(mod, parent);
     result = FALSE;
   }  /* if */
@@ -2281,7 +3132,7 @@ FALSE.
   a_boolean              result = TRUE;
   an_ifc_macro_sort_0_33 sort = macro_sort(versioned);
 
-  if (!validate_sort(sort, parent)) {
+  if (!is_known_sort(sort)) {
     invalid_partition(mod, parent);
     result = FALSE;
   } else {
@@ -2312,7 +3163,7 @@ FALSE.
   a_boolean             result = TRUE;
   an_ifc_name_sort_0_33 sort = name_sort(versioned);
 
-  if (!validate_sort(sort, parent)) {
+  if (!is_known_sort(sort)) {
     invalid_partition(mod, parent);
     result = FALSE;
   } else {
@@ -2343,7 +3194,7 @@ FALSE.
   a_boolean               result = TRUE;
   an_ifc_pragma_sort_0_33 sort = pragma_sort(versioned);
 
-  if (!validate_sort(sort, parent)) {
+  if (!is_known_sort(sort)) {
     invalid_partition(mod, parent);
     result = FALSE;
   }  /* if */
@@ -2363,7 +3214,7 @@ FALSE.
   a_boolean             result = TRUE;
   an_ifc_stmt_sort_0_33 sort = stmt_sort(versioned);
 
-  if (!validate_sort(sort, parent)) {
+  if (!is_known_sort(sort)) {
     invalid_partition(mod, parent);
     result = FALSE;
   } else {
@@ -2394,7 +3245,7 @@ FALSE.
   a_boolean             result = TRUE;
   an_ifc_stmt_sort_0_42 sort = stmt_sort(versioned);
 
-  if (!validate_sort(sort, parent)) {
+  if (!is_known_sort(sort)) {
     invalid_partition(mod, parent);
     result = FALSE;
   } else {
@@ -2425,7 +3276,7 @@ FALSE.
   a_boolean               result = TRUE;
   an_ifc_string_sort_0_33 sort = string_sort(versioned);
 
-  if (!validate_sort(sort, parent)) {
+  if (!is_known_sort(sort)) {
     invalid_partition(mod, parent);
     result = FALSE;
   }  /* if */
@@ -2445,7 +3296,7 @@ FALSE.
   a_boolean               result = TRUE;
   an_ifc_syntax_sort_0_33 sort = syntax_sort(versioned);
 
-  if (!validate_sort(sort, parent)) {
+  if (!is_known_sort(sort)) {
     invalid_partition(mod, parent);
     result = FALSE;
   } else {
@@ -2476,7 +3327,7 @@ FALSE.
   a_boolean             result = TRUE;
   an_ifc_type_sort_0_33 sort = type_sort(versioned);
 
-  if (!validate_sort(sort, parent)) {
+  if (!is_known_sort(sort)) {
     invalid_partition(mod, parent);
     result = FALSE;
   } else {
@@ -2507,7 +3358,7 @@ FALSE.
   a_boolean             result = TRUE;
   an_ifc_unit_sort_0_33 sort = unit_sort(versioned);
 
-  if (!validate_sort(sort, parent)) {
+  if (!is_known_sort(sort)) {
     invalid_partition(mod, parent);
     result = FALSE;
   }  /* if */
@@ -2571,7 +3422,7 @@ value represents a valid categorized sort; otherwise, return FALSE.
   an_ifc_operator_sort_0_33 sort = operator_sort(versioned);
   uint16_t                  raw_value = operator_value(versioned);
 
-  if (!validate_sort(sort, parent)) {
+  if (!validate_sort(mod, sort, parent)) {
     result = FALSE;
     goto done;
   }  /* if */
@@ -2580,7 +3431,7 @@ value represents a valid categorized sort; otherwise, return FALSE.
       { an_ifc_dyadic_operator_sort_0_33 versioned_value =
                                    (an_ifc_dyadic_operator_sort_0_33)raw_value;
 
-        if (!validate_sort(versioned_value, parent)) {
+        if (!validate_sort(mod, versioned_value, parent)) {
           result = FALSE;
           goto done;
         }  /* if */
@@ -2590,7 +3441,7 @@ value represents a valid categorized sort; otherwise, return FALSE.
       { an_ifc_monadic_operator_sort_0_33 versioned_value =
                                   (an_ifc_monadic_operator_sort_0_33)raw_value;
 
-        if (!validate_sort(versioned_value, parent)) {
+        if (!validate_sort(mod, versioned_value, parent)) {
           result = FALSE;
           goto done;
         }  /* if */
@@ -2600,7 +3451,7 @@ value represents a valid categorized sort; otherwise, return FALSE.
       { an_ifc_niladic_operator_sort_0_33 versioned_value =
                                   (an_ifc_niladic_operator_sort_0_33)raw_value;
 
-        if (!validate_sort(versioned_value, parent)) {
+        if (!validate_sort(mod, versioned_value, parent)) {
           result = FALSE;
           goto done;
         }  /* if */
@@ -2610,7 +3461,7 @@ value represents a valid categorized sort; otherwise, return FALSE.
       { an_ifc_storage_instruction_operator_sort_0_33 versioned_value =
                       (an_ifc_storage_instruction_operator_sort_0_33)raw_value;
 
-        if (!validate_sort(versioned_value, parent)) {
+        if (!validate_sort(mod, versioned_value, parent)) {
           result = FALSE;
           goto done;
         }  /* if */
@@ -2620,7 +3471,7 @@ value represents a valid categorized sort; otherwise, return FALSE.
       { an_ifc_triadic_operator_sort_0_33 versioned_value =
                                   (an_ifc_triadic_operator_sort_0_33)raw_value;
 
-        if (!validate_sort(versioned_value, parent)) {
+        if (!validate_sort(mod, versioned_value, parent)) {
           result = FALSE;
           goto done;
         }  /* if */
@@ -2630,7 +3481,7 @@ value represents a valid categorized sort; otherwise, return FALSE.
       { an_ifc_variadic_operator_sort_0_33 versioned_value =
                                  (an_ifc_variadic_operator_sort_0_33)raw_value;
 
-        if (!validate_sort(versioned_value, parent)) {
+        if (!validate_sort(mod, versioned_value, parent)) {
           result = FALSE;
           goto done;
         }  /* if */
@@ -2656,7 +3507,7 @@ value represents a valid categorized sort; otherwise, return FALSE.
   an_ifc_operator_sort_0_33 sort = operator_sort(versioned);
   uint16_t                  raw_value = operator_value(versioned);
 
-  if (!validate_sort(sort, parent)) {
+  if (!validate_sort(mod, sort, parent)) {
     result = FALSE;
     goto done;
   }  /* if */
@@ -2665,7 +3516,7 @@ value represents a valid categorized sort; otherwise, return FALSE.
       { an_ifc_dyadic_operator_sort_0_33 versioned_value =
                                    (an_ifc_dyadic_operator_sort_0_33)raw_value;
 
-        if (!validate_sort(versioned_value, parent)) {
+        if (!validate_sort(mod, versioned_value, parent)) {
           result = FALSE;
           goto done;
         }  /* if */
@@ -2675,7 +3526,7 @@ value represents a valid categorized sort; otherwise, return FALSE.
       { an_ifc_monadic_operator_sort_0_33 versioned_value =
                                   (an_ifc_monadic_operator_sort_0_33)raw_value;
 
-        if (!validate_sort(versioned_value, parent)) {
+        if (!validate_sort(mod, versioned_value, parent)) {
           result = FALSE;
           goto done;
         }  /* if */
@@ -2685,7 +3536,7 @@ value represents a valid categorized sort; otherwise, return FALSE.
       { an_ifc_niladic_operator_sort_0_33 versioned_value =
                                   (an_ifc_niladic_operator_sort_0_33)raw_value;
 
-        if (!validate_sort(versioned_value, parent)) {
+        if (!validate_sort(mod, versioned_value, parent)) {
           result = FALSE;
           goto done;
         }  /* if */
@@ -2695,7 +3546,7 @@ value represents a valid categorized sort; otherwise, return FALSE.
       { an_ifc_storage_instruction_operator_sort_0_33 versioned_value =
                       (an_ifc_storage_instruction_operator_sort_0_33)raw_value;
 
-        if (!validate_sort(versioned_value, parent)) {
+        if (!validate_sort(mod, versioned_value, parent)) {
           result = FALSE;
           goto done;
         }  /* if */
@@ -2705,7 +3556,7 @@ value represents a valid categorized sort; otherwise, return FALSE.
       { an_ifc_triadic_operator_sort_0_42 versioned_value =
                                   (an_ifc_triadic_operator_sort_0_42)raw_value;
 
-        if (!validate_sort(versioned_value, parent)) {
+        if (!validate_sort(mod, versioned_value, parent)) {
           result = FALSE;
           goto done;
         }  /* if */
@@ -2715,7 +3566,7 @@ value represents a valid categorized sort; otherwise, return FALSE.
       { an_ifc_variadic_operator_sort_0_33 versioned_value =
                                  (an_ifc_variadic_operator_sort_0_33)raw_value;
 
-        if (!validate_sort(versioned_value, parent)) {
+        if (!validate_sort(mod, versioned_value, parent)) {
           result = FALSE;
           goto done;
         }  /* if */
@@ -2740,7 +3591,7 @@ the value represents a valid categorized sort; otherwise, return FALSE.
   a_boolean                          result = TRUE;
   an_ifc_source_identifier_sort_0_33 sort = source_identifier_sort(versioned);
 
-  if (!validate_sort(sort, parent)) {
+  if (!validate_sort(mod, sort, parent)) {
     result = FALSE;
     goto done;
   }  /* if */
@@ -2761,7 +3612,7 @@ value represents a valid categorized sort; otherwise, return FALSE.
   an_ifc_source_literal_sort_0_33 sort = source_literal_sort(versioned);
   uint64_t                        raw_value = source_literal_value(versioned);
 
-  if (!validate_sort(sort, parent)) {
+  if (!validate_sort(mod, sort, parent)) {
     result = FALSE;
     goto done;
   }  /* if */
@@ -2856,7 +3707,7 @@ represents a valid categorized sort; otherwise, return FALSE.
   an_ifc_word_sort_0_33 sort = word_sort(versioned);
   uint64_t              raw_value = word_value(versioned);
 
-  if (!validate_sort(sort, parent)) {
+  if (!validate_sort(mod, sort, parent)) {
     result = FALSE;
     goto done;
   }  /* if */
@@ -2865,7 +3716,7 @@ represents a valid categorized sort; otherwise, return FALSE.
       { an_ifc_source_directive_sort_0_33 versioned_value =
                                   (an_ifc_source_directive_sort_0_33)raw_value;
 
-        if (!validate_sort(versioned_value, parent)) {
+        if (!validate_sort(mod, versioned_value, parent)) {
           result = FALSE;
           goto done;
         }  /* if */
@@ -2885,7 +3736,7 @@ represents a valid categorized sort; otherwise, return FALSE.
       { an_ifc_source_keyword_sort_0_33 versioned_value =
                                     (an_ifc_source_keyword_sort_0_33)raw_value;
 
-        if (!validate_sort(versioned_value, parent)) {
+        if (!validate_sort(mod, versioned_value, parent)) {
           result = FALSE;
           goto done;
         }  /* if */
@@ -2905,7 +3756,7 @@ represents a valid categorized sort; otherwise, return FALSE.
       { an_ifc_source_operator_sort_0_33 versioned_value =
                                    (an_ifc_source_operator_sort_0_33)raw_value;
 
-        if (!validate_sort(versioned_value, parent)) {
+        if (!validate_sort(mod, versioned_value, parent)) {
           result = FALSE;
           goto done;
         }  /* if */
@@ -2915,7 +3766,7 @@ represents a valid categorized sort; otherwise, return FALSE.
       { an_ifc_source_punctuator_sort_0_33 versioned_value =
                                  (an_ifc_source_punctuator_sort_0_33)raw_value;
 
-        if (!validate_sort(versioned_value, parent)) {
+        if (!validate_sort(mod, versioned_value, parent)) {
           result = FALSE;
           goto done;
         }  /* if */
@@ -2970,7 +3821,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-    if (!validate_sort(stage_0, &stage_0_trace)) {
+    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -3072,7 +3923,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 1,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/14);
-    if (!validate_sort(stage_0, &stage_0_trace)) {
+    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -3101,7 +3952,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 1,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-    if (!validate_sort(stage_0, &stage_0_trace)) {
+    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -3203,7 +4054,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 1,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/35);
-    if (!validate_sort(stage_0, &stage_0_trace)) {
+    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -3691,7 +4542,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 1,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/25);
-    if (!validate_sort(stage_0, &stage_0_trace)) {
+    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -3836,7 +4687,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 1,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/30);
-    if (!validate_sort(stage_0, &stage_0_trace)) {
+    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -4027,7 +4878,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 1,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/29);
-    if (!validate_sort(stage_0, &stage_0_trace)) {
+    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -4203,7 +5054,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 1,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/27);
-    if (!validate_sort(stage_0, &stage_0_trace)) {
+    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -4571,7 +5422,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 1,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/27);
-    if (!validate_sort(stage_0, &stage_0_trace)) {
+    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -4586,7 +5437,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 1,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/28);
-    if (!validate_sort(stage_0, &stage_0_trace)) {
+    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -4801,7 +5652,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 1,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/37);
-    if (!validate_sort(stage_0, &stage_0_trace)) {
+    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -4999,7 +5850,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 1,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/21);
-    if (!validate_sort(stage_0, &stage_0_trace)) {
+    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -5331,7 +6182,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 1,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/30);
-    if (!validate_sort(stage_0, &stage_0_trace)) {
+    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -5568,7 +6419,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 1,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/27);
-    if (!validate_sort(stage_0, &stage_0_trace)) {
+    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -5727,7 +6578,7 @@ the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 1,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/27);
-    if (!validate_sort(stage_0, &stage_0_trace)) {
+    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -5903,7 +6754,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 1,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/21);
-    if (!validate_sort(stage_0, &stage_0_trace)) {
+    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -6034,7 +6885,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 1,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/27);
-    if (!validate_sort(stage_0, &stage_0_trace)) {
+    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -6291,7 +7142,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 1,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/32);
-    if (!validate_sort(stage_0, &stage_0_trace)) {
+    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -6334,7 +7185,7 @@ the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 1,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/41);
-    if (!validate_sort(stage_0, &stage_0_trace)) {
+    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -6720,7 +7571,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 1,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/36);
-    if (!validate_sort(stage_0, &stage_0_trace)) {
+    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -7013,7 +7864,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 1,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-    if (!validate_sort(stage_0, &stage_0_trace)) {
+    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -7042,7 +7893,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 1,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/41);
-    if (!validate_sort(stage_0, &stage_0_trace)) {
+    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -7489,7 +8340,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 1,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/29);
-    if (!validate_sort(stage_0, &stage_0_trace)) {
+    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -7668,7 +8519,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 1,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/30);
-    if (!validate_sort(stage_0, &stage_0_trace)) {
+    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -8158,7 +9009,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 2,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
-    if (!validate_sort(stage_0, &stage_0_trace)) {
+    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -8366,7 +9217,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 2,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
-    if (!validate_sort(stage_0, &stage_0_trace)) {
+    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -8856,7 +9707,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 2,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24);
-    if (!validate_sort(stage_0, &stage_0_trace)) {
+    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -9195,7 +10046,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 1,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
-    if (!validate_sort(stage_0, &stage_0_trace)) {
+    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -9373,7 +10224,7 @@ the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 2,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/28);
-    if (!validate_sort(stage_0, &stage_0_trace)) {
+    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -9624,7 +10475,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 1,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-    if (!validate_sort(stage_0, &stage_0_trace)) {
+    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -10225,7 +11076,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 2,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
-    if (!validate_sort(stage_0, &stage_0_trace)) {
+    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -11100,7 +11951,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 1,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-    if (!validate_sort(stage_0, &stage_0_trace)) {
+    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -12179,7 +13030,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 2,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/28);
-      if (!validate_sort(stage_0, &stage_0_trace)) {
+      if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -12193,7 +13044,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 2,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/28);
-      if (!validate_sort(stage_0, &stage_0_trace)) {
+      if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -12621,7 +13472,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 2,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-    if (!validate_sort(stage_0, &stage_0_trace)) {
+    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -14528,7 +15379,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 1,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/14);
-    if (!validate_sort(stage_0, &stage_0_trace)) {
+    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -17500,7 +18351,7 @@ if the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-    if (!validate_sort(stage_0, &stage_0_trace)) {
+    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -17515,7 +18366,7 @@ if the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 2,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-    if (!validate_sort(stage_0, &stage_0_trace)) {
+    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -18628,7 +19479,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 1,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/41);
-    if (!validate_sort(stage_0, &stage_0_trace)) {
+    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -21110,7 +21961,7 @@ the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-    if (!validate_sort(stage_0, &stage_0_trace)) {
+    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -21124,7 +21975,7 @@ the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-    if (!validate_sort(stage_0, &stage_0_trace)) {
+    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -21226,7 +22077,7 @@ the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-    if (!validate_sort(stage_0, &stage_0_trace)) {
+    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -22305,7 +23156,7 @@ the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 1,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
-    if (!validate_sort(stage_0, &stage_0_trace)) {
+    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -22335,7 +23186,7 @@ TRUE if the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 1,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-    if (!validate_sort(stage_0, &stage_0_trace)) {
+    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -22440,7 +23291,7 @@ the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 1,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/18);
-    if (!validate_sort(stage_0, &stage_0_trace)) {
+    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -22491,7 +23342,7 @@ the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 1,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-    if (!validate_sort(stage_0, &stage_0_trace)) {
+    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -22909,7 +23760,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 1,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-    if (!validate_sort(stage_0, &stage_0_trace)) {
+    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -25293,7 +26144,7 @@ the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-    if (!validate_sort(stage_0, &stage_0_trace)) {
+    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -25308,7 +26159,7 @@ the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 2,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-    if (!validate_sort(stage_0, &stage_0_trace)) {
+    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -26829,7 +27680,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 1,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-    if (!validate_sort(stage_0, &stage_0_trace)) {
+    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -26946,7 +27797,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 1,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-    if (!validate_sort(stage_0, &stage_0_trace)) {
+    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -27033,7 +27884,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 1,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-    if (!validate_sort(stage_0, &stage_0_trace)) {
+    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -27114,7 +27965,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 1,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-    if (!validate_sort(stage_0, &stage_0_trace)) {
+    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -27129,7 +27980,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 1,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/1);
-    if (!validate_sort(stage_0, &stage_0_trace)) {
+    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -27143,7 +27994,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 1,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/2);
-    if (!validate_sort(stage_0, &stage_0_trace)) {
+    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -27202,7 +28053,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 1,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
-    if (!validate_sort(stage_0, &stage_0_trace)) {
+    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -27297,7 +28148,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 1,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-    if (!validate_sort(stage_0, &stage_0_trace)) {
+    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -27577,7 +28428,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 1,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-    if (!validate_sort(stage_0, &stage_0_trace)) {
+    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */

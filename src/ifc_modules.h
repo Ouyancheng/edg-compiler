@@ -760,6 +760,9 @@ struct an_ifc_validation_trace {
   };
 };  /* an_ifc_validation_trace */
 
+extern void invalid_sort(an_ifc_module                 *mod,
+                         const an_ifc_validation_trace *trace);
+
 extern void invalid_partition(an_ifc_module                 *mod,
                               const an_ifc_validation_trace *trace);
 

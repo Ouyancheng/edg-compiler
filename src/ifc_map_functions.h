@@ -37,7 +37,10 @@ extern a_const_char* str_for(an_ifc_access_sort universal);
 extern an_ifc_encoded_access_sort to_encoded(an_ifc_module      *mod,
                                              an_ifc_access_sort universal);
 
-extern a_boolean validate_sort(an_ifc_access_sort_0_33       versioned,
+extern a_boolean is_known_sort(an_ifc_access_sort_0_33 versioned);
+
+extern a_boolean validate_sort(an_ifc_module                 *mod,
+                               an_ifc_access_sort_0_33       versioned,
                                const an_ifc_validation_trace *parent);
 
 extern an_ifc_access_sort to_universal_sort(an_ifc_access_sort_0_33 versioned);
@@ -52,7 +55,10 @@ extern an_ifc_encoded_architecture_sort to_encoded(
                                            an_ifc_module            *mod,
                                            an_ifc_architecture_sort universal);
 
-extern a_boolean validate_sort(an_ifc_architecture_sort_0_33 versioned,
+extern a_boolean is_known_sort(an_ifc_architecture_sort_0_33 versioned);
+
+extern a_boolean validate_sort(an_ifc_module                 *mod,
+                               an_ifc_architecture_sort_0_33 versioned,
                                const an_ifc_validation_trace *parent);
 
 extern an_ifc_architecture_sort to_universal_sort(
@@ -67,7 +73,10 @@ extern a_const_char* str_for(an_ifc_attr_sort universal);
 extern an_ifc_encoded_attr_sort to_encoded(an_ifc_module    *mod,
                                            an_ifc_attr_sort universal);
 
-extern a_boolean validate_sort(an_ifc_attr_sort_0_33         versioned,
+extern a_boolean is_known_sort(an_ifc_attr_sort_0_33 versioned);
+
+extern a_boolean validate_sort(an_ifc_module                 *mod,
+                               an_ifc_attr_sort_0_33         versioned,
                                const an_ifc_validation_trace *parent);
 
 extern an_ifc_attr_sort to_universal_sort(an_ifc_attr_sort_0_33 versioned);
@@ -82,7 +91,10 @@ extern an_ifc_encoded_calling_convention_sort to_encoded(
                                      an_ifc_module                  *mod,
                                      an_ifc_calling_convention_sort universal);
 
-extern a_boolean validate_sort(an_ifc_calling_convention_sort_0_33 versioned,
+extern a_boolean is_known_sort(an_ifc_calling_convention_sort_0_33 versioned);
+
+extern a_boolean validate_sort(an_ifc_module                       *mod,
+                               an_ifc_calling_convention_sort_0_33 versioned,
                                const an_ifc_validation_trace       *parent);
 
 extern an_ifc_calling_convention_sort to_universal_sort(
@@ -97,7 +109,10 @@ extern a_const_char* str_for(an_ifc_chart_sort universal);
 extern an_ifc_encoded_chart_sort to_encoded(an_ifc_module     *mod,
                                             an_ifc_chart_sort universal);
 
-extern a_boolean validate_sort(an_ifc_chart_sort_0_33        versioned,
+extern a_boolean is_known_sort(an_ifc_chart_sort_0_33 versioned);
+
+extern a_boolean validate_sort(an_ifc_module                 *mod,
+                               an_ifc_chart_sort_0_33        versioned,
                                const an_ifc_validation_trace *parent);
 
 extern an_ifc_chart_sort to_universal_sort(an_ifc_chart_sort_0_33 versioned);
@@ -111,12 +126,18 @@ extern a_const_char* str_for(an_ifc_decl_sort universal);
 extern an_ifc_encoded_decl_sort to_encoded(an_ifc_module    *mod,
                                            an_ifc_decl_sort universal);
 
-extern a_boolean validate_sort(an_ifc_decl_sort_0_33         versioned,
+extern a_boolean is_known_sort(an_ifc_decl_sort_0_33 versioned);
+
+extern a_boolean validate_sort(an_ifc_module                 *mod,
+                               an_ifc_decl_sort_0_33         versioned,
                                const an_ifc_validation_trace *parent);
 
 extern an_ifc_decl_sort to_universal_sort(an_ifc_decl_sort_0_33 versioned);
 
-extern a_boolean validate_sort(an_ifc_decl_sort_0_41         versioned,
+extern a_boolean is_known_sort(an_ifc_decl_sort_0_41 versioned);
+
+extern a_boolean validate_sort(an_ifc_module                 *mod,
+                               an_ifc_decl_sort_0_41         versioned,
                                const an_ifc_validation_trace *parent);
 
 extern an_ifc_decl_sort to_universal_sort(an_ifc_decl_sort_0_41 versioned);
@@ -131,7 +152,10 @@ extern an_ifc_encoded_delimiter_sort to_encoded(
                                               an_ifc_module         *mod,
                                               an_ifc_delimiter_sort universal);
 
-extern a_boolean validate_sort(an_ifc_delimiter_sort_0_33    versioned,
+extern a_boolean is_known_sort(an_ifc_delimiter_sort_0_33 versioned);
+
+extern a_boolean validate_sort(an_ifc_module                 *mod,
+                               an_ifc_delimiter_sort_0_33    versioned,
                                const an_ifc_validation_trace *parent);
 
 extern an_ifc_delimiter_sort to_universal_sort(
@@ -147,7 +171,10 @@ extern an_ifc_encoded_dyadic_operator_sort to_encoded(
                                         an_ifc_module               *mod,
                                         an_ifc_dyadic_operator_sort universal);
 
-extern a_boolean validate_sort(an_ifc_dyadic_operator_sort_0_33 versioned,
+extern a_boolean is_known_sort(an_ifc_dyadic_operator_sort_0_33 versioned);
+
+extern a_boolean validate_sort(an_ifc_module                    *mod,
+                               an_ifc_dyadic_operator_sort_0_33 versioned,
                                const an_ifc_validation_trace    *parent);
 
 extern an_ifc_dyadic_operator_sort to_universal_sort(
@@ -163,7 +190,10 @@ extern an_ifc_encoded_expansion_mode_sort to_encoded(
                                          an_ifc_module              *mod,
                                          an_ifc_expansion_mode_sort universal);
 
-extern a_boolean validate_sort(an_ifc_expansion_mode_sort_0_33 versioned,
+extern a_boolean is_known_sort(an_ifc_expansion_mode_sort_0_33 versioned);
+
+extern a_boolean validate_sort(an_ifc_module                   *mod,
+                               an_ifc_expansion_mode_sort_0_33 versioned,
                                const an_ifc_validation_trace   *parent);
 
 extern an_ifc_expansion_mode_sort to_universal_sort(
@@ -178,12 +208,18 @@ extern a_const_char* str_for(an_ifc_expr_sort universal);
 extern an_ifc_encoded_expr_sort to_encoded(an_ifc_module    *mod,
                                            an_ifc_expr_sort universal);
 
-extern a_boolean validate_sort(an_ifc_expr_sort_0_33         versioned,
+extern a_boolean is_known_sort(an_ifc_expr_sort_0_33 versioned);
+
+extern a_boolean validate_sort(an_ifc_module                 *mod,
+                               an_ifc_expr_sort_0_33         versioned,
                                const an_ifc_validation_trace *parent);
 
 extern an_ifc_expr_sort to_universal_sort(an_ifc_expr_sort_0_33 versioned);
 
-extern a_boolean validate_sort(an_ifc_expr_sort_0_42         versioned,
+extern a_boolean is_known_sort(an_ifc_expr_sort_0_42 versioned);
+
+extern a_boolean validate_sort(an_ifc_module                 *mod,
+                               an_ifc_expr_sort_0_42         versioned,
                                const an_ifc_validation_trace *parent);
 
 extern an_ifc_expr_sort to_universal_sort(an_ifc_expr_sort_0_42 versioned);
@@ -198,7 +234,10 @@ extern an_ifc_encoded_fold_direction_sort to_encoded(
                                          an_ifc_module              *mod,
                                          an_ifc_fold_direction_sort universal);
 
-extern a_boolean validate_sort(an_ifc_fold_direction_sort_0_33 versioned,
+extern a_boolean is_known_sort(an_ifc_fold_direction_sort_0_33 versioned);
+
+extern a_boolean validate_sort(an_ifc_module                   *mod,
+                               an_ifc_fold_direction_sort_0_33 versioned,
                                const an_ifc_validation_trace   *parent);
 
 extern an_ifc_fold_direction_sort to_universal_sort(
@@ -213,7 +252,10 @@ extern a_const_char* str_for(an_ifc_form_sort universal);
 extern an_ifc_encoded_form_sort to_encoded(an_ifc_module    *mod,
                                            an_ifc_form_sort universal);
 
-extern a_boolean validate_sort(an_ifc_form_sort_0_33         versioned,
+extern a_boolean is_known_sort(an_ifc_form_sort_0_33 versioned);
+
+extern a_boolean validate_sort(an_ifc_module                 *mod,
+                               an_ifc_form_sort_0_33         versioned,
                                const an_ifc_validation_trace *parent);
 
 extern an_ifc_form_sort to_universal_sort(an_ifc_form_sort_0_33 versioned);
@@ -228,7 +270,10 @@ extern an_ifc_encoded_initializer_sort to_encoded(
                                             an_ifc_module           *mod,
                                             an_ifc_initializer_sort universal);
 
-extern a_boolean validate_sort(an_ifc_initializer_sort_0_33  versioned,
+extern a_boolean is_known_sort(an_ifc_initializer_sort_0_33 versioned);
+
+extern a_boolean validate_sort(an_ifc_module                 *mod,
+                               an_ifc_initializer_sort_0_33  versioned,
                                const an_ifc_validation_trace *parent);
 
 extern an_ifc_initializer_sort to_universal_sort(
@@ -243,7 +288,10 @@ extern a_const_char* str_for(an_ifc_keyword_sort universal);
 extern an_ifc_encoded_keyword_sort to_encoded(an_ifc_module       *mod,
                                               an_ifc_keyword_sort universal);
 
-extern a_boolean validate_sort(an_ifc_keyword_sort_0_33      versioned,
+extern a_boolean is_known_sort(an_ifc_keyword_sort_0_33 versioned);
+
+extern a_boolean validate_sort(an_ifc_module                 *mod,
+                               an_ifc_keyword_sort_0_33      versioned,
                                const an_ifc_validation_trace *parent);
 
 extern an_ifc_keyword_sort to_universal_sort(
@@ -258,7 +306,10 @@ extern a_const_char* str_for(an_ifc_label_sort universal);
 extern an_ifc_encoded_label_sort to_encoded(an_ifc_module     *mod,
                                             an_ifc_label_sort universal);
 
-extern a_boolean validate_sort(an_ifc_label_sort_0_33        versioned,
+extern a_boolean is_known_sort(an_ifc_label_sort_0_33 versioned);
+
+extern a_boolean validate_sort(an_ifc_module                 *mod,
+                               an_ifc_label_sort_0_33        versioned,
                                const an_ifc_validation_trace *parent);
 
 extern an_ifc_label_sort to_universal_sort(an_ifc_label_sort_0_33 versioned);
@@ -272,7 +323,10 @@ extern a_const_char* str_for(an_ifc_lit_sort universal);
 extern an_ifc_encoded_lit_sort to_encoded(an_ifc_module   *mod,
                                           an_ifc_lit_sort universal);
 
-extern a_boolean validate_sort(an_ifc_lit_sort_0_33          versioned,
+extern a_boolean is_known_sort(an_ifc_lit_sort_0_33 versioned);
+
+extern a_boolean validate_sort(an_ifc_module                 *mod,
+                               an_ifc_lit_sort_0_33          versioned,
                                const an_ifc_validation_trace *parent);
 
 extern an_ifc_lit_sort to_universal_sort(an_ifc_lit_sort_0_33 versioned);
@@ -286,7 +340,10 @@ extern a_const_char* str_for(an_ifc_macro_sort universal);
 extern an_ifc_encoded_macro_sort to_encoded(an_ifc_module     *mod,
                                             an_ifc_macro_sort universal);
 
-extern a_boolean validate_sort(an_ifc_macro_sort_0_33        versioned,
+extern a_boolean is_known_sort(an_ifc_macro_sort_0_33 versioned);
+
+extern a_boolean validate_sort(an_ifc_module                 *mod,
+                               an_ifc_macro_sort_0_33        versioned,
                                const an_ifc_validation_trace *parent);
 
 extern an_ifc_macro_sort to_universal_sort(an_ifc_macro_sort_0_33 versioned);
@@ -301,7 +358,10 @@ extern an_ifc_encoded_monadic_operator_sort to_encoded(
                                        an_ifc_module                *mod,
                                        an_ifc_monadic_operator_sort universal);
 
-extern a_boolean validate_sort(an_ifc_monadic_operator_sort_0_33 versioned,
+extern a_boolean is_known_sort(an_ifc_monadic_operator_sort_0_33 versioned);
+
+extern a_boolean validate_sort(an_ifc_module                     *mod,
+                               an_ifc_monadic_operator_sort_0_33 versioned,
                                const an_ifc_validation_trace     *parent);
 
 extern an_ifc_monadic_operator_sort to_universal_sort(
@@ -316,7 +376,10 @@ extern a_const_char* str_for(an_ifc_name_sort universal);
 extern an_ifc_encoded_name_sort to_encoded(an_ifc_module    *mod,
                                            an_ifc_name_sort universal);
 
-extern a_boolean validate_sort(an_ifc_name_sort_0_33         versioned,
+extern a_boolean is_known_sort(an_ifc_name_sort_0_33 versioned);
+
+extern a_boolean validate_sort(an_ifc_module                 *mod,
+                               an_ifc_name_sort_0_33         versioned,
                                const an_ifc_validation_trace *parent);
 
 extern an_ifc_name_sort to_universal_sort(an_ifc_name_sort_0_33 versioned);
@@ -331,7 +394,10 @@ extern an_ifc_encoded_niladic_operator_sort to_encoded(
                                        an_ifc_module                *mod,
                                        an_ifc_niladic_operator_sort universal);
 
-extern a_boolean validate_sort(an_ifc_niladic_operator_sort_0_33 versioned,
+extern a_boolean is_known_sort(an_ifc_niladic_operator_sort_0_33 versioned);
+
+extern a_boolean validate_sort(an_ifc_module                     *mod,
+                               an_ifc_niladic_operator_sort_0_33 versioned,
                                const an_ifc_validation_trace     *parent);
 
 extern an_ifc_niladic_operator_sort to_universal_sort(
@@ -346,7 +412,10 @@ extern a_const_char* str_for(an_ifc_noexcept_sort universal);
 extern an_ifc_encoded_noexcept_sort to_encoded(an_ifc_module        *mod,
                                                an_ifc_noexcept_sort universal);
 
-extern a_boolean validate_sort(an_ifc_noexcept_sort_0_33     versioned,
+extern a_boolean is_known_sort(an_ifc_noexcept_sort_0_33 versioned);
+
+extern a_boolean validate_sort(an_ifc_module                 *mod,
+                               an_ifc_noexcept_sort_0_33     versioned,
                                const an_ifc_validation_trace *parent);
 
 extern an_ifc_noexcept_sort to_universal_sort(
@@ -361,7 +430,10 @@ extern a_const_char* str_for(an_ifc_operator_sort universal);
 extern an_ifc_encoded_operator_sort to_encoded(an_ifc_module        *mod,
                                                an_ifc_operator_sort universal);
 
-extern a_boolean validate_sort(an_ifc_operator_sort_0_33     versioned,
+extern a_boolean is_known_sort(an_ifc_operator_sort_0_33 versioned);
+
+extern a_boolean validate_sort(an_ifc_module                 *mod,
+                               an_ifc_operator_sort_0_33     versioned,
                                const an_ifc_validation_trace *parent);
 
 extern an_ifc_operator_sort to_universal_sort(
@@ -377,7 +449,10 @@ extern an_ifc_encoded_parameter_sort to_encoded(
                                               an_ifc_module         *mod,
                                               an_ifc_parameter_sort universal);
 
-extern a_boolean validate_sort(an_ifc_parameter_sort_0_33    versioned,
+extern a_boolean is_known_sort(an_ifc_parameter_sort_0_33 versioned);
+
+extern a_boolean validate_sort(an_ifc_module                 *mod,
+                               an_ifc_parameter_sort_0_33    versioned,
                                const an_ifc_validation_trace *parent);
 
 extern an_ifc_parameter_sort to_universal_sort(
@@ -393,7 +468,10 @@ extern an_ifc_encoded_pointer_declarator_sort to_encoded(
                                      an_ifc_module                  *mod,
                                      an_ifc_pointer_declarator_sort universal);
 
-extern a_boolean validate_sort(an_ifc_pointer_declarator_sort_0_33 versioned,
+extern a_boolean is_known_sort(an_ifc_pointer_declarator_sort_0_33 versioned);
+
+extern a_boolean validate_sort(an_ifc_module                       *mod,
+                               an_ifc_pointer_declarator_sort_0_33 versioned,
                                const an_ifc_validation_trace       *parent);
 
 extern an_ifc_pointer_declarator_sort to_universal_sort(
@@ -408,7 +486,10 @@ extern a_const_char* str_for(an_ifc_pragma_sort universal);
 extern an_ifc_encoded_pragma_sort to_encoded(an_ifc_module      *mod,
                                              an_ifc_pragma_sort universal);
 
-extern a_boolean validate_sort(an_ifc_pragma_sort_0_33       versioned,
+extern a_boolean is_known_sort(an_ifc_pragma_sort_0_33 versioned);
+
+extern a_boolean validate_sort(an_ifc_module                 *mod,
+                               an_ifc_pragma_sort_0_33       versioned,
                                const an_ifc_validation_trace *parent);
 
 extern an_ifc_pragma_sort to_universal_sort(an_ifc_pragma_sort_0_33 versioned);
@@ -423,7 +504,10 @@ extern an_ifc_encoded_read_conversion_sort to_encoded(
                                         an_ifc_module               *mod,
                                         an_ifc_read_conversion_sort universal);
 
-extern a_boolean validate_sort(an_ifc_read_conversion_sort_0_33 versioned,
+extern a_boolean is_known_sort(an_ifc_read_conversion_sort_0_33 versioned);
+
+extern a_boolean validate_sort(an_ifc_module                    *mod,
+                               an_ifc_read_conversion_sort_0_33 versioned,
                                const an_ifc_validation_trace    *parent);
 
 extern an_ifc_read_conversion_sort to_universal_sort(
@@ -438,7 +522,10 @@ extern a_const_char* str_for(an_ifc_return_sort universal);
 extern an_ifc_encoded_return_sort to_encoded(an_ifc_module      *mod,
                                              an_ifc_return_sort universal);
 
-extern a_boolean validate_sort(an_ifc_return_sort_0_33       versioned,
+extern a_boolean is_known_sort(an_ifc_return_sort_0_33 versioned);
+
+extern a_boolean validate_sort(an_ifc_module                 *mod,
+                               an_ifc_return_sort_0_33       versioned,
                                const an_ifc_validation_trace *parent);
 
 extern an_ifc_return_sort to_universal_sort(an_ifc_return_sort_0_33 versioned);
@@ -453,7 +540,10 @@ extern an_ifc_encoded_source_directive_sort to_encoded(
                                        an_ifc_module                *mod,
                                        an_ifc_source_directive_sort universal);
 
-extern a_boolean validate_sort(an_ifc_source_directive_sort_0_33 versioned,
+extern a_boolean is_known_sort(an_ifc_source_directive_sort_0_33 versioned);
+
+extern a_boolean validate_sort(an_ifc_module                     *mod,
+                               an_ifc_source_directive_sort_0_33 versioned,
                                const an_ifc_validation_trace     *parent);
 
 extern an_ifc_source_directive_sort to_universal_sort(
@@ -469,7 +559,10 @@ extern an_ifc_encoded_source_identifier_sort to_encoded(
                                       an_ifc_module                 *mod,
                                       an_ifc_source_identifier_sort universal);
 
-extern a_boolean validate_sort(an_ifc_source_identifier_sort_0_33 versioned,
+extern a_boolean is_known_sort(an_ifc_source_identifier_sort_0_33 versioned);
+
+extern a_boolean validate_sort(an_ifc_module                      *mod,
+                               an_ifc_source_identifier_sort_0_33 versioned,
                                const an_ifc_validation_trace      *parent);
 
 extern an_ifc_source_identifier_sort to_universal_sort(
@@ -485,7 +578,10 @@ extern an_ifc_encoded_source_keyword_sort to_encoded(
                                          an_ifc_module              *mod,
                                          an_ifc_source_keyword_sort universal);
 
-extern a_boolean validate_sort(an_ifc_source_keyword_sort_0_33 versioned,
+extern a_boolean is_known_sort(an_ifc_source_keyword_sort_0_33 versioned);
+
+extern a_boolean validate_sort(an_ifc_module                   *mod,
+                               an_ifc_source_keyword_sort_0_33 versioned,
                                const an_ifc_validation_trace   *parent);
 
 extern an_ifc_source_keyword_sort to_universal_sort(
@@ -501,7 +597,10 @@ extern an_ifc_encoded_source_literal_sort to_encoded(
                                          an_ifc_module              *mod,
                                          an_ifc_source_literal_sort universal);
 
-extern a_boolean validate_sort(an_ifc_source_literal_sort_0_33 versioned,
+extern a_boolean is_known_sort(an_ifc_source_literal_sort_0_33 versioned);
+
+extern a_boolean validate_sort(an_ifc_module                   *mod,
+                               an_ifc_source_literal_sort_0_33 versioned,
                                const an_ifc_validation_trace   *parent);
 
 extern an_ifc_source_literal_sort to_universal_sort(
@@ -517,7 +616,10 @@ extern an_ifc_encoded_source_operator_sort to_encoded(
                                         an_ifc_module               *mod,
                                         an_ifc_source_operator_sort universal);
 
-extern a_boolean validate_sort(an_ifc_source_operator_sort_0_33 versioned,
+extern a_boolean is_known_sort(an_ifc_source_operator_sort_0_33 versioned);
+
+extern a_boolean validate_sort(an_ifc_module                    *mod,
+                               an_ifc_source_operator_sort_0_33 versioned,
                                const an_ifc_validation_trace    *parent);
 
 extern an_ifc_source_operator_sort to_universal_sort(
@@ -533,7 +635,10 @@ extern an_ifc_encoded_source_punctuator_sort to_encoded(
                                       an_ifc_module                 *mod,
                                       an_ifc_source_punctuator_sort universal);
 
-extern a_boolean validate_sort(an_ifc_source_punctuator_sort_0_33 versioned,
+extern a_boolean is_known_sort(an_ifc_source_punctuator_sort_0_33 versioned);
+
+extern a_boolean validate_sort(an_ifc_module                      *mod,
+                               an_ifc_source_punctuator_sort_0_33 versioned,
                                const an_ifc_validation_trace      *parent);
 
 extern an_ifc_source_punctuator_sort to_universal_sort(
@@ -549,7 +654,10 @@ extern an_ifc_encoded_specialization_sort to_encoded(
                                          an_ifc_module              *mod,
                                          an_ifc_specialization_sort universal);
 
-extern a_boolean validate_sort(an_ifc_specialization_sort_0_33 versioned,
+extern a_boolean is_known_sort(an_ifc_specialization_sort_0_33 versioned);
+
+extern a_boolean validate_sort(an_ifc_module                   *mod,
+                               an_ifc_specialization_sort_0_33 versioned,
                                const an_ifc_validation_trace   *parent);
 
 extern an_ifc_specialization_sort to_universal_sort(
@@ -564,12 +672,18 @@ extern a_const_char* str_for(an_ifc_stmt_sort universal);
 extern an_ifc_encoded_stmt_sort to_encoded(an_ifc_module    *mod,
                                            an_ifc_stmt_sort universal);
 
-extern a_boolean validate_sort(an_ifc_stmt_sort_0_33         versioned,
+extern a_boolean is_known_sort(an_ifc_stmt_sort_0_33 versioned);
+
+extern a_boolean validate_sort(an_ifc_module                 *mod,
+                               an_ifc_stmt_sort_0_33         versioned,
                                const an_ifc_validation_trace *parent);
 
 extern an_ifc_stmt_sort to_universal_sort(an_ifc_stmt_sort_0_33 versioned);
 
-extern a_boolean validate_sort(an_ifc_stmt_sort_0_42         versioned,
+extern a_boolean is_known_sort(an_ifc_stmt_sort_0_42 versioned);
+
+extern a_boolean validate_sort(an_ifc_module                 *mod,
+                               an_ifc_stmt_sort_0_42         versioned,
                                const an_ifc_validation_trace *parent);
 
 extern an_ifc_stmt_sort to_universal_sort(an_ifc_stmt_sort_0_42 versioned);
@@ -585,7 +699,11 @@ extern an_ifc_encoded_storage_instruction_operator_sort to_encoded(
                            an_ifc_module                            *mod,
                            an_ifc_storage_instruction_operator_sort universal);
 
+extern a_boolean is_known_sort(
+                      an_ifc_storage_instruction_operator_sort_0_33 versioned);
+
 extern a_boolean validate_sort(
+                      an_ifc_module                                 *mod,
                       an_ifc_storage_instruction_operator_sort_0_33 versioned,
                       const an_ifc_validation_trace                 *parent);
 
@@ -601,7 +719,10 @@ extern a_const_char* str_for(an_ifc_string_sort universal);
 extern an_ifc_encoded_string_sort to_encoded(an_ifc_module      *mod,
                                              an_ifc_string_sort universal);
 
-extern a_boolean validate_sort(an_ifc_string_sort_0_33       versioned,
+extern a_boolean is_known_sort(an_ifc_string_sort_0_33 versioned);
+
+extern a_boolean validate_sort(an_ifc_module                 *mod,
+                               an_ifc_string_sort_0_33       versioned,
                                const an_ifc_validation_trace *parent);
 
 extern an_ifc_string_sort to_universal_sort(an_ifc_string_sort_0_33 versioned);
@@ -615,7 +736,10 @@ extern a_const_char* str_for(an_ifc_syntax_sort universal);
 extern an_ifc_encoded_syntax_sort to_encoded(an_ifc_module      *mod,
                                              an_ifc_syntax_sort universal);
 
-extern a_boolean validate_sort(an_ifc_syntax_sort_0_33       versioned,
+extern a_boolean is_known_sort(an_ifc_syntax_sort_0_33 versioned);
+
+extern a_boolean validate_sort(an_ifc_module                 *mod,
+                               an_ifc_syntax_sort_0_33       versioned,
                                const an_ifc_validation_trace *parent);
 
 extern an_ifc_syntax_sort to_universal_sort(an_ifc_syntax_sort_0_33 versioned);
@@ -630,13 +754,19 @@ extern an_ifc_encoded_triadic_operator_sort to_encoded(
                                        an_ifc_module                *mod,
                                        an_ifc_triadic_operator_sort universal);
 
-extern a_boolean validate_sort(an_ifc_triadic_operator_sort_0_33 versioned,
+extern a_boolean is_known_sort(an_ifc_triadic_operator_sort_0_33 versioned);
+
+extern a_boolean validate_sort(an_ifc_module                     *mod,
+                               an_ifc_triadic_operator_sort_0_33 versioned,
                                const an_ifc_validation_trace     *parent);
 
 extern an_ifc_triadic_operator_sort to_universal_sort(
                                   an_ifc_triadic_operator_sort_0_33 versioned);
 
-extern a_boolean validate_sort(an_ifc_triadic_operator_sort_0_42 versioned,
+extern a_boolean is_known_sort(an_ifc_triadic_operator_sort_0_42 versioned);
+
+extern a_boolean validate_sort(an_ifc_module                     *mod,
+                               an_ifc_triadic_operator_sort_0_42 versioned,
                                const an_ifc_validation_trace     *parent);
 
 extern an_ifc_triadic_operator_sort to_universal_sort(
@@ -652,7 +782,10 @@ extern an_ifc_encoded_type_basis_sort to_encoded(
                                              an_ifc_module          *mod,
                                              an_ifc_type_basis_sort universal);
 
-extern a_boolean validate_sort(an_ifc_type_basis_sort_0_33   versioned,
+extern a_boolean is_known_sort(an_ifc_type_basis_sort_0_33 versioned);
+
+extern a_boolean validate_sort(an_ifc_module                 *mod,
+                               an_ifc_type_basis_sort_0_33   versioned,
                                const an_ifc_validation_trace *parent);
 
 extern an_ifc_type_basis_sort to_universal_sort(
@@ -668,7 +801,10 @@ extern an_ifc_encoded_type_precision_sort to_encoded(
                                          an_ifc_module              *mod,
                                          an_ifc_type_precision_sort universal);
 
-extern a_boolean validate_sort(an_ifc_type_precision_sort_0_33 versioned,
+extern a_boolean is_known_sort(an_ifc_type_precision_sort_0_33 versioned);
+
+extern a_boolean validate_sort(an_ifc_module                   *mod,
+                               an_ifc_type_precision_sort_0_33 versioned,
                                const an_ifc_validation_trace   *parent);
 
 extern an_ifc_type_precision_sort to_universal_sort(
@@ -684,7 +820,10 @@ extern an_ifc_encoded_type_sign_sort to_encoded(
                                               an_ifc_module         *mod,
                                               an_ifc_type_sign_sort universal);
 
-extern a_boolean validate_sort(an_ifc_type_sign_sort_0_33    versioned,
+extern a_boolean is_known_sort(an_ifc_type_sign_sort_0_33 versioned);
+
+extern a_boolean validate_sort(an_ifc_module                 *mod,
+                               an_ifc_type_sign_sort_0_33    versioned,
                                const an_ifc_validation_trace *parent);
 
 extern an_ifc_type_sign_sort to_universal_sort(
@@ -699,7 +838,10 @@ extern a_const_char* str_for(an_ifc_type_sort universal);
 extern an_ifc_encoded_type_sort to_encoded(an_ifc_module    *mod,
                                            an_ifc_type_sort universal);
 
-extern a_boolean validate_sort(an_ifc_type_sort_0_33         versioned,
+extern a_boolean is_known_sort(an_ifc_type_sort_0_33 versioned);
+
+extern a_boolean validate_sort(an_ifc_module                 *mod,
+                               an_ifc_type_sort_0_33         versioned,
                                const an_ifc_validation_trace *parent);
 
 extern an_ifc_type_sort to_universal_sort(an_ifc_type_sort_0_33 versioned);
@@ -713,7 +855,10 @@ extern a_const_char* str_for(an_ifc_unit_sort universal);
 extern an_ifc_encoded_unit_sort to_encoded(an_ifc_module    *mod,
                                            an_ifc_unit_sort universal);
 
-extern a_boolean validate_sort(an_ifc_unit_sort_0_33         versioned,
+extern a_boolean is_known_sort(an_ifc_unit_sort_0_33 versioned);
+
+extern a_boolean validate_sort(an_ifc_module                 *mod,
+                               an_ifc_unit_sort_0_33         versioned,
                                const an_ifc_validation_trace *parent);
 
 extern an_ifc_unit_sort to_universal_sort(an_ifc_unit_sort_0_33 versioned);
@@ -728,7 +873,10 @@ extern an_ifc_encoded_variadic_operator_sort to_encoded(
                                       an_ifc_module                 *mod,
                                       an_ifc_variadic_operator_sort universal);
 
-extern a_boolean validate_sort(an_ifc_variadic_operator_sort_0_33 versioned,
+extern a_boolean is_known_sort(an_ifc_variadic_operator_sort_0_33 versioned);
+
+extern a_boolean validate_sort(an_ifc_module                      *mod,
+                               an_ifc_variadic_operator_sort_0_33 versioned,
                                const an_ifc_validation_trace      *parent);
 
 extern an_ifc_variadic_operator_sort to_universal_sort(
@@ -743,7 +891,10 @@ extern a_const_char* str_for(an_ifc_word_sort universal);
 extern an_ifc_encoded_word_sort to_encoded(an_ifc_module    *mod,
                                            an_ifc_word_sort universal);
 
-extern a_boolean validate_sort(an_ifc_word_sort_0_33         versioned,
+extern a_boolean is_known_sort(an_ifc_word_sort_0_33 versioned);
+
+extern a_boolean validate_sort(an_ifc_module                 *mod,
+                               an_ifc_word_sort_0_33         versioned,
                                const an_ifc_validation_trace *parent);
 
 extern an_ifc_word_sort to_universal_sort(an_ifc_word_sort_0_33 versioned);

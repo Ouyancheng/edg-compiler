@@ -3355,6 +3355,7 @@ ec_ifc_bad_function_param_name;;"a correction has been made by dropping the para
 ec_default_arg_on_member_template_def;;"a default template argument cannot be specified on the definition of a member template outside its class"
 ec_ifc_bad_identifier;;"invalid IFC identifier name %sq encountered during entity reconstruction"
 ec_ifc_bad_identifier_skipped;;"invalid IFC identifier named %sq skipped during entity reconstruction"
+ec_invalid_ifc_sort_value;;"module %sq invalid sort value"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

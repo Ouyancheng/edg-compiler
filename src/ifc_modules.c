@@ -17223,6 +17223,24 @@ produce a more detailed contextual diagnostic.
 }  /* add_backtrace */
 
 
+void invalid_sort(an_ifc_module                 *mod,
+                  const an_ifc_validation_trace *trace)
+/*
+Given the associated module and validation trace, emit a diagnostic for an
+encountered invalid sort value.
+*/
+{
+  a_diagnostic_ptr diag_ptr;
+
+  /* FIXME: Use a better source position. */
+  diag_ptr = pos_st_start_error(ec_invalid_ifc_sort_value,
+                                &null_source_position,
+                                mod->assoc_module_info->name);
+  add_backtrace(diag_ptr, trace);
+  end_diagnostic(diag_ptr);
+}  /* invalid_partition */
+
+
 void invalid_partition(an_ifc_module                 *mod,
                        const an_ifc_validation_trace *trace)
 /*
