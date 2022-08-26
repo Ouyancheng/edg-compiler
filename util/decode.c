@@ -1361,7 +1361,7 @@ position following what was demangled.
     if (*operator_str == 'f' && strcmp(operator_str, "fold-ex") == 0) {
       /* A fold expression; handle it here (since it's significantly
          different than a standard operation). */
-      a_boolean    unary, left;
+      a_boolean    unary, left, bad_fold_mangle = FALSE;
       p++;
       switch (get_char(p, dctl)) {
         case 'l': unary = TRUE;  left = TRUE;  break;
@@ -1369,37 +1369,41 @@ position following what was demangled.
         case 'r': unary = TRUE;  left = FALSE; break;
         case 'R': unary = FALSE; left = FALSE; break;
         default:
+          bad_fold_mangle = TRUE;
           bad_mangled_name(dctl);
           break;
       }  /* switch */
-      p++;
-      operator_str = demangle_operator(p, &op_length, &takes_type,
-                                       &is_new_style_cast, &is_postfix,
-                                       &need_adl_parens, &is_initializer_list,
-                                       &ud_suffix_follows, dctl);
-      if (operator_str == NULL) {
-        bad_mangled_name(dctl);
-      } else {
-        p += op_length;
-        write_id_ch('(', dctl);
-        if (unary) {
-          if (left) {
-            write_id_str("...", dctl);
-            write_id_str(operator_str, dctl);
-            p = demangle_expression(p, /*need_parens=*/FALSE, dctl);
+      if (!bad_fold_mangle) {
+        p++;
+        operator_str = demangle_operator(p, &op_length, &takes_type,
+                                         &is_new_style_cast, &is_postfix,
+                                         &need_adl_parens,
+                                         &is_initializer_list,
+                                         &ud_suffix_follows, dctl);
+        if (operator_str == NULL) {
+          bad_mangled_name(dctl);
+        } else {
+          p += op_length;
+          write_id_ch('(', dctl);
+          if (unary) {
+            if (left) {
+              write_id_str("...", dctl);
+              write_id_str(operator_str, dctl);
+              p = demangle_expression(p, /*need_parens=*/FALSE, dctl);
+            } else {
+              p = demangle_expression(p, /*need_parens=*/FALSE, dctl);
+              write_id_str(operator_str, dctl);
+              write_id_str("...", dctl);
+            }  /* if */
           } else {
             p = demangle_expression(p, /*need_parens=*/FALSE, dctl);
             write_id_str(operator_str, dctl);
             write_id_str("...", dctl);
+            write_id_str(operator_str, dctl);
+            p = demangle_expression(p, /*need_parens=*/FALSE, dctl);
           }  /* if */
-        } else {
-          p = demangle_expression(p, /*need_parens=*/FALSE, dctl);
-          write_id_str(operator_str, dctl);
-          write_id_str("...", dctl);
-          write_id_str(operator_str, dctl);
-          p = demangle_expression(p, /*need_parens=*/FALSE, dctl);
+          write_id_ch(')', dctl);
         }  /* if */
-        write_id_ch(')', dctl);
       }  /* if */
       goto skip_operand_loop;
     }  /* if */
@@ -2698,6 +2702,7 @@ is TRUE, suppress any function-local information.
   if (nchars == 0) {
     /* Get the length. */
     p = get_length(p, &nchars, &prev_end, dctl);
+    orig_end = NULL;
     nchars_left = NULL;
     stop_on_underscores = FALSE;
   } else {
@@ -2753,7 +2758,9 @@ is TRUE, suppress any function-local information.
        lambda has already emitted it. */
     if (!instance_emitted && !base_name_only) emit_instance(instance, dctl);
     p = p2;
-    if (nchars_left != NULL) *nchars_left = (unsigned long)(orig_end - p2);
+    if (nchars_left != NULL && orig_end != NULL) {
+      *nchars_left = (unsigned long)(orig_end - p2);
+    }  /* if */
   }  /* if */
   dctl->end_of_name = prev_end;
   return p;
@@ -4137,7 +4144,7 @@ The caller must be prepared in that case to loop a second time (the
 length returned the second time will be correct).
 */
 {
-  a_const_char               *end_ptr, *p;
+  a_const_char               *end_ptr = NULL, *p;
   a_decode_control_block     control_block;
   a_decode_control_block_ptr dctl = &control_block;
 
@@ -4276,7 +4283,9 @@ length returned the second time will be correct).
     dctl->output_id[dctl->output_id_len] = 0;
   }  /* if */
   /* Make sure the whole identifier was taken. */
-  if (!dctl->err_in_id && *end_ptr != '\0') bad_mangled_name(dctl);
+  if (end_ptr != NULL && *end_ptr != '\0') {
+    bad_mangled_name(dctl);
+  }  /* if */
   *err = dctl->err_in_id;
   *buffer_overflow_err = dctl->output_overflow_err;
   *required_buffer_size = dctl->output_id_len + 1; /* +1 for final null. */

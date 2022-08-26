@@ -18698,7 +18698,11 @@ early so that cases like "auto [x] = x;" are diagnosed.
   } while (loop_token(tok_comma));
   remove_stop_token(tok_comma);
   (void)required_token(tok_rbracket, ec_exp_rbracket);
-  if (curr_token != tok_end_of_source) expect_error();
+#if CHECKING
+  if (curr_token != tok_end_of_source) {
+    expect_error();
+  }  /* if */
+#endif /* CHECKING */
   flush_past_token_cache_terminator();
   free_token_cache(dps->variant.struct_bindings_cache);
   dps->variant.struct_bindings_cache = NULL;

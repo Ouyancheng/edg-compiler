@@ -16505,8 +16505,11 @@ constructors are handled separately.
 {
   a_variable_ptr         this_param_var;
   a_type_ptr             class_type;
+#if ((ABI_CHANGES_FOR_CONSTRUCTION_VTBLS && (CHECKING || !IA64_ABI)) ||\
+     (!IA64_ABI && HANDLE_VIRTUAL_BASES_IN_SUBOBJECT_CTOR_DTORS))
   a_class_type_supplement_ptr
                          ctsp;
+#endif /* (IA64_ABI && ABI_CHANGES_FOR_CONSTRUCTION_VTBLS && (...)) || ...) */
   a_constructor_init_ptr ctor_init;
 #if !IA64_ABI
   an_expr_node_ptr       vbptr_node;
@@ -16614,7 +16617,10 @@ constructors are handled separately.
   /* Mark the class as referenced because, at the very least, the
      "this" parameter uses it. */
   class_type->source_corresp.referenced = TRUE;
+#if ((ABI_CHANGES_FOR_CONSTRUCTION_VTBLS && (CHECKING || !IA64_ABI)) ||\
+     (!IA64_ABI && HANDLE_VIRTUAL_BASES_IN_SUBOBJECT_CTOR_DTORS))
   ctsp = class_type->variant.class_struct_union.extra_info;
+#endif /* (IA64_ABI && ABI_CHANGES_FOR_CONSTRUCTION_VTBLS && (...)) || ...) */
   if (class_type->variant.class_struct_union.any_virtual_base_classes) {
 #if HANDLE_VIRTUAL_BASES_IN_SUBOBJECT_CTOR_DTORS
     an_insert_location     insert_location2;
