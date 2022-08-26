@@ -454,6 +454,14 @@ but this routine does not indicate that.
   a_boolean needed = (C_dialect == C_dialect_cplusplus &&
                       !suppress_il_lowering &&
                       !is_at_least_one_error());
+
+#if CHECKING
+  /* The front end is considering lowering, if an error was supposed to be
+     emitted (which affect this operation), diagnose immediately.  This
+     prevents some cryptic front end errors from being misdiagnosed as lowering
+     problems. */
+  check_expected_errors();
+#endif /* CHECKING */
   return needed;
 }  /* il_lowering_needed */
 
