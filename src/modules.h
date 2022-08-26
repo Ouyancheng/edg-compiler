@@ -305,7 +305,7 @@ using a_module_token_cache_ptr = a_module_token_cache*;
 
 inline void enter_module_token_rescan(a_module_token_cache_ptr cache)
 /*
-Begin a token rescan of the given module token cache ptr.  The caller is
+Begin a token rescan of the given module token cache.  The caller is
 responsible for calling exit_module_token_rescan after the rescanned tokens
 have been used.
 
