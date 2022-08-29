@@ -2063,7 +2063,9 @@ call.
 symbol_found:
   /* If this symbol refers to an entry point, return the primary
      entry instead. */
-  if (sym_ptr->primary_entry != NULL) sym_ptr = sym_ptr->primary_entry;
+  if (sym_ptr != NULL && sym_ptr->primary_entry != NULL) {
+    sym_ptr = sym_ptr->primary_entry;
+  }  /* if */
   if (sym_ptr != NULL) {
     if (other_sym != NULL && other_sym->global_sym == NULL) {
       /* Record a pointer to the global symbol in the symbol passed by the
