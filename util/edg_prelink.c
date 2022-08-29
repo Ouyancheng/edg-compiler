@@ -3241,7 +3241,8 @@ name to be used for the temporary file.
       tmpdir = "/tmp";
 #endif /* __MICROSOFT_OS__ */
     }  /* if */
-    sprintf(pl_file_name_buffer, "%s/%0dpltf", tmpdir, getpid());
+    snprintf(pl_file_name_buffer, FILE_NAME_BUFFER_SIZE, "%s/%0dpltf",
+             tmpdir, getpid());
     temporary_file_name = pl_copy_string(pl_file_name_buffer);
   }  /* if */
   f_temp = fopen(temporary_file_name, "w");
