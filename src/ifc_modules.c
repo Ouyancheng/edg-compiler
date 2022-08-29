@@ -2270,12 +2270,15 @@ already saved for restoration.
     len_of_curr_token = sym_header->identifier_length;
     after_end_of_curr_source_line = temp_text_buffer + pos_in_temp_text_buffer;
     logical_char_info_entries_used = 0;
-    (void)proc_define();
-    if (curr_token != tok_newline) {
-      expect_error();
-    }  /* if */
-  } else {
-    expect_error();
+    {
+      a_diag_count_snapshot diag_cnt_snapshot;
+
+      (void)proc_define();
+      if (curr_token != tok_newline) {
+        expect_error_since(diag_cnt_snapshot,
+                           "expected error from proc_define");
+      }  /* if */
+    }
   }  /* if */
 }  /* define_ifc_macro */
 
@@ -2768,7 +2771,8 @@ delimiting braces for a compound statement).  No terminating semicolon is added
 to the given cache if options & cso_no_final_semicolon is nonzero.
 */
 {
-  a_source_position  pos;
+  a_diag_count_snapshot diag_cnt_snapshot;
+  a_source_position     pos;
 
   switch (stmt_idx.sort) {
     case ifc_ss_stmt_vendor_extension:
@@ -3038,7 +3042,8 @@ to the given cache if options & cso_no_final_semicolon is nonzero.
   }  /* switch */
   goto done;
 invalid:
-  expect_error();
+  expect_error_since(diag_cnt_snapshot,
+                     "expected errors for bad statement cache");
   cache->invalidate();
 done:;
 }  /* cache_statement */
@@ -3585,7 +3590,7 @@ definition.
     a_diagnostic_suppression    diag_suppress(
                                            &ifb.mod->suppressed_diagnostics,
                                            !display_module_import_diagnostics);
-
+    a_diag_count_snapshot       diag_cnt_snapshot;
 
     clear_func_info(&func_info);
     push_new_top_level_declaration();
@@ -3609,7 +3614,8 @@ definition.
        don't reenter this branch. */
     if (!result) {
       ifc_bad_function_bodies->map(rp, TRUE);
-      expect_error();
+      expect_error_since(diag_cnt_snapshot,
+                         "expected errors for bad function body");
     }  /* if */
   }  /* if */
   return result;
@@ -8477,9 +8483,10 @@ FIXME: what other expressions can we get here?
           goto invalid;
         }  /* if */
 
-        an_ifc_expr_literal iel = *opt_iel;
-        an_ifc_type_index   type = get_ifc_type(iel);
-        a_type_ptr          constant_type;
+        an_ifc_expr_literal   iel = *opt_iel;
+        an_ifc_type_index     type = get_ifc_type(iel);
+        a_type_ptr            constant_type;
+        a_diag_count_snapshot diag_cnt_snapshot;
         if (is_null_index(type)) {
           /* If the expression doesn't have its own type, use the default
              type provided by the caller. */
@@ -8488,7 +8495,8 @@ FIXME: what other expressions can we get here?
           constant_type = type_for_type_index(type, /*kind=*/NULL);
         }  /* if */
         if (constant_type != NULL && is_error_type(constant_type)) {
-          expect_error();
+          expect_error_since(diag_cnt_snapshot,
+                             "expected errors for constant");
           goto invalid;
         }  /* if */
 
@@ -9540,7 +9548,8 @@ file for the additional information needed, depending on the kind of literal.
 locus is the location of the Sentence containing literal.
 */
 {
-  a_source_position pos;
+  a_diag_count_snapshot diag_cnt_snapshot;
+  a_source_position     pos;
 
   source_position_from_locus(&pos, locus);
   switch (literal.sort) {
@@ -9657,7 +9666,8 @@ locus is the location of the Sentence containing literal.
   }  /* switch */
   goto done;
 invalid:
-  expect_error();
+  expect_error_since(diag_cnt_snapshot,
+                     "expected errors for bad source literal cache");
   cache->invalidate();
 done:;
 }  /* cache_source_literal */
@@ -10600,6 +10610,7 @@ and a cached token matches a stop token, remove that token from the cache and
 return the index of that token.  Otherwise the return value is meaningless.
 */
 {
+  a_diag_count_snapshot      diag_cnt_snapshot;
   an_ifc_cardinality_storage idx = offset;
 
   if (sentence != 0) {
@@ -10633,7 +10644,8 @@ return the index of that token.  Otherwise the return value is meaningless.
   }  /* if */
   goto done;
 invalid:
-  expect_error();
+  expect_error_since(diag_cnt_snapshot,
+                     "expected errors for bad sentence cache");
   cache->invalidate();
 done:
   return idx;
@@ -11177,7 +11189,8 @@ See form_type_first_part and form_type_second_part for more details as to why
 this is needed.
 */
 {
-  a_source_position pos;
+  a_diag_count_snapshot diag_cnt_snapshot;
+  a_source_position     pos;
 
   source_position_from_locus(&pos, locus);
   switch (type.sort) {
@@ -11653,7 +11666,8 @@ this is needed.
   }  /* switch */
   goto done;
 invalid:
-  expect_error();
+  expect_error_since(diag_cnt_snapshot,
+                     "expected errors for bad type cache");
   cache->invalidate();
 done:;
 }  /* cache_type_first_part */
@@ -11677,7 +11691,8 @@ See form_type_first_part and form_type_second_part for more details as to why
 this is needed.
 */
 {
-  a_source_position pos;
+  a_diag_count_snapshot diag_cnt_snapshot;
+  a_source_position     pos;
 
   source_position_from_locus(&pos, locus);
   switch (type.sort) {
@@ -11827,7 +11842,8 @@ this is needed.
   }  /* switch */
   goto done;
 invalid:
-  expect_error();
+  expect_error_since(diag_cnt_snapshot,
+                     "expected errors for bad type cache");
   cache->invalidate();
 done:;
 }  /* cache_type_second_part */
@@ -11859,7 +11875,8 @@ expected to have already cached the "template" keyword if it's required.  pos
 is the position of the chart.
 */
 {
-  an_ifc_expr_index constraint = {};
+  a_diag_count_snapshot diag_cnt_snapshot;
+  an_ifc_expr_index     constraint = {};
 
   cache_token(cache, tok_lt, pos);
   switch (chart.sort) {
@@ -11923,7 +11940,8 @@ is the position of the chart.
   }  /* if */
   goto done;
 invalid:
-  expect_error();
+  expect_error_since(diag_cnt_snapshot,
+                     "expected errors for bad chart cache");
   cache->invalidate();
 done:;
 }  /* cache_chart */
@@ -13235,8 +13253,10 @@ Add the tokens corresponding to the given partial specialization declaration
 (decl indexed in the IFC by decl_idx) to cache.
 */
 {
-  an_ifc_decl_index templated_decl_idx = get_ifc_decl(get_ifc_entity(decl));
-  a_source_position pos;
+  a_diag_count_snapshot diag_cnt_snapshot;
+  an_ifc_decl_index     templated_decl_idx =
+                                            get_ifc_decl(get_ifc_entity(decl));
+  a_source_position     pos;
 
   source_position_from_locus(&pos, get_ifc_locus(decl));
   /* Reconstruct the template-head. */
@@ -13318,7 +13338,8 @@ Add the tokens corresponding to the given partial specialization declaration
   }  /* switch */
   goto done;
 invalid:
-  expect_error();
+  expect_error_since(diag_cnt_snapshot,
+                     "expected errors for bad partial specialization cache");
   cache->invalidate();
 done:;
 }  /* cache_decl_partial_specialization */
@@ -13333,10 +13354,11 @@ Add the tokens corresponding to the given specialization declaration (decl
 indexed in the IFC by decl_idx) to cache.
 */
 {
-  an_ifc_decl_index      templated_decl_idx = get_ifc_decl(decl);
-  a_boolean              is_instantiation =
+  a_diag_count_snapshot diag_cnt_snapshot;
+  an_ifc_decl_index     templated_decl_idx = get_ifc_decl(decl);
+  a_boolean             is_instantiation =
                                     get_ifc_sort(decl) == ifc_ss_instantiation;
-  a_source_position      pos;
+  a_source_position     pos;
 
   source_position_from_locus(&pos, get_ifc_locus(decl));
   if (is_instantiation) {
@@ -13589,7 +13611,8 @@ END_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
   }  /* switch */
   goto done;
 invalid:
-  expect_error();
+  expect_error_since(diag_cnt_snapshot,
+                     "expected errors for bad specialization cache");
   cache->invalidate();
 done:;
 }  /* cache_decl_specialization */
@@ -13649,7 +13672,8 @@ cache_brackets is TRUE, include the attribute brackets.  Otherwise, the caller
 is responsible for ensuring that the brackets are cached appropriately.
 */
 {
-  a_source_position pos;
+  a_diag_count_snapshot diag_cnt_snapshot;
+  a_source_position     pos;
 
   switch (attr.sort) {
     case ifc_as_attr_nothing:
@@ -13855,7 +13879,8 @@ is responsible for ensuring that the brackets are cached appropriately.
   }  /* switch */
   goto done;
 invalid:
-  expect_error();
+  expect_error_since(diag_cnt_snapshot,
+                     "expected errors for bad attr cache");
   cache->invalidate();
 done:;
 }  /* cache_attr */
@@ -13906,6 +13931,8 @@ param_types to the cache.  locus is the IFC source location for the parameter
 list (individual parameters will have their own locus associated with them).
 */
 {
+  a_diag_count_snapshot diag_cnt_snapshot;
+
   if (!is_null_index(params)) {
     /* The parameters have detailed information associated with them, use
        that. */
@@ -13939,7 +13966,8 @@ list (individual parameters will have their own locus associated with them).
   }  /* if */
   goto done;
 invalid:
-  expect_error();
+  expect_error_since(diag_cnt_snapshot,
+                     "expected errors for bad function param cache");
   cache->invalidate();
 done:;
 }  /* cache_function_parameters */
@@ -13951,7 +13979,8 @@ void an_ifc_module::cache_decl(a_module_token_cache_ptr cache,
 Add the tokens corresponding to the given declaration (decl) to cache.
 */
 {
-  a_source_position pos;
+  a_diag_count_snapshot diag_cnt_snapshot;
+  a_source_position     pos;
 
   switch (decl.sort) {
     case ifc_ds_decl_vendor_extension:
@@ -14495,7 +14524,8 @@ Add the tokens corresponding to the given declaration (decl) to cache.
   }  /* switch */
   goto done;
 invalid:
-  expect_error();
+  expect_error_since(diag_cnt_snapshot,
+                     "expected errors for bad decl cache");
   cache->invalidate();
 done:;
 }  /* cache_decl */
@@ -14587,7 +14617,8 @@ instead of ','.  If options & ceo_skip_assign is nonzero, only render the
 second operand of an assignment.
 */
 {
-  a_source_position pos;
+  a_diag_count_snapshot diag_cnt_snapshot;
+  a_source_position     pos;
 
   switch (expr.sort) {
     case ifc_es_expr_vendor_extension:
@@ -15414,7 +15445,8 @@ common_cast:
   }  /* switch */
   goto done;
 invalid:
-  expect_error();
+  expect_error_since(diag_cnt_snapshot,
+                     "expected errors for bad expr cache");
   cache->invalidate();
 done:;
 }  /* cache_expr */
@@ -15426,7 +15458,8 @@ void an_ifc_module::cache_syntax(a_module_token_cache_ptr cache,
 Add the tokens corresponding to the given syntax tree to cache.
 */
 {
-  a_source_position pos;
+  a_diag_count_snapshot diag_cnt_snapshot;
+  a_source_position     pos;
 
   switch (syntax.sort) {
     case ifc_ss_syntax_vendor_extension:
@@ -16523,7 +16556,8 @@ Add the tokens corresponding to the given syntax tree to cache.
   }  /* switch */
   goto done;
 invalid:
-  expect_error();
+  expect_error_since(diag_cnt_snapshot,
+                     "expected errors for bad syntax cache");
   cache->invalidate();
 done:;
 }  /* cache_syntax */
@@ -16537,7 +16571,8 @@ Add the tokens corresponding to the given name to cache.  locus is the location
 of the name.
 */
 {
-  a_source_position pos;
+  a_diag_count_snapshot diag_cnt_snapshot;
+  a_source_position     pos;
 
   source_position_from_locus(&pos, locus);
   switch (name.sort) {
@@ -16652,7 +16687,7 @@ of the name.
   }  /* switch */
   goto done;
 invalid:
-  expect_error();
+  expect_error_since(diag_cnt_snapshot, "expected errors for bad name cache");
   cache->invalidate();
 done:;
 }  /* cache_name */
@@ -16751,7 +16786,8 @@ Add the tokens corresponding to the given declaration's (decl) name to cache.
 locus is the location of the name use.
 */
 {
-  a_const_char *name = name_from_decl(decl);
+  a_diag_count_snapshot diag_cnt_snapshot;
+  a_const_char          *name = name_from_decl(decl);
 
   if (name != NULL) {
     a_source_position pos;
@@ -16759,7 +16795,8 @@ locus is the location of the name use.
     source_position_from_locus(&pos, locus);
     cache_identifier(cache, name, &pos);
   } else {
-    expect_error();
+    expect_error_since(diag_cnt_snapshot,
+                       "expected errors from name_from_decl");
   } /* if */
 }  /* cache_name_from_decl */
 
@@ -16791,7 +16828,8 @@ void an_ifc_module::cache_macro(a_module_token_cache_ptr cache,
 Add the tokens corresponding to the given macro's definition to cache.
 */
 {
-  a_source_position pos;
+  a_diag_count_snapshot diag_cnt_snapshot;
+  a_source_position     pos;
 
   switch (macro.sort) {
     case ifc_ms_macro_object_like:
@@ -16840,7 +16878,8 @@ Add the tokens corresponding to the given macro's definition to cache.
   }  /* switch */
   goto done;
 invalid:
-  expect_error();
+  expect_error_since(diag_cnt_snapshot,
+                     "expected errors for bad macro cache");
   cache->invalidate();
 done:;
 }  /* cache_macro */
@@ -16874,7 +16913,8 @@ FIXME: Many of these see non-identifiers cached as identifiers due to the
 raw-text spelling.
 */
 {
-  a_source_position pos;
+  a_diag_count_snapshot diag_cnt_snapshot;
+  a_source_position     pos;
 
   switch (form.sort) {
     case ifc_fs_form_identifier:
@@ -17087,7 +17127,8 @@ raw-text spelling.
   }  /* switch */
   goto done;
 invalid:
-  expect_error();
+  expect_error_since(diag_cnt_snapshot,
+                     "expected errors for bad form cache");
   cache->invalidate();
 done:;
 }  /* cache_form */

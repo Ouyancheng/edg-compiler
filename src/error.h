@@ -199,6 +199,34 @@ previous values will always be restored.
 }  /* a_diagnostic_suppression */
 
 
+/*
+A class used to capture the current state of the "total" diagnostic counters.
+Typically paired with expect_error_since to check for new diagnostics in a
+particular context.
+*/
+struct a_diag_count_snapshot {
+  a_diag_count_snapshot()
+    : captured_state(diagnostic_counters.total)
+    {}
+  a_diagnostic_counter
+                captured_state;
+                        /* The captured state of the "total" diagnostic counter
+                           when this object was constructed. */
+};  /* a_diag_count_snapshot */
+
+
+inline void expect_error_since(const a_diag_count_snapshot &snapshot,
+                               a_const_char                *err_msg)
+/*
+Assert that at least one new error has occurred since the original snapshot was
+taken.
+*/
+{
+  check_assertion_str((snapshot.captured_state.all_error_types() <
+                       diagnostic_counters.total.all_error_types()), err_msg);
+}  /* expect_error_since */
+
+
 inline a_boolean is_at_least_one_error()
 /*
 This function is defined for easily checking if there was at least one error.

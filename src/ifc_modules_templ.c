@@ -345,14 +345,16 @@ call).
        appropriately; otherwise, skip re-validation and use the cached result.
        */
     if (!has_been_validated(idx)) {
+      a_diag_count_snapshot   diag_cnt_snapshot;
       an_ifc_validation_trace trace{idx.mod, idx_part_kind, idx.value, NULL};
       a_boolean               is_valid = validate(read_value, &trace);
 
       mark_validated(idx);
       if (!is_valid) {
         mark_invalid(idx);
-        expect_error();
-      } /* if */
+        expect_error_since(diag_cnt_snapshot,
+                           "expected errors from the validator");
+      }  /* if */
     }  /* if */
     /* Then, checking the result, return the read value. */
     if (!is_marked_invalid(idx)) {
