@@ -2639,7 +2639,7 @@ name is only generated if template information files are being used.
        files. */
     *request_file_name = pl_copy_string(pl_derived_name(pifp->file_name,
                                                 INSTANTIATION_REQUEST_SUFFIX));
-    if (use_template_info_file) {
+    if (use_template_info_file && (*request_file_name) != NULL) {
       *template_info_file_name = pl_copy_string(
                        pl_derived_name(pifp->file_name, TEMPLATE_INFO_SUFFIX));
     }  /* if */
