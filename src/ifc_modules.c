@@ -6399,6 +6399,7 @@ can currently be qualified.
       result = FALSE;
       break;
     case ifc_ds_decl_enumerator:
+    case ifc_ds_decl_enumeration:
       {
         /* FIXME: This is a hack to work around crashing when an enumerator's
            home scope isn't loaded. */
