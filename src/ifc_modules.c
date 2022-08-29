@@ -3564,7 +3564,7 @@ return TRUE.
 a_boolean load_routine_definition_from_ifc_module(a_routine_ptr  rp)
 /*
 The given routine claims to have a definition in a currently-imported IFC
-module; process said definition and return TRUE.  If problems our encountered
+module; process said definition and return TRUE.  If problems are encountered
 during processing, return FALSE.
 
 The presence of a routine definition should be checked for via
@@ -3576,7 +3576,7 @@ definition.
 
   check_assertion(has_routine_definition_from_ifc_module(rp));
   /* Check the (effective) set of routines that have previously failed
-     definition processing.  This prevents repeating errors, and mitigates the
+     definition processing.  This prevents repeating errors and mitigates the
      performance impact if a problematic routine is called many times. */
   if (!ifc_bad_function_bodies->get(rp)) {
     an_ifc_decl_index           ifb = ifc_function_bodies->get(rp);
