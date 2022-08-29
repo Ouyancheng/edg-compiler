@@ -3730,7 +3730,8 @@ return.
 
   for (j = 0; j < num_of_L_directories; ++j) {
     FILE	*f_lib;
-    sprintf(string_buffer, "%s/lib%s.a", L_directories[j], lib_name);
+    snprintf(string_buffer, PL_INPUT_LINE_SIZE, "%s/lib%s.a",
+             L_directories[j], lib_name);
 #if DEBUG
     if (pl_debug_level >= 3) {
       fprintf(stderr, "Looking for %s\n", string_buffer);
