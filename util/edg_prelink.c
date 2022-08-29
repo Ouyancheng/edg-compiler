@@ -725,7 +725,8 @@ string.
     m = "invalid input format";
     break;
   case pl_ec_bad_instantiation_request_file:
-    m = "bad instantiation request file -- instantiation assigned to more than one file";
+    m = "bad instantiation request file -- "
+        "instantiation assigned to more than one file";
     break;
   case pl_ec_invalid_nm_format_option:
     m = "invalid nm format option";
@@ -764,7 +765,8 @@ string.
     m = "unable to create process for nm command";
     break;
   case pl_ec_specialized_and_instantiated:
-    m = "\"%s\" has been referenced as both an explicit specialization and a generated instantiation";
+    m = "\"%s\" has been referenced as both an explicit specialization "
+        "and a generated instantiation";
     break;
   case pl_ec_cannot_open_file_for_update:
     m = "file \"%s\" is read-only";
@@ -789,7 +791,8 @@ string.
     m = "%s: %s adopted by file %s\n";
     break;
   case pl_ec_out_of_date:
-    m = "%s: rebuilding %s because %s (used by an exported template file) has changed\n";
+    m = "%s: rebuilding %s because %s (used by an exported template file) "
+        "has changed\n";
     break;
   case pl_ec_corrupted_template_info_file:
     m = "corrupted template information file or instantiation request file";
@@ -2905,7 +2908,9 @@ the file is flagged as requiring recompilation.
         if (pl_debug_level >= 4) {
           fprintf(stderr, "File: %s, Symbol: %s\n", pifp->file_name,
 		  sym == NULL ? "null" : sym->name);
-          pl_db_symbol(sym, "        ");
+          if (sym != NULL) {
+            pl_db_symbol(sym, "        ");
+          }  /* if */
         }  /* if */
 #endif /* DEBUG */
         if (sym != NULL && sym->is_template &&
