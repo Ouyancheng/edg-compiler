@@ -1353,8 +1353,7 @@ be at most one) if one is found (and to mvak_invalid otherwise).
       case mvak_cpu_atom:
         arch_isa = (a_multiversion_arch_kind)mvak_isa_ssse3;
         break;
-      default:
-        unexpected_condition();
+      default_is_unexpected();
     }  /* switch */
     if (bitset & ((a_mv_target_bitset)1<<arch)) {
       result_isa = arch_isa;
