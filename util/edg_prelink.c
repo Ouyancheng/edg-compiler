@@ -2433,6 +2433,7 @@ that line type.
            treated as references to the primary entry. */
         char	*name_pos = line_type + 4;
         a_pl_symbol_ptr	global_for_last_primary;
+        if (last_primary_entry == NULL) pl_corrupted_template_info_file();
         sym = pl_find_symbol(name_pos, (a_pl_symbol_ptr)NULL,
                              /*add=*/TRUE, (a_boolean*)NULL);
         global_for_last_primary = pl_find_symbol(last_primary_entry->name,
