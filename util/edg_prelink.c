@@ -2543,7 +2543,7 @@ Read the command line, etc. from the instantiation request file.
   int	i;
   /* Read the reserved lines and save them to be rewritten later. */
   for (i = 0; i < reserved_request_file_lines; ++i) {
-    pl_read_input_line(f_request);
+    (void)pl_read_input_line(f_request);
     pifp->reserved_lines[i] = pl_copy_string(pl_input_line);
   }  /* for */
   /* Copy the command line information, etc. from the reserved lines that
