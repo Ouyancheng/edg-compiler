@@ -23,6 +23,9 @@ Declarations for EDG template prelink utility.
 /* Suffix to be used for the instantiation request file. */
 #define TEMPLATE_INFO_SUFFIX ".ti"
 
+/* Maximum length of a suffix. */
+#define MAX_SUFFIX_LEN 10
+
 /* Suffix to be used for instantiation object files created in one
    instantiation per object mode. */
 #if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE

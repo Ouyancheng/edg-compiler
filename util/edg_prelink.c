@@ -2336,14 +2336,22 @@ is used again.
 {
   char			*last_dot;
 
-  /* Copy the original name to the file name buffer. */
-  strcpy(pl_file_name_buffer, name);
+  /* Copy the original name to the file name buffer.  Ensure that there's
+     enough space to add the suffix and that the buffer doesn't overflow.
+     Use strncat instead of strncpy, as the latter will pad the entirety of
+     the buffer with null characters while the former does not, and also adds
+     a terminating null character. */
+  pl_file_name_buffer[0] = '\0';
+  strncat(pl_file_name_buffer, name,
+          FILE_NAME_BUFFER_SIZE - MAX_SUFFIX_LEN - 1);
   last_dot = pl_find_suffix(pl_file_name_buffer);
   if (last_dot == NULL) {
     /* No suffix -- set last_dot as if a suffix had followed the name. */
     last_dot = pl_file_name_buffer + strlen(pl_file_name_buffer);
   }  /* if */
-  strcpy(last_dot, suffix);
+  /* Null-terminate at the last dot so that strncat will properly append. */
+  *last_dot = '\0';
+  strncat(last_dot, suffix, MAX_SUFFIX_LEN);
   return pl_file_name_buffer;
 }  /* pl_derived_name */
 
