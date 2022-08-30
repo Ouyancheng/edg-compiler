@@ -45740,6 +45740,7 @@ function.
   db_enter(3, "scan_default_arg_expr");
   check_assertion(scope_stack_top().kind == sck_func_prototype ||
                   scope_stack_top().module_load_context_count > 0);
+  make_error_operand(&result);
   if (gpp_mode && !parameters_visible_late) {
     /* GCC does not consider parameter declarations while scanning default
        arguments.  Some versions don't consider parameters visible at all
