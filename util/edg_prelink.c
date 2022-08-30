@@ -1742,6 +1742,7 @@ or defined in that object file.
   char			*input_file_name = NULL;
   char			*obj_file_name = NULL;
   a_boolean		is_archive = FALSE;
+  a_pl_object_file_ptr	objects_tail = NULL;
   a_pl_object_file_ptr	pofp = NULL;
   a_pl_input_file_ptr	pifp = NULL;
   a_boolean		any_lines_read = FALSE;
@@ -1819,6 +1820,7 @@ or defined in that object file.
       }  /* if */
       input_file_name = pifp->file_name;
       pifp->is_archive = is_archive;
+      objects_tail = NULL;
       if (is_archive) {
         obj_file_name = NULL;
       } else {
@@ -1844,6 +1846,8 @@ or defined in that object file.
         /* Add this object file to the list of objects pointed to by the
            input file entry. */
         if (pifp->objects == NULL) pifp->objects = pofp;
+        if (objects_tail != NULL) objects_tail->next = pofp;
+        objects_tail = pofp;
       }  /* if */
     }  /* if */
     /* See if this is a type of line for which the symbol information should
