@@ -8485,7 +8485,6 @@ FIXME: what other expressions can we get here?
         an_ifc_expr_literal   iel = *opt_iel;
         an_ifc_type_index     type = get_ifc_type(iel);
         a_type_ptr            constant_type;
-        a_diag_count_snapshot diag_cnt_snapshot;
         if (is_null_index(type)) {
           /* If the expression doesn't have its own type, use the default
              type provided by the caller. */
