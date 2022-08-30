@@ -5839,6 +5839,7 @@ pointer to it.  The entry is allocated in the current memory region.
   entry->module_name_position = null_source_position;
   entry->attributes = NULL;
   entry->module_info = NULL;
+  entry->impl_unit_importing_self = FALSE;
   return entry;
 }  /* alloc_module_import_decl */
 

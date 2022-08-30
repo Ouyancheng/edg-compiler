@@ -17585,6 +17585,9 @@ typedef struct a_module_import_decl {
 			   this module-import-declaration. */
   a_module_ptr	module_info;
 			/* The module referenced by this declaration. */
+  a_bit_field	impl_unit_importing_self:1;
+			/* This import declaration is an implementation unit
+			   importing its own interface unit. */
 } a_module_import_decl;
 
 

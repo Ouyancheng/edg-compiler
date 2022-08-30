@@ -229,7 +229,7 @@ public:
                                           a_boolean                issue_diag);
   a_boolean open_and_map_ifc_module_file(a_module_import_decl_ptr midp,
                                          a_boolean                issue_diag);
-  void import_referenced_modules();
+  void import_referenced_modules(a_boolean impl_unit_importing_self);
   void define_ifc_macro(an_ifc_macro_index macro);
   void export_ifc_macros();
   template<typename a_Scope_Member_Consumer>

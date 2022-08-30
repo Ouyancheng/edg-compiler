@@ -2180,7 +2180,7 @@ been confirmed to exist and the path stored in midp.
       close();
       goto done;
     }  /* if */
-    import_referenced_modules();
+    import_referenced_modules(midp->impl_unit_importing_self);
 #if DEBUG
     if (db_flag_is_set("ms_modsrc")) {
       /* Generate a textual representation of the module file and print it. */
@@ -2200,7 +2200,8 @@ done:
 }  /* import */
 
 
-void an_ifc_module::import_referenced_modules()
+void an_ifc_module::import_referenced_modules(
+                                            a_boolean impl_unit_importing_self)
 /*
 Import all appropriate modules that have been referenced by this module.
 Modules that have been imported but not re-exported are not imported at this
@@ -2222,6 +2223,23 @@ this module.
         continue;
       }  /* if */
       transitive_import_module(get_ifc_reference(*opt_imer));
+    }  /* for */
+  }  /* if */
+  if (impl_unit_importing_self &&
+      get_partition_metadata(ifc_pk_module_imported).name != NULL) {
+    auto num_modules = get_num_entries(ifc_pk_module_imported);
+
+    for (decltype(num_modules) idx = 0; idx < num_modules; ++idx) {
+      Opt<an_ifc_module_import_reference> opt_imir;
+      an_ifc_partition_kind_index         ref_idx{this, ifc_pk_module_imported,
+                                                  idx};
+
+      construct_node(&opt_imir, ref_idx);
+      /* Allow single failures to be "ignored", continue processing. */
+      if (!opt_imir.has_value()) {
+        continue;
+      }  /* if */
+      transitive_import_module(get_ifc_reference(*opt_imir));
     }  /* for */
   }  /* if */
 }  /* import_referenced_modules */

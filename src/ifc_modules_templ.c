@@ -397,6 +397,8 @@ INST_CONSTRUCT_NODE(an_ifc_heap_syntax, an_ifc_partition_kind_index)
 INST_CONSTRUCT_NODE(an_ifc_heap_type, an_ifc_partition_kind_index)
 INST_CONSTRUCT_NODE(an_ifc_module_export_reference,
                     an_ifc_partition_kind_index)
+INST_CONSTRUCT_NODE(an_ifc_module_import_reference,
+                    an_ifc_partition_kind_index)
 INST_CONSTRUCT_NODE(an_ifc_scope_descriptor, an_ifc_partition_kind_index)
 INST_CONSTRUCT_NODE(an_ifc_scope_member, an_ifc_partition_kind_index)
 INST_CONSTRUCT_NODE(an_ifc_source_line, an_ifc_partition_kind_index)

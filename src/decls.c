@@ -19782,6 +19782,7 @@ Import the module referred to by the current module unit.
   midp->module_name_position = curr_module_sym->decl_position;
   midp->module_info = alloc_module((a_module_kind)mk_any);
   midp->module_info->name = curr_module_sym->header->identifier;
+  midp->impl_unit_importing_self = TRUE;
   import_module(midp, curr_module_sym);
 }  /* import_curr_module */
 

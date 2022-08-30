@@ -30893,6 +30893,7 @@ parameter lists that were scanned.
     /* An alias template declaration. */
     sym = alias_template_declaration(decl_state);
     tssp = template_supplement_for_symbol(sym);
+    check_assertion(tssp != NULL);
     /* Save a pointer to the token cache for the alias definition. */
     p_template_body_cache = &cache_for_template(tssp)->tokens;
   } else if (decl_state->is_enum) {
