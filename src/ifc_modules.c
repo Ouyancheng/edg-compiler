@@ -2206,7 +2206,9 @@ void an_ifc_module::import_referenced_modules(
 Import all appropriate modules that have been referenced by this module.
 Modules that have been imported but not re-exported are not imported at this
 time, as their symbols are not visible except when referenced by symbols within
-this module.
+this module.  If impl_unit_importing_self is TRUE, this is the case of a module
+implementation unit importing its own interface unit (which means that non-
+exported imports need to be imported).
 */
 {
   if (get_partition_metadata(ifc_pk_module_exported).name != NULL) {
