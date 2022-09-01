@@ -1206,7 +1206,7 @@ FALSE.
   a_module_token_cache cache;
   an_ifc_expr_index    expr_index{(an_ifc_module*)index->module,
                                   (an_ifc_expr_sort)index->sort, index->index};
-  expr_index.mod->cache_expr(&cache, expr_index);
+  expr_index.mod->cache_expr(&cache, expr_index, /*cinfo=*/{});
   if (cache.is_valid()) {
     (void)enter_module_token_rescan(&cache);
     result = TRUE;

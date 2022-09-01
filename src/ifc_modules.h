@@ -78,6 +78,33 @@ struct an_ifc_partition_metadata {
                            path." */
 };  /* an_ifc_partition_metadata */
 
+/*
+A structure to contain flags and other information needed to properly cache
+IFC entities.
+*/
+struct an_ifc_cache_info {
+  an_ifc_cache_info() :
+    qualified_name(FALSE), skip_assign(FALSE), possible_temporary_decl(FALSE),
+    func_body(FALSE), requires_body(FALSE), no_final_semicolon(FALSE)
+  {}
+  a_bit_field	qualified_name:1;
+			/* TRUE if a qualified name is being cached. */
+  a_bit_field	skip_assign:1;
+			/* TRUE if assignments/initializers should be excluded
+			   from the cache. */
+  a_bit_field	possible_temporary_decl:1;
+			/* TRUE if the entity being cached could potentially
+			   be a temporary declaration. */
+  a_bit_field	func_body:1;
+			/* TRUE if the entity being cached is the top-level
+			   function body statement. */
+  a_bit_field	requires_body:1;
+			/* TRUE if the entity being cached is part of a
+			   requires clause body. */
+  a_bit_field	no_final_semicolon:1;
+			/* TRUE if the final semicolon should be omitted. */
+};  /* an_ifc_cache_info */
+
 struct a_str_control_block;
 struct a_partial_scope_stack_state;
 
@@ -356,25 +383,15 @@ public:
                   an_ifc_decl_index        decl);
   inline void update_name_qualification_suppression(
                                                 const an_ifc_expr_path &iespp);
-  enum a_cache_expr_option {
-    ceo_none                    = 0x0,
-    ceo_qualified_name          = 0x1 << 0,
-    ceo_skip_assign             = 0x1 << 1,
-    ceo_possible_temporary_decl = 0x1 << 2,
-  };
   void cache_expr(a_module_token_cache_ptr cache,
                   an_ifc_expr_index        expr,
-                  a_cache_expr_option      options = ceo_none);
-  enum a_cache_statement_option {
-    cso_none = 0x0,
-    cso_func_body = 0x1,
-    cso_no_final_semicolon = 0x2
-  };
+                  const an_ifc_cache_info  &cinfo);
   void cache_statement(a_module_token_cache_ptr cache,
                        an_ifc_stmt_index        stmt_idx,
-                       a_cache_statement_option options = cso_none);
+                       const an_ifc_cache_info  &cinfo);
   void cache_syntax(a_module_token_cache_ptr cache,
-                    an_ifc_syntax_index      syntax);
+                    an_ifc_syntax_index      syntax,
+                    const an_ifc_cache_info  &cinfo);
   void cache_chart(a_module_token_cache_ptr cache,
                    an_ifc_chart_index       chart,
                    a_source_position_ptr    pos);

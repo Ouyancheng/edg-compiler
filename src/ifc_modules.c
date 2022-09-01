@@ -2667,7 +2667,7 @@ error occurs, return NULL.
         a_boolean            err = FALSE;
         long                 first_defaulted_arg = -1;
         if (!is_null_index(args)) {
-          mod->cache_expr(&arg_cache, args);
+          mod->cache_expr(&arg_cache, args, /*cinfo=*/{});
         }  /* if */
         if (has_ifc_locus(template_id)) {
           mod->source_position_from_locus(&pos, get_ifc_locus(template_id));
@@ -2779,16 +2779,16 @@ FALSE.
 
 void an_ifc_module::cache_statement(a_module_token_cache_ptr cache,
                                     an_ifc_stmt_index        stmt_idx,
-                  /* Defaulted: */  a_cache_statement_option options)
+                                    const an_ifc_cache_info  &cinfo)
 /*
-Add tokens corresponding to the statement at stmt_idx to the given cache.  If
-options & cso_func_body is nonzero (it is zero by default), the function is
-being called for the top-level statement of a function: In the IFC
+Add tokens corresponding to the statement at stmt_idx to the given cache.
+cinfo contains information about the current cache context to help inform
+decisions about what to cache.  For example, if cinfo.func_body is TRUE, the
+function is being called for the top-level statement of a function: In the IFC
 representation that is not always a compound statement (ifc_StmtSort_Block) and
 therefore the caller takes responsibility for generating braces in that case
-(i.e., when options & cso_func_body is nonzero, this routine does not cache
-delimiting braces for a compound statement).  No terminating semicolon is added
-to the given cache if options & cso_no_final_semicolon is nonzero.
+(i.e., when cinfo.func_body is TRUE, this routine does not cache delimiting
+braces for a compound statement).
 */
 {
   a_source_position pos;
@@ -2819,19 +2819,22 @@ to the given cache if options & cso_no_final_semicolon is nonzero.
 
         an_ifc_stmt_index alternative = get_ifc_alternative(*opt_isi);
         an_ifc_stmt_index initialization = get_ifc_initialization(*opt_isi);
+
         source_position_from_locus(&pos, get_ifc_locus(*opt_isi));
         cache_token(cache, tok_if, &pos);
         if (!is_null_index(initialization)) {
-          cache_statement(cache, initialization);
+          cache_statement(cache, initialization, cinfo);
         }  /* if */
         cache_token(cache, tok_lparen, &pos);
-        cache_statement(cache, get_ifc_condition(*opt_isi),
-                        cso_no_final_semicolon);
+        { an_ifc_cache_info cache_info = cinfo;
+          cache_info.no_final_semicolon = TRUE;
+          cache_statement(cache, get_ifc_condition(*opt_isi), cache_info);
+        }
         cache_token(cache, tok_rparen, &pos);
-        cache_statement(cache, get_ifc_consequence(*opt_isi));
+        cache_statement(cache, get_ifc_consequence(*opt_isi), cinfo);
         if (!is_null_index(alternative)) {
           cache_token(cache, tok_else, &pos);
-          cache_statement(cache, alternative);
+          cache_statement(cache, alternative, cinfo);
         }  /* if */
       }
       break;
@@ -2845,12 +2848,14 @@ to the given cache if options & cso_no_final_semicolon is nonzero.
         source_position_from_locus(&pos, get_ifc_locus(*opt_isf));
         cache_token(cache, tok_for, &pos);
         cache_token(cache, tok_lparen, &pos);
-        cache_statement(cache, get_ifc_initialization(*opt_isf));
-        cache_statement(cache, get_ifc_condition(*opt_isf));
-        cache_statement(cache, get_ifc_continuation(*opt_isf),
-                        cso_no_final_semicolon);
+        cache_statement(cache, get_ifc_initialization(*opt_isf), cinfo);
+        cache_statement(cache, get_ifc_condition(*opt_isf), cinfo);
+        { an_ifc_cache_info cache_info = cinfo;
+          cache_info.no_final_semicolon = TRUE;
+          cache_statement(cache, get_ifc_continuation(*opt_isf), cache_info);
+        }
         cache_token(cache, tok_rparen, &pos);
-        cache_statement(cache, get_ifc_body(*opt_isf));
+        cache_statement(cache, get_ifc_body(*opt_isf), cinfo);
       }
       break;
     case ifc_ss_stmt_goto:
@@ -2867,7 +2872,7 @@ to the given cache if options & cso_no_final_semicolon is nonzero.
           goto invalid;
         }  /* if */
         source_position_from_locus(&pos, get_ifc_locus(*opt_isc));
-        cache_expr(cache, get_ifc_expr(*opt_isc));
+        cache_expr(cache, get_ifc_expr(*opt_isc), cinfo);
         cache_token(cache, tok_colon, &pos);
       }
       break;
@@ -2881,10 +2886,12 @@ to the given cache if options & cso_no_final_semicolon is nonzero.
         source_position_from_locus(&pos, get_ifc_locus(*opt_isw));
         cache_token(cache, tok_while, &pos);
         cache_token(cache, tok_lparen, &pos);
-        cache_statement(cache, get_ifc_condition(*opt_isw),
-                        cso_no_final_semicolon);
+        { an_ifc_cache_info cache_info = cinfo;
+          cache_info.no_final_semicolon = TRUE;
+          cache_statement(cache, get_ifc_condition(*opt_isw), cache_info);
+        }
         cache_token(cache, tok_rparen, &pos);
-        cache_statement(cache, get_ifc_body(*opt_isw));
+        cache_statement(cache, get_ifc_body(*opt_isw), cinfo);
       }
       break;
     case ifc_ss_stmt_block:
@@ -2896,21 +2903,24 @@ to the given cache if options & cso_no_final_semicolon is nonzero.
         }  /* if */
 
         a_stmt_heap_traverser traverser(*opt_isb);
-        if (!(options & cso_func_body)) {
+        if (!cinfo.func_body) {
           cache_token(cache, tok_lbrace, &null_source_position);
         }  /* if */
-        for (Opt<an_ifc_heap_stmt> opt_ihs : traverser) {
-          if (!opt_ihs.has_value()) {
-            goto invalid;
-          }  /* if */
+        { an_ifc_cache_info cache_info = cinfo;
+          cache_info.func_body = FALSE;
+          for (Opt<an_ifc_heap_stmt> opt_ihs : traverser) {
+            if (!opt_ihs.has_value()) {
+              goto invalid;
+            }  /* if */
 
-          an_ifc_stmt_index value = get_ifc_value(*opt_ihs);
-          /* IFC files sometimes have a NULL statement in this list - don't
-             attempt to cache these. */
-          if (is_null_index(value)) continue;
-          cache_statement(cache, value);
-        }  /* for */
-        if (!(options & cso_func_body)) {
+            an_ifc_stmt_index value = get_ifc_value(*opt_ihs);
+            /* IFC files sometimes have a NULL statement in this list - don't
+               attempt to cache these. */
+            if (is_null_index(value)) continue;
+            cache_statement(cache, value, cache_info);
+          }  /* for */
+        }
+        if (!cinfo.func_body) {
           cache_token(cache, tok_rbrace, &null_source_position);
         }  /* if */
       }
@@ -2937,9 +2947,9 @@ to the given cache if options & cso_no_final_semicolon is nonzero.
         source_position_from_locus(&pos, get_ifc_locus(*opt_iss));
         cache_token(cache, tok_switch, &pos);
         cache_token(cache, tok_lparen, &pos);
-        cache_expr(cache, get_ifc_condition(*opt_iss));
+        cache_expr(cache, get_ifc_condition(*opt_iss), cinfo);
         cache_token(cache, tok_rparen, &pos);
-        cache_statement(cache, get_ifc_body(*opt_iss));
+        cache_statement(cache, get_ifc_body(*opt_iss), cinfo);
       }
       break;
     case ifc_ss_stmt_do_while:
@@ -2951,12 +2961,14 @@ to the given cache if options & cso_no_final_semicolon is nonzero.
         }  /* if */
         source_position_from_locus(&pos, get_ifc_locus(*opt_isdw));
         cache_token(cache, tok_do, &pos);
-        cache_statement(cache, get_ifc_body(*opt_isdw));
+        cache_statement(cache, get_ifc_body(*opt_isdw), cinfo);
         cache_token(cache, tok_while, &pos);
         cache_token(cache, tok_lparen, &pos);
         cache_token(cache, tok_rparen, &pos);
-        cache_statement(cache, get_ifc_condition(*opt_isdw),
-                        cso_no_final_semicolon);
+        { an_ifc_cache_info cache_info = cinfo;
+          cache_info.no_final_semicolon = TRUE;
+          cache_statement(cache, get_ifc_condition(*opt_isdw), cache_info);
+        }
         cache_token(cache, tok_semicolon, &pos);
       }
       break;
@@ -3003,8 +3015,8 @@ to the given cache if options & cso_no_final_semicolon is nonzero.
         if (!opt_ise.has_value()) {
           goto invalid;
         }  /* if */
-        cache_expr(cache, get_ifc_expr(*opt_ise));
-        if (!(options & cso_no_final_semicolon)) {
+        cache_expr(cache, get_ifc_expr(*opt_ise), cinfo);
+        if (!cinfo.no_final_semicolon) {
           cache_token(cache, tok_semicolon, &null_source_position);
         }  /* if */
       }
@@ -3024,7 +3036,7 @@ to the given cache if options & cso_no_final_semicolon is nonzero.
         source_position_from_locus(&pos, get_ifc_locus(*opt_isr));
         cache_token(cache, tok_return, &pos);
         if (!is_null_index(expr)) {
-          cache_expr(cache, expr);
+          cache_expr(cache, expr, cinfo);
         }  /* if */
         cache_token(cache, tok_semicolon, &null_source_position);
       }
@@ -3091,7 +3103,7 @@ FALSE otherwise.
   cache_identifier(cache, get_string_at_offset(get_ifc_name(ide)), &pos);
   if (!is_null_index(initializer)) {
     cache_token(cache, tok_assign, &pos);
-    ide.get_module()->cache_expr(cache, initializer);
+    ide.get_module()->cache_expr(cache, initializer, /*cinfo=*/{});
   }  /* if */
   return TRUE;
 }  /* cache_decl */
@@ -3162,7 +3174,7 @@ FALSE otherwise.
     if (defer_initializer_expr) {
       cache_token_with_index(cache, tok_pending_ifc_expr, initializer, &pos);
     } else {
-      mod->cache_expr(cache, initializer);
+      mod->cache_expr(cache, initializer, /*cinfo=*/{});
     }  /* if */
   }  /* if */
   return TRUE;
@@ -3525,7 +3537,7 @@ instead.
     /* Cache the mem-initializers if needed. */
     if (!is_null_index(initializers)) {
       cache_token(cache, tok_colon, &null_source_position);
-      cache_expr(cache, initializers);
+      cache_expr(cache, initializers, /*cinfo=*/{});
     }  /* if */
     /* Cache the function body.  It appears that a single return statement is
        represented directly rather than as a block containing the return
@@ -3533,7 +3545,9 @@ instead.
        the next statement level by passing the cso_func_body flag. */
     cache_token(cache, tok_lbrace, &null_source_position);
     if (!is_null_index(body)) {
-      cache_statement(cache, body, cso_func_body);
+      an_ifc_cache_info cache_info;
+      cache_info.func_body = TRUE;
+      cache_statement(cache, body, cache_info);
     }  /* if */
     cache_token(cache, tok_rbrace, &null_source_position);
 #if DEBUG
@@ -7238,7 +7252,7 @@ argument.
         check_assertion(param->kind == (a_template_parameter_kind)tpk_nontype);
         type = param->variant.nontype.constant->type;
         source_position_from_locus(&pos, get_ifc_locus(ier));
-        cache_expr(&cache, get_ifc_address(ier));
+        cache_expr(&cache, get_ifc_address(ier), /*cinfo=*/{});
         /* FIXME: Do we need to handle iesrp->sort here? */
         if (cache.is_valid()) {
           a_module_entity_rescan rescan(&cache);
@@ -7266,7 +7280,7 @@ argument.
         source_position_from_locus(&pos, locus);
         cache_operator(&cache, get_ifc_assoc(iem), locus);
         cache_token(&cache, tok_lparen, &pos);
-        cache_expr(&cache, get_ifc_argument(iem));
+        cache_expr(&cache, get_ifc_argument(iem), /*cinfo=*/{});
         cache_token(&cache, tok_rparen, &pos);
         if (cache.is_valid()) {
           a_module_entity_rescan rescan(&cache);
@@ -8712,7 +8726,7 @@ FIXME: what other expressions can we get here?
         init_decl_parse_state(&dps);
         tp = type_for_type_index(get_ifc_type(ied), /*kind=*/NULL);
         complete_type_is_needed(tp);
-        cache_expr(&cache, expr_idx);
+        cache_expr(&cache, expr_idx, /*cinfo=*/{});
         if (cache.is_valid()) {
           a_module_entity_rescan rescan(&cache);
 
@@ -8956,7 +8970,7 @@ successful, FALSE if any errors were encountered.
         a_module_token_cache cache;
 
         ptp->has_default_arg = TRUE;
-        cache_expr(&cache, initializer_expr);
+        cache_expr(&cache, initializer_expr, /*cinfo=*/{});
         if (!cache.is_valid()) {
           ptp->default_arg_expr = error_node();
           result = FALSE;
@@ -9574,7 +9588,7 @@ locus is the location of the Sentence containing literal.
       unexpected_condition();
       break;
     case ifc_sls_scalar:
-      cache_expr(cache, literal.variant.scalar);
+      cache_expr(cache, literal.variant.scalar, /*cinfo=*/{});
       break;
     case ifc_sls_string:
       cache_string(cache, literal.variant.string, locus);
@@ -9669,7 +9683,7 @@ locus is the location of the Sentence containing literal.
       break;
     case ifc_sls_msvc_defined_constant:
       /* FIXME: Is this correct? */
-      cache_expr(cache, literal.variant.msvc_defined_constant);
+      cache_expr(cache, literal.variant.msvc_defined_constant, /*cinfo=*/{});
       issue_unsupported_node_diag("SourceLiteral::MsvcDefinedConstant", &pos);
       break;
     case ifc_sls_msvc_cast_target_type:
@@ -11426,7 +11440,7 @@ this is needed.
         if (!opt_its.has_value()) {
           goto invalid;
         }  /* if */
-        cache_expr(cache, get_ifc_expr(*opt_its));
+        cache_expr(cache, get_ifc_expr(*opt_its), /*cinfo=*/{});
       }
       break;
     case ifc_ts_type_expansion:
@@ -11554,7 +11568,7 @@ this is needed.
           goto invalid;
         }  /* if */
         cache_token(cache, tok_typename, &pos);
-        cache_expr(cache, get_ifc_path(*opt_itt));
+        cache_expr(cache, get_ifc_path(*opt_itt), /*cinfo=*/{});
       }
       break;
     case ifc_ts_type_qualified:
@@ -11606,7 +11620,7 @@ this is needed.
           goto invalid;
         }  /* if */
         /* decltype constructs are currently represented as token sequences. */
-        cache_syntax(cache, get_ifc_expr(*opt_itd));
+        cache_syntax(cache, get_ifc_expr(*opt_itd), /*cinfo=*/{});
       }
       break;
     case ifc_ts_type_placeholder:
@@ -11674,7 +11688,7 @@ this is needed.
         if (!opt_tst.has_value()) {
           goto invalid;
         }  /* if */
-        cache_syntax(cache, get_ifc_syntax(*opt_tst));
+        cache_syntax(cache, get_ifc_syntax(*opt_tst), /*cinfo=*/{});
       }
       break;
     default_is_unexpected_str("Unexpected TypeSort");
@@ -11812,7 +11826,7 @@ this is needed.
         an_ifc_expr_index extent = get_ifc_extent(ita);
         cache_token(cache, tok_lbracket, &pos);
         if (!is_null_index(extent)) {
-          cache_expr(cache, extent);
+          cache_expr(cache, extent, /*cinfo=*/{});
         }  /* if */
         cache_token(cache, tok_rbracket, &pos);
         cache_type_second_part(cache, get_ifc_element(ita), locus);
@@ -11949,7 +11963,7 @@ is the position of the chart.
   cache_token(cache, tok_gt, pos);
   if (!is_null_index(constraint)) {
     /* The template parameter list is followed by a requires-clause. */
-    cache_expr(cache, constraint);
+    cache_expr(cache, constraint, /*cinfo=*/{});
   }  /* if */
   goto done;
 invalid:
@@ -12867,7 +12881,7 @@ initializer can be consistently cached via a ScopeIndex.
   if (!is_null_index(alignment)) {
     cache_token(cache, tok_alignas, &pos);
     cache_token(cache, tok_lparen, &pos);
-    cache_expr(cache, alignment);
+    cache_expr(cache, alignment, /*cinfo=*/{});
     cache_token(cache, tok_rparen, &pos);
   }  /* if */
   /* Cache the "object traits", roughly an MSVC subset of the
@@ -12880,7 +12894,7 @@ initializer can be consistently cached via a ScopeIndex.
   /* Cache the variable with if any. */
   if (!is_null_index(width)) {
     cache_token(cache, tok_colon, &pos);
-    cache_expr(cache, width);
+    cache_expr(cache, width, /*cinfo=*/{});
   }  /* if */
   /* Cache the initializer (if any). */
   cache_init_fn(&pos);
@@ -12952,7 +12966,7 @@ initializer expression.  locus is the source location for the declaration.
         if (cache_braces) {
           cache_token(cache, tok_lbrace, pos);
         }  /* if */
-        cache_expr(cache, initializer);
+        cache_expr(cache, initializer, /*cinfo=*/{});
         if (cache_braces) {
           cache_token(cache, tok_rbrace, pos);
         }  /* if */
@@ -13235,7 +13249,7 @@ mod is the module where the form_idx and locus were encoded.
   Opt<an_ifc_form_spec> opt_ifs;
   construct_node(&opt_ifs, form_idx);
   if (opt_ifs.has_value()) {
-    mod->cache_expr(cache, get_ifc_arguments(*opt_ifs));
+    mod->cache_expr(cache, get_ifc_arguments(*opt_ifs), /*cinfo=*/{});
   }  /* if */
   cache_token(cache, tok_gt, &pos);
 }  /* cache_template_argument_list */
@@ -13454,7 +13468,7 @@ indexed in the IFC by decl_idx) to cache.
 
           if (!is_null_index(initializer)) {
             cache_token(cache, tok_lparen, decl_pos);
-            cache_expr(cache, initializer);
+            cache_expr(cache, initializer, /*cinfo=*/{});
             cache_token(cache, tok_rparen, decl_pos);
           }  /* if */
           cache_token(cache, tok_semicolon, decl_pos);
@@ -13646,7 +13660,7 @@ parameter pack, FALSE otherwise.
        keyword (or "class", but we'll use "typename"). */
     cache_token(cache, tok_typename, pos);
   } else {
-    cache_expr(cache, constraint);
+    cache_expr(cache, constraint, /*cinfo=*/{});
   }  /* if */
   if (is_pack) {
     cache_token(cache, tok_ellipsis, pos);
@@ -13844,7 +13858,7 @@ is responsible for ensuring that the brackets are cached appropriately.
         /* FIXME: Find a way to get a proper position for this. */
         pos = null_source_position;
         auto cache_fn = [cache, &iae, this]() {
-          cache_expr(cache, get_ifc_expression(iae));
+          cache_expr(cache, get_ifc_expression(iae), /*cinfo=*/{});
         };
         if (cache_brackets) {
           cache_attr_fn(cache, cache_fn, &pos);
@@ -14130,7 +14144,7 @@ Add the tokens corresponding to the given declaration (decl) to cache.
         if (!is_null_index(alignment)) {
           cache_token(cache, tok_alignas, &pos);
           cache_token(cache, tok_lparen, &pos);
-          cache_expr(cache, alignment);
+          cache_expr(cache, alignment, /*cinfo=*/{});
           cache_token(cache, tok_rparen, &pos);
         }  /* if */
         cache_identifier(cache, get_string_at_offset(get_ifc_name(ide)), &pos);
@@ -14427,7 +14441,7 @@ Add the tokens corresponding to the given declaration (decl) to cache.
         cache_basic_specifiers(cache, get_ifc_specifiers(idud), &pos);
         cache_token(cache, tok_using, &pos);
         if (!is_null_index(parent)) {
-          cache_expr(cache, parent);
+          cache_expr(cache, parent, /*cinfo=*/{});
           cache_token(cache, tok_colon_colon, &pos);
         }  /* if */
         cache_identifier(cache, get_string_at_offset(get_ifc_name(idud)),
@@ -14595,7 +14609,8 @@ invalid:;
 
 static void cache_args_with_parens(a_module_token_cache_ptr cache,
                                    an_ifc_expr_index        args,
-                                   a_source_position        *pos)
+                                   a_source_position        *pos,
+                                   const an_ifc_cache_info  &cinfo)
 /*
 Record tokens for the IFC expression described by args in the given cache and
 enclose them with parentheses.  If args is an IFC ExpressionList, be sure to
@@ -14606,7 +14621,7 @@ and pos is the associated source position.
   if (args.sort != ifc_es_expr_expression_list) {
     cache_token(cache, tok_lparen, pos);
   }  /* if */
-  args.mod->cache_expr(cache, args);
+  args.mod->cache_expr(cache, args, cinfo);
   if (args.sort != ifc_es_expr_expression_list) {
     cache_token(cache, tok_rparen, pos);
   }  /* if */
@@ -14615,12 +14630,12 @@ and pos is the associated source position.
 
 void an_ifc_module::cache_expr(a_module_token_cache_ptr cache,
                                an_ifc_expr_index        expr,
-             /* Defaulted: */  a_cache_expr_option      options)
+                               const an_ifc_cache_info  &cinfo)
 /*
-Add the tokens corresponding to the given expression (expr) to cache.
-If options & ceo_qualified_name is nonzero, separate tuple elements by '::'
-instead of ','.  If options & ceo_skip_assign is nonzero, only render the
-second operand of an assignment.
+Add the tokens corresponding to the given expression (expr) to cache.  cinfo
+contains information about the current cache context to help inform decisions
+about what to cache.  For example, if cinfo.qualified_name is TRUE, separate
+tuple elements by '::' instead of ','.
 */
 {
   a_source_position pos;
@@ -14726,10 +14741,10 @@ second operand of an assignment.
         an_ifc_expr_template_id ieti = *opt_ieti;
         an_ifc_expr_index       arguments = get_ifc_arguments(ieti);
         source_position_from_locus(&pos, get_ifc_locus(ieti));
-        cache_expr(cache, get_ifc_primary(ieti));
+        cache_expr(cache, get_ifc_primary(ieti), cinfo);
         cache_token(cache, tok_lt, &pos);
         if (!is_null_index(arguments)) {
-          cache_expr(cache, arguments);
+          cache_expr(cache, arguments, cinfo);
         }  /* if */
         cache_token(cache, tok_gt, &pos);
       }
@@ -14758,7 +14773,7 @@ second operand of an assignment.
           /* Note: Do not suppress automatic name qualification here, as the
              resolution can contain a qualified identifier, despite this being
              an "unqualified" identifier. */
-          cache_expr(cache, resolution);
+          cache_expr(cache, resolution, cinfo);
         } else if (!is_null_index(name)) {
           cache_name(cache, name, locus);
         }  /* if */
@@ -14795,12 +14810,14 @@ second operand of an assignment.
         }  /* if */
 
         an_ifc_expr_qualified_name ieqn = *opt_ieqn;
+        an_ifc_cache_info          cache_info = cinfo;
+        cache_info.qualified_name = TRUE;
         source_position_from_locus(&pos, get_ifc_locus(ieqn));
         /* FIXME: Do we need to handle the "type" field here? */
         if (get_ifc_line(get_ifc_typename_keyword(ieqn)) != 0) {
           cache_token(cache, tok_typename, &pos);
         }  /* if */
-        cache_expr(cache, get_ifc_elements(ieqn), ceo_qualified_name);
+        cache_expr(cache, get_ifc_elements(ieqn), cache_info);
       }
       break;
     case ifc_es_expr_path:
@@ -14817,14 +14834,14 @@ second operand of an assignment.
 
         an_ifc_expr_path iep = *opt_iep;
         if (!suppress_automatic_name_qualification) {
-          cache_expr(cache, get_ifc_scope(iep));
+          cache_expr(cache, get_ifc_scope(iep), cinfo);
           cache_token(cache, tok_colon_colon, &null_source_position);
           update_name_qualification_suppression(iep);
           /* We've already cached the name qualification - suppress any
              attempts to qualify the member. */
           suppress_automatic_name_qualification = TRUE;
         }  /* if */
-        cache_expr(cache, get_ifc_member(iep));
+        cache_expr(cache, get_ifc_member(iep), cinfo);
       }
       break;
     case ifc_es_expr_read:
@@ -14834,7 +14851,7 @@ second operand of an assignment.
         if (!opt_ier.has_value()) {
           goto invalid;
         }  /* if */
-        cache_expr(cache, get_ifc_address(*opt_ier));
+        cache_expr(cache, get_ifc_address(*opt_ier), cinfo);
         /* FIXME: Do we need to handle iesrp->sort here? */
       }
       break;
@@ -14851,10 +14868,10 @@ second operand of an assignment.
         an_ifc_source_location       locus = get_ifc_locus(iem);
         an_ifc_monadic_operator_sort assoc = get_ifc_assoc(iem);
         auto                         cache_arg =
-                                               [this, cache, &argument, &pos] {
+                                        [this, cache, cinfo, &argument, &pos] {
           cache_token(cache, tok_lparen, &pos);
           if (!is_null_index(argument)) {
-            cache_expr(cache, argument);
+            cache_expr(cache, argument, cinfo);
           } /* if */
           cache_token(cache, tok_rparen, &pos);
         };  /* cache_arg */
@@ -14865,7 +14882,7 @@ second operand of an assignment.
             cache_operator(cache, assoc, locus);
             if (assoc == ifc_mos_lookup_globally) {
               /* Do not produce parentheses after a "::". */
-              cache_expr(cache, argument);
+              cache_expr(cache, argument, cinfo);
             } else {
               cache_arg();
             }  /* if */
@@ -14886,7 +14903,7 @@ second operand of an assignment.
                 unexpected_condition();
               }  /* if */
               cache_token(cache, ltok, &pos);
-              cache_expr(cache, argument);
+              cache_expr(cache, argument, cinfo);
               cache_token(cache, rtok, &pos);
             }
             break;
@@ -14921,11 +14938,13 @@ second operand of an assignment.
             if (assoc == ifc_dos_comma) {
               cache_token(cache, tok_lparen, &pos);
             }  /* if */
-            if ((options & ceo_skip_assign) == 0 || assoc != ifc_dos_assign) {
-              cache_expr(cache, arg_0, ceo_possible_temporary_decl);
+            if (!cinfo.skip_assign || assoc != ifc_dos_assign) {
+              an_ifc_cache_info cache_info = cinfo;
+              cache_info.possible_temporary_decl = TRUE;
+              cache_expr(cache, arg_0, cache_info);
               cache_operator(cache, assoc, locus);
             }  /* if */
-            cache_expr(cache, arg_1);
+            cache_expr(cache, arg_1, cinfo);
             if (assoc == ifc_dos_comma) {
               cache_token(cache, tok_rparen, &pos);
             }  /* if */
@@ -14935,13 +14954,13 @@ second operand of an assignment.
               /* An expression like "this->i" is represented in IFC files as
                  "this->__MsvcAlign(4, i)".  That has no equivalent in the
                  EDG IL.  So just cache the second argument. */
-              cache_expr(cache, arg_1);
+              cache_expr(cache, arg_1, cinfo);
             } else {
               cache_operator(cache, assoc, locus);
               cache_token(cache, tok_lparen, &pos);
-              cache_expr(cache, arg_0);
+              cache_expr(cache, arg_0, cinfo);
               cache_token(cache, tok_comma, &pos);
-              cache_expr(cache, arg_1);
+              cache_expr(cache, arg_1, cinfo);
               cache_token(cache, tok_rparen, &pos);
             }  /* if */
             break;
@@ -14954,14 +14973,14 @@ second operand of an assignment.
             } else {
               cache_token(cache, tok_lt, &pos);
             }  /* if */
-            cache_expr(cache, arg_0);
+            cache_expr(cache, arg_0, cinfo);
             if (opkind == opkind_c_cast) {
               cache_token(cache, tok_rparen, &pos);
             } else {
               cache_token(cache, tok_gt, &pos);
             }  /* if */
             cache_token(cache, tok_lparen, &pos);
-            cache_expr(cache, arg_1);
+            cache_expr(cache, arg_1, cinfo);
             cache_token(cache, tok_rparen, &pos);
             break;
           case opkind_post:
@@ -14991,20 +15010,20 @@ second operand of an assignment.
         source_position_from_locus(&pos, locus);
         switch (assoc) {
           case ifc_tos_choice:
-            cache_expr(cache, arg_0);
+            cache_expr(cache, arg_0, cinfo);
             cache_operator(cache, assoc, locus);
-            cache_expr(cache, arg_1);
+            cache_expr(cache, arg_1, cinfo);
             cache_token(cache, tok_colon, &pos);
-            cache_expr(cache, arg_2);
+            cache_expr(cache, arg_2, cinfo);
             break;
           case ifc_tos_construct_at:
             cache_operator(cache, assoc, locus);
             cache_token(cache, tok_lparen, &pos);
-            cache_expr(cache, arg_0);
+            cache_expr(cache, arg_0, cinfo);
             cache_token(cache, tok_rparen, &pos);
-            cache_expr(cache, arg_1);
+            cache_expr(cache, arg_1, cinfo);
             if (!is_null_index(arg_2)) {
-              cache_args_with_parens(cache, arg_2, &pos);
+              cache_args_with_parens(cache, arg_2, &pos, cinfo);
             }  /* if */
             break;
           default:
@@ -15036,7 +15055,7 @@ second operand of an assignment.
         an_ifc_expr_temporary  iet = *opt_iet;
         an_ifc_source_location locus = get_ifc_locus(iet);
         source_position_from_locus(&pos, locus);
-        if ((options & ceo_possible_temporary_decl) != 0) {
+        if (cinfo.possible_temporary_decl) {
           cache_type(cache, get_ifc_type(iet), locus);
         }  /* if */
         cache_identifier(cache, make_ifc_temporary_unique_id(get_ifc_id(iet)),
@@ -15055,7 +15074,7 @@ second operand of an assignment.
         an_ifc_source_location locus = get_ifc_locus(iec);
         an_ifc_expr_index      arguments = get_ifc_arguments(iec);
         source_position_from_locus(&pos, locus);
-        cache_expr(cache, get_ifc_operation(iec));
+        cache_expr(cache, get_ifc_operation(iec), cinfo);
         if (is_null_index(arguments)) {
           /* Sometimes (but not always) an empty argument list appears to be
              represented using a null "arguments" field. */
@@ -15063,7 +15082,7 @@ second operand of an assignment.
           cache_token(cache, tok_lparen, &pos);
           cache_token(cache, tok_rparen, &pos);
         } else {
-          cache_args_with_parens(cache, arguments, &pos);
+          cache_args_with_parens(cache, arguments, &pos, cinfo);
         }  /* if */
       }
       break;
@@ -15091,7 +15110,10 @@ second operand of an assignment.
                                       &error_position);
         }  /* if */
         cache_token(cache, tok_lparen, &null_source_position);
-        cache_expr(cache, get_ifc_initializer(iemi), ceo_skip_assign);
+        { an_ifc_cache_info cache_info = cinfo;
+          cache_info.skip_assign = TRUE;
+          cache_expr(cache, get_ifc_initializer(iemi), cache_info);
+        }
         cache_token(cache, tok_rparen, &null_source_position);
       }
       break;
@@ -15133,13 +15155,13 @@ second operand of an assignment.
         switch (get_ifc_op(iec)) {
           case ifc_dos_explicit_conversion:
             cache_type(cache, get_ifc_target(iec), locus);
-            cache_expr(cache, get_ifc_source(iec));
+            cache_expr(cache, get_ifc_source(iec), cinfo);
             break;
           case ifc_dos_pretend:
             cache_token(cache, tok_lparen, &pos);
             cache_type(cache, get_ifc_target(iec), locus);
             cache_token(cache, tok_rparen, &pos);
-            cache_expr(cache, get_ifc_source(iec));
+            cache_expr(cache, get_ifc_source(iec), cinfo);
             break;
           case ifc_dos_reinterpret_cast:
             cache_token(cache, tok_reinterpret_cast, &pos);
@@ -15157,12 +15179,12 @@ common_cast:
             cache_type(cache, get_ifc_target(iec), locus);
             cache_token(cache, tok_gt, &pos);
             cache_token(cache, tok_lparen, &pos);
-            cache_expr(cache, get_ifc_source(iec));
+            cache_expr(cache, get_ifc_source(iec), cinfo);
             cache_token(cache, tok_rparen, &pos);
             break;
           default:
             cache_type(cache, get_ifc_target(iec), locus);
-            cache_expr(cache, get_ifc_source(iec));
+            cache_expr(cache, get_ifc_source(iec), cinfo);
             unexpected_condition_str("Unexpected DyadicOperator "
                                      "for ExprSort::Cast");
         }  /* switch */
@@ -15190,7 +15212,7 @@ common_cast:
                       &pos);
         }  /* if */
         if (!is_null_index(contents)) {
-          cache_expr(cache, contents);
+          cache_expr(cache, contents, cinfo);
         }  /* if */
         if (delimiter != ifc_ds_unknown) {
           source_position_from_locus(&pos, get_ifc_right(eel));
@@ -15236,7 +15258,7 @@ common_cast:
         if (!opt_iest.has_value()) {
           goto invalid;
         }  /* if */
-        cache_syntax(cache, get_ifc_syntax(*opt_iest));
+        cache_syntax(cache, get_ifc_syntax(*opt_iest), cinfo);
       }
       break;
     case ifc_es_expr_function_string:
@@ -15268,9 +15290,14 @@ common_cast:
         source_position_from_locus(&pos, get_ifc_locus(ier));
         cache_token(cache, tok_requires, &pos);
         if (!is_null_index(parameters)) {
-          cache_syntax(cache, parameters);
+          cache_syntax(cache, parameters, cinfo);
         }  /* if */
-        cache_syntax(cache, get_ifc_body(ier));
+        /* FIXME: Is it necessary to set requires_body = TRUE here, or will
+           this always be a SyntaxSort::RequirementsBody? */
+        { an_ifc_cache_info    cache_info = cinfo;
+          cache_info.requires_body = TRUE;
+          cache_syntax(cache, get_ifc_body(ier), cache_info);
+        }
       }
       break;
     case ifc_es_expr_unary_fold:
@@ -15353,7 +15380,7 @@ common_cast:
         Value_saver<a_boolean> suppression(
                                        &suppress_automatic_name_qualification);
 
-        if ((options & ceo_qualified_name) != 0) {
+        if (cinfo.qualified_name) {
           /* This tuple contains a series of name qualifiers - we don't want to
              perform automatic name qualification, as this would result in
              duplicate qualifiers. */
@@ -15364,12 +15391,11 @@ common_cast:
             goto invalid;
           }  /* if */
           if (!first) {
-            a_token_kind sep = options & ceo_qualified_name ? tok_colon_colon
-                                                            : tok_comma;
-
+            a_token_kind sep = cinfo.qualified_name ? tok_colon_colon
+                                                    : tok_comma;
             cache_token(cache, sep, &pos);
           }  /* if */
-          cache_expr(cache, get_ifc_value(*opt_ihe));
+          cache_expr(cache, get_ifc_value(*opt_ihe), cinfo);
           first = FALSE;
         }  /* for */
       }
@@ -15402,7 +15428,7 @@ common_cast:
                          &pos);
         if (!is_null_index(arguments)) {
           cache_token(cache, tok_lt, &pos);
-          cache_expr(cache, arguments);
+          cache_expr(cache, arguments, cinfo);
           cache_token(cache, tok_gt, &pos);
         }  /* if */
       }
@@ -15428,7 +15454,7 @@ common_cast:
         if (!opt_iepta.has_value()) {
           goto invalid;
         }  /* if */
-        cache_expr(cache, get_ifc_arguments(*opt_iepta));
+        cache_expr(cache, get_ifc_arguments(*opt_iepta), cinfo);
       }
       break;
     case ifc_es_expr_tokens:
@@ -15458,9 +15484,14 @@ done:;
 
 
 void an_ifc_module::cache_syntax(a_module_token_cache_ptr cache,
-                                 an_ifc_syntax_index      syntax)
+                                 an_ifc_syntax_index      syntax,
+                                 const an_ifc_cache_info  &cinfo)
 /*
-Add the tokens corresponding to the given syntax tree to cache.
+Add the tokens corresponding to the given syntax tree to cache.  cinfo contains
+information about the current cache context to help inform decisions about what
+to cache.  For example, if cinfo.requires_param_decl is TRUE, parameter
+references should include decl specifiers, type, and any default expression.
+Otherwise, parameter references should only include the parameter name.
 */
 {
   a_source_position pos;
@@ -15486,7 +15517,7 @@ Add the tokens corresponding to the given syntax tree to cache.
           cache_type(cache, type, get_ifc_locus(issts));
         } else {
           check_assertion(!is_null_index(expr));
-          cache_expr(cache, expr);
+          cache_expr(cache, expr, cinfo);
         }  /* if */
       }
       break;
@@ -15502,7 +15533,7 @@ Add the tokens corresponding to the given syntax tree to cache.
         source_position_from_locus(&pos, get_ifc_decltype_keyword(isds));
         cache_token(cache, tok_decltype, &pos);
         cache_token(cache, tok_lparen, &pos);
-        cache_expr(cache, get_ifc_expr(isds));
+        cache_expr(cache, get_ifc_expr(isds), cinfo);
         cache_token(cache, tok_rparen, &pos);
       }
       break;
@@ -15551,7 +15582,7 @@ Add the tokens corresponding to the given syntax tree to cache.
         cache_qualifiers(cache, get_ifc_qualifiers(istss), &pos);
         if (is_null_index(type)) {
           check_assertion(!is_null_index(type_name));
-          cache_syntax(cache, type_name);
+          cache_syntax(cache, type_name, cinfo);
         } else {
           check_assertion(is_null_index(type_name));
           cache_type(cache, type, locus);
@@ -15579,12 +15610,12 @@ Add the tokens corresponding to the given syntax tree to cache.
           cache_sentence(cache, declspec);
         }  /* if */
         if (!is_null_index(explicit_kw)) {
-          cache_syntax(cache, explicit_kw);
+          cache_syntax(cache, explicit_kw, cinfo);
         }  /* if */
         cache_qualifiers(cache, get_ifc_qualifiers(isdss), &pos);
         if (is_null_index(type)) {
           check_assertion(!is_null_index(type_name));
-          cache_syntax(cache, type_name);
+          cache_syntax(cache, type_name, cinfo);
         } else {
           check_assertion(is_null_index(type_name));
           cache_type(cache, type, locus);
@@ -15621,7 +15652,7 @@ Add the tokens corresponding to the given syntax tree to cache.
         source_position_from_locus(&pos, get_ifc_locus(sns));
         cache_token(cache, tok_noexcept, &pos);
         cache_token(cache, tok_lparen, &pos);
-        cache_syntax(cache, get_ifc_expr(sns));
+        cache_syntax(cache, get_ifc_expr(sns), cinfo);
         cache_token(cache, tok_rparen, &pos);
       }
       break;
@@ -15639,7 +15670,7 @@ Add the tokens corresponding to the given syntax tree to cache.
         cache_token(cache, tok_explicit, &pos);
         if (!is_null_index(condition)) {
           cache_token(cache, tok_lparen, &pos);
-          cache_expr(cache, condition);
+          cache_expr(cache, condition, cinfo);
           cache_token(cache, tok_rparen, &pos);
         }  /* if */
       }
@@ -15700,9 +15731,9 @@ Add the tokens corresponding to the given syntax tree to cache.
         an_ifc_syntax_type_id isti = *opt_isti;
         an_ifc_syntax_index   abstract_declarator =
                                              get_ifc_abstract_declarator(isti);
-        cache_syntax(cache, get_ifc_type_specifier(isti));
+        cache_syntax(cache, get_ifc_type_specifier(isti), cinfo);
         if (!is_null_index(abstract_declarator)) {
-          cache_syntax(cache, abstract_declarator);
+          cache_syntax(cache, abstract_declarator, cinfo);
         }  /* if */
       }
       break;
@@ -15715,7 +15746,7 @@ Add the tokens corresponding to the given syntax tree to cache.
         }  /* if */
         source_position_from_locus(&pos, get_ifc_arrow(*opt_istrt));
         cache_token(cache, tok_arrow, &pos);
-        cache_syntax(cache, get_ifc_target(*opt_istrt));
+        cache_syntax(cache, get_ifc_target(*opt_istrt), cinfo);
       }
       break;
     case ifc_ss_syntax_declarator:
@@ -15743,25 +15774,25 @@ Add the tokens corresponding to the given syntax tree to cache.
           cache_calling_convention(cache, convention, &pos);
         }  /* if */
         if (!is_null_index(pointer)) {
-          cache_syntax(cache, pointer);
+          cache_syntax(cache, pointer, cinfo);
         } else if (!is_null_index(parenthesized)) {
           cache_token(cache, tok_lparen, &pos);
-          cache_syntax(cache, parenthesized);
+          cache_syntax(cache, parenthesized, cinfo);
           cache_token(cache, tok_rparen, &pos);
         } else if (!is_null_index(array_or_function)) {
-          cache_syntax(cache, array_or_function);
+          cache_syntax(cache, array_or_function, cinfo);
         }  /* if */
         cache_qualifiers(cache, get_ifc_qualifiers(isd), &pos);
         if (!is_null_index(virtual_specifiers)) {
-          cache_syntax(cache, virtual_specifiers);
+          cache_syntax(cache, virtual_specifiers, cinfo);
         }  /* if */
         if (!is_null_index(name)) {
           /* FIXME: Confirm and ensure that the name is cached at the right
              location in the sequence of tokens. */
-          cache_expr(cache, name);
+          cache_expr(cache, name, cinfo);
         }  /* if */
         if (!is_null_index(trailing_target)) {
-          cache_syntax(cache, trailing_target);
+          cache_syntax(cache, trailing_target, cinfo);
         }  /* if */
       }
       break;
@@ -15798,7 +15829,7 @@ Add the tokens corresponding to the given syntax tree to cache.
             { an_ifc_syntax_index whole = get_ifc_whole(ispd);
 
               check_assertion(!is_null_index(whole));
-              cache_syntax(cache, whole);
+              cache_syntax(cache, whole, cinfo);
               cache_token(cache, tok_colon_colon, &pos);
               cache_token(cache, tok_star, &pos);
             }
@@ -15806,7 +15837,7 @@ Add the tokens corresponding to the given syntax tree to cache.
           default_is_unexpected_str("Unexpected PointerDeclaratorSort");
         }  /* switch */
         if (!is_null_index(next)) {
-          cache_syntax(cache, next);
+          cache_syntax(cache, next, cinfo);
         }  /* if */
       }
       break;
@@ -15823,7 +15854,7 @@ Add the tokens corresponding to the given syntax tree to cache.
         source_position_from_locus(&pos, get_ifc_left_bracket(isad));
         cache_token(cache, tok_lbracket, &pos);
         if (!is_null_index(bound)) {
-          cache_expr(cache, bound);
+          cache_expr(cache, bound, cinfo);
         }  /* if */
         source_position_from_locus(&pos, get_ifc_right_bracket(isad));
         cache_token(cache, tok_rbracket, &pos);
@@ -15844,12 +15875,12 @@ Add the tokens corresponding to the given syntax tree to cache.
         source_position_from_locus(&pos, get_ifc_left_paren(isfd));
         cache_token(cache, tok_lparen, &pos);
         if (!is_null_index(parameters)) {
-          cache_syntax(cache, parameters);
+          cache_syntax(cache, parameters, cinfo);
         }  /* if */
         source_position_from_locus(&pos, get_ifc_right_paren(isfd));
         cache_token(cache, tok_rparen, &pos);
         if (!is_null_index(eh_spec)) {
-          cache_syntax(cache, eh_spec);
+          cache_syntax(cache, eh_spec, cinfo);
         }  /* if */
       }
       break;
@@ -15863,9 +15894,9 @@ Add the tokens corresponding to the given syntax tree to cache.
 
         an_ifc_syntax_array_or_function_declarator isaofd = *opt_isaofd;
         an_ifc_syntax_index                        next = get_ifc_next(isaofd);
-        cache_syntax(cache, get_ifc_declarator(isaofd));
+        cache_syntax(cache, get_ifc_declarator(isaofd), cinfo);
         if (!is_null_index(next)) {
-          cache_syntax(cache, next);
+          cache_syntax(cache, next, cinfo);
         }  /* if */
       }
       break;
@@ -15883,13 +15914,13 @@ Add the tokens corresponding to the given syntax tree to cache.
         an_ifc_expr_index                  default_expr =
                                                     get_ifc_default_expr(ispd);
         source_position_from_locus(&pos, get_ifc_locus(ispd));
-        if (!is_null_index(decl_specifiers)) {
-          cache_syntax(cache, decl_specifiers);
+        if (!cinfo.requires_body && !is_null_index(decl_specifiers)) {
+          cache_syntax(cache, decl_specifiers, cinfo);
         }  /* if */
-        cache_syntax(cache, get_ifc_declarator(ispd));
-        if (!is_null_index(default_expr)) {
+        cache_syntax(cache, get_ifc_declarator(ispd), cinfo);
+        if (!cinfo.requires_body && !is_null_index(default_expr)) {
           cache_token(cache, tok_eq, &pos);
-          cache_expr(cache, default_expr);
+          cache_expr(cache, default_expr, cinfo);
         }  /* if */
       }
       break;
@@ -15904,12 +15935,12 @@ Add the tokens corresponding to the given syntax tree to cache.
         an_ifc_syntax_init_declarator isid = *opt_isid;
         an_ifc_expr_index             initializer = get_ifc_initializer(isid);
         an_ifc_source_location        comma = get_ifc_comma(isid);
-        cache_syntax(cache, get_ifc_declarator(isid));
+        cache_syntax(cache, get_ifc_declarator(isid), cinfo);
         /* FIXME: Handle the constraint field. */
         if (!is_null_index(initializer)) {
           /* FIXME: Find a way to get a proper source position for this. */
           cache_token(cache, tok_eq, &null_source_position);
-          cache_expr(cache, initializer);
+          cache_expr(cache, initializer, cinfo);
         }  /* if */
         if (get_ifc_line(comma) != 0) {
           source_position_from_locus(&pos, comma);
@@ -15934,9 +15965,9 @@ Add the tokens corresponding to the given syntax tree to cache.
         an_ifc_syntax_index              decl_specifiers =
                                                  get_ifc_decl_specifiers(issd);
         if (!is_null_index(decl_specifiers)) {
-          cache_syntax(cache, decl_specifiers);
+          cache_syntax(cache, decl_specifiers, cinfo);
         }  /* if */
-        cache_syntax(cache, get_ifc_declarators(issd));
+        cache_syntax(cache, get_ifc_declarators(issd), cinfo);
         source_position_from_locus(&pos, get_ifc_semicolon(issd));
         cache_token(cache, tok_semicolon, &pos);
       }
@@ -15965,10 +15996,10 @@ Add the tokens corresponding to the given syntax tree to cache.
         source_position_from_locus(&pos, get_ifc_locus(issad));
         cache_token(cache, tok_static_assert, &pos);
         cache_token(cache, tok_lparen, &pos);
-        cache_expr(cache, get_ifc_condition(issad));
+        cache_expr(cache, get_ifc_condition(issad), cinfo);
         if (!is_null_index(message)) {
           cache_token(cache, tok_comma, &pos);
-          cache_expr(cache, message);
+          cache_expr(cache, message, cinfo);
         }  /* if */
         cache_token(cache, tok_rparen, &pos);
         cache_token(cache, tok_semicolon, &pos);
@@ -16104,7 +16135,7 @@ Add the tokens corresponding to the given syntax tree to cache.
         if (!opt_ise.has_value()) {
           goto invalid;
         }  /* if */
-        cache_expr(cache, get_ifc_expression(*opt_ise));
+        cache_expr(cache, get_ifc_expression(*opt_ise), cinfo);
       }
       break;
     case ifc_ss_syntax_function_definition:
@@ -16128,8 +16159,8 @@ Add the tokens corresponding to the given syntax tree to cache.
         an_ifc_syntax_template_declaration istd = *opt_istd;
         source_position_from_locus(&pos, get_ifc_locus(istd));
         cache_token(cache, tok_template, &pos);
-        cache_syntax(cache, get_ifc_parameters(istd));
-        cache_syntax(cache, get_ifc_subject(istd));
+        cache_syntax(cache, get_ifc_parameters(istd), cinfo);
+        cache_syntax(cache, get_ifc_subject(istd), cinfo);
       }
       break;
     case ifc_ss_syntax_requires_clause:
@@ -16143,7 +16174,7 @@ Add the tokens corresponding to the given syntax tree to cache.
         an_ifc_syntax_requires_clause isrc = *opt_isrc;
         source_position_from_locus(&pos, get_ifc_locus(isrc));
         cache_token(cache, tok_requires, &pos);
-        cache_expr(cache, get_ifc_condition(isrc));
+        cache_expr(cache, get_ifc_condition(isrc), cinfo);
       }
       break;
     case ifc_ss_syntax_simple_requirement:
@@ -16156,7 +16187,7 @@ Add the tokens corresponding to the given syntax tree to cache.
 
         an_ifc_syntax_simple_requirement issr = *opt_issr;
         source_position_from_locus(&pos, get_ifc_locus(issr));
-        cache_expr(cache, get_ifc_condition(issr));
+        cache_expr(cache, get_ifc_condition(issr), cinfo);
         cache_token(cache, tok_semicolon, &pos);
       }
       break;
@@ -16171,7 +16202,7 @@ Add the tokens corresponding to the given syntax tree to cache.
         an_ifc_syntax_type_requirement istr = *opt_istr;
         source_position_from_locus(&pos, get_ifc_locus(istr));
         cache_token(cache, tok_typename, &pos);
-        cache_expr(cache, get_ifc_type(istr));
+        cache_expr(cache, get_ifc_type(istr), cinfo);
         cache_token(cache, tok_semicolon, &pos);
       }
       break;
@@ -16188,7 +16219,7 @@ Add the tokens corresponding to the given syntax tree to cache.
                                                     get_ifc_noexcept_loc(iscr);
         source_position_from_locus(&pos, get_ifc_locus(iscr));
         cache_token(cache, tok_lbrace, &pos);
-        cache_expr(cache, get_ifc_condition(iscr));
+        cache_expr(cache, get_ifc_condition(iscr), cinfo);
         source_position_from_locus(&pos, get_ifc_right_curly(iscr));
         cache_token(cache, tok_rbrace, &pos);
         if (get_ifc_line(noexcept_loc) != 0) {
@@ -16196,7 +16227,7 @@ Add the tokens corresponding to the given syntax tree to cache.
           cache_token(cache, tok_noexcept, &pos);
         }  /* if */
         cache_token(cache, tok_arrow, &pos);
-        cache_expr(cache, get_ifc_constraint(iscr));
+        cache_expr(cache, get_ifc_constraint(iscr), cinfo);
       }
       break;
     case ifc_ss_syntax_nested_requirement:
@@ -16213,9 +16244,11 @@ Add the tokens corresponding to the given syntax tree to cache.
         }  /* if */
 
         an_ifc_syntax_requirement_body isrb = *opt_isrb;
+        an_ifc_cache_info              cache_info = cinfo;
+        cache_info.requires_body = TRUE;
         source_position_from_locus(&pos, get_ifc_locus(isrb));
         cache_token(cache, tok_lbrace, &pos);
-        cache_syntax(cache, get_ifc_requirements(isrb));
+        cache_syntax(cache, get_ifc_requirements(isrb), cache_info);
         source_position_from_locus(&pos, get_ifc_right_curly(isrb));
         cache_token(cache, tok_rbrace, &pos);
       }
@@ -16241,7 +16274,7 @@ Add the tokens corresponding to the given syntax tree to cache.
         /* FIXME: Handle constraint field. */
         if (!is_null_index(argument)) {
           cache_token(cache, tok_eq, &pos);
-          cache_syntax(cache, argument);
+          cache_syntax(cache, argument, cinfo);
         }  /* if */
       }
       break;
@@ -16258,7 +16291,7 @@ Add the tokens corresponding to the given syntax tree to cache.
                                                        get_ifc_argument(isttp);
         source_position_from_locus(&pos, get_ifc_locus(isttp));
         cache_token(cache, tok_template, &pos);
-        cache_syntax(cache, get_ifc_parameters(isttp));
+        cache_syntax(cache, get_ifc_parameters(isttp), cinfo);
         cache_token(cache, tok_gt, &pos);
         if (get_ifc_line(get_ifc_ellipsis(isttp)) != 0) {
           cache_token(cache, tok_ellipsis, &pos);
@@ -16267,7 +16300,7 @@ Add the tokens corresponding to the given syntax tree to cache.
                          &pos);
         if (!is_null_index(argument)) {
           cache_token(cache, tok_eq, &pos);
-          cache_syntax(cache, argument);
+          cache_syntax(cache, argument, cinfo);
         }  /* if */
         if (get_ifc_line(get_ifc_comma(isttp)) != 0) {
           cache_token(cache, tok_comma, &pos);
@@ -16286,7 +16319,7 @@ Add the tokens corresponding to the given syntax tree to cache.
         an_ifc_source_location               ellipsis =
                                                        get_ifc_ellipsis(istta);
         an_ifc_source_location               comma = get_ifc_comma(istta);
-        cache_syntax(cache, get_ifc_argument(istta));
+        cache_syntax(cache, get_ifc_argument(istta), cinfo);
         if (get_ifc_line(ellipsis) != 0) {
           source_position_from_locus(&pos, ellipsis);
           cache_token(cache, tok_ellipsis, &pos);
@@ -16309,7 +16342,7 @@ Add the tokens corresponding to the given syntax tree to cache.
         an_ifc_source_location                   ellipsis =
                                                       get_ifc_ellipsis(isntta);
         an_ifc_source_location                   comma = get_ifc_comma(isntta);
-        cache_expr(cache, get_ifc_argument(isntta));
+        cache_expr(cache, get_ifc_argument(isntta), cinfo);
         if (get_ifc_line(ellipsis) != 0) {
           source_position_from_locus(&pos, ellipsis);
           cache_token(cache, tok_ellipsis, &pos);
@@ -16331,7 +16364,7 @@ Add the tokens corresponding to the given syntax tree to cache.
         an_ifc_syntax_template_parameter_list istpl = *opt_istpl;
         source_position_from_locus(&pos, get_ifc_left_angle(istpl));
         cache_token(cache, tok_lt, &pos);
-        cache_syntax(cache, get_ifc_parameters(istpl));
+        cache_syntax(cache, get_ifc_parameters(istpl), cinfo);
         /* FIXME: Handle the "clause" field. */
         source_position_from_locus(&pos, get_ifc_right_angle(istpl));
         cache_token(cache, tok_gt, &pos);
@@ -16348,7 +16381,7 @@ Add the tokens corresponding to the given syntax tree to cache.
         an_ifc_syntax_template_argument_list istal = *opt_istal;
         source_position_from_locus(&pos, get_ifc_left_angle(istal));
         cache_token(cache, tok_lt, &pos);
-        cache_syntax(cache, get_ifc_arguments(istal));
+        cache_syntax(cache, get_ifc_arguments(istal), cinfo);
         /* FIXME: Handle the "clause" field. */
         source_position_from_locus(&pos, get_ifc_right_angle(istal));
         cache_token(cache, tok_gt, &pos);
@@ -16369,14 +16402,14 @@ Add the tokens corresponding to the given syntax tree to cache.
           cache_token(cache, tok_template, &pos);
         }  /* if */
         if (!is_null_index(name)) {
-          cache_syntax(cache, name);
+          cache_syntax(cache, name, cinfo);
         } else {
           an_ifc_expr_index symbol = get_ifc_symbol(isti);
 
           check_assertion(!is_null_index(symbol));
-          cache_expr(cache, symbol);
+          cache_expr(cache, symbol, cinfo);
         }  /* if */
-        cache_syntax(cache, get_ifc_arguments(isti));
+        cache_syntax(cache, get_ifc_arguments(isti), cinfo);
       }
       break;
     case ifc_ss_syntax_mem_initializer:
@@ -16509,7 +16542,7 @@ Add the tokens corresponding to the given syntax tree to cache.
           if (!opt_ihs.has_value()) {
             goto invalid;
           }  /* if */
-          cache_syntax(cache, get_ifc_value(*opt_ihs));
+          cache_syntax(cache, get_ifc_value(*opt_ihs), cinfo);
         }  /* for */
       }
       break;
@@ -16624,7 +16657,7 @@ of the name.
         cache_name(cache, get_ifc_primary(ins), locus);
         cache_token(cache, tok_lt, &pos);
         if (!is_null_index(args)) {
-          cache_expr(cache, args);
+          cache_expr(cache, args, /*cinfo=*/{});
         }  /* if */
         cache_token(cache, tok_gt, &pos);
       }
