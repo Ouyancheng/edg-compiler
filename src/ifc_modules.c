@@ -14851,8 +14851,35 @@ tuple elements by '::' instead of ','.
         if (!opt_ier.has_value()) {
           goto invalid;
         }  /* if */
-        cache_expr(cache, get_ifc_address(*opt_ier), cinfo);
-        /* FIXME: Do we need to handle iesrp->sort here? */
+        an_ifc_expr_read  ier = *opt_ier;
+        an_ifc_read_conversion_sort
+                          read_sort = get_ifc_sort(ier);
+        source_position_from_locus(&pos, get_ifc_locus(ier));
+        switch (read_sort) {
+          case ifc_rcs_indirection:
+            cache_token(cache, tok_star, &pos);
+            break;
+          case ifc_rcs_dereference:
+            cache_token(cache, tok_ampersand, &pos);
+            break;
+          case ifc_rcs_lvalue_to_rvalue:
+            /* FIXME: This seems to be the value used in general for read_sort,
+               regardless of what is referred to.  Revisit this once read_sort
+               values are sensible. */
+            { an_ifc_type_index type = get_ifc_type(ier);
+              if (type.sort == ifc_ts_type_pointer) {
+                cache_token(cache, tok_star, &pos);
+              }  /* if */
+            }
+            break;
+          case ifc_rcs_identity:
+          case ifc_rcs_integral_conversion:
+            /* These all seem to have their semantics properly conveyed during
+               caching as identity. */
+            break;
+          default_is_unexpected_str("Unexpected ReadConversionSort");
+        };
+        cache_expr(cache, get_ifc_address(ier), cinfo);
       }
       break;
     case ifc_es_expr_monad:
