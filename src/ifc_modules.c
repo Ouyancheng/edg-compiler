@@ -14866,13 +14866,16 @@ tuple elements by '::' instead of ','.
         an_ifc_expr_read  ier = *opt_ier;
         an_ifc_read_conversion_sort
                           read_sort = get_ifc_sort(ier);
+        an_ifc_cache_info cache_info = cinfo;
         source_position_from_locus(&pos, get_ifc_locus(ier));
         switch (read_sort) {
           case ifc_rcs_indirection:
             cache_token(cache, tok_star, &pos);
+            cache_info.nested_expr = TRUE;
             break;
           case ifc_rcs_dereference:
             cache_token(cache, tok_ampersand, &pos);
+            cache_info.nested_expr = TRUE;
             break;
           case ifc_rcs_lvalue_to_rvalue:
             /* FIXME: This seems to be the value used in general for read_sort,
@@ -14881,6 +14884,7 @@ tuple elements by '::' instead of ','.
             { an_ifc_type_index type = get_ifc_type(ier);
               if (type.sort == ifc_ts_type_pointer) {
                 cache_token(cache, tok_star, &pos);
+                cache_info.nested_expr = TRUE;
               }  /* if */
             }
             break;
@@ -14891,7 +14895,7 @@ tuple elements by '::' instead of ','.
             break;
           default_is_unexpected_str("Unexpected ReadConversionSort");
         };
-        cache_expr(cache, get_ifc_address(ier), cinfo);
+        cache_expr(cache, get_ifc_address(ier), cache_info);
       }
       break;
     case ifc_es_expr_monad:
@@ -14971,20 +14975,27 @@ tuple elements by '::' instead of ','.
                                     get_operator_kind(ied.get_module(), assoc);
         an_ifc_expr_index           arg_0 = get_ifc_argument_0(ied);
         an_ifc_expr_index           arg_1 = get_ifc_argument_1(ied);
+        an_ifc_cache_info           cache_info = cinfo;
+
         source_position_from_locus(&pos, locus);
         switch (opkind) {
           case opkind_basic:
-            if (assoc == ifc_dos_comma) {
+            if (assoc != ifc_dos_assign) {
+              /* FIXME: Are there other operators where we shouldn't set this
+                 flag? */
+              cache_info.nested_expr = TRUE;
+            }  /* if */
+            if (cinfo.nested_expr || assoc == ifc_dos_comma) {
               cache_token(cache, tok_lparen, &pos);
             }  /* if */
             if (!cinfo.skip_assign || assoc != ifc_dos_assign) {
-              an_ifc_cache_info cache_info = cinfo;
-              cache_info.possible_temporary_decl = TRUE;
-              cache_expr(cache, arg_0, cache_info);
+              an_ifc_cache_info lhs_cache_info = cache_info;
+              lhs_cache_info.possible_temporary_decl = TRUE;
+              cache_expr(cache, arg_0, lhs_cache_info);
               cache_operator(cache, assoc, locus);
             }  /* if */
-            cache_expr(cache, arg_1, cinfo);
-            if (assoc == ifc_dos_comma) {
+            cache_expr(cache, arg_1, cache_info);
+            if (cinfo.nested_expr || assoc == ifc_dos_comma) {
               cache_token(cache, tok_rparen, &pos);
             }  /* if */
             break;
@@ -15190,17 +15201,19 @@ tuple elements by '::' instead of ','.
 
         an_ifc_expr_cast       iec = *opt_iec;
         an_ifc_source_location locus = get_ifc_locus(iec);
+        an_ifc_cache_info      cache_info = cinfo;
+        cache_info.nested_expr = TRUE;
         source_position_from_locus(&pos, locus);
         switch (get_ifc_op(iec)) {
           case ifc_dos_explicit_conversion:
             cache_type(cache, get_ifc_target(iec), locus);
-            cache_expr(cache, get_ifc_source(iec), cinfo);
+            cache_expr(cache, get_ifc_source(iec), cache_info);
             break;
           case ifc_dos_pretend:
             cache_token(cache, tok_lparen, &pos);
             cache_type(cache, get_ifc_target(iec), locus);
             cache_token(cache, tok_rparen, &pos);
-            cache_expr(cache, get_ifc_source(iec), cinfo);
+            cache_expr(cache, get_ifc_source(iec), cache_info);
             break;
           case ifc_dos_reinterpret_cast:
             cache_token(cache, tok_reinterpret_cast, &pos);
@@ -15223,7 +15236,7 @@ common_cast:
             break;
           default:
             cache_type(cache, get_ifc_target(iec), locus);
-            cache_expr(cache, get_ifc_source(iec), cinfo);
+            cache_expr(cache, get_ifc_source(iec), cache_info);
             unexpected_condition_str("Unexpected DyadicOperator "
                                      "for ExprSort::Cast");
         }  /* switch */

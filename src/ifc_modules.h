@@ -85,7 +85,8 @@ IFC entities.
 struct an_ifc_cache_info {
   an_ifc_cache_info() :
     qualified_name(FALSE), skip_assign(FALSE), possible_temporary_decl(FALSE),
-    func_body(FALSE), requires_body(FALSE), no_final_semicolon(FALSE)
+    func_body(FALSE), requires_body(FALSE), no_final_semicolon(FALSE),
+    nested_expr(FALSE)
   {}
   a_bit_field	qualified_name:1;
 			/* TRUE if a qualified name is being cached. */
@@ -103,6 +104,9 @@ struct an_ifc_cache_info {
 			   requires clause body. */
   a_bit_field	no_final_semicolon:1;
 			/* TRUE if the final semicolon should be omitted. */
+  a_bit_field	nested_expr:1;
+			/* TRUE if the expression being cached is nested within
+			   another expression and should be parenthesized. */
 };  /* an_ifc_cache_info */
 
 struct a_str_control_block;
