@@ -14877,19 +14877,9 @@ tuple elements by '::' instead of ','.
             cache_token(cache, tok_ampersand, &pos);
             cache_info.nested_expr = TRUE;
             break;
-          case ifc_rcs_lvalue_to_rvalue:
-            /* FIXME: This seems to be the value used in general for read_sort,
-               regardless of what is referred to.  Revisit this once read_sort
-               values are sensible. */
-            { an_ifc_type_index type = get_ifc_type(ier);
-              if (type.sort == ifc_ts_type_pointer) {
-                cache_token(cache, tok_star, &pos);
-                cache_info.nested_expr = TRUE;
-              }  /* if */
-            }
-            break;
           case ifc_rcs_identity:
           case ifc_rcs_integral_conversion:
+          case ifc_rcs_lvalue_to_rvalue:
             /* These all seem to have their semantics properly conveyed during
                caching as identity. */
             break;
