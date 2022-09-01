@@ -3043,13 +3043,34 @@ if either one has an indeterminate exception specification.
   a_boolean  result = same_exception_spec(rp1->type, rp2->type);
 
   if (!result) {
-    if (rp1->type->kind == (a_type_kind)tk_routine &&
-        exc_spec_is_always_compatible(rp1)) {
+    if (type_is(rp1->type, tk_routine) && exc_spec_is_always_compatible(rp1)) {
       result = TRUE;
-    }  /* if */
-    if (rp2->type->kind == (a_type_kind)tk_routine &&
-        exc_spec_is_always_compatible(rp2)) {
+    } else if (type_is(rp2->type, tk_routine) &&
+               exc_spec_is_always_compatible(rp2)) {
       result = TRUE;
+    } else if (microsoft_mode) {
+      /* MSVC allows both:
+            __declspec(nothrow) void f();
+            void f();
+         and
+            declspec(nothrow) void f();
+            void f() noexcept;
+         The __declspec(nothrow) case has a compiler-generated "noexcept"
+         specification. */
+      a_type_ptr  rtp1 = skip_typerefs(rp1->type),
+                  rtp2 = skip_typerefs(rp2->type);
+      an_exception_specification_ptr
+                  esp1 = rout_type_supp(rtp1)->exception_specification,
+                  esp2 = rout_type_supp(rtp2)->exception_specification;
+      if (esp1 != NULL && esp1->is_noexcept && esp1->compiler_generated &&
+          find_attribute(ak_nothrow, rp1->source_corresp.attributes) != NULL) {
+        result = TRUE;
+      } else if (esp2 != NULL && esp2->is_noexcept &&
+                 esp2->compiler_generated &&
+                 find_attribute(ak_nothrow,
+                                rp2->source_corresp.attributes) != NULL) {
+        result = TRUE;
+      }  /* if */
     }  /* if */
   }  /* if */
   return result;
