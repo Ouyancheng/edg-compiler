@@ -2817,21 +2817,33 @@ braces for a compound statement).
           goto invalid;
         }  /* if */
 
-        an_ifc_stmt_index alternative = get_ifc_alternative(*opt_isi);
-        an_ifc_stmt_index initialization = get_ifc_initialization(*opt_isi);
+        an_ifc_stmt_if    isi = *opt_isi;
+        an_ifc_stmt_index alternative = get_ifc_alternative(isi);
+        an_ifc_stmt_index initialization = get_ifc_initialization(isi);
 
-        source_position_from_locus(&pos, get_ifc_locus(*opt_isi));
+        source_position_from_locus(&pos, get_ifc_locus(isi));
         cache_token(cache, tok_if, &pos);
-        if (!is_null_index(initialization)) {
-          cache_statement(cache, initialization, cinfo);
-        }  /* if */
         cache_token(cache, tok_lparen, &pos);
+        if (!is_null_index(initialization)) {
+          /* FIXME: An IFC bug has these statements wrapped with an extraneous
+             StmtSort::Block.  Suppress the braces for the block.  Note that
+             this is a brittle approach that has the potential to break things,
+             so it should be removed ASAP. */
+          an_ifc_cache_info cache_info = cinfo;
+          cache_info.func_body = TRUE;
+          cache_statement(cache, initialization, cache_info);
+        }  /* if */
         { an_ifc_cache_info cache_info = cinfo;
           cache_info.no_final_semicolon = TRUE;
-          cache_statement(cache, get_ifc_condition(*opt_isi), cache_info);
+          /* FIXME: Temporary workaround: Suppress braces for an intervening
+             StmtSort::Block.  See the above comment for details. */
+          cache_info.func_body = TRUE;
+          cache_statement(cache, get_ifc_condition(isi), cache_info);
         }
         cache_token(cache, tok_rparen, &pos);
-        cache_statement(cache, get_ifc_consequence(*opt_isi), cinfo);
+        /* FIXME: These also have the intervening StmtSort::Block issue, but
+           they do not cause parsing issues - leave them be. */
+        cache_statement(cache, get_ifc_consequence(isi), cinfo);
         if (!is_null_index(alternative)) {
           cache_token(cache, tok_else, &pos);
           cache_statement(cache, alternative, cinfo);
