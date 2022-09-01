@@ -4546,8 +4546,13 @@ and issue an error if it does not.
     an_exception_specification_ptr  declared_exception_spec
                                           = rtsp->exception_specification;
     if (declared_exception_spec != NULL) {
-      if (declared_exception_spec->compiler_generated) {
-        /* We already generated this one. */
+      if (declared_exception_spec->compiler_generated &&
+          !(ms_version_is(<1928) &&
+            find_attribute(ak_nothrow,
+                           rp->source_corresp.attributes) != NULL)) {
+        /* We already generated this one.  (An exception specification might
+           also have been generated for __declspec(nothrow), but that needs
+           to be checked to emulate versions prior to MSVC 19.28.) */
         goto done;
       } else if (declared_exception_spec->arg_cached) {
         update_cached_defaulted_noexcept_arg(declared_exception_spec, rp);
@@ -4563,7 +4568,7 @@ and issue an error if it does not.
       rtsp->exception_specification = declared_exception_spec;
     }  /* if */
   }  /* if */
-  done:;
+done:;
 }  /* complete_defaulted_exc_spec */
 
 
@@ -4577,7 +4582,19 @@ declared with an explicit exception specification.
   an_exception_specification_ptr
               esp = rtp->variant.routine.extra_info->exception_specification;
 
-  if (esp != NULL && !esp->compiler_generated) {
+  if (esp != NULL &&
+      (!esp->compiler_generated ||
+       (ms_version_is(<1928) &&
+        find_attribute(ak_nothrow, rp->source_corresp.attributes) != NULL))) {
+    /* Ordinarily, we do not have to generate an exception specification that
+       was already compiler-generated.  An exception are exception
+       specifications generated for __declspec(nothrow) when emulating MSVC
+       prior to version 19.28.  For example:
+         struct B { B& operator=(B const&); };
+         struct D: B {
+           __declspec(nothrow) D& operator=(D const&) = default;
+         };
+       Here, D::operator= is deleted with MSVC prior to version 19.28. */
     complete_defaulted_exc_spec(rp);
   }  /* if */
 }  /* complete_defaulted_exc_spec_if_explicit */
