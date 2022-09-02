@@ -3621,10 +3621,12 @@ definition.
   a_boolean  result = FALSE;
 
   check_assertion(has_routine_definition_from_ifc_module(rp));
-  /* Check the (effective) set of routines that have previously failed
-     definition processing.  This prevents repeating errors and mitigates the
-     performance impact if a problematic routine is called many times. */
-  if (!ifc_bad_function_bodies->get(rp)) {
+  /* Make sure that we don't attempt to process a definition that we're already
+     processing, and check the (effective) set of routines that have previously
+     failed definition processing.  This prevents repeating errors and
+     mitigates the performance impact if a problematic routine is called many
+     times. */
+  if (!rp->definition_pending && !ifc_bad_function_bodies->get(rp)) {
     an_ifc_decl_index           ifb = ifc_function_bodies->get(rp);
     a_func_info_block           func_info;
     a_module_token_cache        def_cache;
@@ -3636,6 +3638,7 @@ definition.
                                            &ifb.mod->suppressed_diagnostics,
                                            !display_module_import_diagnostics);
 
+    rp->definition_pending = TRUE;
     clear_func_info(&func_info);
     push_new_top_level_declaration();
     if (ifb.mod->cache_function_body(&def_cache, ifb, rp, &func_info)) {
@@ -3654,6 +3657,7 @@ definition.
       }  /* if */
     }  /* if */
     pop_scope();
+    rp->definition_pending = FALSE;
     /* If this function failed to process successfully, mark the failure so we
        don't reenter this branch. */
     if (!result) {

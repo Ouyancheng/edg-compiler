@@ -3021,6 +3021,7 @@ to it.  The entry is allocated in the file scope memory region.
   rp->is_constexpr_intrinsic      = FALSE;
   rp->compiler_generated          = FALSE;
   rp->defined                     = FALSE;
+  rp->definition_pending          = FALSE;
   rp->called                      = FALSE;
   rp->is_explicit_constructor     = FALSE;
   rp->is_explicit_conversion_function = FALSE;
