@@ -3048,6 +3048,7 @@ if either one has an indeterminate exception specification.
     } else if (type_is(rp2->type, tk_routine) &&
                exc_spec_is_always_compatible(rp2)) {
       result = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
     } else if (microsoft_mode) {
       /* MSVC allows both:
             __declspec(nothrow) void f();
@@ -3071,6 +3072,7 @@ if either one has an indeterminate exception specification.
                                 rp2->source_corresp.attributes) != NULL) {
         result = TRUE;
       }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
   }  /* if */
   return result;
