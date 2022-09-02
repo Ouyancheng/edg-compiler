@@ -14614,8 +14614,8 @@ static void cache_args_with_parens(a_module_token_cache_ptr cache,
 /*
 Record tokens for the IFC expression described by args in the given cache and
 enclose them with parentheses.  If args is an IFC ExpressionList, be sure to
-avoid double parentheses.  ifc_mod points to the associated IFC module reader
-and pos is the associated source position.
+avoid double parentheses.  pos is the associated source position, and cinfo
+contains the context associated with the expression being cached.
 */
 {
   if (args.sort != ifc_es_expr_expression_list) {
