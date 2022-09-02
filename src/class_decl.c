@@ -4590,14 +4590,16 @@ declared with an explicit exception specification.
              find_attribute(ak_nothrow,
                             rp->source_corresp.attributes) != NULL)))) {
     /* Ordinarily, we do not have to generate an exception specification that
-       was already compiler-generated.  An exception are exception
+       was already compiler-generated.  That doesn't apply to exception
        specifications generated for __declspec(nothrow) when emulating MSVC
        prior to version 19.28.  For example:
          struct B { B& operator=(B const&); };
          struct D: B {
            __declspec(nothrow) D& operator=(D const&) = default;
          };
-       Here, D::operator= is deleted with MSVC prior to version 19.28. */
+       Here, D::operator= is deleted with MSVC prior to version 19.28 because
+       __declspec(nothrow) does not match the exception specification that
+       is implied by "= default". */
     complete_defaulted_exc_spec(rp);
   }  /* if */
 }  /* complete_defaulted_exc_spec_if_explicit */
