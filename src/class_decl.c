@@ -33367,6 +33367,12 @@ that is a pack expansion, it is TRUE only for the first expansion.
 }  /* scan_init_capture */
 
 
+/*
+Flag indicating whether a non-standard *this capture has already been
+diagnosed.
+*/
+static a_boolean already_diagnosed_star_this_capture = FALSE;
+
 static void scan_lambda_capture_list(a_lambda_ptr  lambda)
 /*
 Scan the capture list for a lambda construct associated with lambda.  The
@@ -33502,11 +33508,11 @@ caller has already moved past the '[', and this routine leaves the trailing
             if (curr_token == tok_star) {
               is_star_this = TRUE;
               if (!cpp17_mode && gpp_mode) {
-                static a_boolean  already_diagnosed = FALSE;
-                if (!already_diagnosed && !in_system_header()) {
+                if (!already_diagnosed_star_this_capture &&
+                    !in_system_header()) {
                   pos_warning(ec_star_this_capture_nonstandard,
                               &pos_curr_token);
-                  already_diagnosed = TRUE;
+                  already_diagnosed_star_this_capture = TRUE;
                 }  /* if */
               }  /* if */
               (void)get_token();
@@ -35223,6 +35229,7 @@ translation unit.
   deferred_friend_fixup_list = NULL;
   deferred_friend_fixup_list_tail = NULL;
   pending_exception_check_entries = NULL;
+  already_diagnosed_star_this_capture = FALSE;
 }  /* class_decl_trans_unit_init */
 
 

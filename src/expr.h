@@ -1154,6 +1154,10 @@ extern a_const_char *get_string_for_function_name(a_token_kind token,
 
 extern a_boolean do_expression_level_string_literal_concatenation(void);
 
+extern void expr_core_one_time_init(void);
+
+extern void expr_core_trans_unit_init(void);
+
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE
 

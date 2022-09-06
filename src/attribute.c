@@ -2530,6 +2530,12 @@ performs no action.
 }  /* make_attribute_group */
 
 
+/*
+Flag indicating whether a non-standard attribute-using-prefix has already been
+diagnosed.
+*/
+static a_boolean already_diagnosed_using = FALSE;
+
 static an_attribute_ptr scan_std_attribute_group(an_attribute_location  loc)
 /*
 Scan a standard attribute group of the form
@@ -2565,10 +2571,9 @@ location in which the group appears.
       /* Use a separate attribute to indicate the presence of a "using"
          prefix. */
       if (!cpp17_mode && gpp_mode) {
-        static a_boolean  already_diagnosed = FALSE;
-        if (!already_diagnosed && !in_system_header()) {
+        if (!already_diagnosed_using && !in_system_header()) {
           pos_warning(ec_using_attribute_nonstandard, &pos_curr_token);
-          already_diagnosed = TRUE;
+          already_diagnosed_using = TRUE;
         }  /* if */
       }  /* if */
       using_ns_ap = make_attribute(af_std);
@@ -10170,6 +10175,7 @@ attributes.
 #endif /* GNU_EXTENSIONS_ALLOWED */
   register_trans_unit_variable(unscanned_attributes);
   register_trans_unit_variable(unscanned_attributes_active);
+  register_trans_unit_variable(already_diagnosed_using);
 }  /* attribute_one_time_init */
 
 
@@ -10190,6 +10196,7 @@ translation unit.
 #if USE_X86_FUNCTION_MULTIVERSIONING && DO_IL_LOWERING
   mv_builtins_loaded = FALSE;
 #endif /* USE_X86_FUNCTION_MULTIVERSIONING && DO_IL_LOWERING */
+  already_diagnosed_using = FALSE;
 }  /* attribute_trans_unit_init */
 
 

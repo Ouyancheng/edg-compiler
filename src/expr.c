@@ -52317,6 +52317,12 @@ selector is returned through bound_function_selector.
 }  /* perform_right_fold */
 
 
+/*
+Flag indicating whether a non-standard fold expression has already been
+diagnosed.
+*/
+static a_boolean already_diagnosed_fold = FALSE;
+
 static void assemble_fold_expression_operand(
                          an_operand                   *result,
                          an_operand                   *bound_function_selector,
@@ -52355,10 +52361,9 @@ left_associative is TRUE if the expansion should be evaluated as
     /* Create an enk_fold node. */
     an_expr_node_ptr  fold_node, opnd_nodes;
     if (!cpp17_mode && gpp_mode) {
-      static a_boolean  already_diagnosed = FALSE;
-      if (!already_diagnosed && !in_system_header()) {
+      if (!already_diagnosed_fold && !in_system_header()) {
         pos_warning(ec_fold_expressions_nonstandard, op_pos);
-        already_diagnosed = TRUE;
+        already_diagnosed_fold = TRUE;
       }  /* if */
     }  /* if */
     fold_node = alloc_expr_node((an_expr_node_kind)enk_fold);
@@ -52671,6 +52676,25 @@ cases the selector is returned via bound_function_selector).
     rcblock->options |= CTWS_PRESERVE_DEDUCED_PACKS;
   }  /* if */
 }  /* rescan_fold_expression */
+
+
+void expr_core_one_time_init(void)
+/*
+Do one-time initialization of variables related to expression processing.
+*/
+{
+  register_trans_unit_variable(already_diagnosed_fold);
+}  /* expr_core_one_time_init */
+
+
+void expr_core_trans_unit_init(void)
+/*
+Initialize things related to expression scanning that must be re-initialized
+for each translation unit.
+*/
+{
+  already_diagnosed_fold = FALSE;
+}  /* expr_core_trans_unit_init */
 
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE

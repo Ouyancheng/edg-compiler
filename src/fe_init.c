@@ -1690,6 +1690,7 @@ after the command-line processing has been done.
   decl_inits_one_time_init();
   def_arg_one_time_init();
   error_one_time_init();
+  expr_core_one_time_init();
   expr_one_time_init();
   folding_one_time_init();
   il_to_str_one_time_init();
@@ -2092,6 +2093,7 @@ when it is a secondary file.
   scope_stk_trans_unit_init();
   templates_trans_unit_init();
   corresp_trans_unit_init();
+  expr_core_trans_unit_init();
   expr_trans_unit_init();
   statements_trans_unit_init();
   class_decl_trans_unit_init();

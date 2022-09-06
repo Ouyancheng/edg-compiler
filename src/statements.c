@@ -3707,6 +3707,12 @@ error).
 }  /* record_condition_initializations */
 
 
+/*
+Flag indicating whether a non-standard selection initializer has already been
+diagnosed.
+*/
+static a_boolean already_diagnosed_selection_initializer = FALSE;
+
 static void scan_structured_control_value(a_statement_ptr    sp,
                                           an_init_component  *cached_expr)
 /*
@@ -3832,10 +3838,9 @@ scope and an enk_condition node (the node is attached to sp).
                                  DFS_IS_CONDITION;
     check_assertion(curr_token == tok_semicolon);
     if (!cpp17_mode && gpp_mode) {
-      static a_boolean  already_diagnosed = FALSE;
-      if (!already_diagnosed && !in_system_header()) {
+      if (!already_diagnosed_selection_initializer && !in_system_header()) {
         pos_warning(ec_selection_initializer_nonstandard, &pos_curr_token);
-        already_diagnosed = TRUE;
+        already_diagnosed_selection_initializer = TRUE;
       }  /* if */
     }  /* if */
     (void)get_token();
@@ -5345,6 +5350,12 @@ can be NULL.
 }  /* for_init_statement */
 
 
+/*
+Flag indicating whether a non-standard init statement in a range-based for
+statement has already been diagnosed.
+*/
+static a_boolean already_diagnosed_init_in_range_for = FALSE;
+
 static void for_statement(void)
 /*
 Scan a "for" or range-based-for statement and add it to the current statement
@@ -5475,10 +5486,9 @@ The affinity can be an expression or the keyword "continue".
       } else if (gpp_mode && !cpp20_mode) {
         /* GNU 9.0 and later allow an init-statement in pre-C++20 modes with a
            warning. */
-        static a_boolean already_diagnosed = FALSE;
-        if (!already_diagnosed && !in_system_header()) {
+        if (!already_diagnosed_init_in_range_for && !in_system_header()) {
           pos_warning(ec_init_stmt_in_range_for_nonstandard, &pos);
-          already_diagnosed = TRUE;
+          already_diagnosed_init_in_range_for = TRUE;
         }  /* if */
       }  /* if */
     }  /* if */
@@ -8507,6 +8517,8 @@ One-time initialization for statements.c static variables.
   register_trans_unit_variable(affinity_forall_loop);
   register_trans_unit_variable(innermost_forall_loop);
 #endif /* UPC_EXTENSIONS_ALLOWED */
+  register_trans_unit_variable(already_diagnosed_selection_initializer);
+  register_trans_unit_variable(already_diagnosed_init_in_range_for);
 }  /* statements_one_time_init */
 
 
@@ -8528,6 +8540,8 @@ be repeated for every (primary or secondary) translation unit.
   affinity_forall_loop = NULL;
   innermost_forall_loop = NULL;
 #endif /* UPC_EXTENSIONS_ALLOWED */
+  already_diagnosed_selection_initializer = FALSE;
+  already_diagnosed_init_in_range_for = FALSE;
 }  /* statements_trans_unit_init */
 
 

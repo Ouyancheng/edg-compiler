@@ -15327,6 +15327,18 @@ alias declaration in the source sequence list (if applicable).
 }  /* make_namespace_alias */
 
 
+/*
+Flag indicating whether a non-standard nested namespace declaration has already
+been diagnosed.
+*/
+static a_boolean already_diagnosed_nested_namespace = FALSE;
+
+/*
+Flag indicating whether a non-standard nested inline namespace declaration has
+already been diagnosed.
+*/
+static a_boolean already_diagnosed_nested_inline_namespace = FALSE;
+
 static void namespace_declaration(a_token_kind      *final_token,
                                   a_boolean         in_nested_namespace_decl,
                                   a_boolean         is_inline,
@@ -15452,10 +15464,9 @@ it's a definition and NULL otherwise).
         /* An enclosing namespace specifier in a nested namespace
            definition. */
         if (!cpp17_mode && clang_mode) {
-          static a_boolean  already_diagnosed = FALSE;
-          if (!already_diagnosed && !in_system_header()) {
+          if (!already_diagnosed_nested_namespace && !in_system_header()) {
             pos_warning(ec_nested_namespace_nonstandard, &pos_curr_token);
-            already_diagnosed = TRUE;
+            already_diagnosed_nested_namespace = TRUE;
           }  /* if */
         }  /* if */
         is_enclosing_namespace_specifier = TRUE;
@@ -15463,11 +15474,11 @@ it's a definition and NULL otherwise).
             curr_token == tok_inline) {
           /* C++20 allows nested namespace specifiers to be "inline". */
           if (!cpp20_mode && clang_mode) {
-            static a_boolean  already_diagnosed = FALSE;
-            if (!already_diagnosed && !in_system_header()) {
+            if (!already_diagnosed_nested_inline_namespace &&
+                !in_system_header()) {
               pos_warning(ec_nested_inline_namespace_nonstandard,
                           &pos_curr_token);
-              already_diagnosed = TRUE;
+              already_diagnosed_nested_inline_namespace = TRUE;
             }  /* if */
           }  /* if */
           nested_namespace_is_inline = TRUE;
@@ -21929,6 +21940,8 @@ Initialize variables that are specific to a given translation unit.
   scanning_generated_code_from_metadata = FALSE;
   scanning_generated_code = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  already_diagnosed_nested_namespace = FALSE;
+  already_diagnosed_nested_inline_namespace = FALSE;
 }  /* decls_trans_unit_init */
 
 
@@ -21956,6 +21969,8 @@ Do one-time initialization of static variables defined in this file.
     };
     register_pch_saved_variables(saved_vars);
   }  /* if */
+  register_trans_unit_variable(already_diagnosed_nested_namespace);
+  register_trans_unit_variable(already_diagnosed_nested_inline_namespace);
 }  /* decls_one_time_init */
 
 
