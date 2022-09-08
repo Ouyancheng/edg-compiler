@@ -40903,6 +40903,13 @@ end_expr:
           is_template_param_type(result->type)) {
         make_zero_operand(result, result->type);
         copy_operand_position(&local_result, result);
+      } else if (is_void_type(skip_typerefs(result->type))) {
+        a_constant_ptr  cp = local_constant();
+        set_constant_kind(cp, ck_void);
+        cp->type = result->type;
+        make_constant_operand(cp, result);
+        copy_operand_position(&local_result, result);
+        release_local_constant(&cp);
       } else {
         error_in_operand(ec_expr_not_constant, result);
       }  /* if */
