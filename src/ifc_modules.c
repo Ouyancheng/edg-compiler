@@ -4037,19 +4037,6 @@ principal associated IL entity.
   /* Ensure the module entity is being processed by the corresponding module
      interface. */
   check_assertion(mep->module_info->module_interface == this);
-#if EXPENSIVE_CHECKING
-  /* When this flag is set, eagerly load all entities in a module.  Entities
-     are typically lazily loaded (i.e., only when needed) and eagerly loading
-     all entities in a module can be used as a debugging aid to ensure that all
-     entities load properly.
-
-     As this feature is not supported in production builds and this branch is
-     in an anticipated hot path, conditionally enable it with
-     EXPENSIVE_CHECKING as an optimization. */
-  if (eager_load_modules) {
-    defer = FALSE;
-  }  /* if */
-#endif /* EXPENSIVE_CHECKING */
 #if DEBUG
   static unsigned long nested_decls = 0;
   if (db_flag_is_set("ifc_decl")) {
@@ -6245,9 +6232,23 @@ deferred until they are referenced.
   auto cache_scope_member = [this, scope](const an_ifc_scope_member &ism) {
     an_ifc_decl_index   decl_idx = get_ifc_index(ism);
     a_module_entity_ptr dmep = this->get_ifc_module_entity_ptr(decl_idx);
+    a_boolean           defer = TRUE;
 
+#if EXPENSIVE_CHECKING
+    /* When this flag is set, eagerly load all entities in a module.  Entities
+       are typically lazily loaded (i.e., only when needed) and eagerly loading
+       all entities in a module can be used as a debugging aid to ensure that
+       all entities load properly.
+
+       As this feature is not supported in production builds and this branch is
+       in an anticipated hot path, conditionally enable it with
+       EXPENSIVE_CHECKING as an optimization. */
+    if (eager_load_modules) {
+      defer = FALSE;
+    }  /* if */
+#endif /* EXPENSIVE_CHECKING */
     dmep->scope = scope;
-    this->process_ifc_declaration(dmep, /*defer=*/TRUE, (a_type_ptr)NULL);
+    this->process_ifc_declaration(dmep, defer, (a_type_ptr)NULL);
   };
 
   if (scope != 0) {
