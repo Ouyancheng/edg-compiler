@@ -52685,23 +52685,23 @@ cases the selector is returned via bound_function_selector).
 }  /* rescan_fold_expression */
 
 
-void expr_core_one_time_init(void)
+void expr_one_time_init(void)
 /*
 Do one-time initialization of variables related to expression processing.
 */
 {
   register_trans_unit_variable(already_diagnosed_fold);
-}  /* expr_core_one_time_init */
+}  /* expr_one_time_init */
 
 
-void expr_core_trans_unit_init(void)
+void expr_trans_unit_init(void)
 /*
 Initialize things related to expression scanning that must be re-initialized
 for each translation unit.
 */
 {
   already_diagnosed_fold = FALSE;
-}  /* expr_core_trans_unit_init */
+}  /* expr_trans_unit_init */
 
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE

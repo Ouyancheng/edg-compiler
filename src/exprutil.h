@@ -3267,11 +3267,11 @@ extern unsigned long show_expr_space_used(void);
 extern void check_all_init_component_entries_freed(void);
 #endif /* CHECKING && DEBUG */
 
-extern void expr_one_time_init(void);
+extern void exprutil_one_time_init(void);
 
-extern void expr_trans_unit_init(void);
+extern void exprutil_trans_unit_init(void);
 
-extern void expr_init(void);
+extern void exprutil_init(void);
 
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE

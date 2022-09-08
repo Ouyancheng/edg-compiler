@@ -26178,7 +26178,7 @@ was ultimately freed.
 
 #endif /* CHECKING && DEBUG */
 
-void expr_one_time_init(void)
+void exprutil_one_time_init(void)
 /*
 Do one-time initialization of variables related to expression processing.
 */
@@ -26247,10 +26247,10 @@ Do one-time initialization of variables related to expression processing.
 #else /* !SEQUENCING_DIAGNOSTICS_ENABLED */
   sequencing_diagnostics_enabled = FALSE;
 #endif /* SEQUENCING_DIAGNOSTICS_ENABLED */
-}  /* expr_one_time_init */
+}  /* exprutil_one_time_init */
 
 
-void expr_trans_unit_init(void)
+void exprutil_trans_unit_init(void)
 /* 
 Initialize things related to expression scanning that must be
 re-initialized for each translation unit.
@@ -26274,10 +26274,10 @@ re-initialized for each translation unit.
   construct(requires_ranges, /*mask_width=*/10);
   vars_being_deduced = alloc_fe<Ptr_map<a_variable_ptr, a_boolean>>();
   construct(vars_being_deduced, /*mask_width=*/5);
-}  /* expr_trans_unit_init */
+}  /* exprutil_trans_unit_init */
 
 
-void expr_init(void)
+void exprutil_init(void)
 /* 
 Initialize things related to expression scanning that must be initialized
 for each compilation.
@@ -26365,7 +26365,7 @@ for each compilation.
   max_exponent[(int)fk_last]         = 0;
   /* Do initialization for overload.c: */
   overload_init();
-}  /* expr_init */
+}  /* exprutil_init */
 
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE

@@ -24,11 +24,12 @@ For example, with --g++ --c++20:
 
 
 9/5/22   [EDGcpfe/24435]
-Multiple compilations with non-standard feature warnings
+Non-standard feature warning suppression with MAKE_FRONT_END_CALLABLE
 
-Flags to warn about the use of non-standard language features only once were
-not reinitialized for successive translation units, leading to these warnings
-being incorrectly suppressed.
+In configurations where MAKE_FRONT_END_CALLABLE is TRUE, some warnings for use
+of non-standard features were incorrectly suppressed in successive invocations
+of the front end. This problem also occurred when compiling multiple
+translation units in a single invocation of the front end.
 
 
 8/24/22  [EDGcpfe/15165,EDGcpfe/19247,EDGcpfe/21823,EDGcpfe/25560]
