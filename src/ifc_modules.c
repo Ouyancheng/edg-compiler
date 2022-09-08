@@ -11139,6 +11139,7 @@ inline void an_ifc_module::cache_scope_decl(
                                    a_module_token_cache_ptr     cache,
                                    an_ifc_decl_index            decl_idx,
                                    an_ifc_type_index            type,
+                                   an_ifc_access_sort           access,
                                    a_Name_Cache_Fn              cache_name_fn,
                                    a_Scope_Cache_Fn             cache_scope_fn,
                                    const an_ifc_source_location &locus)
@@ -11160,6 +11161,7 @@ can be consistently cached via a ScopeIndex.
 
   check_assertion(type.sort == ifc_ts_type_fundamental);
   source_position_from_locus(&pos, locus);
+  cache_access(cache, access, /*cache_colon=*/TRUE, &pos);
   /* Cache the struct/class/union/namespace/__interface keyword. */
   cache_type(cache, type, locus);
   /* Cache any attributes. */
@@ -11177,6 +11179,7 @@ void an_ifc_module::cache_scope_decl(a_module_token_cache_ptr     cache,
                                      an_ifc_name_index            name,
                                      an_ifc_type_index            base,
                                      an_ifc_scope_index           scope,
+                                     an_ifc_access_sort           access,
                                      const an_ifc_source_location &locus)
 /*
 Cache the tokens corresponding to the given scope decl (indexed in the IFC by
@@ -11212,8 +11215,8 @@ Finally, locus is the location of the given scope decl.
       }  /* if */
     }  /* if */
   };
-  cache_scope_decl(cache, decl_idx, type, cache_name_fn, cache_scope_fn,
-                   locus);
+  cache_scope_decl(cache, decl_idx, type, access, cache_name_fn,
+                   cache_scope_fn, locus);
 }  /* cache_scope_decl */
 
 
@@ -13335,8 +13338,10 @@ Add the tokens corresponding to the given partial specialization declaration
             cache_sentence(cache, body);
           }  /* if */
         };
-        cache_scope_decl(cache, decl_idx, get_ifc_type(ids), cache_name_fn,
-                         cache_scope_fn, get_ifc_locus(ids));
+        /* Don't use the access field of the scope here - it's not relevant to
+           the declaration and is often not ifc_as_none. */
+        cache_scope_decl(cache, decl_idx, get_ifc_type(ids), ifc_as_none,
+                         cache_name_fn, cache_scope_fn, get_ifc_locus(ids));
       }
       break;
     case ifc_ds_decl_variable:
@@ -13441,8 +13446,10 @@ indexed in the IFC by decl_idx) to cache.
             cache_token(cache, tok_semicolon, decl_pos);
           };
 
-          cache_scope_decl(cache, decl_idx, get_ifc_type(ids), cache_name_fn,
-                           cache_scope_fn, get_ifc_locus(ids));
+          /* Don't use the access field of the scope here - it's not relevant
+             to the declaration and is often not ifc_as_none. */
+          cache_scope_decl(cache, decl_idx, get_ifc_type(ids), ifc_as_none,
+                           cache_name_fn, cache_scope_fn, get_ifc_locus(ids));
         } else {
           auto cache_scope_fn = [this, cache, &ids](
                                               a_source_position_ptr decl_pos) {
@@ -13458,8 +13465,10 @@ indexed in the IFC by decl_idx) to cache.
             cache_token(cache, tok_semicolon, decl_pos);
           };
 
-          cache_scope_decl(cache, decl_idx, get_ifc_type(ids), cache_name_fn,
-                           cache_scope_fn, get_ifc_locus(ids));
+          /* Don't use the access field of the scope here - it's not relevant
+             to the declaration and is often not ifc_as_none. */
+          cache_scope_decl(cache, decl_idx, get_ifc_type(ids), ifc_as_none,
+                           cache_name_fn, cache_scope_fn, get_ifc_locus(ids));
         }  /* if */
       }
       break;
@@ -14118,7 +14127,7 @@ Add the tokens corresponding to the given declaration (decl) to cache.
         an_ifc_decl_scope ids = *opt_ids;
         cache_scope_decl(cache, decl, get_ifc_type(ids), get_ifc_name(ids),
                          get_ifc_base(ids), get_ifc_initializer(ids),
-                         get_ifc_locus(ids));
+                         get_ifc_access(ids), get_ifc_locus(ids));
       }
       break;
     case ifc_ds_decl_enumeration:

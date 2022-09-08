@@ -348,6 +348,7 @@ public:
   inline void cache_scope_decl(a_module_token_cache_ptr     cache,
                                an_ifc_decl_index            decl_idx,
                                an_ifc_type_index            type,
+                               an_ifc_access_sort           access,
                                a_Name_Cache_Fn              cache_name_fn,
                                a_Scope_Cache_Fn             cache_scope_fn,
                                const an_ifc_source_location &locus);
@@ -357,6 +358,7 @@ public:
                         an_ifc_name_index            name,
                         an_ifc_type_index            base,
                         an_ifc_scope_index           scope,
+                        an_ifc_access_sort           access,
                         const an_ifc_source_location &locus);
   void cache_type_first_part(a_module_token_cache_ptr     cache,
                              an_ifc_type_index            type,
