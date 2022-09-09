@@ -7519,7 +7519,7 @@ current scope.
 
   ssep = &scope_stack[depth_innermost_instantiation_scope];
   check_assertion(ssep->template_decl_info != NULL);
-  if (ssep->module_load_context_count != 0) {
+  if (in_code_from_module()) {
     /* A module is being loaded; disable this check for this entity. */
     decl_seq_number = NO_DECL_SEQUENCE_NUMBER;
   } else if (ssep->is_rescan && ssep->template_sym != NULL) {

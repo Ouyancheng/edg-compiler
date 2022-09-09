@@ -1010,14 +1010,19 @@ Given a scope reference find and return the associated scope.
       }  /* if */
       result = get_assoc_scope_of_il_entry(mep->entity.ptr,
                                            (an_il_entry_kind)mep->entity.kind);
-      result->parent = mep->scope;
-      if (assoc_type != NULL &&
-          (scope_is(result, sck_class_struct_union) ||
-           scope_is(result, sck_enum) ||
-           scope_is(result, sck_func_prototype))) {
-        check_assertion(result->variant.assoc_type == NULL ||
-                        result->variant.assoc_type == assoc_type);
-        result->variant.assoc_type = assoc_type;
+      if (!scope_is(result, sck_file) && result->parent == NULL) {
+        /* Record the parent scope if it hasn't been recorded yet.  Don't do
+           that for the file scope, because that would make the file scope
+           entry point at itself. */
+        result->parent = mep->scope;
+        if (assoc_type != NULL &&
+            (scope_is(result, sck_class_struct_union) ||
+             scope_is(result, sck_enum) ||
+             scope_is(result, sck_func_prototype))) {
+          check_assertion(result->variant.assoc_type == NULL ||
+                          result->variant.assoc_type == assoc_type);
+          result->variant.assoc_type = assoc_type;
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
@@ -1025,12 +1030,29 @@ Given a scope reference find and return the associated scope.
 }  /* get_scope */
 
 
+#if EXPENSIVE_CHECKING
+
+static a_boolean
+		in_get_home_scope = FALSE;
+			/* Flag set while evaluating a call to get_home_scope.
+			   This is used for "eager loading" mode to avoid
+			   unbounded recursive loading. */
+
+#endif /* EXPENSIVE_CHECKING */
+ 
+
 template<typename an_ifc_Node_type>
 static a_scope_ptr get_home_scope(const an_ifc_Node_type &node)
 /*
 Return the associated scope for the given declaration.
 */
 {
+#if EXPENSIVE_CHECKING
+  /* Do not eagerly load home-scope members just because we query the home
+     scope, because that leads to aborts due to recursive loading. */
+  Value_saver<a_boolean>  suppression(&in_get_home_scope, /*new_value=*/TRUE);
+#endif /* EXPENSIVE_CHECKING */
+ 
   return get_scope(get_ifc_home_scope(node));
 }  /* get_home_scope */
 
@@ -1040,8 +1062,14 @@ static a_scope_ptr get_home_scope(an_ifc_decl_index decl_ref)
 Return the associated scope for the given declaration index.
 */
 {
+#if EXPENSIVE_CHECKING
+  /* Do not eagerly load home-scope members just because we query the home
+     scope, because that leads to aborts due to recursive loading. */
+  Value_saver<a_boolean>  suppression(&in_get_home_scope, /*new_value=*/TRUE);
+#endif /* EXPENSIVE_CHECKING */
+
   return get_scope(get_ifc_home_scope(decl_ref));
-}  /* get_ifc_home_scope */
+}  /* get_home_scope */
 
 
 static void cache_name(a_module_token_cache_ptr     cache,
@@ -2557,6 +2585,50 @@ index information to the given symbol.
 }  /* record_symbol_for_ifc_decl */
 
 
+static a_symbol_ptr overload_set_from_il_entity_list(
+                                            an_il_entity_list_entry_ptr ielep)
+/*
+The given list should contain a_routine and a_template entries: Build an
+ad-hoc overload set symbol from them and return that symbol.  For an empty
+list return NULL.  For a singleton list return the symbol for the one routine
+or template.
+*/
+{
+  a_symbol_ptr             result;
+  a_source_correspondence  *scp;
+
+  if (ielep == NULL) {
+    result = NULL;
+  } else if (ielep->next == NULL) {
+    scp = source_corresp_for_il_entry(ielep->entity.ptr, ielep->entity.kind);
+    result = (a_symbol_ptr)scp->assoc_info;
+  } else {
+    a_symbol_ptr  src_sym, dst_sym, sym_list = NULL;
+    do {
+      scp = source_corresp_for_il_entry(ielep->entity.ptr, ielep->entity.kind);
+      src_sym = (a_symbol_ptr)scp->assoc_info;
+      if (symbol_is(src_sym, sk_variable_template)) {
+        /* Currently, some IFC function templates are parsed erroneously,
+           producing a variable template instead. */
+        pos_sy_error(ec_ifc_function_template_parse_failure, &error_position,
+                     src_sym);
+      } else {
+        dst_sym = alloc_symbol(src_sym->kind, src_sym->header,
+                               &src_sym->decl_position);
+        *dst_sym = *src_sym;
+        dst_sym->next = sym_list;
+        sym_list = dst_sym;
+      }  /* if */
+      ielep = ielep->next;
+    } while (ielep != NULL);
+    result = alloc_symbol((a_symbol_kind)sk_overloaded_function,
+                          sym_list->header, &error_position);
+    result->variant.overloaded_function.symbols = sym_list;
+  }  /* if */
+  return result;
+}  /* overload_set_from_il_entity_list */
+
+
 static a_symbol_ptr symbol_for_decl_index(an_ifc_decl_index  decl_idx)
 /*
 Return the symbol associated with the declaration corresponding to decl_idx.
@@ -2611,11 +2683,22 @@ Return NULL if none is found.
     mep = mod->get_ifc_module_entity_ptr(decl_idx);
     if (mep->entity.ptr == NULL) {
       mod->process_ifc_declaration(mep, /*defer=*/FALSE, (a_type_ptr)NULL);
+      result = ifc_decl_lookup_table->get(decl_idx);
     }  /* if */
-    /* Note that source_corresp_for_il_entry returns NULL for iek_none. */
-    scp = source_corresp_for_il_entry(mep->entity.ptr, mep->entity.kind);
-    if (scp != NULL) {
-      result = (a_symbol_ptr)scp->assoc_info;
+    if (result != NULL) {
+      /* This function may be called recursively for the same index, in which
+         case a result symbol might already have gotten mapped. */
+    } else {
+      if (mep->entity.kind == iek_il_entity_list_entry) {
+        result = overload_set_from_il_entity_list(
+                                (an_il_entity_list_entry_ptr)mep->entity.ptr);
+      } else {
+        /* Note that source_corresp_for_il_entry returns NULL for iek_none. */
+        scp = source_corresp_for_il_entry(mep->entity.ptr, mep->entity.kind);
+        if (scp != NULL) {
+          result = (a_symbol_ptr)scp->assoc_info;
+        }  /* if */
+      }  /* if */
       if (result != NULL) {
         ifc_decl_lookup_table->map(decl_idx, result);
       }  /* if */
@@ -2715,17 +2798,30 @@ invalid:
 }  /* load_ifc_entity_ref */
 
 
-a_symbol_ptr load_ifc_friend_entity_ref(an_ifc_expr_index  expr_idx)
+a_symbol_ptr load_tok_ifc_entity_ref(void)
 /*
-A wrapper for load_ifc_entity_ref that also temporarily suspends the emission
-of the "friend" keyword.
+A wrapper for load_ifc_entity_ref that using the current token as a source
+(that token should be a tok_ifc_entity_ref).
 */
 {
-  an_ifc_module           *mod = expr_idx.mod;
-  Value_saver<a_boolean>  suppression(&mod->suppress_friend_token, TRUE);
+  a_lexical_ifc_index_reference
+                     *idx = &ifc_index_for_curr_token;
+  an_ifc_module*     mod = (an_ifc_module*)idx->module;
+  an_ifc_expr_index  expr_idx{ mod, (an_ifc_expr_sort)idx->sort, idx->index}; 
+  a_source_position  pos = pos_curr_token;
+  a_symbol_ptr       result = load_ifc_entity_ref(expr_idx);
 
-  return load_ifc_entity_ref(expr_idx);
-}  /* load_ifc_friend_entity_ref */
+  if (result == NULL) {
+    /* Something went wrong loading the IFC representation. */
+    a_diagnostic_ptr diag = pos_st_start_error(ec_ifc_entity_ref_failure,
+                                               &pos,
+                                               mod->assoc_module_info->name);
+    num2_add_diag_info(diag, ec_ifc_entity_ref_failure_info,
+                       (int32_t)idx->sort, idx->index);
+    end_diagnostic(diag);
+  }  /* if */
+  return result;
+}  /* load_tok_ifc_entity_ref */
 
 
 template<typename Index_Type>
@@ -4224,6 +4320,7 @@ principal associated IL entity.
                          &old_type, &ext_sym, &decl_pos_block);
             restore_partial_scope_stack_if_necessary(&psss);
             rp = dps.sym->variant.routine.ptr;
+            mep->scope = rp->source_corresp.parent_scope;
             il_entity = (char *)rp;
             kind = iek_routine;
           }  /* if */
@@ -4756,24 +4853,36 @@ class_struct_union_case:
             a_symbol_ptr           enum_con_sym;
             a_constant_ptr         enum_con;
             a_type_ptr             enum_type;
+            a_memory_region_number region_to_switch_back_to;
 
             if (is_from_gmf(get_ifc_specifiers(ide))) {
               mep->global_module = TRUE;
             }  /* if */
-            check_assertion(mep->scope != NULL);
+            if (mep->scope == NULL) {
+              mep->scope = get_home_scope(ide);
+              check_assertion(mep->scope != NULL);
+            }  /* if */
             if (mep->scope->kind == (a_scope_kind)sck_enum) {
               /* This is an enumerator for a scoped enum. */
               enum_type = mep->scope->variant.assoc_type;
             } else {
-              check_assertion(enumeration_type != NULL);
+              if (enumeration_type == NULL) {
+                an_ifc_type_index  type_idx = get_ifc_type(ide);
+                enumeration_type = this->type_for_type_index(type_idx,
+                                                             /*kind=*/NULL);
+                check_assertion(enumeration_type != NULL);
+                check_assertion(is_enum_type(enumeration_type));
+              }  /* if */
               enum_type = enumeration_type;
             }  /* if */
             if (ifc_decl_is_ignorable_redecl(&loc, mep, &error_position,
                                              iek_constant, &il_entity, &kind)){
               break;
             }  /* if */
+            switch_to_file_scope_region(&region_to_switch_back_to);
             enum_con = constant_for_expr_index(get_ifc_initializer(ide),
                                                enum_type);
+            switch_back_to_original_region(region_to_switch_back_to);
             enum_con->type = enum_type;
             enum_con->is_named_constant_definition = TRUE;
             enum_con->source_corresp.parent_scope = mep->scope;
@@ -4944,6 +5053,10 @@ class_struct_union_case:
               }  /* if */
               process_template_definition(mep, idt, do_forward_decl,
                                           type_is(type, tk_routine));
+              if (!do_forward_decl) {
+                il_entity = mep->entity.ptr;
+                kind = mep->entity.kind;
+              }  /* if */
             }  /* if */
           }  /* if */
         }
@@ -5254,7 +5367,7 @@ class_struct_union_case:
               goto invalid;
             }  /* if */
             if (resolution.sort == ifc_ds_decl_tuple) {
-              /* FIXME: Not sure what this is. */
+              /* FIXME: Overload set? */
               goto unhandled;
             }  /* if */
             a_module_entity_ptr umep = get_ifc_module_entity_ptr(resolution);
@@ -5340,6 +5453,7 @@ class_struct_union_case:
           goto unhandled;
         }
       case ifc_ds_decl_tuple:
+        /* An overload set. */
         { Opt<an_ifc_decl_tuple> opt_idt;
 
           construct_node(&opt_idt, decl_idx);
@@ -5347,7 +5461,10 @@ class_struct_union_case:
             goto invalid;
           }  /* if */
 
-          a_decl_heap_traverser traverser(*opt_idt);
+          /* Collect the entries of the overload set in a list of IL entries
+             (an_il_entity_list_entry_ptr). */
+          a_decl_heap_traverser  traverser(*opt_idt);
+          a_scope_ptr            scope = mep->scope;
           for (Opt<an_ifc_heap_decl> opt_ihd : traverser) {
             if (!opt_ihd.has_value()) {
               goto invalid;
@@ -5358,10 +5475,27 @@ class_struct_union_case:
             /* In at least some cases (the handling of deduction guides), the
                caller will have filled in mep->scope and that should be
                propagated to the individual associated declarations. */
-            emep->scope = mep->scope;
+            if (scope != NULL) emep->scope = scope;
             this->process_ifc_declaration(emep, /*defer=*/FALSE,
                                           (a_type*)NULL);
+            if (scope == NULL) mep->scope = emep->scope;
+
+            a_source_correspondence  *scp;
+            scp = source_corresp_for_il_entry(emep->entity.ptr,
+                                              emep->entity.kind);
+            if (scp == NULL || scp->assoc_info == NULL) {
+              /* Something went wrong loading this member of the set.  Ignore
+                 it in what follows. */
+            } else {
+              an_il_entity_list_entry_ptr
+                                     ielep = alloc_il_entity_list_entry();
+              ielep->next = (an_il_entity_list_entry*)il_entity;
+              il_entity = (char*)ielep;
+              ielep->entity = emep->entity;
+            }  /* if */
           }  /* for */
+          mep->entity.kind = kind = iek_il_entity_list_entry;
+          mep->entity.ptr = il_entity;
         }
         break;
       case ifc_ds_decl_expansion:
@@ -6243,7 +6377,7 @@ deferred until they are referenced.
        As this feature is not supported in production builds and this branch is
        in an anticipated hot path, conditionally enable it with
        EXPENSIVE_CHECKING as an optimization. */
-    if (eager_load_modules) {
+    if (eager_load_modules && !in_get_home_scope) {
       defer = FALSE;
     }  /* if */
 #endif /* EXPENSIVE_CHECKING */
@@ -6485,6 +6619,18 @@ can currently be qualified.
         an_ifc_module       *mod = get_assoc_ifc_module(dmep);
 
         result = mod->is_name_qualifiable(mod->decl_index_of(dmep));
+      }
+      break;
+    case ifc_ds_decl_variable:
+      {
+        an_ifc_decl_index home_scope = get_ifc_home_scope(decl_index);
+        if (home_scope.sort == ifc_ds_decl_vendor_extension) {
+          /* Local variables appear to be associated with a "vendor extension"
+             home scope.  Such variables cannot be qualified. */
+          result = FALSE;
+        } else {
+          result = TRUE;
+        }  /* if */
       }
       break;
     default:
@@ -8076,6 +8222,7 @@ Given a declaration, return the name associated with that declaration.
       }
       break;
     case ifc_ds_decl_tuple:
+      /* An overload set. */
       { Opt<an_ifc_decl_tuple> opt_idt;
 
         construct_node(&opt_idt, decl_idx);
@@ -9688,18 +9835,8 @@ locus is the location of the Sentence containing literal.
         source_position_from_locus(&pos, locus);
         switch(binding_expr.sort) {
           case ifc_es_expr_named_decl:
-            { Opt<an_ifc_expr_named_decl> opt_iend;
-
-              construct_node(&opt_iend, binding_expr);
-              if (!opt_iend.has_value()) {
-                goto invalid;
-              }  /* if */
-
-              an_ifc_expr_named_decl iend = *opt_iend;
-              an_ifc_decl_index      resolution = get_ifc_resolution(iend);
-              an_ifc_source_location decl_locus = get_ifc_locus(iend);
-              cache_name_from_decl(cache, resolution, decl_locus);
-            }
+            cache_token_with_index(cache, tok_ifc_entity_ref, binding_expr,
+                                   &pos);
             break;
           case ifc_es_expr_unresolved_id:
             { Opt<an_ifc_expr_unresolved_id> opt_ieud;
@@ -10703,7 +10840,7 @@ return the index of that token.  Otherwise the return value is meaningless.
       }  /* if */
 
       a_cached_token_ptr ctp = cache->get_last_token();
-      cache_word(cache, *opt_isw);
+      this->cache_word(cache, *opt_isw);
       if (look_for_stop_token && ctp != cache->get_last_token() &&
           curr_stop_token_stack_entry->
                        stop_tokens[(int)cache->get_last_token()->token] != 0) {
@@ -11449,6 +11586,7 @@ this is needed.
       break;
     case ifc_ts_type_designated:
       { Opt<an_ifc_type_designated> opt_itd;
+        a_boolean                   is_closure_type = FALSE;
 
         construct_node(&opt_itd, type);
         if (!opt_itd.has_value()) {
@@ -11460,7 +11598,23 @@ this is needed.
         if (!validate(decl)) {
           goto invalid;
         }  /* if */
-        if (is_name_qualifiable(decl)) {
+        if (decl.sort == ifc_ds_decl_scope) {
+          /* Check for the special case of a closure type.  Such a type
+             cannot be expressed as a normal type name, but it can appear
+             when "auto" was used as a type specifier. */
+          Opt<an_ifc_decl_scope> opt_ids;
+          construct_node(&opt_ids, decl);
+          if (!opt_ids.has_value()) {
+            goto invalid;
+          }  /* if */
+          an_ifc_decl_scope  ids = *opt_ids;
+          an_ifc_scope_traits_bitfield
+                             traits = get_ifc_traits(ids);
+          is_closure_type = test_bitmask<ifc_stb_closure_type>(traits);
+        }  /* if */
+        if (is_closure_type) {
+          cache_token(cache, tok_auto, &pos);
+        } else if (is_name_qualifiable(decl)) {
           cache_qualified_name_from_decl(cache, decl, locus);
         } else {
           /* We are contextually forbidden from qualifying this name or the
@@ -15010,11 +15164,11 @@ tuple elements by '::' instead of ','.
         switch (opkind) {
           case opkind_basic:
             if (assoc != ifc_dos_assign) {
-              /* FIXME: Are there other operators where we shouldn't set this
-                 flag? */
+              /* Parenthesize dyadic operators to capture the precedence that
+                 is implicit in the tree form, but not in the rendered form. */
               cache_info.nested_expr = TRUE;
             }  /* if */
-            if (cinfo.nested_expr || assoc == ifc_dos_comma) {
+            if (cinfo.nested_expr) {
               cache_token(cache, tok_lparen, &pos);
             }  /* if */
             if (!cinfo.skip_assign || assoc != ifc_dos_assign) {
@@ -15024,7 +15178,7 @@ tuple elements by '::' instead of ','.
               cache_operator(cache, assoc, locus);
             }  /* if */
             cache_expr(cache, arg_1, cache_info);
-            if (cinfo.nested_expr || assoc == ifc_dos_comma) {
+            if (cinfo.nested_expr) {
               cache_token(cache, tok_rparen, &pos);
             }  /* if */
             break;
@@ -16841,8 +16995,12 @@ the position of the qualified-id this nested-name-specifier is part of.
 */
 {
   if (should_cache_nested_name_specifier_for_scope(scope)) {
-    /* Attempt to generate any parent scope's qualifiers. */
-    cache_scope_as_nested_name_specifier(cache, scope->parent, pos);
+    if (scope_is(scope, sck_file) || scope_is(scope->parent, sck_file)) {
+      cache_token(cache, tok_colon_colon, pos);
+    } else {
+      /* Attempt to generate any parent scope's qualifiers. */
+      cache_scope_as_nested_name_specifier(cache, scope->parent, pos);
+    }  /*if */
     /* Generate the current scope's qualifier. */
     if (scope_is(scope, sck_class_struct_union) ||
         scope_is(scope, sck_enum)) {

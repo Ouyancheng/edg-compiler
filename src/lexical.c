@@ -17279,8 +17279,7 @@ to alter the consistency check at the end of the routine.
   lssep = curr_lexical_state_stack_entry;
   /* Unlink this entry from the stack. */
   curr_lexical_state_stack_entry = lssep->next;
-  if (scope_stack_top().module_load_context_count > 0 &&
-      curr_lexical_state_stack_entry == NULL) {
+  if (in_code_from_module() && curr_lexical_state_stack_entry == NULL) {
     /* A lexical state was pushed late to facilitate lazy loading of a module
        entity.  Treat this pop as if it were a final pop. */
     final_pop = TRUE;
@@ -22552,7 +22551,7 @@ selection operator, in which case it points to the type of the left operand.
      a token that begins a simple type.  We will check later to determine
      whether the identifier is a class name or a type name, if needed.  */
   might_be_qualifier = FALSE;
-  if (curr_token == tok_identifier) {
+  if (curr_token == tok_identifier || curr_token == tok_ifc_entity_ref) {
     next_tok = next_two_tokens_if_qualifier_delimiter(tok_colon_colon,
                                                       &next_tok_2);
     if (next_tok == tok_colon_colon || next_tok == tok_lt ||
@@ -22718,6 +22717,16 @@ selection operator, in which case it points to the type of the left operand.
       /* A construct like int::Parse("1").  Use the corresponding C++/CLI
          system type determined above. */
       qualifier_sym = symbol_for(cli_system_type_for_keyword);
+    } else if (curr_token == tok_ifc_entity_ref) {
+      qualifier_sym = load_tok_ifc_entity_ref();
+      if (qualifier_sym == NULL) {
+        /* A diagnostic will have been emitted by load_tok_ifc_entity_ref(). */
+        err = TRUE;
+        make_error_locator(&locator_for_curr_id);
+      } else {
+        make_locator_for_symbol(qualifier_sym, &locator_for_curr_id);
+        locator_for_curr_id.source_position = pos_curr_token;
+      }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else {
       an_id_lookup_options_set	lookup_kind;
@@ -22872,6 +22881,14 @@ selection operator, in which case it points to the type of the left operand.
        qualified name.  We clear it now because it may be set again if a
        template reference is coalesced and we don't want to lose that value. */
     specific_sym = locator_for_curr_id.specific_symbol;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (curr_token == tok_ifc_entity_ref) {
+      /* Treat the token as an identifier from here, but do not clear the
+         specific symbol even if this turns out to be an unqualified name. */
+      curr_token = tok_identifier;
+    } else
+#endif /*MICROSOFT_EXTENSIONS_ALLOWED */
+    /* Do not insert code here. */
     if (!(is_conversion_type ||
           (specific_sym != NULL &&
            symbol_is(specific_sym, sk_concept_template))) ||
@@ -23193,9 +23210,19 @@ selection operator, in which case it points to the type of the left operand.
           /* From now on, treat this as an identifier. */
           curr_token = tok_identifier;
           set_to_error_locator(locator_for_curr_id);
+        } else if (curr_token == tok_ifc_entity_ref) {
+          a_symbol_ptr  sym = load_tok_ifc_entity_ref();
+          if (sym == NULL) {
+            err = TRUE;
+          } else {
+            make_locator_for_symbol(sym, &locator_for_curr_id);
+            locator_for_curr_id.source_position = pos_curr_token;
+            curr_token = tok_identifier;
+          }  /* if */
         }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-        if (curr_token != tok_identifier ||
+        if ((curr_token != tok_identifier &&
+             curr_token != tok_ifc_entity_ref) ||
             ((next_tok != qualifier_separator && next_tok != tok_colon_colon &&
               (!(microsoft_bugs && microsoft_version <= 1500) ||
                (is_qualified_name &&
@@ -23478,6 +23505,17 @@ selection operator, in which case it points to the type of the left operand.
         qualifier_is_decltype = FALSE;
       }  /* for */
     }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  } else if (curr_token == tok_ifc_entity_ref) {
+    a_symbol_ptr  sym = load_tok_ifc_entity_ref();
+    if (sym == NULL) {
+      err = TRUE;
+    } else {
+      make_locator_for_symbol(sym, &locator_for_curr_id);
+      locator_for_curr_id.source_position = pos_curr_token;
+      curr_token = tok_identifier;
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
   /* Assume we have found an identifier until we discover otherwise. */
   is_identifier = TRUE;
@@ -24356,6 +24394,22 @@ scanned is, in fact, an identifier).
     }  /* if */
 #endif /* CHECKING */
     if (symbol != NULL) reduce_projection_symbol_to_fundamental_symbol(symbol);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  } else if (curr_token == tok_ifc_entity_ref) {
+    symbol = load_tok_ifc_entity_ref();
+    if (symbol != NULL) {
+      make_locator_for_symbol(symbol, &locator_for_curr_id);
+      locator_for_curr_id.source_position = pos_curr_token;
+      curr_token = tok_identifier;
+    } else {
+      make_error_locator(&locator_for_curr_id);
+    }  /* if */
+  } else if (locator_for_curr_id.symbol_header == NULL) {
+    /* This can happen when producing tokens from an IFC file. */
+    *err = TRUE;
+    symbol = NULL;
+    make_error_locator(&locator_for_curr_id);
+#endif /*MICROSOFT_EXTENSIONS_ALLOWED */
   } else {
 #if CHECKING
     if (curr_token != tok_identifier) {
@@ -25700,9 +25754,8 @@ and < end_tsn are included in the string.
         put_ch_to_temp_text_buffer(';');
       }  /* if */
     } else if (teik_kind == teik_ifc_index) {
-      put_str_to_temp_text_buffer("// ");
-      add_token_to_string(ctp);
-      put_str_to_temp_text_buffer("\n");
+      put_str_to_temp_text_buffer(" <IFC entity ref");
+      put_str_to_temp_text_buffer(">\n");
     } else {
       /* A normal token (including, possibly, a pp-token). */
       if (ctp->token == tok_removed_template_body) {

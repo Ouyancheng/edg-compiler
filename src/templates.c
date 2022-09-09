@@ -1580,10 +1580,15 @@ instantiation.
 
   if (tssp->prototype_template != NULL && !tssp->is_specific_definition) {
     /* Use the cache from the original template. */
-    tcp = &tssp->prototype_template->variant.template_info->
-                                                   variant.variable.decl_cache;
+    tcp = &tssp->prototype_template->variant.template_info
+                                   ->variant.variable.decl_cache;
   } else {
     tcp = &tssp->variant.variable.decl_cache;
+  }  /* if */
+  if (tcp->decl_info == NULL && tssp->cache.decl_info != NULL) {
+    /* In error cases, the only valid cache may be tssp->cache. */
+    expect_error();
+    tcp = &tssp->cache;
   }  /* if */
   return tcp;
 }  /* decl_cache_for_variable_template */
@@ -28055,6 +28060,7 @@ the primary template entry.
   create_prototype_variable(decl_state, sym);
   if (is_error_locator(*locator)) {
     decl_state->decl_scope_err = TRUE;
+    sym->is_error = TRUE;
   }  /* if */
   return sym;
 }  /* create_variable_template_symbol */
@@ -28443,7 +28449,12 @@ supplement for this template should be returned to the caller.
     set_to_named_error_locator(*locator);
     sym = create_variable_template_symbol(decl_state, locator,
                                           NO_SCOPE_NUMBER);
-    decl_state->decl_scope_err = TRUE;
+    sym->decl_scope = scope_stack_top().number;
+    set_template_cache_info(&sym->variant.template_info->cache,
+                            (a_token_cache*)NULL, decl_state->decl_info);
+    set_template_cache_info(&sym->variant.template_info
+                                ->variant.variable.decl_cache,
+                            (a_token_cache*)NULL, decl_state->decl_info);
   } else {
     dps->sym = var_sym;
   }  /* if */

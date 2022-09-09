@@ -2921,7 +2921,7 @@ appears.  Diagnostics may be emitted at the given position.
           a_class_type_supplement_ptr
                       ctsp = class_type_supp(class_type);
           check_assertion(ctsp->is_lambda_closure_class ||
-                          scope_stack_top().module_load_context_count > 0);
+                          in_code_from_module());
           set_class_membership(tag_sym, &class_type->source_corresp, parent);
           if (ctsp->is_lambda_closure_class) {
             class_type->source_corresp.access = (an_access_specifier)as_public;
@@ -11732,6 +11732,7 @@ process_enum_specifier:
       case tok_colon_colon:
 #if MICROSOFT_EXTENSIONS_ALLOWED
       case tok_super:
+      case tok_ifc_entity_ref:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         /* Identifier. */
 #if EXTRA_SOURCE_POSITIONS_IN_IL

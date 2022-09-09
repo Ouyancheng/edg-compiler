@@ -3356,6 +3356,9 @@ ec_default_arg_on_member_template_def;;"a default template argument cannot be sp
 ec_ifc_bad_identifier;;"invalid IFC identifier name %sq encountered during entity reconstruction"
 ec_ifc_bad_identifier_skipped;;"invalid IFC identifier named %sq skipped during entity reconstruction"
 ec_invalid_ifc_sort_value;;"module %sq invalid sort value"
+ec_ifc_function_template_parse_failure;;"a function template loaded from an IFC module was incorrectly parsed as %nd"
+ec_ifc_entity_ref_failure;;"failed to load an IFC entity reference in module %sq"
+ec_ifc_entity_ref_failure_info;;"IFC index sort = %d1, value = %d2"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

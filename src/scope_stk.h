@@ -2646,6 +2646,15 @@ nested lambda, this produces the enclosing lambda.
 }  /* get_current_lambda */
 
 
+inline a_boolean in_code_from_module(void)
+/*
+Return TRUE if the current code is generated from a compiled module file (e.g.,
+a Microsoft IFC file).
+*/
+{
+  return scope_stack_top().module_load_context_count > 0;
+}  /* in_code_from_module */
+
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE
 

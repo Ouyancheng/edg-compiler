@@ -5057,6 +5057,7 @@ point of call, FALSE otherwise.
       is_nonspecialized_instantiation_context() &&
       !function_symbol->is_class_member &&
       !is_local_symbol(function_symbol) &&
+      !in_code_from_module() &&
       (function_symbol->decl_seq >
                              (effective_decl_seq = get_effective_decl_seq()) &&
        effective_decl_seq != NO_DECL_SEQUENCE_NUMBER)) {

@@ -707,7 +707,7 @@ extern void record_pending_ifc_function_body(a_routine_ptr     rp,
 
 extern void record_symbol_for_ifc_decl(a_symbol_ptr  sym);
 
-extern a_symbol_ptr load_ifc_friend_entity_ref(an_ifc_expr_index  expr_idx);
+extern a_symbol_ptr load_tok_ifc_entity_ref(void);
 
 extern void ifc_modules_one_time_init();
 

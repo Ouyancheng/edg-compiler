@@ -33,6 +33,7 @@ expr.c -- Expression scanning routines.
 #include "interpret.h"
 #include "layout.h"
 #if MICROSOFT_EXTENSIONS_ALLOWED
+#include "ifc_modules.h"
 /* The Microsoft-specific predefined identifier __FUNCDNAME__ refers to the
    mangled name of the current function.  Hence, we may need access to the
    mangling routines. */
@@ -31188,6 +31189,7 @@ of:
     case tok_super:                  /* Microsoft __super qualifier. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case tok_identifier:
+    case tok_ifc_entity_ref:
     case tok_func_name:
     case tok_function_name:
     case tok_pretty_function_name:
@@ -33916,6 +33918,7 @@ Return TRUE if the indicated token is one that could start an expression.
   switch (tok) {
     case tok_colon_colon:
     case tok_identifier:
+    case tok_ifc_entity_ref:
     case tok_decltype:
     case tok_operator:
     case tok_this:
@@ -36017,18 +36020,18 @@ if rescan_is_template_id is TRUE, and return the result in *operand
     }  /* if */
   } else {
     /* Normal, non-rescan, processing. */
-    a_token_sequence_number paren_tok_seq_number;
+    a_token_sequence_number    paren_tok_seq_number;
     an_identifier_options_set  gid_options = GID_IS_EXPR_CONTEXT |
                                              GID_DTOR_RECOGNIZED;
+    start_position = pos_curr_token;
     if (class_template_arg_deduction_enabled) {
       gid_options |= GID_TEMPLATE_ARGS_OPTIONAL;
     }  /* if */
-    start_position = pos_curr_token;
     /* If the identifier is the start of a C++ qualified name, get the whole
        name.  If not, look the name up as a normal identifier.  This routine
        also handles operator names. */
-    sym_ptr = coalesce_and_lookup_generalized_identifier(gid_options, ilm_expr,
-                                                         &err);
+    sym_ptr = coalesce_and_lookup_generalized_identifier(
+                                                 gid_options, ilm_expr, &err);
     locator = locator_for_curr_id;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     end_position = end_pos_curr_token;
@@ -39703,6 +39706,17 @@ handle_identifier:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       }
       break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_ifc_entity_ref:
+      { a_boolean okay_after_typename;
+        scan_identifier(&local_result, local_options, prec_level,
+                        (a_rescan_control_block *)NULL, (a_symbol *)NULL,
+                        (an_operand *)NULL, /*rescan_is_template_id=*/FALSE,
+                        (a_template_arg *)NULL, (a_symbol_ptr *)NULL,
+                        &okay_after_typename);
+      }
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case tok_this:
       /* Scan "this" in a member function. */
       scan_this(&local_result);
@@ -45746,7 +45760,7 @@ function.
 
   db_enter(3, "scan_default_arg_expr");
   check_assertion(scope_stack_top().kind == sck_func_prototype ||
-                  scope_stack_top().module_load_context_count > 0);
+                  in_code_from_module());
   make_error_operand(&result);
   if (gpp_mode && !parameters_visible_late) {
     /* GCC does not consider parameter declarations while scanning default

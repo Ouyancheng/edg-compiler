@@ -90,13 +90,19 @@ An empty symbol used to initialize newly allocated symbols.
 */
 static a_symbol cleared_symbol;
 
+static inline void clear_symbol(a_symbol_ptr   sym,
+                                a_symbol_kind  kind)
 /*
 Set the shared fields of a symbol to default values, set the kind, and
 initialize its variant fields.
 */
-/*lint -emacro(727,clear_symbol)*/
-#define clear_symbol(sym, kind)                                    \
-  { *(sym) = cleared_symbol; set_symbol_kind((sym), (kind)); }
+{
+  *sym = cleared_symbol;
+  if (scope_stack != NULL && in_code_from_module()) {
+    sym->from_module_code = TRUE;
+  }  /* if */
+  set_symbol_kind(sym, kind);
+}  /* clear_symbol */
 
 #if DEBUG
 /*
@@ -2926,6 +2932,31 @@ specific symbol which is an error symbol.
 }  /* make_specific_symbol_error_locator */
 
 
+static a_symbol_header_ptr get_error_symbol_header(void)
+/*
+Return a pointer to the error symbol header.  Create it if it has not
+already been created.
+*/
+{
+  if (error_symbol_header == NULL) {
+    error_symbol_header = alloc_symbol_header();
+    set_identifier_for_symbol_header(error_symbol_header, "<error>", 7,
+                                   /*is_unnamed=*/FALSE);
+  }  /* if */
+  return error_symbol_header;
+}  /* get_error_symbol_header */
+
+
+extern void make_error_locator(a_symbol_locator *locator)
+/*
+Make a locator not specifically associated with any symbol.
+*/
+{
+  set_to_error_locator(*locator);
+  locator->symbol_header = get_error_symbol_header();
+}  /* make_error_locator */
+
+
 void clear_qualifier_from_locator(a_symbol_locator  *locator)
 /*
 Reset the fields in the specified locator to remove traces of a class,
@@ -4199,21 +4230,6 @@ state.
 
   db_exit();
 }  /* set_symbol_kind */
-
-
-static a_symbol_header_ptr get_error_symbol_header(void)
-/*
-Return a pointer to the error symbol header.  Create it if it has not
-already been created.
-*/
-{
-  if (error_symbol_header == NULL) {
-    error_symbol_header = alloc_symbol_header();
-    set_identifier_for_symbol_header(error_symbol_header, "<error>", 7,
-                                   /*is_unnamed=*/FALSE);
-  }  /* if */
-  return error_symbol_header;
-}  /* get_error_symbol_header */
 
 
 static void init_symbol(a_symbol_ptr        sym_ptr,

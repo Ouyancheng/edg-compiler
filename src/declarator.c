@@ -333,8 +333,7 @@ block size is returned through upc_block_size (when non-NULL).
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   if (decl_pos_block != NULL) {
     check_assertion(local_decl_pos_block.specifiers_range.end.seq != 0 ||
-                    scanning_generated_code ||
-                    scope_stack_top().module_load_context_count > 0);
+                    scanning_generated_code || in_code_from_module());
     decl_pos_block->declarator_range.end =
                        local_decl_pos_block.specifiers_range.end;
   }  /* if */
@@ -1529,7 +1528,7 @@ declaration on which the exception specification appears.
              is_local_decl = FALSE;
 
   if (scope_is(&scope_stack_top(), sck_func_prototype)) {
-    if (dps != NULL && dps->is_inclass_member_function_decl) {
+    if (dps->is_inclass_member_function_decl) {
       is_inclass_member_function_decl = TRUE;
     } else if (is_local_scope_kind(
                        scope_stack[scope_stack_top().decl_scope_level].kind)) {

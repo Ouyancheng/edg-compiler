@@ -2987,6 +2987,9 @@ the scope being pushed.
   ssep->fx_fract_overflow_state = curr_fx_fract_overflow_state;
   ssep->fx_accum_overflow_state = curr_fx_accum_overflow_state;
 #endif /* FIXED_POINT_ALLOWED */
+  if (template_sym != NULL && template_sym->from_module_code) {
+    ssep->module_load_context_count += 1;
+  }  /* if */
   if (sp != NULL) {
     if (new_il_scope) {
       /* Set the parent scope. */
@@ -5530,7 +5533,10 @@ the template that is being rescanned and can be NULL.
     /* A function access scope is pushed even for the class case. */
     (void)push_scope((a_scope_kind)sck_function_access, NO_SCOPE_NUMBER,
                      (a_type_ptr)NULL, rp);
-    scope_stack[depth_scope_stack].template_sym = template_sym;
+    scope_stack_top().template_sym = template_sym;
+    if (template_sym != NULL && template_sym->from_module_code) {
+      scope_stack_top().module_load_context_count += 1;
+    }  /* if */
   }  /* if */
   /* Save the innermost scope that affects access control and defer
      access checks during the rescan.  This is needed even when

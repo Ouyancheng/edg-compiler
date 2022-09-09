@@ -377,7 +377,7 @@ specifier.
 
 /*
 Macro that is TRUE if the current token is the start of a type
-specifier (except for the typedef and friend cases).  (3.5.2)
+specifier (except for the typedef and friend cases).
 */
 #define is_type_specifier()                                                 \
  (is_type_keyword(curr_token)       || is_class_type_keyword(curr_token) || \

@@ -3690,6 +3690,10 @@ typedef struct a_symbol {
 			   Also TRUE for a variable if its storage class is
 			   extern, since its value will be set elsewhere in the
 			   definition. */
+  a_bit_field
+		from_module_code:1;
+			/* TRUE if this is a symbol created from code generated
+			   from a compiled module file. */
   union {
     /* When kind == sk_undefined, no variant fields. */
     /* When kind == sk_keyword: */
@@ -4699,6 +4703,8 @@ extern void make_locator_for_symbol(a_symbol_ptr     sym_ptr,
                                     a_symbol_locator *location);
 
 extern void make_specific_symbol_error_locator(a_symbol_locator *locator);
+
+extern void make_error_locator(a_symbol_locator *loc);
 
 extern void clear_qualifier_from_locator(a_symbol_locator  *locator);
 
