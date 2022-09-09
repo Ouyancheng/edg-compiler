@@ -11308,7 +11308,8 @@ inline void an_ifc_module::cache_scope_decl(
                                    const an_ifc_source_location &locus)
 /*
 Cache the tokens corresponding to the given scope decl (indexed in the IFC by
-decl_idx).  type represents the IFC type representing the introducing keyword.
+decl_idx).  type represents the IFC type representing the introducing keyword,
+and access gives the declaration's accessibility (if it's a class member).
 cache_name_fn is a lambda accepting a_source_position_ptr interpretation of
 locus that's called to cache the name of the scope.  cache_scope_fn is a lambda
 accepting a_source_position_ptr interpretation of locus that's called to cache
@@ -11350,6 +11351,7 @@ decl_idx).  type represents the IFC type representing the introducing keyword.
 name represents the name of the scope decl.  base represents any associated
 base classes and as such is only valid for a class declaration.  scope
 represents the declaration's body (e.g., for a class the member-specification).
+access gives the declaration's accessibility (if it's a class member).
 Finally, locus is the location of the given scope decl.
 */
 {
