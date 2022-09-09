@@ -290,8 +290,11 @@ public:
                                  a_non_type_kind   *kind);
   a_type_ptr type_for_template_id(const an_ifc_expr_template_id &templ_id);
   a_template_arg_ptr template_arg_for_expr(
-                                         a_template_parameter_ptr tmpl_param,
-                                         an_ifc_expr_index        expr_index);
+                                    a_const_template_parameter_ptr param,
+                                    an_ifc_expr_index              expr_index);
+  a_template_arg_ptr template_args_for_expr_list(
+                                     a_const_template_parameter_ptr param_list,
+                                     an_ifc_expr_index              arguments);
   a_boolean source_position_from_locus(a_source_position            *pos,
                                        const an_ifc_source_location &locus);
   inline a_const_char *get_string_at_offset(an_ifc_text_offset offset) const;

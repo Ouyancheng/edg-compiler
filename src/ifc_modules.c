@@ -7197,11 +7197,13 @@ invalid:
 
 
 a_template_arg_ptr an_ifc_module::template_arg_for_expr(
-                                             a_template_parameter_ptr param,
-                                             an_ifc_expr_index        expr_idx)
+                                       a_const_template_parameter_ptr param,
+                                       an_ifc_expr_index              expr_idx)
 /*
 Given an IFC expression index, construct and return a corresponding template
-argument.
+argument for param.  IFC expressions that can contain more than one argument
+(e.g., ExprSort::Tuple, ExprSort::PackedTemplateArguments) should use
+template_args_for_expr_list instead.
 */
 {
   a_template_arg_ptr result = NULL;
@@ -7231,20 +7233,6 @@ argument.
         }  /* if */
         /* FIXME: Currently unsupported. */
         issue_unsupported_node_error("ExprSort::UnaryFold", &error_position);
-        kind = (a_templ_arg_kind)tak_type;
-        type = error_type();
-      }
-      break;
-    case ifc_es_expr_packed_template_arguments:
-      { Opt<an_ifc_expr_packed_template_arguments> opt_iepta;
-
-        construct_node(&opt_iepta, expr_idx);
-        if (!opt_iepta.has_value()) {
-          goto invalid;
-        }  /* if */
-        /* FIXME: Currently unsupported. */
-        issue_unsupported_node_error("ExprSort::PackedTemplateArguments",
-                                     &error_position);
         kind = (a_templ_arg_kind)tak_type;
         type = error_type();
       }
@@ -7327,9 +7315,78 @@ argument.
     }  /* if */
     result->variant.constant = cp;
   }  /* if */
+  if (param->is_pack) {
+    result->is_pack_element = TRUE;
+  }  /* if */
 invalid:
   return result;
 }  /* template_arg_for_expr */
+
+
+a_template_arg_ptr an_ifc_module::template_args_for_expr_list(
+                                     a_const_template_parameter_ptr param_list,
+                                     an_ifc_expr_index              arguments)
+/*
+Given an IFC expression list (that may or may not cover multiple template
+parameters), construct and return corresponding template arguments for
+param_list.
+*/
+{
+  a_template_arg_ptr result = NULL;
+
+  if (!is_null_index(arguments)) {
+    if (arguments.sort == ifc_es_expr_tuple) {
+      Opt<an_ifc_expr_tuple> opt_iet;
+      a_template_arg_ptr     *next_arg = &result;
+
+      construct_node(&opt_iet, arguments);
+      if (!opt_iet.has_value()) {
+        goto invalid;
+      }  /* if */
+
+      an_ifc_expr_tuple      iet = *opt_iet;
+      an_expr_heap_traverser traverser(iet);
+      for (Opt<an_ifc_heap_expr> opt_ihe : traverser) {
+        if (!opt_ihe.has_value()) {
+          goto invalid;
+        }  /* if */
+
+        an_ifc_heap_expr  ihe = *opt_ihe;
+        an_ifc_expr_index expr_index = get_ifc_value(ihe);
+        check_assertion(param_list != NULL);
+        /* Packed template arguments shouldn't be part of a tuple.  If this is
+           ever encountered, the below code should be changed to recursively
+           call this function, and iterate over *next_arg until it's NULL. */
+        check_assertion(expr_index.sort !=
+                        ifc_es_expr_packed_template_arguments);
+        *next_arg = template_arg_for_expr(param_list, expr_index);
+        next_arg = &(*next_arg)->next;
+        check_assertion(*next_arg == NULL);
+        if (!param_list->is_pack) {
+          param_list = param_list->next;
+        }  /* if */
+      }  /* for */
+    } else if (arguments.sort == ifc_es_expr_packed_template_arguments) {
+      Opt<an_ifc_expr_packed_template_arguments> opt_iepta;
+
+      construct_node(&opt_iepta, arguments);
+      if (!opt_iepta.has_value()) {
+        goto invalid;
+      }  /* if */
+      check_assertion(param_list != NULL && param_list->is_pack);
+      result = alloc_template_arg(tak_start_of_pack_expansion);
+      result->next= template_args_for_expr_list(param_list,
+                                                get_ifc_arguments(*opt_iepta));
+    } else {
+      check_assertion(param_list != NULL);
+      result = template_arg_for_expr(param_list, arguments);
+    }  /* if */
+  }  /* if */
+invalid:
+  /* FIXME: We should issue some kind of diagnostic if we encounter an invalid
+     node. */
+  return result;
+}  /* template_args_for_expr_list */
 
 
 a_type_ptr an_ifc_module::type_for_template_id(
@@ -7366,41 +7423,10 @@ module file.
     }  /* if */
 
     an_ifc_expr_index  arguments = get_ifc_arguments(templ_id);
-    a_template_arg_ptr arg_list = NULL, *next_arg = &arg_list;
-    if (!is_null_index(arguments)) {
-      a_template_parameter_ptr param_list = tmpl->template_decl->param_list;
-
-      check_assertion(tmpl != NULL);
-      if (arguments.sort == ifc_es_expr_tuple) {
-        Opt<an_ifc_expr_tuple> opt_iet;
-
-        construct_node(&opt_iet, arguments);
-        if (!opt_iet.has_value()) {
-          goto invalid;
-        }  /* if */
-
-        an_ifc_expr_tuple      iet = *opt_iet;
-        an_expr_heap_traverser traverser(iet);
-        for (Opt<an_ifc_heap_expr> opt_ihe : traverser) {
-          if (!opt_ihe.has_value()) {
-            goto invalid;
-          }  /* if */
-
-          an_ifc_heap_expr  ihe = *opt_ihe;
-          an_ifc_expr_index expr_index = get_ifc_value(ihe);
-          check_assertion(param_list != NULL);
-          *next_arg = template_arg_for_expr(param_list, expr_index);
-          next_arg = &(*next_arg)->next;
-          param_list = param_list->next;
-        }  /* for */
-      } else {
-        check_assertion(param_list != NULL);
-        *next_arg = template_arg_for_expr(param_list, arguments);
-        next_arg = &(*next_arg)->next;
-      }  /* if */
-    }  /* if */
-
-    a_symbol_ptr inst_sym;
+    a_template_arg_ptr arg_list =
+                   template_args_for_expr_list(tmpl->template_decl->param_list,
+                                               arguments);
+    a_symbol_ptr       inst_sym;
     switch (tmpl->kind) {
       case templk_function:
       case templk_member_function:
@@ -7438,7 +7464,6 @@ module file.
       default_is_unexpected();
     }  /* switch */
   } else {
-invalid:
     result = error_type();
   }  /* if */
   return result;

@@ -16076,6 +16076,7 @@ enum a_template_parameter_kind : a_byte {
 
 
 typedef struct a_template_parameter *a_template_parameter_ptr;
+typedef const struct a_template_parameter *a_const_template_parameter_ptr;
 typedef struct a_template_parameter {
   /* Description of a template parameter (type, nontype or template).  A list
      of such items can be assembled through the "next" pointers and should
