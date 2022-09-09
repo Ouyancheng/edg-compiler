@@ -10528,11 +10528,11 @@ This routine is called only in C++ mode.
            as null pointer constants in argument matching. */
         dependent_call = TRUE;
         break;
-      } else if (gpp_mode && arg != NULL &&
+      } else if (gpp_version_is(<40700) && arg != NULL &&
                  is_gpp_falsely_dependent_argument(arg)) {
-        /* g++ incorrectly treats something like "this->x" in a member
-           function of a template as dependent even if the type of x is
-           not dependent. */
+        /* Prior to version 4.7.x, GCC incorrectly treats something like
+           "this->x" in a member function of a template as dependent even if
+           the type of x is not dependent. */
         dependent_call = TRUE;
         break;
       } else if (is_variadic_template_context() &&
@@ -10564,7 +10564,10 @@ This routine is called only in C++ mode.
       /* A function for which we can't do overload resolution at this
          time. */
       defer_overload_resolution = TRUE;
-    } else if ((clang_mode || microsoft_mode) && !stricter_template_checking &&
+    } else if ((overloaded_function_symbol == NULL ||
+               symbol_is(overloaded_function_symbol, sk_undefined) ||
+               !do_arg_dep_lookup) &&
+               (clang_mode || microsoft_mode) && !stricter_template_checking &&
                !(expr_stack->possible_rescan_context ||
                  expr_stack->template_deduction_context) &&
                (expr_stack->uses_this_operand ||

@@ -1,5 +1,21 @@
 Version 6.4
 
+9/9/22   [EDGcpfe/22061,EDGcpfe/25587]
+GNU C++ compatibility: Falsely dependent member selections
+
+The front end previously emulated an old bug in GCC whereby an expression like
+"this->x" in a member function of a class template was treated as dependent
+even though x is a member of the current instantiation and therefore considered
+nondependent by the standard.  (See the changes for EDGcpfe/10800.)  GCC fixed
+this bug in its version 4.7.1: The front end now matches that behavior by
+limiting the emulation to GNU C++ modes with gnu_version < 40700.  Previously,
+this behavior also applied to Clang modes, but now it is limited to non-Clang
+modes.  Furthermore, the changes for EDGcpfe/16412,EDGcpfe/16428 slightly
+changed in Clang mode: An explicit or implicit use of "this" in an argument no
+longer makes the call dependent if ordinary lookup of an unqualified name finds
+a candidate.
+
+
 9/7/22   [EDGcpfe/21042,EDGcpfe/23680,EDGcpfe/25595]
 Unevaluated subexpressions of type void in GNU C-mode constant expressions
 
