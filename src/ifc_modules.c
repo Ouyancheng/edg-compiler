@@ -7343,8 +7343,8 @@ invalid:
 
 
 a_template_arg_ptr an_ifc_module::template_arg_for_expr(
-                                       a_const_template_parameter_ptr param,
-                                       an_ifc_expr_index              expr_idx)
+                                           const a_template_parameter *param,
+                                           an_ifc_expr_index          expr_idx)
 /*
 Given an IFC expression index, construct and return a corresponding template
 argument for param.  IFC expressions that can contain more than one argument
@@ -7470,8 +7470,8 @@ invalid:
 
 
 a_template_arg_ptr an_ifc_module::template_args_for_expr_list(
-                                     a_const_template_parameter_ptr param_list,
-                                     an_ifc_expr_index              arguments)
+                                        const a_template_parameter *param_list,
+                                        an_ifc_expr_index          arguments)
 /*
 Given an IFC expression list (that may or may not cover multiple template
 parameters), construct and return corresponding template arguments for
