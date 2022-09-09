@@ -1,7 +1,7 @@
 Version 6.4
 
 9/7/22   [EDGcpfe/21042,EDGcpfe/23680,EDGcpfe/25595]
-Unevaluated subexpressions in GNU C-mode constant expressions
+Unevaluated subexpressions of type void in GNU C-mode constant expressions
 
 Consider, in GNU C mode:
 
