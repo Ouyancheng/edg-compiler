@@ -28,7 +28,7 @@ Non-standard feature warning suppression with MAKE_FRONT_END_CALLABLE
 
 In configurations where MAKE_FRONT_END_CALLABLE is TRUE, some warnings for use
 of non-standard features were incorrectly suppressed in successive invocations
-of the front end. This problem also occurred when compiling multiple
+of the front end.  This problem also occurred when compiling multiple
 translation units in a single invocation of the front end.
 
 
