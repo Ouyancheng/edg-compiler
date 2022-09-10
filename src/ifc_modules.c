@@ -2800,8 +2800,8 @@ invalid:
 
 a_symbol_ptr load_tok_ifc_entity_ref(void)
 /*
-A wrapper for load_ifc_entity_ref that using the current token as a source
-(that token should be a tok_ifc_entity_ref).
+A wrapper for load_ifc_entity_ref that uses the current token as a source for
+an IFC expression index (that token should be a tok_ifc_entity_ref).
 */
 {
   a_lexical_ifc_index_reference
