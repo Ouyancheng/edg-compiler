@@ -7501,8 +7501,8 @@ param_list.
         an_ifc_expr_index expr_index = get_ifc_value(ihe);
         check_assertion(param_list != NULL);
         /* Packed template arguments shouldn't be part of a tuple.  If this is
-           ever encountered, the below code should be changed to recursively
-           call this function, and iterate over *next_arg until it's NULL. */
+           ever encountered, the code below should be changed to recursively
+           call this function and iterate over *next_arg until it's NULL. */
         check_assertion(expr_index.sort !=
                         ifc_es_expr_packed_template_arguments);
         *next_arg = template_arg_for_expr(param_list, expr_index);
