@@ -33371,7 +33371,8 @@ that is a pack expansion, it is TRUE only for the first expansion.
 Flag indicating whether a non-standard *this capture has already been
 diagnosed.
 */
-static a_boolean already_diagnosed_star_this_capture = FALSE;
+static a_boolean
+                already_diagnosed_star_this_capture = FALSE;
 
 static void scan_lambda_capture_list(a_lambda_ptr  lambda)
 /*

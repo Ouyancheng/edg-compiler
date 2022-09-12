@@ -2534,7 +2534,8 @@ performs no action.
 Flag indicating whether a non-standard attribute-using-prefix has already been
 diagnosed.
 */
-static a_boolean already_diagnosed_using = FALSE;
+static a_boolean
+                already_diagnosed_using = FALSE;
 
 static an_attribute_ptr scan_std_attribute_group(an_attribute_location  loc)
 /*

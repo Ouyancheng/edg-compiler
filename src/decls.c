@@ -15333,13 +15333,15 @@ alias declaration in the source sequence list (if applicable).
 Flag indicating whether a non-standard nested namespace declaration has already
 been diagnosed.
 */
-static a_boolean already_diagnosed_nested_namespace = FALSE;
+static a_boolean
+                already_diagnosed_nested_namespace = FALSE;
 
 /*
 Flag indicating whether a non-standard nested inline namespace declaration has
 already been diagnosed.
 */
-static a_boolean already_diagnosed_nested_inline_namespace = FALSE;
+static a_boolean
+                already_diagnosed_nested_inline_namespace = FALSE;
 
 static void namespace_declaration(a_token_kind      *final_token,
                                   a_boolean         in_nested_namespace_decl,
