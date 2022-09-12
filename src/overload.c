@@ -10184,7 +10184,7 @@ an argument of a call in gpp mode even though the standard says it's not.
     an_expr_node_ptr expr = skip_parens(operand->variant.expression);
     if (is_variable_node(expr) && is_incomplete_array_type(operand->type)) {
       result = TRUE;
-    } else {
+    } else if (gpp_version_is(<40700)) {
       if (is_operation_node(expr) &&
           (node_operator_is(expr, eok_indirect) ||
            node_operator_is(expr, eok_ref_indirect))) {
@@ -10528,7 +10528,7 @@ This routine is called only in C++ mode.
            as null pointer constants in argument matching. */
         dependent_call = TRUE;
         break;
-      } else if (gpp_version_is(<40700) && arg != NULL &&
+      } else if ((gpp_mode || clang_mode) && arg != NULL &&
                  is_gpp_falsely_dependent_argument(arg)) {
         /* Prior to version 4.7.x, GCC incorrectly treats something like
            "this->x" in a member function of a template as dependent even if
