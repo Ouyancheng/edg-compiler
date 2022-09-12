@@ -3711,8 +3711,7 @@ error).
 Flag indicating whether a non-standard selection initializer has already been
 diagnosed.
 */
-static a_boolean
-                already_diagnosed_selection_initializer = FALSE;
+static a_boolean already_diagnosed_selection_initializer = FALSE;
 
 static void scan_structured_control_value(a_statement_ptr    sp,
                                           an_init_component  *cached_expr)
@@ -5355,8 +5354,7 @@ can be NULL.
 Flag indicating whether a non-standard init statement in a range-based for
 statement has already been diagnosed.
 */
-static a_boolean
-                already_diagnosed_init_in_range_for = FALSE;
+static a_boolean already_diagnosed_init_in_range_for = FALSE;
 
 static void for_statement(void)
 /*

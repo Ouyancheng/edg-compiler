@@ -52342,8 +52342,7 @@ selector is returned through bound_function_selector.
 Flag indicating whether a non-standard fold expression has already been
 diagnosed.
 */
-static a_boolean
-                already_diagnosed_fold = FALSE;
+static a_boolean already_diagnosed_fold = FALSE;
 
 static void assemble_fold_expression_operand(
                          an_operand                   *result,
