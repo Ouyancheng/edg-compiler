@@ -1510,7 +1510,6 @@ any unused space.
 }  /* trim_memory_region */
 
 #if !STANDALONE_UTILITY_PROGRAM
-#if IL_SHOULD_BE_WRITTEN_TO_FILE
 
 static a_boolean memory_region_should_be_kept_for_routine(a_routine_ptr	rout,
 							  a_scope_ptr	scope)
@@ -1557,7 +1556,6 @@ memory because of the properties of rout.  scope is the scope of rout
   return keep_memory;
 }  /* memory_region_should_be_kept_for_routine */
 
-#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
 void check_for_done_with_memory_region(a_memory_region_number region_number)
@@ -1571,12 +1569,11 @@ dispose of it, depending on whether the IL is passed to the back end in
 memory or with an IL file.
 */
 {
-  a_boolean      keep_memory;
+  a_boolean      keep_memory = FALSE;
+  a_boolean      trim_memory = TRUE;
 #if !STANDALONE_UTILITY_PROGRAM
-#if IL_SHOULD_BE_WRITTEN_TO_FILE
   a_scope_ptr    scope;
   a_routine_ptr  rout;
-#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
   db_enter(5, "check_for_done_with_memory_region");
@@ -1589,13 +1586,11 @@ memory or with an IL file.
   }  /* if */
 #endif /* DEBUG */
 #if STANDALONE_UTILITY_PROGRAM
-  /* In a standalone program the memory is always freed. */
-  keep_memory = FALSE;
+  trim_memory = FALSE;
 #else /* !STANDALONE_UTILITY_PROGRAM */
 #if !IL_SHOULD_BE_WRITTEN_TO_FILE
-  /* The IL is passed to the back end in memory, so it is always kept. */
-  keep_memory = TRUE;
-#else /* IL_SHOULD_BE_WRITTEN_TO_FILE */
+  trim_memory = FALSE;
+#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
   /* Communication with the back end is via a file.  The memory
      is freed after it's been written to the IL file. */
   scope = il_header.region_scope_entry[region_number];
@@ -1608,9 +1603,8 @@ memory or with an IL file.
     /* Function scope memory regions are not freed early: Keep the memory
        until all memory regions are freed. */
     keep_memory = TRUE;
-  } else
+  }  /* if */
 #endif /* !FREE_MEMORY_REGIONS_EARLY */
-  /* Do not insert code here. */
   if (may_be_building_new_pch()) {
     /* We are still considering whether to build a PCH file, so keep this
        region around so we can use it in generating the PCH file.
@@ -1629,9 +1623,12 @@ memory or with an IL file.
     /* The memory region might be needed later (e.g., for a generic
        lambda instantiation).  Do not free it. */
     keep_memory = TRUE;
+    trim_memory = FALSE;
+#if IL_SHOULD_BE_WRITTEN_TO_FILE
   } else if (skip_il_read) {
     /* For debugging purposes, keep the memory region around. */
     keep_memory = TRUE;
+#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
   }  /* if */
   if (!keep_memory && rout != NULL) {
     /* So far we don't need to keep the memory.  Go though the list of
@@ -1643,6 +1640,7 @@ memory or with an IL file.
       check_assertion(rp != NULL);
       if (memory_region_should_be_kept_for_routine(rp, sp)) {
         keep_memory = TRUE;
+	trim_memory = FALSE;
         break;
       }  /* if */
     }  /* for */
@@ -1656,18 +1654,19 @@ memory or with an IL file.
     fprintf(f_debug, "\n");
   }  /* if */
 #endif /* DEBUG */
+#if IL_SHOULD_BE_WRITTEN_TO_FILE
   if (!keep_memory) {
     /* Write the region to the file and free it. */
     check_assertion(!in_secondary_trans_unit(scope));
     write_memory_region(region_number);
   }  /* if */
-#endif /* !IL_SHOULD_BE_WRITTEN_TO_FILE */
+#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
   if (keep_memory) { /*lint !e774*/
     /* Keep the memory for the region.  Trim the region to reclaim unused
        storage at the end of the last block.  Unused storage at the ends
        of blocks other than the last was previously reclaimed. */
-    trim_memory_region(region_number);
+    if (trim_memory) trim_memory_region(region_number);
   } else {
     /* Free the memory for the region. */
     /* coverity[dead_error_line] */

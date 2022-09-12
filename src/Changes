@@ -1,5 +1,15 @@
 Version 6.4
 
+9/12/22  [EDGcpfe/25302]
+Performance issue when not generating an IL file
+
+In certain cases when an IL file is not being created and involving generic
+lambdas there could be a performance issue caused by trimming memory regions
+that would later be used in the instantiation of generic lambdas.  This could
+result in a very large number of small memory blocks that required time
+later to coalesce into a single block.  Now fixed.
+
+
 9/12/22  [EDGcpfe/25544]
 Diagnostics for compiler-generated function calls
 
