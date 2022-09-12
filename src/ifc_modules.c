@@ -5732,7 +5732,7 @@ of the class type.
             an_ifc_decl_friend friend_decl = *opt_df;
             an_ifc_expr_index  friend_id = get_ifc_entity(friend_decl);
             add_friend_to_class(class_type, load_ifc_entity_ref(friend_id));
-          }  /*if */
+          }  /* if */
         });
     }  /* if */
   }  /* if */
@@ -17002,7 +17002,7 @@ the position of the qualified-id this nested-name-specifier is part of.
     } else {
       /* Attempt to generate any parent scope's qualifiers. */
       cache_scope_as_nested_name_specifier(cache, scope->parent, pos);
-    }  /*if */
+    }  /* if */
     /* Generate the current scope's qualifier. */
     if (scope_is(scope, sck_class_struct_union) ||
         scope_is(scope, sck_enum)) {

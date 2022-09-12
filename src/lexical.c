@@ -22887,7 +22887,7 @@ selection operator, in which case it points to the type of the left operand.
          specific symbol even if this turns out to be an unqualified name. */
       curr_token = tok_identifier;
     } else
-#endif /*MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Do not insert code here. */
     if (!(is_conversion_type ||
           (specific_sym != NULL &&
@@ -24409,7 +24409,7 @@ scanned is, in fact, an identifier).
     *err = TRUE;
     symbol = NULL;
     make_error_locator(&locator_for_curr_id);
-#endif /*MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else {
 #if CHECKING
     if (curr_token != tok_identifier) {
@@ -24424,7 +24424,7 @@ scanned is, in fact, an identifier).
     if (in_if_exists) {
       idl_options |= IDL_IF_EXISTS_LOOKUP;
     }  /* if */
-#endif /*MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     symbol = normal_id_lookup(&locator_for_curr_id, idl_options);
   }  /* if */
   /* If this is the symbol of a class template then this must be a reference
@@ -25754,8 +25754,7 @@ and < end_tsn are included in the string.
         put_ch_to_temp_text_buffer(';');
       }  /* if */
     } else if (teik_kind == teik_ifc_index) {
-      put_str_to_temp_text_buffer(" <IFC entity ref");
-      put_str_to_temp_text_buffer(">\n");
+      put_str_to_temp_text_buffer(" <IFC entity ref>\n");
     } else {
       /* A normal token (including, possibly, a pp-token). */
       if (ctp->token == tok_removed_template_body) {
