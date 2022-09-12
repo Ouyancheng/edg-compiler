@@ -10564,10 +10564,12 @@ This routine is called only in C++ mode.
       /* A function for which we can't do overload resolution at this
          time. */
       defer_overload_resolution = TRUE;
-    } else if ((overloaded_function_symbol == NULL ||
-               symbol_is(overloaded_function_symbol, sk_undefined) ||
-               !do_arg_dep_lookup) &&
-               (clang_mode || microsoft_mode) && !stricter_template_checking &&
+    } else if ((microsoft_mode ||
+                (clang_mode &&
+                 (overloaded_function_symbol == NULL ||
+                  symbol_is(overloaded_function_symbol, sk_undefined) ||
+                  !do_arg_dep_lookup))) &&
+               !stricter_template_checking &&
                !(expr_stack->possible_rescan_context ||
                  expr_stack->template_deduction_context) &&
                (expr_stack->uses_this_operand ||
@@ -10579,8 +10581,10 @@ This routine is called only in C++ mode.
            extend the covered cases to calls of the form "x.f<args>(...)")
            since it results in behavior closer to that of the Microsoft
            compiler when parsing function template definitions (which the
-           Microsoft compiler doesn't do).  (Don't defer in deduction contexts
-           since we may have to rescan the call later on.) */
+           Microsoft compiler doesn't do).  For Clang, this deferral is not
+           performed for unqualified calls that found a candidate using normal
+           lookup  (Don't defer in deduction contexts since we may have to
+           rescan the call later on.) */
       defer_overload_resolution = TRUE;
     }  /* if */
     if (dependent_call || defer_overload_resolution) {
