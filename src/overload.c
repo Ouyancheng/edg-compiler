@@ -14654,12 +14654,12 @@ reference is compiler-generated.  paren_tok_seq_number is the token sequence
 number of the opening parenthesis of the argument list, but it's required only
 when do_arg_dep_lookup is TRUE; it can be zero otherwise.
 closing_paren_position is the position of the closing parenthesis in the call;
-it is used only when do_arg_dep_lookup is TRUE.  If the call is dependent, and
-the function to be called cannot be determined, set *function_operand to an
-operand for an unknown function of the right name, and return TRUE.  If
-found_through_adl is non-NULL and the callee was found only through ADL,
-*found_through_adl is returned TRUE.  This routine is called only in C++ mode.
-arg_list is not freed by this routine.
+it is used only when orig_function_operand is non-NULL.  If the call is
+dependent, and the function to be called cannot be determined, set
+*function_operand to an operand for an unknown function of the right name, and
+return TRUE.  If found_through_adl is non-NULL and the callee was found only
+through ADL, *found_through_adl is returned TRUE.  This routine is called only
+in C++ mode.  arg_list is not freed by this routine.
 */
 {
   a_boolean                okay = FALSE;
@@ -14702,7 +14702,7 @@ arg_list is not freed by this routine.
                                        ovl_context,
                                        call_position,
                                        paren_tok_seq_number,
-                                       function_operand->is_id_expression ?
+                                       (orig_function_operand != NULL) ?
                                                       &single_function : NULL,
                                        (a_boolean *)NULL,
                                        &unknown_dependent_function,

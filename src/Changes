@@ -1,5 +1,23 @@
 Version 6.4
 
+9/12/22  [EDGcpfe/25544]
+Diagnostics for compiler-generated function calls
+
+Consider:
+
+  struct C { };
+  int *begin(C, int);
+  int *end(C, int);
+  void f(C c) {
+    for (int i : c) { }
+  }
+
+Previously, this would result in errors without a source position about too few
+arguments in a function call.  Now, the error messages point to the initializer
+of the range-based for statement, complaining that no suitable "begin" and
+"end" functions are found.
+
+
 9/9/22   [EDGcpfe/22061,EDGcpfe/25587]
 GNU C++ compatibility: Falsely dependent member selections
 
