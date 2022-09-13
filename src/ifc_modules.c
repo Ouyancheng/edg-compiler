@@ -7119,7 +7119,7 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
                                                          /*kind=*/NULL),
                                      (a_type_ptr)NULL, (a_type_ptr)NULL,
                                      (a_type_ptr)NULL, (a_type_ptr)NULL);
-          rtsp = result->variant.routine.extra_info;
+          rtsp = rout_type_supp(result);
           rtsp->calling_convention =
                               conv_calling_convention(get_ifc_convention(itf));
           rtsp->exception_specification =
@@ -7138,9 +7138,6 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
           }  /* if */
           if (!is_null_index(source)) {
             /* The function has parameters. */
-            a_routine_type_supplement_ptr rtsp =
-                                            result->variant.routine.extra_info;
-
             if (source.sort == ifc_ts_type_tuple) {
               /* A list of parameters. */
               Opt<an_ifc_type_tuple> opt_itt;
