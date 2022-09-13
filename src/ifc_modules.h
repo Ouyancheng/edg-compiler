@@ -343,6 +343,9 @@ public:
                                               an_ifc_chart_index params,
                                               a_type_ptr         rout_type,
                                               a_boolean          is_consteval);
+  an_exception_specification_ptr exception_specification(
+                                         an_ifc_noexcept_specification eh_spec,
+                                         a_source_position             *pos);
   /* Token caching. */
   void cache_scope_member_sequence(a_module_token_cache_ptr cache,
                                    an_ifc_decl_index        scope_decl,

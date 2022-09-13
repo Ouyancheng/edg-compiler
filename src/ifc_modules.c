@@ -6673,6 +6673,75 @@ Convert the given IFC calling convention to the corresponding EDG one.
 }  /* conv_calling_convention */
 
 
+an_exception_specification_ptr an_ifc_module::exception_specification(
+                                         an_ifc_noexcept_specification eh_spec,
+                                         a_source_position             *pos)
+/*
+Convert the given IFC exception specification to the corresponding EDG one.
+pos is the position of the exception specification if available, or the
+position of the function declaration if not.
+*/
+{
+  an_exception_specification_ptr result = NULL;
+  an_ifc_noexcept_sort           sort = get_ifc_sort(eh_spec);
+
+  if (!exceptions_enabled || sort == ifc_ns_none) {
+    goto done;
+  }  /* if */
+  result = alloc_exception_specification();
+  result->is_noexcept = TRUE;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  result->source_range.start = *pos;
+  result->source_range.end = *pos;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  switch (sort) {
+    case ifc_ns_true:
+      /* result->throw_any = FALSE; */
+      break;
+    case ifc_ns_false:
+      result->throw_any = TRUE;
+      break;
+    case ifc_ns_expression:
+      { a_module_token_cache cache;
+        result->indeterminate = TRUE;
+        cache_sentence(&cache, get_ifc_words(eh_spec));
+        if (!cache.is_valid()) {
+          /* FIXME: Should we issue a diagnostic here? */
+          result->variant.noexcept_arg = alloc_error_constant();
+        } else {
+          a_token_cache *base_cache = cache.as_canonical();
+          result->arg_cached = TRUE;
+          result->variant.token_cache = alloc_token_cache();
+          clear_token_cache(result->variant.token_cache, /*reusable=*/TRUE);
+          copy_tokens_from_cache(
+                                base_cache,
+                                base_cache->first_token->token_sequence_number,
+                                base_cache->last_token->token_sequence_number,
+                                /*include_last_token=*/TRUE,
+                                result->variant.token_cache);
+        }  /* if */
+      }
+      break;
+    /* FIXME: It is unclear what these sorts mean - leave as unsupported for
+       now. */
+    case ifc_ns_inferred:
+      issue_unsupported_node_diag("NoexceptSort::Inferred", pos);
+      break;
+    case ifc_ns_unenforced:
+      issue_unsupported_node_diag("NoexceptSort::Unenforced", pos);
+      break;
+    case ifc_ns_none:
+      /* This shouldn't be reachable, but is included here to prevent compiler
+         warnings for unhandled enumerations. */
+      unexpected_condition();
+      break;
+    default_is_unexpected_str("Unexpected NoexceptSort");
+  }  /* switch */
+done:
+  return result;
+}  /* exception_specification */
+
+
 static a_type_ptr type_for_type_index(an_ifc_type_index              type_idx,
                                       an_ifc_module::a_non_type_kind *kind)
 /*
@@ -7041,14 +7110,32 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
           an_ifc_type_function itf = *opt_itf;
           an_ifc_type_index    target = get_ifc_target(itf);
           an_ifc_type_index    source = get_ifc_source(itf);
+          an_ifc_function_type_traits_bitfield
+                               traits = get_ifc_traits(itf);
+          a_routine_type_supplement_ptr
+                               rtsp;
           /* Create a routine type with no parameters to start. */
           result = make_routine_type(type_for_type_index(target,
                                                          /*kind=*/NULL),
                                      (a_type_ptr)NULL, (a_type_ptr)NULL,
                                      (a_type_ptr)NULL, (a_type_ptr)NULL);
-          result->variant.routine.extra_info->calling_convention =
+          rtsp = result->variant.routine.extra_info;
+          rtsp->calling_convention =
                               conv_calling_convention(get_ifc_convention(itf));
-          /* FIXME: need a thorough review of this. */
+          rtsp->exception_specification =
+                                  exception_specification(get_ifc_eh_spec(itf),
+                                                          &error_position);
+          if (test_bitmask<ifc_fttb_const>(traits)) {
+            rtsp->qualifiers |= TQ_CONST;
+          }  /* if */
+          if (test_bitmask<ifc_fttb_volatile>(traits)) {
+            rtsp->qualifiers |= TQ_VOLATILE;
+          }  /* if */
+          if (test_bitmask<ifc_fttb_lvalue>(traits)) {
+            rtsp->ref_qualifiers = rqk_lvalue;
+          } else if (test_bitmask<ifc_fttb_rvalue>(traits)) {
+            rtsp->ref_qualifiers = rqk_rvalue;
+          }  /* if */
           if (!is_null_index(source)) {
             /* The function has parameters. */
             a_routine_type_supplement_ptr rtsp =
@@ -8354,10 +8441,11 @@ this routine need to handle the case where dps->alignment is 0.
 
   init_decl_parse_state(dps);
   psssp->saved = FALSE;
+  source_position_from_locus(&dps->start_pos, locus);
+  error_position = dps->start_pos;
   if (!is_null_index(type_index)) {
     dps->type = type_for_type_index(type_index, /*kind=*/NULL);
   }  /* if */
-  source_position_from_locus(&dps->start_pos, locus);
   if (!is_null_bitfield(traits)) {
     if (test_bitmask<ifc_otb_constexpr>(traits)) {
       dps->dso_flags |= DSO_CONSTEXPR;
