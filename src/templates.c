@@ -7031,10 +7031,12 @@ tip->instance_sym->variant.routine.ptr, but not in GNU function multiversion
 cases).
 */
 {
-  a_symbol_ptr                      rout_sym;
+  a_symbol_ptr                      rout_sym = tip->instance_sym,
+                                    template_sym = tip->template_sym;
+  a_symbol_ptr                      proto_sym;
+  a_template                        *templ;
   a_routine_ptr                     proto_rout_ptr;
   a_template_symbol_supplement_ptr  tssp, proto_tssp;
-  a_symbol_ptr                      template_sym, proto_sym;
   a_template_cache_ptr		    tcp;
   a_func_info_block		    *func_info_ptr;
   a_push_scope_options_set	    ps_options = PS_NO_OPTIONS;
@@ -7044,11 +7046,21 @@ cases).
                                            source_sequence_entries_disallowed;
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  a_boolean                         from_ifc_module;
 
   db_enter(3, "instantiate_template_function_full");
-  rout_sym = tip->instance_sym;
   template_sym = tip->template_sym;
   tssp = template_supplement_for_symbol(template_sym);
+
+  templ = tssp->il_template_entry;
+  from_ifc_module = templ != NULL &&
+                    templ->source_corresp.module_entity != NULL;
+  if (from_ifc_module) {
+    /* IFC modules may create ad-hoc overload sets that duplicate function
+       and function template symbols.  Ensure that we use the original
+       symbol. */
+    template_sym = symbol_for(templ);
+  }  /* if */
   if (!template_sym->defined &&
       tssp->il_template_entry != NULL &&
       tssp->il_template_entry->source_corresp.module_entity != NULL) {
@@ -28103,9 +28115,15 @@ and returned.  Otherwise, NULL is returned.
     err = TRUE;
   } else {
     /* Look up the identifier.  If it's a qualified name there will be an
-       error down the line.  The options used when coalescing the 
-       identifier are specified above. */
-    a_scope_depth	saved_decl_scope_level = decl_scope_level;
+       error down the line.  The options used when coalescing the identifier
+       are specified above.  For this lookup, ignore entities pending in
+       modules because it might cause explicit specializations to be loaded
+       before the primary template. */
+    a_scope_depth  saved_decl_scope_level = decl_scope_level;
+    Value_saver<a_module_entity_ptr>
+                   pending_entities(&locator->symbol_header
+                                            ->deferred_module_entities,
+                                    /*new_value=*/NULL);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     decl_state->decl_pos_block.identifier_range.start = pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */

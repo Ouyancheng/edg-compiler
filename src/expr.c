@@ -38730,7 +38730,7 @@ and return a corresponding enk_compound_requirement node.
     an_identifier_options_set  gid_options = GID_IS_EXPR_CONTEXT |
                                              GID_TEMPLATE_ARGS_OPTIONAL;
     (void)get_token();
-    if (curr_token == tok_identifier) {
+    if (is_generalized_identifier_start(GID_IS_EXPR_CONTEXT)) {
       concept_templ = coalesce_and_lookup_generalized_identifier(
                                                  gid_options, ilm_expr, &err);
     }  /* if */

@@ -9362,16 +9362,25 @@ Add a tok_identifier for name to cache.  pos is the position of the identifier.
       pos_st_warning(ec_ifc_bad_identifier_skipped, pos, name);
       break;
     case iir_direct_cache:
-      { sizeof_t         len = strlen(name);
-        a_symbol_locator loc;
+      { sizeof_t  len = strlen(name);
+        if (len == sizeof("__formal"-1) &&
+            strcmp(name, "__formal") == 0) {
+          /* "__formal" is the IFC name given to unnamed parameters.  If there
+             are multiple such names, an error would ensue.  We therefore do
+             not render this name.  E.g., instead of
+               void f(int __formal, int __formal);
+             we produce
+               void f(int, int); */
+        } else {
+          a_symbol_locator loc;
+          clear_locator(&loc, pos);
+          (void)find_symbol(name, len, &loc);
+          cache_token(cache, tok_identifier, pos);
 
-        clear_locator(&loc, pos);
-        (void)find_symbol(name, len, &loc);
-        cache_token(cache, tok_identifier, pos);
-
-        a_cached_token_ptr last_token = cache->get_last_token();
-        last_token->extra_info_kind = teik_identifier;
-        last_token->variant.locator = loc;
+          a_cached_token_ptr last_token = cache->get_last_token();
+          last_token->extra_info_kind = teik_identifier;
+          last_token->variant.locator = loc;
+        }  /* if */
       }
       break;
     default_is_unexpected();
@@ -15245,29 +15254,31 @@ tuple elements by '::' instead of ','.
                                     get_operator_kind(ied.get_module(), assoc);
         an_ifc_expr_index           arg_0 = get_ifc_argument_0(ied);
         an_ifc_expr_index           arg_1 = get_ifc_argument_1(ied);
-        an_ifc_cache_info           cache_info = cinfo;
 
         source_position_from_locus(&pos, locus);
         switch (opkind) {
           case opkind_basic:
-            if (assoc != ifc_dos_assign) {
-              /* Parenthesize dyadic operators to capture the precedence that
-                 is implicit in the tree form, but not in the rendered form. */
-              cache_info.nested_expr = TRUE;
-            }  /* if */
-            if (cinfo.nested_expr) {
-              cache_token(cache, tok_lparen, &pos);
-            }  /* if */
-            if (!cinfo.skip_assign || assoc != ifc_dos_assign) {
-              an_ifc_cache_info lhs_cache_info = cache_info;
-              lhs_cache_info.possible_temporary_decl = TRUE;
-              cache_expr(cache, arg_0, lhs_cache_info);
-              cache_operator(cache, assoc, locus);
-            }  /* if */
-            cache_expr(cache, arg_1, cache_info);
-            if (cinfo.nested_expr) {
-              cache_token(cache, tok_rparen, &pos);
-            }  /* if */
+            { an_ifc_cache_info  cache_info = cinfo;
+              if (assoc != ifc_dos_assign) {
+                /* Parenthesize dyadic operators to capture the precedence
+                   that is implicit in the tree form, but not in the rendered
+                   form. */
+                cache_info.nested_expr = TRUE;
+              }  /* if */
+              if (cache_info.nested_expr) {
+                cache_token(cache, tok_lparen, &pos);
+              }  /* if */
+              if (!cache_info.skip_assign || assoc != ifc_dos_assign) {
+                an_ifc_cache_info lhs_cache_info = cache_info;
+                lhs_cache_info.possible_temporary_decl = TRUE;
+                cache_expr(cache, arg_0, lhs_cache_info);
+                cache_operator(cache, assoc, locus);
+              }  /* if */
+              cache_expr(cache, arg_1, cache_info);
+              if (cache_info.nested_expr) {
+                cache_token(cache, tok_rparen, &pos);
+              }  /* if */
+            }
             break;
           case opkind_func_like:
             if (assoc == ifc_dos_msvc_align) {
@@ -16550,6 +16561,7 @@ Otherwise, parameter references should only include the parameter name.
         }  /* if */
         cache_token(cache, tok_arrow, &pos);
         cache_expr(cache, get_ifc_constraint(iscr), cinfo);
+        cache_token(cache, tok_semicolon, &pos);
       }
       break;
     case ifc_ss_syntax_nested_requirement:
