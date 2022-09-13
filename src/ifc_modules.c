@@ -6696,7 +6696,7 @@ position of the function declaration if not.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   switch (sort) {
     case ifc_ns_true:
-      /* result->throw_any = FALSE; */
+      check_assertion(result->throw_any == FALSE);
       break;
     case ifc_ns_false:
       result->throw_any = TRUE;
