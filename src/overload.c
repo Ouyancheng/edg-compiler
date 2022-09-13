@@ -10583,7 +10583,7 @@ This routine is called only in C++ mode.
            compiler when parsing function template definitions (which the
            Microsoft compiler doesn't do).  For Clang, this deferral is not
            performed for unqualified calls that found a candidate using normal
-           lookup  (Don't defer in deduction contexts since we may have to
+           lookup.  (Don't defer in deduction contexts since we may have to
            rescan the call later on.) */
       defer_overload_resolution = TRUE;
     }  /* if */
