@@ -8122,10 +8122,10 @@ return +1 if cfp1 represents the copy constructor (and not cfp2) or -1 if cfp2
 represents the copy constructor (and not cfp1).
 
 Also prefer the copy constructor in nonstrict modes that support mandatory
-copy elision, but only if the match is via a user-defined conversion that
-conversion to a prvalue for the constructor's parent class.  Although this
-does not appear to be support by the current standard (C++23), it appears to
-be common practice.  For example:
+copy elision, but only if the match is via a user-defined conversion to a
+prvalue for the constructor's parent class.  Although this does not appear to
+be supported by the current standard (C++20), it seems to be common practice.
+For example:
 
   struct D {
     D(const D &);
@@ -8139,8 +8139,8 @@ be common practice.  For example:
     return (D)s;  // Accepted in nonstrict C++17 (and later) modes.
   }
 
-Ordinarily, the cast "(D)s" should be ambiguous, but common practice appears
-to prefer the "S::operator D() const" conversion.
+Ordinarily, the cast "(D)s" should be ambiguous, but common practice is to
+prefer the "S::operator D() const" conversion (starting with C++17).
 */
 {
   int          cmp = 0;
@@ -8868,10 +8868,11 @@ other.  Return
        function can serve as a tie-breaker. */
     /* More type qualifiers were added on cfp2, so cfp1 is better. */
     cmp = 1;
-  } else if ((cmp = compare_for_copy_constructors(cfp1, cfp2)) != 0){
+  } else if ((cmp = compare_for_copy_constructors(cfp1, cfp2)) != 0) {
     /* MSVC++ favors copy/move constructors over other functions, as a way
        of making their funny "copy-initialization is direct-initialization"
-       rules work. */
+       rules work.  Additionally, existing practice appears to prefer copy
+       constructors in some situations involving user-defined conversions. */
   } else if (cfp1->uses_microsoft_explicit_anachronism !=
              cfp2->uses_microsoft_explicit_anachronism) {
     /* One of the functions is an explicit constructor let by as an
