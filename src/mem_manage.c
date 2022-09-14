@@ -1589,7 +1589,6 @@ memory or with an IL file.
   trim_memory = FALSE;
 #else /* STANDALONE_UTILITY_PROGRAM */
 #if !IL_SHOULD_BE_WRITTEN_TO_FILE
-  trim_memory = FALSE;
   keep_memory = TRUE;
 #endif /* !IL_SHOULD_BE_WRITTEN_TO_FILE */
   /* Communication with the back end is via a file.  The memory
