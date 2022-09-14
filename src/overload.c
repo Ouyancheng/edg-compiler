@@ -8088,17 +8088,59 @@ in the indicated candidate function match-up.
 }  /* max_param_num_for_candidate_function */
 
 
-static int compare_copy_constructors_for_microsoft(
-                                                 a_candidate_function_ptr cfp1,
-                                                 a_candidate_function_ptr cfp2)
+static a_boolean match_with_udc_to_constructor_class(
+                                                a_candidate_function_ptr  cfp)
 /*
-Compare two candidate functions in Microsoft bugs mode and return
+Return TRUE if cfp represents a candidate function with a single parameter that
+matches with a user-defined conversion to the candidate's parent class.
+*/
+{
+  a_boolean  result = FALSE;
+  an_arg_match_summary
+             *arg_match = cfp->arg_matches;
 
-  +1 if cfp1 is better than cfp2,
-   0 if cfp1 and cfp2 are equally good, or
-  -1 if cfp1 is worse than cfp2
+  if (arg_match != NULL && arg_match->next == NULL &&
+      arg_match->match_level == aml_user_conversion) {
+    a_routine  *conv_rp = arg_match->conversion.routine;
+    a_type     *conv_tp = il_return_type_of(conv_rp->type);
+    a_type     *parent_type = sym_parent_class(cfp->function_symbol);
+    if (skip_typerefs(conv_tp) == skip_typerefs(parent_type)) {
+      result = TRUE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* match_with_udc_to_constructor_class */
 
-on the basis that MSVC++ prefers copy/move constructors over other functions.
+
+static int compare_for_copy_constructors(a_candidate_function_ptr  cfp1,
+                                         a_candidate_function_ptr  cfp2)
+/*
+Compare two candidate functions and prefer a copy constructor over other
+functions.  A nonzero value is returned only if cfp1 or cfp2 represents a
+copy- or move-constructor candidate.  In Microsoft bugs mode and in Sun mode,
+return +1 if cfp1 represents the copy constructor (and not cfp2) or -1 if cfp2
+represents the copy constructor (and not cfp1).
+
+Also prefer the copy constructor in nonstrict modes that support mandatory
+copy elision, but only if the match is via a user-defined conversion that
+conversion to a prvalue for the constructor's parent class.  Although this
+does not appear to be support by the current standard (C++23), it appears to
+be common practice.  For example:
+
+  struct D {
+    D(const D &);
+    D(char);
+  };
+  struct S {
+    operator char() const = delete;
+    operator D() const;
+  };
+  D g(S s) {
+    return (D)s;  // Accepted in nonstrict C++17 (and later) modes.
+  }
+
+Ordinarily, the cast "(D)s" should be ambiguous, but common practice appears
+to prefer the "S::operator D() const" conversion.
 */
 {
   int          cmp = 0;
@@ -8106,25 +8148,27 @@ on the basis that MSVC++ prefers copy/move constructors over other functions.
   a_symbol_ptr sym2 = cfp2->function_symbol;
 
   if (sym1 != NULL && sym2 != NULL &&
-      !cfp1->is_function_template && !cfp2->is_function_template) {
+      sym1->is_class_member && sym2->is_class_member &&
+      !cfp1->is_function_template && !cfp2->is_function_template &&
+      (microsoft_bugs || sun_mode ||
+       (mandatory_copy_elision && cfp1->is_user_conversion &&
+        (match_with_udc_to_constructor_class(cfp1) ||
+         match_with_udc_to_constructor_class(cfp2)) &&
+         !strict_ansi_mode))) {
     a_routine_ptr rout1, rout2;
     a_boolean     is_cctor1, is_cctor2;
     reduce_projection_symbol_to_fundamental_symbol(sym1);
     reduce_projection_symbol_to_fundamental_symbol(sym2);
-    check_assertion(sym1->kind == (a_symbol_kind)sk_routine ||
-                    sym1->kind == (a_symbol_kind)sk_member_function);
-    check_assertion(sym2->kind == (a_symbol_kind)sk_routine ||
-                    sym2->kind == (a_symbol_kind)sk_member_function);
+    check_assertion(symbol_is(sym1, sk_member_function) &&
+                    symbol_is(sym2, sk_member_function));
     rout1 = sym1->variant.routine.ptr;
     rout2 = sym2->variant.routine.ptr;
-    is_cctor1 = (rout1->special_kind ==
-                                    (a_special_function_kind)sfk_constructor &&
+    is_cctor1 = (special_kind_is(rout1, sfk_constructor) &&
                  is_copy_constructor(rout1, (a_type_ptr)NULL,
                                      (a_type_qualifier_set *)NULL,
                                      /*include_move_ctors=*/TRUE,
                                      /*is_declarative_context=*/FALSE));
-    is_cctor2 = (rout2->special_kind ==
-                                    (a_special_function_kind)sfk_constructor &&
+    is_cctor2 = (special_kind_is(rout2, sfk_constructor) &&
                  is_copy_constructor(rout2, (a_type_ptr)NULL,
                                      (a_type_qualifier_set *)NULL,
                                      /*include_move_ctors=*/TRUE,
@@ -8136,7 +8180,7 @@ on the basis that MSVC++ prefers copy/move constructors over other functions.
     }  /* if */
   }  /* if */
   return cmp;
-}  /* compare_copy_constructors_for_microsoft */
+}  /* compare_for_copy_constructors */
 
 
 static a_type_ptr candidate_return_type(a_candidate_function_ptr cfp)
@@ -8824,8 +8868,7 @@ other.  Return
        function can serve as a tie-breaker. */
     /* More type qualifiers were added on cfp2, so cfp1 is better. */
     cmp = 1;
-  } else if ((microsoft_bugs || sun_mode) &&
-             (cmp = compare_copy_constructors_for_microsoft(cfp1, cfp2)) != 0){
+  } else if ((cmp = compare_for_copy_constructors(cfp1, cfp2)) != 0){
     /* MSVC++ favors copy/move constructors over other functions, as a way
        of making their funny "copy-initialization is direct-initialization"
        rules work. */
