@@ -1,5 +1,19 @@
 Version 6.4
 
+9/14/22  [EDGcpfe/24306,EDGcpfe/25404]
+Closure conversion to function pointer and noexcept
+
+The front end previously failed the assertion in the following example:
+
+  auto lambda = [] {};
+  static_assert(noexcept((void(*)())(lambda)), "Unexpected");
+
+However, the resolution of Core issue 1722 clarified that the implied
+conversion function for a non-capturing lambda-expression's closure is
+noexcept and thus that example is valid.  The front end now implements that
+clarification.
+
+
 9/14/22  [EDGcpfe/25638]
 Clang C compatibility:  __builtin_choose_expr
 

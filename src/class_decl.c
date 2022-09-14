@@ -34145,6 +34145,8 @@ generated for several calling conventions).
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   a_routine_type_supplement_ptr
                       rtsp;
+  an_exception_specification
+                      *esp = alloc_exception_specification();
 
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   /* Don't issue source sequence entries for generated entities. */
@@ -34167,6 +34169,9 @@ generated for several calling conventions).
 #if MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED
   rtsp->calling_convention = call_conv;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED */
+  rtsp->exception_specification = esp;
+  esp->is_noexcept = TRUE;
+  esp->compiler_generated = TRUE;
 
   /* Generate a declaration for the conversion function. */
   ptr_type = make_pointer_type(call_type);
@@ -34191,6 +34196,10 @@ generated for several calling conventions).
   decl_generated_lambda_member(lambda, cdsp, &decl_info, &member_loc,
                                &local_func_info);
   done_with_func_info(local_func_info);
+  sym = decl_info.decl_state.sym;
+  if (sym != NULL && symbol_is(sym, sk_member_function)) {
+    sym->variant.routine.ptr->never_throws = TRUE;
+  }  /* if */
 
   /* Generate the alternative entry point.  This is a static member function
      (i.e., no "this" parameter). */
