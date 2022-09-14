@@ -1,5 +1,12 @@
 Version 6.4
 
+9/14/22  [EDGcpfe/25638]
+Clang C compatibility:  __builtin_choose_expr
+
+Support for the special built-in function __builtin_choose_expr is now also
+enabled in Clang C mode (previously, it was limited to GNU C mode).
+
+
 9/12/22  [EDGcpfe/25302]
 Performance issue when not generating an IL file
 
