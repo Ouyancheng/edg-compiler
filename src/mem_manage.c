@@ -1587,17 +1587,17 @@ memory or with an IL file.
 #endif /* DEBUG */
 #if STANDALONE_UTILITY_PROGRAM
   trim_memory = FALSE;
-#else /* !STANDALONE_UTILITY_PROGRAM */
+#else /* STANDALONE_UTILITY_PROGRAM */
 #if !IL_SHOULD_BE_WRITTEN_TO_FILE
   trim_memory = FALSE;
-#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
+  keep_memory = TRUE;
+#endif /* !IL_SHOULD_BE_WRITTEN_TO_FILE */
   /* Communication with the back end is via a file.  The memory
      is freed after it's been written to the IL file. */
   scope = il_header.region_scope_entry[region_number];
   check_assertion(scope != NULL);
   rout = (scope->kind == (a_scope_kind)sck_function) ?
                                       scope->variant.routine.ptr : NULL;
-  keep_memory = FALSE;
 #if !FREE_MEMORY_REGIONS_EARLY
   if (region_number != file_scope_region_number) {
     /* Function scope memory regions are not freed early: Keep the memory
