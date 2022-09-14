@@ -7051,7 +7051,6 @@ cases).
   db_enter(3, "instantiate_template_function_full");
   template_sym = tip->template_sym;
   tssp = template_supplement_for_symbol(template_sym);
-
   templ = tssp->il_template_entry;
   from_ifc_module = templ != NULL &&
                     templ->source_corresp.module_entity != NULL;

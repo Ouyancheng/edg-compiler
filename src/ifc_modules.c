@@ -9363,7 +9363,7 @@ Add a tok_identifier for name to cache.  pos is the position of the identifier.
       break;
     case iir_direct_cache:
       { sizeof_t  len = strlen(name);
-        if (len == sizeof("__formal"-1) &&
+        if (len == sizeof("__formal")-1 &&
             strcmp(name, "__formal") == 0) {
           /* "__formal" is the IFC name given to unnamed parameters.  If there
              are multiple such names, an error would ensue.  We therefore do
