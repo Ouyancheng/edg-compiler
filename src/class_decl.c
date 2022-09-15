@@ -14250,10 +14250,11 @@ IL entry accordingly.  def_pos is the position of the "= default;" or
       rp->defined = TRUE;
       if (special_kind_is(rp, sfk_constructor) &&
           is_default_constructor(rp, /*is_declarative_context=*/TRUE) &&
-          !routine_has_default_args(rp)) {
+          !routine_has_default_args(rp) && !microsoft_mode) {
         /* The "= delete" declaration appeared on the in-class declaration of
            the canonical default constructor.  Assume the default constructor
-           is trivial for now and revisit the flag later. */
+           is trivial for now (except in Microsoft mode) and revisit the flag
+           later. */
         rp->is_trivial_default_constructor = TRUE;
       }  /* if */
     }  /* if */

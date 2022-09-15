@@ -1,5 +1,19 @@
 Version 6.4
 
+9/15/22  [EDGcpfe/25523]
+Microsoft C++ compatibility: Triviality of deleted default constructor
+
+In Microsoft mode, a deleted default constructor is never treated as "trivial".
+For example:
+
+  struct D {
+    D() = delete;
+    D(int);
+  };
+  static_assert(!__has_trivial_constructor(D), "Standard");
+    // Now accepted in Microsoft mode
+
+
 9/14/22  [EDGcpfe/25596]
 Diagnostic for mismatched printf/scanf arguments
 
