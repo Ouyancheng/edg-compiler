@@ -10296,7 +10296,7 @@ Sentence containing keyword.
       cache_token(cache, tok_private, &pos);
       break;
     case ifc_sks_protected:
-      cache_token(cache, tok_private, &pos);
+      cache_token(cache, tok_protected, &pos);
       break;
     case ifc_sks_public:
       cache_token(cache, tok_public, &pos);
