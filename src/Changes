@@ -31,11 +31,11 @@ For example:
 9/14/22  [EDGcpfe/25596]
 Diagnostic for mismatched printf/scanf arguments
 
-The front issues a warning (or sometimes a remark) when the type of an argument
-for printf/scanf-like functions doesn't match the type implied by the format
-string if that format string is a literal.  Previously, the diagnostic did not
-mention the types involved.  Now the expected type and the actual type are
-reported in the diagnostic.
+The front end issues a warning (or sometimes a remark) when the type of an
+argument for printf/scanf-like functions doesn't match the type implied by the
+format string if that format string is a literal.  Previously, the diagnostic
+did not mention the types involved.  Now the expected type and the actual type
+are reported in the diagnostic.
 
 
 9/14/22  [EDGcpfe/24306,EDGcpfe/25404]
