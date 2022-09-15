@@ -34170,9 +34170,6 @@ generated for several calling conventions).
 #if MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED
   rtsp->calling_convention = call_conv;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED */
-  rtsp->exception_specification = esp;
-  esp->is_noexcept = TRUE;
-  esp->compiler_generated = TRUE;
 
   /* Generate a declaration for the conversion function. */
   ptr_type = make_pointer_type(call_type);
@@ -34185,6 +34182,9 @@ generated for several calling conventions).
   rout_type_supp(conv_type)->this_class = parent_class_of(call_op);
   rout_type_supp(conv_type)->has_this_param = TRUE;
   rout_type_supp(conv_type)->qualifiers = TQ_CONST;
+  rout_type_supp(conv_type)->exception_specification = esp;
+  esp->is_noexcept = TRUE;
+  esp->compiler_generated = TRUE;
   decl_info.decl_state.type = conv_type;
   decl_info.decl_state.declared_type = conv_type;
   if (call_op->is_declared_constexpr) {
