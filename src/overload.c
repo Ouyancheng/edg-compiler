@@ -13457,13 +13457,16 @@ for the "%s" specifier).
        lots of code that prints pointers using %lx. */
   } else if (interchangeable_types(eff_required_type, eff_argument_type)) {
     /* The types are not exactly the same, but they are interchangeable. */
-    expr_pos_diagnostic(es_remark, ec_printf_arg_mismatch,
-                          &argument_operand->position);
+    expr_pos_ty2_diagnostic(es_remark, ec_printf_arg_mismatch,
+                            &argument_operand->position,
+                            eff_required_type, eff_argument_type);
   } else {
     /* The argument type does not match the required type. */
 mismatch:
     if (!is_error_type(eff_argument_type)) {
-      expr_pos_warning(ec_printf_arg_mismatch, &argument_operand->position);
+      expr_pos_ty2_diagnostic(es_warning, ec_printf_arg_mismatch,
+                              &argument_operand->position,
+                              eff_required_type, eff_argument_type);
     }  /* if */
   }  /* if */
 }  /* check_printf_scanf_arg */
