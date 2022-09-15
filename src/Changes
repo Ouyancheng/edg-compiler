@@ -1,5 +1,37 @@
 Version 6.4
 
+9/15/22  [EDGcpfe/23944]
+Abort in i_copy_dynamic_init during aggregate initialization
+
+In very rare cases, when the front end is copying a subobject's initialization,
+an abort could occur in i_copy_dynamic_init due to expecting a subobject
+lifetime to be associated with the copied initializer that is not present.  For
+example:
+
+  template <typename _Tp>
+  struct allocator
+  {
+    ~allocator();
+  };
+  template <typename _CharT, typename _Alloc>
+  struct basic_string
+  {
+    _Alloc _M_dataplus;
+    basic_string(const _CharT *, const _Alloc &p2 = _Alloc());
+  };
+  struct Foo
+  {
+    basic_string<char, allocator <char>> separators = "";
+  };
+  struct Bar
+  {
+    Foo foo = {};
+  };
+  void test (const Bar & = {}); // Abort triggered here
+
+This is now fixed.
+
+
 9/15/22  [EDGcpfe/25386]
 Abort on dependent alias template-id in decl-specifier
 

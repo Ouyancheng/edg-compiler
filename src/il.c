@@ -15617,10 +15617,15 @@ options for the copy.  cblock is a control block for the copy.
         /* The original entry had this flag set.  We need to re-establish
            the overlapping lifetime relationship in the copy. */
         an_object_lifetime_ptr overlapped_olp = init_expr_lifetime_of(new_dip);
-        check_assertion(overlapped_olp != NULL);
-        overlapped_olp->parent_destruction_sublist = new_dip;
-        new_dip->overlaps_temps_in_inner_lifetime = TRUE;
-        new_dip->lifetime_of_overlapping_temps = overlapped_olp;
+        if (overlapped_olp != NULL) {
+          overlapped_olp->parent_destruction_sublist = new_dip;
+          new_dip->overlaps_temps_in_inner_lifetime = TRUE;
+          new_dip->lifetime_of_overlapping_temps = overlapped_olp;
+        } else {
+          /* There is no lifetime (yet) with which to establish the lifetime
+             relationship. */
+          check_assertion(new_dip->overlaps_temps_in_inner_lifetime == FALSE);
+        }  /* if */
       }  /* if */
     }  /* if */
     if (options & CE_COPYING_EVALUATED_DEFAULT_ARG_EXPR) {
