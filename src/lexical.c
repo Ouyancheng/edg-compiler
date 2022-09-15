@@ -20671,30 +20671,36 @@ a routine to lookup the appropriate instance (or generate one if needed).
            template <typename T> using B = A<T, int>;
            template <typename T> B<T>::A(int) { }
          Check whether the type referred to by the alias B<T> is a nonreal
-         class type, and if so, look for a matching prototype instantiation.
-         Note that is_class_template_member_def is called again to see if
-         the class template (A in this case) matches the declarator found
-         during the prescan.  During the prescan, this code will be
-         used because of the GID_USE_PROTOTYPE_NOT_NONREAL flag. */
+         class type that is an instance of a class template, and if so, look
+         for a matching prototype instantiation.  Note that
+         is_class_template_member_def is called again to see if the class
+         template (A in this case) matches the declarator found during the
+         prescan.  During the prescan, this code will be used because of the
+         GID_USE_PROTOTYPE_NOT_NONREAL flag. */
       a_type_ptr  new_tp = type_symbol_type(new_sym);
       new_tp = skip_typerefs(new_tp);
       if (is_immediate_class_type(new_tp) &&
           new_tp->variant.class_struct_union.is_nonreal_class) {
         a_class_symbol_supplement_ptr cssp;
         cssp = symbol_supplement_for_class(new_tp);
-        is_templ_member_class_sym = is_class_template_member_def(
-                                      cssp->class_template, &is_outermost_tmc);
-        prototype_allowed = ((options & GID_USE_PROTOTYPE_NOT_NONREAL) != 0) ||
-                            is_templ_member_class_sym;
-        if (prototype_allowed) {
-          arg_list = copy_template_arg_list(
-             new_tp->variant.class_struct_union.extra_info->template_arg_list);
-          new_sym = find_template_class(cssp->class_template, &arg_list,
-                                        prototype_allowed,
-                                        current_instantiation_sym,
-                                        instantiate_nonreal,
-                                        (options & GID_IN_IF_EXISTS) != 0,
-                                        /*in_substitution=*/FALSE);
+        if (cssp->class_template != NULL) {
+          is_templ_member_class_sym = is_class_template_member_def(
+                                        cssp->class_template,
+                                        &is_outermost_tmc);
+          prototype_allowed =
+                         ((options & GID_USE_PROTOTYPE_NOT_NONREAL) != 0) ||
+                         is_templ_member_class_sym;
+          if (prototype_allowed) {
+            arg_list = copy_template_arg_list(
+              new_tp->variant.class_struct_union.extra_info->
+                                                         template_arg_list);
+            new_sym = find_template_class(cssp->class_template, &arg_list,
+                                          prototype_allowed,
+                                          current_instantiation_sym,
+                                          instantiate_nonreal,
+                                          (options & GID_IN_IF_EXISTS) != 0,
+                                          /*in_substitution=*/FALSE);
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */

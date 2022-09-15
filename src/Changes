@@ -1,5 +1,19 @@
 Version 6.4
 
+9/15/22  [EDGcpfe/25386]
+Abort on dependent alias template-id in decl-specifier
+
+A dependent template-id for an alias template denoting a dependent elaborated
+type specifier or a member class of a dependent base class in Microsoft mode
+resulted in a segmentation fault in coalesce_template_class_reference when the
+template-id appeared in a decl-specifier of a template declaration.  For
+example:
+
+  template<typename T>
+  using CI = class T::I;
+  template<typename T> CI<T> fn();  // Previously aborted.  Now okay.
+
+
 9/15/22  [EDGcpfe/25523]
 Microsoft C++ compatibility: Triviality of deleted default constructor
 
