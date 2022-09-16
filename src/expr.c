@@ -4930,7 +4930,11 @@ Only available in C mode.
     error_in_operand(ec_expr_not_scalar, &selector_op);
     err = TRUE;
   } else {
-    check_assertion(is_constant_operand(&selector_op));
+    if (is_expression_operand(&selector_op)) {
+      (void)expr_interpret_expression_operand(&selector_op,
+                                              /*must_be_constant=*/TRUE,
+                                              /*must_be_constant=*/TRUE);
+    }  /* if */
     if (!op_is_false_constant(&selector_op)) {
       node->variant.builtin_choose_expr.choose_first = TRUE;
     }  /* if */
@@ -4942,6 +4946,8 @@ Only available in C mode.
   scan_expr_for_builtin_choose_expr(node, result, &err);
   if (err) {
     make_error_operand(result);
+  } else {
+    force_operand_to_constant_if_possible(result);
   }  /* if */
 }  /* scan_and_process_builtin_choose_expr_args */
 
@@ -5021,6 +5027,7 @@ call, and rcblock->argument_list to the previously-scanned argument list.
                ek = (an_expression_kind)ek_sizeof;
     if (bfk == (a_builtin_function_kind)bfk_constant_p &&
         !always_fold_calls_to_builtin_constant_p &&
+        !in_constant_expression &&
         innermost_function_scope != NULL) {
       ek = (an_expression_kind)ek_normal;
     }  /* if */
@@ -5032,6 +5039,7 @@ call, and rcblock->argument_list to the previously-scanned argument list.
     if (bfk == (a_builtin_function_kind)bfk_constant_p) {
       expr_stack->favor_constant_result = TRUE;
       if (!always_fold_calls_to_builtin_constant_p &&
+          !in_constant_expression &&
           innermost_function_scope != NULL) {
         /* Inside function scopes, __builtin_constant_p is only folded if its
            argument is a constant-expression.  In such cases, the argument
@@ -5077,7 +5085,10 @@ call, and rcblock->argument_list to the previously-scanned argument list.
         }  /* if */
       }  /* if */
     }  /* if */
-    force_operand_to_constant_if_possible(&arg);
+    if (is_expression_operand(&arg) && is_a_prvalue(&arg)) {
+      (void)expr_interpret_expression_operand(&arg, /*must_be_constant=*/FALSE,
+                                              /*is_constant_evaluated=*/TRUE);
+    }  /* if */
     expr_stack->favor_constant_result = saved_favor_constant_result;
     /* Now determine the constant result of the pseudo-call by examining the
        (unevaluated) argument expression. */
