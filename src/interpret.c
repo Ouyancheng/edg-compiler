@@ -2149,14 +2149,13 @@ addressed (with non-array objects treated as arrays of one element).
 Given a data address cap pointing to an object of type elem_type, treat it as
 the address of an element of an array (an array of length one if it's not
 actually an array element).  Produce in *a_len, *pos, and *e_size,
-respectively, the type of the element, the number of elements in the array,
-the element position in the array, and the size of an element in the array.
-This macro applies to both interpreter addresses and run-time addresses, but
-in the case of run-time addresses the array length is set to MAX_ARRAY_LENGTH
-if the actual length cannot be determined.  Set *p_result to FALSE if an error
-occurs.  (Note that in GNU modes, elem_type can be tk_void because GCC
-sometimes permits pointer arithmetic on void* pointers and treats then as
-pointing to byte arrays.)
+respectively, the number of elements in the array, the element position in the
+array, and the size of an element in the array.  This macro applies to both
+interpreter addresses and run-time addresses, but in the case of run-time
+addresses the array length is set to MAX_ARRAY_LENGTH if the actual length
+cannot be determined.  Set *p_result to FALSE if an error occurs.  (Note that
+in GNU modes, elem_type can be tk_void because GCC sometimes permits pointer
+arithmetic on void* pointers and treats then as pointing to byte arrays.)
 */
 #define get_array_pos(ips, cap, elem_type, a_len, pos, e_size, p_result)     \
 {                                                                            \
@@ -8100,7 +8099,13 @@ static a_type_ptr obj_type_at_address(an_interpreter_state  *ips,
                                       a_constexpr_address   *cap)
 /*
 If the cap points to an object or subobject, return the type of that object.
-Otherwise, return NULL.
+Otherwise, return NULL.  In the case of an array element that points to the
+start of an array, return the top-level element type.  For example, given:
+
+	int x[3][3];
+
+the address of x[0][0] will produce type int[3] (note that x[0] and x[0][0]
+have identical internal representations).
 */
 {
   a_type_ptr  tp = NULL;
@@ -8109,41 +8114,51 @@ Otherwise, return NULL.
     a_byte  *addr = base_address_of(cap),
             *paddr = cap->complete_object;
     tp = complete_object_type(paddr);
-    while (paddr != addr) {
+    if (paddr == addr) {
       if (type_is(tp, tk_array)) {
-        a_byte_count  esize, idx;
-        a_boolean     result = TRUE;
-        do {
+        if (!complete_obj_flag(paddr, COMPLETE_OBJ_DYN_ALLOC)) {
           tp = skip_typerefs(tp->variant.array.element_type);
-        } while (type_is(tp, tk_array));
-        esize = value_bytes_for_type(ips, tp, &result);
-        check_assertion(result);
-        if (esize != 0) {
+        }  /* if */
+      }  /* if */
+    } else {
+      do {
+        if (type_is(tp, tk_array)) {
+          a_byte_count  esize, idx;
+          a_boolean     result = TRUE;
+          tp = skip_typerefs(tp->variant.array.element_type);
+          esize = value_bytes_for_type(ips, tp, &result);
+          /* Note: result must be TRUE because we already needed the size of
+             tp when we laid out the addressed object.  esize cannot be zero
+             (e.g., a GNU zero-length array) unless paddr == addr, which was
+             already guarded against. */
+          check_assertion(result && esize != 0);
+          /* Move paddr to the element that the address points into. */
           idx = ((a_byte_count)(addr-paddr))/esize;
           paddr += (a_byte_count)(idx*esize);
-        }  /* if */
-      } else if (is_immediate_class_type(tp)) {
-        a_field_ptr       fp;
-        a_base_class_ptr  bcp;
-        a_byte_count      offset;
-        a_byte            *subobj_entry;
-        find_subobject_for_interpreter_address(ips, cap, paddr, tp, &fp, &bcp);
-        if (fp != NULL) {
-          tp = skip_typerefs(fp->type);
-          subobj_entry = (a_byte*)fp;
+        } else if (is_immediate_class_type(tp)) {
+          a_field_ptr       fp;
+          a_base_class_ptr  bcp;
+          a_byte_count      offset;
+          a_byte            *subobj_entry;
+          find_subobject_for_interpreter_address(
+                                              ips, cap, paddr, tp, &fp, &bcp);
+          if (fp != NULL) {
+            tp = skip_typerefs(fp->type);
+            subobj_entry = (a_byte*)fp;
+          } else {
+            tp = bcp->type;
+            subobj_entry = (a_byte*)bcp;
+          }  /* if */
+          get_mapped_byte_count(&persistent_map, subobj_entry, offset);
+          paddr += offset;
         } else {
-          tp = bcp->type;
-          subobj_entry = (a_byte*)bcp;
+          /* A scalar type.  We shouldn't get here because interpreter
+             addresses can only point to the start of a scalar object or one
+             past the end of one. */
+          unexpected_condition();
         }  /* if */
-        get_mapped_byte_count(&persistent_map, subobj_entry, offset);
-        paddr += offset;
-      } else {
-        /* A scalar type.  We shouldn't get here because interpreter addresses
-           can only point to the start of a scalar object or one past the end
-           of one. */
-        unexpected_condition();
-      }  /* if */
-    }  /* while */
+      } while (paddr != addr);
+    }  /* if */
   }  /* if */
   return tp;
 }  /* obj_type_at_address */
@@ -8204,13 +8219,22 @@ address).
     a_byte       *src_base = base_address_of(src_cap), *src = src_cap->address,
                  *dst_base = base_address_of(dst_cap), *dst = dst_cap->address;
     a_byte_count esize = value_bytes_for_type(ips, src_etp, &result),
-                 src_base_length = (a_byte_count)num_array_elements(src_tp),
-                 dst_base_length = (a_byte_count)num_array_elements(dst_tp),
-                 k;
-    if (n_elems > src_base_length || n_elems > dst_base_length ||
-        n_elems > MAX_ARRAY_LENGTH ||
-        (src_base_length-n_elems)*esize < (a_byte_count)(src-src_base) ||
-        (dst_base_length-n_elems)*esize < (a_byte_count)(dst-dst_base)) {
+                 src_base_length, dst_base_length, k, elem_size;
+    if (is_array_element(src_cap)) {
+      get_array_pos(ips, src_cap, src_tp, &src_base_length, &k, &elem_size,
+                    &result);
+      src_base_length -= k;
+    } else {
+      src_base_length = 1;
+    }  /* if */
+    if (is_array_element(dst_cap)) {
+      get_array_pos(ips, dst_cap, dst_tp, &dst_base_length, &k, &elem_size,
+                    &result);
+      dst_base_length -= k;
+    } else {
+      dst_base_length = 1;
+    }  /* if */
+    if (n_elems > src_base_length || n_elems > dst_base_length) {
       info_with_pos(ec_constexpr_memcpy_overflow, &call_node->position, ips);
       do_constexpr_fail(result);
       goto done;
@@ -8388,46 +8412,60 @@ expression node and interpreter state.
     a_byte                 *targ_repr1, *targ_repr2, *targ_map;
     a_type_ptr             obj_tp1, obj_tp2, utp1, utp2;
     a_boolean              equal_not_okay = FALSE;
+    a_byte_count           len1, len2, pos1, pos2, elem_size1, elem_size2;
     a_byte_count           size1, size2;
     save_storage_stack(ips, tmp_storage);
     check_assertion(is_memcmp);
     obj_tp1 = obj_type_at_address(ips, addr1);
-    size1 = (a_byte_count)size_of_type(obj_tp1);
     utp1 = skip_typerefs(skip_array_types(obj_tp1));
     obj_tp2 = obj_type_at_address(ips, addr2);
-    size2 = (a_byte_count)size_of_type(obj_tp2);
     utp2 = skip_typerefs(skip_array_types(obj_tp2));
     if (!type_is(utp1, tk_integer) || !type_is(utp2, tk_integer)) {
       info_with_pos(ec_invalid_constexpr_memcmp, &call_node->position, ips);
       do_constexpr_fail(result);
     }  /* if */
-    alloc_stack_bytes(ips, size1, targ_repr1);
-    alloc_stack_bytes(ips, size1, targ_map);
-    if (!translate_interpreter_object_to_target_bytes(
-                 ips, obj_tp1, base_address_of(addr1), addr1->complete_object,
-                 targ_repr1, targ_map, call_node)) {
-      unexpected_condition();
-    }  /* if */
-    alloc_stack_bytes(ips, size2, targ_repr2);
-    alloc_stack_bytes(ips, size2, targ_map);
-    if (!translate_interpreter_object_to_target_bytes(
-                 ips, obj_tp2, base_address_of(addr2), addr2->complete_object,
-                 targ_repr2, targ_map, call_node)) {
-      unexpected_condition();
-    }  /* if */
-    /* Adjust for the offset into either array. */
+    /* For array elements, adjust the size to represent the remaining array
+       extent. */
     if (is_array_element(addr1)) {
-      a_byte_count  max1, pos1, elem_size1;
-      get_array_pos(ips, addr1, utp1, &max1, &pos1, &elem_size1, &result);
-      size1 -= pos1*(a_byte_count)utp1->size;
-      targ_repr1 += pos1*utp1->size;
+      get_array_pos(ips, addr1, obj_tp1, &len1, &pos1, &elem_size1, &result);
+      len1 -= pos1;
+      size1 = len1*(a_byte_count)obj_tp1->size;
+    } else {
+      len1 = 1;
+      size1 = (a_byte_count)size_of_type(obj_tp1);
+      elem_size1 = size1;
     }  /* if */
     if (is_array_element(addr2)) {
-      a_byte_count  max2, pos2, elem_size2;
-      get_array_pos(ips, addr2, utp2, &max2, &pos2, &elem_size2, &result);
-      size2 -= pos2*(a_byte_count)utp2->size;
-      targ_repr2 += pos2*utp2->size;
+      get_array_pos(ips, addr2, obj_tp1, &len2, &pos2, &elem_size2, &result);
+      len2 -= pos2;
+      size2 = len2*(a_byte_count)obj_tp2->size;
+    } else {
+      len2 = 1;
+      size2 = (a_byte_count)size_of_type(obj_tp2);
+      elem_size2 = size2;
     }  /* if */
+    alloc_stack_bytes(ips, size1, targ_repr1);
+    alloc_stack_bytes(ips, size1, targ_map);
+    for (a_byte_count k = 0; k<len1; ++k) {
+      if (!translate_interpreter_object_to_target_bytes(
+                         ips, obj_tp1,
+                         addr1->address+k*elem_size1, addr1->complete_object,
+                         targ_repr1+k*obj_tp1->size, targ_map+k*obj_tp1->size,
+                         call_node)) {
+        unexpected_condition();
+      }  /* if */
+    }  /* for */
+    alloc_stack_bytes(ips, size2, targ_repr2);
+    alloc_stack_bytes(ips, size2, targ_map);
+    for (a_byte_count k = 0; k<len2; ++k) {
+      if (!translate_interpreter_object_to_target_bytes(
+                         ips, obj_tp2,
+                         addr2->address+k*elem_size2, addr2->complete_object,
+                         targ_repr2+k*obj_tp2->size, targ_map+k*obj_tp2->size,
+                         call_node)) {
+        unexpected_condition();
+      }  /* if */
+    }  /* for */
     if (result) {
       /* Trim the length being compared if needed, to avoid reading
          uninitialized bytes.  However, if we needed to trim, an "equal" result

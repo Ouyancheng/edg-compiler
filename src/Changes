@@ -1,5 +1,38 @@
 Version 6.4
 
+9/16/22  [EDGcpfe/25606]
+Incorrect constant-evaluation of __builtin_memcmp
+
+Consider:
+
+  struct V {
+    char const *data;
+    size_t size;
+    constexpr V(char const *s) : data(s), size(__builtin_strlen(s)) {}
+  };
+  struct S {
+    char *data = nullptr;
+    size_t size = 0;
+    constexpr S(V sv) : data(new char[sv.size]), size(sv.size) {
+      for (auto i = size_t{ 0 }; i < sv.size; i++) { data[i] = sv.data[i]; }
+    }
+    constexpr ~S() { delete[] data; }
+    friend constexpr bool operator==(S const &s, V v) {
+      return s.size == v.size && __builtin_memcmp(s.data, v.data, s.size) == 0;
+    }
+  };
+  constexpr bool g() {
+    V const v{"Content here."};
+    S s{v};
+    return s == v;
+  }
+  static_assert(g());  // Previously triggered a compilation error.  Now okay.
+
+This previously failed due to the implementation of __builtin_memcmp not
+correctly determining the length of storage pointed to by its operand if that
+storage was dynamically allocated.  That is now fixed.
+
+
 9/15/22  [EDGcpfe/23944]
 Abort in i_copy_dynamic_init during aggregate initialization
 
