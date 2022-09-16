@@ -185,12 +185,8 @@ is_function_template or is_template_param are FALSE.
     pos_error(ec_invalid_default_arg, &start_pos);
   }  /* if */
   /* Save the token sequence number of the last token of the default
-     argument.  For things other than template parameters, the cache
-     actually contains the token after the last one of the default argument,
-     but that token should not be used as the last token of the cache
-     segment. */
+     argument. */
   last_tsn = curr_token_sequence_number;
-  if (!is_template_param) last_tsn--;
   /* Normally the last token of the cache (usually a comma, ")", or the ">"
      that ends the template parameter list) is not included.  But if we are
      rescanning the default argument from a cache and hit the
@@ -221,10 +217,10 @@ is_function_template or is_template_param are FALSE.
        the template cache segment on the second parse (when
        dps->is_abbr_func_template will be TRUE). */
     a_template_cache_segment_ptr  tcsp;
-    /* When there is no default, the computed last token number could be
-       less that the first.  In that case, use the first token number as
-       the last. */
-    last_tsn = last_tsn < first_tsn ? first_tsn : last_tsn;
+    /* Unless there is no default, the cache actually contains the token after
+       the last one of the default argument, but that token should not be used
+       as the last token of the cache segment. */
+    if (last_tsn != first_tsn) last_tsn--;
     tcsp = get_template_cache_segment(
                    (a_symbol_ptr)NULL, (a_template_symbol_supplement_ptr)NULL,
                    first_tsn, last_tsn);
