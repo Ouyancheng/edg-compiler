@@ -15624,7 +15624,7 @@ options for the copy.  cblock is a control block for the copy.
         } else {
           /* There is no lifetime (yet) with which to establish the lifetime
              relationship. */
-          check_assertion(new_dip->overlaps_temps_in_inner_lifetime == FALSE);
+          check_assertion(!new_dip->overlaps_temps_in_inner_lifetime);
         }  /* if */
       }  /* if */
     }  /* if */
