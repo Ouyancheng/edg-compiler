@@ -1608,8 +1608,8 @@ instantiation.
 
   if (tssp->prototype_template != NULL && !tssp->is_specific_definition) {
     /* Use the cache from the original template. */
-    tcp = &tssp->prototype_template->variant.template_info->
-                                                   variant.function.decl_cache;
+    tcp = &tssp->prototype_template->variant.template_info
+                                   ->variant.function.decl_cache;
   } else {
     tcp = &tssp->variant.function.decl_cache;
   }  /* if */
@@ -1619,6 +1619,26 @@ instantiation.
   }  /* if */
   return tcp;
 }  /* decl_cache_for_function_template */
+
+
+a_template_cache_ptr decl_cache_for_template(a_symbol_ptr  sym)
+/*
+Return a pointer to the declaration cache to be used for a variable template.
+*/
+{
+  a_template_cache_ptr  tcp;
+  a_template_symbol_supplement_ptr
+                        tssp = sym->variant.template_info;
+
+  if (symbol_is(sym, sk_function_template)) {
+    tcp = decl_cache_for_function_template(tssp);
+  } else if (symbol_is(sym, sk_variable_template)) {
+    tcp = decl_cache_for_variable_template(tssp);
+  } else {
+    tcp = &tssp->cache;
+  }  /* if */
+  return tcp;
+}  /* decl_cache_for_template */
 
 
 static

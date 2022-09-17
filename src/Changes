@@ -1,5 +1,22 @@
 Version 6.4
 
+9/16/22  [EDGcpfe/25615]
+Abort on static data member template initializer
+
+Consider:
+
+  struct V {
+    template<typename> static constexpr bool value = true;
+  } v;
+  struct S {
+    template<typename T> static constexpr bool value = v.value<T>;
+  };
+
+Previously, this aborted due to a null pointer indirection in
+scan_template_argument_list, while scanning the template argument list for
+"v.value<T>".  That is now fixed.
+
+
 9/16/22  [EDGcpfe/25643]
 GNU compatibility: Folding of some pseudo-function operands
 

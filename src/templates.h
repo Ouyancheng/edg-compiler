@@ -499,6 +499,8 @@ extern void select_best_partial_order_candidate(
 extern
 a_template_cache_ptr cache_for_template(a_template_symbol_supplement_ptr tssp);
 
+extern a_template_cache_ptr decl_cache_for_template(a_symbol_ptr  sym);
+
 extern void init_templ_decl_state(a_tmpl_decl_state_ptr	tdsp,
                                   a_decl_parse_state    *dps);
 
