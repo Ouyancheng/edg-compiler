@@ -118,10 +118,10 @@ This is now fixed.
 Abort on dependent alias template-id in decl-specifier
 
 A dependent template-id for an alias template denoting a dependent elaborated
-type specifier or a member class of a dependent base class in Microsoft mode
+type specifier or, in Microsoft mode, a member class of a dependent base class
 resulted in a segmentation fault in coalesce_template_class_reference when the
 template-id appeared in a decl-specifier of a template declaration.  For
-example:
+example, with --c++14:
 
   template<typename T>
   using CI = class T::I;
