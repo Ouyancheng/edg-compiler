@@ -132,7 +132,7 @@ example:
 Microsoft C++ compatibility: Triviality of deleted default constructor
 
 In Microsoft mode, a deleted default constructor is never treated as "trivial".
-For example:
+For example, with --microsoft:
 
   struct D {
     D() = delete;
