@@ -19346,7 +19346,10 @@ the <int> is matched with U and no argument is generated for V.
   scope_stack_top().in_template_arg_list = TRUE;
   *first_defaulted_arg = -1L;
   tssp = template_sym->variant.template_info;
-  decl_info = decl_cache_for_template(template_sym)->decl_info;
+  decl_info = tssp->cache.decl_info;
+  if (decl_info == NULL) {
+    decl_info = decl_cache_for_template(template_sym)->decl_info;
+  }  /* if */
   param_ptr = decl_info->parameters;
   /* Indicate that this is an error case if the template has any empty
      parameter list. */
