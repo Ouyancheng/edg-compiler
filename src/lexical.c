@@ -20685,15 +20685,15 @@ a routine to lookup the appropriate instance (or generate one if needed).
         cssp = symbol_supplement_for_class(new_tp);
         if (cssp->class_template != NULL) {
           is_templ_member_class_sym = is_class_template_member_def(
-                                        cssp->class_template,
-                                        &is_outermost_tmc);
+                                                          cssp->class_template,
+                                                          &is_outermost_tmc);
           prototype_allowed =
-                         ((options & GID_USE_PROTOTYPE_NOT_NONREAL) != 0) ||
-                         is_templ_member_class_sym;
+                            ((options & GID_USE_PROTOTYPE_NOT_NONREAL) != 0) ||
+                            is_templ_member_class_sym;
           if (prototype_allowed) {
             arg_list = copy_template_arg_list(
               new_tp->variant.class_struct_union.extra_info->
-                                                         template_arg_list);
+                                                            template_arg_list);
             new_sym = find_template_class(cssp->class_template, &arg_list,
                                           prototype_allowed,
                                           current_instantiation_sym,
