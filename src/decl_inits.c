@@ -3351,7 +3351,8 @@ initialization. */
   if (!C_mode() && okay && !type_is(class_type, tk_union) &&
       !class_type->variant.class_struct_union.is_nonreal_class &&
       !symbol_supplement_for_class(class_type)->is_cpp03_POD &&
-      !cpp20_designators_restriction) {
+      !(cpp20_designators_restriction || gpp_version_is(>= 80100) ||
+        clang_version_is(any_version))) {
     /* Allowing designators in non-POD types would raise subtle questions about
        order of initialization and destruction.  For now, at least, we disallow
        such constructs.  (The error is only issued on the first designator if
