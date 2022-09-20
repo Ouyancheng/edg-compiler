@@ -24805,6 +24805,10 @@ declared, declare one that matches the spaceship operator.
                                              /*copy_default_args=*/FALSE);
     rtp->variant.routine.return_type = bool_type();
     decl_info.decl_state.type = rtp;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    decl_info.decl_state.declared_type = rtp;
+    func_info.declared_type = rtp;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     if (routine_type_is_nonstatic_member_function(srp->type)) {
       an_access_specifier  saved_access = cdsp->access;
       cdsp->access =enum_cast<an_access_specifier>(srp->source_corresp.access);
