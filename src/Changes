@@ -29,7 +29,7 @@ scan_template_argument_list, while scanning the template argument list for
 9/16/22  [EDGcpfe/25643]
 GNU compatibility: Folding of some pseudo-function operands
 
-The front end's previously did not fold some operands of __builtin_constant_p
+The front end previously did not fold some operands of __builtin_constant_p
 and __builtin_choose_expr as aggressively as GCC's front end.  Our
 implementation has been updated to more closely match GCC in this regard.
 For example:
