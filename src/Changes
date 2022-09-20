@@ -1,5 +1,20 @@
 Version 6.4
 
+9/20/22  [EDGcpfe/25397,EDGcpfe/25630]
+Abort after folding of some initializers
+
+Consider in GNU C++20 mode:
+
+  void g() {
+    const bool b = __builtin_is_constant_evaluated();
+    const float e = __builtin_is_constant_evaluated();
+  }
+
+Previously, this aborted due to a null pointer indirection because the folding
+of the initializer caused the associated "dynamic initializer" entry to lose
+its associated variable.  That is now fixed.
+
+
 9/20/22  [EDGcpfe/22032,EDGcpfe/24268,EDGcpfe/25205,EDGcpfe/25617]
 Clang and GNU C++ mode compatibility: Designated field initializers
 

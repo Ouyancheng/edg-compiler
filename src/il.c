@@ -15919,7 +15919,7 @@ dest_type is the type being initialized.
 {
   a_dynamic_init_ptr  dip = *p_dip;
 
-  if (constexpr_enabled && dip->kind != (a_dynamic_init_kind)dik_constant &&
+  if (constexpr_enabled && !dyn_init_is(dip, dik_constant) &&
       !is_template_dependent_type(dest_type)) {
     a_constant_ptr          folded_value = local_constant();
     a_diag_list             diag_list;
@@ -15947,12 +15947,12 @@ dest_type is the type being initialized.
                                /*is_constant_evaluated=*/TRUE,
                                folded_value, &diag_list) &&
         !(constant_is(folded_value, ck_address) &&
-          folded_value->variant.address.kind == 
-                                       (an_address_base_kind)abk_temporary) &&
+          address_base_is(folded_value, abk_temporary)) &&
         is_static_init_constant(folded_value)) {
       *p_dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constant);
       set_dynamic_init_constant(*p_dip,
                                 move_local_constant_to_il(&folded_value));
+      (*p_dip)->variable = dip->variable;
     }  /* if */
     discard_more_info_list(&diag_list);
     if (folded_value != NULL) {
