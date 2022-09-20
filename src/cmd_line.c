@@ -3052,7 +3052,9 @@ option values if they were not already set by a command line option.
         if (ms_cpp20_mode) {
           explicit_copy_this_capture_enabled = TRUE;
           lambda_template_param_list_enabled = TRUE;
-          char8_t_enabled = TRUE;
+          if (!option_kind_used[(int)optk_char8_t]) {
+            char8_t_enabled = TRUE;
+          }  /* if */
           pack_init_capture_enabled = TRUE;
         }  /* if */
       }  /* if */

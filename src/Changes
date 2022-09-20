@@ -1,5 +1,14 @@
 Version 6.4
 
+9/20/22  [EDGcpfe/25525]
+Disabling char8_t support in Microsoft C++20 mode
+
+Previously, the --no_char8_t command-line option had no effect in Microsoft
+C++20 mode.  This is now fixed.  For example, with --ms_c++20 --no_char8_t:
+
+  const char *s = u8"";  // Previously an error.  Now okay.
+
+
 9/16/22  [EDGcpfe/25615]
 Abort on static data member template initializer
 
