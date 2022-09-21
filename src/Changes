@@ -38,7 +38,7 @@ gnu_version >= 80100 and in all Clang C++ modes.  For example:
     S s;
   };
   V v{ .s = ""};  // Previously an error in Clang and GNU modes that don't
-                  // enabled C++20.  Now okay (except for earlier GNU modes).
+                  // enable C++20.  Now okay (except for earlier GNU modes).
 
 
 9/20/22  [EDGcpfe/25525]
