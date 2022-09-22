@@ -3462,14 +3462,15 @@ initialization. */
         /* A chained designator follows (e.g., ".x.y =" or ".x[n] ="). */
         a_constant_ptr  next_con;
         if (!C_mode() && !(*field)->is_anonymous_parent_object &&
-            !symbol_supplement_for_class(class_type)->is_cpp03_POD &&
+            has_nontrivial_destructor(
+                                   symbol_supplement_for_class(class_type)) &&
             !cpp20_designators_restriction) {
           /* When cpp20_designators_restriction is TRUE, a diagnostic will have
              been emitted when parsing the initializer.  In other modes, we
              also have to disallow it because it can create lifetime issues.
              E.g., "{ .x = X(), .x.y = Y() }" may result in an unclear picture
              as to what (and when) destructors should be invoked. */
-          pos_error(ec_no_chained_designators_in_non_POD,
+          pos_error(ec_no_chained_designators_with_destructor,
                     init_component_pos(icp));
         }  /* if */
         if (((*field)->next == NULL ||
