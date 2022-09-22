@@ -1623,7 +1623,8 @@ instantiation.
 
 a_template_cache_ptr decl_cache_for_template(a_symbol_ptr  sym)
 /*
-Return a pointer to the declaration cache to be used for a variable template.
+Return a pointer to the declaration cache to be used for the template
+represented by the given symbol.
 */
 {
   a_template_cache_ptr  tcp;
