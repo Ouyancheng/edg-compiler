@@ -1635,6 +1635,7 @@ Return a pointer to the declaration cache to be used for a variable template.
   } else if (symbol_is(sym, sk_variable_template)) {
     tcp = decl_cache_for_variable_template(tssp);
   } else {
+    check_assertion(symbol_is(sym, sk_class_template));
     tcp = &tssp->cache;
   }  /* if */
   return tcp;
