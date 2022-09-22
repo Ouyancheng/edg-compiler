@@ -1,5 +1,12 @@
 Version 6.4
 
+9/22/22  [EDGcpfe/25605]
+Clang compatibility: Clang 15.0.0 builtins
+
+The builtin_defs.h file has been updated to reflect the availability of
+these new builtins when clang_version == 150000.
+
+
 9/20/22  [EDGcpfe/25653]
 Abort due to missing "declared type" on generated comparison functions
 
