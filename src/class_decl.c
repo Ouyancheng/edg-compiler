@@ -18369,7 +18369,23 @@ template declaration and is NULL otherwise.
     if (decl_info->is_member_template) {
       /* A variable template with an in-class initializer. */
       a_token_cache  *token_cache;
+      a_boolean      temp_tssp_cache = FALSE;
+      check_assertion(var_templ_tssp != NULL);
+      if (var_templ_tssp->cache.decl_info == NULL) {
+        /* We are about to cache coalesced tokens.  That may end up scanning
+           template arguments in a use of the current template, which will
+           attempt to use var_templ_tssp->cache.decl_info.  If that is not in
+           place yet, temporarily use the declaration cache as the definition
+           cache. */
+        temp_tssp_cache = TRUE;
+        var_templ_tssp->cache = *decl_cache_for_template(sym);
+      }  /* if */
       token_cache = cache_inclass_initializer(sym);
+      if (temp_tssp_cache) {
+        /* If we temporarily installed a var_templ_tssp->cache value above,
+           restore it to its cleared state. */
+        clear_template_cache(&var_templ_tssp->cache, /*is_reusable=*/TRUE);
+      }  /* if */
       initializer_cache = token_cache;
     } else if (decl_state->has_deduced_type && !is_error_type(member_type)) {
       if (delay_initializer_scan) {
