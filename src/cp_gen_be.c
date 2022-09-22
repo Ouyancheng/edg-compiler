@@ -5532,8 +5532,14 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
          the original enumerator constant and not this copy, so we need to
          find that constant to see if the name must be qualified. */
       a_constant_ptr cp;
+      a_type_ptr     enum_type;
       check_assertion(con->type->kind == (a_type_kind)tk_integer);
-      for (cp = con->type->variant.integer.enum_info.constant_list;
+      if (con->type->variant.integer.enum_type) {
+        enum_type = con->type;
+      } else {
+        enum_type = con->type->variant.integer.enum_info.affiliated_type;
+      }  /* if */
+      for (cp = enum_type->variant.integer.enum_info.constant_list;
            cp != NULL; cp = cp->next) {
         if (unmangled_name_of(&cp->source_corresp) == unmangled_name_of(scp)) {
           force_qualified_name = cp->source_corresp.qualification_needed;

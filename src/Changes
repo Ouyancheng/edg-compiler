@@ -1,5 +1,20 @@
 Version 6.4
 
+9/22/22  [EDGcpfe/25613]
+C++-generating back end: enumerators in C mode
+
+In some cases, the C++-generating back end could abort with a segmentation
+fault when processing a use of an enumeration constant in C mode.  This is
+now fixed.  For example, with --c:
+
+  enum E { Z };
+  void f() {
+    switch (Z) {
+      case Z: ;   // Previously aborted with a segmentation fault, now okay
+    }
+  }
+
+
 9/22/22  [EDGcpfe/25605]
 Clang compatibility: Clang 15.0.0 builtins
 
