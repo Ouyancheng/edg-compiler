@@ -3461,6 +3461,17 @@ initialization. */
       if (is_designator_component(icp)) {
         /* A chained designator follows (e.g., ".x.y =" or ".x[n] ="). */
         a_constant_ptr  next_con;
+        if (!C_mode() && !(*field)->is_anonymous_parent_object &&
+            !symbol_supplement_for_class(class_type)->is_cpp03_POD &&
+            !cpp20_designators_restriction) {
+          /* When cpp20_designators_restriction is TRUE, a diagnostic will have
+             been emitted when parsing the initializer.  In other modes, we
+             also have to disallow it because it can create lifetime issues.
+             E.g., "{ .x = X(), .x.y = Y() }" may result in an unclear picture
+             as to what (and when) destructors should be invoked. */
+          pos_error(ec_no_chained_designators_in_non_POD,
+                    init_component_pos(icp));
+        }  /* if */
         if (((*field)->next == NULL ||
              class_type->kind == (a_type_kind)tk_union) &&
             is_flexible_array_type((*field)->type)) {
@@ -3468,7 +3479,7 @@ initialization. */
           (void)check_flexible_array_init(icp, *field, is);
         }  /* if */
         aggr_init_chained_designator(&icp, (*field)->type, is, &next_con);
-        if (class_type->kind == (a_type_kind)tk_union) {
+        if (type_is(class_type, tk_union)) {
           /* In the case of a union, only one field can be initialized. */
           *field = NULL;
         } else if (!is->pack_expansion_handled) {

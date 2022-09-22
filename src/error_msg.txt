@@ -3359,6 +3359,7 @@ ec_invalid_ifc_sort_value;;"module %sq invalid sort value"
 ec_ifc_function_template_parse_failure;;"a function template loaded from an IFC module was incorrectly parsed as %nd"
 ec_ifc_entity_ref_failure;;"failed to load an IFC entity reference in module %sq"
 ec_ifc_entity_ref_failure_info;;"IFC index sort = %d1, value = %d2"
+ec_no_chained_designators_in_non_POD;;"chained designators are not permitted for non-POD class types"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
