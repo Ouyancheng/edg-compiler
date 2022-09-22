@@ -10173,7 +10173,8 @@ static void gen_field_initializer(a_field_ptr  field)
            must provide the outer braces here. */
         need_braces = cp->explicit_cast_applied;
       }  /* if */
-    } else if (dip->kind == (a_dynamic_init_kind)dik_expression) {
+    } else if (dip->kind == dik_expression ||
+               dip->kind == dik_class_result_via_ctor) {
       /* A non-constant braced expression: braces must be supplied here. */
       need_braces = TRUE;
     }  /* if */
