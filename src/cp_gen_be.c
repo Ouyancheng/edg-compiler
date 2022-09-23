@@ -23273,6 +23273,7 @@ handle_as_definition:
     gen_member_function_modifiers(rout, &abstract_generated);
   }  /* if */
   if (rout->is_deleted && !rout->is_defaulted &&
+      (!friend_decl || rout->defined_in_friend_decl) &&
       find_attribute(ak_unavailable,
                      skip_typerefs(rout->type)->source_corresp.attributes)
                                                                     == NULL) {

@@ -1,5 +1,18 @@
 Version 6.4
 
+9/22/22  [EDGcpfe/25656]
+C++-generating back end: friend declarations of deleted functions
+
+The C++-generating back end incorrectly added "=delete" in a friend
+declaration naming a function that is declared as deleted.  This is now
+fixed.  For example, with --c++11:
+
+  void f() = delete;
+  struct S {
+    friend void f();   // Previously generated with "=delete"
+  };
+
+
 9/22/22  [EDGcpfe/25613]
 C++-generating back end: enumerators in C mode
 
