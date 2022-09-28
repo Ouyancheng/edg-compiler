@@ -1027,8 +1027,8 @@ typedef struct an_expr_stack_entry {
 		consteval_call_need_not_fold:1;
 			/* When TRUE, a call to a consteval function is not
 			   required to fold to a constant.  Used for consteval
-			   calls in default arguments of consteval
-			   functions. */
+			   calls in default arguments in an immediate
+			   ("consteval") context. */
   a_bit_field
 		consteval_function_designator_seen:1;
 			/* When TRUE, a function designator for a consteval

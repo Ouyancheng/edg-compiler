@@ -8715,6 +8715,51 @@ of p_result will be set to FALSE.
 }  /* do_constexpr_write_source_function */
 
 
+static inline a_boolean is_constexpr_source_pos_deferred()
+/*
+Return TRUE if the current expr_stack state implies that the current source
+location builtin's evaluation should be deferred; otherwise, return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  /* Deferral occurs when used a source location builtin is a default arguments
+     of consteval function or a default member initializer.  Start off assuming
+     that's the case in the current evaluation, and attempt to disprove it. */
+  if (expr_stack == NULL) {
+    /* There's no expr stack to consider, assume the builtin can't be
+       deferred. */
+    result = FALSE;
+  } else if (!expr_stack->is_default_arg_expression) {
+    /* The expression being evaluated isn't a default argument. */
+    result = FALSE;
+  } else if (!expr_stack->consteval_call_need_not_fold) {
+    /* The expression being evaluated is being evaluated inside of an immediate
+       context, do not eagerly compute the value, wait for the immediate
+       context itself to be evaluated. */
+    result = FALSE;
+  }  /* if */
+  return result;
+}  /* is_constexpr_source_pos_deferred */
+
+
+static inline a_source_position* get_constexpr_source_pos(
+                                                     an_interpreter_state *ips)
+/*
+Return the source location to use for the current source location builtin.
+*/
+{
+  a_source_position *use_pos = ips->srcloc_builtin_pos;
+
+  /* This can occur when the builtin is used directly, fallback to the
+     error position. */
+  if (use_pos == NULL) {
+    use_pos = &error_position;
+  }  /* if */
+  return use_pos;
+}  /* get_constexpr_source_pos */
+
+
 static a_boolean do_constexpr_builtin_source_pos_func(
                                           an_interpreter_state *ips,
                                           a_routine_ptr        callee,
@@ -8732,32 +8777,14 @@ default member initializers, lowering does the work.
 {
   a_boolean  result = TRUE;
 
-  if ((expr_stack != NULL &&
-       expr_stack->is_default_arg_expression &&
-       !expr_stack->consteval_call_need_not_fold) ||
-      scope_stack_top().in_field_initializer) {
-    /* As mentioned above, uses in default arguments of consteval functions
-       and default member initializers are deferred. */
+  if (is_constexpr_source_pos_deferred()) {
     do_constexpr_fail(result);
   } else {
     /* Determine the appropriate source position for this invocation and
        convert it to the appropriate integer (COLUMN, LINE) or string (FILE,
        FUNCTION). */
-    a_source_position  *use_pos;
+    a_source_position *use_pos = get_constexpr_source_pos(ips);
 
-    if (ips->curr_call_frame == NULL ||
-        ips->curr_call_frame->routine == NULL) {
-      /* This is the usual case: The __builtin_... is folded right away when
-         it is scanned, or when it is copied from a default argument.  In that
-         case error_position ought to be the position of the call. */
-      use_pos = &error_position;
-    } else {
-      /* If the __builtin_... was called in a default member initializer, the
-         interpreter doesn't get to it until a constructor "uses" that
-         initializer.  Get the position of the constructor from the call
-         stack. */
-      use_pos = &ips->curr_call_frame->routine->source_corresp.decl_position;
-    }  /* if */
     switch (callee->variant.builtin_function_kind) {
       case bfk_COLUMN:
         { an_integer_kind col_int_kind = (an_integer_kind)ik_unsigned_int;
@@ -9355,7 +9382,7 @@ to FALSE and the reason for the failure is recorded in *ips.
     case bufk_source_location:
       {
         interpreted = FALSE;
-        if (expr_stack != NULL && expr_stack->is_default_arg_expression) {
+        if (is_constexpr_source_pos_deferred()) {
           do_constexpr_fail(*p_result);
         } else {
           a_gnu_source_location_type_info interp_inf;
@@ -9373,13 +9400,7 @@ to FALSE and the reason for the failure is recorded in *ips.
             alloc_naturalizable_object(ips, interp_inf.impl_type, &obj_storage,
                                        p_result);
             if (*p_result) {
-              a_source_position *use_pos = ips->srcloc_builtin_pos;
-
-              /* This can occur when the builtin is used raw, fallback to the
-                 error position. */
-              if (use_pos == NULL) {
-                use_pos = &error_position;
-              }  /* if */
+              a_source_position *use_pos = get_constexpr_source_pos(ips);
 
               /* Populate the source location __impl object with the values for
                  use_pos.  Note that the fields (and their associated types)
