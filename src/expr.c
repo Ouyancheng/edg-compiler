@@ -45789,6 +45789,7 @@ function.
                   /*force_object_lifetime=*/TRUE,
                   /*suppress_object_lifetime=*/FALSE);
   expr_stack_entry.is_default_arg_expression = TRUE;
+  expr_stack_entry.is_initial_default_arg_scan = TRUE;
   if (for_consteval_function) {
     expr_stack_entry.consteval_call_need_not_fold = TRUE;
   }  /* if */

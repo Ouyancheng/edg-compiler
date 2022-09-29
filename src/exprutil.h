@@ -901,6 +901,16 @@ typedef struct an_expr_stack_entry {
 			/* TRUE if the expression is or is inside of a
 			   C++ default argument expression in a parameter
 			   list. */
+  a_bit_field
+		is_initial_default_arg_scan:1;
+			/* TRUE the first time a default argument expression is
+			   encountered, FALSE on subsequent occurrences. */
+  a_bit_field
+		contains_deferred_std_srcloc:1;
+			/* TRUE if an exception to immediate function rules is
+			   noted as the expression contains an immediate
+			   evaluation of a supporting builtin for
+			   std::source_location::current(). */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_bit_field
 		is_cli_attr_arg_expression:1;

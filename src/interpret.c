@@ -8717,30 +8717,34 @@ of p_result will be set to FALSE.
 
 static inline a_boolean is_constexpr_source_pos_deferred()
 /*
-Return TRUE if the current expr_stack state implies that the current source
-location builtin's evaluation should be deferred; otherwise, return FALSE.
+Return TRUE if the current expression stack state implies that the current
+source location builtin's evaluation should be deferred; otherwise, return
+FALSE.
 */
 {
-  a_boolean result = TRUE;
+  a_boolean result = FALSE;
 
   /* Deferral occurs when used a source location builtin is a default arguments
-     of consteval function or a default member initializer.  Start off assuming
-     that's the case in the current evaluation, and attempt to disprove it. */
-  if (expr_stack == NULL) {
-    /* There's no expr stack to consider, assume the builtin can't be
-       deferred. */
-    result = FALSE;
-  } else if (!expr_stack->is_default_arg_expression) {
-    /* The expression being evaluated isn't a default argument. */
-    result = FALSE;
-  } else if (!expr_stack->consteval_call_need_not_fold) {
-    /* The expression being evaluated is being evaluated inside of an immediate
-       context, do not eagerly compute the value, wait for the immediate
-       context itself to be evaluated. */
-    result = FALSE;
+     of consteval function or a default member initializer. */
+  if ((expr_stack != NULL && expr_stack->is_initial_default_arg_scan)) {
+    result = TRUE;
   }  /* if */
   return result;
 }  /* is_constexpr_source_pos_deferred */
+
+
+static inline void do_constexpr_fail_for_source_pos_deferral(a_boolean &result)
+/*
+Fail the interpreter for a source position related evaluation deferral.  This
+should be used after its determined the current evaluation context is
+inadequate to provide an adequate result for a builtin related to
+std::source_location::current().  The associated evaluation should then be
+reattempted when the expression is copied by i_copy_expr_tree.
+*/
+{
+  expr_stack->contains_deferred_std_srcloc = TRUE;
+  do_constexpr_fail(result);
+}  /* do_constexpr_fail_for_source_pos_deferral */
 
 
 static inline a_source_position* get_constexpr_source_pos(
@@ -8778,7 +8782,7 @@ default member initializers, lowering does the work.
   a_boolean  result = TRUE;
 
   if (is_constexpr_source_pos_deferred()) {
-    do_constexpr_fail(result);
+    do_constexpr_fail_for_source_pos_deferral(result);
   } else {
     /* Determine the appropriate source position for this invocation and
        convert it to the appropriate integer (COLUMN, LINE) or string (FILE,
@@ -9383,7 +9387,7 @@ to FALSE and the reason for the failure is recorded in *ips.
       {
         interpreted = FALSE;
         if (is_constexpr_source_pos_deferred()) {
-          do_constexpr_fail(*p_result);
+          do_constexpr_fail_for_source_pos_deferral(*p_result);
         } else {
           a_gnu_source_location_type_info interp_inf;
 
