@@ -209,6 +209,20 @@ static a_boolean
 static a_host_fp_value
 		fp_zero;
 			/* The value 0.0 in internal representation. */
+
+#if USE_SOFTFLOAT
+/* _Float16 values are represented as the SoftFloat float16_t type. */
+typedef float16_t EDG_float16_t;
+#else /* !USE_SOFTFLOAT */
+#if HOST_HAS_FLOAT16_TYPE
+/* _Float16 values are represented using the host _Float16 type. */
+typedef _Float16 EDG_float16_t;
+#else /* !HOST_HAS_FLOAT16_TYPE */
+/* _Float16 values are represented using the host "float" type. */
+typedef float EDG_float16_t;
+#endif /* HOST_HAS_FLOAT16_TYPE */
+#endif /* USE_SOFTFLOAT */
+
 #if USE_SOFTFLOAT
 
 /* A union to map the float32_t SoftFloat type to "float". */
@@ -223,6 +237,9 @@ typedef union softfloat64_t {
   double        hard;
 } softfloat64_t;
 
+static float16_t
+		f16_zero;
+			/* The value 0.0F16. */
 static float32_t
 		f32_zero;
 			/* The value 0.0F. */
@@ -674,8 +691,8 @@ static void conv_host_fp_to_float(a_host_fp_value	temp,
 				  float			*result)
 /*
 Convert "temp" from a_host_fp_value (double, long double, or __float128) to
-float.    Set "err" if the conversion would result in overflow or underflow.
-If the conversion can be done, return the result in "result".
+float.  Set "err" to TRUE if the conversion would result in overflow or
+underflow.  If the conversion can be done, return the result in "result".
 */
 {
 #if USE_SOFTFLOAT
@@ -874,6 +891,62 @@ If the conversion can be done, return the result in "result".
 #undef CAN_DO_FLT_MAX_TEST
 #endif /* USE_SOFTFLOAT */
 }  /* conv_host_fp_to_float */
+
+
+static void conv_host_fp_to_float16(a_host_fp_value temp,
+                                    a_boolean       *err,
+                                    EDG_float16_t   *result)
+/*
+Convert "temp" from a_host_fp_value (double, long double, or __float128) to
+_Float16.  Set "err" to TRUE if the conversion would result in overflow or
+underflow.  If the conversion can be done, return the result in "result".
+*/
+{
+#if USE_SOFTFLOAT
+  float16_t f16_temp;
+  softfloat_exceptionFlags = 0;
+  f16_temp = f128M_to_f16(&temp);
+  if ((softfloat_exceptionFlags & softfloat_flag_overflow) != 0) {
+    if (gnu_mode && is_finite(temp)) {
+      /* GNU C and C++ silently uses infinity for values that are too
+         large. */
+    } else {
+      /* An overflow. */
+      *err = TRUE;
+    }  /* if */
+  } else if (((softfloat_exceptionFlags & softfloat_flag_underflow) != 0) &&
+             f16_eq(f16_temp, f16_zero)) {
+    /* An underflow to zero. */
+    *err = TRUE;
+  }  /* if */
+  if (!*err) {
+    *result = f16_temp;
+  }  /* if */
+#else /* !USE_SOFTFLOAT */
+  /* Leverage the support for various configurations in
+     conv_host_fp_to_float, then check the resulting value against the
+     _Float16 range limitations. */
+#define MIN_FLOAT16_DENORM 0.000000059604645
+#define MAX_FLOAT16_VAL 65504
+  float float_temp;
+  conv_host_fp_to_float(temp, err, &float_temp);
+  if (!*err) {
+    /* The conversion to float succeeded.  Check the resulting value
+       against the _Float16 range limits. */
+    float abs_value = fabs(float_temp);
+    if (abs_value > MAX_FLOAT16_VAL ||
+        (abs_value < MIN_FLOAT16_DENORM && abs_value != 0.0)) {
+      /* The value would overflow or underflow. */
+      *err = TRUE;
+    } else {
+      /* The value is within the representable range for _Float16. */
+      *result = (EDG_float16_t)float_temp;
+    }  /* if */
+  }  /* if */
+#undef MIN_FLOAT16_DENORM
+#undef MAX_FLOAT16_VAL
+#endif /* USE_SOFTFLOAT */
+}  /* conv_host_fp_to_float16 */
 
 #if !USE_DOUBLE_FOR_HOST_FP_VALUE
 
@@ -1172,7 +1245,15 @@ before setting it if there are unused bits.
     /* Zero the memory so that comparisons are easy even if we do not
        fill the whole area reserved for the float value. */
     memzero((char *)float_value, sizeof(an_internal_float_value));
-    if (kind == (a_float_kind)fk_float) {
+    if (kind == fk_float16) {
+      /* Converting to _Float16. */
+      EDG_float16_t float16_temp;
+      conv_host_fp_to_float16(temp, err, &float16_temp);
+      if (!*err) {
+        (void)memcpy((char *)float_value, (char *)&float16_temp,
+                     sizeof(EDG_float16_t));
+      }  /* if */
+    } else if (kind == fk_float) {
       /* Converting to float. */
       float	float_temp;
       conv_host_fp_to_float(temp, err, &float_temp);
@@ -1224,7 +1305,19 @@ Fetch the value from float_value (of kind kind) and return it.
   /* Zero all bits in result (the assignments that follow may not set all
      bits in some cases). */
   memzero((char *)&temp, sizeof(temp));
-  if (kind == (a_float_kind)fk_float) {
+  if (kind == fk_float16) {
+    EDG_float16_t float16_temp;
+    /* Convert from float16 to a_host_fp_value. */
+    /* Use memcpy to copy the value since float_value might not be correctly
+       aligned. */
+    (void)memcpy((char *)&float16_temp, (char *)float_value,
+                 sizeof(EDG_float16_t));
+#if USE_SOFTFLOAT
+    f16_to_f128M(float16_temp, &temp);
+#else /* !USE_SOFTFLOAT */
+    temp = float16_temp;
+#endif /* USE_SOFTFLOAT */
+  } else if (kind == fk_float) {
     float	float_temp;
     /* Convert from float to a_host_fp_value. */
     /* Use memcpy to copy the value since float_value might not be correctly
@@ -1300,7 +1393,7 @@ return TRUE otherwise.  If signaling is TRUE, a signaling Nan is created,
 otherwise a quiet NaN is created.  When mantissa is non-zero, its value
 is used for the mantissa portion of the NaN.  Note that this routine
 limits the number of bits in the mantissa to 32 bits (or 23 bits for
-a float kind).
+float and 11 bits for _Float16).
 */
 {
   a_boolean  err = FALSE, fp_mode_dependent = FALSE;
@@ -1339,7 +1432,9 @@ a float kind).
     part = (an_fp_value_part *)&value->bytes[0];
     if (!host_little_endian) {
       /* Use the last word. */
-      if (kind == (a_float_kind)fk_float) {
+      if (kind == (a_float_kind)fk_float16) {
+        size = 2;
+      } else if (kind == (a_float_kind)fk_float) {
         size = targ_sizeof_float;
       } else if (kind == (a_float_kind)fk_double) {
         size = targ_sizeof_double;
@@ -1358,7 +1453,14 @@ a float kind).
     /* Use memcpy to extract the appropriate 32-bit value, operate on it,
        then replace it (to avoid alignment issues). */
     (void)memcpy((char*)&val, (char*)part, sizeof(val));
-    if (kind == (a_float_kind)fk_float) {
+#if HOST_HAS_FLOAT16_TYPE || USE_SOFTFLOAT
+    if (kind == fk_float16) {
+      /* Don't disturb non-mantissa bits. */
+      val = val | (mantissa & 0x7ff);
+    } else
+#endif /* HOST_HAS_FLOAT16_TYPE || USE_SOFTFLOAT */
+    /* Do not insert code here. */
+    if (kind == fk_float16 || kind == fk_float) {
       /* Don't disturb non-mantissa bits. */
       val = val | (mantissa & 0x7fffff);
     } else {
@@ -1448,7 +1550,15 @@ Otherwise, return FALSE.
   an_fp_value_part  fp_part;
   char              *fp_bytes = (char*)value;
 
-  if (kind == (a_float_kind)fk_float) {
+#if HOST_HAS_FLOAT16_TYPE || USE_SOFTFLOAT
+  if (kind == fk_float16) {
+    /* A 16-bit floating-point value. */
+    memcpy((char*)&fp_part, fp_bytes, sizeof(fp_part));
+    *biased_exp = (long)((fp_part & 0x7c) >> 11);
+  } else
+#endif /* HOST_HAS_FLOAT16_TYPE || USE_SOFTFLOAT */
+  /* Do not insert code here. */
+  if (kind == fk_float16 || kind == fk_float) {
     /* A single-precision floating-point value. */
     memcpy((char*)&fp_part, fp_bytes, sizeof(fp_part));
     *biased_exp = (long)((fp_part & 0x7f800000) >> 23);
@@ -2593,7 +2703,17 @@ before setting it if there are unused bits.
     /* Clear &float_value_temp: Don't use assignment because on some platforms
        the non-significant bytes wouldn't be cleared. */
     memzero((char *)&float_value_temp, sizeof(an_internal_float_value));
-    if (kind == (a_float_kind)fk_float) {
+    if (kind == fk_float16) {
+      res = read_float16((unsigned char *)&float_value_temp, str,
+                         (int)strlen(str));
+#if DEBUG
+      if (db_flag_is_set("fp")) {
+        fprintf(f_debug, "read_float16: res=%d\n", (int)res);
+        fprintf(f_debug, "  %s\n  ", str);
+        db_binary_float((unsigned char *)&float_value_temp);
+      }  /* if */
+#endif /* DEBUG */
+    } else if (kind == fk_float) {
       res = read_float((unsigned char *)&float_value_temp, str,
                        (int)strlen(str));
 #if DEBUG
@@ -2761,7 +2881,9 @@ be NULL if the corresponding return value is not needed.
        into temp. */
 #if USE_HOST_FP_CONVERSION_ROUTINES
 #if USE_FLOAT128_FOR_HOST_FP_VALUE && USE_QUADMATH_LIBRARY
-    if (kind == (a_float_kind)fk_float) {
+    if (kind == (a_float_kind)fk_float16) {
+      (void)quadmath_snprintf(str, sizeof(str), "%.8Qg", temp);
+    } else if (kind == (a_float_kind)fk_float) {
       (void)quadmath_snprintf(str, sizeof(str), "%.10Qg", temp);
     } else if (kind == (a_float_kind)fk_double) {
       (void)quadmath_snprintf(str, sizeof(str), "%.19Qg", temp);
@@ -2786,7 +2908,9 @@ be NULL if the corresponding return value is not needed.
 #if USE_LONG_DOUBLE_FOR_HOST_FP_VALUE || APPROXIMATE_QUADMATH
     /* Make sure we have a long double value (temp can be a __float128). */
     long double  fpval = (long double)temp;
-    if (kind == (a_float_kind)fk_float) {
+    if (kind == (a_float_kind)fk_float16) {
+      (void)sprintf(str, "%.8Lg", fpval);
+    } else if (kind == (a_float_kind)fk_float) {
       (void)sprintf(str, "%.10Lg", fpval);
     } else if (kind == (a_float_kind)fk_double) {
       (void)sprintf(str, "%.19Lg", fpval);
@@ -2807,7 +2931,9 @@ be NULL if the corresponding return value is not needed.
     }  /* if */
 #endif /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE || APPROXIMATE_QUADMATH */
 #if USE_DOUBLE_FOR_HOST_FP_VALUE
-    if (kind == (a_float_kind)fk_float) {
+    if (kind == (a_float_kind)fk_float16) {
+      (void)sprintf(str, "%.8g", temp);
+    } else if (kind == (a_float_kind)fk_float) {
       (void)sprintf(str, "%.10g", temp);
     } else {
       (void)sprintf(str, "%.19g", temp);
@@ -2827,7 +2953,16 @@ be NULL if the corresponding return value is not needed.
     /* Use software-based routines for doing the binary to string
        conversion. */
     an_fp_return_type       res;
-    if (kind == (a_float_kind)fk_float) {
+    if (kind == (a_float_kind)fk_float16) {
+      res = write_float16(str, sizeof(str), (unsigned char *)float_value);
+#if DEBUG
+      if (db_flag_is_set("fp")) {
+        fprintf(f_debug, "write_float16: res=%d\n  ", (int)res);
+        db_binary_float16((unsigned char *)float_value);
+        fprintf(f_debug, "  %s\n", str);
+      }  /* if */
+#endif /* DEBUG */
+    } else if (kind == fk_float) {
       res = write_float(str, sizeof(str), (unsigned char *)float_value);
 #if DEBUG
       if (db_flag_is_set("fp")) {
@@ -2932,7 +3067,20 @@ corresponding return value is not needed.
                                          &temp)) {
     /* Copy the value to a properly aligned floating-point type and
        use sprintf to generate the appropriate hexadecimal string. */
-    if (kind == (a_float_kind)fk_float) {
+    if (kind == fk_float16) {
+#if USE_SOFTFLOAT
+      float16_t     f16_temp;
+      softfloat32_t f32_temp;
+      (void)memcpy((char *)&f16_temp, (char *)float_value, 2);
+      f32_temp.soft = f16_to_f32(f16_temp);
+      (void)sprintf(str, "%a", f32_temp.hard);
+#else /* !USE_SOFTFLOAT */
+      EDG_float16_t float16_temp;
+      (void)memcpy((char *)&float16_temp, (char *)float_value,
+                   sizeof(EDG_float16_t));
+      (void)sprintf(str, "%a", (double)float16_temp);
+#endif /* USE_SOFTFLOAT */
+    } else if (kind == fk_float) {
       float  float_temp;
       (void)memcpy((char *)&float_temp, (char *)float_value, sizeof(float));
       (void)sprintf(str, "%a", float_temp);
@@ -2990,7 +3138,9 @@ for the representation of floating-point values in mangled names.
   int         data_size;
 
   /* Determine the size of the data in the floating-point value. */
-  if (kind == (a_float_kind)fk_float) {
+  if (kind == (a_float_kind)fk_float16) {
+    data_size = 2;
+  } else if (kind == (a_float_kind)fk_float) {
     data_size = sizeof(float);
   } else if (kind == (a_float_kind)fk_double) {
     data_size = sizeof(double);
@@ -3721,7 +3871,7 @@ Returns TRUE if the sign bit of the floating-point value represented by
     kind = (a_float_kind)fk_double;
   }  /* if */
   fp_ptr = &fp_temp[0];
-  if (kind == (a_float_kind)fk_float) {
+  if (kind == fk_float16 || kind == fk_float) {
     memcpy((char*)&val, (char*)value, sizeof(val));
     is_negative = (val & 0x80000000) != 0;
   } else if (kind_is_binary64(kind)) {
@@ -3876,6 +4026,7 @@ Initialize static variables related to float_pt.c.
   softfloat_detectTininess = softfloat_tininess_afterRounding;
   extF80_roundingPrecision = 80;
   softfloat_exceptionFlags = 0;
+  f16_zero = ui32_to_f16((uint32_t)0);
   f32_zero = ui32_to_f32((uint32_t)0);
   f64_zero = ui32_to_f64((uint32_t)0);
   ui32_to_f128M((uint32_t)0, &fp_zero);

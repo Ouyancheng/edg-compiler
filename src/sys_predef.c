@@ -1070,6 +1070,10 @@ Enter predeclared symbols as required by the implementation.
                   "__long_long", integer_type((an_integer_kind)ik_long_long));
   }  /* if */
 #endif /* 0 */
+  if (float16_enabled) {
+    (void)enter_predefined_typedef(
+                             "_Float16", float_type((a_float_kind)fk_float16));
+  }  /* if */
   if (float80_enabled) {
     (void)enter_predefined_typedef(
                "__float80", float_type((a_float_kind)float_kind_for_float80));

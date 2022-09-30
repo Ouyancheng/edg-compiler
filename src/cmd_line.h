@@ -2368,6 +2368,10 @@ EXTERN a_boolean
 #endif /* INT128_EXTENSIONS_ALLOWED */
 
 EXTERN a_boolean
+		float16_enabled;
+			/* TRUE if _Float16 is enabled. */
+
+EXTERN a_boolean
 		float80_enabled;
 			/* TRUE if __float80 is enabled.  Always FALSE if
 			   FLOAT80_ENABLING_POSSIBLE is FALSE. */

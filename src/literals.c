@@ -775,16 +775,18 @@ the character position of the error.
     /* "Q" suffix, indicates __float128. */
     kind = (a_float_kind)float_kind_for_float128;
     --actual_end;
-  } else if (extended_float_types &&
-             (*actual_end == '2' || *actual_end == '4' ||
-              *actual_end == '6' || *actual_end == '8')) {
+  } else if ((extended_float_types || float16_enabled) &&
+             (actual_end[-2] == 'f' || actual_end[-2] == 'F' ||
+              actual_end[-3] == 'f' || actual_end[-3] == 'F')) {
     switch (*actual_end) {
       case '6':
-        if (actual_end[-3] == 'b' || actual_end[-3] == 'B') {
+        if (extended_float_types &&
+            (actual_end[-3] == 'b' || actual_end[-3] == 'B')) {
           kind = (a_float_kind)fk_std_bfloat16;
           actual_end -= 4;
         } else {
-          kind = (a_float_kind)fk_std_float16;
+          kind = extended_float_types ? (a_float_kind)fk_std_float16
+                                      : (a_float_kind)fk_float16;
           actual_end -= 3;
         }  /* if */
         break;

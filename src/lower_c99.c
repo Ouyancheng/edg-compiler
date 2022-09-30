@@ -1212,7 +1212,7 @@ done:;
 Typedef for a list of library routine names that perform the same function
 but on complex types with different underlying floating-point types.  Used
 when calling select_name_from_float_kind.  The order of elements corresponds
-to float, double, long double, __float80, and __float128 types.
+to _Float16, float, double, long double, __float80, and __float128 types.
 */
 typedef a_const_char *a_library_name_array[(int)fk_first_extended_type];
 
@@ -1234,6 +1234,7 @@ Return names[fkind] (a string naming the given floating-point precision).
 #if LOWER_COMPLEX
 
 /* Pointers to lowered versions of complex types, once allocated. */
+static a_type_ptr lowered_complex_float16;
 static a_type_ptr lowered_complex_float;
 static a_type_ptr lowered_complex_double;
 static a_type_ptr lowered_complex_long_double;
@@ -1276,6 +1277,13 @@ lowered IL.
   a_type_ptr  result = NULL;
 
   switch (fkind) {
+    case fk_float16:
+      if (lowered_complex_float16 == NULL) {
+        lowered_complex_float16 = make_lowered_complex_type(
+                                                    fkind, "_complex_float16");
+      }  /* if */
+      result = lowered_complex_float16;
+      break;
     case fk_float:
       if (lowered_complex_float == NULL) {
         lowered_complex_float = make_lowered_complex_type(
@@ -1350,6 +1358,7 @@ static a_routine_ptr  rtoc_routine[(int)fk_first_extended_type];
 static a_routine_ptr  ctor_routine[(int)fk_first_extended_type];
 static a_routine_ptr  itoc_routine[(int)fk_first_extended_type];
 static a_routine_ptr  ctoi_routine[(int)fk_first_extended_type];
+static a_routine_ptr  cast_float16_routine[(int)fk_first_extended_type];
 static a_routine_ptr  cast_float_routine[(int)fk_first_extended_type];
 static a_routine_ptr  cast_double_routine[(int)fk_first_extended_type];
 static a_routine_ptr  cast_long_double_routine[(int)fk_first_extended_type];
@@ -1363,6 +1372,7 @@ static a_routine_ptr  cast_float128_routine[(int)fk_first_extended_type];
 
 /* Imaginary to complex library routines. */
 static a_library_name_array itoc_routine_name = {
+                                          "__c99_ifloat16_to_cfloat16",
                                           "__c99_ifloat_to_cfloat",
                                           "__c99_idouble_to_cdouble",
                                           "__c99_ilong_double_to_clong_double",
@@ -1371,6 +1381,7 @@ static a_library_name_array itoc_routine_name = {
 
 /* Complex to imaginary library routines. */
 static a_library_name_array ctoi_routine_name = {
+                                          "__c99_cfloat16_to_ifloat16",
                                           "__c99_cfloat_to_ifloat",
                                           "__c99_cdouble_to_idouble",
                                           "__c99_clong_double_to_ilong_double",
@@ -1379,6 +1390,7 @@ static a_library_name_array ctoi_routine_name = {
 
 /* Floating-point to complex library routines. */
 static a_library_name_array rtoc_routine_name = {
+                                          "__c99_float16_to_cfloat16",
                                           "__c99_float_to_cfloat",
                                           "__c99_double_to_cdouble",
                                           "__c99_long_double_to_clong_double",
@@ -1387,6 +1399,7 @@ static a_library_name_array rtoc_routine_name = {
 
 /* Complex to floating-point to library routines. */
 static a_library_name_array ctor_routine_name = {
+                                          "__c99_cfloat16_to_float16",
                                           "__c99_cfloat_to_float",
                                           "__c99_cdouble_to_double",
                                           "__c99_clong_double_to_long_double",
@@ -1394,7 +1407,15 @@ static a_library_name_array ctor_routine_name = {
                                           "__c99_cfloat128_to_float128"};
 
 /* Library routines for complex casts. */
+static a_library_name_array cast_float16_routine_name = {
+                                          NULL,
+                                          "__c99_cfloat16_to_cfloat",
+                                          "__c99_cfloat16_to_cdouble",
+                                          "__c99_cfloat16_to_clong_double",
+                                          "__c99_cfloat16_to_cfloat80",
+                                          "__c99_cfloat16_to_cfloat128"};
 static a_library_name_array cast_float_routine_name = {
+                                          "__c99_cfloat_to_cfloat16",
                                           NULL,
                                           "__c99_cfloat_to_cdouble",
                                           "__c99_cfloat_to_clong_double",
@@ -1402,6 +1423,7 @@ static a_library_name_array cast_float_routine_name = {
                                           "__c99_cfloat_to_cfloat128"};
 
 static a_library_name_array cast_double_routine_name = {
+                                          "__c99_cdouble_to_cfloat16",
                                           "__c99_cdouble_to_cfloat",
                                           NULL,
                                           "__c99_cdouble_to_clong_double",
@@ -1409,6 +1431,7 @@ static a_library_name_array cast_double_routine_name = {
                                           "__c99_cdouble_to_cfloat128"};
 
 static a_library_name_array cast_long_double_routine_name = {
+                                          "__c99_clong_double_to_cfloat16",
                                           "__c99_clong_double_to_cfloat",
                                           "__c99_clong_double_to_cdouble",
                                           NULL,
@@ -1417,6 +1440,7 @@ static a_library_name_array cast_long_double_routine_name = {
 
 #if FLOAT80_ENABLING_POSSIBLE
 static a_library_name_array cast_float80_routine_name = {
+                                          "__c99_cfloat80_to_cfloat16",
                                           "__c99_cfloat80_to_cfloat",
                                           "__c99_cfloat80_to_cdouble",
                                           "__c99_cfloat80_to_clong_double",
@@ -1426,6 +1450,7 @@ static a_library_name_array cast_float80_routine_name = {
 
 #if FLOAT128_ENABLING_POSSIBLE
 static a_library_name_array cast_float128_routine_name = {
+                                          "__c99_cfloat128_to_cfloat16",
                                           "__c99_cfloat128_to_cfloat",
                                           "__c99_cfloat128_to_cdouble",
                                           "__c99_cfloat128_to_clong_double",
@@ -1435,6 +1460,7 @@ static a_library_name_array cast_float128_routine_name = {
 
 /* Names of the complex negate runtime routines. */
 static a_library_name_array xnegate_routine_name = {
+                                           "__c99_complex_float16_negate",
                                            "__c99_complex_float_negate",
                                            "__c99_complex_double_negate",
                                            "__c99_complex_long_double_negate",
@@ -1466,6 +1492,7 @@ with C89).
 
 /* Names of the complex add runtime routines. */
 static a_library_name_array xadd_routine_name = {
+                                               "__c99_complex_float16_add",
                                                "__c99_complex_float_add",
                                                "__c99_complex_double_add",
                                                "__c99_complex_long_double_add",
@@ -1497,6 +1524,7 @@ Transform the given complex expression ("z1+z2") into a function call
 
 /* Names of the complex subtract runtime routines. */
 static a_library_name_array xsubtract_routine_name = {
+                                         "__c99_complex_float16_subtract",
                                          "__c99_complex_float_subtract",
                                          "__c99_complex_double_subtract",
                                          "__c99_complex_long_double_subtract",
@@ -1528,6 +1556,7 @@ Transform the given complex expression ("z1-z2") into a function call
 
 /* Names of the complex multiply runtime routines. */
 static a_library_name_array xmultiply_routine_name = {
+                                         "__c99_complex_float16_multiply",
                                          "__c99_complex_float_multiply",
                                          "__c99_complex_double_multiply",
                                          "__c99_complex_long_double_multiply",
@@ -1559,6 +1588,7 @@ Transform the given complex expression ("z1*z2") into a function call
 
 /* Names of the complex divide runtime routines. */
 static a_library_name_array xdivide_routine_name = {
+                                           "__c99_complex_float16_divide",
                                            "__c99_complex_float_divide",
                                            "__c99_complex_double_divide",
                                            "__c99_complex_long_double_divide",
@@ -1589,7 +1619,8 @@ Transform the given complex expression ("z1/z2") into a function call
 
 
 /* Names of the complex == runtime routines. */
-static a_library_name_array xeq_routine_name = {"__c99_complex_float_eq",
+static a_library_name_array xeq_routine_name = {"__c99_complex_float16_eq",
+                                                "__c99_complex_float_eq",
                                                 "__c99_complex_double_eq",
                                                 "__c99_complex_long_double_eq",
                                                 "__c99_complex_float80_eq",
@@ -1620,7 +1651,8 @@ Transform the given complex expression ("z1==z2") into a function call
 
 
 /* Names of the complex != runtime routines. */
-static a_library_name_array xne_routine_name = {"__c99_complex_float_ne",
+static a_library_name_array xne_routine_name = {"__c99_complex_float16_ne",
+                                                "__c99_complex_float_ne",
                                                 "__c99_complex_double_ne",
                                                 "__c99_complex_long_double_ne",
                                                 "__c99_complex_float80_ne",
@@ -1962,6 +1994,7 @@ static a_routine_ptr  xconj_routine[(int)fk_first_extended_type];
 
 /* Names of the complex conjugation runtime routines. */
 static a_library_name_array xconj_routine_name = {
+                                             "__c99_complex_float16_conj",
                                              "__c99_complex_float_conj",
                                              "__c99_complex_double_conj",
                                              "__c99_complex_long_double_conj",
@@ -2052,6 +2085,10 @@ Transform the given complex cast expression into a function call
       check_assertion(src_type->variant.float_kind !=
                       dst_type->variant.float_kind);
       switch (src_type->variant.float_kind) {
+        case fk_float16:
+          library_routine_name = /*line -e(545)*/&cast_float16_routine_name;
+          routine_ptr = cast_float16_routine;
+          break;
         case fk_float:
           library_routine_name = /*lint -e(545)*/&cast_float_routine_name;
           routine_ptr = cast_float_routine;
@@ -2437,6 +2474,7 @@ Runtime routines for conversions between floating point and fixed point.  Note
 that there are no conversion routines from __float80 or __float128.
 */
 static a_library_name_array float_fixed_conv_routine_name = {
+                                                         "_Fixed_from_float16",
                                                          "_Fixed_from_float",
                                                          "_Fixed_from_double",
                                                          "_Fixed_from_ldouble",
@@ -2444,6 +2482,7 @@ static a_library_name_array float_fixed_conv_routine_name = {
                                                          NULL};
 static a_routine_ptr float_fixed_conv_routine[(int)fk_first_extended_type];
 static a_library_name_array fixed_float_conv_routine_name = {
+                                                           "_Fixed_to_float16",
                                                            "_Fixed_to_float",
                                                            "_Fixed_to_double",
                                                            "_Fixed_to_ldouble",
@@ -4673,10 +4712,12 @@ void lower_c99_nonreal_float_types(void)
 Replace the imaginary and complex C99 types by their lowered representations.
 */
 {
+  lower_c99_imaginary_type((a_float_kind)fk_float16, "_Imaginary_flat16");
   lower_c99_imaginary_type((a_float_kind)fk_float, "_Imaginary_float");
   lower_c99_imaginary_type((a_float_kind)fk_double, "_Imaginary_double");
   lower_c99_imaginary_type((a_float_kind)fk_long_double,
                            "_Imaginary_long_double");
+  lower_c99_complex_type((a_float_kind)fk_float16, "_Complex_float16");
   lower_c99_complex_type((a_float_kind)fk_float, "_Complex_float");
   lower_c99_complex_type((a_float_kind)fk_double, "_Complex_double");
   lower_c99_complex_type((a_float_kind)fk_long_double, "_Complex_long_double");
@@ -4847,6 +4888,7 @@ Do one-time initialization of variables related to C99 IL lowering.
   if (precompiled_header_processing_required) {
     static a_pch_saved_variable saved_vars[] = {
 #if LOWER_COMPLEX
+      pch_saved_var_array_elem(lowered_complex_float16),
       pch_saved_var_array_elem(lowered_complex_float),
       pch_saved_var_array_elem(lowered_complex_double),
       pch_saved_var_array_elem(lowered_complex_long_double),
@@ -4866,6 +4908,7 @@ Do one-time initialization of variables related to C99 IL lowering.
       pch_array_saved_var_array_elem(ctor_routine),
       pch_array_saved_var_array_elem(itoc_routine),
       pch_array_saved_var_array_elem(ctoi_routine),
+      pch_array_saved_var_array_elem(cast_float16_routine),
       pch_array_saved_var_array_elem(cast_float_routine),
       pch_array_saved_var_array_elem(cast_double_routine),
       pch_array_saved_var_array_elem(cast_long_double_routine),
@@ -4920,6 +4963,7 @@ Do one-time initialization of variables related to C99 IL lowering.
   register_trans_unit_array(ctor_routine);
   register_trans_unit_array(itoc_routine);
   register_trans_unit_array(ctoi_routine);
+  register_trans_unit_array(cast_float16_routine);
   register_trans_unit_array(cast_float_routine);
   register_trans_unit_array(cast_double_routine);
   register_trans_unit_array(cast_long_double_routine);
@@ -4929,6 +4973,7 @@ Do one-time initialization of variables related to C99 IL lowering.
 #if FLOAT128_ENABLING_POSSIBLE
   register_trans_unit_array(cast_float128_routine);
 #endif /* FLOAT128_ENABLING_POSSIBLE */
+  register_trans_unit_variable(lowered_complex_float16),
   register_trans_unit_variable(lowered_complex_float);
   register_trans_unit_variable(lowered_complex_double);
   register_trans_unit_variable(lowered_complex_long_double);
@@ -4991,6 +5036,7 @@ for each translation unit.
       ctor_routine[k] = NULL;
       itoc_routine[k] = NULL;
       ctoi_routine[k] = NULL;
+      cast_float16_routine[k] = NULL;
       cast_float_routine[k] = NULL;
       cast_double_routine[k] = NULL;
       cast_long_double_routine[k] = NULL;
@@ -5002,6 +5048,7 @@ for each translation unit.
 #endif /* FLOAT128_ENABLING_POSSIBLE */
     }  /* for */
   }
+  lowered_complex_float16 = NULL;
   lowered_complex_float = NULL;
   lowered_complex_double = NULL;
   lowered_complex_long_double = NULL;

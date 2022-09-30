@@ -16766,6 +16766,9 @@ accordingly.  Set *err to TRUE if there is an error.
       } else if ((*arg_type)->variant.float_kind == (a_float_kind)fk_float ||
                  new_type   ->variant.float_kind == (a_float_kind)fk_float) {
         fkind = (a_float_kind)fk_float;
+      } else if ((*arg_type)->variant.float_kind == (a_float_kind)fk_float16 ||
+                 new_type   ->variant.float_kind == (a_float_kind)fk_float16) {
+        fkind = (a_float_kind)fk_float16;
       } else {
         fkind = (a_float_kind)fk_last;
         unexpected_condition();

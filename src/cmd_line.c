@@ -5026,6 +5026,9 @@ This function is also called in clang mode.
     if (clang_version < 30900) {
       float128_enabled = FALSE;
     }  /* if */
+    if (clang_version >= 60000) {
+      float16_enabled = TRUE;
+    }  /* if */
     if (clang_version >= 120000) {
       /* As of clang 12.0.0, __VA_OPT__ is supported in both C and C++. */
       va_opt_enabled = TRUE;
@@ -5121,6 +5124,9 @@ This function is also called in clang mode.
     }  /* if */
     if (gnu_version >= 60000) {
       enumerator_attributes_enabled = TRUE;
+    }  /* if */
+    if (gnu_version >= 70000) {
+      float16_enabled = TRUE;
     }  /* if */
     if (gnu_version >= 90000) {
       terse_static_assert_enabled = TRUE;
@@ -5521,6 +5527,9 @@ before this routine is called.
     if (gnu_version >= 60000) {
       /* g++ allows specializations to use inaccessible members. */
       relaxed_specialization_access_checking = TRUE;
+    }  /* if */
+    if (gnu_version >= 120000) {
+      float16_enabled = TRUE;
     }  /* if */
   }  /* if */
   if (!option_kind_used[(int)optk_relaxed_abstract_checking]) {
@@ -7639,6 +7648,11 @@ file.
 #else /* !defined(HOST_FP_VALUE_IS_128BIT) */
   comment_undefined_macro_name(HOST_FP_VALUE_IS_128BIT);
 #endif /* defined(HOST_FP_VALUE_IS_128BIT) */
+#if defined(HOST_HAS_FLOAT16_TYPE)
+  define_numeric_valued_macro(HOST_HAS_FLOAT16_TYPE);
+#else /* !defined(HOST_HAS_FLOAT16_TYPE) */
+  comment_undefined_macro_name(HOST_HAS_FLOAT16_TYPE);
+#endif /* defined(HOST_HAS_FLOAT16_TYPE) */
 #if defined(HOST_TARGET_ENDIAN_MISMATCH_OKAY)
   define_numeric_valued_macro(HOST_TARGET_ENDIAN_MISMATCH_OKAY);
 #else /* !defined(HOST_TARGET_ENDIAN_MISMATCH_OKAY) */
@@ -11927,6 +11941,10 @@ enable_microsoft_mode:
        sequence of tokens as its input). */
     no_token_separators_in_pp_output = pcc_preprocessing_mode;
   }  /* if */
+  if (building_runtime) {
+    /* Enable support for _Float16. */
+    float16_enabled = TRUE;
+  }  /* if */
 #if FLOAT80_ENABLING_POSSIBLE
   if (building_runtime) {
     /* Make sure __float80 is enabled if the front end supports it and we're
@@ -12732,6 +12750,7 @@ variables declared in cmd_line.h.
 #if INT128_EXTENSIONS_ALLOWED
   int128_extensions_enabled = FALSE;
 #endif /* INT128_EXTENSIONS_ALLOWED */
+  float16_enabled = FALSE;
   float80_enabled = FLOAT80_ENABLING_POSSIBLE;
   float128_enabled = FLOAT128_ENABLING_POSSIBLE;
   hex_floating_point_constants_allowed = FALSE;

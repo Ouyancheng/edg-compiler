@@ -5605,7 +5605,7 @@ described by arguments.
 #endif /* C99_IL_EXTENSIONS_SUPPORTED && !LOWER_COMPLEX */
                                                                ) {
         a_float_kind fkind = arg_type->variant.float_kind;
-        if (fkind == (a_float_kind)fk_float) {
+        if (fkind == fk_float16 || fkind == fk_float) {
           internal_error("dump_call: unwidened float argument");
         }  /* if */
       }  /* if */

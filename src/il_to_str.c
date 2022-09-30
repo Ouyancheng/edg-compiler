@@ -1354,6 +1354,7 @@ with "**BAD" for a bad float kind.
   a_const_char *p;
 
   switch (kind) {
+    case fk_float16:      p = "_Float16";           break;
     case fk_float:        p = "float";              break;
     case fk_double:       p = "double";             break;
     case fk_long_double:  p = "long double";        break;
@@ -5250,7 +5251,9 @@ it represents a backing expression for the floating-point constant value.
 
   if (!octl->gen_pcc_code) {
     /* Determine the suffix. */
-    if (fkind == (a_float_kind)fk_float) {
+    if (fkind == (a_float_kind)fk_float16) {
+      suffix = "F16";
+    } else if (fkind == (a_float_kind)fk_float) {
       suffix = "F";
 #if (BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE) && \
     BUILTIN_FUNCTIONS_ENABLED

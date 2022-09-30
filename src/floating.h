@@ -547,6 +547,10 @@ External conversion functions.
 */
 
 extern void floating_one_time_init(void);
+
+extern an_fp_return_type write_float16(char          *tgt,
+                                       int           size,
+                                       unsigned char *val);
 extern an_fp_return_type write_float(char          *tgt,
                                      int           size,
                                      unsigned char *val);
@@ -587,6 +591,9 @@ extern an_fp_return_type write_float128_n(char          *tgt,
                                           int           ndigits);
 #endif /* FLOAT128_ENABLING_POSSIBLE */
 
+extern an_fp_return_type read_float16(unsigned char *val,
+                                      a_const_char  *str,
+                                      int           len);
 extern an_fp_return_type read_float(unsigned char *val,
                                     a_const_char  *str,
                                     int           len);
@@ -608,6 +615,7 @@ extern an_fp_return_type read_float128(unsigned char *val,
 #endif /* FLOAT128_ENABLING_POSSIBLE */
 
 #if DEBUG
+extern void db_binary_float16(unsigned char *val);
 extern void db_binary_float(unsigned char *val);
 extern void db_binary_double(unsigned char *val);
 extern void db_binary_long_double(unsigned char *val);

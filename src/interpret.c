@@ -19306,7 +19306,7 @@ that are needed for the operation of the interpreter.
     a_boolean    dummy;
     set_integer_value(&zero_int, (a_host_large_integer)0);
     set_integer_value(&one_int, (a_host_large_integer)1);
-    for (fk = fk_float; fk < fk_last; ++fk) {
+    for (fk = fk_float16; fk < fk_last; ++fk) {
       fp_host_large_integer_to_float((a_float_kind)fk, (a_host_large_integer)0,
                                      &zero_flt[fk], &dummy);
       fp_host_large_integer_to_float((a_float_kind)fk, (a_host_large_integer)1,

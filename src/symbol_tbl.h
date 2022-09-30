@@ -5422,7 +5422,7 @@ arrays.
 #define integer_kind_to_cli_symbol_kind(ik)                           \
   ((a_cli_symbol_kind)((int)csk_first_integer + (int)(ik)))
 #define float_kind_to_cli_symbol_kind(fk)                             \
-  ((a_cli_symbol_kind)((int)csk_first_float + (int)(fk)))
+  ((a_cli_symbol_kind)((int)csk_first_float + (int)(fk) - (int)fk_float))
 
 /*
 Macros to return a cli_symbols entry given one of

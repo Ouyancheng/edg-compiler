@@ -12,13 +12,13 @@
 float_type.h -- Definitions related to a specific floating-point type.
 
 This header file, when included from a .c file, defines routines that are
-specific to one of five floating-point types: float, double, long double,
-__float80, or __float128 depending which of FPT_FLOAT, FPT_DOUBLE,
-FPT_LONG_DOUBLE, FPT_FLOAT80, or FPT_FLOAT128 are defined respectively.  To
-define routines for all five floating-point types, this file must be included
-five times, once for each type.
+specific to one of six floating-point types: _Float16, float, double, long
+double, __float80, or __float128 depending which of FPT_FLOAT16, FPT_FLOAT,
+FPT_DOUBLE, FPT_LONG_DOUBLE, FPT_FLOAT80, or FPT_FLOAT128 are defined
+respectively.  To define routines for all six floating-point types, this
+file must be included six times, once for each type.
 
-Aside from the main configuration macros (FPT_FLOAT, FPT_DOUBLE,
+Aside from the main configuration macros (FPT_FLOAT16, FPT_FLOAT, FPT_DOUBLE,
 FPT_LONG_DOUBLE), the following configuration macros can be defined to
 modify the default behavior:
 
@@ -50,13 +50,39 @@ macros accordingly:
 /* Conditionally open the "edg" namespace. */
 BEGIN_EDG_NAMESPACE
 
+#if defined(FPT_FLOAT16) || defined(FPT_FLOAT) || defined(FPT_DOUBLE) || \
+    defined(FPT_LONG_DOUBLE) || defined(FPT_FLOAT80) || defined(FPT_FLOAT128)
+
+#if defined(FPT_FLOAT16)
 #if defined(FPT_FLOAT) || defined(FPT_DOUBLE) || defined(FPT_LONG_DOUBLE) || \
     defined(FPT_FLOAT80) || defined(FPT_FLOAT128)
-#if defined(FPT_FLOAT)
-#if defined(FPT_DOUBLE) || defined(FPT_LONG_DOUBLE) || defined(FPT_FLOAT80) ||\
-    defined(FPT_FLOAT128)
 #error Cannot specify more than a single FPT_* macro in float_type.h
-#else /* !(defined(FPT_DOUBLE) || defined(FPT_LONG_DOUBLE)) */
+#else /* !(defined(FPT_FLOAT) || defined(FPT_DOUBLE) || ...) */
+#define FPT_TYPE EDG_float16_t
+#define FPT_NAME float16
+#if HOST_HAS_FLOAT16_TYPE
+/* _Float16 representation will be host _Float16. */
+#define FPT_VALUE_BITS 16
+#define FPT_PRECISION 11
+#define FPT_HAS_HIDDEN 1
+#else /* !HOST_HAS_FLOAT16_TYPE */
+/* _Float16 representation will be host "float". */
+#define FPT_VALUE_BITS FPT_FLOAT_VALUE_BITS
+#ifdef FPT_FLOAT_PRECISION
+#define FPT_PRECISION FPT_FLOAT_PRECISION
+#endif /* FPT_FLOAT_PRECISION */
+#ifdef FPT_FLOAT_HAS_HIDDEN
+#define FPT_HAS_HIDDEN FPT_FLOAT_HAS_HIDDEN
+#endif /* FPT_FLOAT_HAS_HIDDEN */
+#endif /* HOST_HAS_FLOAT16_TYPE */
+#endif /* defined(FPT_FLOAT) || defined(FPT_DOUBLE) || ... */
+#endif /* defined(FPT_FLOAT16) */
+
+#if defined(FPT_FLOAT)
+#if defined(FPT_FLOAT16) || defined(FPT_DOUBLE) || defined(FPT_LONG_DOUBLE) \
+    || defined(FPT_FLOAT80) || defined(FPT_FLOAT128)
+#error Cannot specify more than a single FPT_* macro in float_type.h
+#else /* !(defined(FPT_FLOAT16) || defined(FPT_DOUBLE) || ...) */
 #define FPT_TYPE float
 #define FPT_NAME float
 #define FPT_VALUE_BITS FPT_FLOAT_VALUE_BITS
@@ -66,14 +92,14 @@ BEGIN_EDG_NAMESPACE
 #ifdef FPT_FLOAT_HAS_HIDDEN
 #define FPT_HAS_HIDDEN FPT_FLOAT_HAS_HIDDEN
 #endif /* FPT_FLOAT_HAS_HIDDEN */
-#endif /* defined(FPT_DOUBLE) || defined(FPT_LONG_DOUBLE) */
+#endif /* defined(FPT_FLOAT16) || defined(FPT_DOUBLE) || ... */
 #endif /* defined(FPT_FLOAT) */
 
 #if defined(FPT_DOUBLE)
-#if defined(FPT_FLOAT) || defined(FPT_LONG_DOUBLE) || defined(FPT_FLOAT80) || \
-    defined(FPT_FLOAT128)
+#if defined(FPT_FLOAT16) || defined(FPT_FLOAT) || defined(FPT_LONG_DOUBLE) || \
+    defined(FPT_FLOAT80) || defined(FPT_FLOAT128)
 #error Cannot specify more than a single FPT_* macro in float_type.h
-#else /* !(defined(FPT_FLOAT) || defined(FPT_LONG_DOUBLE)) */
+#else /* !(defined(FPT_FLOAT16) || defined(FPT_float) || ...) */
 #define FPT_TYPE double
 #define FPT_NAME double
 #define FPT_VALUE_BITS FPT_DOUBLE_VALUE_BITS
@@ -83,14 +109,14 @@ BEGIN_EDG_NAMESPACE
 #ifdef FPT_DOUBLE_HAS_HIDDEN
 #define FPT_HAS_HIDDEN FPT_DOUBLE_HAS_HIDDEN
 #endif /* FPT_DOUBLE_HAS_HIDDEN */
-#endif /* defined(FPT_FLOAT) || defined(FPT_LONG_DOUBLE) */
+#endif /* defined(FPT_FLOAT16) || defined(FPT_FLOAT) || ... */
 #endif /* defined(FPT_DOUBLE) */
 
 #if defined(FPT_LONG_DOUBLE)
-#if defined(FPT_FLOAT) || defined(FPT_DOUBLE) || defined(FPT_FLOAT80) || \
-    defined(FPT_FLOAT128)
+#if defined(FPT_FLOAT16) || defined(FPT_FLOAT) || defined(FPT_DOUBLE) || \
+    defined(FPT_FLOAT80) || defined(FPT_FLOAT128)
 #error Cannot specify more than a single FPT_* macro in float_type.h
-#else /* !(defined(FPT_FLOAT) || defined(FPT_DOUBLE)) */
+#else /* !(defined(FPT_FLOAT16) || defined(FPT_FLOAT) || ...) */
 #define FPT_TYPE        long double
 #define FPT_NAME        long_double
 #define FPT_VALUE_BITS  FPT_LONG_DOUBLE_VALUE_BITS
@@ -100,14 +126,14 @@ BEGIN_EDG_NAMESPACE
 #ifdef FPT_LONG_DOUBLE_HAS_HIDDEN
 #define FPT_HAS_HIDDEN FPT_LONG_DOUBLE_HAS_HIDDEN
 #endif /* FPT_LONG_DOUBLE_HAS_HIDDEN */
-#endif /* defined(FPT_FLOAT) || defined(FPT_DOUBLE) */
+#endif /* defined(FPT_FLOAT16) || defined(FPT_FLOAT) || ... */
 #endif /* defined(FPT_LONG_DOUBLE) */
 
 #if defined(FPT_FLOAT80)
-#if defined(FPT_FLOAT) || defined(FPT_DOUBLE) || defined(FPT_LONG_DOUBLE) || \
-    defined(FPT_FLOAT128)
+#if defined(FPT_FLOAT16) || defined(FPT_FLOAT) || defined(FPT_DOUBLE) || \
+    defined(FPT_LONG_DOUBLE) || defined(FPT_FLOAT128)
 #error Cannot specify more than a single FPT_* macro in float_type.h
-#else /* !(defined(FPT_FLOAT) || defined(FPT_DOUBLE)) */
+#else /* !(defined(FPT_FLOAT16) || defined(FPT_FLOAT) || ...) */
 #define FPT_TYPE        __float80
 #define FPT_NAME        float80
 #define FPT_VALUE_BITS  FPT_FLOAT80_VALUE_BITS
@@ -117,14 +143,14 @@ BEGIN_EDG_NAMESPACE
 #ifdef FPT_FLOAT80_HAS_HIDDEN
 #define FPT_HAS_HIDDEN FPT_FLOAT80_HAS_HIDDEN
 #endif /* FPT_FLOAT80_HAS_HIDDEN */
-#endif /* defined(FPT_FLOAT) || defined(FPT_DOUBLE) */
+#endif /* defined(FPT_FLOAT16) || defined(FPT_FLOAT) || ... */
 #endif /* defined(FPT_FLOAT80) */
 
 #if defined(FPT_FLOAT128)
-#if defined(FPT_FLOAT) || defined(FPT_DOUBLE) || defined(FPT_LONG_DOUBLE) || \
-    defined(FPT_FLOAT80)
+#if defined(FPT_FLOAT16) || defined(FPT_FLOAT) || defined(FPT_DOUBLE) || \
+    defined(FPT_LONG_DOUBLE) || defined(FPT_FLOAT80)
 #error Cannot specify more than a single FPT_* macro in float_type.h
-#else /* !(defined(FPT_FLOAT) || defined(FPT_DOUBLE)) */
+#else /* !(defined(FPT_FLOAT15) || defined(FPT_FLOAT) || ...) */
 #define FPT_TYPE        __float128
 #define FPT_NAME        float128
 #define FPT_VALUE_BITS  FPT_FLOAT128_VALUE_BITS
@@ -134,13 +160,13 @@ BEGIN_EDG_NAMESPACE
 #ifdef FPT_FLOAT128_HAS_HIDDEN
 #define FPT_HAS_HIDDEN FPT_FLOAT128_HAS_HIDDEN
 #endif /* FPT_FLOAT128_HAS_HIDDEN */
-#endif /* defined(FPT_FLOAT) || defined(FPT_DOUBLE) */
+#endif /* defined(FPT_FLOAT16) || defined(FPT_FLOAT || ... */
 #endif /* defined(FPT_FLOAT128) */
 
-#else /* !(defined(FPT_FLOAT) || defined(FPT_DOUBLE) || defined(FPT_LONG_... */
-#error Must define exactly one of FPT_FLOAT, FPT_DOUBLE, FPT_LONG_DOUBLE, or \
-       FPT_FLOAT80, or FPT_FLOAT128.
-#endif /* defined(FPT_FLOAT) || defined(FPT_DOUBLE) || defined(FPT_LONG...) */
+#else /* !(defined(FPT_FLOAT16) || defined(FPT_FLOAT) || ...) */
+#error Must define exactly one of FPT_FLOAT16, FPT_FLOAT, FPT_DOUBLE, \
+       FPT_LONG_DOUBLE, or FPT_FLOAT80, or FPT_FLOAT128.
+#endif /* defined(FPT_FLOAT16) || defined(FPT_float) || ... */
 
 /*
 Definitions of derived properties for floating-point types.
@@ -214,10 +240,43 @@ Miscellaneous macros for dealing with bits/bytes of a floating-point type.
                               /*lint --e(506,835)*/ \
                               (FRAC_BITS % BYTE_SIZE ? 0 : 1))
 #define EXP_LAST_BYTE       (BYTE_COUNT(FPT_VALUE_BITS) - 1)
-#define EXP_FIRST_BITS      (/*lint --e(506)*/FRAC_LAST_BITS == BYTE_SIZE ? \
-                                                  BYTE_SIZE : \
-                                                  (BYTE_SIZE - FRAC_LAST_BITS))
-#define EXP_FIRST_SHIFT     (BYTE_SIZE - EXP_FIRST_BITS)
+#define EXP_SINGLE_BYTE     (EXP_FIRST_BYTE == EXP_LAST_BYTE)
+
+/*
+The EXP_FIRST_* and EXP_LAST_* macros allow access to the bits of the
+exponent; EXP_FIRST_* deals with the byte containing the least-significant
+bits of the exponent, while EXP_LAST* applies to the byte containing the
+most-significant bits.  For example, the two most-significant bytes of a
+64-bit floating point number are:
+
+    seeeeeee eeeemmm
+
+where "s" is the sign bit, "e" are exponent bits, and "m" are mantissa bits.
+For this case, EXP_FIRST_BITS will be 4, reflecting the four least-significant
+bits of the exponent; EXP_FIRST_SHIFT will be 4, reflecting the number of
+mantissa bits that are not part of the exponent; and EXP_FIRST_MASK will be
+0xf0, to isolate the exponent bits. EXP_LAST_BITS will be 7, reflecting the
+seven most-significant bits of the exponent, and EXP_LAST_MASK will be 0x7f
+to mask off the sign bit.
+
+When the exponent fits into a single byte, that byte includes the sign bit
+as the most significant.  For example, the most-significant byte of the
+_Float16 format is:
+
+    seeeeemm
+
+This layout is accommodated by the subtraction of EXP_SINGLE_BYTE in the
+calculation of the number of bits and shift count for the first byte,
+giving 5 instead of 6 exponent bits and a shift count of 2 instead of 3,
+with a mask of 0x7c.  Also, in this case, the functions for accessing the
+biased exponent will use only the first shift and mask; the values for the
+last bit count and mask will not be used, so their values are irrelevant.
+*/
+#define EXP_FIRST_BITS      ((/*lint --e(506)*/FRAC_LAST_BITS == BYTE_SIZE ? \
+                                              BYTE_SIZE : \
+                                              (BYTE_SIZE - FRAC_LAST_BITS)) - \
+                                              EXP_SINGLE_BYTE)
+#define EXP_FIRST_SHIFT     (BYTE_SIZE - EXP_FIRST_BITS - EXP_SINGLE_BYTE)
 #define EXP_FIRST_MASK      (MASK_BITS(EXP_FIRST_BITS) << EXP_FIRST_SHIFT)
 #define EXP_LAST_BITS       LAST_BITS(EXP_BITS - EXP_FIRST_BITS)
 #define EXP_LAST_MASK       MASK_BITS(EXP_LAST_BITS)
@@ -356,7 +415,7 @@ Set the biased exponent in *tgt to the value of biased_exponent.
   tgt[BYTE_INDEX(i)] &= ~EXP_FIRST_MASK;
   tgt[BYTE_INDEX(i)] |= (biased_exponent << EXP_FIRST_SHIFT) & EXP_FIRST_MASK;
   biased_exponent >>= EXP_FIRST_BITS;
-#if EXP_LAST_BYTE != EXP_FIRST_BYTE
+#if !EXP_SINGLE_BYTE
   ++i;
   for ( ; i < EXP_LAST_BYTE; ++i) { /*lint !e681*/
     tgt[BYTE_INDEX(i)] = biased_exponent & BYTE_MASK;
@@ -409,17 +468,18 @@ Return the biased exponent of val.
 */
 {
   int i = EXP_LAST_BYTE;
-  int biased_exponent = val[BYTE_INDEX(i)] & EXP_LAST_MASK;
+  int biased_exponent = 0;
 
-#if EXP_LAST_BYTE != EXP_FIRST_BYTE
+#if !EXP_SINGLE_BYTE
+  biased_exponent = val[BYTE_INDEX(i)] & EXP_LAST_MASK;
   --i;
   for ( ; i > EXP_FIRST_BYTE; --i) { /*lint !e681*/
     biased_exponent <<= BYTE_SIZE;
     biased_exponent += val[BYTE_INDEX(i)];
   }  /* for */
   biased_exponent <<= EXP_FIRST_BITS;
+#endif /* !EXP_SINGLE_BYTE */
   biased_exponent |= (val[BYTE_INDEX(i)] & EXP_FIRST_MASK) >> EXP_FIRST_SHIFT;
-#endif /* EXP_LAST_BYTE != EXP_FIRST_BYTE */
   return biased_exponent;
 }  /* GET_BIASED_EXPONENT */
 

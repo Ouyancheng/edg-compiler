@@ -74,6 +74,7 @@ BEGIN_EDG_NAMESPACE
 #define MANGLING_STRING_FOR_INT128 "n"
 #define MANGLING_STRING_FOR_UNSIGNED_INT128 "o"
 #endif /* INT128_EXTENSIONS_ALLOWED */
+#define MANGLING_STRING_FOR_FLOAT16 "DF16_"
 #define MANGLING_STRING_FOR_FLOAT "f"
 #define MANGLING_STRING_FOR_DOUBLE "d"
 #define MANGLING_STRING_FOR_LONG_DOUBLE "e"
@@ -90,6 +91,7 @@ FIXME: This strategy doesn't fully work because of IA-64 substitutions.
 #define MANGLING_STRING_FOR_STD_FLOAT64 "St7float64"
 #define MANGLING_STRING_FOR_STD_FLOAT128 "St8float128"
 #if C99_IL_EXTENSIONS_SUPPORTED
+#define MANGLING_STRING_FOR_COMPLEX_FLOAT16 "CDF16_"
 #define MANGLING_STRING_FOR_COMPLEX_FLOAT "Cf"
 #define MANGLING_STRING_FOR_COMPLEX_DOUBLE "Cd"
 #define MANGLING_STRING_FOR_COMPLEX_LONG_DOUBLE "Ce"
@@ -331,6 +333,7 @@ Z = template parameter (demangle_type_name)
 #define MANGLING_STRING_FOR_INT128 "m16"
 #define MANGLING_STRING_FOR_UNSIGNED_INT128 "Um16"
 #endif /* INT128_EXTENSIONS_ALLOWED */
+#define MANGLING_STRING_FOR_FLOAT16 "mf2"
 #define MANGLING_STRING_FOR_FLOAT "f"
 #define MANGLING_STRING_FOR_DOUBLE "d"
 #define MANGLING_STRING_FOR_LONG_DOUBLE "r"
@@ -345,6 +348,7 @@ type in the std namespace.
 #define MANGLING_STRING_FOR_STD_FLOAT32 "Q2_3std7float32"
 #define MANGLING_STRING_FOR_STD_FLOAT64 "Q2_3std7float64"
 #define MANGLING_STRING_FOR_STD_FLOAT128 "Q2_3std8float128"
+#define MANGLING_STRING_FOR_COMPLEX_FLOAT16 "xmf2"
 #define MANGLING_STRING_FOR_COMPLEX_FLOAT "xf"
 #define MANGLING_STRING_FOR_COMPLEX_DOUBLE "xd"
 #define MANGLING_STRING_FOR_COMPLEX_LONG_DOUBLE "xr"
@@ -10275,6 +10279,9 @@ top_of_loop:
 #endif /* FIXED_POINT_ALLOWED */
       case tk_float:
         switch (type->variant.float_kind) {
+          case fk_float16:
+            s = MANGLING_STRING_FOR_FLOAT16;
+            break;
           case fk_float:
             s = MANGLING_STRING_FOR_FLOAT;
             break;
@@ -10313,6 +10320,9 @@ top_of_loop:
 #if C99_IL_EXTENSIONS_SUPPORTED
       case tk_complex:
         switch (type->variant.float_kind) {
+          case fk_float16:
+            s = MANGLING_STRING_FOR_COMPLEX_FLOAT16;
+            break;
           case fk_float:
             s = MANGLING_STRING_FOR_COMPLEX_FLOAT;
             break;

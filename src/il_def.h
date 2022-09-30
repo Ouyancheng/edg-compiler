@@ -5301,8 +5301,9 @@ typedef struct a_fixed_point_type_descr {
 #endif /* FIXED_POINT_ALLOWED */
 
 enum a_float_kind : a_byte {
-  /* Enumeration of the possible float kinds.  The first three designate
-     distinct standard types (that may or may not share a target
+  /* Enumeration of the possible float kinds.  The first enumerator is for
+     the _Float16 type available in many language dialects.  The next three
+     designate distinct standard types (that may or may not share a target
      representation).  Some platforms support __float80 and __float128
      typedefs to designate floating point types.  If those types are
      distinct from the standard types, they are represented using
@@ -5316,6 +5317,7 @@ enum a_float_kind : a_byte {
      expr_init() with the new values for the size, mantissa bits, and
      min/max exponent arrays in exprutil.c.
 */
+  fk_float16,
   fk_float,
   fk_double,
   fk_long_double,

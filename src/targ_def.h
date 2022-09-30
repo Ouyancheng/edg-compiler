@@ -2442,6 +2442,25 @@ the global variables float_kind_for_float80 and float_kind_for_float128.
 
 
 /*
+In a configuration that uses the SoftFloat package, _Float16 values will be
+represented internally using the SoftFloat float16_t type.  Otherwise, if
+the host compiler supports the _Float16 type, that type will be used for
+the internal representation of _Float16 values.  If neither SoftFloat nor
+the _Float16 type is available, _Float16 values will be represented
+internally using the host "float" type.
+*/
+#ifndef HOST_HAS_FLOAT16_TYPE
+#if defined(__FLT16_MANT_DIG__)
+/* Both gcc and clang define this macro if _Float16 is available and not
+   otherwise. */
+#define HOST_HAS_FLOAT16_TYPE TRUE
+#else /* !defined(__FLT16_MANT_DIG__) */
+#define HOST_HAS_FLOAT16_TYPE FALSE
+#endif /* defined(__FLT16_MANT_DIG__) */
+#endif /* ifndef HOST_HAS_FLOAT16_TYPE */
+
+
+/*
 Type used to represent float quantities internally:
 
 (This should not be an array, so that it's always known whether one gets the

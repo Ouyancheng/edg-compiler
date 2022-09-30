@@ -11219,18 +11219,23 @@ end_float_accum:
       possible_start_of_ud_suffix = curr_char_loc;
     }  /* if */
     curr_char_loc++;
-    if (extended_float_types) {
+    if (extended_float_types || (float16_enabled &&
+                                 !gpp_version_is(any_version))) {
       a_const_char *p = curr_char_loc;
-      if (((ch == 'b' && *p == 'f') || (ch == 'B' && *p== 'F')) &&
+      if (extended_float_types &&
+          ((ch == 'b' && *p == 'f') || (ch == 'B' && *p== 'F')) &&
           p[1] == '1' && p[2] == '6') {
         /* bf16 */
         curr_char_loc += 3;
       } else if (ch == 'f' || ch == 'F') {
-        if ((*p == '1' && p[1] == '6') || (*p == '3' && p[1] == '2') ||
-            (*p == '6' && p[1] == '4')) {
+        if ((*p == '1' && p[1] == '6') ||
+            (extended_float_types &&
+             ((*p == '3' && p[1] == '2') ||
+              (*p == '6' && p[1] == '4')))) {
           /* f16, f32, or f64 */
           curr_char_loc += 2;
-        } else if (*p == '1' && p[1] == '2' && p[2] == '8') {
+        } else if (extended_float_types &&
+                   *p == '1' && p[1] == '2' && p[2] == '8') {
           curr_char_loc += 3;
         }  /* if */
       }  /* if */

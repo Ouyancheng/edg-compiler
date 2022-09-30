@@ -5066,6 +5066,9 @@ set, leave it alone.  Also compute and set the alignment requirement.
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
         size = flt_type_size[(int)type_ptr->variant.float_kind];
         switch (type_ptr->variant.float_kind) {
+          case fk_float16:
+            alignment = 2;
+            break;
           case fk_float:
             alignment = targ_alignof_float;
             break;

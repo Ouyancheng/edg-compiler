@@ -1,5 +1,12 @@
 Version 6.3, December 13, 2021
 
+9/30/22  [EDGcpfe/20094,EDGcpfe/20264,EDGcpfe/25494]
+GNU/Clang compatibility: _Float16
+
+Support has been added in c99_complex.c for operations involving the
+_Complex _Float16 data type.
+
+
 11/4/21 [EDGcpfe/24816]
 Incomplete signature for std::terminate
 

@@ -9196,7 +9196,8 @@ Many of these symbols will be accessible through the cli_symbols array.
   /*lint -e{506,1564}*/
   if ((int)csk_last_integer - (int)csk_first_integer !=
                                                  (int)ik_unsigned_long_long ||
-      (int)csk_last_float - (int)csk_first_float != (int)fk_long_double) {
+      (int)csk_last_float - (int)csk_first_float !=
+                                         (int)fk_long_double - (int)fk_float) {
     internal_error(
          "init_cli_symbols: incorrect a_cli_symbol_kind");
   }  /* if */

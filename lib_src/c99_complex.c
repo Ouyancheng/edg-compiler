@@ -48,6 +48,12 @@ typedef struct _Complex_long_double {
   long double _Vals[2];
 } _Complex_long_double;
 
+
+typedef struct _Complex_float16 {
+  /* Lowered representation of the C99 type with two _Float16 entities. */
+  _Float16 _Vals[2];
+} _Complex_float16;
+
 #if __EDG_FLOAT80_ENABLING_POSSIBLE
 typedef struct _Complex_float80 {
   /* Lowered representation of the C99 type with two __float80 entities. */
@@ -205,6 +211,36 @@ EXTERN_C ret name(param1 z)                                                   \
   return z._Vals[0];                                                          \
 }  /* CTOR */
 
+/* 16-bit (_Float16) complex routines. */
+NEGATE  (__c99_complex_float16_negate, _Complex_float16, _Complex_float16)
+CONJ    (__c99_complex_float16_conj, _Complex_float16, _Complex_float16)
+ADD     (__c99_complex_float16_add, _Complex_float16, _Complex_float16,
+                                    _Complex_float16)
+SUBTRACT(__c99_complex_float16_subtract, _Complex_float16, _Complex_float16,
+                                         _Complex_float16)
+MULTIPLY(__c99_complex_float16_multiply, _Complex_float16, _Complex_float16,
+                                         _Complex_float16)
+DIVIDE  (__c99_complex_float16_divide, _Complex_float16, _Complex_float16,
+                                       _Complex_float16, _Float16)
+EQ      (__c99_complex_float16_eq, int, _Complex_float16, _Complex_float16)
+NE      (__c99_complex_float16_ne, int, _Complex_float16, _Complex_float16)
+ITOC    (__c99_ifloat16_to_cfloat16, _Complex_float16, _Float16)
+RTOC    (__c99_float16_to_cfloat16, _Complex_float16, _Float16)
+CTOI    (__c99_cfloat16_to_ifloat16, _Float16, _Complex_float16)
+CTOR    (__c99_cfloat16_to_float16, _Float16, _Complex_float16)
+CAST    (__c99_cfloat16_to_cfloat, _Complex_float, _Complex_float16, float)
+CAST    (__c99_cfloat16_to_cdouble, _Complex_double, _Complex_float16, double)
+CAST    (__c99_cfloat16_to_clong_double, _Complex_long_double,
+                                         _Complex_float16, long double)
+#if __EDG_FLOAT80_ENABLING_POSSIBLE
+CAST    (__c99_cfloat16_to_cfloat80, _Complex_float80, _Complex_float16,
+                                     __float80)
+#endif /* __EDG_FLOAT80_ENABLING_POSSIBLE */
+#if __EDG_FLOAT128_ENABLING_POSSIBLE
+CAST    (__c99_cfloat16_to_cfloat128, _Complex_float128, _Complex_float16,
+                                      __float128)
+#endif /* __EDG_FLOAT128_ENABLING_POSSIBLE */
+
 /* Single precision (float) complex routines. */
 NEGATE  (__c99_complex_float_negate, _Complex_float, _Complex_float)
 CONJ    (__c99_complex_float_conj, _Complex_float, _Complex_float)
@@ -222,6 +258,7 @@ ITOC    (__c99_ifloat_to_cfloat, _Complex_float, float)
 RTOC    (__c99_float_to_cfloat, _Complex_float, float)
 CTOI    (__c99_cfloat_to_ifloat, float, _Complex_float)
 CTOR    (__c99_cfloat_to_float, float, _Complex_float)
+CAST    (__c99_cfloat_to_cfloat16, _Complex_float16, _Complex_float, _Float16)
 CAST    (__c99_cfloat_to_cdouble, _Complex_double, _Complex_float, double)
 CAST    (__c99_cfloat_to_clong_double, _Complex_long_double, _Complex_float,
                                        long double)
@@ -250,6 +287,8 @@ ITOC    (__c99_idouble_to_cdouble, _Complex_double, double)
 RTOC    (__c99_double_to_cdouble, _Complex_double, double)
 CTOI    (__c99_cdouble_to_idouble, double, _Complex_double)
 CTOR    (__c99_cdouble_to_double, double, _Complex_double)
+CAST    (__c99_cdouble_to_cfloat16, _Complex_float16, _Complex_double,
+                                    _Float16)
 CAST    (__c99_cdouble_to_cfloat, _Complex_float, _Complex_double, float)
 CAST    (__c99_cdouble_to_clong_double, _Complex_long_double, _Complex_double,
                                         long double)
@@ -287,6 +326,8 @@ ITOC    (__c99_ilong_double_to_clong_double, _Complex_long_double, long double)
 RTOC    (__c99_long_double_to_clong_double, _Complex_long_double, long double)
 CTOI    (__c99_clong_double_to_ilong_double, long double, _Complex_long_double)
 CTOR    (__c99_clong_double_to_long_double, long double, _Complex_long_double)
+CAST    (__c99_clong_double_to_cfloat16, _Complex_float16,
+                                         _Complex_long_double, _Float16)
 CAST    (__c99_clong_double_to_cfloat, _Complex_float, _Complex_long_double,
                                        float)
 CAST    (__c99_clong_double_to_cdouble, _Complex_double, _Complex_long_double,
@@ -318,6 +359,8 @@ ITOC    (__c99_ifloat80_to_cfloat80, _Complex_float80, __float80)
 RTOC    (__c99_float80_to_cfloat80, _Complex_float80, __float80)
 CTOI    (__c99_cfloat80_to_ifloat80, __float80, _Complex_float80)
 CTOR    (__c99_cfloat80_to_float80, __float80, _Complex_float80)
+CAST    (__c99_cfloat80_to_cfloat16, _Complex_float16, _Complex_float80,
+                                     _Float16)
 CAST    (__c99_cfloat80_to_cfloat, _Complex_float, _Complex_float80, float)
 CAST    (__c99_cfloat80_to_cdouble, _Complex_double, _Complex_float80, double)
 CAST    (__c99_cfloat80_to_clong_double, _Complex_long_double,
@@ -346,6 +389,8 @@ ITOC    (__c99_ifloat128_to_cfloat128, _Complex_float128, __float128)
 RTOC    (__c99_float128_to_cfloat128, _Complex_float128, __float128)
 CTOI    (__c99_cfloat128_to_ifloat128, __float128, _Complex_float128)
 CTOR    (__c99_cfloat128_to_float128, __float128, _Complex_float128)
+CAST    (__c99_cfloat128_to_cfloat16, _Complex_float16, _Complex_float128,
+                                      _Float16)
 CAST    (__c99_cfloat128_to_cfloat, _Complex_float, _Complex_float128, float)
 CAST    (__c99_cfloat128_to_cdouble, _Complex_double, _Complex_float128,
                                      double)

@@ -1,5 +1,25 @@
 Version 6.4
 
+9/30/22  [EDGcpfe/20094,EDGcpfe/20264,EDGcpfe/25494]
+GNU/Clang compatibility: _Float16
+
+Beginning with version 7.1 for C and 12.1 for C++, gcc has supported on at
+least some platforms the _Float16 keyword to designate the IEEE 16-bit
+floating point type.  Clang has had support for _Float16 in both C and C++
+since version 6.0.  The front end now supports this data type in the
+corresponding emulation modes.  If the front end is built with
+USE_SOFTFLOAT set to TRUE, the internal representation of _Float16 values
+will be the SoftFloat float16_t type.  In non-SoftFloat versions, the front
+end will use the host compiler's _Float16 data type if
+HOST_HAS_FLOAT16_TYPE is TRUE (which is set automatically if the build
+compiler defines __FLT16_MANT_DIG__, as both gcc and clang do when they
+support the type).  Otherwise, the internal representation of _Float16
+values will use the host "float" type.  For example, with
+--gnu_version=120100:
+
+  _Float16 x =1.0f16;   // Now accepted in some emulation modes
+
+
 9/27/22  [EDGcpfe/25631]
 GNU/Clang C compatibility: Unnamed parameters
 

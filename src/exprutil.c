@@ -26316,6 +26316,7 @@ for each compilation.
   constraint_subst_cache = alloc_fe_of_type(a_constraint_subst_cache);
   construct(constraint_subst_cache, /*mask_width=*/10);
   /* Initialize floating point data. */
+  num_mantissa_bits[(int)fk_float16]      = 11;
   num_mantissa_bits[(int)fk_float]        = targ_flt_mant_dig;
   num_mantissa_bits[(int)fk_double]       = targ_dbl_mant_dig;
   num_mantissa_bits[(int)fk_long_double]  = targ_ldbl_mant_dig;
@@ -26327,6 +26328,7 @@ for each compilation.
   num_mantissa_bits[(int)fk_std_float64]  = 53;
   num_mantissa_bits[(int)fk_std_float128] = 113;
   num_mantissa_bits[(int)fk_last]         = 0;
+  flt_type_size[(int)fk_float16]      = 2;
   flt_type_size[(int)fk_float]        = targ_sizeof_float;
   flt_type_size[(int)fk_double]       = targ_sizeof_double;
   flt_type_size[(int)fk_long_double]  = targ_sizeof_long_double;
@@ -26338,6 +26340,7 @@ for each compilation.
   flt_type_size[(int)fk_std_float64]  = 8;
   flt_type_size[(int)fk_std_float128] = 16;
   flt_type_size[(int)fk_last]         = 0;
+  min_exponent[(int)fk_float16]      = -13;
   min_exponent[(int)fk_float]        = targ_flt_min_exp;
   min_exponent[(int)fk_double]       = targ_dbl_min_exp;
   min_exponent[(int)fk_long_double]  = targ_ldbl_min_exp;
@@ -26349,6 +26352,7 @@ for each compilation.
   min_exponent[(int)fk_std_float64]  = -1021;
   min_exponent[(int)fk_std_float128] = -16381;
   min_exponent[(int)fk_last]         = 0;
+  max_exponent[(int)fk_std_float16]  = 16;
   max_exponent[(int)fk_float]        = targ_flt_max_exp;
   max_exponent[(int)fk_double]       = targ_dbl_max_exp;
   max_exponent[(int)fk_long_double]  = targ_ldbl_max_exp;
