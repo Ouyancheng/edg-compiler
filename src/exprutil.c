@@ -6804,8 +6804,18 @@ the call target).
       }  /* if */
     } else if (is_consteval) {
       if (expr_is_instantiation_dependent(call_expr)) {
-       make_expression_operand(call_expr, result);
-       make_template_param_expr_constant_operand(result);
+        make_expression_operand(call_expr, result);
+        make_template_param_expr_constant_operand(result);
+      } else if (expr_stack != NULL &&
+                 expr_stack->contains_deferred_std_srcloc) {
+        /* Wrap the source location expression in a node signifying its
+           evaluation should be deferred. */
+        an_expr_node_ptr deferral_expr = alloc_expr_node(enk_srcloc_deferred);
+
+        deferral_expr->type = call_expr->type;
+        deferral_expr->position = call_expr->position;
+        deferral_expr->variant.srcloc_deferred.wrapped = call_expr;
+        make_expression_operand(deferral_expr, result);
       } else if (consteval_failure(rout, result_con, &call_expr->position,
                                    diag_list)) {
         /* The folding of a consteval call failed in a context where it cannot

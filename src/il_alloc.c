@@ -2838,6 +2838,7 @@ to it.
   fp->base_class_subobject_with_tail_padding = FALSE;
 #endif /* DO_IL_LOWERING */
   fp->has_initializer      = FALSE;
+  fp->init_requires_il_copy = FALSE;
   fp->has_direct_braced_initializer = FALSE;
   fp->has_nonconstant_initializer = FALSE;
   fp->bit_size_constant_expr_in_local_expr_node_ref = FALSE;
@@ -3706,6 +3707,9 @@ fields to default values.
       break;
     case enk_nested_req:
       node->variant.nested_req.constraint = NULL;
+      break;
+    case enk_srcloc_deferred:
+      node->variant.srcloc_deferred.wrapped = NULL;
       break;
     default:
       unexpected_condition_str("set_expr_node_kind: bad kind");

@@ -506,6 +506,11 @@ typedef struct an_init_state {
 			   this flag is cleared when processing the element
 			   initializers (so only the top-level constant is
 			   wrapped). */
+  a_bit_field	requires_il_copy:1;
+			/* TRUE if this is a default member initializer that
+			   requires a constructor specific copy and cannot be
+			   used generally (e.g., an initializer containing a
+			   call to std::source_location::current()). */
   a_bit_field	no_diagnostics:1;
 			/* TRUE if no diagnostics should be issued (this is
 			   useful for overload-resolution matching and for

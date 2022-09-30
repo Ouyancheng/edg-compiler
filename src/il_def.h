@@ -11206,6 +11206,12 @@ typedef struct a_field {
   a_bit_field	has_initializer:1;
 			/* TRUE if a C++11-style initializer was specified for
 			   this field. */
+  a_bit_field	init_requires_il_copy:1;
+			/* TRUE if the default member initializer associated
+			   with this field requires a constructor specific copy
+			   and cannot be used generally (e.g., an initializer
+			   containing a call to
+			   std::source_location::current()). */
   a_bit_field	has_direct_braced_initializer:1;
 			/* TRUE if a direct braced initializer was specified
 			   for this field. */
@@ -12808,6 +12814,8 @@ enum an_expr_node_kind : a_bit_field {
   enk_requires,		/* A requires-expression. */
   enk_compound_req,	/* A compound-requirement. */
   enk_nested_req,	/* A nested-requirement. */
+  enk_srcloc_deferred,  /* A deferred constant evaluation node for a source
+                           location. */
   enk_last
 };
 
@@ -14694,6 +14702,14 @@ typedef struct an_expr_node {
       an_expr_node_ptr
 		constraint;
     } nested_req;
+    /* When kind == enk_srcloc_deferred: */
+    struct {
+      an_expr_node_ptr
+		wrapped;
+			/* The expression to be evaluated when this expression
+			   node is copied by function or constructor call
+			   argument setup. */
+    } srcloc_deferred;
   } variant;
   union {
     an_expr_rescan_info_entry_ptr

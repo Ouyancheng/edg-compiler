@@ -1782,6 +1782,11 @@ typedef int an_expr_copy_options_set;
 			   to local entities don't leak into the wrong scope
 			   memory (e.g., a reference to a local entity in
 			   file-scope memory). */
+#define CE_COPYING_DEFAULT_MEMBER_INIT 0x20000
+			/* TRUE if this copy operation is copying a default
+			   member initializer expression, i.e., making a
+			   constructor specific use of the scanned
+			   expression. */
 
 a_constant_ptr copy_constant_full(a_constant_ptr           old_constant,
                                   a_constant_ptr           new_constant,

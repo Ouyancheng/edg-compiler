@@ -116,6 +116,7 @@ Clear the fields of *is.
   is->static_lifetime_init = FALSE;
   is->initializer_must_be_constant = FALSE;
   is->force_dynamic_init = FALSE;
+  is->requires_il_copy = FALSE;
   is->no_diagnostics = FALSE;
   is->check_validity_only = FALSE;
   is->error_on_narrowing = FALSE;

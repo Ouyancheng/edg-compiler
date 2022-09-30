@@ -1478,7 +1478,18 @@ Issue any diagnostics at the given position.
 
   if (fp->has_initializer) {
     scan_field_initializer_if_needed(fp, aggr_type);
-    dip = fp->initializer;
+    if (fp->init_requires_il_copy) {
+      /* This constructor requires a custom copy of the initializer;
+         create that copy now. */
+      an_expr_copy_options_set options = CE_COPYING_DEFAULT_MEMBER_INIT;
+      dip = copy_dynamic_init(fp->initializer, options);
+      /* FIXME: Are these relevant? We've skipped them because we can't answer
+         them correctly, but we might not have the relevant expression
+         stack. */
+      /* wrap_up_dynamic_init_full_expression(dip); */
+    } else {
+      dip = fp->initializer;
+    }  /* if */
   } else {
     check_assertion(fp->is_init_capture);
   }  /* if */
@@ -6222,6 +6233,7 @@ expressions.  For the latter, see init_capture_initializer below.)
     } else {
       field->has_direct_braced_initializer = is->direct_init;
       field->initializer = is->init_dip;
+      field->init_requires_il_copy = is->requires_il_copy;
       if (is->constant_expr_ruled_out) {
         field->has_nonconstant_initializer = TRUE;
       }  /* if */
@@ -9204,25 +9216,44 @@ initialized.  These are addressed in the course of the processing.
           cip->next = NULL;
           /* prev_cip remains unchanged. */
         } else {
-          a_field_ptr   field = cip->variant.field;
-          cip->use_field_initializer = TRUE;
+          a_field_ptr        field = cip->variant.field;
+          a_dynamic_init_ptr *init_to_use;
+
           has_field_init = TRUE;
           /* Ensure the field initializer is scanned if necessary. */
           scan_field_initializer_if_needed(field, class_type);
-          if (field->initializer != NULL) {
+          if (field->initializer != NULL && field->init_requires_il_copy) {
+            /* This constructor requires a custom copy of the initializer;
+               create that copy now. */
+            an_expr_copy_options_set options = CE_COPYING_DEFAULT_MEMBER_INIT;
+            a_dynamic_init_ptr       new_init =
+                                copy_dynamic_init(field->initializer, options);
+
+            cip->initializer = new_init;
+            init_to_use = &cip->initializer;
+            /* FIXME: Are these relevant? We've skipped them because we can't
+               answer them correctly, but we might not have the relevant
+               expression stack. */
+            /* wrap_up_dynamic_init_full_expression(dip); */
+          } else {
+            /* Use the optimized case, this constructor does not get its own
+               copy of the default member initializer. */
+            cip->use_field_initializer = TRUE;
+            init_to_use = &field->initializer;
+          }  /* if */
+          if (*init_to_use != NULL) {
             a_type_ptr  uftp = skip_typerefs(skip_array_types(field->type));
             if (is_immediate_class_type(uftp)) {
-              add_dtor_to_dynamic_init(field->initializer, uftp, uftp,
-                                       &err_pos);
+              add_dtor_to_dynamic_init(*init_to_use, uftp, uftp, &err_pos);
             }  /* if */
           }  /* if */
           if (user_defined && ctor_rout->is_constexpr) {
-            if (field->initializer == NULL) {
+            if (*init_to_use == NULL) {
               a_memory_region_number  saved_region;
               pos_sy_error(ec_unbounded_constexpr_ctor_init_recursion,
                            &err_pos, field_sym);
               switch_to_file_scope_region(&saved_region);
-              field->initializer = make_error_constant_dynamic_init();
+              *init_to_use = make_error_constant_dynamic_init();
               switch_back_to_original_region(saved_region);
             } else if (field->has_nonconstant_initializer) {
               /* If the field initializer is known not to be a constant, it

@@ -3412,7 +3412,7 @@ indication in *rcblock).
 }  /* scan_parenthesized_initializer_expression */
 
 
-void scan_ctor_arguments(a_symbol_ptr             constructor_sym,
+;void scan_ctor_arguments(a_symbol_ptr             constructor_sym,
                          a_source_position        *source_pos,
                          a_type_ptr               object_class_type,
                          a_type_ptr               dest_type,
@@ -42450,6 +42450,9 @@ parenthesized initializer.
        to be checked later when we do know. */
     icp->braced_init_in_parentheses = TRUE;
   }  /* if */
+  if (expr_stack->contains_deferred_std_srcloc) {
+    dps->init_state.requires_il_copy = TRUE;
+  }  /* if */
   return icp;
 }  /* scan_init_component_with_potential_pack_expansion */
 
@@ -42597,7 +42600,7 @@ dynamic init entry if one is created to represent this initializer
   }  /* if */
   if (!is->check_validity_only) {
     /* If this conversion was treated as a full expression, do wrapup. */
-    if (is_full_expr) {
+    if (is_full_expr && !is->requires_il_copy) {
       if (dip != NULL) {
         wrap_up_dynamic_init_full_expression(dip);
       } else if (is->init_error) {

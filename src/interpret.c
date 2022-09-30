@@ -1044,10 +1044,6 @@ typedef struct an_interpreter_state {
 		dyn_allocations;
 			/* Pointer to a doubly-linked list of allocations
 			   performed during the evaluation. */
-  a_source_position
-		*srcloc_builtin_pos;
-			/* The current source location used for
-			   std::source_location. */
 } an_interpreter_state;
 
 
@@ -2390,7 +2386,6 @@ result of calls to std::is_constant_evaluated().
   ips->allow_consteval_routine_node = FALSE;
   ips->report_started = FALSE;
   ips->dyn_allocations = NULL;
-  ips->srcloc_builtin_pos = NULL;
   n_active_interpreter_states += 1;
 }  /* init_interpreter_state */
 
@@ -8726,7 +8721,8 @@ FALSE.
 
   /* Deferral occurs when used a source location builtin is a default arguments
      of consteval function or a default member initializer. */
-  if ((expr_stack != NULL && expr_stack->is_initial_default_arg_scan)) {
+  if ((expr_stack != NULL && expr_stack->is_initial_default_arg_scan) ||
+      scope_stack_top().in_field_initializer) {
     result = TRUE;
   }  /* if */
   return result;
@@ -8753,14 +8749,7 @@ static inline a_source_position* get_constexpr_source_pos(
 Return the source location to use for the current source location builtin.
 */
 {
-  a_source_position *use_pos = ips->srcloc_builtin_pos;
-
-  /* This can occur when the builtin is used directly, fallback to the
-     error position. */
-  if (use_pos == NULL) {
-    use_pos = &error_position;
-  }  /* if */
-  return use_pos;
+  return &error_position;
 }  /* get_constexpr_source_pos */
 
 
@@ -10620,13 +10609,6 @@ otherwise, return FALSE and update *ips accordingly.
          member call). */
       if (result &&
           (!eval_right_to_left || is_member_call || arg->next == NULL)) {
-        Value_saver<a_source_position*>  src_pointer(&ips->srcloc_builtin_pos);
-
-        /* Since non-default argument cases are folded as they're parsed, only
-           the default argument case needs handled. */
-        if (ips->srcloc_builtin_pos == NULL && arg->generated_default_arg) {
-          ips->srcloc_builtin_pos = &call_node->position;
-        }  /* if */
         if (!do_constexpr_expression(ips, arg, arg_bytes, arg_bytes)) {
           do_constexpr_fail(result);
         }  /* if */

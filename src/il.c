@@ -2394,6 +2394,10 @@ sizeof_cases:
       fputs("nested-req\n", f_debug);
       db_expr_node(node->variant.nested_req.constraint, level+2);
       break;
+    case enk_srcloc_deferred:
+      fputs("srcloc-deferred\n", f_debug);
+      db_expr_node(node->variant.srcloc_deferred.wrapped, level+2);
+      break;
     case enk_error:
       fputs("error node\n", f_debug);
       break;
@@ -21249,9 +21253,6 @@ be called to start a copy.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_gcnew_supplement_ptr      gsp, copy_gsp;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if BUILTIN_FUNCTIONS_ENABLED
-  a_builtin_function_kind     bfk;
-#endif /* BUILTIN_FUNCTIONS_ENABLED */
 
   /* Copy the top node. */
   expr_copy = copy_node(expr);
@@ -21311,35 +21312,6 @@ be called to start a copy.
         break;
       }  /* if */
 #endif /* MINIMAL_INLINING */
-#if BUILTIN_FUNCTIONS_ENABLED
-      if ((options & CE_COPYING_EVALUATED_DEFAULT_ARG_EXPR) &&
-          node_operator_is(expr, eok_call) &&
-          is_routine_node(expr->variant.operation.operands) &&
-          is_gnu_builtin_function(
-                            node_routine(expr->variant.operation.operands)) &&
-          ((bfk = node_routine(expr->variant.operation.operands)->
-                                                variant.builtin_function_kind),
-            (bfk == (a_builtin_function_kind)bfk_COLUMN ||
-             bfk == (a_builtin_function_kind)bfk_LINE ||
-             bfk == (a_builtin_function_kind)bfk_FUNCTION ||
-             bfk == (a_builtin_function_kind)bfk_FILE ||
-             bfk == (a_builtin_function_kind)bfk_source_location))) {
-        /* A call to a builtin source location operation is being performed
-           in a default argument list and that list is being copied.  The
-           source location to be used is the call to the function with the
-           default arguments so fold the expression now. */
-        a_constant_ptr constant = local_constant();
-        if (fold_expr(expr, constant)) {
-          expr_copy = alloc_node_for_constant(constant);
-          /* Clear the backing expression (it's not in the proper memory
-             region). */
-          expr_copy->variant.constant.ptr->expr = NULL;
-          release_local_constant(&constant);
-          break;
-        }  /* if */
-        release_local_constant(&constant);
-      }  /* if */
-#endif /* BUILTIN_FUNCTIONS_ENABLED */
       expr_copy->variant.operation.operands =
                     i_copy_list_of_expr_trees(expr->variant.operation.operands,
                                               options, cblock);
@@ -21660,6 +21632,38 @@ be called to start a copy.
                                           expr->variant.nested_req.constraint,
                                           options, cblock);
       break;
+#if BUILTIN_FUNCTIONS_ENABLED
+    case enk_srcloc_deferred:
+      if (options & CE_COPYING_EVALUATED_DEFAULT_ARG_EXPR ||
+          options & CE_COPYING_DEFAULT_MEMBER_INIT) {
+        /* A call to a builtin source location operation is being performed
+           in a default argument list and that list is being copied.  The
+           source location to be used is the call to the function with the
+           default arguments so fold the expression now. */
+        an_expr_node_ptr wrapped = i_copy_expr_tree(
+                                         expr->variant.srcloc_deferred.wrapped,
+                                         options, cblock);
+        a_diag_list      diag_list;
+        a_constant_ptr   constant = local_constant();
+
+        clear_diag_list(&diag_list);
+        if (interpret_expr(wrapped, /*is_constant_evaluated=*/TRUE,
+                           /*force_prvalue=*/FALSE, constant, &diag_list)) {
+          expr_copy = alloc_node_for_constant(constant);
+          /* FIXME: Are these the right checks? */
+        } else if (!is_template_dependent_context() &&
+                   expr_error_should_be_issued()) {
+          a_diagnostic_ptr dp = pos_start_error(ec_expr_not_constant,
+                                                &wrapped->position);
+
+          add_more_info_list(dp, &diag_list);
+          end_diagnostic(dp);
+          expr_copy = error_node();
+        }  /* if */
+        release_local_constant(&constant);
+      }  /* if */
+      break;
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
 #if GNU_EXTENSIONS_ALLOWED
     case enk_statement:
       /* Doesn't have to be copied because forbidden in default argument
