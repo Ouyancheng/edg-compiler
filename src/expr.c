@@ -3412,7 +3412,7 @@ indication in *rcblock).
 }  /* scan_parenthesized_initializer_expression */
 
 
-;void scan_ctor_arguments(a_symbol_ptr             constructor_sym,
+void scan_ctor_arguments(a_symbol_ptr             constructor_sym,
                          a_source_position        *source_pos,
                          a_type_ptr               object_class_type,
                          a_type_ptr               dest_type,
