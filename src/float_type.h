@@ -774,7 +774,7 @@ static an_fp_floating_point_type
                         /* Table of 10^i for fast conversion, approximation. */
 
 static an_fp_floating_point_type
-                BIG_TENS[N_BIG_TENS];
+                BIG_TENS[N_BIG_TENS > 0 ? N_BIG_TENS : 1];
                         /* Table of 10^(2^(i+EXP_SHIFT)) for fast conversion,
                            approximation. */
 
