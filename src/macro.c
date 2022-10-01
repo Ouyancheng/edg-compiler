@@ -10343,6 +10343,9 @@ from the front end to the runtime.
                            /*cannot_be_redefined=*/TRUE,
                            /*ref_suppresses_pch_file=*/FALSE);
 #endif /* CPP11_IL_EXTENSIONS_SUPPORTED */
+  /* Can the front end use _Float16? */
+  enter_predef_num_macro_noredef(HOST_HAS_FLOAT16_TYPE,
+                                 "__EDG_HOST_HAS_FLOAT16_TYPE");
   /* Can the front end use __float80? */
   enter_predef_num_macro_noredef(FLOAT80_ENABLING_POSSIBLE,
                                  "__EDG_FLOAT80_ENABLING_POSSIBLE");
