@@ -7615,7 +7615,7 @@ of Microsoft-mode member functions).
   type2 = skip_typerefs(type2);
   rtsp2 = type2->variant.routine.extra_info;
   cc2 = rtsp2->calling_convention;
-  if (ms_extensions && targ_supports_x86_64) {
+  if (ms_extensions && !target_is_32_bit_x86_based()) {
     /* Microsoft x86-64 conventions only distinguish __vectorcall and __clrcall
        from other conventions.  All other conventions (__cdecl, __fastcall,
        etc.) are accepted but have no effect. */

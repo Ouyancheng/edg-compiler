@@ -36,7 +36,8 @@ FALSE in this header file.
 #endif /* ifdef DEMO_VERSION */
 
 /* Configuration definitions determined by dettarg.c: */
-#ifdef __x86_64__
+#if defined(__x86_64__) || defined(__aarch64__)
+/* 64-bit targets. */
 #define TARG_SIZEOF_LONG 8
 #define TARG_ALIGNOF_LONG 8
 #define TARG_SIZEOF_POINTER 8
@@ -45,7 +46,8 @@ FALSE in this header file.
 #define TARG_WCHAR_T_INT_KIND ((an_integer_kind)ik_int)
 #define HOST_ALIGNMENT_REQUIRED 8
 #define TARG_ALIGNOF_LONG_LONG 8
-#else /* ifndef __x86_64__ */
+#else /* !(defined(__x86_64__) || defined(__aarch64__)) */
+/* 32-bit targets. */
 #define TARG_SIZEOF_LONG 4
 #define TARG_ALIGNOF_LONG 4
 #define TARG_SIZEOF_POINTER 4
@@ -54,7 +56,7 @@ FALSE in this header file.
 #define TARG_WCHAR_T_INT_KIND ((an_integer_kind)ik_long)
 #define HOST_ALIGNMENT_REQUIRED 4
 #define TARG_ALIGNOF_LONG_LONG 4
-#endif /* ifdef __x86_64__ */
+#endif /* defined(__x86_64__) || defined(__aarch64__) */
 #ifdef __ppc__
 #define TARG_LITTLE_ENDIAN 0
 #define TARG_JMP_BUF_NUM_ELEMENTS 192
@@ -63,15 +65,23 @@ FALSE in this header file.
 #define USE_LONG_DOUBLE_FOR_HOST_FP_VALUE 0
 #define FP_LONG_DOUBLE_IS_BINARY64 1
 #else /* ifndef __ppc__ */
+#define TARG_LITTLE_ENDIAN 1
+#ifdef __aarch64__
+#define TARG_SUPPORTS_ARM64 1
+#define TARG_SIZEOF_LONG_DOUBLE 8
+#define TARG_ALIGNOF_LONG_DOUBLE 8
+#define TARG_JMP_BUF_NUM_ELEMENTS 48
+#else /* ifndef __aarch64__ */
+#define TARG_SUPPORTS_X64_64
 #define TARG_SIZEOF_LONG_DOUBLE 16
 #define TARG_ALIGNOF_LONG_DOUBLE 16
-#define TARG_LITTLE_ENDIAN 1
 #define FP_LONG_DOUBLE_IS_80BIT_EXTENDED 1
 #ifdef __x86_64__
 #define TARG_JMP_BUF_NUM_ELEMENTS 37
 #else /* ifndef __x86_64__ */
 #define TARG_JMP_BUF_NUM_ELEMENTS 18
 #endif /* ifdef __x86_64__ */
+#endif /* ifndef __aarch64__ */
 #endif /* ifndef __ppc__ */
 
 #define TARG_SIZE_T_INT_KIND ((an_integer_kind)ik_unsigned_long)
@@ -143,6 +153,8 @@ FALSE in this header file.
 #define TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES 1
 #elif defined(__ppc__)
 #define TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES 0
+#elif defined(__aarch64__)
+#define TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES 1
 #else /* Not a recognized architecture. */
 #error -- Unexpected MacOS X platform
 #endif /* defined(__i386__) */

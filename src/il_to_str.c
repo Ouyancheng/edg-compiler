@@ -6896,7 +6896,7 @@ Do the output in the way described by octl.
     form_simple_attribute("__const__", need_leading_space, octl);
   }  /* if */
 #if GNU_X86_ATTRIBUTES_ALLOWED
-  if (!targ_supports_x86_64) {
+  if (target_is_32_bit_x86_based()) {
     switch (rtsp->calling_convention) {
       case cc_default:
         /* No attribute to generate. */

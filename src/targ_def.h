@@ -121,6 +121,59 @@ solution in the runtime.
 #endif /* ifndef TARG_IA64_ABI_USE_GUARD_ACQUIRE_RELEASE */
 
 /*
+If a specific target architecture has not been explicitly selected, select one
+that looks like the host compiler.  This is somewhat arbitrary (but can be
+overridden by explicitly selecting a target architecture).
+*/
+#if !defined(TARG_SUPPORTS_X86_64) && !defined(TARG_SUPPORTS_ARM32) && \
+    !defined(TARG_SUPPORTS_ARM64)
+#if defined(__x86_64)
+#define TARG_SUPPORTS_X86_64 TRUE
+#elif defined(__aarch64__)
+#define TARG_SUPPORTS_ARM64 TRUE
+#elif defined(__arm__)
+#define TARG_SUPPORTS_ARM32 TRUE
+#elif defined(_WIN64)
+#define TARG_SUPPORTS_X86_64 TRUE
+#else /* default case */
+#define TARG_SUPPORTS_X86_64 FALSE
+#define TARG_SUPPORTS_ARM64 FALSE
+#define TARG_SUPPORTS_ARM32 FALSE
+#endif /* defined(__x86_64) */
+#endif /* !defined(TARG_SUPPORTS_X86_64) && !defined(TARG_SUPPORTS_ARM32)...*/
+
+#ifdef USE_X86_64
+/* USE_X86_64 is now deprecated; set TARG_SUPPORTS_X86_64 appropriately and
+   use the targ_supports_x86_64 global variable to check at run-time. */
+ #error Use of USE_X86_64 is deprecated; use targ_supports_x86_64 global \
+        variable
+#endif /* defined(USE_X86_64) */
+
+/*
+Flag that is TRUE if the target is a 64-bit x86 platform.  Provides the initial
+setting for targ_supports_x86_64.
+*/
+#ifndef TARG_SUPPORTS_X86_64
+#define TARG_SUPPORTS_X86_64 FALSE
+#endif /* ifndef TARG_SUPPORTS_X86_64 */
+
+/*
+Flag that is TRUE if the target is a 64-bit ARM platform.  Provides the initial
+setting for targ_supports_arm64.
+*/
+#ifndef TARG_SUPPORTS_ARM64
+#define TARG_SUPPORTS_ARM64 FALSE
+#endif /* ifndef TARG_SUPPORTS_ARM64 */
+
+/*
+Flag that is TRUE if the target is a 32-bit ARM platform.  Provides the initial
+setting for targ_supports_arm32.
+*/
+#ifndef TARG_SUPPORTS_ARM32
+#define TARG_SUPPORTS_ARM32 FALSE
+#endif /* ifndef TARG_SUPPORTS_ARM32 */
+
+/*
 TRUE to use ARM EABI semantics for static initialization guard variables
 (see section 4.4.2 of version 2.02 of the ARM EABI).  The two differences
 from the standard IA-64 ABI are: the guard variable is "int"-sized,
@@ -132,7 +185,11 @@ the first byte) is used for the guard test.
 #define TARG_IA64_ABI_USE_INT_STATIC_INIT_GUARD \
         IA64_ABI_USE_INT_STATIC_INIT_GUARD
 #else /* !defined(IA64_ABI_USE_INT_STATIC_INIT_GUARD) */
+#if TARG_SUPPORTS_ARM32 || TARG_SUPPORTS_ARM64
+#define TARG_IA64_ABI_USE_INT_STATIC_INIT_GUARD TRUE
+#else /* !(TARG_SUPPORTS_ARM32 || TARG_SUPPORTS_ARM64) */
 #define TARG_IA64_ABI_USE_INT_STATIC_INIT_GUARD FALSE
+#endif /* TARG_SUPPORTS_ARM32 || TARG_SUPPORTS_ARM64 */
 #endif /* ifdef IA64_ABI_USE_INT_STATIC_INIT_GUARD */
 #endif /* ifndef TARG_IA64_ABI_USE_INT_STATIC_INIT_GUARD */
 
@@ -161,7 +218,11 @@ This is needed, for example, for the ARM architecture.
 #define TARG_IA64_ABI_USE_VARIANT_PTR_TO_MEMBER_FUNCTION_REPR \
   IA64_ABI_USE_VARIANT_PTR_TO_MEMBER_FUNCTION_REPR
 #else /* !defined(IA64_ABI_USE_VARIANT_PTR_TO_MEMBER_FUNCTION_REPR) */
+#if TARG_SUPPORTS_ARM32 || TARG_SUPPORTS_ARM64
+#define TARG_IA64_ABI_USE_VARIANT_PTR_TO_MEMBER_FUNCTION_REPR TRUE
+#else /* !(TARG_SUPPORTS_ARM32 || TARG_SUPPORTS_ARM64) */
 #define TARG_IA64_ABI_USE_VARIANT_PTR_TO_MEMBER_FUNCTION_REPR FALSE
+#endif /* TARG_SUPPORTS_ARM32 || TARG_SUPPORTS_ARM64 */
 #endif /* ifdef IA64_ABI_USE_VARIANT_PTR_TO_MEMBER_FUNCTION_REPR */
 #endif /* ifndef TARG_IA64_ABI_USE_VARIANT_PTR_TO_MEMBER_FUNCTION_REPR */
 
@@ -182,7 +243,11 @@ This variant version is used for the ARM architecture.  See
 #define TARG_IA64_ABI_USE_VARIANT_ARRAY_COOKIES \
         IA64_ABI_USE_VARIANT_ARRAY_COOKIES
 #else /* !defined(IA64_ABI_USE_VARIANT_ARRAY_COOKIES) */
+#if TARG_SUPPORTS_ARM32 || TARG_SUPPORTS_ARM64
+#define TARG_IA64_ABI_USE_VARIANT_ARRAY_COOKIES TRUE
+#else /* !(TARG_SUPPORTS_ARM32 || TARG_SUPPORTS_ARM64) */
 #define TARG_IA64_ABI_USE_VARIANT_ARRAY_COOKIES FALSE
+#endif /* TARG_SUPPORTS_ARM32 || TARG_SUPPORTS_ARM64 */
 #endif /* ifdef IA64_ABI_USE_VARIANT_ARRAY_COOKIES */
 #endif /* ifndef TARG_IA64_ABI_USE_VARIANT_ARRAY_COOKIES */
 
@@ -198,7 +263,11 @@ Constructors return "pointer to class", and destructors return
 #define TARG_IA64_ABI_VARIANT_CTORS_AND_DTORS_RETURN_THIS \
         IA64_ABI_VARIANT_CTORS_AND_DTORS_RETURN_THIS
 #else /* !defined(IA64_ABI_VARIANT_CTORS_AND_DTORS_RETURN_THIS) */
+#if TARG_SUPPORTS_ARM32 || TARG_SUPPORTS_ARM64
+#define TARG_IA64_ABI_VARIANT_CTORS_AND_DTORS_RETURN_THIS TRUE
+#else /* !(TARG_SUPPORTS_ARM32 || TARG_SUPPORTS_ARM64) */
 #define TARG_IA64_ABI_VARIANT_CTORS_AND_DTORS_RETURN_THIS FALSE
+#endif /* TARG_SUPPORTS_ARM32 || TARG_SUPPORTS_ARM64 */
 #endif /* ifdef IA64_ABI_VARIANT_CTORS_AND_DTORS_RETURN_THIS */
 #endif /* ifndef TARG_IA64_ABI_VARIANT_CTORS_AND_DTORS_RETURN_THIS */
 
@@ -221,7 +290,11 @@ See 3.1 in the ARM EABI document.
 #ifdef IA64_ABI_VARIANT_KEY_FUNCTION
 #define TARG_IA64_ABI_VARIANT_KEY_FUNCTION IA64_ABI_VARIANT_KEY_FUNCTION
 #else /* !defined(IA64_ABI_VARIANT_KEY_FUNCTION) */
+#if TARG_SUPPORTS_ARM32 || TARG_SUPPORTS_ARM64
+#define TARG_IA64_ABI_VARIANT_KEY_FUNCTION TRUE
+#else /* !(TARG_SUPPORTS_ARM32 || TARG_SUPPORTS_ARM64) */
 #define TARG_IA64_ABI_VARIANT_KEY_FUNCTION FALSE
+#endif /* TARG_SUPPORTS_ARM32 || TARG_SUPPORTS_ARM64 */
 #endif /* ifndef IA64_ABI_VARIANT_KEY_FUNCTION */
 #endif /* ifndef TARG_IA64_ABI_VARIANT_KEY_FUNCTION */
 
@@ -288,27 +361,6 @@ bugs are emulated).
 #if DEFAULT_GNU_ABI_VERSION < 30200
  #error -- DEFAULT_GNU_ABI_VERSION must be at least 30200
 #endif /* DEFAULT_GNU_ABI_VERSION < 30200 */
-
-/*
-Flag that is TRUE if the target is a 64-bit x86 platform.  Provides the initial
-setting for targ_supports_x86_64 (which should be used in lieu of the macro
-value as its value is target-specific).
-*/
-#ifndef TARG_SUPPORTS_X86_64
-/* Default to 64-bit if the host compiler is 64-bit, but this is arbitrary. */
-#if defined(__x86_64) || defined(_WIN64)
-#define TARG_SUPPORTS_X86_64 TRUE
-#else /* !(defined(__x86_64) || defined(_WIN64)) */
-#define TARG_SUPPORTS_X86_64 FALSE
-#endif /* defined(__x86_64) || defined(_WIN64) */
-#endif /* defined(TARG_SUPPORTS_X86_64) */
-
-#ifdef USE_X86_64
-/* USE_X86_64 is now deprecated; set TARG_SUPPORTS_X86_64 appropriately and
-   use the targ_supports_x86_64 global variable to check at run-time. */
- #error Use of USE_X86_64 is deprecated; use targ_supports_x86_64 global \
-        variable
-#endif /* defined(USE_X86_64) */
 
 /*
 Flag that is TRUE if declaring a deleted copy constructor or copy assignment
@@ -5280,12 +5332,11 @@ of the prefix allocated as part of each IL entry.  When checking code is
 enabled, the value of this macro is checked when the front end is executed.
 */
 #ifndef HOST_POINTER_ALIGNMENT
-#if defined(__x86_64) || defined(__alpha)
-/* Alpha always needs 8 byte alignment. */
+#if TARG_SUPPORTS_X86_64 || TARG_SUPPORTS_ARM64
 #define HOST_POINTER_ALIGNMENT 8
-#else /* !(defined(__x86_64) || defined(__alpha)) */
+#else /* !(TARG_SUPPORTS_X86_64 || TARG_SUPPORTS_ARM64) */
 #define HOST_POINTER_ALIGNMENT 4
-#endif /* defined(__x86_64) || defined(__alpha) */
+#endif /* TARG_SUPPORTS_X86_64 || TARG_SUPPORTS_ARM64 */
 #endif /* ifndef HOST_POINTER_ALIGNMENT */
 
 /*

@@ -11493,7 +11493,7 @@ command line -D options.
     (void)enter_predef_macro("1", "_WIN32",
                              /*cannot_be_redefined=*/FALSE,
                              /*ref_suppresses_pch_file=*/FALSE);
-    if (targ_supports_x86_64) {
+    if (target_is_64_bits()) {
       (void)enter_predef_macro("1", "_WIN64",
                                /*cannot_be_redefined=*/FALSE,
                                /*ref_suppresses_pch_file=*/FALSE);

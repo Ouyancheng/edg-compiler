@@ -9449,6 +9449,16 @@ file.
 #else /* !defined(TARG_SUPPORTS_X86_64) */
   comment_undefined_macro_name(TARG_SUPPORTS_X86_64);
 #endif /* defined(TARG_SUPPORTS_X86_64) */
+#if defined(TARG_SUPPORTS_ARM64)
+  define_numeric_valued_macro(TARG_SUPPORTS_ARM64);
+#else /* !defined(TARG_SUPPORTS_ARM64) */
+  comment_undefined_macro_name(TARG_SUPPORTS_ARM64);
+#endif /* defined(TARG_SUPPORTS_ARM64) */
+#if defined(TARG_SUPPORTS_ARM32)
+  define_numeric_valued_macro(TARG_SUPPORTS_ARM32);
+#else /* !defined(TARG_SUPPORTS_ARM32) */
+  comment_undefined_macro_name(TARG_SUPPORTS_ARM32);
+#endif /* defined(TARG_SUPPORTS_ARM32) */
 #if defined(TARG_TOO_LARGE_SHIFT_COUNT_IS_TAKEN_MODULO_SIZE)
   define_numeric_valued_macro(TARG_TOO_LARGE_SHIFT_COUNT_IS_TAKEN_MODULO_SIZE);
 #else /* !defined(TARG_TOO_LARGE_SHIFT_COUNT_IS_TAKEN_MODULO_SIZE) */

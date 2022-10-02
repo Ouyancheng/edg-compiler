@@ -371,6 +371,53 @@ EXTERN a_boolean
                 targ_supports_x86_64;
                         /* TRUE if the target supports the 64-bit version of
                            the x86 instruction set. */
+EXTERN a_boolean
+                targ_supports_arm64;
+                        /* TRUE if the target supports the 64-bit version of
+                           the ARM instruction set. */
+
+EXTERN a_boolean
+                targ_supports_arm32;
+                        /* TRUE if the target supports the 32-bit version of
+                           the ARM instruction set. */
+
+inline a_boolean target_is_64_bits(void)
+/*
+Utility to return TRUE if the target has a 64-bit architecture.
+*/
+{
+  return targ_supports_x86_64 || targ_supports_arm64;
+}  /* target_is_64_bits */
+
+
+inline a_boolean target_is_arm_based(void)
+/*
+Utility to return TRUE if the target is based on an ARM architecture.
+*/
+{
+  return targ_supports_arm32 || targ_supports_arm64;
+}  /* target_is_arm_based */
+
+
+inline a_boolean target_is_x86_based(void)
+/*
+Utility to return TRUE if the target is based on an x86 architecture.
+Currently this is the default (but that may change in the future).
+*/
+{
+  return !target_is_arm_based();
+}  /* target_is_x86_based */
+
+
+inline a_boolean target_is_32_bit_x86_based(void)
+/*
+Utility to return TRUE if the target is based on an x86 architecture.
+Currently this is the default (but that may change in the future).
+*/
+{
+  return target_is_x86_based() && !target_is_64_bits();
+}  /* target_is_32_bit_x86_based */
+
 
 EXTERN a_boolean
                 packing_applies_to_base_classes;
@@ -1356,6 +1403,8 @@ EXTERN an_integer_kind
 #undef TARG_REUSE_TAIL_PADDING
 #endif /* IA64_ABI */
 #endif /* BACK_END_IS_C_GEN_BE */
+#undef TARG_SUPPORTS_ARM32
+#undef TARG_SUPPORTS_ARM64
 #undef TARG_SUPPORTS_X86_64
 #undef EDG_AUXILIARY_INFO_DIR_NAME
 #if FIXED_POINT_ALLOWED

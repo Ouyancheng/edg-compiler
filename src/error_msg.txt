@@ -2744,7 +2744,7 @@ ec_nonautomatic_var_in_constexpr_function;;"variable in constexpr function does 
 ec_uninitialized_var_in_constexpr_function;;"variable in constexpr function is uninitialized"
 ec_auto_direct_list_init_requires_singleton;;"braced initialization of a variable declared with a placeholder type but without `=` requires exactly one element inside the braces"
 ec_cl_invalid_target;;"no \"%s\" --target configuration exists"
-ec_attribute_not_supported_in_x86_64;;"attribute is not supported in 64-bit x86 configurations"
+ec_attribute_not_supported_in_x86_64;;"attribute is supported only in 32-bit x86 configurations"
 ec_cl_missing_argument;;"\"%s\" requires an argument"
 ec_special_member_coroutine;;"a constructor or destructor cannot be a coroutine"
 ec_main_coroutine;;"%n cannot be a coroutine"

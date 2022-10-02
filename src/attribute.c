@@ -5809,8 +5809,8 @@ Apply the GNU "cdecl" attribute to the given entity and return that entity.
 {
   a_type_ptr  func_type = get_func_type_for_attr(ap, &entity, entity_kind);
 
-  if (targ_supports_x86_64) {
-    /* This attribute isn't supported in x86_64 configurations. */
+  if (!target_is_32_bit_x86_based()) {
+    /* This attribute is supported only in 32-bit x86 configurations. */
     pos_warning(ec_attribute_not_supported_in_x86_64, &ap->position);
     make_attr_unrecognized(ap);
   } else if (func_type != NULL) {
@@ -6064,8 +6064,8 @@ Apply the GNU "fastcall" attribute to the given entity and return that entity.
 {
   a_type_ptr  func_type = get_func_type_for_attr(ap, &entity, entity_kind);
 
-  if (targ_supports_x86_64) {
-    /* This attribute isn't supported in x86_64 configurations. */
+  if (!target_is_32_bit_x86_based()) {
+    /* This attribute is supported only in 32-bit x86 configurations. */
     pos_warning(ec_attribute_not_supported_in_x86_64, &ap->position);
     make_attr_unrecognized(ap);
   } else if (func_type != NULL) {
@@ -7003,8 +7003,8 @@ Apply the GNU "stdcall" attribute to the given entity and return that entity.
 {
   a_type_ptr  func_type = get_func_type_for_attr(ap, &entity, entity_kind);
 
-  if (targ_supports_x86_64) {
-    /* This attribute isn't supported in x86_64 configurations. */
+  if (!target_is_32_bit_x86_based()) {
+    /* This attribute is supported only in 32-bit x86 configurations. */
     pos_warning(ec_attribute_not_supported_in_x86_64, &ap->position);
     make_attr_unrecognized(ap);
   } else if (func_type != NULL) {

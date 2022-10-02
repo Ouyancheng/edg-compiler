@@ -386,6 +386,8 @@ configurations can be created in the same manner.
 #define TARG_SIZE_T_INT_KIND_linux_i686 ((an_integer_kind)ik_unsigned_int)
 #define TARG_SIZE_T_MAX_linux_i686 ((a_targ_size_t)(2147483647 * 2U + 1U))
 #define TARG_SSIZE_T_INT_KIND_linux_i686 ((an_integer_kind)ik_int)
+#define TARG_SUPPORTS_ARM32_linux_i686 0
+#define TARG_SUPPORTS_ARM64_linux_i686 0
 #define TARG_SUPPORTS_X86_64_linux_i686 0
 #define TARG_TOO_LARGE_SHIFT_COUNT_IS_TAKEN_MODULO_SIZE_linux_i686 0
 #define TARG_UNNAMED_BIT_FIELD_AFFECTS_STRUCT_ALIGNMENT_linux_i686 0
@@ -550,6 +552,8 @@ configurations can be created in the same manner.
 #define TARG_SIZE_T_INT_KIND_linux_x86_64 ((an_integer_kind)ik_unsigned_long)
 #define TARG_SIZE_T_MAX_linux_x86_64 ((a_targ_size_t)(9223372036854775807ULL * 2ULL + 1ULL))
 #define TARG_SSIZE_T_INT_KIND_linux_x86_64 ((an_integer_kind)ik_long)
+#define TARG_SUPPORTS_ARM32_linux_x86_64 0
+#define TARG_SUPPORTS_ARM64_linux_x86_64 0
 #define TARG_SUPPORTS_X86_64_linux_x86_64 1
 #define TARG_TOO_LARGE_SHIFT_COUNT_IS_TAKEN_MODULO_SIZE_linux_x86_64 0
 #define TARG_UNNAMED_BIT_FIELD_AFFECTS_STRUCT_ALIGNMENT_linux_x86_64 0
@@ -713,6 +717,8 @@ configurations can be created in the same manner.
 #define TARG_SIZE_T_INT_KIND_linux_i686 ((an_integer_kind)ik_unsigned_int)
 #define TARG_SIZE_T_MAX_linux_i686 ((a_targ_size_t)(2147483647 * 2U + 1U))
 #define TARG_SSIZE_T_INT_KIND_linux_i686 ((an_integer_kind)ik_int)
+#define TARG_SUPPORTS_ARM32_linux_i686 0
+#define TARG_SUPPORTS_ARM64_linux_i686 0
 #define TARG_SUPPORTS_X86_64_linux_i686 0
 #define TARG_TOO_LARGE_SHIFT_COUNT_IS_TAKEN_MODULO_SIZE_linux_i686 0
 #define TARG_UNNAMED_BIT_FIELD_AFFECTS_STRUCT_ALIGNMENT_linux_i686 0
@@ -872,6 +878,8 @@ configurations can be created in the same manner.
 #define TARG_SIZE_T_INT_KIND_linux_x86_64 ((an_integer_kind)ik_unsigned_long)
 #define TARG_SIZE_T_MAX_linux_x86_64 ((a_targ_size_t)(9223372036854775807ULL * 2ULL + 1ULL))
 #define TARG_SSIZE_T_INT_KIND_linux_x86_64 ((an_integer_kind)ik_long)
+#define TARG_SUPPORTS_ARM32_linux_x86_64 0
+#define TARG_SUPPORTS_ARM64_linux_x86_64 0
 #define TARG_SUPPORTS_X86_64_linux_x86_64 1
 #define TARG_TOO_LARGE_SHIFT_COUNT_IS_TAKEN_MODULO_SIZE_linux_x86_64 0
 #define TARG_UNNAMED_BIT_FIELD_AFFECTS_STRUCT_ALIGNMENT_linux_x86_64 0

@@ -621,9 +621,8 @@ are diagnosed.
   check_assertion(targ_optimize_empty_base_class_layout);
 #endif /* IA64_ABI */
 #if !LONG_LONG_ALLOWED
-  if (targ_supports_x86_64) {
-    internal_error(
-               "check_target_config: targ_supports_x86_64 requires long long");
+  if (!target_is_32_bit_x86_based()) {
+    internal_error("check_target_config: long long required");
   }  /* if */
 #endif /* !LONG_LONG_ALLOWED */
 #if IA64_ABI
