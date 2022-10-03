@@ -31953,7 +31953,7 @@ that follows.
       pos_diagnostic(es_discretionary_error,
                      ec_storage_class_not_allowed_in_specialization,
                      &dps->storage_class_pos);
-    }
+    }  /* if */
     if (!is_any_template_instance_class_symbol(sym) &&
         !is_any_template_enum_symbol(sym)) {
       /* Not a template instance. */
@@ -32326,7 +32326,7 @@ that follows.
           already_specialized = FALSE;
         } else {
           already_specialized = vp->is_specialized;
-        }
+        }  /* if */
         if (!already_specialized) {
           /* For a static data member, the instantiation of the enclosing class
              might have cause symbol to be marked as "defined" because it has
@@ -32370,7 +32370,7 @@ that follows.
           already_specialized = FALSE;
         } else {
           already_specialized = rp->is_specialized;
-        }
+        }  /* if */
         if (rp->is_deleted && !already_specialized) {
           /* The template was declared "= delete".  Clear the flag and mark
              the specialization as not defined. */
