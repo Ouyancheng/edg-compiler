@@ -261,7 +261,7 @@ EXTERN a_builtin_user_descr builtin_user_table[]
 = {
   /* Support for std::source_location.  This built-in is expected to
      appear in GCC 10.1 and likely soon in other versions as well. */
-  { "__builtin_source_location", "g+(100000-)s+(202002-)",
+  { "__builtin_source_location", "L+(150000-)g+(100000-)s+(202002-)",
     "void* () __edg_throw__()", bufk_source_location },
 
   /* GCC 9.x implements std::is_constexpr_evaluated using an intrinsic function
