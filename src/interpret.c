@@ -8721,8 +8721,8 @@ FALSE.
 
   /* Deferral occurs when used a source location builtin is a default arguments
      of consteval function or a default member initializer. */
-  if ((expr_stack != NULL && expr_stack->is_initial_default_arg_scan) ||
-      scope_stack_top().in_field_initializer) {
+  if (expr_stack != NULL && (expr_stack->is_initial_default_arg_scan ||
+                             scope_stack_top().in_field_initializer)) {
     result = TRUE;
   }  /* if */
   return result;
@@ -8738,6 +8738,7 @@ std::source_location::current().  The associated evaluation should then be
 reattempted when the expression is copied by i_copy_expr_tree.
 */
 {
+  check_assertion(expr_stack != NULL);
   expr_stack->contains_deferred_std_srcloc = TRUE;
   do_constexpr_fail(result);
 }  /* do_constexpr_fail_for_source_pos_deferral */
