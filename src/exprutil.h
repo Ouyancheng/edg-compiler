@@ -2826,6 +2826,8 @@ extern a_boolean expr_diagnostic_should_be_issued(an_error_severity sev,
 
 extern a_boolean expr_error_should_be_issued(void);
 
+extern a_boolean is_consteval_diag_deferred();
+
 extern void expr_pos_error(an_error_code     error_code,
                            a_source_position *error_pos);
 

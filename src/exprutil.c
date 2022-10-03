@@ -3115,7 +3115,7 @@ that context.
 {
   if (is_operation_node(node)) {
     if (node->variant.operation.is_consteval_call) {
-      if (expr_error_should_be_issued()) {
+      if (expr_error_should_be_issued() && !is_consteval_diag_deferred()) {
         a_diag_list     diag_list;
         a_routine_ptr   rp = get_constexpr_callee(node, &diag_list);
         a_constant_ptr  con = local_constant();
@@ -7077,9 +7077,7 @@ Record that an error has been detected in a context in which we're suppressing
 errors.
 */
 {
-  check_assertion(expr_stack != NULL &&
-                  (expr_stack->suppress_diagnostics ||
-                   expr_stack->contains_deferred_std_srcloc));
+  check_assertion(expr_stack != NULL && expr_stack->suppress_diagnostics);
   expr_stack->any_suppressed_error = TRUE;
 }  /* record_suppressed_error */
 
@@ -7119,8 +7117,7 @@ Should not be called for access errors.
   a_boolean should_issue = TRUE;
 
   if (expr_stack != NULL) {
-    if (expr_stack->suppress_diagnostics ||
-        expr_stack->contains_deferred_std_srcloc) {
+    if (expr_stack->suppress_diagnostics) {
       should_issue = FALSE;
       /* Because an error cannot be downgraded, there's no issue of checking
          whether this is indeed an error. */
@@ -7129,6 +7126,23 @@ Should not be called for access errors.
   }  /* if */
   return should_issue;
 }  /* expr_error_should_be_issued */
+
+
+a_boolean is_consteval_diag_deferred()
+/*
+Return FALSE unless consteval functions are in a context where their semantics
+are relaxed as the consteval function call fold will be reattempted later.
+*/
+{
+  a_boolean is_deferred = FALSE;
+
+  if (expr_stack != NULL) {
+    if (expr_stack->contains_deferred_std_srcloc) {
+      is_deferred = TRUE;
+    }  /* if */
+  }  /* if */
+  return is_deferred;
+}  /* is_consteval_diag_deferred */
 
 
 void expr_pos_error(an_error_code     error_code,

@@ -21652,7 +21652,8 @@ be called to start a copy.
           expr_copy = alloc_node_for_constant(constant);
           /* FIXME: Are these the right checks? */
         } else if (!is_template_dependent_context() &&
-                   expr_error_should_be_issued()) {
+                   expr_error_should_be_issued() &&
+                   !is_consteval_diag_deferred()) {
           a_diagnostic_ptr dp = pos_start_error(ec_expr_not_constant,
                                                 &wrapped->position);
 
