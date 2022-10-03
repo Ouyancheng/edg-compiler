@@ -32293,11 +32293,14 @@ that follows.
            more detailed type information than the in-class declaration (e.g.,
            an array bound). */
         vp->type = composite_type(vp->type, dps->type);
-        /* The Microsoft compiler treats a static data member specialization
-           declaration as a definition. */
+        /* The Microsoft compiler treats a specialization declaration of a
+           static data member (but not of a static data member template) as a
+           definition. */
         dps->is_definition = ((symbol_is(sym, sk_variable) &&
                                !sym->is_class_member) ||
-                              microsoft_bugs ||
+                              (microsoft_bugs &&
+                               vp->template_info != NULL &&
+                               vp->template_info->template_arg_list == NULL) ||
                               curr_token == tok_assign ||
                               has_parenthesized_initializer ||
                               (list_init_enabled && curr_token == tok_lbrace));
