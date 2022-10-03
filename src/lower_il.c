@@ -13137,79 +13137,6 @@ Note that the expression (and argument) have already been lowered.
 }  /* lower_builtin_zero_non_value_bits */
 
 
-static void lower_builtin_source_location(a_builtin_function_kind bfk,
-                                          an_expr_node_ptr        expr)
-/*
-Generally, builtin source location calls (i.e., __builtin_COLUMN,
-__builtin_LINE, __builtin_FILE, __builtin_FUNCTION) have been folded by the
-interpreter, but when these are called in default member initializers, the
-reported source location is supposed to correspond to the constructor that
-is performing the member initialization.  The front end doesn't know that
-(default member initializers are copied into the constructor's scope during
-lowering), so map the source location to the constructor being lowered.
-Any other instance of these should have been processed by the front end.
-bfk is the builtin being lowered and expr is an eok_call operation to that
-builtin (which will be replaced by an appropriate constant).
-*/
-{
-  a_source_position *use_pos;
-  a_const_char      *result_string, *file_name, *full_name;
-  a_line_number     line_number;
-  a_boolean         at_end_of_source;
-  an_expr_node_ptr  new_expr = NULL;
-
-  check_assertion(innermost_function_scope != NULL &&
-                  innermost_function_scope->variant.routine.ptr->special_kind
-                                  == (a_special_function_kind)sfk_constructor);
-  /* Use the source position of the constructor being lowered. */
-  use_pos = &innermost_function_scope->variant.routine.ptr->
-                                                  source_corresp.decl_position;
-  switch (bfk) {
-    case bfk_COLUMN:
-      new_expr = node_for_integer_constant((long)use_pos->column,
-                                           (an_integer_kind)ik_int);
-      break;
-    case bfk_LINE:
-      (void)conv_seq_to_file_and_line(use_pos->seq, &file_name, &full_name,
-                                      &line_number, &at_end_of_source);
-      new_expr = node_for_integer_constant((long)line_number,
-                                           (an_integer_kind)ik_int);
-      break;
-    case bfk_FILE:
-    case bfk_FUNCTION:
-      { a_constant_ptr    il_string_con, string_con = local_constant();
-        a_targ_size_t     length;
-        a_memory_region_number region_to_switch_back_to;
-        if (bfk == (a_builtin_function_kind)bfk_FILE) {
-          (void)conv_seq_to_file_and_line(use_pos->seq, &file_name, &full_name,
-                                          &line_number, &at_end_of_source);
-          result_string = file_name;
-        } else {
-          result_string = get_string_for_function_name(tok_func_name,
-                                                      /*include_quote=*/FALSE);
-        }  /* if */
-        /* Allocate the shareable string constant in the file scope. */
-        length = (a_targ_size_t)(strlen(result_string)+1);
-        clear_constant(string_con, (a_constant_repr_kind)ck_string);
-        string_con->type = string_type(length);
-        string_con->variant.string.length = length;
-        string_con->variant.string.value =
-                                alloc_text_of_string_literal((sizeof_t)length);
-        (void)strcpy((char *)string_con->variant.string.value, result_string);
-        switch_to_file_scope_region(&region_to_switch_back_to);
-        il_string_con = alloc_shareable_constant(string_con);
-        switch_back_to_original_region(region_to_switch_back_to);
-        new_expr = alloc_node_for_constant(il_string_con);
-        release_local_constant(&string_con);
-      }
-      break;
-    default:
-      unexpected_condition();
-  }  /* switch */
-  overwrite_node(expr, new_expr);
-}  /* lower_builtin_source_location */
-
-
 static void lower_builtin_function_call(an_expr_node_ptr expr)
 /*
 Called to potentially lower a builtin function call.  The expression is
@@ -13226,14 +13153,6 @@ an eok_call of a builtin function.  The expression has already been lowered.
   switch (routine->variant.builtin_function_kind) {
     case bfk_none:
       unexpected_condition();
-    case bfk_COLUMN:
-    case bfk_LINE:
-    case bfk_FILE:
-    case bfk_FUNCTION:
-      /* Lower these if they have not been handled by the front end. */
-      lower_builtin_source_location(routine->variant.builtin_function_kind,
-                                    expr);
-      break;
     case bfk_zero_non_value_bits:
       lower_builtin_zero_non_value_bits(expr);
       break;
