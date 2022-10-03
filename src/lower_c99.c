@@ -4712,7 +4712,7 @@ void lower_c99_nonreal_float_types(void)
 Replace the imaginary and complex C99 types by their lowered representations.
 */
 {
-  lower_c99_imaginary_type((a_float_kind)fk_float16, "_Imaginary_flat16");
+  lower_c99_imaginary_type((a_float_kind)fk_float16, "_Imaginary_float16");
   lower_c99_imaginary_type((a_float_kind)fk_float, "_Imaginary_float");
   lower_c99_imaginary_type((a_float_kind)fk_double, "_Imaginary_double");
   lower_c99_imaginary_type((a_float_kind)fk_long_double,

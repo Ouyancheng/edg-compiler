@@ -1553,8 +1553,8 @@ Otherwise, return FALSE.
 #if HOST_HAS_FLOAT16_TYPE || USE_SOFTFLOAT
   if (kind == fk_float16) {
     /* A 16-bit floating-point value. */
-    memcpy((char*)&fp_part, fp_bytes, sizeof(fp_part));
-    *biased_exp = (long)((fp_part & 0x7c) >> 11);
+    memcpy((char*)&fp_part, fp_bytes, 2);
+    *biased_exp = (long)((fp_part & 0x7c000000) >> 26);
   } else
 #endif /* HOST_HAS_FLOAT16_TYPE || USE_SOFTFLOAT */
   /* Do not insert code here. */

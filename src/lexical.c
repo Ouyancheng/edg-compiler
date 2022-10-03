@@ -11221,6 +11221,8 @@ end_float_accum:
     curr_char_loc++;
     if (extended_float_types || (float16_enabled &&
                                  !gpp_version_is(any_version))) {
+      /* Clang accepts the f16 and F16 suffixes in both C and C++, but g++
+         treats them as user-defined literal suffixes. */
       a_const_char *p = curr_char_loc;
       if (extended_float_types &&
           ((ch == 'b' && *p == 'f') || (ch == 'B' && *p== 'F')) &&

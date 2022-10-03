@@ -249,28 +249,29 @@ bits of the exponent, while EXP_LAST* applies to the byte containing the
 most-significant bits.  For example, the two most-significant bytes of a
 64-bit floating point number are:
 
-    seeeeeee eeeemmm
+    s e e e  e e e e    e e e e  m m m m
 
-where "s" is the sign bit, "e" are exponent bits, and "m" are mantissa bits.
-For this case, EXP_FIRST_BITS will be 4, reflecting the four least-significant
-bits of the exponent; EXP_FIRST_SHIFT will be 4, reflecting the number of
-mantissa bits that are not part of the exponent; and EXP_FIRST_MASK will be
-0xf0, to isolate the exponent bits. EXP_LAST_BITS will be 7, reflecting the
-seven most-significant bits of the exponent, and EXP_LAST_MASK will be 0x7f
-to mask off the sign bit.
+where "s" is the sign bit, "e" are exponent bits, and "m" are mantissa
+bits.  For this case, EXP_FIRST_BITS will be 4, reflecting the four
+least-significant bits of the exponent; EXP_FIRST_SHIFT will be 4,
+reflecting the number of mantissa bits that are not part of the exponent;
+and EXP_FIRST_MASK will be 0xf0, to isolate the exponent bits.
+EXP_LAST_BITS will be 7, reflecting the seven most-significant bits of the
+exponent, and EXP_LAST_MASK will be 0x7f to mask off the sign bit.
 
 When the exponent fits into a single byte, that byte includes the sign bit
 as the most significant.  For example, the most-significant byte of the
 _Float16 format is:
 
-    seeeeemm
+    s e e e  e e m m
 
-This layout is accommodated by the subtraction of EXP_SINGLE_BYTE in the
-calculation of the number of bits and shift count for the first byte,
-giving 5 instead of 6 exponent bits and a shift count of 2 instead of 3,
-with a mask of 0x7c.  Also, in this case, the functions for accessing the
-biased exponent will use only the first shift and mask; the values for the
-last bit count and mask will not be used, so their values are irrelevant.
+The inclusion of the sign bit is accommodated by the subtraction of
+EXP_SINGLE_BYTE in the calculation of the number of bits and shift count
+for the first byte, giving 5 instead of 6 exponent bits and a shift count
+of 2 instead of 3, with a mask of 0x7c.  Also, in this case, the functions
+for accessing the biased exponent will use only the first shift and mask;
+the values for the last bit count and mask will not be used, so their
+values are irrelevant.
 */
 #define EXP_FIRST_BITS      ((/*lint --e(506)*/FRAC_LAST_BITS == BYTE_SIZE ? \
                                               BYTE_SIZE : \
