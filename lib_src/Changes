@@ -1,3 +1,14 @@
+Version 6.4
+
+9/30/22  [EDGcpfe/20094,EDGcpfe/20264,EDGcpfe/25494]
+GNU/Clang compatibility: _Float16
+
+c99_complex.c has been updated to provide support for complex types based
+on the _Float16 16-bit floating-point type.  This code is only enabled when
+the host compiler supports the _Float16 type.
+
+
+-------------------------------------------------------------------------------
 Version 6.3, December 13, 2021
 
 11/4/21 [EDGcpfe/24816]

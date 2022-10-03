@@ -7354,6 +7354,7 @@ enum a_basic_type {
   bt_fract,
   bt_accum,
 #endif /* FIXED_POINT_ALLOWED */
+  bt_float16,
   bt_float,
   bt_double,
   bt_typedef,
@@ -7569,9 +7570,11 @@ unchanged.
     }  /* if */
   } else if (temp_type->kind == (a_type_kind)tk_float) {
     fkind = temp_type->variant.float_kind;
-    if (fkind == (a_float_kind)fk_float) {
+    if (fkind == fk_float16) {
+      basic_type = bt_float16;
+    } else if (fkind == fk_float) {
       basic_type = bt_float;
-    } else if (fkind == (a_float_kind)fk_double) {
+    } else if (fkind == fk_double) {
       basic_type = bt_double;
     }  /* if */
   }  /* if */
@@ -7854,13 +7857,16 @@ _Sat was specified.
       }  /* if */
       break;
 #endif /* FIXED_POINT_ALLOWED */
+    case bt_float16:
     case bt_float:
     case bt_double:
       if (sign != sign_none || (size != size_none && size != size_long)) {
         bad_combination = TRUE;
       } else {
         if (size == size_none) {
-          if (basic_type == bt_float) {
+          if (basic_type == bt_float16) {
+            fkind = fk_float16;
+          } else if (basic_type == bt_float) {
             /* float. */
             fkind = (a_float_kind)fk_float;
           } else {
@@ -12504,7 +12510,8 @@ exit_loop:
         basic_type != bt_float && basic_type != bt_double) {
       /* _Complex and _Imaginary usually require "float" or "double".  GNU C
          mode is an exception: If no type specifier is mentioned, "double" is
-         implied. */
+         implied.  In some GNU and clang versions, "_Float16" is also
+         accepted. */
       a_boolean  bad_complex_combination = TRUE;
       if (basic_type == bt_none) {
         /* No basic type was specified: Okay in GNU C mode, an error
@@ -12515,6 +12522,13 @@ exit_loop:
         } else {
           pos_error(ec_missing_floating_point_type, &error_position);
         }  /* if */
+      } else if (basic_type == bt_typedef &&
+                 (*type_ptr)->variant.typeref.predeclared &&
+                 type_is(skip_typerefs(*type_ptr), tk_float) &&
+                 skip_typerefs(*type_ptr)->variant.float_kind == fk_float16) {
+        /* _Complex _Float16 */
+        basic_type = bt_float16;
+        bad_complex_combination = FALSE;
       } else {
         /* An invalid type was specified as the basic type for an
            "_Imaginary" or "_Complex". */

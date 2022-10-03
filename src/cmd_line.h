@@ -2369,7 +2369,8 @@ EXTERN a_boolean
 
 EXTERN a_boolean
 		float16_enabled;
-			/* TRUE if _Float16 is enabled. */
+			/* TRUE if the front end supports the _Float16
+			   type. */
 
 EXTERN a_boolean
 		float80_enabled;
