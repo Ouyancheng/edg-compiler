@@ -3302,7 +3302,7 @@ is deferred until the first use of the routine.  But in some modes the
 fixup is further postponed until the end of the translation unit.  This
 routine is called by add_to_deferred_friend_function_fixup_list in the
 former case and by process_deferred_friend_fixup list in the latter.
-This routine is also used for Microsoft in-class member function template
+This routine is also used for in-class member function template
 specializations.
 */
 {
@@ -3419,8 +3419,8 @@ void add_to_deferred_friend_function_fixup_list(a_routine_fixup_ptr	rfp)
 When deferring the fixup of friend functions, this routine is called when
 a friend function defined in a class template is first used.  This either
 does the fixup of the routine or adds it to a list of fixups to be done at
-the end of the translation unit.  This routine is also used for Microsoft
-in-class member function template specializations.
+the end of the translation unit.  This routine is also used for in-class
+member function template specializations.
 */
 {
   a_routine_ptr                rp = rfp->symbol->variant.routine.ptr;
@@ -3695,14 +3695,11 @@ nested class.
                    (is_friend || rfp->is_specialization ||
                     (microsoft_mode && in_class_specialization))) {
           /* During class prototype instantiations when not doing function
-             prototype instantiations, friend definitions and Microsoft mode
-             specializations are just discarded.  The rfp->is_specialization
-             handles the case of a function specialized in a class,
-             in_class_specialization handles a member function of a class
-             that is specialized in-class.  In-class specializations are
-             allowed in Microsoft and Sun mode but the Sun compiler does do
-             analysis of members of in-class specializations even without a
-             use. */
+             prototype instantiations, friend definitions and, in Microsoft
+             mode, in-class specializations are just discarded.  The
+             rfp->is_specialization handles the case of a function
+             specialized in a class, in_class_specialization handles a
+             member function of a class that is specialized in-class. */
           discard_token_cache(&rfp->function_body_token_cache);
         } else if (defer_friend_instantiation &&
                    is_real_template_instantiation &&
@@ -3712,17 +3709,17 @@ nested class.
                    (is_friend || rfp->is_specialization ||
                     in_class_specialization)) {
           /* In some modes friend functions defined in a class template
-             are treated  much like a member function of such a class.
-             The body is only processed if needed.  This special treatment
-             is also extended to Microsoft mode specializations that are
-             defined within the class.  Note that this processing is only
-             needed for friends and specializations declared within class
-             templates, not for declarations in normal classes.  The
-             rfp->is_specialization handles the case of a function
-             specialized in a class, in_class_pecialization handles a
-             member function of a class that is specialized in-class.
-             If a friend function has already been referenced, handle the
-             fixup now so that the definition will be generated. */
+             are treated much like a member function of such a class.  The
+             body is only processed if needed.  This special treatment is
+             also extended to specializations that are defined within the
+             class.  Note that this processing is only needed for friends
+             and specializations declared within class templates, not for
+             declarations in normal classes.  The rfp->is_specialization
+             handles the case of a function specialized in a class,
+             in_class_specialization handles a member function of a class
+             that is specialized in-class.  If a friend function has
+             already been referenced, handle the fixup now so that the
+             definition will be generated. */
           if (!sym->variant.routine.ptr->defined) {
             defer_routine_fixup_until_use(rfp);
             /* Set rfp to NULL to prevent it from being freed below. */
@@ -16143,9 +16140,9 @@ implicitly declared member functions.
              class_state->is_generic_definition) {
     /* This symbol represents a member function of a prototype instantiation
        of a class template.  As such it is a quasi function template itself.
-       Set it up to look like that.  Microsoft/Sun in-class specializations
-       that appear in class templates are prototype instantiations, but their
-       members should not be considered templates. */
+       Set it up to look like that.  In-class specializations that appear in
+       class templates are prototype instantiations, but their members should
+       not be considered templates. */
     if (class_type->variant.class_struct_union.is_in_class_specialization) {
       rtn->is_prototype_instantiation = TRUE;
     } else {
@@ -32272,10 +32269,7 @@ classes.
          an instantiation of a local class type, so the resulting class
          is "nonreal" (i.e., based on template arguments that include
          the dummy types and constants of template parameters rather than
-         real types and constants).  The in_class_specialization test
-         detects classes nested within a Microsoft/Sun in-class
-         specialization.   Note that for nested classes the flag is set
-         later. */
+         real types and constants). */
       if (scope_stack_top().in_prototype_instantiation) {
         class_state.is_nonreal_instantiation = TRUE;
         class_type->variant.class_struct_union.is_nonreal_class = TRUE;
@@ -32293,8 +32287,7 @@ classes.
     } else if (class_type->variant.class_struct_union.is_nonreal_class) {
       /* A nonreal class, but not a prototype instantiation.  This can
          occur when an in-class specialization occurs in a prototype
-         instantiation.  Such specializations are only allowed in Microsoft
-         mode, but may still occur (with an error) in other modes. */
+         instantiation. */
       class_state.is_nonreal_instantiation = TRUE;
       if (tag_sym->is_class_member &&
           sym_parent_class(tag_sym)->

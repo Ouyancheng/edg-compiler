@@ -2635,6 +2635,7 @@ Clear the fields of the given variable to default values.
   vp->extends_lifetime            = FALSE;
   vp->is_template_param_object    = FALSE;
   vp->compiler_generated          = FALSE;
+  vp->is_in_class_specialization  = FALSE;
   vp->init_kind                   = (an_init_kind)initk_none;
   /* One of the variant fields, chosen arbitrarily, is initialized. */
   vp->initializer.constant        = NULL;

@@ -1168,8 +1168,8 @@ EXTERN a_boolean
 
 EXTERN a_boolean
 		allow_in_class_specializations;
-			/* TRUE if Microsoft and Sun in-class specializations
-			   should be allowed. */
+			/* TRUE if in-class specializations should be
+			   allowed. */
 
 EXTERN a_boolean
 		allow_in_class_instantiations;

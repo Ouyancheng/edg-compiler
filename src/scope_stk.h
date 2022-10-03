@@ -1923,18 +1923,18 @@ is_template_dependent_context, but excludes nonreal instantiations.
 
 /*
 TRUE if we are in a template prototype instantiation context but not
-in the context of a class specialization.  This excludes Microsoft
-in-class specializations within prototype instantiations.  Note that
-this is FALSE for template declaration contexts.
+in the context of a class specialization.  This excludes in-class
+specializations within prototype instantiations.  Note that this is
+FALSE for template declaration contexts.
 */
 #define is_nonspecialized_prototype_instantiation_context()		\
    (scope_stack[depth_scope_stack].in_prototype_instantiation &&	\
    !scope_stack[depth_scope_stack].in_class_specialization)
 
 /*
-TRUE if we are in a Microsoft in-class specialization.
+TRUE if we are in an in-class specialization.
 */
-#define is_microsoft_in_class_specialization_context()		\
+#define is_in_class_specialization_context()				\
   (scope_stack[depth_scope_stack].in_class_specialization)
 
 /*

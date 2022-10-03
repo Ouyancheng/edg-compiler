@@ -1,5 +1,20 @@
 Version 6.4
 
+10/3/22  [EDGcpfe/20952,EDGcpfe/21043,EDGcpfe/23601,EDGcpfe/23971,
+          EDGcpfe/24086,EDGcpfe/24563]
+Support for in-class explicit template specializations
+
+The resolution of Core issue 727 allows explicit template specializations to
+also be declared in class scope (previously, this was only allowed in Microsoft
+and Sun modes).  Because it was adopted as a defect report, the new rules apply
+to all C++ versions.  For example, with --c++03 --strict:
+
+  struct C {
+    template<class T> struct B { };
+    template<> struct B<void> { };  // Previously an error.  Now okay.
+  };
+
+
 10/3/22  [EDGcpfe/23505]
 Microsoft compatibility: Static data member specialization declaration
 

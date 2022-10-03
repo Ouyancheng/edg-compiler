@@ -9785,9 +9785,8 @@ typedef struct a_type {
 		is_in_class_specialization:1;
 			/* TRUE if this is a specialized template instance
 			   and the specialization was declared within the
-			   enclosing class using the Microsoft/Sun in-class
-			   specialization syntax.  Also true for classes
-			   nested within an in-class specialization */
+			   enclosing class.  Also true for classes nested
+			   within an in-class specialization */
       a_bit_field
 		explicitly_instantiated:1;
 			/* TRUE if this class was referenced in an explicit
@@ -10933,6 +10932,10 @@ typedef struct a_variable {
 			/* TRUE if this is a compiler-generated variable
 			   (currently only set for the variables created for
 			   __func__ and similar tokens). */
+  a_bit_field	is_in_class_specialization:1;
+			/* TRUE if this is a specialized template instance
+			   and the specialization was declared within the
+			   enclosing class. */
   an_init_kind	init_kind;
 			/* Kind of initialization, if any.
 			   When init_kind == initk_function_local (local
@@ -11693,8 +11696,7 @@ typedef struct a_routine {
   a_bit_field	is_in_class_specialization:1;
 			/* TRUE if this is a specialized template instance
 			   and the specialization was declared within the
-			   enclosing class using the Microsoft/Sun in-class
-			   specialization syntax. */
+			   enclosing class. */
   a_bit_field	explicit_instantiation:1;
 			/* TRUE if an instantiation has been explicitly
 			   requested using an explicit instantiation directive

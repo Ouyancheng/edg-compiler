@@ -2729,8 +2729,6 @@ option values if they were not already set by a command line option.
        accepted for all values of microsoft_version. */
     extended_friends_enabled = TRUE;
     extern_template_allowed = TRUE;
-    /* In-class specializations are supported. */
-    allow_in_class_specializations = TRUE;
     /* Qualifying with an enum type is enabled in Microsoft C++ mode, but if
        microsoft_version < 1400, an error is issued if the enumeration is not
        a class member. */
@@ -4839,8 +4837,6 @@ checked again here.)
      compiler with respect to making template parameters visible in
      specializations. */
   use_microsoft_specialization_scope = TRUE;
-  /* In-class specializations are supported. */
-  allow_in_class_specializations = TRUE;
   allow_default_arg_on_template_member_definition = TRUE;
   type_keyword_in_dtor_allowed = TRUE;
   if (!option_kind_used[(int)optk_type_traits_helpers]) {
@@ -5454,6 +5450,8 @@ before this routine is called.
     /* All versions of clang appear to accept attributes on enumerators. */
     enumerator_attributes_enabled = TRUE;
     attributes_on_using_declarations = TRUE;
+    /* Clang 7 and later allow in-class explicit specializations. */
+    allow_in_class_specializations = clang_version >= 70000;
     if (cpp11_mode) {
       /* Clang enables terse static assert (with a warning) in C++11 mode. */
       terse_static_assert_enabled = TRUE;
@@ -5518,6 +5516,8 @@ before this routine is called.
     register_is_deprecated = FALSE;
     register_is_disallowed = FALSE;
     operator_bool_increment_allowed = TRUE;
+    /* g++ (12.1) does not yet allow in-class explicit specializations. */
+    allow_in_class_specializations = FALSE;
     if (gnu_version >= 90000) {
       nested_inline_namespace_definitions_enabled = TRUE;
       /* Accepted with a warning in pre-C++20 modes. */
@@ -12544,7 +12544,9 @@ variables declared in cmd_line.h.
   special_subscript_cost = DEFAULT_SPECIAL_SUBSCRIPT_COST;
   long_preserving_rules = DEFAULT_LONG_PRESERVING_RULES;
   type_keyword_in_dtor_allowed = FALSE;
-  allow_in_class_specializations = FALSE;
+  /* Core issue 727 added in-class explicit specializations, adopted for the
+     C++17 Standard and as a Defect Report against previous versions. */
+  allow_in_class_specializations = TRUE;
   allow_in_class_instantiations = FALSE;
   record_form_of_name_reference = DEFAULT_RECORD_FORM_OF_NAME_REFERENCE;
   defs_from_cmd_line = NULL;

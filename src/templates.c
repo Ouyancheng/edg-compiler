@@ -13538,9 +13538,13 @@ points to the template parameter list.
                   /* They are both NULL, this is a match. */
                   match = TRUE;
                 } else if (ttp == NULL) {
-                  /* The template type is NULL and the other type is not.
-                     This is not a match. */
-                  match = FALSE;
+                  /* The template type is NULL.  This is a match when the
+                     unknown this class flag is set (i.e., in declaration
+                     matching for in-class explicit specializations where the
+                     primary template is a static member function).  Note that
+                     old Microsoft versions fail to match these cases. */
+                  match = !ms_version_is(<=1300) &&
+                          (flags & MTT_UNKNOWN_THIS_CLASS_TYPE) != 0;
                 } else { /* tp == NULL */
                   /* The template type is not NULL.  This is a match when
                      the unknown this class flag is set (i.e., in declaration
@@ -31658,8 +31662,7 @@ issued.
   if (is_template) depth++;
   if (decl_state->is_member_decl && !decl_state->is_template_friend) {
     /* If this declaration appears within a class, don't count the enclosing
-       classes.  This should only occur in Microsoft mode when an explicit
-       specialization appears within a class definition. */
+       classes. */
   } else {
     /* Check the parent classes.  Stop if we find a parent class that is
        specialized. */
@@ -31768,9 +31771,9 @@ static void cache_inclass_specialization_definition(
                                           a_func_info_block      *func_info)
 /*
 The current token starts a function definition for an explicit specialization
-appearing in class scope (a Microsoft extension).  Cache that definition and
-create a corresponding routine fixup to scan the definition after the class is
-completed.  The closing brace is left for the caller to consume.
+appearing in class scope.  Cache that definition and create a corresponding
+routine fixup to scan the definition after the class is completed.  The closing
+brace is left for the caller to consume.
 */
 {
   a_decl_parse_state  *dps = decl_state->decl_parse;
@@ -31910,12 +31913,12 @@ that follows.
   dso_flags = dps->dso_flags;
   /* Issue a diagnostic if there are any unapplied pragmas at this point. */
   cannot_bind_to_curr_construct();
-  if (!decl_state->decl_scope_err &&
-      (dps->declared_storage_class != (a_storage_class)sc_unspecified ||
-       dso_flags & (DSO_STORAGE_CLASS_SPECIFIERS))) {
-    /* Some storage-class-specifier was specified; see if it should be
-       allowed. */
-    if (dso_flags & DSO_MUTABLE) {
+  if (!decl_state->decl_scope_err) {
+    if ((dso_flags & DSO_FRIEND) && !ms_version_is(<1500)) {
+      /* The Microsoft compiler allows friend declarations in explicit
+         specialization declarations prior to version 1500. */
+      pos_error(ec_explicit_specialization_friend, &dps->specifiers_pos);
+    } else if (dso_flags & DSO_MUTABLE) {
       /* mutable is never allowed here. */
       pos_error(ec_mutable_not_allowed, &dps->storage_class_pos);
     }  /* if */
@@ -31924,21 +31927,6 @@ that follows.
          storage-class-specifier) isn't allowed on a specialization, but
          existing practice is to allow it (and verify that it matches
          the previous declaration if applied to a static data member). */
-    }  /* if */
-    if (dps->declared_storage_class != (a_storage_class)sc_unspecified) {
-      /* Storage-class-specifier is non-standard, but allowed in some modes. */
-      an_error_severity	severity = es_discretionary_error;
-      if ((gpp_mode && gnu_version < 40300) || ms_compat) {
-        /* Accepted, but worth a remark. */
-        severity = es_remark;
-      }  /* if */
-      pos_diagnostic(severity, ec_storage_class_not_allowed_in_specialization,
-                     &dps->storage_class_pos);
-      if (is_effective_error(ec_storage_class_not_allowed_in_specialization,
-                             severity, &dps->storage_class_pos)) {
-        /* Ignore any specified storage class. */
-        dps->storage_class = (a_storage_class)sc_unspecified;
-      }  /* if */
     }  /* if */
   }  /* if */
   if (dps->type == NULL ||
@@ -31958,6 +31946,14 @@ that follows.
     check_pending_qualifiers_used(dps);
     sym = symbol_for(dps->type);
     check_assertion(sym != NULL);
+    if (!decl_state->decl_scope_err &&
+        dps->declared_storage_class != (a_storage_class)sc_unspecified) {
+      /* A storage-class-specifier is never allowed for class template
+         specializations. */
+      pos_diagnostic(es_discretionary_error,
+                     ec_storage_class_not_allowed_in_specialization,
+                     &dps->storage_class_pos);
+    }
     if (!is_any_template_instance_class_symbol(sym) &&
         !is_any_template_enum_symbol(sym)) {
       /* Not a template instance. */
@@ -32033,16 +32029,11 @@ that follows.
                DI_OPERATOR_NAME_ALLOWED;
     if (decl_state->is_member_decl) {
       if (dso_flags & DSO_CONSTRUCTOR) {
-        /* If this is a Microsoft mode specialization in a class context, and
+        /* If this is an explicit specialization in a class context, and
            decl_specifiers returned a constructor flag, pass the constructor
            flag into declarator.  This flag can only be set when a parent class
            type is provided to declarator. */
         di_flags |= DI_IS_CONSTRUCTOR;
-      } else if (dps->storage_class != (a_storage_class)sc_static &&
-                 (dso_flags & DSO_FRIEND) == 0) {
-        /* A Microsoft in-class specialization should be considered a
-           nonstatic member so that qualifiers will be accepted. */
-        di_flags |= DI_NONSTATIC_MEMBER;
       }  /* if */
     }  /* if */
     if (!(dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER) &&
@@ -32085,8 +32076,27 @@ that follows.
                    locator.symbol_header->identifier);
     } else {
       sym = check_specialization_projection_symbol(sym, &locator);
+      if (dps->declared_storage_class != (a_storage_class)sc_unspecified) {
+        /* Storage-class-specifier is non-standard, but allowed in some
+           modes. */
+        an_error_severity	severity = es_discretionary_error;
+        if ((gpp_mode && gnu_version < 40300) || ms_compat ||
+            (clang_mode && (symbol_is(sym, sk_static_data_member) ||
+                            symbol_is(sym, sk_variable)))) {
+          /* Accepted, but worth a remark. */
+          severity = es_remark;
+        }  /* if */
+        pos_diagnostic(severity,
+                       ec_storage_class_not_allowed_in_specialization,
+                       &dps->storage_class_pos);
+        if (is_effective_error(ec_storage_class_not_allowed_in_specialization,
+                               severity, &dps->storage_class_pos)) {
+          /* Ignore any specified storage class. */
+          dps->storage_class = (a_storage_class)sc_unspecified;
+        }  /* if */
+      }  /* if */
       if (is_function_type(dps->type) && is_function_or_template_symbol(sym)) {
-        if (ms_extensions && decl_state->class_declared_in != NULL &&
+        if (decl_state->class_declared_in != NULL &&
             decl_state->class_declared_in
                     ->variant.class_struct_union.is_prototype_instantiation) {
           /* An in-class explicit specialization during a prototype
@@ -32105,7 +32115,7 @@ that follows.
                            decl_state->is_template_friend, /*expl_spec=*/TRUE,
                            &locator, dps, &func_info, &decl_pos_block);
           if (dps->is_definition) {
-            /* A Microsoft mode specialization that appears in a class context.
+            /* An explicit specialization that appears in a class context.
                Cache the function body now and scan it later during the class
                fixup process. */
             cache_inclass_specialization_definition(decl_state, &func_info);
@@ -32228,9 +32238,9 @@ that follows.
         a_boolean	err = FALSE;
         a_boolean	make_gpp_warning = FALSE;
         if (!sym_is_class_or_namespace_member(sym)) {
-          /* A global scope symbol.  This is allowed only if this is
-             a Microsoft or Sun in-class specialization. */
-          err = !allow_in_class_specializations || !decl_state->is_member_decl;
+          /* A global scope symbol.  This is allowed only for friend
+             declarations by MSVC versions up to 1400. */
+          err = !ms_version_is(<=1400) || !decl_state->is_template_friend;
         } else if (!namespace_is_enclosed_by_curr_scope(sym)) {
           /* A class or namespace member being specialized outside of its
              namespace. */
@@ -32288,7 +32298,6 @@ that follows.
           symbol_is(sym, sk_variable)) {
         vp = variable_for_symbol(sym);
         scp = &vp->source_corresp;
-        already_specialized = vp->is_specialized;
         /* Update the variable type if needed: The specialization may have
            more detailed type information than the in-class declaration (e.g.,
            an array bound). */
@@ -32307,7 +32316,18 @@ that follows.
         if (symbol_is(sym, sk_variable)) {
           update_variable_decl_info(vp, dps, dps->is_definition);
         }  /* if */
-        if (!already_specialized && sym->defined) {
+        if (dps->is_definition && !dps->in_class_scope &&
+            (decl_state->specialization_levels > 1) &&
+            vp->is_specialized && vp->is_in_class_specialization) {
+          /* An in-class explicit specialization declared in a class template
+             can be further specialized by an out-of-class definition. */
+          vp->is_in_class_specialization = FALSE;
+          vp->is_inline = FALSE;
+          already_specialized = FALSE;
+        } else {
+          already_specialized = vp->is_specialized;
+        }
+        if (!already_specialized) {
           /* For a static data member, the instantiation of the enclosing class
              might have cause symbol to be marked as "defined" because it has
              an in-class initializer (in C++17 modes).  However, the explicit
@@ -32320,7 +32340,6 @@ that follows.
                         sym->kind == (a_symbol_kind)sk_member_function);
         rp = sym->variant.routine.ptr;
         scp = &rp->source_corresp;
-        already_specialized = rp->is_specialized;
         is_constructor = is_constructor_symbol(sym);
         /* Check for "= delete" or "= default".  Note that "default" is a
            context-sensitive keyword in some Microsoft modes. */
@@ -32332,6 +32351,26 @@ that follows.
             func_info.is_deleted = TRUE;
           }  /* if */
         }  /* if */
+        dps->is_definition = (curr_token == tok_lbrace ||
+                              curr_token == tok_try ||
+                              (curr_token == tok_colon && is_constructor) ||
+                              func_info.is_deleted || func_info.is_defaulted);
+        if (dps->is_definition && !dps->in_class_scope &&
+            (decl_state->specialization_levels > 1) &&
+            rp->is_specialized && rp->is_in_class_specialization &&
+            !rp->defined) {
+          /* An in-class explicit specialization declared in a class template
+             can be further specialized by an out-of-class definition. */
+          rp->is_in_class_specialization = FALSE;
+          rp->is_inline = FALSE;
+          sym->defined = FALSE;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+          rp->declared_type = NULL;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+          already_specialized = FALSE;
+        } else {
+          already_specialized = rp->is_specialized;
+        }
         if (rp->is_deleted && !already_specialized) {
           /* The template was declared "= delete".  Clear the flag and mark
              the specialization as not defined. */
@@ -32342,10 +32381,6 @@ that follows.
           rp->declared_type = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
         }  /* if */
-        dps->is_definition = (curr_token == tok_lbrace ||
-                              curr_token == tok_try ||
-                              (curr_token == tok_colon && is_constructor) ||
-                              func_info.is_deleted || func_info.is_defaulted);
       }  /* if */
       dps->first_decl = !already_specialized;
 #if GENERATE_SOURCE_SEQUENCE_LISTS || EXTRA_SOURCE_POSITIONS_IN_IL
@@ -32500,6 +32535,9 @@ that follows.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
         check_assertion(vp != NULL);
         vp->is_specialized = TRUE;
+        if (dps->in_class_scope) {
+          vp->is_in_class_specialization = TRUE;
+        }
         if (dso_flags & DSO_INLINE) {
           if (accept_inline_variables(&dps->inline_pos)) {
             vp->is_inline = TRUE;
@@ -32644,7 +32682,7 @@ that follows.
                  combined effect is that the definition is moved outside the
                  enclosing class).  In fact, since this is a specialization,
                  it must be an in-class specialization of a member function
-                 template (a Microsoft extension). */
+                 template. */
               (void)update_src_seq_secondary_decl(
                                           (char *)rp, declared_type, name_ref,
                                           flags, &decl_pos_block);
@@ -32843,7 +32881,7 @@ that follows.
             /* Leave it to the caller to advance past the final semicolon. */
             *(decl_state->final_token_ptr) = tok_semicolon;
           } else if (decl_state->is_member_decl) {
-            /* A Microsoft mode specialization that appears in a class context.
+            /* An explicit specialization that appears in a class context.
                Cache the function body now and scan it later during the class
                fixup process. */
             cache_inclass_specialization_definition(decl_state, &func_info);
@@ -32852,12 +32890,11 @@ that follows.
             keep_func_info = TRUE;
             /* An in-class specialization is implicitly inline. */
             set_inline_flag(rp, TRUE);
-            /* Determine if this is a copy constructor.  If so, set the class
-               symbol supplement flags appropriately.  Note that in-class
-               specializations are only permitted in Microsoft mode, so
-               a specialization can only be considered a copy constructor
-               in Microsoft mode too. */
-            if (is_constructor_symbol(sym)) {
+            /* Determine if this is a copy constructor (a specialization can
+               only be considered a copy constructor in Microsoft versions
+               prior to 1400).  If so, set the class symbol supplement flags
+               appropriately. */
+            if (ms_version_is(<1400) && is_constructor_symbol(sym)) {
               check_member_decl_is_copy_constructor(
                                          rp, decl_state->class_declared_in,
                                          /*compiler_generated=*/FALSE);
@@ -34266,7 +34303,7 @@ of the "auto" parameters.
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (decl_state->is_specialization) {
-    /* A specialization declaration is only permitted in a namespace scope. */
+    /* A specialization declaration is permitted in a namespace scope. */
     a_scope_stack_entry_ptr ssep = scope_stack_entry_for(orig_depth);
     if ((ssep->kind == (a_scope_kind)sck_file ||
         ssep->kind == (a_scope_kind)sck_namespace ||
@@ -34274,7 +34311,8 @@ of the "auto" parameters.
       /* A valid template specialization scope. */
     } else if (ssep->kind == (a_scope_kind)sck_class_struct_union &&
                allow_in_class_specializations) {
-      /* Microsoft and Sun permit specializations to appear in class scopes. */
+      /* Core issue 727 permits specializations to also appear in class
+         scopes. */
     } else {
       if (!decl_state->decl_scope_err) {
         pos_error(ec_explicit_specialization_not_in_namespace_scope,

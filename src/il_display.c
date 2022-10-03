@@ -2980,6 +2980,9 @@ Display the indicated variable.
   if (ptr->compiler_generated) {
     disp_boolean("compiler_generated", TRUE);
   }  /* if */
+  if (ptr->is_in_class_specialization) {
+    disp_boolean("is_in_class_specialization", TRUE);
+  }  /* if */
   disp_initializer(ptr->init_kind, &ptr->initializer,
                    ptr->is_member_constant);
   if (ptr->entities_defined_in_initializer != NULL) {

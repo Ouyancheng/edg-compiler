@@ -1552,16 +1552,16 @@ declaration on which the exception specification appears.
              (is_inclass_member_function_decl ||
               is_template_dependent_context() ||
               is_nonspecialized_instantiation_context()) &&
-             !is_microsoft_in_class_specialization_context() &&
+             !is_in_class_specialization_context() &&
              !is_local_decl) {
     /* For top-level declarators in template-dependent contexts, just cache
        the specifier argument for now.  Also create a corresponding template
-       cache segment to extract the tokens later on.  Microsoft in-class
-       specializations are handled differently than other template members,
-       so a template cache segment should not be created.  A friend template
-       function declaration should not have a template cache segment created
-       because for that case we want to rescan the noexcept for the individual
-       friend declarations. */
+       cache segment to extract the tokens later on.  In-class specializations
+       are handled differently than other template members, so a template
+       cache segment should not be created.  A friend template function
+       declaration should not have a template cache segment created because
+       for that case we want to rescan the noexcept for the individual friend
+       declarations. */
     a_token_set_array             stop_tokens;
     a_token_sequence_number       first_tsn, last_tsn;
     /* The caller ensured that an exception specification entry was
@@ -6333,7 +6333,7 @@ declared entity is known to not be a function.
   }  /* if */
   if (*p_member_parent_type != NULL && (input_flags & DI_IS_SPECIALIZATION)) {
     /* When a member parent type is provided and the specialization flag is
-       set, this must be a Microsoft mode in-class specialization. */
+       set, this must be an in-class specialization. */
     is_in_class_specialization = TRUE;
   }  /* if */
   if (is_generalized_identifier_start(GID_DTOR_RECOGNIZED) &&
@@ -8747,7 +8747,7 @@ the parameters.
       member_parent_type = NULL;
       input_flags |= DI_IS_FRIEND_DECL;
     } else if (!C_mode() &&
-               state->declared_storage_class != (a_storage_class)sc_static) {
+               state->storage_class != (a_storage_class)sc_static) {
       /* The storage class "static" was not specified and this is a member
          declaration that is not a friend declaration, therefore, if this
          is a member function declaration, it will be a nonstatic member

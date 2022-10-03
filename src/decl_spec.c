@@ -12221,18 +12221,6 @@ operator_or_conversion_name:
                  };
                Errors for both are issued in declarator. */
           }  /* if */
-        } else if (locator_for_curr_id.is_operator_name &&
-                   is_member_decl && !(decl_specifiers_seen & DS_FRIEND)) {
-          if (is_new_operator(locator_for_curr_id.variant.opname) ||
-              is_delete_operator(locator_for_curr_id.variant.opname)) {
-            /* We are inside a class definition, so an operator new or
-               operator delete function is automatically treated as a
-               static member function, even if "static" is not explicitly
-               specified. */
-            if (*storage_class == (a_storage_class)sc_unspecified) {
-              *storage_class = (a_storage_class)sc_static;
-            }  /* if */
-          }  /* if */
         }  /* if */
         if (!err && !decl_specifiers_seen) {
           *output_flags |= DSO_NO_DECL_SPECIFIERS;

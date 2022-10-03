@@ -1741,7 +1741,7 @@ function or member function template is considered "generated", but a member
 of a class template is not.  (The point is that "generated" routines do not
 always appear in the same order on the routines list of a class scope.  Hence
 explicit member template specializations are also considered to be "generated"
-except for the Microsoft/Sun extension of an in-class specialization.)
+except for in-class specialization.)
 */
 {
   while (routine != NULL && (

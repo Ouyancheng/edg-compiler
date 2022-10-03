@@ -25128,7 +25128,7 @@ routine as actually referenced.
   /* In some modes, friend functions defined in class templates are
      only analyzed if they are used.  A non-NULL routine_fixup pointer
      indicates that the definition has not yet been processed.  This special
-     treatment is also extended to Microsoft mode specializations that are
+     treatment is also extended to explicit specializations that are
      defined within a class. */
   if (routine->routine_fixup != NULL) {
     add_to_deferred_friend_function_fixup_list(routine->routine_fixup);
