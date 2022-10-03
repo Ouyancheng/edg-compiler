@@ -259,10 +259,15 @@ to be kept sorted).
 EXTERN a_builtin_user_descr builtin_user_table[]
 #if VAR_INITIALIZERS
 = {
-  /* Support for std::source_location.  This built-in is expected to
-     appear in GCC 10.1 and likely soon in other versions as well. */
+  /* GCC 10.x (and more generally, libstdc++) implements std::source_location
+     using an intrinsic function __builtin_source_location.  Clang implements
+     this slightly differently relying on a builtin with an explicit return
+     type.  For implicit compatibility with libstdc++, EDG uses the GCC void*
+     version of this builtin when not in Clang compatibility mode. */
   { "__builtin_source_location", "L+(150000-)g+(100000-)s+(202002-)",
-    "void* () __edg_throw__()", bufk_source_location },
+    "void* ()", bufk_source_location },
+  { "__builtin_source_location", "L+(150000-)",
+    "std::source_location::__impl* ()", bufk_source_location },
 
   /* GCC 9.x implements std::is_constexpr_evaluated using an intrinsic function
      __builtin_is_constexpr_evaluated.  We accept it in all modes, but the
