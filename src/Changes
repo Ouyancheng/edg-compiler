@@ -11,8 +11,8 @@ original operator.  This incorrect precedence sometimes resulted in the
 expression being put out without needed parentheses.  This is now fixed.
 
 
-10/3/22  [EDGcpfe/20952,EDGcpfe/21043,EDGcpfe/23601,EDGcpfe/23971,
-          EDGcpfe/24086,EDGcpfe/24563]
+10/3/22  [EDGcpfe/20952,EDGcpfe/21043,EDGcpfe/23601,EDGcpfe/23732,
+          EDGcpfe/23971,EDGcpfe/24086,EDGcpfe/24563]
 Support for in-class explicit template specializations
 
 The resolution of Core issue 727 allows explicit template specializations to
