@@ -1882,6 +1882,12 @@ in C11).
 #define c18_mode (C_mode() && std_version >= 201710)
 
 /*
+Macro that is TRUE when the front end should accept language features defined
+by the C23 standard or later C standards.
+*/
+#define c23_mode (C_mode() && std_version >= 202301)
+
+/*
 Flag that is TRUE if the C99 and C++ (beginning with C++11) predefined
 macro __STDC_HOSTED__ should be set to 1 to indicate a hosted
 implementation.  If it is FALSE, the macro is predefined to 0 to indicate a

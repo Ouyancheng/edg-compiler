@@ -1623,10 +1623,16 @@ of lambda expressions.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     if (func_info->any_prototype_names_omitted) {
       /* New-style (function prototype) for which at least one of the param
-         names was omitted in the prototype.  In C this is not valid on a
-         function definition; in C++ it's okay (see ARM 8.2.5, 8.3). */
-      if (C_mode()) {
-        diagnostic(es_discretionary_error, ec_all_proto_params_must_be_named);
+         names was omitted in the prototype.  In C this is not valid prior to
+         C23 on a function definition; in C++ it's okay. */
+      if (C_mode() && !c23_mode) {
+        /* In anticipation of C23, some versions of GCC and Clang accept such
+           unnamed parameters in all C modes. */
+        an_error_severity  sev = es_discretionary_error;
+        if (gcc_version_is(>= 110000) || clangc_version_is(>= 110000)) {
+          sev = es_warning;
+        }  /* if */
+        diagnostic(sev, ec_all_proto_params_must_be_named);
       }  /* if */
     }  /* if */
     if (f_xref_info != NULL) {
