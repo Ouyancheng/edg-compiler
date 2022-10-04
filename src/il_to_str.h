@@ -612,10 +612,11 @@ extern void il_to_str_init(void);
 
 EXTERN a_boolean
 		gen_edg_special_types;
-			/* If TRUE, use the __edg_vector_type__ keyword to
-			   render vector types (instead of a GNU attribute)
-			   and __edg_fp16__ rather than its underlying
-			   type.  Used when generating the builtin table. */
+			/* If TRUE, the front end is being used during the
+                           building of the builtin table.  In this mode
+                           certain features are enabled and some keywords
+                           are accepted (e.g., __edg_vector_type,
+                           __edg_fp16__). */
 
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE

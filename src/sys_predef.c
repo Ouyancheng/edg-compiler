@@ -513,10 +513,14 @@ returned an error is issued (only if issue_error is TRUE).
           break;
         case 'h':
           /* __fp16 is not currently implemented. */
-          if (issue_error) {
-            pos_error(ec_builtin_needs_fp16, &pos_curr_token);
+          if (float16_enabled) {
+            /* Okay. */
+          } else {
+            if (issue_error) {
+              pos_error(ec_builtin_needs_fp16, &pos_curr_token);
+            }  /* if */
+            result = FALSE;
           }  /* if */
-          result = FALSE;
           break;
         case 'i':
           /* Ensure that 128-bit integers are configured and enabled. */
