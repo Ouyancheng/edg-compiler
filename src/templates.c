@@ -32077,13 +32077,21 @@ that follows.
     } else {
       sym = check_specialization_projection_symbol(sym, &locator);
       if (dps->declared_storage_class != (a_storage_class)sc_unspecified) {
-        /* Storage-class-specifier is non-standard, but allowed in some
-           modes. */
         an_error_severity	severity = es_discretionary_error;
-        if ((gpp_mode && gnu_version < 40300) || ms_compat ||
-            (clang_mode && (symbol_is(sym, sk_static_data_member) ||
-                            symbol_is(sym, sk_variable)))) {
-          /* Accepted, but worth a remark. */
+        if (locator.is_class_member && !dps->in_class_scope) {
+          /* A storage-class-specifier in an out-of-class member declaration is
+             only allowed by Microsoft for member functions and GCC prior to
+             version 4.3. */
+          if ((ms_compat && is_member_function_symbol(sym)) ||
+              (gpp_mode && gnu_version < 40300)) {
+            /* Accepted, but worth a remark. */
+            severity = es_remark;
+          }  /* if */
+        } else if ((gpp_mode && gnu_version < 40300) || ms_compat ||
+                   (clang_mode && (symbol_is(sym, sk_static_data_member) ||
+                                   symbol_is(sym, sk_variable)))) {
+          /* Storage-class-specifier is non-standard, but allowed in some
+             modes. */
           severity = es_remark;
         }  /* if */
         pos_diagnostic(severity,
