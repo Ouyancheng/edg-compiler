@@ -1,5 +1,16 @@
 Version 6.4
 
+10/3/22  [EDGcpfe/25459]
+C++-generating back end: parenthesization of rewritten comparisons
+
+When a comparison operation is rewritten as a call to a three-way
+comparison operator function, the C++-generating back end previously
+determined the precedence of the expression with respect to the operation
+of which it is a subexpression as if it were a function call instead of the
+original operator.  This incorrect precedence sometimes resulted in the
+expression being put out without needed parentheses.  This is now fixed.
+
+
 10/3/22  [EDGcpfe/20952,EDGcpfe/21043,EDGcpfe/23601,EDGcpfe/23971,
           EDGcpfe/24086,EDGcpfe/24563]
 Support for in-class explicit template specializations

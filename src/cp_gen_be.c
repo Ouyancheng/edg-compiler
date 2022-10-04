@@ -14335,6 +14335,12 @@ If the parameters describe such a rewrite, render an expression matching the
     a_param_type_ptr  ptp1, ptp2;
     a_byte            op_precedence = overloadable_operator_precedence[op];
     a_boolean         reversed = FALSE, member_call, operand_parens_needed;
+    /* The precedence of this expression with respect to the operator of
+       which it is an operand was determined as if it were an explicit
+       function call.  That's probably incorrect with respect to the
+       original operator form, so enclose the generated expression in
+       parentheses, just to make sure. */
+    write_tok_ch('(');
     member_call = routine_type_is_nonstatic_member_function(rtp);
     arg1 = generated_call->variant.operation.operands->next;
     arg2 = arg1->next;
@@ -14379,6 +14385,7 @@ If the parameters describe such a rewrite, render an expression matching the
     if (operand_parens_needed) {
       write_tok_ch(')');
     }  /* if */
+    write_tok_ch(')');
     handled = TRUE;
   }  /* if */
   return handled;
