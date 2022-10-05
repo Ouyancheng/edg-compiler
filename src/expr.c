@@ -39060,7 +39060,9 @@ to NULL.
                                       ->parameters;
       if (cpp20_mode && tpp != NULL && tpp->next == NULL && !tpp->is_pack &&
           symbol_is(tpp->param_symbol, sk_constant) &&
-          is_class_struct_union_type(tpp->variant.constant.ptr->type)) {
+          (is_class_struct_union_type(tpp->variant.constant.ptr->type) ||
+           is_class_template_placeholder_type(
+                                          tpp->variant.constant.ptr->type))) {
         an_operand      arg_op;
         a_constant_ptr  class_con = local_constant();
         make_constant_operand(&const_with_curr_tok_spelling, &arg_op);
@@ -39161,7 +39163,9 @@ issue an error; otherwise, return TRUE.
       tpp = tssp->variant.function.decl_cache.decl_info->parameters;
       if (symbol_is(tpp->param_symbol, sk_type) ||
           (symbol_is(tpp->param_symbol, sk_constant) &&
-           is_class_struct_union_type(tpp->variant.constant.ptr->type))) {
+           (is_class_struct_union_type(tpp->variant.constant.ptr->type) ||
+            is_class_template_placeholder_type(
+                                         tpp->variant.constant.ptr->type)))) {
         is_string_literal_operator_template = TRUE;
       }  /* if */
     }  /* if */

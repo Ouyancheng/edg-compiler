@@ -27370,12 +27370,26 @@ a_boolean nontype_templ_arg_of_class_type_matches(an_operand  *operand,
 /*
 The given operand is an argument for a nontype template parameter of class
 type param_type.  Return TRUE if it matches that type and store in class_con
-the converted constant value.
+the converted constant value.  param_type may be a placeholder type.
 */
 {
   a_boolean             result = FALSE;
   an_arg_match_summary  arg_summary;
 
+  if (is_class_template_placeholder_type(param_type)) {
+    /* If param_type is a placeholder type, perform deduction first. */
+    an_arg_list_elem  *alep = alloc_arg_list_elem_for_operand(operand);
+    a_boolean         still_dependent = FALSE, deduced;
+    deduced = deduce_class_template_args(param_type, /*is_direct_init=*/FALSE,
+                                         /*parenthesized_init=*/FALSE,
+                                         /*keep_placeholder=*/FALSE,
+                                         alep, &operand->position,
+                                         &param_type, &still_dependent);
+    free_init_component_list(alep);
+    if (!deduced) {
+      goto done;
+    }  /* if */
+  }  /* if */
   determine_arg_match_level(operand, (a_type_ptr)NULL, param_type,
                             (a_param_type_ptr)NULL,
                             /*param_type_is_deduced=*/FALSE,
@@ -27425,6 +27439,7 @@ the converted constant value.
     pop_expr_stack();
     restore_expr_stack(saved_expr_stack);
   }  /* if */
+done:
   return result;
 }  /* nontype_templ_arg_of_class_type_matches */
 

@@ -8540,7 +8540,9 @@ given position is non-NULL, issue one or more errors as appropriate.
     }  /* if */
   } else if (cpp20_mode && tpp != NULL && tpp->next == NULL && !tpp->is_pack &&
              symbol_is(tpp->param_symbol, sk_constant) &&
-             is_class_struct_union_type(tpp->variant.constant.ptr->type)) {
+             (is_class_struct_union_type(tpp->variant.constant.ptr->type) ||
+              is_class_template_placeholder_type(
+                                           tpp->variant.constant.ptr->type))) {
     /* In C++20, a single nontype parameter of class type is permitted. */
   } else if (tpp->next != NULL || !tpp->is_pack  ||
              !symbol_is(tpp->param_symbol, sk_constant) ||

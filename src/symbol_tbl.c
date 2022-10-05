@@ -17333,7 +17333,9 @@ const_for_curr_token.
           check_assertion(tpp != NULL);
           if (cpp20_mode && tpp->next == NULL && !tpp->is_pack &&
               symbol_is(tpp->param_symbol, sk_constant) &&
-              is_class_struct_union_type(tpp->variant.constant.ptr->type)) {
+              (is_class_struct_union_type(tpp->variant.constant.ptr->type) ||
+               is_class_template_placeholder_type(
+                                          tpp->variant.constant.ptr->type))) {
             /* C++20 permits string literal operator templates of the form:
                     template<String strval> operator""str();
                where String is a class type.
