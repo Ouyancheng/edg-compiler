@@ -239,6 +239,30 @@ Enter some predefined macros for a MacOS X (Apple) system.
 #endif /* defined(__APPLE__) && defined(__MACH__) */
 #if BUILTIN_FUNCTIONS_ENABLED
 
+static a_boolean is_consteval_builtin(a_builtin_function_kind kind)
+/*
+Given a builtin function kind, return TRUE if the builtin function is a
+consteval builtin.
+*/
+{
+  a_boolean result;
+
+  switch (kind) {
+    case bfk_source_location:
+    case bfk_COLUMN:
+    case bfk_LINE:
+    case bfk_FILE:
+    case bfk_FUNCTION:
+      result = TRUE;
+      break;
+    default:
+      result = FALSE;
+      break;
+  }  /* switch */
+  return result;
+}  /* is_consteval_builtin */
+
+
 static void enter_builtin_function(a_const_char            *name,
                                    a_type_ptr              rout_type,
                                    a_builtin_function_kind kind,
@@ -281,6 +305,7 @@ updated accordingly).
   sym->explicit_linkage_specifier = !C_mode();
   sym->header->builtin_has_been_loaded = TRUE;
   sym->variant.routine.ptr->variant.builtin_function_kind = kind;
+  sym->variant.routine.ptr->is_consteval = is_consteval_builtin(kind);
 #if DEBUG
   if (db_flag_is_set("dump_builtins")) {
     /* Dump builtin function declarations. */

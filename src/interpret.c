@@ -8839,9 +8839,11 @@ to FALSE and the reason for the failure is recorded in *ips.
   an_expr_node_ptr  args = call_node->variant.operation.operands->next;
   an_expr_node_ptr  args2, args3;
   a_byte            *arg1_bytes, *arg2_bytes, *arg3_bytes;
+  a_builtin_function_kind
+                    kind = callee->variant.builtin_function_kind;
 
   ips->cost += 1;
-  switch (callee->variant.builtin_function_kind) {
+  switch (kind) {
     case bfk_constant_p:
       if (ips->curr_call_frame == NULL) {
         /* Do not attempt interpreting __builtin_constant_p as an argument to
