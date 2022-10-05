@@ -32310,14 +32310,17 @@ that follows.
            more detailed type information than the in-class declaration (e.g.,
            an array bound). */
         vp->type = composite_type(vp->type, dps->type);
-        /* The Microsoft compiler treats a specialization declaration of a
-           static data member (but not of a static data member template) as a
-           definition. */
+        /* The Microsoft compiler treats an explicit specialization of a static
+           data member of a class template as a definition, but, prior to
+           version 1910, it does not do so for an explicit specialization of a
+           static data member template. */
         dps->is_definition = ((symbol_is(sym, sk_variable) &&
                                !sym->is_class_member) ||
                               (microsoft_bugs &&
-                               vp->template_info != NULL &&
-                               vp->template_info->template_arg_list == NULL) ||
+                               (ms_version_is(>=1910) ||
+                                (vp->template_info != NULL &&
+                                 vp->template_info
+                                              ->template_arg_list == NULL))) ||
                               curr_token == tok_assign ||
                               has_parenthesized_initializer ||
                               (list_init_enabled && curr_token == tok_lbrace));
@@ -32325,13 +32328,22 @@ that follows.
           update_variable_decl_info(vp, dps, dps->is_definition);
         }  /* if */
         if (dps->is_definition && !dps->in_class_scope &&
-            (decl_state->specialization_levels > 1) &&
             vp->is_specialized && vp->is_in_class_specialization) {
-          /* An in-class explicit specialization declared in a class template
-             can be further specialized by an out-of-class definition. */
-          vp->is_in_class_specialization = FALSE;
-          vp->is_inline = FALSE;
-          already_specialized = FALSE;
+          if (decl_state->specialization_levels > 1) {
+            /* An in-class explicit specialization declared in a class template
+               can be further specialized by an out-of-class definition. */
+            vp->is_in_class_specialization = FALSE;
+            vp->is_inline = FALSE;
+            already_specialized = FALSE;
+          } else if (microsoft_bugs &&
+                     vp->init_kind == (an_init_kind)initk_none) {
+            /* In Microsoft bugs mode, when an in-class explicit specialization
+               without an initializer was treated as a definition, an
+               out-of-class definition is still allowed. */
+            already_specialized = FALSE;
+          } else {
+            already_specialized = TRUE;
+          }  /* if */
         } else {
           already_specialized = vp->is_specialized;
         }  /* if */

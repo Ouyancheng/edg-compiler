@@ -29,16 +29,18 @@ to all C++ versions.  For example, with --c++03 --strict:
 10/3/22  [EDGcpfe/23505]
 Microsoft compatibility: Static data member specialization declaration
 
-The Microsoft compiler only treats explicit specialization declarations of
-static data members, but not static data member templates as definitions.  For
-example, with --ms_c++14:
+The Microsoft compiler always treats an explicit specialization of a static
+data member of a class template as a definition, but, prior to version 1910, it
+does not do so for an explicit specialization of a static data member template.
+For example, with --ms_c++14 --microsoft_version=1903:
 
   struct C {
     template<int I>
     static const int var;
   };
   template<>
-  const int C::var<0>;  // Previously a spurious error.  Now okay.
+  const int C::var<0>;  // Previously a spurious error "requires an
+                        // initializer".  Now okay.
 
 
 9/30/22  [EDGcpfe/20094,EDGcpfe/20264,EDGcpfe/25494]
