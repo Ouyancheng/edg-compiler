@@ -32545,7 +32545,7 @@ that follows.
         vp->is_specialized = TRUE;
         if (dps->in_class_scope) {
           vp->is_in_class_specialization = TRUE;
-        }
+        }  /* if */
         if (dso_flags & DSO_INLINE) {
           if (accept_inline_variables(&dps->inline_pos)) {
             vp->is_inline = TRUE;
