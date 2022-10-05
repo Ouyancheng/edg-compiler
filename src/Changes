@@ -1,5 +1,27 @@
 Version 6.4
 
+10/5/22  [EDGcpfe/23852,EDGcpfe/24368]
+Clang and Microsoft compatibility: Variables of nonliteral types
+
+Consider, in C++17 or C++20 mode (but not C++23 mode):
+
+  template<typename T> struct D { ~D() {} };
+  template<typename T>
+  constexpr T f(T i) {
+    if (i < 0) {
+      D<T> d;  // Variable of nonliteral type.
+      return 0;
+    }
+    return i;
+  }
+  static_assert(f(42) == 42);
+
+The presence of a variable of nonliteral type makes f<int>(int) unusable for
+constant evaluation in non-C++23 modes.  However, it appears that MSVC 19.30
+and many Clang versions accept the example as is.  The front end now emulates
+that behavior in the corresponding emulation modes.
+
+
 10/5/22  [EDGcpfe/24483,EDGcpfe/24620]
 User-defined string literal operator and class template argument deduction
 
