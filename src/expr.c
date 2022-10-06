@@ -42456,7 +42456,7 @@ parenthesized initializer.
        to be checked later when we do know. */
     icp->braced_init_in_parentheses = TRUE;
   }  /* if */
-  if (expr_stack->contains_deferred_std_srcloc) {
+  if (expr_stack->const_eval_reattempt_state.default_mem_init) {
     dps->init_state.requires_il_copy = TRUE;
   }  /* if */
   return icp;

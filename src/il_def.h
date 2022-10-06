@@ -13879,6 +13879,21 @@ typedef struct a_local_expr_node_ref {
 			   expr. */
 } a_local_expr_node_ref;
 
+/*
+A structure for representing reattempt conditions for a deferred constant
+evaluation.
+*/
+struct a_const_eval_reattempt_state {
+  a_bit_field   default_arg:1;
+			/* TRUE if the deferred evaluation should be
+			   reattempted in the context of a default argument
+			   transform. */
+  a_bit_field   default_mem_init:1;
+			/* TRUE if the deferred evaluation should be
+			   reattempted in the context of a default member
+			   initializer transform. */
+};  /* a_const_eval_reattempt_state */
+
 typedef struct an_expr_node {
   /* A single expression node. */
   a_type_ptr    type;
@@ -14709,16 +14724,9 @@ typedef struct an_expr_node {
       an_expr_node_ptr
 		wrapped;
 			/* The expression to be re-evaluated. */
-      a_bit_field
-		reattempt_default_arg:1;
-			/* TRUE if the deferred evaluation should be
-			   reattempted in the context of a default argument
-			   transform. */
-      a_bit_field
-		reattempt_default_mem_init:1;
-			/* TRUE if the deferred evaluation should be
-			   reattempted in the context of a default member
-			   initializer transform. */
+      a_const_eval_reattempt_state
+		reattempt_state;
+			/* The associated reattempt conditions. */
     } const_eval_deferred;
   } variant;
   union {

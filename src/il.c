@@ -21634,37 +21634,41 @@ be called to start a copy.
       break;
 #if BUILTIN_FUNCTIONS_ENABLED
     case enk_const_eval_deferred:
-      if ((expr->variant.const_eval_deferred.reattempt_default_arg &&
-           (options & CE_COPYING_EVALUATED_DEFAULT_ARG_EXPR)) ||
-          (expr->variant.const_eval_deferred.reattempt_default_mem_init &&
-           (options & CE_COPYING_DEFAULT_MEMBER_INIT))) {
-        /* A call to a builtin source location operation is being performed
-           in a default argument list and that list is being copied.  The
-           source location to be used is the call to the function with the
-           default arguments so fold the expression now. */
-        an_expr_node_ptr wrapped = i_copy_expr_tree(
+      { auto &reattempt_state =
+                             expr->variant.const_eval_deferred.reattempt_state;
+
+        if ((reattempt_state.default_arg &&
+             (options & CE_COPYING_EVALUATED_DEFAULT_ARG_EXPR)) ||
+            (reattempt_state.default_mem_init &&
+             (options & CE_COPYING_DEFAULT_MEMBER_INIT))) {
+          /* A call to a builtin source location operation is being performed
+             in a default argument list and that list is being copied.  The
+             source location to be used is the call to the function with the
+             default arguments so fold the expression now. */
+          an_expr_node_ptr wrapped = i_copy_expr_tree(
                                      expr->variant.const_eval_deferred.wrapped,
                                      options, cblock);
-        a_diag_list      diag_list;
-        a_constant_ptr   constant = local_constant();
+          a_diag_list      diag_list;
+          a_constant_ptr   constant = local_constant();
 
-        clear_diag_list(&diag_list);
-        if (interpret_expr(wrapped, /*is_constant_evaluated=*/TRUE,
-                           /*force_prvalue=*/FALSE, constant, &diag_list)) {
-          expr_copy = alloc_node_for_constant(constant);
-          /* FIXME: Are these the right checks? */
-        } else if (!is_template_dependent_context() &&
-                   expr_error_should_be_issued() &&
-                   !is_consteval_diag_deferred()) {
-          a_diagnostic_ptr dp = pos_start_error(ec_expr_not_constant,
-                                                &wrapped->position);
+          clear_diag_list(&diag_list);
+          if (interpret_expr(wrapped, /*is_constant_evaluated=*/TRUE,
+                             /*force_prvalue=*/FALSE, constant, &diag_list)) {
+            expr_copy = alloc_node_for_constant(constant);
+            /* FIXME: Are these the right checks? */
+          } else if (!is_template_dependent_context() &&
+                     expr_error_should_be_issued() &&
+                     !is_consteval_diag_deferred()) {
+            a_diagnostic_ptr dp = pos_start_error(ec_expr_not_constant,
+                                                  &wrapped->position);
 
-          add_more_info_list(dp, &diag_list);
-          end_diagnostic(dp);
-          expr_copy = error_node();
+            add_more_info_list(dp, &diag_list);
+            end_diagnostic(dp);
+            expr_copy = error_node();
+          }  /* if */
+          release_local_constant(&constant);
         }  /* if */
-        release_local_constant(&constant);
-      }  /* if */
+      }
       break;
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
 #if GNU_EXTENSIONS_ALLOWED

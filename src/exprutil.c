@@ -1821,7 +1821,6 @@ is pushed regardless of any of the other factors.
   new_entry->is_type_operator_arg_expression = FALSE;
   new_entry->is_default_arg_expression = FALSE;
   new_entry->is_initial_default_arg_scan = FALSE;
-  new_entry->contains_deferred_std_srcloc = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   new_entry->is_cli_attr_arg_expression = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -1864,6 +1863,7 @@ is pushed regardless of any of the other factors.
   new_entry->expr_will_be_discarded = FALSE;
   new_entry->statement_expression_seen = FALSE;
   new_entry->likely_not_evaluated = FALSE;
+  new_entry->const_eval_reattempt_state = {};
   new_entry->dynamic_init_dtor_fixup_list = NULL;
   new_entry->nested_construct_depth = 0;
   new_entry->lifetime = NULL;
@@ -6812,7 +6812,8 @@ the call target).
         make_expression_operand(call_expr, result);
         make_template_param_expr_constant_operand(result);
       } else if (expr_stack != NULL &&
-                 expr_stack->contains_deferred_std_srcloc) {
+                 is_any_reattempt_permitted(
+                                     expr_stack->const_eval_reattempt_state)) {
         /* Wrap the source location expression in a node signifying its
            evaluation should be deferred. */
         an_expr_node_ptr deferral_expr =
@@ -6823,8 +6824,7 @@ the call target).
 
         auto &variant = deferral_expr->variant.const_eval_deferred;
         variant.wrapped = call_expr;
-        variant.reattempt_default_arg = TRUE;
-        variant.reattempt_default_mem_init = TRUE;
+        variant.reattempt_state = expr_stack->const_eval_reattempt_state;
         make_expression_operand(deferral_expr, result);
       } else if (consteval_failure(rout, result_con, &call_expr->position,
                                    diag_list)) {
@@ -7147,7 +7147,7 @@ are relaxed as the consteval function call fold will be reattempted later.
   a_boolean is_deferred = FALSE;
 
   if (expr_stack != NULL) {
-    if (expr_stack->contains_deferred_std_srcloc) {
+    if (is_any_reattempt_permitted(expr_stack->const_eval_reattempt_state)) {
       is_deferred = TRUE;
     }  /* if */
   }  /* if */

@@ -1030,11 +1030,14 @@ typedef struct an_interpreter_state {
 			   a call (i.e., something like "(1, f)()" where f
 			   designates a consteval function; if it were "f()"
 			   it would always be allowed). */
- a_bit_field
+  a_bit_field
 		report_started:1;
 			/* TRUE if a call to std::__report_constexpr_value was
 			   already evaluated in this invocation of the
 			   interpreter. */
+  a_const_eval_reattempt_state
+		reattempt_state;
+			/* The associated reattempt information. */
   a_storage_stack_state
 		static_storage;
 			/* Pointer to the storage stack state used to allocate
@@ -2385,6 +2388,7 @@ result of calls to std::is_constant_evaluated().
   ips->disallow_mutable_field_load = FALSE;
   ips->allow_consteval_routine_node = FALSE;
   ips->report_started = FALSE;
+  ips->reattempt_state = {};
   ips->dyn_allocations = NULL;
   n_active_interpreter_states += 1;
 }  /* init_interpreter_state */
@@ -8710,42 +8714,34 @@ of p_result will be set to FALSE.
 }  /* do_constexpr_write_source_function */
 
 
-static inline a_boolean is_constexpr_source_pos_deferred()
+static inline a_boolean check_constexpr_source_pos_deferred(
+                                                     an_interpreter_state *ips)
 /*
 Return TRUE if the current expression stack state implies that the current
 source location builtin's evaluation should be deferred; otherwise, return
-FALSE.
+FALSE.  Update the given interpreter parse state to reflect any required
+future reattempt conditions.
 */
 {
   a_boolean result = FALSE;
 
   /* Deferral occurs when used a source location builtin is a default arguments
      of consteval function or a default member initializer. */
-  if (expr_stack != NULL && (expr_stack->is_initial_default_arg_scan ||
-                             scope_stack_top().in_field_initializer)) {
-    result = TRUE;
+  if (expr_stack != NULL) {
+    if (expr_stack->is_initial_default_arg_scan) {
+      ips->reattempt_state.default_arg = TRUE;
+      result = TRUE;
+    }  /* if */
+    if (scope_stack_top().in_field_initializer) {
+      ips->reattempt_state.default_mem_init = TRUE;
+      result = TRUE;
+    }  /* if */
   }  /* if */
   return result;
-}  /* is_constexpr_source_pos_deferred */
+}  /* check_constexpr_source_pos_deferred */
 
 
-static inline void do_constexpr_fail_for_source_pos_deferral(a_boolean &result)
-/*
-Fail the interpreter for a source position related evaluation deferral.  This
-should be used after its determined the current evaluation context is
-inadequate to provide an adequate result for a builtin related to
-std::source_location::current().  The associated evaluation should then be
-reattempted when the expression is copied by i_copy_expr_tree.
-*/
-{
-  check_assertion(expr_stack != NULL);
-  expr_stack->contains_deferred_std_srcloc = TRUE;
-  do_constexpr_fail(result);
-}  /* do_constexpr_fail_for_source_pos_deferral */
-
-
-static inline a_source_position* get_constexpr_source_pos(
-                                                     an_interpreter_state *ips)
+static inline a_source_position* get_constexpr_source_pos()
 /*
 Return the source location to use for the current source location builtin.
 */
@@ -8771,13 +8767,13 @@ default member initializers, lowering does the work.
 {
   a_boolean  result = TRUE;
 
-  if (is_constexpr_source_pos_deferred()) {
-    do_constexpr_fail_for_source_pos_deferral(result);
+  if (check_constexpr_source_pos_deferred(ips)) {
+    do_constexpr_fail(result);
   } else {
     /* Determine the appropriate source position for this invocation and
        convert it to the appropriate integer (COLUMN, LINE) or string (FILE,
        FUNCTION). */
-    a_source_position *use_pos = get_constexpr_source_pos(ips);
+    a_source_position *use_pos = get_constexpr_source_pos();
 
     switch (callee->variant.builtin_function_kind) {
       case bfk_COLUMN:
@@ -9378,8 +9374,8 @@ to FALSE and the reason for the failure is recorded in *ips.
     case bfk_source_location:
       {
         interpreted = FALSE;
-        if (is_constexpr_source_pos_deferred()) {
-          do_constexpr_fail_for_source_pos_deferral(*p_result);
+        if (check_constexpr_source_pos_deferred(ips)) {
+          do_constexpr_fail(*p_result);
         } else {
           a_gnu_source_location_type_info interp_inf;
 
@@ -9396,7 +9392,7 @@ to FALSE and the reason for the failure is recorded in *ips.
             alloc_naturalizable_object(ips, interp_inf.impl_type, &obj_storage,
                                        p_result);
             if (*p_result) {
-              a_source_position *use_pos = get_constexpr_source_pos(ips);
+              a_source_position *use_pos = get_constexpr_source_pos();
 
               /* Populate the source location __impl object with the values for
                  use_pos.  Note that the fields (and their associated types)
@@ -20294,6 +20290,10 @@ indicates the value produced by std::is_constant_evaluated().
         set_error_constant(result_con);
       } else {
         do_constexpr_fail(result);
+        if (expr_stack != NULL) {
+          merge_reattempt_state(&expr_stack->const_eval_reattempt_state,
+                                ips.reattempt_state);
+        }  /* if */
       }  /* if */
     } else {
       if (expr->is_lvalue || expr->is_xvalue) {
@@ -20458,6 +20458,10 @@ can only be TRUE if the called function is "consteval").
         set_error_constant(result_con);
       } else {
         do_constexpr_fail(result);
+        if (expr_stack != NULL) {
+          merge_reattempt_state(&expr_stack->const_eval_reattempt_state,
+                                ips.reattempt_state);
+        }  /* if */
       }  /* if */
     } else if (ips.storage_stack.destructions != NULL ||
                (!is_constant_evaluated &&

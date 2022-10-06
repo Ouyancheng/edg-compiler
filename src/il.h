@@ -660,6 +660,39 @@ used in place of bfk_none below (and convenience macros are also unavailable).
   return result;
 }  /* is_call_to_builtin_function */
 
+
+inline a_boolean is_any_reattempt_permitted(
+                                  a_const_eval_reattempt_state reattempt_state)
+/*
+If the given reattempt state indicates that there's one or more conditions
+where a reattempt should be made, return TRUE; otherwise, return FALSE.
+*/
+{
+  a_boolean result = FALSE;
+
+  if (reattempt_state.default_arg) {
+    result = TRUE;
+  } else if (reattempt_state.default_mem_init) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* is_any_reattempt_permitted */
+
+
+inline void merge_reattempt_state(a_const_eval_reattempt_state *dest_state,
+                                  a_const_eval_reattempt_state new_state)
+/*
+Merge the new reattempt state into the destination state.
+*/
+{
+  if (new_state.default_arg) {
+    dest_state->default_arg = TRUE;
+  }  /* if */
+  if (new_state.default_mem_init) {
+    dest_state->default_mem_init = TRUE;
+  }  /* if */
+}  /* is_any_reattempt_permitted */
+
 #define rout_is_specific_builtin(rp, bfk)                                   \
    is_specific_builtin(rp,(a_builtin_function_kind)(bfk))
 #else /* !BUILTIN_FUNCTIONS_ENABLED */
