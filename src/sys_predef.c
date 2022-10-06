@@ -263,17 +263,17 @@ consteval builtin.
 }  /* is_consteval_builtin */
 
 
-static void enter_builtin_function(a_const_char            *name,
-                                   a_type_ptr              rout_type,
-                                   a_builtin_function_kind kind,
-                                   a_symbol_locator        *loc)
+static a_symbol_ptr enter_builtin_function(a_const_char            *name,
+                                           a_type_ptr              rout_type,
+                                           a_builtin_function_kind kind,
+                                           a_symbol_locator        *loc)
 /*
 Enter a builtin function with the given name and type (which must be a
 tk_routine type -- possibly with a typeref that describes attributes).  The
 builtin function corresponds to the (a_builtin_function_kind_tag or
 a_builtin_user_function_kind) kind.  If non-NULL, loc specifies the symbol
 locator for name.  The routine is given C name linkage (and the routine type is
-updated accordingly).
+updated accordingly).  Return the created symbol for the generated function.
 */
 {
   a_symbol_ptr        sym;
@@ -322,6 +322,7 @@ updated accordingly).
     fprintf(f_debug, ";\n");
   }  /* if */
 #endif /* DEBUG */
+  return sym;
 }  /* enter_builtin_function */
 
 
@@ -677,15 +678,17 @@ Parse the specified type if it has not been parsed yet.
 }  /* builtin_function_type_for_index */
 
 
-void load_matching_builtin_function(a_symbol_header *sym_hdr)
+a_symbol_ptr load_matching_builtin_function(a_symbol_header *sym_hdr)
 /*
 The builtin function referred to by sym_hdr has not yet been loaded and a
-reference has been made to it, so create the routine entry now.  Note that
-this may be called at various points during the translation, so care must be
-taken to save and restore the state of the compilation while a file-scope
-routine is created (and potentially a routine type is parsed).
+reference has been made to it, so create the routine entry now.  Note that this
+may be called at various points during the translation, so care must be taken
+to save and restore the state of the compilation while a file-scope routine is
+created (and potentially a routine type is parsed).  Return the created symbol
+for the generated function.
 */
 {
+  a_symbol_ptr     result = NULL;
   a_scope_depth    saved_decl_scope_level = decl_scope_level;
   a_boolean        name_linkage_pushed = FALSE;
   a_type_ptr       builtin_type;
@@ -713,8 +716,8 @@ routine is created (and potentially a routine type is parsed).
       builtin_type = builtin_function_type_for_index(bdp->type_index);
       builtin_kind = bdp->kind;
     }  /* if */
-    enter_builtin_function(sym_hdr->identifier, builtin_type, builtin_kind,
-                           (a_symbol_locator *)NULL);
+    result = enter_builtin_function(sym_hdr->identifier, builtin_type,
+                                    builtin_kind, (a_symbol_locator *)NULL);
     /* Restore name linkage and scope. */
     if (name_linkage_pushed) {
       pop_name_linkage();
@@ -722,6 +725,7 @@ routine is created (and potentially a routine type is parsed).
     decl_scope_level = saved_decl_scope_level;
     pop_scope();
   }  /* if */
+  return result;
 }  /* load_matching_builtin_function */
 
 
@@ -733,7 +737,8 @@ Loads the builtin function whose name is specified.
   a_symbol_locator  loc;
   
   clear_locator(&loc, &null_source_position);
-  load_matching_builtin_function(find_symbol_header(name, strlen(name), &loc));
+  (void)load_matching_builtin_function(find_symbol_header(name, strlen(name),
+                                                          &loc));
 }  /* load_matching_builtin_function_by_name */
 
 
@@ -809,7 +814,7 @@ the builtin function's type.
         builtin_type = builtin_function_type(type_string,
                                              &null_source_position);
       }  /* if */
-      enter_builtin_function(name, builtin_type, kind, &loc);
+      (void)enter_builtin_function(name, builtin_type, kind, &loc);
     }  /* if */
     /* Also see if there's a non-prefixed version that should be added.  These
        seem to only be used by GCC in C mode to give diagnostics when
@@ -827,7 +832,7 @@ the builtin function's type.
             builtin_restrictions_met(loc.symbol_header,
                                      /*issue_error=*/FALSE)) {
           check_assertion(builtin_type != NULL);
-          enter_builtin_function(name, builtin_type, kind, &loc);
+          (void)enter_builtin_function(name, builtin_type, kind, &loc);
         }  /* if */
       }  /* if */
     }  /* if */

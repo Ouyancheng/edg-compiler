@@ -4099,6 +4099,29 @@ Return TRUE If the given string is "<unnamed-tag>".
 #undef UNNAMED_TAG_NAME
 }  /* is_unnamed_tag */
 
+#if BUILTIN_FUNCTIONS_ENABLED
+
+static a_boolean is_builtin_function(const an_ifc_decl_function &func,
+                                     a_symbol_locator           *loc)
+/*
+Given an IFC function declaration, return TRUE if this function should be
+processed by loading a builtin; otherwise, return FALSE and load the function
+using the normal IFC modules function loading logic.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (!is_null_index(get_ifc_home_scope(func))) {
+    result = FALSE;
+  } else if (loc->symbol_header == NULL) {
+    result = FALSE;
+  } else if (!loc->symbol_header->is_builtin_function) {
+    result = FALSE;
+  }  /* if */
+  return result;
+}  /* is_builtin_function */
+
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
 
 /* FIXME: might be able to get rid of enumeration_type now that enums aren't
    deferred */
@@ -4242,49 +4265,76 @@ principal associated IL entity.
             defer_symbol_creation(mep, &loc);
           } else {
             /* FIXME: lots more to do here. */
-            an_ifc_decl_function            idf = *opt_idf;
-            an_ifc_function_traits_bitfield traits = get_ifc_traits(idf);
-            a_func_info_block               func_info;
-            a_type_ptr                      old_type;
-            a_routine_ptr                   rp;
-            a_boolean                       is_consteval;
+            an_ifc_decl_function idf = *opt_idf;
 
-            /* FIXME: There's a chicken-and-egg problem here when the return
-               type is deduced and requires access to the class scope (e.g.,
-               returning a lambda declared within the function). */
-            if (mep->scope == NULL) {
-              mep->scope = get_home_scope(idf);
-              push_module_declaration_context(mep->scope, &scope_push_status);
-            }  /* if */
-            init_dps(&dps, get_ifc_locus(idf), get_ifc_type(idf),
-                     an_ifc_object_traits_bitfield{},
-                     an_ifc_msvc_traits_bitfield{},
-                     get_ifc_specifiers(idf), get_ifc_access(idf),
-                     an_ifc_expr_index{}, &psss);
-            is_consteval = test_bitmask<ifc_ftb_immediate>(traits);
-            if (is_consteval) {
-              dps.dso_flags |= DSO_CONSTEVAL;
-            } else if (test_bitmask<ifc_ftb_constexpr>(traits)) {
-              dps.dso_flags |= DSO_CONSTEXPR;
-            } else if (test_bitmask<ifc_ftb_inline>(traits)) {
-              dps.dso_flags |= DSO_INLINE;
-            }  /* if */
-            clear_func_info(&func_info);
-            clear_decl_pos_block(&decl_pos_block);
-            decl_routine(&loc, &dps, &func_info, SRK_DECLARATION, &linkage_ptr,
-                         &old_type, &ext_sym, &decl_pos_block);
-            restore_partial_scope_stack_if_necessary(&psss);
-            rp = dps.sym->variant.routine.ptr;
-            il_entity = (char *)rp;
-            kind = iek_routine;
-            if (!fill_in_routine_parameter_defaults(get_ifc_chart(idf),
-                                                    dps.type, is_consteval)) {
-              goto invalid;
-            }  /* if */
-            if (function_is_user_defined(idf)) {
-              /* A body is available: Record this availability in case it is
-                 needed. */
-              record_pending_ifc_function_body(rp, decl_idx);
+#if BUILTIN_FUNCTIONS_ENABLED
+            if (is_builtin_function(idf, &loc)) {
+              /* This is a builtin function, trigger builtin processing. */
+              a_symbol_ptr builtin_sym;
+
+              if (builtin_needs_to_be_loaded(loc.symbol_header)) {
+                builtin_sym =
+                             load_matching_builtin_function(loc.symbol_header);
+              } else {
+                builtin_sym =
+                       file_scope_id_lookup(il_header.primary_scope, &loc,
+                                            IDL_DIRECT_NAMESPACE_MEMBERS_ONLY |
+                                            IDL_SUPPRESS_DECL_SEQ_CHECK);
+              }  /* if */
+              if (builtin_sym == NULL) {
+                goto invalid;
+              }  /* if */
+              il_entity = (char *)builtin_sym->variant.routine.ptr;
+              kind = iek_routine;
+            } else
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
+            /* Do not add code here. */
+            {
+              an_ifc_function_traits_bitfield traits = get_ifc_traits(idf);
+              a_func_info_block               func_info;
+              a_type_ptr                      old_type;
+              a_routine_ptr                   rp;
+              a_boolean                       is_consteval;
+
+              /* FIXME: There's a chicken-and-egg problem here when the return
+                 type is deduced and requires access to the class scope (e.g.,
+                 returning a lambda declared within the function). */
+              if (mep->scope == NULL) {
+                mep->scope = get_home_scope(idf);
+                push_module_declaration_context(mep->scope,
+                                                &scope_push_status);
+              }  /* if */
+              init_dps(&dps, get_ifc_locus(idf), get_ifc_type(idf),
+                       an_ifc_object_traits_bitfield{},
+                       an_ifc_msvc_traits_bitfield{},
+                       get_ifc_specifiers(idf), get_ifc_access(idf),
+                       an_ifc_expr_index{}, &psss);
+              is_consteval = test_bitmask<ifc_ftb_immediate>(traits);
+              if (is_consteval) {
+                dps.dso_flags |= DSO_CONSTEVAL;
+              } else if (test_bitmask<ifc_ftb_constexpr>(traits)) {
+                dps.dso_flags |= DSO_CONSTEXPR;
+              } else if (test_bitmask<ifc_ftb_inline>(traits)) {
+                dps.dso_flags |= DSO_INLINE;
+              }  /* if */
+              clear_func_info(&func_info);
+              clear_decl_pos_block(&decl_pos_block);
+              decl_routine(&loc, &dps, &func_info, SRK_DECLARATION,
+                           &linkage_ptr, &old_type, &ext_sym, &decl_pos_block);
+              restore_partial_scope_stack_if_necessary(&psss);
+              rp = dps.sym->variant.routine.ptr;
+              il_entity = (char *)rp;
+              kind = iek_routine;
+              if (!fill_in_routine_parameter_defaults(get_ifc_chart(idf),
+                                                      dps.type,
+                                                      is_consteval)) {
+                goto invalid;
+              }  /* if */
+              if (function_is_user_defined(idf)) {
+                /* A body is available: Record this availability in case it is
+                   needed. */
+                record_pending_ifc_function_body(rp, decl_idx);
+              }  /* if */
             }  /* if */
           }  /* if */
         }

@@ -448,7 +448,7 @@ EXTERN a_builtin_user_descr builtin_user_table[]
 #endif /* VAR_INITIALIZERS */
 ;
 /*lint +e641 */ /* Re-enable lint messages about converting enums to int. */
-extern void load_matching_builtin_function(a_symbol_header *sym_hdr);
+extern a_symbol_ptr load_matching_builtin_function(a_symbol_header *sym_hdr);
 
 extern void load_matching_builtin_function_by_name(a_const_char *name);
 

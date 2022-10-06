@@ -4279,7 +4279,7 @@ is set to TRUE in that case, FALSE otherwise.
       /* If this cached identifier is for a builtin function that has not yet
          been loaded (because loading is disabled during caching), load it
          now. */
-      load_matching_builtin_function(locator_for_curr_id.symbol_header);
+      (void)load_matching_builtin_function(locator_for_curr_id.symbol_header);
     }  /* if */
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
   } else if (ctp->extra_info_kind == 
@@ -16509,7 +16509,7 @@ id_scan:
             !fetching_tokens_from_insert_string()) {
           /* Load a builtin function once it's referenced (though not during
              preprocessing nor when creating token caches). */
-          load_matching_builtin_function(sym_hdr);
+          (void)load_matching_builtin_function(sym_hdr);
         }  /* if */
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
         assoc_symbol = symbol_list_for_file_scope_symbols(sym_hdr);

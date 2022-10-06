@@ -5581,7 +5581,7 @@ string, or NULL if there is no such function.
                              IDL_SUPPRESS_DECL_SEQ_CHECK);
   if (builtin_needs_to_be_loaded(loc.symbol_header)) {
     /* Load the builtin function and redo the lookup. */
-    load_matching_builtin_function(loc.symbol_header);
+    (void)load_matching_builtin_function(loc.symbol_header);
     sym = file_scope_id_lookup(il_header.primary_scope, &loc,
                                IDL_DIRECT_NAMESPACE_MEMBERS_ONLY |
                                IDL_SUPPRESS_DECL_SEQ_CHECK);

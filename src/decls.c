@@ -8335,7 +8335,7 @@ use of).
           /* If no matching symbol was found, it's possible that the underlying
              builtin has not been loaded yet, so load it and redo the
              lookup. */
-          load_matching_builtin_function(loc.symbol_header);
+          (void)load_matching_builtin_function(loc.symbol_header);
           /* temp_text_buffer might have been overwritten, so use the name
              information in loc instead. */
           bsym = find_symbol(loc.symbol_header->identifier,
