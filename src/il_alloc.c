@@ -3709,8 +3709,8 @@ fields to default values.
     case enk_nested_req:
       node->variant.nested_req.constraint = NULL;
       break;
-    case enk_srcloc_deferred:
-      node->variant.srcloc_deferred.wrapped = NULL;
+    case enk_const_eval_deferred:
+      node->variant.const_eval_deferred.wrapped = NULL;
       break;
     default:
       unexpected_condition_str("set_expr_node_kind: bad kind");

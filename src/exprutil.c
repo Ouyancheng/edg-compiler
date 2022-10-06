@@ -3136,7 +3136,7 @@ that context.
       }  /* if */
       tblock->terminate = TRUE;
     }  /* if */
-  } else if (node->kind == enk_srcloc_deferred) {
+  } else if (node->kind == enk_const_eval_deferred) {
     /* This is a deferred consteval operation, there's nothing to check at this
        point.  The consteval semantics should be enforced when this operation
        is transformed. */
@@ -6815,11 +6815,16 @@ the call target).
                  expr_stack->contains_deferred_std_srcloc) {
         /* Wrap the source location expression in a node signifying its
            evaluation should be deferred. */
-        an_expr_node_ptr deferral_expr = alloc_expr_node(enk_srcloc_deferred);
+        an_expr_node_ptr deferral_expr =
+                                      alloc_expr_node(enk_const_eval_deferred);
 
         deferral_expr->type = call_expr->type;
         deferral_expr->position = call_expr->position;
-        deferral_expr->variant.srcloc_deferred.wrapped = call_expr;
+
+        auto &variant = deferral_expr->variant.const_eval_deferred;
+        variant.wrapped = call_expr;
+        variant.reattempt_default_arg = TRUE;
+        variant.reattempt_default_mem_init = TRUE;
         make_expression_operand(deferral_expr, result);
       } else if (consteval_failure(rout, result_con, &call_expr->position,
                                    diag_list)) {

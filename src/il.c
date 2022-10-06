@@ -2394,9 +2394,9 @@ sizeof_cases:
       fputs("nested-req\n", f_debug);
       db_expr_node(node->variant.nested_req.constraint, level+2);
       break;
-    case enk_srcloc_deferred:
-      fputs("srcloc-deferred\n", f_debug);
-      db_expr_node(node->variant.srcloc_deferred.wrapped, level+2);
+    case enk_const_eval_deferred:
+      fputs("const-eval-deferred\n", f_debug);
+      db_expr_node(node->variant.const_eval_deferred.wrapped, level+2);
       break;
     case enk_error:
       fputs("error node\n", f_debug);
@@ -21633,16 +21633,18 @@ be called to start a copy.
                                           options, cblock);
       break;
 #if BUILTIN_FUNCTIONS_ENABLED
-    case enk_srcloc_deferred:
-      if (options & CE_COPYING_EVALUATED_DEFAULT_ARG_EXPR ||
-          options & CE_COPYING_DEFAULT_MEMBER_INIT) {
+    case enk_const_eval_deferred:
+      if ((expr->variant.const_eval_deferred.reattempt_default_arg &&
+           (options & CE_COPYING_EVALUATED_DEFAULT_ARG_EXPR)) ||
+          (expr->variant.const_eval_deferred.reattempt_default_mem_init &&
+           (options & CE_COPYING_DEFAULT_MEMBER_INIT))) {
         /* A call to a builtin source location operation is being performed
            in a default argument list and that list is being copied.  The
            source location to be used is the call to the function with the
            default arguments so fold the expression now. */
         an_expr_node_ptr wrapped = i_copy_expr_tree(
-                                         expr->variant.srcloc_deferred.wrapped,
-                                         options, cblock);
+                                     expr->variant.const_eval_deferred.wrapped,
+                                     options, cblock);
         a_diag_list      diag_list;
         a_constant_ptr   constant = local_constant();
 

@@ -3559,8 +3559,8 @@ as specified in the control block.
     case enk_nested_req:
       traverse_expr(expr->variant.nested_req.constraint, tblock);
       break;
-    case enk_srcloc_deferred:
-      traverse_expr(expr->variant.srcloc_deferred.wrapped, tblock);
+    case enk_const_eval_deferred:
+      traverse_expr(expr->variant.const_eval_deferred.wrapped, tblock);
       break;
     default:
       unexpected_condition_str("traverse_expr: bad expr kind");

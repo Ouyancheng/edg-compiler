@@ -12816,8 +12816,8 @@ enum an_expr_node_kind : a_bit_field {
   enk_requires,		/* A requires-expression. */
   enk_compound_req,	/* A compound-requirement. */
   enk_nested_req,	/* A nested-requirement. */
-  enk_srcloc_deferred,  /* A deferred constant evaluation node for a source
-                           location. */
+  enk_const_eval_deferred,
+			/* A deferred constant evaluation node. */
   enk_last
 };
 
@@ -14704,14 +14704,22 @@ typedef struct an_expr_node {
       an_expr_node_ptr
 		constraint;
     } nested_req;
-    /* When kind == enk_srcloc_deferred: */
+    /* When kind == enk_const_eval_deferred: */
     struct {
       an_expr_node_ptr
 		wrapped;
-			/* The expression to be evaluated when this expression
-			   node is copied by function or constructor call
-			   argument setup. */
-    } srcloc_deferred;
+			/* The expression to be re-evaluated. */
+      a_bit_field
+		reattempt_default_arg:1;
+			/* TRUE if the deferred evaluation should be
+			   reattempted in the context of a default argument
+			   transform. */
+      a_bit_field
+		reattempt_default_mem_init:1;
+			/* TRUE if the deferred evaluation should be
+			   reattempted in the context of a default member
+			   initializer transform. */
+    } const_eval_deferred;
   } variant;
   union {
     an_expr_rescan_info_entry_ptr

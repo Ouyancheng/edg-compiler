@@ -1941,9 +1941,9 @@ do_set_proper_definition_needed_flag:
             walk_ptr(eptr->variant.nested_req.constraint, an_expr_node_ptr,
                      iek_expr_node);
             break;
-          case enk_srcloc_deferred:
-            walk_ptr(eptr->variant.srcloc_deferred.wrapped, an_expr_node_ptr,
-                     iek_expr_node);
+          case enk_const_eval_deferred:
+            walk_ptr(eptr->variant.const_eval_deferred.wrapped,
+                     an_expr_node_ptr, iek_expr_node);
             break;
           default:
             unexpected_condition_str(

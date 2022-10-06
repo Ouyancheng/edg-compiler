@@ -17406,11 +17406,11 @@ sizeof_cases:
     case enk_requires:
       gen_requires_expr(expr);
       break;
-    case enk_srcloc_deferred:
+    case enk_const_eval_deferred:
       /* C++ generation of in field initializers encounters this expression,
          as the consuming compiler is a C++ compiler, leave it up to that
          compiler to handle this. */
-      gen_expression(expr->variant.srcloc_deferred.wrapped);
+      gen_expression(expr->variant.const_eval_deferred.wrapped);
       break;
 
     case enk_initializer:
