@@ -5518,7 +5518,7 @@ be called to check and adjust the argument and routine types as needed.
       /* Callback will validate arguments. */
       bcap->callback = adjust_builtin_zero_non_value_bits;
       break;
-    case bufk_source_location:
+    case bfk_source_location:
       /* The source location builtin has been used, require and process the GNU
          source location impl type here. */
       gnu_source_location_impl_type();

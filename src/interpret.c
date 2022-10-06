@@ -9375,7 +9375,7 @@ to FALSE and the reason for the failure is recorded in *ips.
         }  /* if */
       }  /* if */
       break;
-    case bufk_source_location:
+    case bfk_source_location:
       {
         interpreted = FALSE;
         if (is_constexpr_source_pos_deferred()) {

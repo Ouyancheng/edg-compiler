@@ -231,7 +231,6 @@ enum a_builtin_user_function_kind {
   bufk_u8memchr,                  /* __builtin_u8memchr */
   bufk_u8memcmp,                  /* __builtin_u8memcmp */
   bufk_u8strlen,                  /* __builtin_u8strlen */
-  bufk_source_location,           /* __builtin_source_location */
   bufk_last                       /* final entry */
 };
 
@@ -265,9 +264,9 @@ EXTERN a_builtin_user_descr builtin_user_table[]
      type.  For implicit compatibility with libstdc++, EDG uses the GCC void*
      version of this builtin when not in Clang compatibility mode. */
   { "__builtin_source_location", "L+(150000-)g+(100000-)s+(202002-)",
-    "void* ()", bufk_source_location },
+    "void* ()", bfk_source_location },
   { "__builtin_source_location", "L+(150000-)",
-    "std::source_location::__impl* ()", bufk_source_location },
+    "std::source_location::__impl* ()", bfk_source_location },
 
   /* GCC 9.x implements std::is_constexpr_evaluated using an intrinsic function
      __builtin_is_constexpr_evaluated.  We accept it in all modes, but the
