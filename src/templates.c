@@ -11704,7 +11704,7 @@ doing C++17-style template template parameter matching.
                            tpp->variant.constant.ptr->type,
                            (a_constant_ptr)NULL, specified_tap->arg_operand,
                            &constant_type,
-                           (a_source_position_ptr)NULL,
+                           &specified_tap->arg_operand->operand.position,
                            partial_arg_list, templ_param_list) ||
                   !nontype_template_arg_is_compatible_with_param_type(
                                   specified_tap->arg_operand, constant_type)) {

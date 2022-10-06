@@ -1,5 +1,29 @@
 Version 6.4
 
+10/6/22  [EDGcpfe/25537,EDGcpfe/25660]
+Abort on deduction involving class-type nontype template parameter
+
+Consider, in C++20 mode:
+
+  template<int> struct Str {};
+  template<int> void f() {}
+  template<Str> void f() {}
+  void g() { f<0>(); }
+
+This previously aborted due to an attempt at emitting a spurious diagnostic
+without an available source position.  The following example:
+
+  template<typename T> struct S {};
+  template<S> void f() {}
+  void g() {
+    S<char> s;
+    f<s>();
+  }
+
+also aborted with an attempted to dereference a null expression stack pointer.
+Those problems are now fixed.
+
+
 10/5/22  [EDGcpfe/25590]
 C++-generating back end: CTAD in cast with constexpr constructor
 
