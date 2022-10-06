@@ -27386,7 +27386,7 @@ the converted constant value.  param_type may be a placeholder type.
                                          alep, &operand->position,
                                          &param_type, &still_dependent);
     free_init_component_list(alep);
-    if (!deduced) {
+    if (!deduced || is_error_type(param_type)) {
       goto done;
     }  /* if */
   }  /* if */

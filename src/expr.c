@@ -39065,6 +39065,7 @@ to NULL.
                                           tpp->variant.constant.ptr->type))) {
         an_operand      arg_op;
         a_constant_ptr  class_con = local_constant();
+        result = TRUE;
         make_constant_operand(&const_with_curr_tok_spelling, &arg_op);
         if (nontype_templ_arg_of_class_type_matches(
                        &arg_op, tpp->variant.constant.ptr->type, class_con)) {
@@ -39078,7 +39079,6 @@ to NULL.
           instance_sym = find_template_function(op_sym, &tap,
                                       /*explicit_arg_list_present=*/TRUE,
                                       &pos_curr_token);
-          result = TRUE;
           
           if (sym == NULL) {
             sym = instance_sym;
@@ -39092,6 +39092,8 @@ to NULL.
             sym = NULL;
             break;
           }  /* if */
+        } else {
+          release_local_constant(&class_con);
         }  /* if */
       }  /* if */
     }  /* if */
@@ -39149,8 +39151,8 @@ issue an error; otherwise, return TRUE.
          the ambiguous symbols to the diagnostic.  If that is a string
          literal, this is the version with the non-standard
          <typename T, T ...> (instead of <char ...>) parameter list. */
-      is_string_literal_operator_template =
-                    (const_for_curr_token.type->kind == (a_type_kind)tk_array);
+      is_string_literal_operator_template = type_is(const_for_curr_token.type,
+                                                    tk_array);
     } else {
       /* The original lookup found a single literal operator template, so
          we can look at its parameter list to tell which version of the
