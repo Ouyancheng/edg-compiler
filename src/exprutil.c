@@ -3136,6 +3136,11 @@ that context.
       }  /* if */
       tblock->terminate = TRUE;
     }  /* if */
+  } else if (node->kind == enk_srcloc_deferred) {
+    /* This is a deferred consteval operation, there's nothing to check at this
+       point.  The consteval semantics should be enforced when this operation
+       is transformed. */
+    tblock->suppress_subtree_walk = TRUE;
   } else {
     a_routine_ptr  rp = NULL;
     if (is_routine_node(node)) {

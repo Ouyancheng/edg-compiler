@@ -1483,10 +1483,6 @@ Issue any diagnostics at the given position.
          create that copy now. */
       an_expr_copy_options_set options = CE_COPYING_DEFAULT_MEMBER_INIT;
       dip = copy_dynamic_init(fp->initializer, options);
-      /* FIXME: Are these relevant? We've skipped them because we can't answer
-         them correctly, but we might not have the relevant expression
-         stack. */
-      /* wrap_up_dynamic_init_full_expression(dip); */
     } else {
       dip = fp->initializer;
     }  /* if */
@@ -9231,10 +9227,6 @@ initialized.  These are addressed in the course of the processing.
 
             cip->initializer = new_init;
             init_to_use = &cip->initializer;
-            /* FIXME: Are these relevant? We've skipped them because we can't
-               answer them correctly, but we might not have the relevant
-               expression stack. */
-            /* wrap_up_dynamic_init_full_expression(dip); */
           } else {
             /* Use the optimized case, this constructor does not get its own
                copy of the default member initializer. */

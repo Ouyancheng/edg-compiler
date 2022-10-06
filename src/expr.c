@@ -42606,7 +42606,7 @@ dynamic init entry if one is created to represent this initializer
   }  /* if */
   if (!is->check_validity_only) {
     /* If this conversion was treated as a full expression, do wrapup. */
-    if (is_full_expr && !is->requires_il_copy) {
+    if (is_full_expr) {
       if (dip != NULL) {
         wrap_up_dynamic_init_full_expression(dip);
       } else if (is->init_error) {
