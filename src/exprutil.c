@@ -18950,7 +18950,8 @@ is set to reflect whether the call was folded or not.
            constant-expression is now ruled out. */
         a_boolean  is_consteval, no_diagnostic;
         is_consteval = rout != NULL && rout->is_consteval;
-        no_diagnostic = relaxed_constexpr_enabled && !is_consteval;
+        no_diagnostic = relaxed_constexpr_enabled &&
+                               (!is_consteval || is_consteval_diag_deferred());
         (void)call_did_not_fold_to_constant(rout, result, no_diagnostic,
                                             &diag_list,
                                             (a_source_position*)NULL);
