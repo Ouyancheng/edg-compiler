@@ -20298,6 +20298,8 @@ when possible.
   a_type_ptr       bare_init_entity_type;
   a_boolean        suppress_braces = FALSE;
   a_boolean        saved_suppress_template_args = octl.suppress_template_args;
+  a_boolean        suppress_template_args =
+                                     dip->suppress_template_arguments_for_cast;
 
   dip = skip_constexpr_init_folding(dip);
   braced_init = dip->is_braced_initializer;
@@ -20332,7 +20334,7 @@ when possible.
        needed if the constant has an explicit cast, as the cast will be put
        out as part of the constant itself.) */
     a_boolean use_func_notation_cast;
-    if (braced_init || dip->suppress_template_arguments_for_cast) {
+    if (braced_init || suppress_template_args) {
       /* The source was a braced-init cast or involved class template
          argument deduction (the reason for suppressing the template
          arguments), so use the functional-notation form.  If there are
@@ -20489,7 +20491,7 @@ when possible.
     if (use_func_notation_cast) {
       /* Use a functional-notation cast. */
 output_functional_notation_cast:
-      octl.suppress_template_args = dip->suppress_template_arguments_for_cast;
+      octl.suppress_template_args = suppress_template_args;
       gen_type_reference(init_entity_type);
       octl.suppress_template_args = saved_suppress_template_args;
       /* In a case like "auto x = T{};", braced-init will be FALSE,

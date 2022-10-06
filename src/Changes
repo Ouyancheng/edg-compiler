@@ -1,5 +1,22 @@
 Version 6.4
 
+10/5/22  [EDGcpfe/25590]
+C++-generating back end: CTAD in cast with constexpr constructor
+
+In cases where a cast expression relies on class template argument
+deduction and the constructor of the class template that is used is
+constexpr, the C++-generating back end sometimes explicitly included the
+template arguments in the type in the cast expression in the generated
+code.  This is now fixed.  For example, with --c++17:
+
+  template<typename T> struct S {
+    constexpr S(T) { }
+  };
+  void f() {
+    S{0};   // Previously generated as S<int>{0}
+  }
+
+
 10/5/22  [EDGcpfe/23852,EDGcpfe/24368]
 Clang and Microsoft compatibility: Variables of nonliteral types
 
