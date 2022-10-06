@@ -492,16 +492,8 @@ because the types involved are still dependent, *still_dependent is returned
 TRUE and FALSE is returned.
 */
 {
-  a_boolean            result;
-  an_expr_stack_entry  *saved_expr_stack;
-  an_expr_stack_entry  expr_stack_entry;
+  a_boolean  result;
 
-  save_expr_stack(&saved_expr_stack);
-  push_expr_stack((an_expression_kind)ek_template_arg, &expr_stack_entry,
-                  /*force_object_lifetime=*/FALSE,
-                  /*suppress_object_lifetime=*/FALSE);
-  expr_stack_entry.is_template_arg_expression = TRUE;
-  expr_stack_entry.suppress_diagnostics = TRUE;
   if (is_class_template) {
     /* This is a class template argument deduction case. */
     *type_after_deduction = void_type();
@@ -564,8 +556,6 @@ TRUE and FALSE is returned.
       *still_dependent = FALSE;
     }  /* if */
   }  /* if */
-  pop_expr_stack();
-  restore_expr_stack(saved_expr_stack);
   return result;
 }  /* deduce_placeholder_type */ 
 

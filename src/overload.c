@@ -29038,18 +29038,9 @@ set to TRUE and FALSE is returned.
     result = FALSE;
   } else {
     /* Something went wrong with deduction. */
-    check_assertion_or_expect_error(scope_stack_top().is_rescan ||
-                                    (expr_stack != NULL &&
-                                     expr_stack->any_suppressed_error));
-    if (microsoft_mode && scope_stack_top().in_prototype_instantiation) {
-      /* MSVC does not diagnose this (presumably because of limited template
-         checking). */
-      *still_dependent = TRUE;
-    } else {
-      *deduced_placeholder = error_type();
-      *still_dependent = FALSE;
-    }  /* if */
-    result = FALSE;
+    check_assertion_or_expect_error(scope_stack_top().is_rescan);
+    *deduced_placeholder = error_type();
+    *still_dependent = FALSE;
   }  /* if */
 done:
   if (aggr_candidate != NULL) {
