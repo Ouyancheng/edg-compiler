@@ -37753,6 +37753,35 @@ subsequent string literals.
 }  /* set_curr_token_to_function_name_string */
 
 
+static a_boolean is_function_name_constexpr(a_token_kind func_name_token)
+/*
+Given a function name token, return TRUE if the corresponding synthesized
+variable should be constexpr in the current context; otherwise, return FALSE.
+*/
+{
+  a_boolean result;
+
+  /* Clang, GCC, and MSVC appear to declare these variables "constexpr". That
+     enables code like "int main() { constexpr char p = __func__[0]; }".
+
+     Follow suit for all non-standard spellings of this variable, and for
+     the standardized __func__ when not in strict mode. */
+  switch (func_name_token) {
+    case tok_func_name:
+      result = !strict_ansi_mode;
+      break;
+    case tok_function_name:
+    case tok_pretty_function_name:
+    case tok_decorated_function_name:
+      result = TRUE;
+      break;
+    default:
+      unexpected_condition();
+  }  /* switch */
+  return result;
+}  /* is_function_name_constexpr */
+
+
 static void make_function_name_operand(an_operand *result)
 /*
 Create an operand referring to the name of the current function for
@@ -37881,9 +37910,7 @@ which of the various keywords was used.
     name_var->source_corresp.is_local_to_function = TRUE;
     name_var->init_kind = (an_init_kind)initk_static;
     name_var->initializer.constant = name_string;
-    if (gpp_mode || clang_mode) {
-      /* Clang and GCC appear to declare these variables "constexpr".  That
-         enables code like "int main() { constexpr char p = __func__[0]; }". */
+    if (is_function_name_constexpr(func_name_token)) {
       name_var->is_constexpr = TRUE;
     }  /* if */
     /* To be sure, always consider the variable's address has been taken. */
