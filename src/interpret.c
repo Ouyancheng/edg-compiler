@@ -9383,6 +9383,7 @@ to FALSE and the reason for the failure is recorded in *ips.
              the interpretation (this has already been diagnosed). */
           interp_inf = gnu_source_location_impl();
           if (is_error_type(interp_inf.impl_type)) {
+            ips->input_error = TRUE;
             do_constexpr_fail(*p_result);
           } else {
             a_byte  *obj_storage;
