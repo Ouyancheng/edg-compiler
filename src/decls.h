@@ -506,7 +506,7 @@ typedef struct an_init_state {
 			   this flag is cleared when processing the element
 			   initializers (so only the top-level constant is
 			   wrapped). */
-  a_bit_field	requires_il_copy:1;
+  a_bit_field	is_ctor_dependent:1;
 			/* TRUE if this is a default member initializer that
 			   requires a constructor specific copy and cannot be
 			   used generally (e.g., an initializer containing a

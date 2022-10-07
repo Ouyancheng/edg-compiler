@@ -11209,7 +11209,7 @@ typedef struct a_field {
   a_bit_field	has_initializer:1;
 			/* TRUE if a C++11-style initializer was specified for
 			   this field. */
-  a_bit_field	init_requires_il_copy:1;
+  a_bit_field	init_is_ctor_dependent:1;
 			/* TRUE if the default member initializer associated
 			   with this field requires a constructor specific copy
 			   and cannot be used generally (e.g., an initializer

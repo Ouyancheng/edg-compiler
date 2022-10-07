@@ -1478,7 +1478,7 @@ Issue any diagnostics at the given position.
 
   if (fp->has_initializer) {
     scan_field_initializer_if_needed(fp, aggr_type);
-    if (fp->init_requires_il_copy) {
+    if (fp->init_is_ctor_dependent) {
       /* This constructor requires a custom copy of the initializer;
          create that copy now. */
       an_expr_copy_options_set options = CE_COPYING_DEFAULT_MEMBER_INIT;
@@ -6229,7 +6229,7 @@ expressions.  For the latter, see init_capture_initializer below.)
     } else {
       field->has_direct_braced_initializer = is->direct_init;
       field->initializer = is->init_dip;
-      field->init_requires_il_copy = is->requires_il_copy;
+      field->init_is_ctor_dependent = is->is_ctor_dependent;
       if (is->constant_expr_ruled_out) {
         field->has_nonconstant_initializer = TRUE;
       }  /* if */
@@ -9218,7 +9218,7 @@ initialized.  These are addressed in the course of the processing.
           has_field_init = TRUE;
           /* Ensure the field initializer is scanned if necessary. */
           scan_field_initializer_if_needed(field, class_type);
-          if (field->initializer != NULL && field->init_requires_il_copy) {
+          if (field->initializer != NULL && field->init_is_ctor_dependent) {
             /* This constructor requires a custom copy of the initializer;
                create that copy now. */
             an_expr_copy_options_set options = CE_COPYING_DEFAULT_MEMBER_INIT;

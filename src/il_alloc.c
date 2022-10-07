@@ -2839,7 +2839,7 @@ to it.
   fp->base_class_subobject_with_tail_padding = FALSE;
 #endif /* DO_IL_LOWERING */
   fp->has_initializer      = FALSE;
-  fp->init_requires_il_copy = FALSE;
+  fp->init_is_ctor_dependent = FALSE;
   fp->has_direct_braced_initializer = FALSE;
   fp->has_nonconstant_initializer = FALSE;
   fp->bit_size_constant_expr_in_local_expr_node_ref = FALSE;
