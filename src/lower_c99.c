@@ -2474,7 +2474,7 @@ Runtime routines for conversions between floating point and fixed point.  Note
 that there are no conversion routines from __float80 or __float128.
 */
 static a_library_name_array float_fixed_conv_routine_name = {
-                                                         "_Fixed_from_float16",
+                                                         NULL,
                                                          "_Fixed_from_float",
                                                          "_Fixed_from_double",
                                                          "_Fixed_from_ldouble",
@@ -2482,7 +2482,7 @@ static a_library_name_array float_fixed_conv_routine_name = {
                                                          NULL};
 static a_routine_ptr float_fixed_conv_routine[(int)fk_first_extended_type];
 static a_library_name_array fixed_float_conv_routine_name = {
-                                                           "_Fixed_to_float16",
+                                                           NULL,
                                                            "_Fixed_to_float",
                                                            "_Fixed_to_double",
                                                            "_Fixed_to_ldouble",
@@ -4712,7 +4712,6 @@ void lower_c99_nonreal_float_types(void)
 Replace the imaginary and complex C99 types by their lowered representations.
 */
 {
-  lower_c99_imaginary_type((a_float_kind)fk_float16, "_Imaginary_float16");
   lower_c99_imaginary_type((a_float_kind)fk_float, "_Imaginary_float");
   lower_c99_imaginary_type((a_float_kind)fk_double, "_Imaginary_double");
   lower_c99_imaginary_type((a_float_kind)fk_long_double,

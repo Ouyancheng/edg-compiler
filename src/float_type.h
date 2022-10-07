@@ -18,9 +18,8 @@ FPT_DOUBLE, FPT_LONG_DOUBLE, FPT_FLOAT80, or FPT_FLOAT128 are defined
 respectively.  To define routines for all six floating-point types, this
 file must be included six times, once for each type.
 
-Aside from the main configuration macros (FPT_FLOAT16, FPT_FLOAT, FPT_DOUBLE,
-FPT_LONG_DOUBLE), the following configuration macros can be defined to
-modify the default behavior:
+Aside from those main configuration macros, the following configuration
+macros can be defined to modify the default behavior:
 
   FPT_*_VALUE_BITS: the number of bits in a particular floating-point type
   FPT_*_PRECISION: the number of fraction bits in a particular floating-point

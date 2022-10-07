@@ -785,8 +785,8 @@ the character position of the error.
           kind = (a_float_kind)fk_std_bfloat16;
           actual_end -= 4;
         } else {
-          kind = extended_float_types ? (a_float_kind)fk_std_float16
-                                      : (a_float_kind)fk_float16;
+          kind = extended_float_types ? fk_std_float16
+                                      : fk_float16;
           actual_end -= 3;
         }  /* if */
         break;
