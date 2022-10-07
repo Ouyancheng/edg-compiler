@@ -273,7 +273,8 @@ tk_routine type -- possibly with a typeref that describes attributes).  The
 builtin function corresponds to the (a_builtin_function_kind_tag or
 a_builtin_user_function_kind) kind.  If non-NULL, loc specifies the symbol
 locator for name.  The routine is given C name linkage (and the routine type is
-updated accordingly).  Return the created symbol for the generated function.
+updated accordingly).  Return the newly-created symbol for the builtin
+function.
 */
 {
   a_symbol_ptr        sym;
@@ -684,8 +685,8 @@ The builtin function referred to by sym_hdr has not yet been loaded and a
 reference has been made to it, so create the routine entry now.  Note that this
 may be called at various points during the translation, so care must be taken
 to save and restore the state of the compilation while a file-scope routine is
-created (and potentially a routine type is parsed).  Return the created symbol
-for the generated function.
+created (and potentially a routine type is parsed).  Return the newly-created
+symbol for the builtin function.
 */
 {
   a_symbol_ptr     result = NULL;
