@@ -1820,6 +1820,9 @@ typedef int an_expr_copy_options_set;
 			   member initializer expression, i.e., making a
 			   constructor specific use of the scanned
 			   expression. */
+#define CE_COSNT_EVAL_SUB_EXPRESSION 0x40000
+			/* TRUE if this copy operation is copying an operand of
+			   an expression in an immediate evaluation context. */
 
 a_constant_ptr copy_constant_full(a_constant_ptr           old_constant,
                                   a_constant_ptr           new_constant,

@@ -21637,17 +21637,26 @@ be called to start a copy.
       { auto &reattempt_state =
                              expr->variant.const_eval_deferred.reattempt_state;
 
-        if ((reattempt_state.default_arg &&
-             (options & CE_COPYING_EVALUATED_DEFAULT_ARG_EXPR)) ||
-            (reattempt_state.default_mem_init &&
-             (options & CE_COPYING_DEFAULT_MEMBER_INIT))) {
+        if (options & CE_COSNT_EVAL_SUB_EXPRESSION) {
+          /* This is being copied for evaluation as a sub expression of a
+             deferred constant evaluation that's now being evaluated.  To
+             ensure there's only one evaluation performed, and that it's the
+             correct evaluation, unwrap the expression. */
+          expr_copy = i_copy_expr_tree(
+                                     expr->variant.const_eval_deferred.wrapped,
+                                     options, cblock);
+        } else if ((reattempt_state.default_arg &&
+                    (options & CE_COPYING_EVALUATED_DEFAULT_ARG_EXPR)) ||
+                   (reattempt_state.default_mem_init &&
+                    (options & CE_COPYING_DEFAULT_MEMBER_INIT))) {
           /* A call to a builtin source location operation is being performed
              in a default argument list and that list is being copied.  The
              source location to be used is the call to the function with the
              default arguments so fold the expression now. */
           an_expr_node_ptr wrapped = i_copy_expr_tree(
                                      expr->variant.const_eval_deferred.wrapped,
-                                     options, cblock);
+                                     options | CE_COSNT_EVAL_SUB_EXPRESSION,
+                                     cblock);
           a_diag_list      diag_list;
           a_constant_ptr   constant = local_constant();
 
