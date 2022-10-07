@@ -11794,8 +11794,7 @@ static a_type_ptr
                            location implementation type. */
 
 static struct gnu_source_location_field_info {
-  a_field_ptr
-                file,
+  a_field_ptr   file,
                 function,
                 line,
                 column;
@@ -12006,12 +12005,11 @@ interpretation.
 */
 {
   check_assertion(il_source_location_impl_type != NULL);
-  return a_gnu_source_location_type_info{
-                         il_source_location_impl_type,
-                         il_source_location_fields.file,
-                         il_source_location_fields.function,
-                         il_source_location_fields.line,
-                         il_source_location_fields.column};
+  return a_gnu_source_location_type_info{il_source_location_impl_type,
+                                         il_source_location_fields.file,
+                                         il_source_location_fields.function,
+                                         il_source_location_fields.line,
+                                         il_source_location_fields.column};
 }  /* gnu_source_location_impl */
 
 
@@ -31172,6 +31170,8 @@ in il_init.)
       pch_saved_var_array_elem(il_partial_ordering_type),
       pch_saved_var_array_elem(il_strong_equality_type),
       pch_saved_var_array_elem(il_weak_equality_type),
+      pch_saved_var_array_elem(il_source_location_impl_type),
+      pch_saved_var_array_elem(il_source_location_fields),
       pch_array_saved_var_array_elem(int_types),
       pch_array_saved_var_array_elem(signed_int_types),
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -31279,6 +31279,8 @@ in il_init.)
   register_trans_unit_variable(il_partial_ordering_type),
   register_trans_unit_variable(il_strong_equality_type),
   register_trans_unit_variable(il_weak_equality_type),
+  register_trans_unit_variable(il_source_location_impl_type),
+  register_trans_unit_variable(il_source_location_fields),
   register_trans_unit_variable(shareable_constants_table);
   register_trans_unit_variable(seq_cache);
   register_trans_unit_variable(effective_primary_source_file);
