@@ -14061,7 +14061,8 @@ parameters.
          parameter. */
       if (const_type != new_const_type &&
           (is_void_type(new_const_type) ||
-           is_class_struct_union_type(new_const_type) ||
+           (is_class_struct_union_type(new_const_type) &&
+            (!cpp20_mode || !is_structural_type(new_const_type))) ||
            (rvalue_references_enabled &&
             is_rvalue_reference_type(new_const_type)) ||
 #if FIXED_POINT_ALLOWED

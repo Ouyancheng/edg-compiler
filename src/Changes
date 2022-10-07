@@ -1,5 +1,17 @@
 Version 6.4
 
+10/7/22  [EDGcpfe/24624,EDGcpfe/25470]
+Substitution of class-type nontype template parameters
+
+The front end previously failed to substitute class-type nontype template
+parameters.  For example, with --c++20:
+
+  template<int> struct C { };
+  template<int I, C<I>> constexpr bool v = false;
+  template<C<1> C1> constexpr bool v<1, C1> = true;
+  static_assert(v<1, C<1>{}>, "Unexpected");  // Previously failed.  Now okay.
+
+
 10/6/22  [EDGcpfe/25537,EDGcpfe/25660]
 Abort on deduction involving class-type nontype template parameter
 
