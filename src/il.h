@@ -661,6 +661,16 @@ used in place of bfk_none below (and convenience macros are also unavailable).
 }  /* is_call_to_builtin_function */
 
 
+#define rout_is_specific_builtin(rp, bfk)                                   \
+   is_specific_builtin(rp,(a_builtin_function_kind)(bfk))
+#else /* !BUILTIN_FUNCTIONS_ENABLED */
+#define is_gnu_builtin_function(rp) FALSE
+/*lint -emacro(506,rout_is_specific_builtin)*/
+#define rout_is_specific_builtin(rp, bfk) FALSE
+/*lint -emacro(506,is_call_to_builtin_function)*/
+#define is_call_to_builtin_function(rp, bfk) FALSE
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
+
 inline a_boolean is_any_reattempt_permitted(
                                   a_const_eval_reattempt_state reattempt_state)
 /*
@@ -691,17 +701,7 @@ Merge the new reattempt state into the destination state.
   if (new_state.default_mem_init) {
     dest_state->default_mem_init = TRUE;
   }  /* if */
-}  /* is_any_reattempt_permitted */
-
-#define rout_is_specific_builtin(rp, bfk)                                   \
-   is_specific_builtin(rp,(a_builtin_function_kind)(bfk))
-#else /* !BUILTIN_FUNCTIONS_ENABLED */
-#define is_gnu_builtin_function(rp) FALSE
-/*lint -emacro(506,rout_is_specific_builtin)*/
-#define rout_is_specific_builtin(rp, bfk) FALSE
-/*lint -emacro(506,is_call_to_builtin_function)*/
-#define is_call_to_builtin_function(rp, bfk) FALSE
-#endif /* BUILTIN_FUNCTIONS_ENABLED */
+}  /* merge_reattempt_state */
 
 /*
 Macro to test an operator routine entry's opname_kind field.
