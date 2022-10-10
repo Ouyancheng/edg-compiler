@@ -11700,11 +11700,14 @@ doing C++17-style template template parameter matching.
             if (tpp->uses_auto) {
               /* For an auto template parameter, make sure the type matches
                  the parameter. */
+              a_source_position  *diag_pos = NULL;
+              if (!scope_stack_top().is_rescan) {
+                diag_pos = &specified_tap->arg_operand->operand.position;
+              }  /* if */
               if (!arg_matches_auto_template_param(
                            tpp->variant.constant.ptr->type,
                            (a_constant_ptr)NULL, specified_tap->arg_operand,
-                           &constant_type,
-                           &specified_tap->arg_operand->operand.position,
+                           &constant_type, diag_pos,
                            partial_arg_list, templ_param_list) ||
                   !nontype_template_arg_is_compatible_with_param_type(
                                   specified_tap->arg_operand, constant_type)) {
