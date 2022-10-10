@@ -945,7 +945,7 @@ extern a_symbol_ptr copy_parent_type_with_substitution(
 			a_boolean			*copy_error,
 			a_ctws_state_ptr		ctws_state);
 
-extern a_variable_ptr copy_template_variable_with_substitution(
+extern a_symbol_ptr copy_template_variable_with_substitution(
 			a_variable_ptr			var,
 			a_template_arg_ptr		templ_arg_list,
 			a_template_param_ptr		templ_param_list,

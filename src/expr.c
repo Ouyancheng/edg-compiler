@@ -48255,17 +48255,21 @@ is TRUE if the expression is the immediate operand of an "&" operator.
            substituted arguments. */
         if (var->is_nonreal) {
           a_boolean  copy_error = FALSE;
-          var = copy_template_variable_with_substitution(
+          sym = copy_template_variable_with_substitution(
                           var, rcblock->template_arg_list,
                           rcblock->template_param_list,
                           &rcblock->expr->position, rcblock->options,
                           &copy_error, rcblock->ctws_state);
-          if (var == NULL) {
+          if (sym == NULL) {
             /* Substitution failed (e.g., because the constraints were not
                satisfied). */
             copy_error = TRUE;
-          } else {
-            sym = symbol_for(var);
+          } else if (var->template_info != NULL &&
+                     is_nontype_template_param_symbol(sym) &&
+                     var->template_info->template_arg_list != NULL) {
+            /* Identify the arguments for the variable template instance. */
+            is_template_id = TRUE;
+            expl_templ_arg_list = var->template_info->template_arg_list;
           }  /* if */
           if (copy_error) {
             subst_fail(rcblock->error_detected);
@@ -49585,7 +49589,7 @@ function or template.
   } else if (is_constant_operand(&result)) {
     /* The result is a constant, so return it via *constant. */
     expr = NULL;
-    copy_constant(&result.variant.constant, constant);
+    extract_constant_from_operand(&result, constant);
   } else if (is_error_operand(&result)) {
     normalize_error_operand(&result);
     expr = make_node_from_operand(&result);

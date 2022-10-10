@@ -5502,9 +5502,17 @@ kept.
   }  /* if */
   if (break_instance) {
     break_instance_source_corresp(&cp->source_corresp);
-    /* Don't allow more than one constant with the same associated
-       symbol. */
-    cp->source_corresp.assoc_info = NULL;
+    /* Don't allow more than one constant with the same associated symbol.
+       Make an exception for tpck_member constants whose symbol may be needed
+       during substitution. */
+    if (constant_is(cp, ck_template_param) && tpck_is(cp, tpck_member)) {
+      if (cp != symbol_for(cp)->variant.constant) {
+        /* The constant is likely a copy on another one.  Provide it its own
+           symbol entry. */
+      }  /* if */
+    } else {
+      cp->source_corresp.assoc_info = NULL;
+    }  /* if */
   } else {
     /* If the original expression has a name but no backing expression, keep
        its name.  This is useful, for example, to be able to render the
@@ -17820,6 +17828,7 @@ constant.
   node = alloc_expr_node((an_expr_node_kind)enk_constant);
   node_constant(node) = alloc_shareable_constant(constant);
   node->type = constant->type;
+  node->extra.rescan_info = constant->rescan_info;
   return node;
 }  /* alloc_node_for_constant */
 

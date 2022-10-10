@@ -1,5 +1,27 @@
 Version 6.4
 
+10/10/22 [EDGcpfe/25616]
+Spurious substitution failure of static data member
+
+Consider, in C++20 mode:
+
+  template<typename> struct S {
+    template <bool> struct N {
+      static constexpr bool cond = true;
+      friend constexpr bool operator==(const N &, const N &) requires cond {
+        return true;
+      }
+    };
+  };
+  bool g(S<int>::N<true> p) {
+    return p != p;  // Previously an error.  Now okay.
+  }
+
+The friend operator== was previously discarded during constraint checking
+because the substitution of "cond" in the requires clause (which is really
+S<int>::N<true>::cond in this case) spuriously failed.  That is now fixed.
+
+
 10/7/22  [EDGcpfe/24624,EDGcpfe/25470]
 Substitution of class-type nontype template parameters
 

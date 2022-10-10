@@ -13804,7 +13804,7 @@ Otherwise, return the original template.
 }  /* copy_template_with_substitution */
 
 
-a_variable_ptr copy_template_variable_with_substitution(
+a_symbol_ptr copy_template_variable_with_substitution(
 			a_variable_ptr			var,
 			a_template_arg_ptr		templ_arg_list,
 			a_template_param_ptr		templ_param_list,
@@ -13819,23 +13819,22 @@ templ_param_list.  Return a pointer to the resulting variable, or NULL
 if an error occurred.
 */
 {
-  a_variable_ptr      result_var = var;
-  a_symbol_ptr        var_templ_sym;
+  a_symbol_ptr        templ_sym;
   a_template_ptr      var_templ;
   a_template_arg_ptr  t_args = var->template_info->template_arg_list;
+  a_symbol_ptr        sym = NULL;
 
   var_templ = var->template_info->assoc_template;
-  var_templ_sym = symbol_for(var_templ);
+  templ_sym = symbol_for(var_templ);
   /* If this is a class member, substitute the parent. */
-  if (var_templ_sym->is_class_member &&
-      sym_parent_class(var_templ_sym)
+  if (templ_sym->is_class_member &&
+      sym_parent_class(templ_sym)
                               ->variant.class_struct_union.is_nonreal_class) {
-    a_symbol_ptr	sym;
     a_type_ptr		parent_type;
     sym = symbol_for(var);
     parent_type = parent_class_of(var);
     check_assertion(sym != NULL);
-    sym = copy_parent_type_with_substitution(var_templ_sym, parent_type,
+    sym = copy_parent_type_with_substitution(templ_sym, parent_type,
                                              templ_arg_list, templ_param_list,
                                              source_pos,
                                              /*is_type=*/FALSE,
@@ -13849,7 +13848,6 @@ if an error occurred.
       var = NULL;
     } else if (symbol_is(sym, sk_static_data_member)) {
       /* A<T>::B is a variable.  Return it below. */
-      result_var = variable_for_symbol(sym);
       /* A<T>::B is not a variable template, so no additional substitution is
          needed below. */
       var = NULL;
@@ -13857,42 +13855,48 @@ if an error occurred.
       /* A<T>::B is a variable template as expected: Substitute it below. */
       var = variable_for_symbol(sym);
       var_templ = var->template_info->assoc_template;
-      var_templ_sym = symbol_for(var_templ);
+      templ_sym = symbol_for(var_templ);
     } else if (is_nontype_template_param_symbol(sym)) {
-      /* A dependent construct.  Don't attempt to substitute it, but don't
-         fail substitution either. */
+      /* A dependent construct.  Represent it generically with a
+         tpck_template_ref constant. */
+      a_constant_ptr con = fs_constant(
+                                     (a_constant_repr_kind)ck_template_param);
+      set_template_param_constant_kind(con,
+                            (a_template_param_constant_kind)tpck_template_ref);
+      con->variant.template_param.variant.template_ref.con =
+                                                        sym->variant.constant;
+      con->variant.template_param.variant.template_ref.arg_list = t_args;
+      con->type = type_of_unknown_templ_param_nontype;
+      sym = alloc_symbol((a_symbol_kind)sk_constant, sym->header,
+                         &sym->decl_position);
+      sym->variant.constant = con;
       var = NULL;
     } else {
       /* Something unexpected: Fail substitution. */
       subst_fail(*copy_error);
       var = NULL;
+      sym = NULL;
     }  /* if */
   }  /* if */
   if (var != NULL) {
-    a_symbol_ptr          sym;
-    a_template_param_ptr  t_params;
-    a_template_symbol_supplement_ptr
-                          tssp = var_templ_sym->variant.template_info;
-    t_params = tssp->variant.variable.decl_cache.decl_info->parameters;
+    a_template_param_ptr  t_params = templ_params_of(templ_sym);
     t_args = copy_template_arg_list_with_substitution_rebuilding_arg_operands(
-                                 var_templ_sym, t_args, t_params,
+                                 templ_sym, t_args, t_params,
                                  templ_arg_list, templ_param_list,
                                  source_pos, options, copy_error, ctws_state);
     if (!*copy_error) {
-      sym = find_template_variable(var_templ_sym, &t_args,
+      sym = find_template_variable(templ_sym, &t_args,
                                    /*prototype_allowed=*/FALSE,
                                    /*is_use=*/TRUE, /*diagnose=*/FALSE);
     } else {
       sym = NULL;
     }  /* if */
-    if (sym != NULL) {
-      result_var = variable_for_symbol(sym);
-    } else {
+    if (sym == NULL) {
       /* Constraints were not satisfied. */
       subst_fail(*copy_error);
     }  /* if */
   }  /* if */
-  return result_var;
+  return sym;
 }  /* copy_template_variable_with_substitution */
 
 
