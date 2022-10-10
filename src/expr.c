@@ -642,8 +642,13 @@ processed so far.  arg_list and param_list are NULL by default.
       } else {
         /* The deduction succeeded.  Make sure the resulting type is valid as
            a nontype template parameter. */
+        a_source_position  *diag_pos = position;
+        if (scope_stack_top().is_rescan) {
+          /* Do not issue a diagnostic in rescanning contexts. */
+          diag_pos = NULL;
+        }  /* if */
         if (check_nontype_template_param_type(&deduced_type,
-                                              /*from_auto=*/TRUE, position)) {
+                                              /*from_auto=*/TRUE, diag_pos)) {
           result = TRUE;
         }  /* if */
       }  /* if */
