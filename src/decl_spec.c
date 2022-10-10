@@ -11580,21 +11580,17 @@ process_enum_specifier:
         basic_type = bt_typedef;
         break;
       case tok_edg_fp16_type:
-        /* An EDG-specific way to specify a __fp16 or _Float16 type.  Clang
-           uses IEEE 754-2008 binary16 for both types. */
-        if (float16_enabled) {
-          // FIXME: differentiate between _Float16 and __fp16 and std::float16?
-          *type_ptr = float_type(fk_float16);
-        } else {
-          if (edg_fp16_typedef == NULL) {
-            edg_fp16_typedef = alloc_type((a_type_kind)tk_typeref);
-            edg_fp16_typedef->variant.typeref.type= float_type(fk_std_float16);
-            set_source_corresp_name(&(edg_fp16_typedef->source_corresp),
-                                    locator_for_curr_id.symbol_header);
-            add_to_types_list(edg_fp16_typedef, decl_scope_level);
-          }  /* if */
-          *type_ptr = edg_fp16_typedef;
+        /* An EDG-specific way to specify a __fp16 type.  Clang uses IEEE
+           754-2008 binary16 format. */
+        if (edg_fp16_typedef == NULL) {
+          edg_fp16_typedef = alloc_type((a_type_kind)tk_typeref);
+          edg_fp16_typedef->variant.typeref.type =
+                                      float_type((a_float_kind)fk_std_float16);
+          set_source_corresp_name(&(edg_fp16_typedef->source_corresp),
+                                  locator_for_curr_id.symbol_header);
+          add_to_types_list(edg_fp16_typedef, decl_scope_level);
         }  /* if */
+        *type_ptr = edg_fp16_typedef;
         decl_specifiers_seen |= DS_TYPE;
         basic_type = bt_typedef;
         break;

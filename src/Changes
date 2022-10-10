@@ -1,5 +1,15 @@
 Version 6.4
 
+10/10/22 [EDGcpfe/25179]
+_Float16 types in builtin signatures
+
+Now that the front end supports the _Float16 type (in some modes), builtin
+signatures that had previously used _Float16 are no longer mapped to use
+an EDG-specific replacement type (__edg_fp16__).  The __edg_fp16__ type
+continues to be used for clang's __fp16 type (as yet unimplemented in the
+front end).
+
+
 10/10/22 [EDGcpfe/25616]
 Spurious substitution failure of static data member
 

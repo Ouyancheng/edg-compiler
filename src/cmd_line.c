@@ -11951,7 +11951,7 @@ enable_microsoft_mode:
        sequence of tokens as its input). */
     no_token_separators_in_pp_output = pcc_preprocessing_mode;
   }  /* if */
-  if (building_runtime || gen_edg_special_types) {
+  if (building_runtime) {
     /* Enable support for _Float16. */
     float16_enabled = TRUE;
   }  /* if */
