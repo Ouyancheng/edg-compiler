@@ -3122,7 +3122,7 @@ to the character position following what was demangled.
             s = "__int64";
             break;
           case 'f':
-            if (get_char(p++, dctl) == '1') {
+            if ((ch = get_char(p++, dctl) == '1')) {
               switch (get_char(p++, dctl)) {
                 case '0':
                   s = "__float80";
@@ -3134,6 +3134,8 @@ to the character position following what was demangled.
                   bad_mangled_name(dctl);
                   s = "";
               }  /* switch */
+            } else if (ch == '2') {
+              s = "_Float16";
             } else {
               bad_mangled_name(dctl);
               s = "";
@@ -5159,6 +5161,7 @@ demangled as part of the template function instead).
 */
 {
   a_const_char *p = ptr, *s;
+  long         num;
 
   /* Builtin type encodings are typically lower-case (with some exceptions).
      Names begin with a digit or an upper-case letter. */
@@ -5297,6 +5300,16 @@ demangled as part of the template function instead).
           case 'c':
             s = "decltype(auto)";
             break;
+          case 'F':
+            /* Special encoding of the _Float16 type as "DF16_". */
+            p = get_number(p, &num, dctl);
+            if (*p == '_' && num == 16) {
+              s = "_Float16";
+              ++p;
+            } else {
+              bad_mangled_name(dctl);
+            }  /* if */
+            break;
           case 'n':
             s = "std::nullptr_t";
             break;
@@ -5318,8 +5331,7 @@ demangled as part of the template function instead).
                portion twice in order to get the proper "vector_size" value
                (by "multiplying" by sizeof(type) -- since the demangling
                doesn't know the size of types). */
-            { long num;
-              a_const_char *typep;
+            { a_const_char *typep;
               p = get_number(p, &num, dctl);
               if (*p != '_') {
                 bad_mangled_name(dctl);
