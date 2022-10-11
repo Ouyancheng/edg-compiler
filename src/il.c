@@ -5506,10 +5506,7 @@ kept.
        Make an exception for tpck_member constants whose symbol may be needed
        during substitution. */
     if (constant_is(cp, ck_template_param) && tpck_is(cp, tpck_member)) {
-      if (cp != symbol_for(cp)->variant.constant) {
-        /* The constant is likely a copy on another one.  Provide it its own
-           symbol entry. */
-      }  /* if */
+      /* Keep the associated symbol. */
     } else {
       cp->source_corresp.assoc_info = NULL;
     }  /* if */

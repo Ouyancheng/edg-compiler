@@ -13818,8 +13818,9 @@ a_symbol_ptr copy_template_variable_with_substitution(
 /*
 Copy the template variable instance specified by var, substituting the
 template argument list and parameter list specified by templ_arg_list and
-templ_param_list.  Return a pointer to the resulting variable, or NULL
-if an error occurred.
+templ_param_list.  Return a pointer to the resulting symbol, or NULL if an
+error occurred.  (Note: For some nonreal substitutions, the returned symbol
+will not be for a variable, but for a ck_template_param constant.)
 */
 {
   a_symbol_ptr        templ_sym;
