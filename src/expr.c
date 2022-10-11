@@ -37776,7 +37776,7 @@ variable should be constexpr in the current context; otherwise, return FALSE.
 {
   a_boolean result;
 
-  /* Clang, GCC, and MSVC appear to declare these variables "constexpr". That
+  /* Clang, GCC, and MSVC appear to declare these variables "constexpr".  That
      enables code like "int main() { constexpr char p = __func__[0]; }".
 
      Follow suit for all non-standard spellings of this variable, and for
