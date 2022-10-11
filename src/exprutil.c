@@ -23737,11 +23737,10 @@ otherwise.
       if (matching_sym != NULL) {
         /* The template reference -- something like f<1> -- corresponds to
            a single function. */
-        an_operand        orig_operand;
+        an_operand        orig_operand = *operand;
         a_symbol_ptr      sym;
         a_source_position *ampersand_pos = NULL;
 
-        orig_operand = *operand;
         if (orig_operand.is_operand_of_address_of) {
           ampersand_pos = &orig_operand.ampersand_position;
         }  /* if */
@@ -23749,9 +23748,7 @@ otherwise.
                                      &matching_arg_list,
                                      /*explicit_arg_list_present=*/TRUE,
                                      &orig_operand.position);
-        check_assertion(sym != NULL &&
-                        (sym->kind == (a_symbol_kind)sk_routine ||
-                         sym->kind == (a_symbol_kind)sk_member_function));
+        check_assertion(sym != NULL && is_simple_function_symbol(sym));
         if (single_func_sym != NULL) *single_func_sym = sym;
         if (sym->kind == (a_symbol_kind)sk_member_function &&
             routine_type_is_nonstatic_member_function(
@@ -23780,14 +23777,14 @@ otherwise.
                                                                 &orig_operand),
                                            orig_operand.ref_entries_list,
                                            operand);
-          restore_operand_details(operand, &orig_operand);
-          restore_operand_id_details(operand, &orig_operand);
           if (is_a_prvalue(&orig_operand)) {
             conv_function_designator_to_ptr_to_function(operand,
                                                         ampersand_pos,
                                                         /*allow_ctor=*/FALSE,
                                                         will_call);
           }  /* if */
+          restore_operand_details(operand, &orig_operand);
+          restore_operand_id_details(operand, &orig_operand);
         }  /* if */
       }  /* if */
     }  /* if */

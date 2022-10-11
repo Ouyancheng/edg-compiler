@@ -482,7 +482,8 @@ can be NULL, in which case this routine will find it inside orig_type.
 initializer_operand is the initializer, whose type is used to do the
 deduction.  Alternatively, initializer_alep can be used to specify the
 initializer in init-component form; if it's non-NULL it is used instead of
-initializer_operand.  source_pos is the source position of the declaration.
+initializer_operand.  source_pos is the source position of the declaration or
+NULL if called for deduction (e.g., of a nontype template parameter type).
 If the deduction succeeds, *type_after_deduction is set to the deduced version
 of orig_type, *deduced_auto_type is set to the type deduced for "auto" itself,
 and TRUE is returned.  In that case, if keep_placeholder is TRUE, a tk_typeref
@@ -501,7 +502,14 @@ TRUE and FALSE is returned.
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/FALSE);
   expr_stack_entry.is_template_arg_expression = TRUE;
-  expr_stack_entry.suppress_diagnostics = TRUE;
+  if (scope_stack_top().is_rescan || source_pos == NULL ||
+      (is_prototype_instantiation_context() &&
+       (microsoft_mode || gpp_version_is(any_version)))) {
+    /* During function template deductions, do not issue diagnostics.  MSVC and
+       GCC appear to also not diagnose failures when deducing placeholders in
+       templates, even when the types involved are not dependent. */
+    expr_stack_entry.suppress_diagnostics = TRUE;
+  }  /* if */
   if (is_class_template) {
     /* This is a class template argument deduction case. */
     *type_after_deduction = void_type();

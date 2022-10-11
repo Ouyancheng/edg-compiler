@@ -64,7 +64,7 @@ without an available source position.  The following example:
     f<s>();
   }
 
-also aborted with an attempted to dereference a null expression stack pointer.
+also aborted with an attempt to dereference a null expression stack pointer.
 Those problems are now fixed.
 
 
