@@ -41715,7 +41715,9 @@ identical).
   tdip->parameters = templ_param_list;
   rout = alloc_routine();
   /* Do substitution on the routine type to replace any references to
-     template parameters of the original constructor template with
+     template parameters of the original constructor template (both the
+     parameters of the enclosing class template and, if the constructor is a
+     constructor template, the parameters of the constructor template) with
      references to the newly created template parameters. */
   init_ctws_state(&ctws_state);
   ctws_state.orig_class_templ_params = orig_class_templ_params;
@@ -41746,7 +41748,6 @@ identical).
     if (copy_error) goto done;
   }  /* if */
   if (ctor_is_template) {
-    init_ctws_state(&ctws_state);
     rout_type = copy_type_with_substitution(
                                   rout_type,
                                   ctor_templ_args,

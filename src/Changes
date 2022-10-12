@@ -1,5 +1,24 @@
 Version 6.4
 
+10/12/22 [EDGcpfe/25118]
+Abort in find_placeholder_arg_for_pack while deducing class template arguments
+
+Consider:
+
+  template<typename ...Ts> struct S {
+    template<typename ...Us> S(Us &&...);
+  };
+  template<typename ...Ts> struct D: S<Ts...> {
+    template<typename ...Us> D(S<Us...> &&);
+  };
+  void f(D<int> p) {
+    D d = p;  // Previously aborted.  Now okay.
+  }
+
+This previously aborted in find_placeholder_arg_for_pack (templates.c) due to
+an incomplete synthesis of the associated deduction guide.  That is now fixed.
+
+
 10/12/22 [EDGcpfe/25673]
 Abort on capture of init-capture
 
