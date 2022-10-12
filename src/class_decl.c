@@ -1854,7 +1854,8 @@ or field (i.e., init-capture), return a pointer it.  Otherwise, return NULL.
     for (lcp = lambda->capture_list; lcp != NULL; lcp = lcp->next) {
       a_field_ptr   closure_field = lcp->closure_field;
       a_symbol_ptr  field_sym;
-      if (closure_field->is_captured_this) {
+      if (closure_field == NULL || closure_field->is_captured_this) {
+        /* This is not a capture of a field. */
         continue;
       }  /* if */
       field_sym = symbol_for(closure_field);

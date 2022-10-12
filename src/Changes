@@ -1,5 +1,21 @@
 Version 6.4
 
+10/12/22 [EDGcpfe/25673]
+Abort on capture of init-capture
+
+Consider:
+
+  template<typename T> void f() {
+    [c = T()](auto *p) {
+      auto v = p;
+      [&]() { v->f(c); };  // Previously aborted.  Now okay.
+    };
+ }
+
+Previously, this case caused the front end to abort with a null pointer
+indirection in find_lambda_capture (expr.c).  That is now fixed.
+
+
 10/10/22 [EDGcpfe/25179]
 _Float16 types in builtin signatures
 
