@@ -10910,6 +10910,7 @@ temporary buffer need to be copied if they are to be permanent.
   result = tp->source_corresp.name;
   if (result == NULL) {
     an_il_to_str_output_control_block octl;
+    clear_il_to_str_output_control_block(&octl);
     octl.output_str = put_str_to_temp_text_buffer_octl;
     octl.gen_compilable_code = TRUE;
     pos_in_temp_text_buffer = 0;
