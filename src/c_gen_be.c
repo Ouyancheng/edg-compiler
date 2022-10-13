@@ -8247,26 +8247,28 @@ block with state information for the processing.
       }  /* if */
     } else  if (suppress_brace_for_base_class_subobject &&
                 ipdp->curr_field != NULL) {
-      /* We're at the end of the fields that were promoted from a base
-         class subobject into the derived class.  If padding was inserted
-         to make the offset equal to the base class size, we need to
-         generate initializers for it. */
-      a_targ_size_t offset_after_fields;
-      a_field_ptr   last_field = ipdp->curr_field;
-      /* ipdp->curr_field was left pointing at the last initializable field,
-         but the decision regarding insertion of padding was made on the
-         basis of all declared fields, not just the initializable ones.
-         Ignore an empty class object. */
-      while (last_field->next != NULL) {
-        if (last_field->next->is_optimized_empty_class) {
-          break;
-        }  /* if */
-        last_field = last_field->next;
-      }  /* while */
-      offset_after_fields = offset_after_field(last_field);
-      while (offset_after_fields++ < type->size) {
-        write_tok_str(",'\\0'");
-      }  /* while */
+      if (!*gen_assignments) {
+        /* We're at the end of the fields that were promoted from a base
+           class subobject into the derived class.  If padding was inserted
+           to make the offset equal to the base class size, we need to
+           generate initializers for it. */
+        a_targ_size_t offset_after_fields;
+        a_field_ptr   last_field = ipdp->curr_field;
+        /* ipdp->curr_field was left pointing at the last initializable
+           field, but the decision regarding insertion of padding was made
+           on the basis of all declared fields, not just the initializable
+           ones.  Ignore an empty class object. */
+        while (last_field->next != NULL) {
+          if (last_field->next->is_optimized_empty_class) {
+            break;
+          }  /* if */
+          last_field = last_field->next;
+        }  /* while */
+        offset_after_fields = offset_after_field(last_field);
+        while (offset_after_fields++ < type->size) {
+          write_tok_str(",'\\0'");
+        }  /* while */
+      }  /* if */
       if (msvc_is_generated_code_target) {
         /* Ensure that the next bit-field will be in a new container. */
         msvc_bit_field_tracker.container_type = NULL;

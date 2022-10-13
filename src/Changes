@@ -1,5 +1,27 @@
 Version 6.4
 
+10/13/22 [EDGcpfe/21443,EDGcpfe/21723]
+C-generating back end: Extraneous tokens in generated code
+
+In some configurations, the C-generating back end sometimes produced code
+that could not be compiled because of the presence of the tokens ",'\0'" at
+some points in the initialization of struct members.  This is now fixed.
+For example, with --c++20:
+
+  struct A {
+    union U1 {} u1;
+    [[no_unique_address]] union U2 {} u2;
+    unsigned int bf : 10;
+    ~A() {}
+  };
+  struct B : A {
+    A *ap{};
+  };
+  void f() {
+    B b{};
+  }
+
+
 10/13/22 [EDGcpfe/25704]
 Error in constant-evaluation of local variable in recursive call
 
