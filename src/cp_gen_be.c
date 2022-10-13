@@ -17407,9 +17407,10 @@ sizeof_cases:
       gen_requires_expr(expr);
       break;
     case enk_const_eval_deferred:
-      /* C++ generation of in field initializers encounters this expression,
-         as the consuming compiler is a C++ compiler, leave it up to that
-         compiler to handle this. */
+      /* C++ generation of default member initializers encounters this
+         expression -- which typically should not reach lowering.  As the
+         consuming compiler is a C++ compiler, leave it up to that compiler to
+         handle the source location semantics. */
       gen_expression(expr->variant.const_eval_deferred.wrapped);
       break;
 

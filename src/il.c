@@ -11793,34 +11793,41 @@ call to this routine std::weak_equality is not appropriately declared).
   return il_weak_equality_type;
 }  /* weak_equality_type */
 
+namespace {
 
-static a_type_ptr
-                il_source_location_impl_type;
-                        /* Pointer to the GNU libstdc++ standard library source
-                           location implementation type. */
-
-static struct gnu_source_location_field_info {
-  a_field_ptr   file,
-                function,
-                line,
-                column;
-                        /* Fixed pointers to GNU libstdc++ standard library
-                           source location implementation fields.  These
-                           pointers are valid only when
-                           has_gnu_source_location_impl_type returns TRUE. */
-} il_source_location_fields;
-                        /* Aggregate of cached fixed pointers to GNU libstdc++
-                           source location implementation fields. */
-
-
-static a_boolean map_to_gnu_source_location_field(
-                                        a_field_ptr                    input,
-                                        a_type_ptr                     cstr_ty,
-                                        gnu_source_location_field_info *fields)
 /*
-Given a field to examine and the c-string type, attempt to update the given
-field cache (fields).  Return TRUE if a field matches and was mapped to one of
-the currently unknown fields in the field cache; otherwise, return FALSE.
+A structure bundling the field set for the GNU libstdc++ standard library's
+std::source_location::__impl type.
+*/
+struct a_gnu_source_location_field_set {
+  a_field_ptr   file;   /* The __impl type's field representing the file. */
+  a_field_ptr   function;
+                        /* The __impl type's field representing the
+                           function. */
+  a_field_ptr   line;   /* The __impl type's field representing the line. */
+  a_field_ptr   column; /* The __impl type's field representing the column. */
+};  /* a_gnu_source_location_field_set */
+
+a_type_ptr      il_source_location_impl_type;
+                        /* A pointer to the GNU libstdc++ standard library's
+                           std::source_location::__impl type. */
+
+a_gnu_source_location_field_set
+                il_source_location_fields;
+                        /* A collection of cached points for the fields of the
+                           GNU libstdc++ standard library's
+                           std::source_location::__impl type. */
+
+
+a_boolean map_to_gnu_source_location_field(
+                                       a_field_ptr                     input,
+                                       a_type_ptr                      cstr_ty,
+                                       a_gnu_source_location_field_set *fields)
+/*
+Given a field to examine and the IL instance of the const char pointer
+(c-string) type, attempt to update the given field cache (fields).  Return TRUE
+if a field matches and was mapped to one of the currently unknown fields in the
+field cache; otherwise, return FALSE.
 */
 {
   a_boolean     mapped = FALSE;
@@ -11867,9 +11874,9 @@ the currently unknown fields in the field cache; otherwise, return FALSE.
 }  /* map_to_gnu_source_location_field */
 
 
-static a_boolean check_gnu_source_location_impl_type(
-                                      a_type_ptr                     impl_type,
-                                      gnu_source_location_field_info *fields)
+a_boolean check_gnu_source_location_impl_type(
+                                     a_type_ptr                      impl_type,
+                                     a_gnu_source_location_field_set *fields)
 /*
 Given a potential GNU libstdc++ std::source_location::__impl type, validate
 compatibility.  Additionally, map processed fields to the field info cache
@@ -11935,10 +11942,11 @@ compatibility.  Additionally, map processed fields to the field info cache
   return valid;
 }  /* check_gnu_source_location_impl_type */
 
+}  /* namespace */
 
 a_type_ptr gnu_source_location_impl_type(void)
 /*
-Attempt to lookup and return a compatible GNU libstdc++ implementation type
+Attempt to look up and return a compatible GNU libstdc++ implementation type
 std::source_location::__impl.  If said type cannot be found, issue a diagnostic
 and return an error type.
 
@@ -11965,9 +11973,9 @@ information.
       if (impl_sym != NULL && is_class_symbol(impl_sym)) {
         a_type_ptr impl_type = type_symbol_type(impl_sym);
 
-        /* Check the implementation type matches expectations, and update the
-           fields cache.  If validation succeeds, use this type as the "__impl"
-           type. */
+        /* Check that the implementation type matches expectations, and update
+           the fields cache.  If validation succeeds, use this type as the
+           "__impl" type. */
         if (check_gnu_source_location_impl_type(impl_type,
                                                 &il_source_location_fields)) {
           il_source_location_impl_type = impl_type;
@@ -12001,7 +12009,7 @@ a_gnu_source_location_type_info gnu_source_location_impl(void)
 /*
 Return the aggregate type and field cache information.
 
-This function should only be called in contexts where its known that a
+This function should only be called in contexts where it's known that a
 compatible GNU libstdc++ implementation type std::source_location::__impl has
 previously been found.
 
@@ -21642,7 +21650,7 @@ be called to start a copy.
       { auto &reattempt_state =
                              expr->variant.const_eval_deferred.reattempt_state;
 
-        if (options & CE_COSNT_EVAL_SUB_EXPRESSION) {
+        if (options & CE_CONST_EVAL_SUB_EXPRESSION) {
           /* This is being copied for evaluation as a sub expression of a
              deferred constant evaluation that's now being evaluated.  To
              ensure there's only one evaluation performed, and that it's the
@@ -21660,7 +21668,7 @@ be called to start a copy.
              default arguments so fold the expression now. */
           an_expr_node_ptr wrapped = i_copy_expr_tree(
                                      expr->variant.const_eval_deferred.wrapped,
-                                     options | CE_COSNT_EVAL_SUB_EXPRESSION,
+                                     options | CE_CONST_EVAL_SUB_EXPRESSION,
                                      cblock);
           a_diag_list      diag_list;
           a_constant_ptr   constant = local_constant();
@@ -21669,7 +21677,6 @@ be called to start a copy.
           if (interpret_expr(wrapped, /*is_constant_evaluated=*/TRUE,
                              /*force_prvalue=*/FALSE, constant, &diag_list)) {
             expr_copy = alloc_node_for_constant(constant);
-            /* FIXME: Are these the right checks? */
           } else if (!is_template_dependent_context() &&
                      expr_error_should_be_issued() &&
                      !is_consteval_diag_deferred()) {

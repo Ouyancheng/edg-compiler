@@ -1110,10 +1110,14 @@ typedef struct an_expr_stack_entry {
 			   overloaded operator && or || exists. */
   a_const_eval_reattempt_state
 		const_eval_reattempt_state;
-			/* TRUE if an exception to immediate function rules is
-			   noted as the expression contains an immediate
-			   evaluation of a supporting builtin for
-			   std::source_location::current(). */
+			/* The current constant evaluation reattempt state
+			   describing exceptions to folding requirements.  This
+			   state is set by high level functions in the
+			   interpreter and consumed by interested IL
+			   construction code.  This allowing for proper setup
+			   of const eval deferred expressions.  In the future,
+			   a more detailed interpreter evaluation result could
+			   simplify this flow. */
   a_dynamic_init_dtor_fixup_ptr
 		dynamic_init_dtor_fixup_list;
 			/* List of dynamic init entries for which destructor

@@ -258,11 +258,15 @@ to be kept sorted).
 EXTERN a_builtin_user_descr builtin_user_table[]
 #if VAR_INITIALIZERS
 = {
-  /* GCC 10.x (and more generally, libstdc++) implements std::source_location
-     using an intrinsic function __builtin_source_location.  Clang implements
-     this slightly differently relying on a builtin with an explicit return
-     type.  For implicit compatibility with libstdc++, EDG uses the GCC void*
-     version of this builtin when not in Clang compatibility mode. */
+  /* libstdc++ implements std::source_location using an intrinsic function
+     "__builtin_source_location".
+
+     In GCC 10.x this builtin uses a type erased "void*" return type.  In Clang
+     15.x this builtin uses an explicit "std::source_location::__impl*" return
+     type.
+
+     For better compatibility with libstdc++, EDG uses the GCC version of this
+     builtin when not in Clang compatibility mode. */
   { "__builtin_source_location", "L+(150000-)g+(100000-)s+(202002-)",
     "void* ()", bfk_source_location },
   { "__builtin_source_location", "L+(150000-)",

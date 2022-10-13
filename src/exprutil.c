@@ -7140,8 +7140,9 @@ Should not be called for access errors.
 
 a_boolean is_consteval_diag_deferred()
 /*
-Return FALSE unless consteval functions are in a context where their semantics
-are relaxed as the consteval function call fold will be reattempted later.
+If consteval function calls are not required to folding in the current context
+(because folding should be reattempted later), return TRUE; otherwise, return
+FALSE.
 */
 {
   a_boolean is_deferred = FALSE;

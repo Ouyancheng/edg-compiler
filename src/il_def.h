@@ -4660,8 +4660,9 @@ typedef struct a_constant {
 			   can be found using find_local_expr_node instead. */
   a_bit_field	is_naturalized:1;
 			/* TRUE if this constant was originally constructed
-			   from an interpreter object, with static storage
-			   duration that wasn't explicitly declared. */
+			   from an interpreter object, however, has now been
+			   promoted to have static storage duration (with
+			   implicitly created static storage). */
   a_constant_repr_kind
                 kind;
                         /* The kind of representation for the constant. */
@@ -11211,7 +11212,7 @@ typedef struct a_field {
 			   this field. */
   a_bit_field	init_is_ctor_dependent:1;
 			/* TRUE if the default member initializer associated
-			   with this field requires a constructor specific copy
+			   with this field requires a constructor-specific copy
 			   and cannot be used generally (e.g., an initializer
 			   containing a call to
 			   std::source_location::current()). */

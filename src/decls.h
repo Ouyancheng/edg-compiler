@@ -508,7 +508,7 @@ typedef struct an_init_state {
 			   wrapped). */
   a_bit_field	is_ctor_dependent:1;
 			/* TRUE if this is a default member initializer that
-			   requires a constructor specific copy and cannot be
+			   requires a constructor-specific copy and cannot be
 			   used generally (e.g., an initializer containing a
 			   call to std::source_location::current()). */
   a_bit_field	no_diagnostics:1;

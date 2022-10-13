@@ -1281,29 +1281,25 @@ extern a_type_ptr weak_equality_type(void);
 
 /*
 A collection of information required to compatibly support the interpretation
-of the GNU libstdc++ standard library's source location type.
+of the GNU libstdc++ standard library's std::source_location::__impl type.
 */
-typedef struct a_gnu_source_location_type_info {
+struct a_gnu_source_location_type_info {
   a_type_ptr    impl_type;
                         /* The type representing the GNU libstdc++ standard
-                           library source location implementation class. */
+                           library's "__impl" type. */
   a_field_ptr   file_field;
-                        /* The field representing the source location
-                           implementation class's field for file name.
-                           Only valid if impl_type is a non-error type. */
+                        /* The impl_type's field representing the file
+                           (NULL if impl_type is an error type). */
   a_field_ptr   function_field;
-                        /* The field representing the source location
-                           implementation class's field for function name.
-                           Only valid if impl_type is a non-error type. */
+                        /* The impl_type's field representing the function
+                           (NULL if impl_type is an error type). */
   a_field_ptr   line_field;
-                        /* The field representing the source location
-                           implementation class's field for line number.
-                           Only valid if impl_type is a non-error type. */
+                        /* The impl_type's field representing the line
+                           (NULL if impl_type is an error type). */
   a_field_ptr   column_field;
-                        /* The field representing the source location
-                           implementation class's field for column number.
-                           Only valid if impl_type is a non-error type. */
-} a_gnu_source_location_type_info;
+                        /* The impl_type's field representing the column
+                           (NULL if impl_type is an error type). */
+};  /* a_gnu_source_location_type_info */
 
 extern a_type_ptr gnu_source_location_impl_type(void);
 
@@ -1818,9 +1814,9 @@ typedef int an_expr_copy_options_set;
 #define CE_COPYING_DEFAULT_MEMBER_INIT 0x20000
 			/* TRUE if this copy operation is copying a default
 			   member initializer expression, i.e., making a
-			   constructor specific use of the scanned
+			   constructor-specific use of the scanned
 			   expression. */
-#define CE_COSNT_EVAL_SUB_EXPRESSION 0x40000
+#define CE_CONST_EVAL_SUB_EXPRESSION 0x40000
 			/* TRUE if this copy operation is copying an operand of
 			   an expression in an immediate evaluation context. */
 

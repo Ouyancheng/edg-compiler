@@ -3408,9 +3408,9 @@ area.  The static storage is zeroed.
 #if BUILTIN_FUNCTIONS_ENABLED
 
 /*
-The naturalizable functions below while not specifically tied to builtin
-functions are currently only used by builtin functions.  Thus, only include
-them when builtin functions are enabled.
+The functions for supporting naturalizable below (while not specifically tied
+to builtin functions) are currently only used by builtin functions.  Thus, only
+include them when builtin functions are enabled.
 */
 
 /*
@@ -8508,7 +8508,7 @@ static a_boolean within_int_bounds(an_integer_value *input_int,
                                    an_integer_kind  dest_kind,
                                    a_boolean        dest_signed)
 /*
-Given an (possibly signed) integer value, check to see if it fits within the
+Given a (possibly signed) integer value, check to see if it fits within the
 (possibly signed) destination integer kind.  Return TRUE if the input integer
 can be converted without loss, otherwise return FALSE.
 */
@@ -8521,7 +8521,7 @@ can be converted without loss, otherwise return FALSE.
                                        dest_signed) < 0;
 
   return !over && !under;
-}
+}  /* within_int_bounds */
 
 
 template<typename a_Host_integer_type>
@@ -8535,7 +8535,7 @@ store the given host value.  Return TRUE if successfully converted and stored
 without any integer bounding issues; otherwise, return FALSE.
 */
 {
-  /* As all integers types are currently stored by the interpreter using the
+  /* As all integer types are currently stored by the interpreter using the
      same representation, assume there's no overflow or underflow, and store
      the integer in the "universal representation". */
   set_host_integer_value((an_integer_value*)result_storage, value);
@@ -8565,9 +8565,7 @@ result, convert and store the column number associated with the given position
 set to FALSE.
 */
 {
-#if EXPENSIVE_CHECKING
   check_assertion(is_integral_type(result_type));
-#endif /* EXPENSIVE_CHECKING */
   if (!safely_set_host_integer_value(result_type, result_storage,
                                      use_pos->column)) {
     info_with_pos_type(ec_srcloc_column_bounds, use_pos, result_type, ips);
@@ -8595,9 +8593,7 @@ set to FALSE.
 
   (void)conv_seq_to_file_and_line(use_pos->seq, &file_name, &full_name,
                                   &line_number, &at_end_of_source);
-#if EXPENSIVE_CHECKING
   check_assertion(is_integral_type(result_type));
-#endif /* EXPENSIVE_CHECKING */
   if (!safely_set_host_integer_value(result_type, result_storage,
                                      line_number)) {
     info_with_pos_type(ec_srcloc_line_bounds, use_pos, result_type, ips);
@@ -8611,9 +8607,9 @@ static void do_constexpr_write_cstring(an_interpreter_state *ips,
                                        a_byte               *result_storage,
                                        a_boolean            *p_result)
 /*
-Given the associated storage and interpreter state for the resulting c-string,
-convert and store the given string (result_string).  If any problems are
-encountered, the pointee of p_result will be set to FALSE.
+Given the associated storage and interpreter state for the resulting const char
+pointer data (c-string), convert and store the given string (result_string).
+If any problems are encountered, the pointee of p_result will be set to FALSE.
 */
 {
   a_constant_ptr  cp;
@@ -8675,10 +8671,10 @@ static void do_constexpr_write_source_file(
                                           a_byte               *result_storage,
                                           a_boolean            *p_result)
 /*
-Given the associated storage and interpreter state for the resulting c-string,
-convert and store the source file name associated with the given position
-(use_pos).  If any problems are encountered, the pointee of p_result will be
-set to FALSE.
+Given the associated storage and interpreter state for the resulting const char
+pointer data (c-string), convert and store the source file name associated with
+the given position (use_pos).  If any problems are encountered, the pointee of
+p_result will be set to FALSE.
 */
 {
   a_line_number  line_number;
@@ -8698,11 +8694,11 @@ static void do_constexpr_write_source_function(
                                           a_byte               *result_storage,
                                           a_boolean            *p_result)
 /*
-Given the associated storage and interpreter state for the resulting c-string,
-convert and store the source function name associated with the given position
-(use_pos).  When the given position doesn't have an associated function, an
-empty c-string is instead stored.  If any problems are encountered, the pointee
-of p_result will be set to FALSE.
+Given the associated storage and interpreter state for the resulting const char
+pointer data (c-string), convert and store the source function name associated
+with the given position (use_pos).  When the given position doesn't have an
+associated function, an empty c-string is instead stored.  If any problems are
+encountered, the pointee of p_result will be set to FALSE.
 */
 {
   /* Use the same string as if using __func__. */
@@ -8725,8 +8721,8 @@ future reattempt conditions.
 {
   a_boolean result = FALSE;
 
-  /* Deferral occurs when used a source location builtin is a default arguments
-     of consteval function or a default member initializer. */
+  /* Deferral occurs when a source location builtin is used as part of the
+     expression for a default argument or a default member initializer. */
   if (expr_stack != NULL) {
     if (expr_stack->is_initial_default_arg_scan) {
       ips->reattempt_state.default_arg = TRUE;
@@ -8777,20 +8773,14 @@ default member initializers, lowering does the work.
 
     switch (callee->variant.builtin_function_kind) {
       case bfk_COLUMN:
-        { an_integer_kind col_int_kind = (an_integer_kind)ik_unsigned_int;
-
-          do_constexpr_write_source_column(ips, use_pos,
-                                           integer_type(col_int_kind),
-                                           result_storage, p_result);
-        }
+        do_constexpr_write_source_column(ips, use_pos,
+                                         integer_type(ik_unsigned_int),
+                                         result_storage, p_result);
         break;
       case bfk_LINE:
-        { an_integer_kind line_int_kind = (an_integer_kind)ik_unsigned_long;
-
-          do_constexpr_write_source_line(ips, use_pos,
-                                         integer_type(line_int_kind),
-                                         result_storage, p_result);
-        }
+        do_constexpr_write_source_line(ips, use_pos,
+                                       integer_type(ik_unsigned_long),
+                                       result_storage, p_result);
         break;
       case bfk_FILE:
         do_constexpr_write_source_file(ips, use_pos, result_storage, p_result);
@@ -9379,7 +9369,7 @@ to FALSE and the reason for the failure is recorded in *ips.
         } else {
           a_gnu_source_location_type_info interp_inf;
 
-          /* Load the type information, if the type is invalid, silently fail
+          /* Load the type information; if the type is invalid, silently fail
              the interpretation (this has already been diagnosed). */
           interp_inf = gnu_source_location_impl();
           if (is_error_type(interp_inf.impl_type)) {
@@ -19486,26 +19476,26 @@ static a_boolean copy_interpreter_object_to_constant(
                                        a_constant_ptr        con);
 
 
-static a_boolean alloc_const_for_object(
-                                        an_interpreter_state  *ips,
+static a_boolean alloc_const_for_object(an_interpreter_state  *ips,
                                         a_constexpr_address   *cap,
                                         a_constant_ptr        *result)
 /*
-Allocate a new constant at the current memory region for the interpreter object
-pointed to by cap, for the interpreter state ips.  Resulted is updated to point
-to the allocated constant. Return TRUE when the allocation operation is
+Allocate a new constant in the current memory region for the interpreter object
+pointed to by cap, for the interpreter state ips.  Result is updated to point
+to the allocated constant.  Return TRUE when the allocation operation is
 successful, FALSE otherwise.
 */
 {
   a_boolean       success = TRUE;
   a_constant_ptr  cp;
 
-  /* Set up a reverse mapping, so other address constants into this
-     object can use the same constant entry (see the case where mptr
-     points to a non-ck_address entry above). */
+  /* Set up a reverse mapping, so other address constants into this object can
+     use the same constant entry (see the case in
+     copy_interpreter_object_to_constant where tk_pointer's mptr variable
+     points to a non-ck_address entry preceding a call to this function). */
   cp = *result = alloc_constant((a_constant_repr_kind)ck_error);
   map_stack_bytes(ips, cap->complete_object, (a_byte*)cp);
-  /* Create an IL representation of the pointed-to-object.  In some
+  /* Create an IL representation of the pointed-to object.  In some
      cases, we may be pointing to a subobject; the representation is
      still needed for the complete object, however. */
   { a_type_ptr  otp = complete_object_type(cap->complete_object);
@@ -19823,14 +19813,12 @@ diagnostic in *ips.
                     cap->alloc_seq_number == 0) ||
                   (!ips->static_lifetime_init && !permit_local_temp)) {
 #if BUILTIN_FUNCTIONS_ENABLED
-                /* If the complete object is a naturalizable, it can be
-                   promoted from a temporary. */
+                /* If the complete object is naturalizable, it can be promoted
+                   from a temporary. */
                 if (is_naturalizable_object(ips, cap->complete_object)) {
-#if EXPENSIVE_CHECKING
                   /* The allocation sequence number should always represent
                      static storage (i.e., be 0). */
                   check_assertion(cap->alloc_seq_number == 0);
-#endif /* EXPENSIVE_CHECKING */
                   con->variant.address.kind =
                                             (an_address_base_kind)abk_constant;
                   /* If the current memory region isn't the file scope region

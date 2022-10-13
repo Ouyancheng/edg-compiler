@@ -3711,6 +3711,7 @@ fields to default values.
       break;
     case enk_const_eval_deferred:
       node->variant.const_eval_deferred.wrapped = NULL;
+      node->variant.const_eval_deferred.reattempt_state = {};
       break;
     default:
       unexpected_condition_str("set_expr_node_kind: bad kind");
