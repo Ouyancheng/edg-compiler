@@ -82,9 +82,20 @@ file.
 #endif /* ifndef CONFIG_FOR_GPP_HEADER_COMPATIBILITY */
 
 #if CONFIG_FOR_GPP_HEADER_COMPATIBILITY
+#ifndef THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
 #define THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED 1
-#define FLOAT80_ENABLING_POSSIBLE 1
+#endif /* ifndef THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED */
+/*
+The libstdc++ source files provide special support for float80 optionally.  To
+provide reasonable out of the box support for using Clang (as a back end
+compiler for the EDG front end on Linux), this support is not enabled by
+default (as Clang does not support __float80).
+
+FLOAT80_ENABLING_POSSIBLE 1
+*/
+#ifndef FLOAT128_ENABLING_POSSIBLE
 #define FLOAT128_ENABLING_POSSIBLE 1
+#endif /* ifndef FLOAT128_ENABLING_POSSIBLE */
 /*
 For portability, APPROXIMATE_QUADMATH is used by default.
 USE_QUADMATH_LIBRARY is recommended if it is available.
@@ -94,13 +105,27 @@ USE_QUADMATH_LIBRARY is recommended if it is available.
 #define APPROXIMATE_QUADMATH 1
 #endif /* APPROXIMATE_QUADMATH */
 #endif /* !(!defined(USE_QUADMATH_LIBRARY) || USE_QUADMATH_LIBRARY==0) */
+#ifndef USE_FLOAT128_FOR_HOST_FP_VALUE
 #define USE_FLOAT128_FOR_HOST_FP_VALUE 1
+#endif /* ifndef USE_FLOAT128_FOR_HOST_FP_VALUE */
+#ifndef INT128_EXTENSIONS_ALLOWED
 #define INT128_EXTENSIONS_ALLOWED 1
+#endif /* ifndef INT128_EXTENSIONS_ALLOWED */
+#ifndef GNU_VECTOR_TYPES_ALLOWED
 #define GNU_VECTOR_TYPES_ALLOWED 1
+#endif /* ifndef GNU_VECTOR_TYPES_ALLOWED */
+#ifndef INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
 #define INTEGER_VALUE_REPR_IS_A_HOST_INTEGER 0
+#endif /* ifndef INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
+#ifndef TYPE_FOR_TARG_ALIGNMENT
 #define TYPE_FOR_TARG_ALIGNMENT unsigned short
+#endif /* ifndef TYPE_FOR_TARG_ALIGNMENT */
+#ifndef TARG_MAXIMUM_PACK_ALIGNMENT
 #define TARG_MAXIMUM_PACK_ALIGNMENT 32768
+#endif /* ifndef TARG_MAXIMUM_PACK_ALIGNMENT */
+#ifndef TYPE_FOR_A_FIXED_POINT_VALUE
 #define TYPE_FOR_A_FIXED_POINT_VALUE an_integer_value
+#endif /* ifndef TYPE_FOR_A_FIXED_POINT_VALUE */
 #endif /* CONFIG_FOR_GPP_HEADER_COMPATIBILITY */
 
 /*
