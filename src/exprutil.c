@@ -15421,6 +15421,16 @@ e.g., if the source operand is an lvalue.
         } else {
           op = (an_expr_operator_kind)eok_cast;
         }  /* if */
+        if (!is_reference_cast && (opexpr->is_lvalue || opexpr->is_xvalue) &&
+            !is_instantiation_dependent_type(dest_type) &&
+            !is_instantiation_dependent_type(opexpr->type)) {
+          /* Ensure consistency of value categories for the nondependent cases
+             that get here.  That is particularly needed when targeting the
+             C++-generating back end because it checks that consistency
+             even in prototype instantiations. */
+          conv_glvalue_expr_to_prvalue(opexpr, /*constant_case=*/NULL,
+                                       /*con_value=*/NULL, /*err_pos=*/NULL);
+        }  /* if */
         expr = make_operator_node(op, dest_type, opexpr);
         if (is_implicit_cast) {
           expr->position = opexpr->position;
