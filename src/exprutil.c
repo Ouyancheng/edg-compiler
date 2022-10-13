@@ -18846,15 +18846,17 @@ because the function name was qualified.  found_through_adl is TRUE if the call
 was resolved only through argument-dependent lookup (i.e., ordinary lookup did
 not yield the called function).  uses_operator_syntax is TRUE when a call to an
 overloaded operator is the result of operator notation ("a+b") rather than an
-explicit function call.  start_position gives the source position of the
-leftmost character in the postfix-expression that names the function being
-called.  operator_position gives the source position of the left paren of the
-call.  end_position gives the source position of the right paren of the call.
-If non-NULL, p_function_call_node is the address of an expression node pointer
-that will be set to point to the actual call node itself (which might be below
-the expression in the result because of transformations on the return value).
-It is returned NULL for some error cases.  If p_folded is non-NULL, *p_folded
-is set to reflect whether the call was folded or not.
+explicit function call.  In a function-notation call expression, start_position
+gives the source position of the leftmost character in the postfix-expression
+that names the function being called.  operator_position gives the source
+position of the left paren of the call.  end_position gives the source position
+of the right paren of the call.  For other syntactic forms resulting in
+function calls, the positions vary depending on the syntax used.  If non-NULL,
+p_function_call_node is the address of an expression node pointer that will be
+set to point to the actual call node itself (which might be below the
+expression in the result because of transformations on the return value).  It
+is returned NULL for some error cases.  If p_folded is non-NULL, *p_folded is
+set to reflect whether the call was folded or not.
 */
 {
   an_expr_node_ptr call_node, rout_node;
@@ -19039,11 +19041,13 @@ because the function name was qualified.  found_through_adl is TRUE if the
 function to be called was only found through argument-dependent lookup (not
 through ordinary lookup).  uses_operator_syntax is TRUE when a call to an
 overloaded operator is the result of operator notation ("a+b") rather than an
-explicit function call.  start_position gives the source position of the
-leftmost character in the postfix-expression that names the function being
-called.  operator_position gives the source position of the left paren of the
-call.  end_position gives the source position of the right paren of the call.
-An operand for the overall call is constructed in *result.  If non-NULL,
+explicit function call.  In a function-notation call expression, start_position
+gives the source position of the leftmost character in the postfix-expression
+that names the function being called.  operator_position gives the source
+position of the left paren of the call.  end_position gives the source position
+of the right paren of the call.  For other syntactic forms resulting in
+function calls, the positions vary depending on the syntax used.  An operand
+for the overall call is constructed in *result.  If non-NULL,
 function_call_node is the address of an expression node pointer that will be
 set to point to the actual call node itself (which might be below the
 expression in the result because of transformations on the return value).  It
