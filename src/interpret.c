@@ -574,6 +574,11 @@ typedef struct a_call_frame {
   a_byte	*complete_object;
 			/* A pointer to the complete object in which
 			   result_storage points. */
+  an_alloc_seq_number
+		entry_seq_number;
+			/* The current allocation sequence number when the
+			   call frame was pushed.  This is used to identify
+			   the variables that need to be deactivated. */
   a_bit_field	return_active:1;
 			/* TRUE while backtracking from a return statement. */
   a_bit_field	loop_break_active:1;
@@ -1314,6 +1319,7 @@ Macros to push and pop call frames.
     (p_frame)->variant.position = (pos);                                     \
     (p_frame)->result_storage = (p_result);                                  \
     (p_frame)->complete_object = (p_complete);                               \
+    (p_frame)->entry_seq_number = (ips)->curr_alloc_seq_number;              \
     (p_frame)->return_active = FALSE;                                        \
     (p_frame)->loop_break_active = FALSE;                                    \
     (p_frame)->continue_active = FALSE;                                      \
@@ -5974,6 +5980,32 @@ be removed.
   return var_storage;
 }  /* do_constexpr_alloc_variable */
 
+#if DEBUG
+
+void db_var_chain(an_interpreter_state  *ips,
+                  a_variable_ptr        vp)
+/*
+Output storage and lifetime (i.e., sequence number) information for all
+activations of the given variable.
+*/
+{
+  a_boolean     result = TRUE;
+  a_type_ptr    vtp = skip_typerefs(vp->type);
+  a_byte_count  n_bytes = value_bytes_for_type(ips, vtp, &result);
+  a_byte        *var_storage;
+
+  get_mapped_ptr(&ips->map, vp, var_storage);
+  do_host_alignment(n_bytes);
+  for (int k = 0; var_storage != NULL; ++k) {
+    a_var_postfix  *postfix;
+    postfix = (a_var_postfix*)(var_storage+n_bytes);
+    (void)fprintf(f_debug, "@%3d: %p\n (alloc_seq_num = %d)\n",
+                  k, var_storage, (int)postfix->alloc_seq_number);
+    var_storage = postfix->prev_storage;
+  }  /* if */
+}  /* db_var_chain */
+
+#endif /* DEBUG */
 
 static void do_constexpr_unmap_variable(an_interpreter_state  *ips,
                                         a_variable_ptr        vp)
@@ -5992,7 +6024,11 @@ mapping if there was one.
     a_var_postfix  *postfix;
     do_host_alignment(n_bytes);
     postfix = (a_var_postfix*)(var_storage+n_bytes);
-    if (postfix->prev_storage == NULL) {
+    if (postfix->alloc_seq_number < ips->curr_call_frame->entry_seq_number) {
+      /* The current activation precedes the current call frame.  In other
+         words, the given variable was not activated in this frame and hence
+         its storage should not be unmapped. */
+    } else if (postfix->prev_storage == NULL) {
       unmap_ptr(&ips->map, vp);
     } else {
       replace_mapped_ptr(&ips->map, vp, postfix->prev_storage);

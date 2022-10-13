@@ -1,5 +1,13 @@
 Version 6.4
 
+10/13/22 [EDGcpfe/25704]
+Error in constant-evaluation of local variable in recursive call
+
+In some cases, accessing a local variable in a recursive function call during
+constant-evaluation could produce a wrong result and/or a spurious evaluation
+failure.  That is now fixed.
+
+
 10/13/22 [EDGcpfe/25707]
 Error in constant-evaluation of __builtin_memcmp for certain array operands
 
