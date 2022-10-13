@@ -4847,18 +4847,17 @@ precedence confusion.  Do the output in the way described by octl.
       achieved_type = array_element_type(achieved_type);
       final_cast_needed = TRUE;
     }  /* if */
-  } else if (type_decay_used && octl->processing_nontype_template_argument &&
-             is_pointer_type(orig_type) && desired_type != NULL &&
-             is_function_type(desired_type) &&
+  } else if (type_decay_used && is_pointer_type(orig_type) &&
+             desired_type != NULL && is_function_type(desired_type) &&
              !standalone_is_dependent_type(desired_type)) {
-    /* In case the template argument is being passed to a deduced template
-       parameter, add the "&" to ensure that the constant has a pointer
-       type in the generated code.  (The exclusion of dependent types is
-       because an "&" in the original source would be represented in the
-       IL as an eok_address_of applied to an enk_routine node, not as a
-       ck_address constant; i.e., if we are here with a pointer to a
-       dependent function type, there was no "&" in the original source
-       and we should not add one here.) */
+    /* In case this constant is being used for type deduction, add the "&"
+       to ensure that the constant has a pointer type in the generated
+       code.  (The exclusion of dependent types is because an "&" in the
+       original source would be represented in the IL as an eok_address_of
+       applied to an enk_routine node, not as a ck_address constant; i.e.,
+       if we are here with a pointer to a dependent function type, there
+       was no "&" in the original source and we should not add one
+       here.) */
     type_decay_used = FALSE;
   }  /* if */
   if (offset != 0) {
