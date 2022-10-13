@@ -1,5 +1,28 @@
 Version 6.4
 
+10/13/22 [EDGcpfe/25707]
+Error in constant-evaluation of __builtin_memcmp for certain array operands
+
+The following example previously failed the static_assert due to an error in
+the implementation of constant-evaluation for __builtin_memcmp:
+
+  struct S {
+    constexpr S(char const *ptr): buf() {
+      len = __builtin_strlen(ptr);
+      for (unsigned i = 0; i != len; i++) { buf[i] = ptr[i]; }
+    }
+    size_t len = 0;
+    char buf[16];
+  };
+  constexpr bool equal_S(S const &s, char const *ptr) {
+    return __builtin_memcmp(s.buf, ptr, 4) == 0;
+  }
+  static_assert(equal_S(S{ "abcd" }, "abcd"), "Unexpected");
+      // Previously failed.  Now okay.
+
+That is now fixed.
+
+
 10/12/22 [EDGcpfe/25118]
 Abort in find_placeholder_arg_for_pack while deducing class template arguments
 

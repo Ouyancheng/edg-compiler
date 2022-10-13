@@ -2014,171 +2014,6 @@ typedef struct a_constexpr_address {
   (is_variant_path(cap) ? (cap)->variant.variant_path->base_address          \
                         : (cap)->variant.base_address)
 
-static void get_runtime_array_pos(an_interpreter_state  *ips,
-                                  a_constexpr_address   *cap,
-                                  a_byte_count          elem_size,
-                                  a_byte_count          *a_len,
-                                  a_byte_count          *p_pos)
-/*
-cap represents a run-time address constant or null pointer and elem_size the
-size of the element type being addressed.  For null pointers, set *a_len and
-*p_pos to zero.  Otherwise, return in *a_len the number of objects pointed to
-if known (the length of an array or one for a non-array object); if unknown,
-return MAX_ARRAY_LENGTH.  Return in *p_pos the "array" position being
-addressed (with non-array objects treated as arrays of one element).
-*/
-{
-  a_constant_ptr  con_addr = cap->variant.addr_con;
-  a_byte_count    length, pos;
-  a_type_ptr      tp;
-  a_constant_ptr  cp;
-
-  if (!constant_is(con_addr, ck_address)) {
-    check_assertion(constant_is(con_addr, ck_integer));
-    if (cmp_integer_values(&con_addr->variant.integer_value,
-                           /*op_1_signed=*/FALSE,
-                           (an_integer_value *)&zero_int,
-                           /*op_2_signed=*/FALSE) == 0 &&
-        !ips->permit_null_pointer_offsets) {
-      /* A null pointer value in a context that does not permit null pointer
-         offsets in constant-expressions. */
-      length = 0;
-      pos = 0;
-    } else {
-      /* A run-time address formed by casting an arbitrary non-zero integer
-         to a pointer type (e.g., "(char*)0x1234").  Any length and position
-         is a-priori possible. */
-      length = MAX_ARRAY_LENGTH;
-      pos = 0;
-    }  /* if */
-  } else if (elem_size == 0) {
-    /* In some modes (e.g., GNU C), types can have size zero.  Any length and
-       position is a-priori possible. */
-    length = MAX_ARRAY_LENGTH;
-    pos = 0;
-  } else {
-    a_boolean  use_subobject_path = FALSE;
-    switch(con_addr->variant.address.kind) {
-      case abk_variable:
-        use_subobject_path = TRUE;
-        break;
-      case abk_constant:
-      case abk_temporary:
-        cp = con_addr->variant.address.variant.constant;
-        if (constant_is(cp, ck_string)) {
-          length = (a_byte_count)cp->variant.string.length/elem_size;
-        } else {
-          use_subobject_path = TRUE;
-        }  /* if */
-        break;
-      case abk_uuidof:
-        tp = type_pointed_to(con_addr->type);
-        length = (a_byte_count)skip_typerefs(tp)->size/elem_size;
-        break;
-      case abk_typeid:
-#if MICROSOFT_EXTENSIONS_ALLOWED
-      case abk_cli_typeid:
-      case abk_cli_array:
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-        /* The object is std::type_info or a class derived from it, or a
-           handle to a C++/CLI System::String or System::Array.  Therefore, we
-           don't really know the actual size. */
-        length = MAX_ARRAY_LENGTH;
-        break;
-      case abk_routine:
-      case abk_label:
-      default:
-        length = 0;
-        unexpected_condition();
-    }  /* switch */
-    if (use_subobject_path) {
-      a_subobject_path_ptr  spp = con_addr->variant.address.subobject_path;
-      a_type_ptr            atype = NULL;
-      a_boolean             field_seen = FALSE;
-      pos = 0;
-      /* Look through the subobject path to find the type of the addressed
-         sub-object (except for array elements) or the position of array
-         elements. */
-      for (; spp != NULL; spp = spp->next) {
-        if (spp->is_offset) {
-          pos = (a_byte_count)spp->variant.ptr_offset;
-        } else if (spp->is_base_class) {
-          atype = spp->variant.base_class->type;
-          pos = 0;
-        } else {
-          atype = spp->variant.field->type;
-          pos = 0;
-          field_seen = TRUE;
-        }  /* if */
-      }  /* for */
-      if (atype == NULL) {
-        /* The subobject path doesn't designate a field or class subobject.
-           So we are dealing with a top-level array or the address of an
-           object treated as an array of one element. */
-        if (address_base_is(con_addr, abk_variable)) {
-          atype = con_addr->variant.address.variant.variable->type;
-        } else {
-          atype = con_addr->variant.address.variant.constant->type;
-        }  /* if */
-      }  /* if */
-      if (type_is(atype, tk_array)) {
-        if (has_unknown_specified_bound(atype) ||
-            (!field_seen && array_type_has_no_bound(atype))) {
-          /* The bound is not known (e.g., "extern int x[];" or a VLA. */
-          length = MAX_ARRAY_LENGTH;
-        } else {
-          /* A known bound or a flexible array.  The latter is treated as a
-             zero-length array in this context. */
-          length = (a_byte_count)atype->variant.array
-                                       .variant.number_of_elements;
-        }  /* if */
-      } else {
-        length = 1;
-      }  /* if */
-    } else {
-      pos = (a_byte_count)con_addr->variant.address.offset / elem_size;
-    }  /* if */
-  }  /* if */
-  *a_len = length;
-  *p_pos = pos;
-}  /* get_runtime_array_pos */
-
-
-/*
-Given a data address cap pointing to an object of type elem_type, treat it as
-the address of an element of an array (an array of length one if it's not
-actually an array element).  Produce in *a_len, *pos, and *e_size,
-respectively, the number of elements in the array, the element position in the
-array, and the size of an element in the array.  This macro applies to both
-interpreter addresses and run-time addresses, but in the case of run-time
-addresses the array length is set to MAX_ARRAY_LENGTH if the actual length
-cannot be determined.  Set *p_result to FALSE if an error occurs.  (Note that
-in GNU modes, elem_type can be tk_void because GCC sometimes permits pointer
-arithmetic on void* pointers and treats then as pointing to byte arrays.)
-*/
-#define get_array_pos(ips, cap, elem_type, a_len, pos, e_size, p_result)     \
-{                                                                            \
-  if (is_runtime_data_address(cap)) {                                        \
-    *(e_size) = type_is(elem_type, tk_void) ? 1 :                            \
-                                              (a_byte_count)elem_type->size; \
-    get_runtime_array_pos(ips, cap, *(e_size), a_len, pos);                  \
-  } else {                                                                   \
-    *(e_size) = value_bytes_for_type(ips, elem_type, p_result);              \
-    if (*p_result) {                                                         \
-      if (is_array_element(cap)) {                                           \
-        *(a_len) = (cap)->length;                                            \
-        *(pos) = (a_byte_count)((cap)->address - get_base_address(cap));     \
-        *(pos) /= *(e_size);                                                 \
-      } else {                                                               \
-        *(a_len) = 1;                                                        \
-        *(pos) = cannot_dereference(cap) ? 1: 0;                             \
-      }  /* if */                                                            \
-    } else {                                                                 \
-      *(a_len) = 0;                                                          \
-      *(pos) = 0;                                                            \
-    }  /* if */                                                              \
-  }  /* if */                                                                \
-}
 
 /*
 Convenience macro to get a pointer to the value addressed by the
@@ -2635,6 +2470,178 @@ interpreter storage.
   (((expr)->is_lvalue || (expr)->is_xvalue) ?                                \
       sizeof(a_constexpr_address) :                                          \
       value_bytes_for_type(ips, tp, p_result))
+
+
+static void get_runtime_array_pos(an_interpreter_state  *ips,
+                                  a_constexpr_address   *cap,
+                                  a_byte_count          elem_size,
+                                  a_byte_count          *a_len,
+                                  a_byte_count          *p_pos)
+/*
+cap represents a run-time address constant or null pointer and elem_size the
+size of the element type being addressed.  For null pointers, set *a_len and
+*p_pos to zero.  Otherwise, return in *a_len the number of objects pointed to
+if known (the length of an array or one for a non-array object); if unknown,
+return MAX_ARRAY_LENGTH.  Return in *p_pos the "array" position being
+addressed (with non-array objects treated as arrays of one element).
+*/
+{
+  a_constant_ptr  con_addr = cap->variant.addr_con;
+  a_byte_count    length, pos;
+  a_type_ptr      tp;
+  a_constant_ptr  cp;
+
+  if (!constant_is(con_addr, ck_address)) {
+    check_assertion(constant_is(con_addr, ck_integer));
+    if (cmp_integer_values(&con_addr->variant.integer_value,
+                           /*op_1_signed=*/FALSE,
+                           (an_integer_value *)&zero_int,
+                           /*op_2_signed=*/FALSE) == 0 &&
+        !ips->permit_null_pointer_offsets) {
+      /* A null pointer value in a context that does not permit null pointer
+         offsets in constant-expressions. */
+      length = 0;
+      pos = 0;
+    } else {
+      /* A run-time address formed by casting an arbitrary non-zero integer
+         to a pointer type (e.g., "(char*)0x1234").  Any length and position
+         is a-priori possible. */
+      length = MAX_ARRAY_LENGTH;
+      pos = 0;
+    }  /* if */
+  } else if (elem_size == 0) {
+    /* In some modes (e.g., GNU C), types can have size zero.  Any length and
+       position is a-priori possible. */
+    length = MAX_ARRAY_LENGTH;
+    pos = 0;
+  } else {
+    a_boolean  use_subobject_path = FALSE;
+    switch(con_addr->variant.address.kind) {
+      case abk_variable:
+        use_subobject_path = TRUE;
+        break;
+      case abk_constant:
+      case abk_temporary:
+        cp = con_addr->variant.address.variant.constant;
+        if (constant_is(cp, ck_string)) {
+          length = (a_byte_count)cp->variant.string.length/elem_size;
+        } else {
+          use_subobject_path = TRUE;
+        }  /* if */
+        break;
+      case abk_uuidof:
+        tp = type_pointed_to(con_addr->type);
+        length = (a_byte_count)skip_typerefs(tp)->size/elem_size;
+        break;
+      case abk_typeid:
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      case abk_cli_typeid:
+      case abk_cli_array:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        /* The object is std::type_info or a class derived from it, or a
+           handle to a C++/CLI System::String or System::Array.  Therefore, we
+           don't really know the actual size. */
+        length = MAX_ARRAY_LENGTH;
+        break;
+      case abk_routine:
+      case abk_label:
+      default:
+        length = 0;
+        unexpected_condition();
+    }  /* switch */
+    if (use_subobject_path) {
+      a_subobject_path_ptr  spp = con_addr->variant.address.subobject_path;
+      a_type_ptr            atype = NULL;
+      a_boolean             field_seen = FALSE;
+      pos = 0;
+      /* Look through the subobject path to find the type of the addressed
+         sub-object (except for array elements) or the position of array
+         elements. */
+      for (; spp != NULL; spp = spp->next) {
+        if (spp->is_offset) {
+          pos = (a_byte_count)spp->variant.ptr_offset;
+        } else if (spp->is_base_class) {
+          atype = spp->variant.base_class->type;
+          pos = 0;
+        } else {
+          atype = spp->variant.field->type;
+          pos = 0;
+          field_seen = TRUE;
+        }  /* if */
+      }  /* for */
+      if (atype == NULL) {
+        /* The subobject path doesn't designate a field or class subobject.
+           So we are dealing with a top-level array or the address of an
+           object treated as an array of one element. */
+        if (address_base_is(con_addr, abk_variable)) {
+          atype = con_addr->variant.address.variant.variable->type;
+        } else {
+          atype = con_addr->variant.address.variant.constant->type;
+        }  /* if */
+      }  /* if */
+      if (type_is(atype, tk_array)) {
+        if (has_unknown_specified_bound(atype) ||
+            (!field_seen && array_type_has_no_bound(atype))) {
+          /* The bound is not known (e.g., "extern int x[];" or a VLA. */
+          length = MAX_ARRAY_LENGTH;
+        } else {
+          /* A known bound or a flexible array.  The latter is treated as a
+             zero-length array in this context. */
+          length = (a_byte_count)atype->variant.array
+                                       .variant.number_of_elements;
+        }  /* if */
+      } else {
+        length = 1;
+      }  /* if */
+    } else {
+      pos = (a_byte_count)con_addr->variant.address.offset / elem_size;
+    }  /* if */
+  }  /* if */
+  *a_len = length;
+  *p_pos = pos;
+}  /* get_runtime_array_pos */
+
+
+inline void get_array_pos(an_interpreter_state  *ips,
+                          a_constexpr_address   *cap,
+                          a_type_ptr            elem_type,
+                          a_byte_count          *a_len,
+                          a_byte_count          *pos,
+                          a_byte_count          *e_size,
+                          a_boolean             *p_result)
+/*
+Given a data address cap pointing to an object of type elem_type, treat it as
+the address of an element of an array (an array of length one if it's not
+actually an array element).  Produce in *a_len, *pos, and *e_size,
+respectively, the number of elements in the array, the element position in the
+array, and the size of an element in the array.  This macro applies to both
+interpreter addresses and run-time addresses, but in the case of run-time
+addresses the array length is set to MAX_ARRAY_LENGTH if the actual length
+cannot be determined.  Set *p_result to FALSE if an error occurs.  (Note that
+in GNU modes, elem_type can be tk_void because GCC sometimes permits pointer
+arithmetic on void* pointers and treats then as pointing to byte arrays.)
+*/
+{
+  if (is_runtime_data_address(cap)) {
+    *e_size = type_is(elem_type, tk_void) ? 1 : (a_byte_count)elem_type->size;
+    get_runtime_array_pos(ips, cap, *e_size, a_len, pos);
+  } else {
+    *e_size = value_bytes_for_type(ips, elem_type, p_result);
+    if (*p_result) {
+      if (is_array_element(cap)) {
+        *a_len = cap->length;
+        *pos = (a_byte_count)(cap->address - get_base_address(cap));
+        *pos /= *e_size;
+      } else {
+        *a_len = 1;
+        *pos = cannot_dereference(cap) ? 1: 0;
+      }  /* if */
+    } else {
+      *a_len = 0;
+      *pos = 0;
+    }  /* if */
+  }  /* if */
+}  /* get_array_pos */
 
 
 static void info_one_past_end_of_array(a_constexpr_address   *addr,
@@ -8435,7 +8442,7 @@ expression node and interpreter state.
       elem_size1 = size1;
     }  /* if */
     if (is_array_element(addr2)) {
-      get_array_pos(ips, addr2, obj_tp1, &len2, &pos2, &elem_size2, &result);
+      get_array_pos(ips, addr2, obj_tp2, &len2, &pos2, &elem_size2, &result);
       len2 -= pos2;
       size2 = len2*(a_byte_count)obj_tp2->size;
     } else {
