@@ -5136,6 +5136,11 @@ type.
 #endif /* !defined(TARG_JMP_BUF_ELEMENT_FLOAT_KIND) */
 			/* Default value, used to initialize global variable
 			   targ_jmp_buf_element_float_kind. */
+#ifndef TARG_SETJMP_FUNC
+#define TARG_SETJMP_FUNC "setjmp"
+#endif /* !defined(TARG_SETJMP_FUNC) */
+			/* Default value, used to initialize global variable
+			   targ_setjmp_func. */
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
 
 #if GENERATE_EH_TABLES

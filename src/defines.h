@@ -664,6 +664,7 @@ command-line when compiling system headers.
 #define TARG_JMP_BUF_ELEMENT_FLOAT_KIND_win64 ((a_float_kind)fk_long_double)
 #define TARG_JMP_BUF_ELEMENT_INT_KIND_win64 ((an_integer_kind)ik_int)
 #define TARG_JMP_BUF_NUM_ELEMENTS_win64 39
+#define TARG_SETJMP_FUNC_win64 "setjmp"
 #define TARG_LDBL_MANT_DIG_win64 53
 #define TARG_LDBL_MAX_EXP_win64 1024
 #define TARG_LDBL_MIN_EXP_win64 (-1021)
@@ -831,6 +832,7 @@ command-line when compiling system headers.
 #define TARG_JMP_BUF_ELEMENT_FLOAT_KIND_win32 ((a_float_kind)fk_long_double)
 #define TARG_JMP_BUF_ELEMENT_INT_KIND_win32 ((an_integer_kind)ik_int)
 #define TARG_JMP_BUF_NUM_ELEMENTS_win32 16
+#define TARG_SETJMP_FUNC_win32 "setjmp"
 #define TARG_LDBL_MANT_DIG_win32 53
 #define TARG_LDBL_MAX_EXP_win32 1024
 #define TARG_LDBL_MIN_EXP_win32 (-1021)
@@ -1333,6 +1335,7 @@ command-line when compiling system headers.
 #define TARG_JMP_BUF_ELEMENT_FLOAT_KIND_win64 ((a_float_kind)fk_long_double)
 #define TARG_JMP_BUF_ELEMENT_INT_KIND_win64 ((an_integer_kind)ik_long)
 #define TARG_JMP_BUF_NUM_ELEMENTS_win64 39
+#define TARG_SETJMP_FUNC_win64 "setjmp"
 #define TARG_LDBL_MANT_DIG_win64 53
 #define TARG_LDBL_MAX_EXP_win64 1024
 #define TARG_LDBL_MIN_EXP_win64 (-1021)
@@ -1504,6 +1507,7 @@ command-line when compiling system headers.
 #define TARG_JMP_BUF_ELEMENT_FLOAT_KIND_win32 ((a_float_kind)fk_long_double)
 #define TARG_JMP_BUF_ELEMENT_INT_KIND_win32 ((an_integer_kind)ik_long)
 #define TARG_JMP_BUF_NUM_ELEMENTS_win32 16
+#define TARG_SETJMP_FUNC_win32 "setjmp"
 #define TARG_LDBL_MANT_DIG_win32 53
 #define TARG_LDBL_MAX_EXP_win32 1024
 #define TARG_LDBL_MIN_EXP_win32 (-1021)
@@ -1663,6 +1667,7 @@ command-line when compiling system headers.
 #define TARG_JMP_BUF_ELEMENT_FLOAT_KIND_linux_x86_64 ((a_float_kind)fk_long_double)
 #define TARG_JMP_BUF_ELEMENT_INT_KIND_linux_x86_64 ((an_integer_kind)ik_long)
 #define TARG_JMP_BUF_NUM_ELEMENTS_linux_x86_64 25
+#define TARG_SETJMP_FUNC_linux_x86_64 "_setjmp"
 #define TARG_LDBL_MANT_DIG_linux_x86_64 64
 #define TARG_LDBL_MAX_EXP_linux_x86_64 16384
 #define TARG_LDBL_MIN_EXP_linux_x86_64 (-16381)
@@ -1822,6 +1827,7 @@ command-line when compiling system headers.
 #define TARG_JMP_BUF_ELEMENT_FLOAT_KIND_linux_i686 ((a_float_kind)fk_long_double)
 #define TARG_JMP_BUF_ELEMENT_INT_KIND_linux_i686 ((an_integer_kind)ik_int)
 #define TARG_JMP_BUF_NUM_ELEMENTS_linux_i686 39
+#define TARG_SETJMP_FUNC_linux_i686 "_setjmp"
 #define TARG_LDBL_MANT_DIG_linux_i686 64
 #define TARG_LDBL_MAX_EXP_linux_i686 16384
 #define TARG_LDBL_MIN_EXP_linux_i686 (-16381)

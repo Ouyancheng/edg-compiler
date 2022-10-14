@@ -9114,6 +9114,11 @@ file.
 #else /* !defined(TARG_JMP_BUF_NUM_ELEMENTS) */
   comment_undefined_macro_name(TARG_JMP_BUF_NUM_ELEMENTS);
 #endif /* defined(TARG_JMP_BUF_NUM_ELEMENTS) */
+#if defined(TARG_SETJMP_FUNC)
+  define_string_valued_macro(TARG_SETJMP_FUNC);
+#else /* !defined(TARG_SETJMP_FUNC) */
+  comment_undefined_macro_name(TARG_SETJMP_FUNC);
+#endif /* defined(TARG_SETJMP_FUNC) */
 #if defined(TARG_LDBL_MANT_DIG)
   define_numeric_valued_macro(TARG_LDBL_MANT_DIG);
 #else /* !defined(TARG_LDBL_MANT_DIG) */

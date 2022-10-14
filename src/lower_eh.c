@@ -5476,7 +5476,7 @@ with zero is built, and a pointer to it is returned in *setjmp_compare_node.
   try_frame_setjmp_buffer = make_array_to_pointer_node(
                                                       try_frame_setjmp_buffer);
   /* Make the setjmp call. */
-  setjmp_call = make_prototyped_runtime_call("setjmp", &setjmp_routine,
+  setjmp_call = make_prototyped_runtime_call(targ_setjmp_func, &setjmp_routine,
                                        integer_type((an_integer_kind)ik_int),
                                        make_jmp_buf_type(), NULL,
                                        try_frame_setjmp_buffer);

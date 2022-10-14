@@ -157,6 +157,7 @@ additional target configuration will be added below.
 #define TYPE_FOR_AN_FP_VALUE_PART unsigned int
 #define TARG_JMP_BUF_NUM_ELEMENTS 25
 #define TARG_JMP_BUF_ELEMENT_INT_KIND ((an_integer_kind)ik_long)
+#define TARG_SETJMP_FUNC "_setjmp"
 #define TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES 0
 #elif TARG_SUPPORTS_ARM64
 /* ARM64. */
@@ -181,6 +182,7 @@ additional target configuration will be added below.
 #define TARG_ALIGNOF_LONG_DOUBLE 4
 #define TARG_SIZEOF_LONG_DOUBLE 12
 #define TARG_JMP_BUF_NUM_ELEMENTS 39
+#define TARG_SETJMP_FUNC "_setjmp"
 #ifndef C_GEN_BE_GENERATES_ANSI_C
 #define C_GEN_BE_GENERATES_ANSI_C 1
 #endif /* C_GEN_BE_GENERATES_ANSI_C */
@@ -370,6 +372,7 @@ configurations can be created in the same manner.
 #define TARG_JMP_BUF_ELEMENT_FLOAT_KIND_linux_i686 ((a_float_kind)fk_long_double)
 #define TARG_JMP_BUF_ELEMENT_INT_KIND_linux_i686 ((an_integer_kind)ik_int)
 #define TARG_JMP_BUF_NUM_ELEMENTS_linux_i686 39
+#define TARG_SETJMP_FUNC_linux_i686 "_setjmp"
 #define TARG_LDBL_MANT_DIG_linux_i686 64
 #define TARG_LDBL_MAX_EXP_linux_i686 16384
 #define TARG_LDBL_MIN_EXP_linux_i686 (-16381)
@@ -536,6 +539,7 @@ configurations can be created in the same manner.
 #define TARG_JMP_BUF_ELEMENT_FLOAT_KIND_linux_x86_64 ((a_float_kind)fk_long_double)
 #define TARG_JMP_BUF_ELEMENT_INT_KIND_linux_x86_64 ((an_integer_kind)ik_long)
 #define TARG_JMP_BUF_NUM_ELEMENTS_linux_x86_64 25
+#define TARG_SETJMP_FUNC_linux_x86_64 "_setjmp"
 #define TARG_LDBL_MANT_DIG_linux_x86_64 64
 #define TARG_LDBL_MAX_EXP_linux_x86_64 16384
 #define TARG_LDBL_MIN_EXP_linux_x86_64 (-16381)
@@ -700,6 +704,7 @@ configurations can be created in the same manner.
 #define TARG_JMP_BUF_ELEMENT_FLOAT_KIND_linux_i686 ((a_float_kind)fk_long_double)
 #define TARG_JMP_BUF_ELEMENT_INT_KIND_linux_i686 ((an_integer_kind)ik_int)
 #define TARG_JMP_BUF_NUM_ELEMENTS_linux_i686 39
+#define TARG_SETJMP_FUNC_linux_i686 "_setjmp"
 #define TARG_LDBL_MANT_DIG_linux_i686 64
 #define TARG_LDBL_MAX_EXP_linux_i686 16384
 #define TARG_LDBL_MIN_EXP_linux_i686 (-16381)
@@ -861,6 +866,7 @@ configurations can be created in the same manner.
 #define TARG_JMP_BUF_ELEMENT_FLOAT_KIND_linux_x86_64 ((a_float_kind)fk_long_double)
 #define TARG_JMP_BUF_ELEMENT_INT_KIND_linux_x86_64 ((an_integer_kind)ik_long)
 #define TARG_JMP_BUF_NUM_ELEMENTS_linux_x86_64 25
+#define TARG_SETJMP_FUNC_linux_x86_64 "_setjmp"
 #define TARG_LDBL_MANT_DIG_linux_x86_64 64
 #define TARG_LDBL_MAX_EXP_linux_x86_64 16384
 #define TARG_LDBL_MIN_EXP_linux_x86_64 (-16381)

@@ -248,6 +248,7 @@ static void TARGET_MAP_ROUTINE_NAME(TARGET_CONFIGURATION) {
                    targ_jmp_buf_element_int_kind, _TC)
   TARGET_MAP_MACRO(TARG_JMP_BUF_NUM_ELEMENTS,
                    targ_jmp_buf_num_elements, _TC)
+  TARGET_MAP_MACRO(TARG_SETJMP_FUNC, targ_setjmp_func, _TC)
 #endif /* DO_IL_LOWERING && DO_FULL_PORTABLE_EH_LOWERING */
   TARGET_MAP_MACRO(TARG_LDBL_MANT_DIG, targ_ldbl_mant_dig, _TC)
   TARGET_MAP_MACRO(TARG_LDBL_MAX_EXP, targ_ldbl_max_exp, _TC)
