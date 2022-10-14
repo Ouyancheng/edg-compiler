@@ -646,7 +646,9 @@ static void dump_expr(an_expr_node_ptr expr,
 /* Interfaces to dump_expr for the usual cases. */
 #define dump_expr_with_parens(expr) dump_expr(expr, /*need_parens=*/TRUE)
 #define dump_expression(expr)       dump_expr(expr, /*need_parens=*/FALSE)
-static void dump_boolean_controlling_expression(an_expr_node_ptr node);
+static void
+dump_boolean_controlling_expression(an_expr_node_ptr node,
+                                    a_boolean        wrap_with_parens = TRUE);
 static void dump_compound_literal(an_expr_node_ptr expr);
 #if MICROSOFT_EXTENSIONS_ALLOWED
 static void dump_asm_function_body(a_const_char *p);
@@ -7069,7 +7071,30 @@ operator that always returns a 0/1 value (e.g., "<" or "!=").
 
 #endif /* CHECKING */
 
-static void dump_boolean_controlling_expression(an_expr_node_ptr node)
+static a_boolean
+control_operand_requires_clarifying_parens(an_expr_node_ptr node)
+/*
+Given a node to be used as part of a boolean controlling expression, return
+TRUE if additional parens should be added to avoid ambiguity diagnostics
+from the back end compiler; otherwise, return FALSE.
+*/
+{
+  a_boolean result = FALSE;
+
+  if (node->kind == enk_operation) {
+    an_expr_operator_kind op_kind = node->variant.operation.kind;
+
+    if (op_kind == eok_assign) {
+      result = TRUE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* control_operand_requires_clarifying_parens */
+
+
+static void
+dump_boolean_controlling_expression(an_expr_node_ptr node,
+                                    a_boolean        wrap_with_parens)
 /*
 Generate code for the indicated expression, which is the controlling expression
 of a statement or short-circuit operator.  The expression is surrounded
@@ -7081,9 +7106,15 @@ by parentheses.
   check_assertion(!lowering_normalizes_boolean_controlling_expressions ||
                   boolean_controlling_expr_okay(node));
   /* Output the expression with parentheses around it. */
-  m_write_tok_ch('(');
-  dump_expression(node);
-  m_write_tok_ch(')');
+  if (wrap_with_parens) {
+    m_write_tok_ch('(');
+  }  /* if */
+  /* Some conditions require additional clarifying parens so that back end
+     compilers won't complain about a potential typo (e.g., assignments). */
+  dump_expr(node, control_operand_requires_clarifying_parens(node));
+  if (wrap_with_parens) {
+    m_write_tok_ch(')');
+  }  /* if */
 }  /* dump_boolean_controlling_expression */
 
 
@@ -9595,7 +9626,12 @@ Generate C for a statement.
       }  /* if */
       write_tok_str("; ");
       if (statement->expr != NULL) {
-        dump_boolean_controlling_expression(statement->expr);
+        /* Do not wrap the for loop condition in parens.  Unlike other control
+           flow statements, the for loop does not syntactically require these
+           (and thus adding them can lead to spurious diagnostics from the back
+           end compiler). */
+        dump_boolean_controlling_expression(statement->expr,
+                                            /*wrap_with_parens=*/FALSE);
       }  /* if */
       write_tok_str("; ");
       if (statement->variant.for_loop.extra_info->increment != NULL) {
