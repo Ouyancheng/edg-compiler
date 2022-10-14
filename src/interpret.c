@@ -5425,9 +5425,20 @@ END_DISABLE_GCC_WARNING_STR_OVERFLOW
             } else if (constant_is(elem_con, ck_designator) &&
                        !elem_con->variant.designator.is_field_designator &&
                        !elem_con->variant.designator.is_generic) {
-              /* An array designator. */
+              /* An array designator.  Make the various indices and pointers
+                 "jump" to their corresponding positions before moving to the
+                 next element constant. */
+              int32_t  prev_k = (int32_t)k, delta_k;
               k = elem_con->variant.designator.variant.array_element;
               elem_con = elem_con->next;
+              delta_k = (int32_t)k-prev_k;
+              /* delta_k can be negative.  Be sure to treat elem_size as a
+                 signed integer to avoid promoting a negative value to an
+                 unsigned value on some platforms. */
+              value += delta_k*(int32_t)elem_size;
+              if (implied_src != NULL) {
+                implied_src->address += delta_k*(int32_t)elem_size;
+              }  /* if */
               continue;
             } else {
               mark_complete_class_object_if_needed(etp, value);

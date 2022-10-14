@@ -1,5 +1,12 @@
 Version 6.4
 
+10/13/22 [EDGcpfe/25710]
+Memory corruption due to constant-evaluation of GNU array designators
+
+In some situations, the constant-evaluation of an array designator in GNU C++
+mode could result in memory corruption.  That is now fixed.
+
+
 10/13/22 [EDGcpfe/25694]
 C++-generating back end: Abort on nondependent cast in template
 
