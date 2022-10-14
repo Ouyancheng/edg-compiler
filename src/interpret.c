@@ -2510,14 +2510,14 @@ addressed (with non-array objects treated as arrays of one element).
       pos = 0;
     } else {
       /* A run-time address formed by casting an arbitrary non-zero integer
-         to a pointer type (e.g., "(char*)0x1234").  Any length and position
-         is a-priori possible. */
+         to a pointer type (e.g., "(char*)0x1234").  Since the pointed-to
+         object is unknown, we assume the maximum length. */
       length = MAX_ARRAY_LENGTH;
       pos = 0;
     }  /* if */
   } else if (elem_size == 0) {
-    /* In some modes (e.g., GNU C), types can have size zero.  Any length and
-       position is a-priori possible. */
+    /* In some modes (e.g., GNU C), types can have size zero.  Since the
+       pointed-to object is unknown, we assume the maximum length. */
     length = MAX_ARRAY_LENGTH;
     pos = 0;
   } else {
@@ -2588,7 +2588,7 @@ addressed (with non-array objects treated as arrays of one element).
       if (type_is(atype, tk_array)) {
         if (has_unknown_specified_bound(atype) ||
             (!field_seen && array_type_has_no_bound(atype))) {
-          /* The bound is not known (e.g., "extern int x[];" or a VLA. */
+          /* The bound is not known (e.g., "extern int x[];" or a VLA). */
           length = MAX_ARRAY_LENGTH;
         } else {
           /* A known bound or a flexible array.  The latter is treated as a
@@ -2625,7 +2625,7 @@ interpreter addresses and run-time addresses, but in the case of run-time
 addresses the array length is set to MAX_ARRAY_LENGTH if the actual length
 cannot be determined.  Set *p_result to FALSE if an error occurs.  (Note that
 in GNU modes, elem_type can be tk_void because GCC sometimes permits pointer
-arithmetic on void* pointers and treats then as pointing to byte arrays.)
+arithmetic on void* pointers and treats them as pointing to byte arrays.)
 */
 {
   if (is_runtime_data_address(cap)) {
