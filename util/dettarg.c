@@ -126,6 +126,11 @@ unsigned long targ_sizeof_long_long;
 unsigned long targ_alignof_long_long;
 #endif /* HAVE_LONG_LONG */
 
+/* Convert the given preprocessor definition "X" into a string with the value X
+   expands to. */
+#define TO_STRING_QOUTE(X) #X
+#define TO_STRING(x) TO_STRING_QOUTE(x)
+
 static int	targ_char_bit;
 			/* The number of bits in a char. */
 
@@ -153,6 +158,131 @@ static unsigned long alignment(char *p2, char *p1)
 }  /* alignment */
 
 
+/*
+Representation of different possible integer kinds.
+*/
+enum int_kind {
+  ik_char,
+  ik_short,
+  ik_int,
+  ik_long,
+  ik_long_long,
+};
+
+
+static const char *int_kind_to_type_str(int_kind kind,
+                                        int      is_signed)
+/*
+Return a string for the integer kind that matches the given kind and is signed
+or unsigned according to is_signed (is_signed can be -1 to indicate "don't
+care").
+*/
+{
+  const char *result;
+
+  switch (kind) {
+    case ik_char:
+      if (is_signed == -1) {
+        result = "ik_char";
+      } else if (is_signed == 1) {
+        result = "ik_signed_char";
+      } else {
+        result = "ik_unsigned_char";
+      }  /* if */
+      break;
+    case ik_short:
+      if (is_signed == 1) {
+        result = "ik_short";
+      } else {
+        result = "ik_unsigned_short";
+      }  /* if */
+      break;
+    case ik_int:
+      if (is_signed == 1) {
+        result = "ik_int";
+      } else {
+        result = "ik_unsigned_int";
+      }  /* if */
+      break;
+    case ik_long:
+      if (is_signed == 1) {
+        result = "ik_long";
+      } else {
+        result = "ik_unsigned_long";
+      }  /* if */
+      break;
+    case ik_long_long:
+      if (is_signed == 1) {
+        result = "ik_long_long";
+      } else {
+        result = "ik_unsigned_long_long";
+      }  /* if */
+      break;
+    default:
+      result = "<error>";
+      break;
+  }  /* switch */
+  return result;
+}  /* int_kind_to_type_str */
+
+
+static unsigned long int_kind_to_size(int_kind kind)
+/* Convert the given int kind to a byte size. */
+{
+  unsigned long result;
+
+  switch (kind) {
+    case ik_char:
+      result = 1;
+      break;
+    case ik_short:
+      result = targ_sizeof_short;
+      break;
+    case ik_long:
+      result = targ_sizeof_long;
+      break;
+#if HAVE_LONG_LONG
+    case ik_long_long:
+      result = targ_sizeof_long_long;
+      break;
+#endif /* HAVE_LONG_LONG */
+    default:
+      result = 0;
+      break;
+  }  /* switch */
+  return result;
+}  /* int_kind_to_size */
+
+
+static int_kind int_kind_for_alignment(unsigned long alignment,
+                                       int           *error)
+/*
+Return the int kind enumerator for the smallest integer kind that matches the
+given alignment.  Set *error set to TRUE if no such integer kind exists.
+*/
+{
+  int_kind result;
+
+  *error = 0;
+  if (alignment == 1) {
+    result = ik_char;
+  } else if (alignment == targ_alignof_short) {
+    result = ik_short;
+  } else if (alignment == targ_alignof_int) {
+    result = ik_int;
+  } else if (alignment == targ_alignof_long) {
+    result = ik_long;
+#if HAVE_LONG_LONG
+  } else if (alignment == targ_alignof_long_long) {
+    result = ik_long_long;
+#endif /* HAVE_LONG_LONG */
+  } else {
+    *error = 1;
+  }  /* if */
+  return result;
+}  /* int_kind_for_alignment */
+
+
 static const char *int_kind_for_integral_type(unsigned long size,
                                               unsigned long alignment,
                                               int           is_signed,
@@ -166,56 +296,35 @@ over int if long and int have the same size.  Return *error set to TRUE
 if no such integer kind exists.
 */
 {
-  const char *s;
+  const char *result;
+  int_kind   kind;
 
   *error = 0;
   if (size == 1 && alignment == 1) {
-    if (is_signed == -1) {
-      s = "ik_char";
-    } else if (is_signed) {
-      s = "ik_signed_char";
-    } else {
-      s = "ik_unsigned_char";
-    }  /* if */
+    kind = ik_char;
   } else if (size == targ_sizeof_short && alignment == targ_alignof_short) {
-    if (is_signed) {
-      s = "ik_short";
-    } else {
-      s = "ik_unsigned_short";
-    }  /* if */
+    kind = ik_short;
   } else if (favor_long &&
              size == targ_sizeof_long && alignment == targ_alignof_long) {
-    if (is_signed) {
-      s = "ik_long";
-    } else {
-      s = "ik_unsigned_long";
-    }  /* if */
+    kind = ik_long;
   } else if (size == targ_sizeof_int && alignment == targ_alignof_int) {
-    if (is_signed) {
-      s = "ik_int";
-    } else {
-      s = "ik_unsigned_int";
-    }  /* if */
+    kind = ik_int;
   } else if (size == targ_sizeof_long && alignment == targ_alignof_long) {
-    if (is_signed) {
-      s = "ik_long";
-    } else {
-      s = "ik_unsigned_long";
-    }  /* if */
+    kind = ik_long;
 #if HAVE_LONG_LONG
   } else if (size == targ_sizeof_long_long &&
              alignment == targ_alignof_long_long) {
-    if (is_signed) {
-      s = "ik_long_long";
-    } else {
-      s = "ik_unsigned_long_long";
-    }  /* if */
+    kind = ik_long_long;
 #endif /* HAVE_LONG_LONG */
   } else {
     *error = 1;
-    s = "";
   }  /* if */
-  return s;
+  if (*error) {
+    result = "";
+  } else {
+    result = int_kind_to_type_str(kind, is_signed);
+  }  /* if */
+  return result;
 }  /* int_kind_for_integral_type */
 
 
@@ -456,32 +565,58 @@ int main() {
            targ_minimum_struct_alignment);
   }
   { struct { char c; jmp_buf s; } v;
-    unsigned long targ_alignof_jmp_buf_element =
-                                            alignment((char *)v.s, (char *)&v);
-    jmp_buf       jb;
-    unsigned long targ_sizeof_jmp_buf_element = sizeof(jb[0]);
-    unsigned long targ_jmp_buf_num_elements = sizeof(jb) / sizeof(jb[0]);
-    const char    *targ_jmp_buf_element_int_kind;
+    unsigned long alignof_jmp_buf = alignment((char *)v.s, (char *)&v);
     int           error;
+    int_kind      buffer_type;
 
-    printf("#define TARG_JMP_BUF_NUM_ELEMENTS %lu\n",
-           targ_jmp_buf_num_elements);
-    /* Find an integral type with the same size and alignment as the
-       jmp_buf element type. */
-    targ_jmp_buf_element_int_kind =
-                      int_kind_for_integral_type(targ_sizeof_jmp_buf_element,
-                                                 targ_alignof_jmp_buf_element,
-                                                 /*is_signed=*/-1,
-                                                 /*favor_long=*/0,
-                                                 &error);
+    buffer_type = int_kind_for_alignment(alignof_jmp_buf, &error);
     if (error) {
+      fprintf(stderr, "Unable to determine TARG_JMP_BUF_NUM_ELEMENTS.\n");
+      fprintf(stderr, "(It will have to be done manually.)\n");
       fprintf(stderr, "Unable to determine TARG_JMP_BUF_ELEMENT_INT_KIND.\n");
       fprintf(stderr, "(It will have to be done manually.)\n");
     } else {
+      unsigned buffer_element_size = int_kind_to_size(buffer_type);
+      unsigned buffer_element_count = sizeof(jmp_buf) / buffer_element_size;
+      int      buffer_overflow = (sizeof(jmp_buf) % buffer_element_size) != 0;
+
+      /* If the type does not evenly divide, add an element to address
+         overflow. */
+      if (buffer_overflow) {
+        ++buffer_element_count;
+      }  /* if */
+      printf("#define TARG_JMP_BUF_NUM_ELEMENTS %lu\n", buffer_element_count);
       printf("#define TARG_JMP_BUF_ELEMENT_INT_KIND ((an_integer_kind)%s)\n",
-             targ_jmp_buf_element_int_kind);
+             int_kind_to_type_str(buffer_type, /*is_signed*/-1));
     }  /* if */
   }
+#ifdef setjmp
+  /* setjmp is defined as a macro, attempt to expand setjmp and determine the
+     underlying function being used.  setjmp is typically defined as "define
+     setjmp(env) _setjmp (env)" in libstdc++ for Linux; foo is thus passed as a
+     dummy argument for macro expansion.  Notably, (while no standard library
+     implementation is known to do this currently) this approach is equally
+     compatible with "define setjmp _setjmp", the dummy argument is simply
+     ignored by the preprocessor. */
+  { const char func_call_expanded[] = TO_STRING(setjmp(foo));
+    char func_call_result[sizeof(func_call_expanded)];
+
+    for (unsigned i = 0, k = 0; i < sizeof(func_call_expanded); ++i) {
+      char curr_char = func_call_expanded[i];
+
+      if (curr_char == ' ' || curr_char == '(') {
+        func_call_result[k] = '\0';
+        break;
+      }  /* if */
+      func_call_result[k++] = curr_char;
+    }  /* for */
+    printf("#define TARG_SETJMP_FUNC \"%s\"\n", func_call_result);
+  }
+#else /* !ifdef setjmp */
+  /* The normal setjmp function is in use, there's no macro trick to modify
+     consuming code (as done by libstdc++). */
+  printf("#define TARG_SETJMP_FUNC \"setjmp\"\n");
+#endif /* ifdef setjmp */
   { const char *type_string;
     type_string = type_for_integer_size(8, /*is_signed=*/1);
     if (type_string == NULL) {
