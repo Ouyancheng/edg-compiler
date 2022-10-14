@@ -396,7 +396,7 @@ to succeed and size must be a multiple of MOST_STRICT_ALIGNMENT.
   /* Initialize the other fields of the memory allocation record. */
   (*map)->alloc_size = size;
   (*map)->is_mem_block_descr_allocation = FALSE;
-  check_assertion(curr_mem_block_descr->used <= curr_mem_block_descr->used);
+  check_assertion(curr_mem_block_descr->used <= curr_mem_block_descr->size);
   check_assertion(size % MOST_STRICT_ALIGNMENT == 0);
   return ptr;
 }  /* alloc_in_mem_block */
