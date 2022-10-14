@@ -6000,7 +6000,7 @@ activations of the given variable.
     a_var_postfix  *postfix;
     postfix = (a_var_postfix*)(var_storage+n_bytes);
     (void)fprintf(f_debug, "@%3d: %p\n (alloc_seq_num = %d)\n",
-                  k, var_storage, (int)postfix->alloc_seq_number);
+                  k, (void*)var_storage, (int)postfix->alloc_seq_number);
     var_storage = postfix->prev_storage;
   }  /* if */
 }  /* db_var_chain */
