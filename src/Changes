@@ -17,12 +17,14 @@ results in instances that cannot be correctly ordered with respect to each
 other.
 
 In view of these considerations, these configurations are being deprecated
-with a view to eliminating support for them in upcoming releases.
-C++-generating back end configurations are particularly problematic and
-will be disabled soon.  As a transition aid, the configuration macro
-TEMPORARILY_EXTEND_USE_OF_SSI_CP_GEN_BE can be defined to enable this usage
-in this release.  Other SSI-mode configurations can be supported for the
-time being by defining ALLOW_ENABLING_OF_SSI_MODE.
+with a view to eliminating support for them in upcoming releases, and to
+call attention to this fact, new configuration macros are now required in
+order to continue using SSI mode.  C++-generating back end configurations
+are particularly problematic and will be disabled soon.  As a transition
+aid, the configuration macro TEMPORARILY_EXTEND_USE_OF_SSI_CP_GEN_BE can be
+defined to enable this usage in this release.  Other SSI-mode
+configurations can be supported for the time being by defining
+ALLOW_ENABLING_OF_SSI_MODE.
 
 
 10/13/22 [EDGcpfe/25710]
