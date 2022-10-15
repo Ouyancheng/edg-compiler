@@ -4563,10 +4563,28 @@ static a_type_ptr
 
 static a_type_ptr make_jmp_buf_type(void)
 /*
-Make the jmp_buf type (used for setjmp/longjmp as part of exception
-try/throw) if it is not made already, and return a pointer to it.
+Make (or if imported into the IL, find) the jmp_buf type (used for
+setjmp/longjmp as part of exception try/throw) if it is not made already, and
+return a pointer to it.
 */
 {
+  if (jmp_buf_type == NULL) {
+    a_symbol_locator loc;
+    a_symbol_ptr     sym;
+
+    /* Make an effort to find the real jmp_buf type. */
+    clear_locator(&loc, &null_source_position);
+    (void)find_symbol("jmp_buf", (sizeof_t)strlen("jmp_buf"), &loc);
+    sym = file_scope_id_lookup(il_header.primary_scope, &loc, IDL_NO_OPTIONS);
+    while (sym != NULL) {
+      if (sym->kind == sk_type) {
+        jmp_buf_type = sym->variant.type.ptr;
+        break;
+      }  /* if */
+      /* Move on to the next symbol in the list. */
+      sym = sym->next;
+    }  /* if */
+  }  /* if */
   if (jmp_buf_type == NULL) {
     /* jmp_buf is an array; that's part of the standard.  We assume it's
        an array of elements of some integral or floating type; that's not
