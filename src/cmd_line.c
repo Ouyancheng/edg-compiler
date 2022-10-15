@@ -6026,6 +6026,11 @@ file.
 #else /* !defined(ALLOW_ELLIPSIS_ONLY_PARAM_IN_GENERATED_C) */
   comment_undefined_macro_name(ALLOW_ELLIPSIS_ONLY_PARAM_IN_GENERATED_C);
 #endif /* defined(ALLOW_ELLIPSIS_ONLY_PARAM_IN_GENERATED_C) */
+#if defined(ALLOW_ENABLING_OF_SSI_MODE)
+  define_numeric_valued_macro(ALLOW_ENABLING_OF_SSI_MODE);
+#else /* !defined(ALLOW_ENABLING_OF_SSI_MODE) */
+  comment_undefined_macro_name(ALLOW_ENABLING_OF_SSI_MODE);
+#endif /* defined(ALLOW_ENABLING_OF_SSI_MODE) */
 #if defined(ALLOW_HIDDEN_NAMES_IN_IL_WITH_IL_LOWERING)
   define_numeric_valued_macro(ALLOW_HIDDEN_NAMES_IN_IL_WITH_IL_LOWERING);
 #else /* !defined(ALLOW_HIDDEN_NAMES_IN_IL_WITH_IL_LOWERING) */
@@ -9542,6 +9547,11 @@ file.
 #else /* !defined(TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE) */
   comment_undefined_macro_name(TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE);
 #endif /* defined(TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE) */
+#if defined(TEMPORARILY_EXTEND_USE_OF_SSI_CP_GEN_BE)
+  define_numeric_valued_macro(TEMPORARILY_EXTEND_USE_OF_SSI_CP_GEN_BE);
+#else /* !defined(TEMPORARILY_EXTEND_USE_OF_SSI_CP_GEN_BE) */
+  comment_undefined_macro_name(TEMPORARILY_EXTEND_USE_OF_SSI_CP_GEN_BE);
+#endif /* defined(TEMPORARILY_EXTEND_USE_OF_SSI_CP_GEN_BE) */
 #if defined(THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED)
   define_numeric_valued_macro(THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED);
 #else /* !defined(THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED) */

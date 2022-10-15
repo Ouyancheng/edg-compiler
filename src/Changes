@@ -1,5 +1,30 @@
 Version 6.4
 
+10/14/22 [EDGcpfe/25583]
+Deprecation of TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+
+The front end currently supports configurations in which the source
+sequence list contains entries for implicitly-instantiated instances of
+templates, as if the definition of the instantiated entity had appeared in
+the source code; these are called "SSI mode" configurations.  A major use
+of SSI mode has been with the C++-generating back end, where the instances
+would be included in the generated code as explicit specializations.
+However, there are many cases in which implicit instantiations cannot be
+validly represented as explicit specializations and must be suppressed,
+reducing the usefulness of the feature.  Even in non-C++-generating back
+end configurations, there are contexts in which implicit instantiation
+results in instances that cannot be correctly ordered with respect to each
+other.
+
+In view of these considerations, these configurations are being deprecated
+with a view to eliminating support for them in upcoming releases.
+C++-generating back end configurations are particularly problematic and
+will be disabled soon.  As a transition aid, the configuration macro
+TEMPORARILY_EXTEND_USE_OF_SSI_CP_GEN_BE can be defined to enable this usage
+in this release.  Other SSI-mode configurations can be supported for the
+time being by defining ALLOW_ENABLING_OF_SSI_MODE.
+
+
 10/13/22 [EDGcpfe/25710]
 Memory corruption due to constant-evaluation of GNU array designators
 

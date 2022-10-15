@@ -1484,11 +1484,25 @@ Union of two previous flags.
          !NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #define TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS FALSE
 #endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS... */
-#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS && \
-    !GENERATE_SOURCE_SEQUENCE_LISTS
+#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+#if !GENERATE_SOURCE_SEQUENCE_LISTS
  #error -- Instantiations requested in nonexistent source sequence lists
-#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS &&
-          !GENERATE_SOURCE_SEQUENCE_LISTS */
+#else /* GENERATE_SOURCE_SEQUENCE_LISTS */
+#if BACK_END_IS_CP_GEN_BE
+#if !TEMPORARILY_EXTEND_USE_OF_SSI_CP_GEN_BE
+ #error C++-generating back end will soon stop generating explicit \
+   specializations for implicit template instances; use \
+   TEMPORARILY_EXTEND_USE_OF_SSI_CP_GEN_BE for transition purposes.
+#endif /* !TEMPORARILY_EXTEND_USE_OF_SSI_CP_BEN_BE */
+#else /* !BACK_END_IS_CP_GEN_BE */
+#if !ALLOW_ENABLING_OF_SSI_MODE
+ #error Including template instances in source sequence entries is \
+   deprecated; use ALLOW_ENABLING_OF_SSI_MODE to continue use.
+#endif /* !ALLOW_ENABLING_OF_SSI_MODE */
+#endif /* !BACK_END_IS_CP_GEN_BE && ... */
+#endif /* BACK_END_IS_CP_GEN_BE && ... */
+#endif /* !GENERATE_SOURCE_SEQUENCE_LISTS
+#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 
 /*
 Flag that indicates whether a source sequence entry representing a template
