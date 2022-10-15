@@ -1499,9 +1499,8 @@ Union of two previous flags.
  #error Including template instances in source sequence entries is \
    deprecated; use ALLOW_ENABLING_OF_SSI_MODE to continue use.
 #endif /* !ALLOW_ENABLING_OF_SSI_MODE */
-#endif /* !BACK_END_IS_CP_GEN_BE && ... */
 #endif /* BACK_END_IS_CP_GEN_BE && ... */
-#endif /* !GENERATE_SOURCE_SEQUENCE_LISTS
+#endif /* !GENERATE_SOURCE_SEQUENCE_LISTS */
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 
 /*
