@@ -1,5 +1,32 @@
 Version 6.4
 
+10/16/22 [EDGcpfe/22994,EDGcpfe/25160,EDGcpfe/25371,EDGcpfe/25644]
+Rudimentary support for ARM32 and ARM64 processors
+
+Although the front end can be manually configured to support most any
+processor, it has out-of-the-box support for both 32-bit and 64-bit versions
+of the x86 line of processors.  A change has been made to automatically
+detect whether the front end is being compiled on a host ARM32 or ARM64
+compiler (under Linux, MacOS, or Windows), and, in the absence of explicit
+target configuration, configure the front end to match the host compiler
+configuration.
+
+Two new configuration macros, TARG_SUPPORTS_ARM32 and TARG_SUPPORTS_ARM64 (and
+corresponding global variables targ_supports_arm32 and targ_supports_arm64)
+have been added to support this.  The TARG_SUPPORTS_X86_64 configuration
+macro (and associated global variable) continue to indicate that the target
+architecture is 64-bit x86 and when none of these configuration
+macros/variables are set, no specific target is selected, which effectively
+defaults to 32-bit x86.
+
+As always, these configuration macros provide just a starting point for the
+target configuration and customers should ensure that the configuration
+(as shown by --dump_configuration) accurately reflects their target by
+explicitly setting configuration macros where necessary.
+
+No ARM builtins are available at this time.
+
+
 10/14/22 [EDGcpfe/25583]
 Deprecation of TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
 

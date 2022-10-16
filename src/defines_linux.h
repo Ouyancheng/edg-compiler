@@ -55,16 +55,25 @@ avoid deprecated warnings for _BSD_SOURCE in later versions of the GNU headers.
 #endif /* __STDC__ != 0 */
 
 /*
-TARG_SUPPORTS_X86_64 should be set when targeting the x86-64 variant of the x86
-platform.
+If the target architecture is unspecified, heuristically determine a target
+architecture from the host compiler.
 */
-#ifndef TARG_SUPPORTS_X86_64
-#ifdef __x86_64
-#define TARG_SUPPORTS_X86_64 1
-#else /* ifndef __x86_64 */
+#if !defined(TARG_SUPPORTS_X86_64) && !defined(TARG_SUPPORTS_ARM64) && \
+    !defined(TARG_SUPPORTS_ARM32)
+/* Default to an unspecified target. */
 #define TARG_SUPPORTS_X86_64 0
-#endif /* ifdef __x86_64 */
-#endif /* ifndef TARG_SUPPORTS_X86_64 */
+#define TARG_SUPPORTS_ARM64 0
+#define TARG_SUPPORTS_ARM32 0
+#if defined(__x86_64)
+/* 64-bit x86. */
+#undef TARG_SUPPORTS_X86_64
+#define TARG_SUPPORTS_X86_64 1
+#elif defined(__aarch64__)
+/* 64-bit ARM. */
+#undef TARG_SUPPORTS_ARM64
+#define TARG_SUPPORTS_ARM64 1
+#endif /* defined(__x86_64) */
+#endif /* !defined(TARG_SUPPORTS_X86_64) && !defined(TARG_SUPPORTS_ARM64)... */
 
 #ifndef BUILTIN_FUNCTIONS_ENABLED
 #define BUILTIN_FUNCTIONS_ENABLED 1
@@ -129,11 +138,11 @@ USE_QUADMATH_LIBRARY is recommended if it is available.
 #endif /* CONFIG_FOR_GPP_HEADER_COMPATIBILITY */
 
 /*
-Configure the legacy configuration as 32-bit or 64-bit (depending on the
-value of TARG_SUPPORTS_X86_64).  An additional configuration (i.e., the
-"other" one of 32-bit or 64-bit) will be defined below.
+Configure the default/legacy configuration.  In x86 configurations, an optional
+additional target configuration will be added below.
 */
 #if TARG_SUPPORTS_X86_64
+/* 64-bit x86. */
 #define TARG_SIZEOF_LONG 8
 #define TARG_ALIGNOF_LONG 8
 #define TARG_SIZEOF_POINTER 8
@@ -142,10 +151,6 @@ value of TARG_SUPPORTS_X86_64).  An additional configuration (i.e., the
 #define TARG_SIZEOF_LONG_DOUBLE 16
 #define TARG_ALIGNOF_LONG_DOUBLE 16
 #define TARG_WCHAR_T_INT_KIND ((an_integer_kind)ik_int)
-#ifndef _lint
-/* TARG_SIZEOF_WCHAR_T is only used by version 3.7 and earlier. */
-#define TARG_SIZEOF_WCHAR_T TARG_SIZEOF_INT
-#endif /* ifndef _lint */
 #define TARG_SIZE_T_INT_KIND ((an_integer_kind)ik_unsigned_long)
 #define TARG_PTRDIFF_T_INT_KIND ((an_integer_kind)ik_long)
 #define HOST_ALIGNMENT_REQUIRED 8
@@ -153,11 +158,26 @@ value of TARG_SUPPORTS_X86_64).  An additional configuration (i.e., the
 #define TARG_JMP_BUF_NUM_ELEMENTS 25
 #define TARG_JMP_BUF_ELEMENT_INT_KIND ((an_integer_kind)ik_long)
 #define TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES 0
-#else /* TARG_SUPPORTS_X86_64 */
-#ifdef __x86_64
-/* Building a 32 bit target configuration on a 64 bit host. */
-#define TYPE_FOR_AN_FP_VALUE_PART unsigned int
-#endif /* ifdef __x86_64 */
+#elif TARG_SUPPORTS_ARM64
+/* ARM64. */
+#define TARG_HAS_SIGNED_CHARS FALSE
+#define TARG_SIZEOF_LONG 8
+#define TARG_ALIGNOF_LONG 8
+#define TARG_SIZEOF_POINTER 8
+#define TARG_ALIGNOF_POINTER 8
+#define TARG_SIZEOF_LONG_DOUBLE 16
+#define TARG_ALIGNOF_LONG_DOUBLE 16
+#define TARG_WCHAR_T_INT_KIND ((an_integer_kind)ik_unsigned_int)
+#define TARG_SIZE_T_INT_KIND ((an_integer_kind)ik_unsigned_long)
+#define TARG_PTRDIFF_T_INT_KIND ((an_integer_kind)ik_long)
+#define HOST_ALIGNMENT_REQUIRED 8
+#define TARG_JMP_BUF_NUM_ELEMENTS 39
+#define TARG_JMP_BUF_ELEMENT_INT_KIND ((an_integer_kind)ik_long_long)
+#elif TARG_SUPPORTS_ARM32
+/* ARM32. Untested currently (but can be configured manually). */
+ # error Support for ARM32 is untested
+#else /* Non-specific target. */
+/* Presume 32-bit x86. */
 #define TARG_ALIGNOF_LONG_DOUBLE 4
 #define TARG_SIZEOF_LONG_DOUBLE 12
 #define TARG_JMP_BUF_NUM_ELEMENTS 39
@@ -165,10 +185,6 @@ value of TARG_SUPPORTS_X86_64).  An additional configuration (i.e., the
 #define C_GEN_BE_GENERATES_ANSI_C 1
 #endif /* C_GEN_BE_GENERATES_ANSI_C */
 #define TARG_WCHAR_T_INT_KIND ((an_integer_kind)ik_long)
-#ifndef _lint
-/* TARG_SIZEOF_WCHAR_T is only used by version 3.7 and earlier. */
-#define TARG_SIZEOF_WCHAR_T TARG_SIZEOF_LONG
-#endif /* ifndef _lint */
 /* double and long long have two different alignments on Linux. */
 #define TARG_DOUBLE_FIELD_ALIGNMENT 4
 #define TARG_LONG_LONG_FIELD_ALIGNMENT 4
@@ -238,11 +254,12 @@ Linux.
 #define INCLUDE_ADDITIONAL_TARGET_CONFIGURATION 0
 #endif /* defined(INCLUDE_ADDITIONAL_TARGET_CONFIGURATION) */
 
-#if INCLUDE_ADDITIONAL_TARGET_CONFIGURATION
+#if INCLUDE_ADDITIONAL_TARGET_CONFIGURATION && \
+    !(TARG_SUPPORTS_ARM32 || TARG_SUPPORTS_ARM64)
 /*
-The legacy configuration (either a 32-bit or a 64-bit configuration as dictated
-by the setting of TARG_SUPPORTS_X86_64) has been defined above.  Give that
-target configuration the appropriate name, and define the "other" target
+The legacy configuration (either a 32-bit or a 64-bit x86 configuration as
+dictated by the setting of TARG_SUPPORTS_X86_64) has been defined above.  Give
+that target configuration the appropriate name, and define the "other" target
 configuration.  Note that two sets of configurations are included here, one set
 for the IA-64 ABI and one set for the Cfront ABI.  Note also that these target
 configurations are primarily for demonstration purposes as the actual set of
@@ -923,7 +940,7 @@ configurations can be created in the same manner.
 
 #endif /* IA64_ABI */
 
-#endif /* INCLUDE_ADDITIONAL_TARGET_CONFIGURATION */
+#endif /* INCLUDE_ADDITIONAL_TARGET_CONFIGURATION && !(TARG_SUPPORTS_ARM32...*/
 
 #endif /* ifndef DEFINES_LINUX_H */
 

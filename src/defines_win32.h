@@ -77,17 +77,29 @@ case.
 #define TARG_JMP_BUF_ELEMENT_INT_KIND ((an_integer_kind)ik_int)
 
 /*
-TARG_SUPPORTS_X86_64 should be set when targeting the x86-64 variant of the x86
-platform in the legacy configuration.  As a heuristic, define it when _WIN64
-is defined.
+If the target architecture is unspecified, heuristically determine a target
+architecture from the host compiler.
 */
-#ifndef TARG_SUPPORTS_X86_64
-#ifdef _WIN64
-#define TARG_SUPPORTS_X86_64 1
-#else /* !_WIN64 */
+#if !defined(TARG_SUPPORTS_X86_64) && !defined(TARG_SUPPORTS_ARM64) && \
+    !defined(TARG_SUPPORTS_ARM32)
+/* Default to an unspecified target. */
 #define TARG_SUPPORTS_X86_64 0
-#endif /* _WIN64 */
-#endif /* ifndef TARG_SUPPORTS_X86_64 */
+#define TARG_SUPPORTS_ARM64 0
+#define TARG_SUPPORTS_ARM32 0
+#if defined(__aarch64__)
+/* 64-bit ARM. */
+#undef TARG_SUPPORTS_ARM64
+#define TARG_SUPPORTS_ARM64 1
+#elif defined(__arm__)
+/* 32-bit ARM. */
+#undef TARG_SUPPORTS_ARM32
+#define TARG_SUPPORTS_ARM32 1
+#elif defined(_WIN64)
+/* 64-bit x86. */
+#undef TARG_SUPPORTS_X86_64
+#define TARG_SUPPORTS_X86_64 1
+#endif /* defined(__x86_64__) */
+#endif /* !defined(TARG_SUPPORTS_X86_64) && !defined(TARG_SUPPORTS_ARM64)... */
 
 #if TARG_SUPPORTS_X86_64
 #define TARG_SIZEOF_POINTER 8

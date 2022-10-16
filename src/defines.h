@@ -940,10 +940,6 @@ command-line when compiling system headers.
 #define TARG_SIZEOF_LONG_DOUBLE 16
 #define TARG_ALIGNOF_LONG_DOUBLE 8
 #define TARG_WCHAR_T_INT_KIND ((an_integer_kind)ik_unsigned_long)
-#ifndef _lint
-/* TARG_SIZEOF_WCHAR_T is only used by version 3.7 and earlier. */
-#define TARG_SIZEOF_WCHAR_T TARG_SIZEOF_LONG
-#endif /* ifndef _lint */
 #define TARG_SIZE_T_INT_KIND ((an_integer_kind)ik_unsigned_int)
 #define TARG_PTRDIFF_T_INT_KIND ((an_integer_kind)ik_int)
 #define HOST_ALIGNMENT_REQUIRED 4
@@ -1235,10 +1231,6 @@ command-line when compiling system headers.
 #define TARG_SIZE_T_MAX ((a_targ_size_t)0xffffffffUL)
 #endif /* SIZE_T_IS_LONG */
 #define TARG_WCHAR_T_INT_KIND ((an_integer_kind)ik_unsigned_short)
-#ifndef _lint
-/* TARG_SIZEOF_WCHAR_T is only used by version 3.7 and earlier. */
-#define TARG_SIZEOF_WCHAR_T TARG_SIZEOF_SHORT
-#endif /* ifndef _lint */
 #define HOST_ALIGNMENT_REQUIRED 8
 #define TARG_RIGHT_SHIFT_IS_ARITHMETIC 1
 #define TARG_TOO_LARGE_SHIFT_COUNT_IS_TAKEN_MODULO_SIZE 0
@@ -1933,10 +1925,6 @@ command-line when compiling system headers.
 #define CFRONT_2_1_OBJECT_CODE_COMPATIBILITY 0
 #define NEW_CAN_BE_FOLDED_INTO_CTOR 0
 #define TARG_WCHAR_T_INT_KIND ((an_integer_kind)ik_long)
-#ifndef _lint
-/* TARG_SIZEOF_WCHAR_T is only used by version 3.7 and earlier. */
-#define TARG_SIZEOF_WCHAR_T TARG_SIZEOF_LONG
-#endif /* ifndef _lint */
 #define MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED 1
 #define USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING 0
 #define PRAGMA_WEAK_ALLOWED 1

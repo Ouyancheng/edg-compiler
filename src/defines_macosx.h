@@ -35,8 +35,30 @@ FALSE in this header file.
 #define DEBUG 0
 #endif /* ifdef DEMO_VERSION */
 
+/*
+If the target architecture is unspecified, heuristically determine a target
+architecture from the host compiler.
+*/
+#if !defined(TARG_SUPPORTS_X86_64) && !defined(TARG_SUPPORTS_ARM64) && \
+    !defined(TARG_SUPPORTS_ARM32)
+/* Default to an unspecified target. */
+#define TARG_SUPPORTS_X86_64 0
+#define TARG_SUPPORTS_ARM64 0
+#define TARG_SUPPORTS_ARM32 0
+#if defined(__x86_64__)
+/* 64-bit x86. */
+#undef TARG_SUPPORTS_X86_64
+#define TARG_SUPPORTS_X86_64 1
+#elif defined(__aarch64__)
+/* 64-bit ARM. */
+#undef TARG_SUPPORTS_ARM64
+#define TARG_SUPPORTS_ARM64 1
+#else /* !defined(__x86_64__) */
+#endif /* defined(__x86_64__) */
+#endif /* !defined(TARG_SUPPORTS_X86_64) && !defined(TARG_SUPPORTS_ARM64)... */
+
 /* Configuration definitions determined by dettarg.c: */
-#if defined(__x86_64__) || defined(__aarch64__)
+#if TARG_SUPPORTS_X86_64 || TARG_SUPPORTS_ARM64
 /* 64-bit targets. */
 #define TARG_SIZEOF_LONG 8
 #define TARG_ALIGNOF_LONG 8
@@ -46,7 +68,7 @@ FALSE in this header file.
 #define TARG_WCHAR_T_INT_KIND ((an_integer_kind)ik_int)
 #define HOST_ALIGNMENT_REQUIRED 8
 #define TARG_ALIGNOF_LONG_LONG 8
-#else /* !(defined(__x86_64__) || defined(__aarch64__)) */
+#else /* !(TARG_SUPPORTS_X86_64 || TARG_SUPPORTS_ARM64) */
 /* 32-bit targets. */
 #define TARG_SIZEOF_LONG 4
 #define TARG_ALIGNOF_LONG 4
@@ -56,32 +78,36 @@ FALSE in this header file.
 #define TARG_WCHAR_T_INT_KIND ((an_integer_kind)ik_long)
 #define HOST_ALIGNMENT_REQUIRED 4
 #define TARG_ALIGNOF_LONG_LONG 4
-#endif /* defined(__x86_64__) || defined(__aarch64__) */
+#endif /* TARG_SUPPORTS_X86_64 || TARG_SUPPORTS_ARM64 */
+
 #ifdef __ppc__
+/* PowerPC. */
 #define TARG_LITTLE_ENDIAN 0
 #define TARG_JMP_BUF_NUM_ELEMENTS 192
 #define TARG_SIZEOF_LONG_DOUBLE 8
 #define TARG_ALIGNOF_LONG_DOUBLE 4
 #define USE_LONG_DOUBLE_FOR_HOST_FP_VALUE 0
 #define FP_LONG_DOUBLE_IS_BINARY64 1
-#else /* ifndef __ppc__ */
-#define TARG_LITTLE_ENDIAN 1
-#ifdef __aarch64__
-#define TARG_SUPPORTS_ARM64 1
+#define TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES 0
+#elif TARG_SUPPORTS_ARM64
+/* ARM64. */
 #define TARG_SIZEOF_LONG_DOUBLE 8
 #define TARG_ALIGNOF_LONG_DOUBLE 8
 #define TARG_JMP_BUF_NUM_ELEMENTS 48
-#else /* ifndef __aarch64__ */
-#define TARG_SUPPORTS_X64_64
+#define USE_LONG_DOUBLE_FOR_HOST_FP_VALUE 0
+#define FP_LONG_DOUBLE_IS_BINARY64 1
+#elif TARG_SUPPORTS_X64_64
+/* 64-bit x86. */
 #define TARG_SIZEOF_LONG_DOUBLE 16
 #define TARG_ALIGNOF_LONG_DOUBLE 16
 #define FP_LONG_DOUBLE_IS_80BIT_EXTENDED 1
-#ifdef __x86_64__
 #define TARG_JMP_BUF_NUM_ELEMENTS 37
-#else /* ifndef __x86_64__ */
+#elif TARG_SUPPORTS_ARM32
+/* ARM32. Untested currently (but can be configured manually). */
+ # error Support for ARM32 is untested
+#else /* Non-specific target. */
+/* Presume 32-bit x86. */
 #define TARG_JMP_BUF_NUM_ELEMENTS 18
-#endif /* ifdef __x86_64__ */
-#endif /* ifndef __aarch64__ */
 #endif /* ifndef __ppc__ */
 
 #define TARG_SIZE_T_INT_KIND ((an_integer_kind)ik_unsigned_long)
@@ -96,10 +122,6 @@ FALSE in this header file.
 #define TARG_SIZEOF_FLOAT 4
 #define TARG_ALIGNOF_FLOAT 4
 #define TARG_SIZEOF_DOUBLE 8
-#ifndef _lint
-/* TARG_SIZEOF_WCHAR_T is only used by version 3.7 and earlier. */
-#define TARG_SIZEOF_WCHAR_T TARG_SIZEOF_LONG
-#endif /* ifndef _lint */
 #define TARG_RIGHT_SHIFT_IS_ARITHMETIC 1
 #define TARG_MINIMUM_STRUCT_ALIGNMENT 1
 #define TARG_JMP_BUF_ELEMENT_INT_KIND ((an_integer_kind)ik_int)
@@ -147,17 +169,6 @@ FALSE in this header file.
 #define TARG_BIT_FIELD_CONTAINER_SIZE (-1)
 #define ALLOW_NON_INT_BIT_FIELD_BASE_TYPE_IN_GENERATED_C 1
 #define DEFAULT_PASS_STDARG_REFERENCES_TO_GENERATED_CODE 1
-#if defined(__i386__)
-#define TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES 1
-#elif defined(__x86_64__)
-#define TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES 1
-#elif defined(__ppc__)
-#define TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES 0
-#elif defined(__aarch64__)
-#define TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES 1
-#else /* Not a recognized architecture. */
-#error -- Unexpected MacOS X platform
-#endif /* defined(__i386__) */
 
 #endif /* ifndef DEFINES_MACOS_H */
 

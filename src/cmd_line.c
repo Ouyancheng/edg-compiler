@@ -9434,11 +9434,6 @@ file.
 #else /* !defined(TARG_SIZEOF_VIRTUAL_FUNCTION_INFO) */
   comment_undefined_macro_name(TARG_SIZEOF_VIRTUAL_FUNCTION_INFO);
 #endif /* defined(TARG_SIZEOF_VIRTUAL_FUNCTION_INFO) */
-#if defined(TARG_SIZEOF_WCHAR_T)
-  define_numeric_valued_macro(TARG_SIZEOF_WCHAR_T);
-#else /* !defined(TARG_SIZEOF_WCHAR_T) */
-  comment_undefined_macro_name(TARG_SIZEOF_WCHAR_T);
-#endif /* defined(TARG_SIZEOF_WCHAR_T) */
 #if defined(TARG_SIZE_T_INT_KIND)
   define_string_valued_macro(TARG_SIZE_T_INT_KIND);
 #else /* !defined(TARG_SIZE_T_INT_KIND) */

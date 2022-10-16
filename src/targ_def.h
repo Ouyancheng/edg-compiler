@@ -123,11 +123,13 @@ solution in the runtime.
 /*
 If a specific target architecture has not been explicitly selected, select one
 that looks like the host compiler.  This is somewhat arbitrary (but can be
-overridden by explicitly selecting a target architecture).
+overridden by explicitly selecting a target architecture).  If none of these
+macros have been set, the implicit assumption is that the target is a 32-bit
+x86 target.
 */
 #if !defined(TARG_SUPPORTS_X86_64) && !defined(TARG_SUPPORTS_ARM32) && \
     !defined(TARG_SUPPORTS_ARM64)
-#if defined(__x86_64)
+#if defined(__x86_64) || defined(__x86_64__)
 #define TARG_SUPPORTS_X86_64 TRUE
 #elif defined(__aarch64__)
 #define TARG_SUPPORTS_ARM64 TRUE
@@ -135,19 +137,8 @@ overridden by explicitly selecting a target architecture).
 #define TARG_SUPPORTS_ARM32 TRUE
 #elif defined(_WIN64)
 #define TARG_SUPPORTS_X86_64 TRUE
-#else /* default case */
-#define TARG_SUPPORTS_X86_64 FALSE
-#define TARG_SUPPORTS_ARM64 FALSE
-#define TARG_SUPPORTS_ARM32 FALSE
-#endif /* defined(__x86_64) */
+#endif /* defined(__x86_64) || defined(__x86_64__) */
 #endif /* !defined(TARG_SUPPORTS_X86_64) && !defined(TARG_SUPPORTS_ARM32)...*/
-
-#ifdef USE_X86_64
-/* USE_X86_64 is now deprecated; set TARG_SUPPORTS_X86_64 appropriately and
-   use the targ_supports_x86_64 global variable to check at run-time. */
- #error Use of USE_X86_64 is deprecated; use targ_supports_x86_64 global \
-        variable
-#endif /* defined(USE_X86_64) */
 
 /*
 Flag that is TRUE if the target is a 64-bit x86 platform.  Provides the initial
@@ -172,6 +163,17 @@ setting for targ_supports_arm32.
 #ifndef TARG_SUPPORTS_ARM32
 #define TARG_SUPPORTS_ARM32 FALSE
 #endif /* ifndef TARG_SUPPORTS_ARM32 */
+
+#if (TARG_SUPPORTS_X86_64 + TARG_SUPPORTS_ARM64 + TARG_SUPPORTS_ARM32) > 1
+ #error Only one TARG_SUPPORTS_* configuration macro can be TRUE
+#endif /* (TARG_SUPPORTS_X86_64 + TARG_SUPPORTS_ARM64 + TARG_SUPPORTS_ARM32) */
+
+#ifdef USE_X86_64
+/* USE_X86_64 is now deprecated; set TARG_SUPPORTS_X86_64 appropriately and
+   use the targ_supports_x86_64 global variable to check at run-time. */
+ #error Use of USE_X86_64 is deprecated; use targ_supports_x86_64 global \
+        variable
+#endif /* defined(USE_X86_64) */
 
 /*
 TRUE to use ARM EABI semantics for static initialization guard variables

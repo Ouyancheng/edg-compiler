@@ -140,6 +140,8 @@ extern "C" int finite(double x);
 #if USE_DOUBLE_FOR_HOST_FP_VALUE
 #if __linux__
 #define is_finite(x) (__finite(x))
+#elif defined(__APPLE__)
+#define is_finite(x) (isfinite(x))
 #else /* !__linux__ */
 #define is_finite(x) (finite(x))
 #endif /* __linux__ */
