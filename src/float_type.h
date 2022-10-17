@@ -811,7 +811,9 @@ Initialize SMALL_TENS and BIG_TENS arrays.
     fp_emul_copy(&SMALL_TENS[i], &SMALL_TENS[i - 1]);
     fp_emul_mult_int(&SMALL_TENS[i], 10);
   }  /* for */
+#if N_BIG_TENS > 0
   fp_emul_copy(&BIG_TENS[0], &SMALL_TENS[1 << EXP_SHIFT]);
+#endif /* N_BIG_TENS > 0 */
   for (i = 1; i < N_BIG_TENS; ++i) {
     fp_emul_copy(&BIG_TENS[i], &BIG_TENS[i - 1]);
     fp_emul_mult(&BIG_TENS[i], &BIG_TENS[i]);
