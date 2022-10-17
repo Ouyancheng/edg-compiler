@@ -8850,9 +8850,9 @@ FIXME: what other expressions can we get here?
         } else {
           constant_type = type_for_type_index(type, /*kind=*/NULL);
         }  /* if */
-        if (constant_type != NULL && is_error_type(constant_type)) {
-          check_assertion_str(is_at_least_one_error(),
-                              "expected errors for constant");
+        if (constant_type != NULL && is_error_type(constant_type) &&
+            !is_at_least_one_error()) {
+          ifc_unexpected(this, "unexpected error type");
           goto invalid;
         }  /* if */
 
@@ -14943,11 +14943,19 @@ suppress_automatic_namespace_qualification.
       }  /* if */
 
       an_ifc_type_fundamental itf = *opt_itf;
-      switch (get_ifc_basis(itf)) {
+      an_ifc_type_basis_sort  basis = get_ifc_basis(itf);
+      switch (basis) {
         case ifc_tbs_namespace:
           /* This path already contains its namespace qualification, suppress
              automatic namespace qualification. */
           suppress_automatic_namespace_qualification = TRUE;
+          break;
+        case ifc_tbs_class:
+        case ifc_tbs_struct:
+        case ifc_tbs_union:
+          /* This path already contains its class qualification.  Suppress any
+             further automatic name qualification. */
+          suppress_automatic_name_qualification = TRUE;
           break;
         default:
           break;
@@ -15188,9 +15196,6 @@ tuple elements by '::' instead of ','.
           cache_expr(cache, get_ifc_scope(iep), cinfo);
           cache_token(cache, tok_colon_colon, &null_source_position);
           update_name_qualification_suppression(iep);
-          /* We've already cached the name qualification - suppress any
-             attempts to qualify the member. */
-          suppress_automatic_name_qualification = TRUE;
         }  /* if */
         cache_expr(cache, get_ifc_member(iep), cinfo);
       }
