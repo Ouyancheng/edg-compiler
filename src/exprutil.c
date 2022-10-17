@@ -7140,7 +7140,7 @@ Should not be called for access errors.
 
 a_boolean is_consteval_diag_deferred()
 /*
-If consteval function calls are not required to folding in the current context
+If folding of consteval function calls is not required in the current context
 (because folding should be reattempted later), return TRUE; otherwise, return
 FALSE.
 */
@@ -19032,7 +19032,7 @@ Assemble a function call from the various pieces.  *function_operand identifies
 the function to be called.  It can identify an unknown dependent function if
 the call is dependent.  If a selector object is needed, it is provided by
 *bound_function_selector.  argument_list points to the (explicit) argument
-list.  compiler_generated is TRUE if this is a compiler- generated call (e.g.,
+list.  compiler_generated is TRUE if this is a compiler-generated call (e.g.,
 to an overloaded operator function).  The call is not of a conversion function.
 arg_dep_lookup_suppressed is TRUE if argument-dependent lookup was suppressed
 on the call because the function name was not followed by a left parenthesis.

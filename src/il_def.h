@@ -4659,13 +4659,13 @@ typedef struct a_constant {
 			   a_constant::expr will be NULL and the expression
 			   can be found using find_local_expr_node instead. */
   a_bit_field	is_naturalized:1;
-			/* TRUE if this constant was originally constructed
-			   from an interpreter object with dynamic storage
-			   duration, however, has been promoted to a runtime
-			   constant with static storage duration.  Note that
-			   C++ does not currently allow this promotion; thus,
-			   this promotion is currently only available as part
-			   of an implementation detail (e.g., for use by the
+			/* TRUE if this is a constant that was originally
+			   constructed from an interpreter object with dynamic
+			   storage duration.  Note that C++ does not currently
+			   allow the promotion of interpreter objects with
+			   dynamic storage duration to constants; thus, this
+			   promotion is currently only available as part of an
+			   implementation detail (e.g., for use by the
 			   "__builtin_source_location()" builtin). */
   a_constant_repr_kind
                 kind;

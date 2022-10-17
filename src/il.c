@@ -11814,7 +11814,7 @@ a_type_ptr      il_source_location_impl_type;
 
 a_gnu_source_location_field_set
                 il_source_location_fields;
-                        /* A collection of cached points for the fields of the
+                        /* A collection of cached pointers to the fields of the
                            GNU libstdc++ standard library's
                            std::source_location::__impl type. */
 

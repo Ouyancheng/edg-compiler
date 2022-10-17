@@ -1114,9 +1114,9 @@ typedef struct an_expr_stack_entry {
 			   describing exceptions to folding requirements.  This
 			   state is set by high level functions in the
 			   interpreter and consumed by interested IL
-			   construction code.  This allowing for proper setup
-			   of const eval deferred expressions.  In the future,
-			   a more detailed interpreter evaluation result could
+			   construction code.  This allows for proper setup of
+			   const eval deferred expressions.  In the future, a
+			   more detailed interpreter evaluation result could
 			   simplify this flow. */
   a_dynamic_init_dtor_fixup_ptr
 		dynamic_init_dtor_fixup_list;

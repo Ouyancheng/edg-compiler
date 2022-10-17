@@ -8622,7 +8622,7 @@ set to FALSE.
   check_assertion(is_integral_type(result_type));
   if (!safely_set_host_integer_value(result_type, result_storage,
                                      use_pos->column)) {
-    info_with_pos_type(ec_srcloc_column_bounds, use_pos, result_type, ips);
+    info_with_pos(ec_srcloc_column_bounds, use_pos, ips);
     do_constexpr_fail(*p_result);
   }  /* if */
 }  /* do_constexpr_write_source_column */
@@ -8650,20 +8650,20 @@ set to FALSE.
   check_assertion(is_integral_type(result_type));
   if (!safely_set_host_integer_value(result_type, result_storage,
                                      line_number)) {
-    info_with_pos_type(ec_srcloc_line_bounds, use_pos, result_type, ips);
+    info_with_pos(ec_srcloc_line_bounds, use_pos, ips);
     do_constexpr_fail(*p_result);
   }  /* if */
 }  /* do_constexpr_write_source_line */
 
 
 static void do_constexpr_write_cstring(an_interpreter_state *ips,
-                                       a_const_char         *result_string,
+                                       a_const_char         *str,
                                        a_byte               *result_storage,
                                        a_boolean            *p_result)
 /*
-Given the associated storage and interpreter state for the resulting const char
-pointer data (c-string), convert and store the given string (result_string).
-If any problems are encountered, the pointee of p_result will be set to FALSE.
+Given the associated storage and interpreter state for the resulting
+interpreted value, convert and store the characters from the given string.  If
+any problems are encountered, the pointee of p_result will be set to FALSE.
 */
 {
   a_constant_ptr  cp;
@@ -8673,7 +8673,7 @@ If any problems are encountered, the pointee of p_result will be set to FALSE.
   a_boolean       result = TRUE;
 
   /* Obtain a shareable ck_string constant for the name. */
-  cp = shareable_fs_string_constant(result_string);
+  cp = shareable_fs_string_constant(str);
   type = cp->type;
   length = (a_byte_count)cp->variant.string.length;
   /* Do we have an interpreter version of the string already? */
@@ -19535,7 +19535,7 @@ static a_boolean alloc_const_for_object(an_interpreter_state  *ips,
                                         a_constant_ptr        *result)
 /*
 Allocate a new constant in the current memory region for the interpreter object
-pointed to by cap, for the interpreter state ips.  Result is updated to point
+pointed to by cap, for the interpreter state ips.  *result is updated to point
 to the allocated constant.  Return TRUE when the allocation operation is
 successful, FALSE otherwise.
 */
