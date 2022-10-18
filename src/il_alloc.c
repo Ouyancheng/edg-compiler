@@ -2094,6 +2094,7 @@ to default values.
       pte->variant.class_struct_union.keep_definition_in_il = FALSE;
 #endif /* MAINTAIN_NEEDED_FLAGS */
       pte->variant.class_struct_union.is_empty_class = FALSE;
+      pte->variant.class_struct_union.no_proper_data = FALSE;
       pte->variant.class_struct_union.has_zero_init_component = FALSE;
       pte->variant.class_struct_union.contains_flexible_array_member = FALSE;
 #if GNU_EXTENSIONS_ALLOWED
