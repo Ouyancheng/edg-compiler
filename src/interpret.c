@@ -3633,6 +3633,7 @@ within the given complete object).
         if (!result) goto done;
         for (k = 0; k<n_elems; k += 1) {
           init_subobject_to_zero(ips, subobj, etp, complete_obj);
+          mark_complete_class_object_if_needed(etp, subobj);
           subobj += elem_size;
         }  /* for */
       }
@@ -3666,6 +3667,7 @@ within the given complete object).
           a_byte_count  offset;
           get_mapped_byte_count(&persistent_map, fp, offset);
           init_subobject_to_zero(ips, subobj+offset, ftp, complete_obj);
+          mark_complete_class_object_if_needed(ftp, subobj+offset);
         }  /* for */
         for (; bcp != NULL; bcp = bcp->next) {
           if (bcp->direct || bcp->is_virtual) {
@@ -3687,6 +3689,7 @@ within the given complete object).
           a_type_ptr    ftp = skip_typerefs(fp->type);
           get_mapped_byte_count(&persistent_map, fp, offset);
           init_subobject_to_zero(ips, subobj+offset, ftp, complete_obj);
+          mark_complete_class_object_if_needed(ftp, subobj+offset);
           /* Record the active field. */
           *(a_field_ptr*)subobj = fp;
         } else {
@@ -4078,7 +4081,8 @@ Output the contents of the interpreted object of type tp stored at addr.
             db_type_name(bcp->type);
             get_mapped_byte_count(&persistent_map, bcp, offset);
             (void)fprintf(f_debug, " (offset %u)= \n", offset);
-            if ((*(a_base_class_ptr*)(addr+offset))->type != bcp->type) {
+            if (!subobject_is_initialized(addr+offset, complete_object) ||
+                (*(a_base_class_ptr*)(addr+offset))->type != bcp->type) {
               db_indent(indent);
               (void)fprintf(f_debug, " (BAD DERIVED PTR %p)\n",
                             (void*)*(a_type_ptr*)(addr+offset));
@@ -14869,13 +14873,13 @@ the value representation of the integer value.
                 do_constexpr_fail(result);
                 info_with_pos(ec_constexpr_access_to_runtime_storage,
                               &expr->position, ips);
+              } else if (src->address == NULL) {
+                *(a_constexpr_address*)result_storage = *src;
               } else if (!subobject_is_initialized(src->address,
                                                    src->complete_object)) {
                 do_constexpr_fail(result);
                 info_with_pos(ec_object_not_initialized, &opnd1->position,
                               ips);
-              } else if (src->address == NULL) {
-                *(a_constexpr_address*)result_storage = *src;
               } else {
                 a_base_class_ptr  bcp = *(a_base_class_ptr*)src->address;
                 a_type_ptr        derived_class;
@@ -20051,14 +20055,18 @@ diagnostic in *ips.
         set_constant_kind(con, (a_constant_repr_kind)ck_aggregate);
         fp = type->variant.class_struct_union.field_list,
         fp = next_alloc_field(fp);
-        if (fp == NULL || (afp = (a_field_ptr)*(void**)object) == NULL) {
+        if (fp == NULL) {
           /* This should only happen with unions that have no field (other
              than empty anonymous union parent objects), and therefore cannot
              have an active field. */
         } else {
-          /* afp describes the active field. */
           a_constant_ptr  elem_con, des_con;
           a_byte_count    offset;
+          if ((afp = (a_field_ptr)*(void**)object) == NULL) {
+            init_subobject_to_zero(ips, object, type, complete_object);
+            afp = (a_field_ptr)*(void**)object;
+          }  /* if */
+          /* afp describes the active field. */
           elem_con = alloc_constant((a_constant_repr_kind)ck_error);
           get_mapped_byte_count(&persistent_map, afp, offset);
           if (!copy_interpreter_object_to_constant(
