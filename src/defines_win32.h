@@ -101,17 +101,34 @@ architecture from the host compiler.
 #endif /* defined(__x86_64__) */
 #endif /* !defined(TARG_SUPPORTS_X86_64) && !defined(TARG_SUPPORTS_ARM64)... */
 
-#if TARG_SUPPORTS_X86_64
+#if TARG_SUPPORTS_X86_64 || TARG_SUPPORTS_ARM64
+/* 64-bit targets. */
 #define TARG_SIZEOF_POINTER 8
+#define TARG_ALIGNOF_POINTER 8
 #define TARG_SIZE_T_INT_KIND ((an_integer_kind)ik_unsigned_long_long)
 #define TARG_PTRDIFF_T_INT_KIND ((an_integer_kind)ik_long_long)
 #define HOST_ALIGNMENT_REQUIRED 8
 #define HOST_POINTER_ALIGNMENT 8
-#define TARG_ALIGNOF_POINTER 8
 #else /* !TARG_SUPPORTS_X86_64 */
+/* 32-bit targets. */
 #define TARG_SIZEOF_POINTER 4
 #define TARG_ALIGNOF_POINTER 4
+#define TARG_SIZE_T_INT_KIND ((an_integer_kind)ik_unsigned_int)
+#define TARG_PTRDIFF_T_INT_KIND ((an_integer_kind)ik_int)
 #endif /* TARG_SUPPORTS_X86_64 */
+
+/* ARM-specific settings. */
+#if TARG_SUPPORTS_ARM64
+/* 64-bit ARM. */
+#define TARG_JMP_BUF_NUM_ELEMENTS 24
+#define TARG_JMP_BUF_ELEMENT_INT_KIND ((an_integer_kind)ik_long_long)
+#elif TARG_SUPPORTS_ARM32
+/* 32-bit ARM. */
+#define TARG_JMP_BUF_NUM_ELEMENTS 28
+#define TARG_JMP_BUF_ELEMENT_INT_KIND ((an_integer_kind)ik_int)
+#define HOST_ALIGNMENT_REQUIRED 8
+#define HOST_POINTER_ALIGNMENT 8
+#endif /* TARG_SUPPORTS_ARM64 */
 
 /*
 Definitions for Windows (WIN32)
