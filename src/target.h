@@ -929,8 +929,8 @@ EXTERN a_float_kind
 			/* Float kind indicating the kind of element in a
 			   jmp_buf array.  Initialized to the default value
 			   but reconfigurable. */
-EXTERN const char*
-		targ_setjmp_func;
+EXTERN a_const_char
+		*targ_setjmp_func;
 			/* The name of the setjmp function to call.
 			   Initialized to the default value but
 			   reconfigurable. */
