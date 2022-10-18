@@ -1,5 +1,16 @@
 Version 6.4
 
+10/18/22 [EDGcpfe/11090]
+setjmp function name is configurable for lowered exception handling
+
+The front end previously only supported use of the "setjmp" function for use by
+exception lowering when DO_FULL_PORTABLE_EH_LOWERING is set to TRUE.  Now,
+TARG_SETJMP_FUNC can be used to specify an alternative function name to use.
+
+Additionally, this configuration macro is now used to call the glibc "_setjmp"
+function on Linux by default.
+
+
 10/16/22 [EDGcpfe/22994,EDGcpfe/25160,EDGcpfe/25371,EDGcpfe/25644]
 Rudimentary support for ARM32 and ARM64 processors
 
