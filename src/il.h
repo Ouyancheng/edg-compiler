@@ -1288,16 +1288,16 @@ struct a_gnu_source_location_type_info {
                         /* The type representing the GNU libstdc++ standard
                            library's "__impl" type. */
   a_field_ptr   file_field;
-                        /* The impl_type's field representing the file
+                        /* The impl_type's field representing the file name
                            (NULL if impl_type is an error type). */
   a_field_ptr   function_field;
-                        /* The impl_type's field representing the function
+                        /* The impl_type's field representing the function name
                            (NULL if impl_type is an error type). */
   a_field_ptr   line_field;
-                        /* The impl_type's field representing the line
+                        /* The impl_type's field representing the line number
                            (NULL if impl_type is an error type). */
   a_field_ptr   column_field;
-                        /* The impl_type's field representing the column
+                        /* The impl_type's field representing the column number
                            (NULL if impl_type is an error type). */
 };  /* a_gnu_source_location_type_info */
 

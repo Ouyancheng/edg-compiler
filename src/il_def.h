@@ -4660,7 +4660,7 @@ typedef struct a_constant {
 			   can be found using find_local_expr_node instead. */
   a_bit_field	is_naturalized:1;
 			/* TRUE if this is a constant that was originally
-			   constructed from an interpreter object with dynamic
+			   created from an interpreter object with dynamic
 			   storage duration.  Note that C++ does not currently
 			   allow the promotion of interpreter objects with
 			   dynamic storage duration to constants; thus, this

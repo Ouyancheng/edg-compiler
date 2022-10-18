@@ -1115,7 +1115,7 @@ typedef struct an_expr_stack_entry {
 			   state is set by high level functions in the
 			   interpreter and consumed by interested IL
 			   construction code.  This allows for proper setup of
-			   const eval deferred expressions.  In the future, a
+			   const_eval_deferred expressions.  In the future, a
 			   more detailed interpreter evaluation result could
 			   simplify this flow. */
   a_dynamic_init_dtor_fixup_ptr

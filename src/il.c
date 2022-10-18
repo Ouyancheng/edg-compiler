@@ -11800,12 +11800,15 @@ A structure bundling the field set for the GNU libstdc++ standard library's
 std::source_location::__impl type.
 */
 struct a_gnu_source_location_field_set {
-  a_field_ptr   file;   /* The __impl type's field representing the file. */
+  a_field_ptr   file;   /* The __impl type's field representing the file
+                           name. */
   a_field_ptr   function;
-                        /* The __impl type's field representing the
-                           function. */
-  a_field_ptr   line;   /* The __impl type's field representing the line. */
-  a_field_ptr   column; /* The __impl type's field representing the column. */
+                        /* The __impl type's field representing the function
+                           name. */
+  a_field_ptr   line;   /* The __impl type's field representing the line
+                           number. */
+  a_field_ptr   column; /* The __impl type's field representing the column
+                           number. */
 };  /* a_gnu_source_location_field_set */
 
 a_type_ptr      il_source_location_impl_type;
@@ -11833,43 +11836,27 @@ field cache; otherwise, return FALSE.
   a_boolean     mapped = FALSE;
   a_const_char  *name = input->source_corresp.name;
 
-  /* Use the unique name lengths to reduce comparisons. */
-  switch (strlen(name)) {
-    case 16:
-      if (strcmp(name, "_M_function_name") == 0) {
-        if (fields->function == NULL && input->type == cstr_ty) {
-          fields->function = input;
-          mapped = TRUE;
-        }  /* if */
-      }
-      break;
-    case 12:
-      if (strcmp(name, "_M_file_name") == 0) {
-        if (fields->file == NULL && input->type == cstr_ty) {
-          fields->file = input;
-          mapped = TRUE;
-        }  /* if */
-      }  /* if */
-      break;
-    case 9:
-      if (strcmp(name, "_M_column") == 0) {
-        if (fields->column == NULL && is_integral_type(input->type)) {
-          fields->column = input;
-          mapped = TRUE;
-        }  /* if */
-      }  /* if */
-      break;
-    case 7:
-      if (strcmp(name, "_M_line") == 0) {
-        if (fields->line == NULL && is_integral_type(input->type)) {
-          fields->line = input;
-          mapped = TRUE;
-        }  /* if */
-      }  /* if */
-      break;
-    default:
-      break;
-  }  /* switch */
+  if (strcmp(name, "_M_function_name") == 0) {
+    if (fields->function == NULL && input->type == cstr_ty) {
+      fields->function = input;
+      mapped = TRUE;
+    }  /* if */
+  } else if (strcmp(name, "_M_file_name") == 0) {
+    if (fields->file == NULL && input->type == cstr_ty) {
+      fields->file = input;
+      mapped = TRUE;
+    }  /* if */
+  } else if (strcmp(name, "_M_column") == 0) {
+    if (fields->column == NULL && is_integral_type(input->type)) {
+      fields->column = input;
+      mapped = TRUE;
+    }  /* if */
+  } else if (strcmp(name, "_M_line") == 0) {
+    if (fields->line == NULL && is_integral_type(input->type)) {
+      fields->line = input;
+      mapped = TRUE;
+    }  /* if */
+  }  /* if */
   return mapped;
 }  /* map_to_gnu_source_location_field */
 
