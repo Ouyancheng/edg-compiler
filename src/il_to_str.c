@@ -1345,10 +1345,13 @@ way described by octl.
 }  /* form_int_type_name */
 
 
-a_const_char *float_kind_name(a_float_kind kind)
+a_const_char *float_kind_name(a_float_kind kind,
+                              a_boolean    use_C_form)
 /*
-Return a string for the name of a float kind.  Return a string beginning
-with "**BAD" for a bad float kind.
+Return a string for the name of a float kind.  In the case of C++23
+extended floating point types, return the corresponding C form (e.g.,
+_Float32 instead of std::float32_t) if use_C_form is TRUE.  Return a string
+beginning with "**BAD" for a bad float kind.
 */
 {
   a_const_char *p;
@@ -1361,10 +1364,18 @@ with "**BAD" for a bad float kind.
     case fk_float80:      p = "__float80";          break;
     case fk_float128:     p = "__float128";         break;
     case fk_std_bfloat16: p = "std::bfloat16_t";    break;
-    case fk_std_float16:  p = "std::float16_t";     break;
-    case fk_std_float32:  p = "std::float32_t";     break;
-    case fk_std_float64:  p = "std::float64_t";     break;
-    case fk_std_float128: p = "std::float128_t";    break;
+    case fk_std_float16:  p = use_C_form
+                            ? "_Float16"
+                            : "std::float16_t";     break;
+    case fk_std_float32:  p = use_C_form
+                            ? "_Float32"
+                            : "std::float32_t";     break;
+    case fk_std_float64:  p = use_C_form
+                            ? "_Float64"
+                            : "std::float64_t";     break;
+    case fk_std_float128: p = use_C_form
+                            ? "_Float128"
+                            : "std::float128_t";    break;
     default:              p = "**BAD-FLOAT-KIND**";
   }  /* switch */
   return p;
@@ -1406,7 +1417,7 @@ way described by octl.
   }  /* if */
 #endif /* LONG_DOUBLE_AS_DOUBLE_IN_GENERATED_C */
 #endif /* BACK_END_IS_C_GEN_BE */
-  str = float_kind_name(kind);
+  str = float_kind_name(kind, octl->c_generating_back_end);
 #if CHECKING
   if (*str == '*'
 #if DEBUG

@@ -2786,7 +2786,7 @@ EXTERN a_boolean
 EXTERN a_boolean
 		extended_float_types;
 			/* TRUE if the extended floating-point types
-			   described in WG21 document P1467R8 are
+			   described in WG21 document P1467R9 are
 			   supported. */
 
 EXTERN a_boolean

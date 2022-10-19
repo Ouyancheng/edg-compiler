@@ -4051,6 +4051,7 @@ default mode (e.g., exception handling).
         if (cpp23_mode) {
           if_consteval_enabled = TRUE;
           explicit_this_param_enabled = TRUE;
+          extended_float_types = TRUE;
         }  /* if */
       }  /* if */
     }  /* if */

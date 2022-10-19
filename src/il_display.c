@@ -2214,7 +2214,8 @@ Display the indicated type entry.
     case tk_complex:
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
       disp_name("float_kind");
-      (void)printf("%s\n", float_kind_name(ptr->variant.float_kind));
+      (void)printf("%s\n", float_kind_name(ptr->variant.float_kind,
+                                           /*use_C_form=*/TRUE));
       break;
     case tk_pointer:
       disp_ptr("type_pointed_to", (char *)ptr->variant.pointer.type, iek_type);

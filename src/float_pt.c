@@ -1247,7 +1247,7 @@ before setting it if there are unused bits.
     /* Zero the memory so that comparisons are easy even if we do not
        fill the whole area reserved for the float value. */
     memzero((char *)float_value, sizeof(an_internal_float_value));
-    if (kind == fk_float16) {
+    if (kind == fk_float16 || kind == fk_std_float16) {
       /* Converting to _Float16. */
       EDG_float16_t float16_temp;
       conv_host_fp_to_float16(temp, err, &float16_temp);
@@ -1255,7 +1255,7 @@ before setting it if there are unused bits.
         (void)memcpy((char *)float_value, (char *)&float16_temp,
                      sizeof(EDG_float16_t));
       }  /* if */
-    } else if (kind == fk_float) {
+    } else if (kind == fk_float || kind == fk_std_float32) {
       /* Converting to float. */
       float	float_temp;
       conv_host_fp_to_float(temp, err, &float_temp);
@@ -1273,7 +1273,7 @@ before setting it if there are unused bits.
       }  /* if */
 #endif /* USE_DOUBLE_FOR_HOST_FP_VALUE */
 #if HOST_FP_VALUE_IS_128BIT
-    } else if (kind == (a_float_kind)fk_long_double) {
+    } else if (kind == fk_long_double || kind == fk_std_float64) {
       /* Convert from an internal __float128 to a target long double.  This
          can't be converted to a host long double (similar to the float and
          double cases above) because the long double format may differ between
@@ -1307,7 +1307,7 @@ Fetch the value from float_value (of kind kind) and return it.
   /* Zero all bits in result (the assignments that follow may not set all
      bits in some cases). */
   memzero((char *)&temp, sizeof(temp));
-  if (kind == fk_float16) {
+  if (kind == fk_float16 || kind == fk_std_float16) {
     EDG_float16_t float16_temp;
     /* Convert from float16 to a_host_fp_value. */
     /* Use memcpy to copy the value since float_value might not be correctly
@@ -1319,7 +1319,7 @@ Fetch the value from float_value (of kind kind) and return it.
 #else /* !USE_SOFTFLOAT */
     temp = float16_temp;
 #endif /* USE_SOFTFLOAT */
-  } else if (kind == fk_float) {
+  } else if (kind == fk_float || kind == fk_std_float32) {
     float	float_temp;
     /* Convert from float to a_host_fp_value. */
     /* Use memcpy to copy the value since float_value might not be correctly
@@ -1350,7 +1350,7 @@ Fetch the value from float_value (of kind kind) and return it.
 #endif /* USE_SOFTFLOAT */
 #endif /* !USE_DOUBLE_FOR_HOST_FP_VALUE */
 #if HOST_FP_VALUE_IS_128BIT
-  } else if (kind == (a_float_kind)fk_long_double) {
+  } else if (kind == fk_long_double || kind == fk_std_float64) {
     /* Convert from long double to a_host_fp_value (e.g., __float128). */
 #if USE_SOFTFLOAT
     check_assertion(targ_ldbl_mant_dig != 53);
@@ -1434,18 +1434,24 @@ float and 11 bits for _Float16).
     part = (an_fp_value_part *)&value->bytes[0];
     if (!host_little_endian) {
       /* Use the last word. */
-      if (kind == (a_float_kind)fk_float16) {
+      if (kind == fk_float16 || kind == fk_std_float16) {
         size = 2;
-      } else if (kind == (a_float_kind)fk_float) {
+      } else if (kind == fk_float) {
         size = targ_sizeof_float;
-      } else if (kind == (a_float_kind)fk_double) {
+      } else if (kind == fk_double) {
         size = targ_sizeof_double;
-      } else if (kind == (a_float_kind)fk_long_double) {
+      } else if (kind == fk_long_double) {
         size = targ_sizeof_long_double;
-      } else if (kind == (a_float_kind)fk_float80) {
+      } else if (kind == fk_float80) {
         size = targ_sizeof_float80;
-      } else if (kind == (a_float_kind)fk_float128) {
+      } else if (kind == fk_float128) {
         size = targ_sizeof_float128;
+      } else if (kind == fk_std_float32) {
+        size = 4;
+      } else if (kind == fk_std_float64) {
+        size = 8;
+      } else if (kind == fk_std_float128) {
+        size = 16;
       } else {
         size = 0;
         unexpected_condition_str("make_fp_nan: invalid float kind");
@@ -1456,13 +1462,14 @@ float and 11 bits for _Float16).
        then replace it (to avoid alignment issues). */
     (void)memcpy((char*)&val, (char*)part, sizeof(val));
 #if HOST_HAS_FLOAT16_TYPE || USE_SOFTFLOAT
-    if (kind == fk_float16) {
+    if (kind == fk_float16 || kind == fk_std_float16) {
       /* Don't disturb non-mantissa bits. */
       val = val | (mantissa & 0x7ff);
     } else
 #endif /* HOST_HAS_FLOAT16_TYPE || USE_SOFTFLOAT */
     /* Do not insert code here. */
-    if (kind == fk_float16 || kind == fk_float) {
+    if (kind == fk_float16 || kind == fk_std_float16 ||
+        kind == fk_float || kind == fk_std_float32) {
       /* Don't disturb non-mantissa bits. */
       val = val | (mantissa & 0x7fffff);
     } else {
@@ -1553,14 +1560,15 @@ Otherwise, return FALSE.
   char              *fp_bytes = (char*)value;
 
 #if HOST_HAS_FLOAT16_TYPE || USE_SOFTFLOAT
-  if (kind == fk_float16) {
+  if (kind == fk_float16 || kind == fk_std_float16) {
     /* A 16-bit floating-point value. */
     memcpy((char*)&fp_part, fp_bytes, 2);
     *biased_exp = (long)((fp_part & 0x7c000000) >> 26);
   } else
 #endif /* HOST_HAS_FLOAT16_TYPE || USE_SOFTFLOAT */
   /* Do not insert code here. */
-  if (kind == fk_float16 || kind == fk_float) {
+  if (kind == fk_float16 || kind == fk_std_float16 ||
+      kind == fk_float || kind == fk_std_float32) {
     /* A single-precision floating-point value. */
     memcpy((char*)&fp_part, fp_bytes, sizeof(fp_part));
     *biased_exp = (long)((fp_part & 0x7f800000) >> 23);
@@ -1600,7 +1608,7 @@ Otherwise, return FALSE.
       *biased_exp = -1;
       success = FALSE;
     }  /* if */
-  } else if (kind == (a_float_kind)fk_float128) {
+  } else if (kind == fk_float128 || kind == fk_std_float128) {
     if (targ_flt128_mant_dig == 113) {
       /* In little-endian __float128 representations, the most significant
          part is the fourth (i.e., last) word. */
@@ -2705,7 +2713,7 @@ before setting it if there are unused bits.
     /* Clear &float_value_temp: Don't use assignment because on some platforms
        the non-significant bytes wouldn't be cleared. */
     memzero((char *)&float_value_temp, sizeof(an_internal_float_value));
-    if (kind == fk_float16) {
+    if (kind == fk_float16 || kind == fk_std_float16) {
       res = read_float16((unsigned char *)&float_value_temp, str,
                          (int)strlen(str));
 #if DEBUG
@@ -2715,7 +2723,7 @@ before setting it if there are unused bits.
         db_binary_float((unsigned char *)&float_value_temp);
       }  /* if */
 #endif /* DEBUG */
-    } else if (kind == fk_float) {
+    } else if (kind == fk_float || kind == fk_std_float32) {
       res = read_float((unsigned char *)&float_value_temp, str,
                        (int)strlen(str));
 #if DEBUG
@@ -2750,7 +2758,7 @@ before setting it if there are unused bits.
 #endif /* DEBUG */
 #endif /* FLOAT80_ENABLING_POSSIBLE */
 #if FLOAT128_ENABLING_POSSIBLE
-    } else if (kind == (a_float_kind)fk_float128) {
+    } else if (kind == fk_float128 || kind == fk_std_float128) {
       res = read_float128((unsigned char *)&float_value_temp, str,
                           (int)strlen(str));
 #if DEBUG
@@ -2883,13 +2891,13 @@ be NULL if the corresponding return value is not needed.
        into temp. */
 #if USE_HOST_FP_CONVERSION_ROUTINES
 #if USE_FLOAT128_FOR_HOST_FP_VALUE && USE_QUADMATH_LIBRARY
-    if (kind == (a_float_kind)fk_float16) {
+    if (kind == fk_float16 || kind == fk_std_float16) {
       (void)quadmath_snprintf(str, sizeof(str), "%.8Qg", temp);
-    } else if (kind == (a_float_kind)fk_float) {
+    } else if (kind == fk_float || kind == fk_std_float32) {
       (void)quadmath_snprintf(str, sizeof(str), "%.10Qg", temp);
-    } else if (kind == (a_float_kind)fk_double) {
+    } else if (kind == fk_double || kind == fk_std_float64) {
       (void)quadmath_snprintf(str, sizeof(str), "%.19Qg", temp);
-    } else if (kind == (a_float_kind)fk_float128) {
+    } else if (kind == fk_float128 || kind == fk_std_float128) {
       (void)quadmath_snprintf(str, sizeof(str), "%.34Qg", temp);
     } else {
       /* fk_long_double or fk_float80. */
@@ -2910,14 +2918,14 @@ be NULL if the corresponding return value is not needed.
 #if USE_LONG_DOUBLE_FOR_HOST_FP_VALUE || APPROXIMATE_QUADMATH
     /* Make sure we have a long double value (temp can be a __float128). */
     long double  fpval = (long double)temp;
-    if (kind == (a_float_kind)fk_float16) {
+    if (kind == fk_float16 || kind == fk_std_float16) {
       (void)sprintf(str, "%.8Lg", fpval);
-    } else if (kind == (a_float_kind)fk_float) {
+    } else if (kind == fk_float || kind == fk_std_float32) {
       (void)sprintf(str, "%.10Lg", fpval);
-    } else if (kind == (a_float_kind)fk_double) {
+    } else if (kind == fk_double || kind == fk_std_float64) {
       (void)sprintf(str, "%.19Lg", fpval);
     } else {
-      /* fk_long_double or fk_float80. */
+      /* fk_long_double or fk_float80 or fk_std_float128. */
       /* In theory LDBL_DIG+1 digits should be enough as the precision,
          but LDBL_DIG+2 seems to help on some systems.  However, on Solaris,
          with 128-bit long doubles, LDBL_DIG+2 hits the conversion of
@@ -2933,9 +2941,9 @@ be NULL if the corresponding return value is not needed.
     }  /* if */
 #endif /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE || APPROXIMATE_QUADMATH */
 #if USE_DOUBLE_FOR_HOST_FP_VALUE
-    if (kind == (a_float_kind)fk_float16) {
+    if (kind == fk_float16 || kind == fk_std_float16) {
       (void)sprintf(str, "%.8g", temp);
-    } else if (kind == (a_float_kind)fk_float) {
+    } else if (kind == fk_float || kind == fk_std_float32) {
       (void)sprintf(str, "%.10g", temp);
     } else {
       (void)sprintf(str, "%.19g", temp);
@@ -2955,7 +2963,7 @@ be NULL if the corresponding return value is not needed.
     /* Use software-based routines for doing the binary to string
        conversion. */
     an_fp_return_type       res;
-    if (kind == fk_float16) {
+    if (kind == fk_float16 || kind == fk_std_float16) {
       res = write_float16(str, sizeof(str), (unsigned char *)float_value);
 #if DEBUG
       if (db_flag_is_set("fp")) {
@@ -2964,7 +2972,7 @@ be NULL if the corresponding return value is not needed.
         fprintf(f_debug, "  %s\n", str);
       }  /* if */
 #endif /* DEBUG */
-    } else if (kind == fk_float) {
+    } else if (kind == fk_float || kind == fk_std_float32) {
       res = write_float(str, sizeof(str), (unsigned char *)float_value);
 #if DEBUG
       if (db_flag_is_set("fp")) {
@@ -2996,7 +3004,7 @@ be NULL if the corresponding return value is not needed.
 #endif /* DEBUG */
 #endif /* FLOAT80_ENABLING_POSSIBLE */
 #if FLOAT128_ENABLING_POSSIBLE
-    } else if (kind == (a_float_kind)fk_float128) {
+    } else if (kind == fk_float128 || kind == fk_std_float128) {
       res = write_float128(str, sizeof(str), (unsigned char *)float_value);
 #if DEBUG
       if (db_flag_is_set("fp")) {
@@ -3069,7 +3077,7 @@ corresponding return value is not needed.
                                          &temp)) {
     /* Copy the value to a properly aligned floating-point type and
        use sprintf to generate the appropriate hexadecimal string. */
-    if (kind == fk_float16) {
+    if (kind == fk_float16 || kind == fk_std_float16) {
 #if USE_SOFTFLOAT
       float16_t     f16_temp;
       softfloat32_t f32_temp;
@@ -3082,7 +3090,7 @@ corresponding return value is not needed.
                    sizeof(EDG_float16_t));
       (void)sprintf(str, "%a", (double)float16_temp);
 #endif /* USE_SOFTFLOAT */
-    } else if (kind == fk_float) {
+    } else if (kind == fk_float || kind == fk_std_float32) {
       float  float_temp;
       (void)memcpy((char *)&float_temp, (char *)float_value, sizeof(float));
       (void)sprintf(str, "%a", float_temp);
@@ -3091,8 +3099,8 @@ corresponding return value is not needed.
       (void)memcpy((char *)&double_temp, (char *)float_value, sizeof(double));
       (void)sprintf(str, "%la", double_temp);
 #if USE_FLOAT128_FOR_HOST_FP_VALUE
-    } else if (kind == (a_float_kind)fk_long_double ||
-               kind == (a_float_kind)fk_float80) {
+    } else if (kind == fk_long_double || kind == fk_float80 ||
+               kind == fk_std_float128) {
       long double ld_temp;
       (void)memcpy((char *)&ld_temp, (char *)float_value, sizeof(long double));
       (void)sprintf(str, "%La", ld_temp);
@@ -3140,12 +3148,16 @@ for the representation of floating-point values in mangled names.
   int         data_size;
 
   /* Determine the size of the data in the floating-point value. */
-  if (kind == (a_float_kind)fk_float16) {
+  if (kind == fk_float16) {
     data_size = 2;
-  } else if (kind == (a_float_kind)fk_float) {
+  } else if (kind == fk_float) {
     data_size = sizeof(float);
-  } else if (kind == (a_float_kind)fk_double) {
+  } else if (kind == fk_double) {
     data_size = sizeof(double);
+  } else if (kind == fk_std_float32) {
+    data_size = 4;
+  } else if (kind == fk_std_float64) {
+    data_size = 8;
   } else {
     data_size = (int)data_size_of_host_fp_value;
   }  /* if */
@@ -3873,7 +3885,8 @@ Returns TRUE if the sign bit of the floating-point value represented by
     kind = (a_float_kind)fk_double;
   }  /* if */
   fp_ptr = &fp_temp[0];
-  if (kind == fk_float16 || kind == fk_float) {
+  if (kind == fk_float16 || kind == fk_std_float16 ||
+      kind == fk_float || kind == fk_std_float32) {
     memcpy((char*)&val, (char*)value, sizeof(val));
     is_negative = (val & 0x80000000) != 0;
   } else if (kind_is_binary64(kind)) {
@@ -3903,10 +3916,11 @@ Returns TRUE if the sign bit of the floating-point value represented by
     if (host_little_endian) fp_ptr += 2;
     val = *fp_ptr;
     is_negative = (val & 0x8000) != 0;
-  } else if (((kind == (a_float_kind)fk_long_double &&
+  } else if (((kind == fk_long_double &&
                targ_ldbl_mant_dig == 113) ||
-              (kind == (a_float_kind)fk_float128 &&
-               targ_flt128_mant_dig == 113)) &&
+              (kind == fk_float128 &&
+               targ_flt128_mant_dig == 113) ||
+              kind == fk_std_float128) &&
              /*lint --e(506)*/sizeof(a_host_fp_value) == sizeof(val)*4) {
     /* 128-bit representation. */
     /* The code below constructs the value from fp_temp.  Copy the source to

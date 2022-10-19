@@ -420,7 +420,8 @@ extern a_const_char *int_kind_name(an_integer_kind kind);
 
 extern a_const_char *int_type_name(a_type_ptr type);
 
-extern a_const_char *float_kind_name(a_float_kind kind);
+extern a_const_char *float_kind_name(a_float_kind kind,
+                                     a_boolean    use_C_form);
 
 extern void form_type_qualifier(
                      a_type_qualifier_set                  qualifiers,

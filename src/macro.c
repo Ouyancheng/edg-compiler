@@ -10253,7 +10253,8 @@ from the front end to the runtime.
   /* Define a macro that specifies the type of an element of the setjmp
      buffer. */
   if (targ_jmp_buf_elements_are_float) {
-    ptr = float_kind_name(targ_jmp_buf_element_float_kind);
+    ptr = float_kind_name(targ_jmp_buf_element_float_kind,
+                          /*use_C_form=*/TRUE);
   } else {
     ptr = int_kind_name(targ_jmp_buf_element_int_kind);
   }  /* if */
@@ -11437,6 +11438,24 @@ command line -D options.
            the __cpp_coroutines feature test macro (now effectively
            deprecated). */
         (void)enter_predef_macro("201902L", "__cpp_coroutines",
+                                 /*cannot_be_redefined=*/TRUE,
+                                 /*ref_suppresses_pch_file=*/FALSE);
+      }  /* if */
+    }  /* if */
+    if (extended_float_types) {
+      /* Define the macros for the supported extended floating point
+         types described in WG21 document P1467R9. */
+      (void)enter_predef_macro("1", "__STDCPP_FLOAT16_T__",
+                               /*cannot_be_redefined=*/TRUE,
+                               /*ref_suppresses_pch_file=*/FALSE);
+      (void)enter_predef_macro("1", "__STDCPP_FLOAT32_T__",
+                               /*cannot_be_redefined=*/TRUE,
+                               /*ref_suppresses_pch_file=*/FALSE);
+      (void)enter_predef_macro("1", "__STDCPP_FLOAT64_T__",
+                               /*cannot_be_redefined=*/TRUE,
+                               /*ref_suppresses_pch_file=*/FALSE);
+      if (float128_enabled) {
+        (void)enter_predef_macro("1", "__STDCPP_FLOAT128_T__",
                                  /*cannot_be_redefined=*/TRUE,
                                  /*ref_suppresses_pch_file=*/FALSE);
       }  /* if */

@@ -1,5 +1,21 @@
 Version 6.4
 
+10/18/22 [EDGcpfe/25100,EDGcpfe/25170,EDGcpfe/25515]
+C++23: extended floating-point types
+
+The front end now supports in C++23 modes the additional floating-point
+types and macros described in WG21 committee document P1467R9, which is
+expected to be part of the upcoming C++23 Standard.  A new file in the
+include_c++ directory named stdfloat.stdh provides the typedef members of
+namespace std for the <stdfloat> header.  Note that the std::bfloat16_t
+type is not supported at this time, and std::float128_t is supported if and
+only if the non-standard __float128 type is supported.  For example, with
+--c++23:
+
+  #include <stdfloat>
+  std::float64_t x = 23.9f64;
+
+
 10/18/22 [EDGcpfe/11090]
 setjmp function name is configurable for lowered exception handling
 
