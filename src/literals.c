@@ -775,38 +775,58 @@ the character position of the error.
     /* "Q" suffix, indicates __float128. */
     kind = (a_float_kind)float_kind_for_float128;
     --actual_end;
-  } else if ((extended_float_types || float16_enabled) &&
-             (actual_end[-2] == 'f' || actual_end[-2] == 'F' ||
-              actual_end[-3] == 'f' || actual_end[-3] == 'F')) {
-    switch (*actual_end) {
-      case '6':
-        if (extended_float_types &&
-            (actual_end[-3] == 'b' || actual_end[-3] == 'B')) {
-          kind = (a_float_kind)fk_std_bfloat16;
-          actual_end -= 4;
-        } else {
-          kind = extended_float_types ? fk_std_float16
-                                      : fk_float16;
-          actual_end -= 3;
-        }  /* if */
-        break;
-      case '2':
-        kind = (a_float_kind)fk_std_float32;
-        actual_end -= 3;
-        break;
-      case '4':
-        kind = (a_float_kind)fk_std_float64;
-        actual_end -= 3;
-        break;
-      case '8':
-        kind = (a_float_kind)fk_std_float128;
+  } else if (extended_float_types) {
+    /* Default to double if none of the extended float suffixes match. */
+    kind = fk_double;
+    if ((actual_end[-3] == 'f' || actual_end[-3] == 'F') &&
+        strncmp(actual_end - 2, "128", 3) == 0) {
+      if (float128_enabled) {
+        kind = fk_std_float128;
+      } else {
+        *err_code = ec_std_float128_not_supported;
+        *err_pos = actual_end - 3;
+        kind = fk_std_float64;
+      }  /* if */
+      actual_end -= 4;
+    } else if (actual_end[-2] == 'f' || actual_end[-2] == 'F') {
+      if ((actual_end[-3] == 'b' || actual_end[-3] == 'B') &&
+          actual_end[-1] == '1' && *actual_end == '6') {
+        /* std::bfloat16 is not yet supported. */
+        *err_code = ec_std_bfloat16_not_supported;
+        *err_pos = actual_end - 3;
+        kind = fk_std_float32;
         actual_end -= 4;
-        break;
-      default:
-        /* Not an extended type suffix. */
-        kind = (a_float_kind)fk_double;
-        break;
-    }  /* switch */
+      } else {
+        switch (actual_end[-1]) {
+          case '1':
+            if (*actual_end == '6') {
+              kind = fk_std_float16;
+              actual_end -= 3;
+            }  /* if */
+            break;
+          case '3':
+            if (*actual_end == '2') {
+              kind = fk_std_float32;
+              actual_end -= 3;
+            }  /* if */
+            break;
+          case '6':
+            if (*actual_end == '4') {
+              kind = fk_std_float64;
+              actual_end -= 3;
+            }  /* if */
+            break;
+          default:
+            /* Already fk_double. */
+            break;
+        }  /* switch */
+      }  /* if */
+    }  /* if */
+  } else if (float16_enabled &&
+             (actual_end[-2] == 'f' || actual_end[-2] == 'F') &&
+             actual_end[-1] == '1' && *actual_end == '6') {
+    kind = fk_float16;
+    actual_end -= 3;
   } else {
     /* No suffix.  Default is double. */
     kind = (a_float_kind)fk_double;

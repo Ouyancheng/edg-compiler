@@ -3361,6 +3361,8 @@ ec_ifc_entity_ref_failure;;"failed to load an IFC entity reference in module %sq
 ec_ifc_entity_ref_failure_info;;"IFC index sort = %d1, value = %d2"
 ec_no_chained_designators_with_destructor;;"chained designators are not permitted for a class type with a nontrivial destructor"
 ec_explicit_specialization_friend;;"an explicit specialization declaration may not be a friend declaration"
+ec_std_float128_not_supported;;"the std::float128_t type is not supported; std::float64_t will be used instead"
+ec_std_bfloat16_not_supported;;"the std::bfloat16_t type is not supported; std::float32_t will be used instead"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
