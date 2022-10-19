@@ -1,5 +1,21 @@
 Version 6.4
 
+10/19/22 [EDGcpfe/25739]
+Use of incorrect routine type variant for function template declared via
+typedef
+
+If a function template was declared via a typedef, an incorrect type
+variant could be accessed.  This could potentially result in incorrect
+behavior (although that was not observed on this test case).  Now fixed.
+
+  int f();
+  template <typename> decltype(f) g;
+  template <typename> int g(){}
+  int main() {
+    g<int>();
+  }
+
+
 10/19/22 [EDGcpfe/25736]
 Use of incorrect base class variant
 

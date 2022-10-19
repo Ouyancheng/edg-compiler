@@ -11156,7 +11156,7 @@ definition of a member function of a class template.
            on the parameters should be those of the definition.  That is
            ensured here for the prototype instantiation. */
         a_param_type_ptr  def_ptp = function_type_params(type_ptr);
-        ptp = function_type_params(rout_ptr->type);
+        ptp = function_type_params(skip_typerefs(rout_ptr->type));
         for (; ptp != NULL; ptp = ptp->next, def_ptp = def_ptp->next) {
           ptp->qualifiers = def_ptp->qualifiers;
         }  /* for */

@@ -18887,8 +18887,12 @@ we have seen a definition after that initial template declaration we need the
 parameter qualifiers of the definition.
 */
 {
-  a_param_type_ptr  src_ptp = function_type_params(src_rtp),
-                    dst_ptp = function_type_params(dst_rtp);
+  a_param_type_ptr  src_ptp, dst_ptp;
+
+  src_rtp = skip_typerefs(src_rtp);
+  dst_rtp = skip_typerefs(dst_rtp);
+  src_ptp = function_type_params(src_rtp);
+  dst_ptp = function_type_params(dst_rtp);
 
   for (; dst_ptp != NULL; dst_ptp = dst_ptp->next) {
     while (src_ptp->param_num < dst_ptp->param_num) {
