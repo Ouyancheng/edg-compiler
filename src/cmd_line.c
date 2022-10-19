@@ -9805,8 +9805,8 @@ file.
 static void dump_command_options(void)
 /*
 Output all of the command-line options that can be specified using the
---name style.  This is output stdout to make it simple to use with
-things like the bash complete command.  The "--" is included to simplify
+--name style.  This is output to stdout to make it simple to use with
+things like the bash "complete" command.  The "--" is included to simplify
 its use in such cases.
 */
 {

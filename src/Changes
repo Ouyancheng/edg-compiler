@@ -3934,7 +3934,7 @@ To allow, for example, the bash "complete" command to be used to complete
 front end command-line options, the --dump_command_options has been added
 to the front end.
 
-Using this option with bash (for example) say:
+To use this option with bash (for example) say:
 
   complete -W "`$EDG_BASE/bin/edgcpfe --dump_comm`" edgcpfe
 
