@@ -119,7 +119,8 @@ Linux using the gcc/g++ header files.
     (void)enter_predef_macro("1", "__x86_64__", /*cannot_be_redefined=*/TRUE,
                              /*ref_suppresses_pch_file=*/FALSE);
   } else {
-    /* Macro definitions for the 32-bit version of the x86 architecture. */
+    /* No macro definitions for the default (32-bit version of the x86
+       architecture). */
     check_assertion(target_is_32_bit_x86_based());
   }  /* if */
   (void)enter_predef_macro("1", "__linux__", /*cannot_be_redefined=*/TRUE,

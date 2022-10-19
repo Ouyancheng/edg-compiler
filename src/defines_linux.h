@@ -176,7 +176,7 @@ additional target configuration will be added below.
 #define TARG_JMP_BUF_ELEMENT_INT_KIND ((an_integer_kind)ik_long_long)
 #elif TARG_SUPPORTS_ARM32
 /* ARM32. Untested currently (but can be configured manually). */
- # error Support for ARM32 is untested
+ #error Support for ARM32 is untested
 #else /* Non-specific target. */
 /* Presume 32-bit x86. */
 #define TARG_ALIGNOF_LONG_DOUBLE 4

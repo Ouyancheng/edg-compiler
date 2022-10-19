@@ -411,7 +411,7 @@ Currently this is the default (but that may change in the future).
 
 inline a_boolean target_is_32_bit_x86_based(void)
 /*
-Utility to return TRUE if the target is based on an x86 architecture.
+Utility to return TRUE if the target is based on a 32-bit x86 architecture.
 Currently this is the default (but that may change in the future).
 */
 {

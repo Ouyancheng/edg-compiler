@@ -104,7 +104,7 @@ architecture from the host compiler.
 #define TARG_JMP_BUF_NUM_ELEMENTS 37
 #elif TARG_SUPPORTS_ARM32
 /* ARM32. Untested currently (but can be configured manually). */
- # error Support for ARM32 is untested
+ #error Support for ARM32 is untested
 #else /* Non-specific target. */
 /* Presume 32-bit x86. */
 #define TARG_JMP_BUF_NUM_ELEMENTS 18
