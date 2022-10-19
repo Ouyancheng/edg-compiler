@@ -340,15 +340,13 @@ are supported on all platforms.
      be handled by the caller). */
   /* Check worst case rather than byte by byte. */
   check_assertion(size >= (1 + 2 + 2 + 28 + 1 + 6 + 1));
-  if (kind == (a_float_kind)fk_float80 ||
-      (kind == (a_float_kind)fk_long_double &&
-       targ_ldbl_mant_dig == 64)) {
+  if (kind == fk_float80 ||
+      (kind == fk_long_double && targ_ldbl_mant_dig == 64)) {
       /* 80 bits. */
     bytes = 10;
     implied_hidden_bit = FALSE;
-  } else if (kind == (a_float_kind)fk_float128 ||
-             (kind == (a_float_kind)fk_long_double &&
-              targ_ldbl_mant_dig == 113)) {
+  } else if (kind == fk_float128 || kind == fk_std_float128 ||
+             (kind == fk_long_double && targ_ldbl_mant_dig == 113)) {
       /* 128 bits. */
     bytes = 16;
     implied_hidden_bit = TRUE;
