@@ -5301,14 +5301,29 @@ demangled as part of the template function instead).
             s = "decltype(auto)";
             break;
           case 'F':
-            /* Special encoding of the _Float16 type as "DF16_". */
+            /* Special encoding of various extended floating-point types.
+               All start with "DF", then the number of bits in the type
+               followed by a 'x', '_', or 'b' character to indicate the
+               particular type itself. */
             p = get_number(p, &num, dctl);
-            if (*p == '_' && num == 16) {
+            if (*p == 'b' && num == 16) {
+              s = "std::bfloat16_t";
+            } else if (*p == 'x' && num == 16) {
               s = "_Float16";
-              ++p;
+            } else if (*p == '_') {
+              switch (num) {
+                case 16:    s = "std::float16_t";   break;
+                case 32:    s = "std::float32_t";   break;
+                case 64:    s = "std::float64_t";   break;
+                case 128:   s = "std::float128_t";  break;
+                default:
+                  bad_mangled_name(dctl);
+                  break;
+              }  /* switch */
             } else {
               bad_mangled_name(dctl);
             }  /* if */
+            ++p;
             break;
           case 'n':
             s = "std::nullptr_t";
