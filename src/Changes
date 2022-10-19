@@ -1,5 +1,13 @@
 Version 6.4
 
+10/19/22 [EDGcpfe/25736]
+Use of incorrect base class variant
+
+Some uses of the variant field of the base class entry could make use of the
+incorrect variant field.  This could result in an abort or other incorrect
+behavior.  Now fixed.
+
+
 10/18/22 [EDGcpfe/25100,EDGcpfe/25170,EDGcpfe/25515]
 C++23: extended floating-point types
 

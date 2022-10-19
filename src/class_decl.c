@@ -4951,6 +4951,8 @@ ambiguity.
   /* Make a pass over all the base classes (direct and indirect both) of
      the class indicated by class_type. */
   for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
+    /* Only process entries for overriding functions. */
+    if (bcp->is_pack_expansion) continue;
     /* See if there any overriding virtual functions.  If there are,
        scan the list to look for duplicate primary functions. */
     ovfp = bcp->variant.overriding_virtual_functions;
@@ -5122,12 +5124,14 @@ new_direct_bcp->derived_class.
   a_boolean                           check_new_list;
 
   db_enter(4, "copy_virtual_function_override_list");
-  if (old_bcp->variant.overriding_virtual_functions == NULL) {
+  if (old_bcp->is_pack_expansion ||
+      old_bcp->variant.overriding_virtual_functions == NULL) {
     /* Nothing to copy. */
   } else {
     /* if new_bcp does not have a list of overriding virtual functions, no
        cross checking is required before doing the copies. */
-    check_new_list = (new_bcp->variant.overriding_virtual_functions != NULL);
+    check_new_list = !new_bcp->is_pack_expansion &&
+                     (new_bcp->variant.overriding_virtual_functions != NULL);
     /* Make a pass over the list from old_bcp.  For each entry on it, see if
        a copy needs to be made.  If so, allocate an new entry and add it to
        the appropriate place in the list. */
@@ -9839,7 +9843,8 @@ to FALSE before returning).
   /* Add base classes derived from this base class to the current class' base
      class list.  They are marked as indirect. */
   for (bcp = base_classes_of(bcp_type); bcp != NULL; bcp = bcp->next) {
-    if (bcp->variant.overriding_virtual_functions != NULL) {
+    if (!bcp->is_pack_expansion &&
+        bcp->variant.overriding_virtual_functions != NULL) {
       any_base_class_fixup_required = TRUE;
     }  /* if */
     if (!bcp->direct) {
@@ -9874,8 +9879,9 @@ to FALSE before returning).
   if (any_base_class_fixup_required) {
     for (bcp = base_classes_of(bcp_type); bcp != NULL; bcp = bcp->next) {
       a_base_class_ptr  new_bcp;
-      if (bcp->variant.overriding_virtual_functions != NULL ||
-          (bcp->direct && bcp->is_virtual && !bcp->derivation->direct)) {
+      if (!bcp->is_pack_expansion &&
+          (bcp->variant.overriding_virtual_functions != NULL ||
+           (bcp->direct && bcp->is_virtual && !bcp->derivation->direct))) {
         /* bcp is a base class of direct_bcp->type.  We need to find the
            corresponding base class of class_type.  Find a disambiguator in
            case what we are looking for is an ambiguous base class of
@@ -9893,7 +9899,8 @@ to FALSE before returning).
         while (!bcdp->direct) bcdp = bcdp->next;
         (void)update_base_class_derivation(new_bcp, path, bcdp->access);
       }  /* if */
-      if (bcp->variant.overriding_virtual_functions != NULL) {
+      if (!bcp->is_pack_expansion &&
+          bcp->variant.overriding_virtual_functions != NULL) {
 #if DEBUG
         if (debug_level >= 4) {
           fputs("copying virtual function override list from ", f_debug);
