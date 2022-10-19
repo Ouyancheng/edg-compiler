@@ -14012,7 +14012,6 @@ Evaluate the given new-expression.
       mark_subobject_initialized(elem, complete_obj);
       mark_complete_class_object_if_needed(elem_type, complete_obj);
     }  /* for */
-    mark_complete_object_initialized(complete_obj);
   }  /* if */
 done:
   return result;
