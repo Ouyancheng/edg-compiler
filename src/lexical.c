@@ -11224,11 +11224,14 @@ end_float_accum:
       /* Clang accepts the f16 and F16 suffixes in both C and C++, but g++
          treats them as user-defined literal suffixes. */
       a_const_char *p = curr_char_loc;
-      if (extended_float_types &&
-          ((ch == 'b' && *p == 'f') || (ch == 'B' && *p== 'F')) &&
-          p[1] == '1' && p[2] == '6') {
-        /* bf16 */
-        curr_char_loc += 3;
+      if (extended_float_types && (ch == 'b' || ch == 'B')) {
+        if (((ch == 'b' && *p == 'f') || (ch == 'B' && *p== 'F')) &&
+            p[1] == '1' && p[2] == '6') {
+          /* bf16 */
+          curr_char_loc += 3;
+        } else {
+          potential_ud_suffix = TRUE;
+        }  /* if */
       } else if (ch == 'f' || ch == 'F') {
         if ((*p == '1' && p[1] == '6') ||
             (extended_float_types &&
