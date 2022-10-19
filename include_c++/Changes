@@ -1,3 +1,12 @@
+Version 6.4
+
+10/18/22 [EDGcpfe/25100,EDGcpfe/25170,EDGcpfe/25515]
+C++23: extended floating point types
+
+The <stdfloat> header (stdfloat.stdh) has been added to provide the typedef
+members of namespace std as described in WG21 committee document P1467R9.
+
+-------------------------------------------------------------------------------
 Version 6.3, December 13, 2021
 
 11/4/21 [EDGcpfe/24816]
