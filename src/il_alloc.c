@@ -2638,8 +2638,10 @@ Clear the fields of the given variable to default values.
   vp->compiler_generated          = FALSE;
   vp->is_in_class_specialization  = FALSE;
   vp->init_kind                   = (an_init_kind)initk_none;
-  /* One of the variant fields, chosen arbitrarily, is initialized. */
+  /* Clear field of all variants for union-as-struct testing. */
   vp->initializer.constant        = NULL;
+  vp->initializer.dynamic         = NULL;
+  vp->initializer.bound_expr      = NULL;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   vp->initializer_range           = null_source_range;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */

@@ -6321,57 +6321,65 @@ otherwise, this routine will look up that storage in ips->map.
 */
 {
   a_boolean              result = TRUE;
-  a_storage_stack_state  saved_stack_for_full_expr;
-  a_dynamic_init_ptr     dip = vp->initializer.dynamic;
-  a_type_ptr             tp = skip_typerefs(vp->type);
 
-  if (dip == NULL) {
-    /* This can happen in error cases. */
-    ips->input_error = TRUE;
+  if (vp->init_kind != initk_dynamic) {
+    /* Local variables always have dynamic initialization, but in error cases
+       that might not be reflected in the IL. */
+    info_with_pos(ec_constexpr_expression_cannot_be_interpreted, pos, ips);
     do_constexpr_fail(result);
-    goto done;
-  }  /* if */
-  save_storage_stack(ips, saved_stack_for_full_expr);
-  if (vp->extends_lifetime) {
-    /* Start a new stack for temporaries in this expression, but keep a
-       pointer to the original stack to allocate the lifetime-extended
-       temporary. */
-    init_constexpr_stack(&ips->storage_stack);
-    ips->storage_stack.alloc_seq_number = ips->curr_alloc_seq_number;
-    ips->extension_state = &saved_stack_for_full_expr;
-  }  /* if */
-  if (storage == NULL) {
-    get_stack_bytes(ips, vp, storage);
-  }  /* if */
-  if (dyn_init_is(dip, dik_zero)) {
-    init_subobject_to_zero(ips, storage, tp, storage);
+    expect_error();
   } else {
-    a_boolean            saved_is_constant_evaluated =
-                                                   ips->is_constant_evaluated;
-    a_constexpr_address  dst_addr;
-    set_active_address(ips, &dst_addr, storage, storage);
-    if (vp->init_kind == (an_init_kind)initk_static ||
-        (type_is(tp, tk_integer) && is_const_qualified_type(vp->type))) {
-      ips->is_constant_evaluated = TRUE;
-    }  /* if */
-    if (do_constexpr_dynamic_init(ips, dip, pos, &dst_addr)) {
-      if (!is_immediate_class_type(tp) && !type_is(tp, tk_array)) {
-        mark_complete_object_initialized(storage);
-      }  /* if */
-    } else {
+    a_storage_stack_state  saved_stack_for_full_expr;
+    a_dynamic_init_ptr     dip = vp->initializer.dynamic;
+    a_type_ptr             tp = skip_typerefs(vp->type);
+    if (dip == NULL) {
+      /* This can happen in error cases. */
+      ips->input_error = TRUE;
       do_constexpr_fail(result);
+      goto done;
     }  /* if */
-    ips->is_constant_evaluated = saved_is_constant_evaluated;
-  }  /* if */
-  if (vp->extends_lifetime) {
-    /* Release the ordinary storage stack blocks for this expression.
-       The large blocks will be released by the call to
-       restore_storage_stack below. */
-    release_constexpr_stack(&ips->storage_stack);
-  }  /* if */
-  restore_storage_stack(ips, saved_stack_for_full_expr, result);
-  if (result && dip->destructor != NULL) {
-    result = register_destruction(ips, dip, storage, storage, pos);
+    save_storage_stack(ips, saved_stack_for_full_expr);
+    if (vp->extends_lifetime) {
+      /* Start a new stack for temporaries in this expression, but keep a
+         pointer to the original stack to allocate the lifetime-extended
+         temporary. */
+      init_constexpr_stack(&ips->storage_stack);
+      ips->storage_stack.alloc_seq_number = ips->curr_alloc_seq_number;
+      ips->extension_state = &saved_stack_for_full_expr;
+    }  /* if */
+    if (storage == NULL) {
+      get_stack_bytes(ips, vp, storage);
+    }  /* if */
+    if (dyn_init_is(dip, dik_zero)) {
+      init_subobject_to_zero(ips, storage, tp, storage);
+    } else {
+      a_boolean            saved_is_constant_evaluated =
+                                                   ips->is_constant_evaluated;
+      a_constexpr_address  dst_addr;
+      set_active_address(ips, &dst_addr, storage, storage);
+      if (vp->init_kind == (an_init_kind)initk_static ||
+          (type_is(tp, tk_integer) && is_const_qualified_type(vp->type))) {
+        ips->is_constant_evaluated = TRUE;
+      }  /* if */
+      if (do_constexpr_dynamic_init(ips, dip, pos, &dst_addr)) {
+        if (!is_immediate_class_type(tp) && !type_is(tp, tk_array)) {
+          mark_complete_object_initialized(storage);
+        }  /* if */
+      } else {
+        do_constexpr_fail(result);
+      }  /* if */
+      ips->is_constant_evaluated = saved_is_constant_evaluated;
+    }  /* if */
+    if (vp->extends_lifetime) {
+      /* Release the ordinary storage stack blocks for this expression.
+         The large blocks will be released by the call to
+         restore_storage_stack below. */
+      release_constexpr_stack(&ips->storage_stack);
+    }  /* if */
+    restore_storage_stack(ips, saved_stack_for_full_expr, result);
+    if (result && dip->destructor != NULL) {
+      result = register_destruction(ips, dip, storage, storage, pos);
+    }  /* if */
   }  /* if */
 done:
   return result;
