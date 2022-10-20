@@ -586,6 +586,7 @@ int main() {
         ++buffer_element_count;
       }  /* if */
       printf("#define TARG_JMP_BUF_NUM_ELEMENTS %lu\n", buffer_element_count);
+      printf("#define TARG_JMP_BUF_ELEMENTS_ARE_FLOAT 0\n");
       printf("#define TARG_JMP_BUF_ELEMENT_INT_KIND ((an_integer_kind)%s)\n",
              int_kind_to_type_str(buffer_type, /*is_signed*/-1));
     }  /* if */
