@@ -192,6 +192,7 @@ additional target configuration will be added below.
 #define TARG_DOUBLE_FIELD_ALIGNMENT 4
 #define TARG_LONG_LONG_FIELD_ALIGNMENT 4
 #endif /* TARG_SUPPORTS_X86_64 */
+#define TARG_JMP_BUF_ELEMENTS_ARE_FLOAT 0
 #define TARG_SETJMP_FUNC "_setjmp"
 
 /*

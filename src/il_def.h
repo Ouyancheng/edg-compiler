@@ -5337,7 +5337,8 @@ enum a_float_kind : a_byte {
   fk_std_float32,
   fk_std_float64,
   fk_std_float128,
-  fk_last		/* Must be last. */
+  fk_last,              /* Must be last. */
+  fk_none = fk_last
 };
 
 
