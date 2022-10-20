@@ -11,7 +11,7 @@
 
 header_util.h -- General utility components (mostly templates) intended for use
 in both headers and compilation units.  Utilities declared here are guaranteed
-to be free from dependence on undefined entities in the frontend.
+to be free from dependence on undefined entities in the front end.
 
 */
 
