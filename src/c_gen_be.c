@@ -7099,7 +7099,7 @@ dump_boolean_controlling_expression(an_expr_node_ptr node,
 Generate code for the indicated expression, which is the controlling expression
 of a statement or short-circuit operator.  The expression is always surrounded
 by (at least one set of) parentheses when wrap_with_parens is TRUE; otherwise,
-the expression may be surrounded with clarify parentheses as necessary to
+the expression may be surrounded with clarifying parentheses as necessary to
 silence warnings from the target compiler.
 */
 {
