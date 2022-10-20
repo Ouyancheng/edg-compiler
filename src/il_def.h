@@ -4661,9 +4661,12 @@ typedef struct a_constant {
   a_bit_field	formed_from_promoted_storage:1;
 			/* TRUE if this is a constant that was originally
 			   created from an interpreter object with dynamic
-			   storage duration.  Note that C++ does not currently
-			   allow the promotion of interpreter objects with
-			   dynamic storage duration to constants; thus, this
+			   storage duration but is the target of a
+			   ck_address/abk_constant constant.  Note that C++
+			   does not currently allow the promotion of
+			   interpreter objects with dynamic storage duration to
+			   constants that are referred to by
+			   ck_address/abk_constant constants; thus, this
 			   promotion is currently only available as part of an
 			   implementation detail (e.g., for use by the
 			   "__builtin_source_location()" builtin). */
