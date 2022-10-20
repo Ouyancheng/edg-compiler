@@ -1,4 +1,4 @@
-/* Edison Design Group, 2002-2021. */
+/* Edison Design Group, 2002-2022. */
 /*
 cxxabi.h -- Include file for IA-64 ABI entry points.
 */

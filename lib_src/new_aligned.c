@@ -4,7 +4,7 @@
 * Edison Design Group C++ Runtime                            - | \^/ | -      *
 *                                                               \   /         *
 *                                                             /  | |  \       *
-* Copyright 1992-2021 Edison Design Group Inc.                   [_]          *
+* Copyright 1992-2022 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -81,6 +81,6 @@ calls of operator new.
 * Edison Design Group C++ Runtime                            - | \^/ | -      *
 *                                                               \   /         *
 *                                                             /  | |  \       *
-* Copyright 1992-2021 Edison Design Group Inc.                   [_]          *
+* Copyright 1992-2022 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

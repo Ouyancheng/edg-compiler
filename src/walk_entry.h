@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2021 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2022 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 
@@ -4261,6 +4261,6 @@ Get rid of the macros defined in this file so they aren't used accidentally.
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2021 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2022 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

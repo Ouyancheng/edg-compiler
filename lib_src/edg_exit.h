@@ -4,7 +4,7 @@
 * Edison Design Group C++ Runtime                            - | \^/ | -      *
 *                                                               \   /         *
 *                                                             /  | |  \       *
-* Copyright 1992-2021 Edison Design Group Inc.                   [_]          *
+* Copyright 1992-2022 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -33,6 +33,6 @@ NORETURN extern void __edg_exit(int val);
 * Edison Design Group C++ Runtime                            - | \^/ | -      *
 *                                                               \   /         *
 *                                                             /  | |  \       *
-* Copyright 1992-2021 Edison Design Group Inc.                   [_]          *
+* Copyright 1992-2022 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

@@ -4,7 +4,7 @@
 # Edison Design Group C++/C Front End                        - | \^/ | -      #
 #                                                               \   /         #
 # Proprietary information of Edison Design Group Inc.         /  | |  \       #
-# Copyright 1988-2021 Edison Design Group Inc.                   [_]          #
+# Copyright 1988-2022 Edison Design Group Inc.                   [_]          #
 #                                                                             #
 ###############################################################################
 #
@@ -3369,6 +3369,6 @@ ec_std_bfloat16_not_supported;;"the std::bfloat16_t type is not supported; std::
 # Edison Design Group C++/C Front End                        - | \^/ | -      #
 #                                                               \   /         #
 # Proprietary information of Edison Design Group Inc.         /  | |  \       #
-# Copyright 1988-2021 Edison Design Group Inc.                   [_]          #
+# Copyright 1988-2022 Edison Design Group Inc.                   [_]          #
 #                                                                             #
 ###############################################################################
