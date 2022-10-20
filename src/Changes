@@ -1,5 +1,20 @@
 Version 6.4
 
+10/20/22 [EDGcpfe/22336]
+Full support for std::source_location builtins
+
+Full support has been added for the builtins required for std::source_location
+when compiling against libstdc++ and the Microsoft standard template library.
+
+These include (for libstdc++) __builtin_source_location(), and (for the
+Microsoft STL) __builtin_LINE(), __builtin_COLUMN(), __builtin_FILE(),
+__builtin_FUNCTION().
+
+Please note, these builtins return standard complaint EDG specific source
+location values in all modes; they do not currently support emulation of the
+source locations values returned by Clang, GCC, or MSVC.
+
+
 10/19/22 [EDGcpfe/25739]
 Use of incorrect routine type variant for function template declared via
 typedef
