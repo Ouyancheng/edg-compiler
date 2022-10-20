@@ -5148,10 +5148,11 @@ integral or floating kind for the array element type.
            integer types for DO_FULL_PORTABLE_EH_LOWERING to be correctly \
            configured
 #endif /* !defined(TARG_JMP_BUF_ELEMENT_INT_KIND) */
-#ifndef /* TARG_JMP_BUF_ELEMENT_FLOAT_KIND */
+#ifndef TARG_JMP_BUF_ELEMENT_FLOAT_KIND
 #define TARG_JMP_BUF_ELEMENT_FLOAT_KIND fk_none
 #endif /* !defined(TARG_JMP_BUF_ELEMENT_FLOAT_KIND) */
 #endif /* TARG_JMP_BUF_ELEMENTS_ARE_FLOAT */
+
 /*
 On some targets, the setjmp function is declared as a macro to another
 function.  The macro that follows provides a means to specify the correct
