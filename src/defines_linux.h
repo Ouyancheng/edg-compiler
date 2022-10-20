@@ -95,12 +95,15 @@ file.
 #define THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED 1
 #endif /* ifndef THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED */
 /*
-The libstdc++ source files provide special support for float80 optionally.  To
-provide reasonable out of the box support for using Clang (as a back end
-compiler for the EDG front end on Linux), this support is not enabled by
-default (as Clang does not support __float80).
+The libstdc++ source files provide special support for __float80, optionally.
+As Clang does not support __float80, to provide reasonable out of the box
+support for using Clang as a target compiler (for the C- and C++-generating
+back ends on Linux), float80 support is not automatically enabled by
+CONFIG_FOR_GPP_HEADER_COMPATIBILITY.
 
-FLOAT80_ENABLING_POSSIBLE 1
+If using GCC as a target compiler, and support for __float80 in libstdc++ is
+desired, FLOAT80_ENABLING_POSSIBLE can be defined to a non-zero value to enable
+this support.
 */
 #ifndef FLOAT128_ENABLING_POSSIBLE
 #define FLOAT128_ENABLING_POSSIBLE 1

@@ -7075,8 +7075,8 @@ static a_boolean
 control_operand_requires_clarifying_parens(an_expr_node_ptr node)
 /*
 Given a node to be used as part of a boolean controlling expression, return
-TRUE if additional parens should be added to avoid ambiguity diagnostics
-from the back end compiler; otherwise, return FALSE.
+TRUE if additional parens should be added to avoid ambiguity diagnostics from
+the target compiler; otherwise, return FALSE.
 */
 {
   a_boolean result = FALSE;
@@ -7097,8 +7097,10 @@ dump_boolean_controlling_expression(an_expr_node_ptr node,
                                     a_boolean        wrap_with_parens)
 /*
 Generate code for the indicated expression, which is the controlling expression
-of a statement or short-circuit operator.  The expression is surrounded
-by parentheses.
+of a statement or short-circuit operator.  The expression is always surrounded
+by (at least one set of) parentheses when wrap_with_parens is TRUE; otherwise,
+the expression may be surrounded with clarify parentheses as necessary to
+silence warnings from the target compiler.
 */
 {
   /* If the boolean controlling expressions are normalized, check that they do
@@ -7109,8 +7111,8 @@ by parentheses.
   if (wrap_with_parens) {
     m_write_tok_ch('(');
   }  /* if */
-  /* Some conditions require additional clarifying parens so that back end
-     compilers won't complain about a potential typo (e.g., assignments). */
+  /* Some conditions require additional clarifying parens so the target
+     compiler won't complain about a potential typo (e.g., assignments). */
   dump_expr(node, control_operand_requires_clarifying_parens(node));
   if (wrap_with_parens) {
     m_write_tok_ch(')');
@@ -9628,8 +9630,8 @@ Generate C for a statement.
       if (statement->expr != NULL) {
         /* Do not wrap the for loop condition in parens.  Unlike other control
            flow statements, the for loop does not syntactically require these
-           (and thus adding them can lead to spurious diagnostics from the back
-           end compiler). */
+           (and thus adding them can lead to spurious diagnostics from the
+           target compiler). */
         dump_boolean_controlling_expression(statement->expr,
                                             /*wrap_with_parens=*/FALSE);
       }  /* if */
