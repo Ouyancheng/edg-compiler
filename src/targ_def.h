@@ -5117,9 +5117,9 @@ array types of some kind of integral or floating type.  In the case of a struct
 type being used, it's generally sufficient to find an integral type with a
 matching alignment, and then create an array of at least equivalent size (in
 effect creating an aligned buffer for setjmp to write into and longjmp to read
-from).  Notably, this approximation may lead to warnings from the target
-compiler consuming the C-generating back end code; however, assuming correct
-alignment and sizing, this warning is spurious.
+from).  Notably, this approximation may lead to one or more warnings from the
+target compiler consuming the C-generating back end code; however, assuming
+correct alignment and sizing, these warnings are spurious.
 
 The definitions here specify the number of elements in the array type and the
 integral or floating kind for the array element type.
