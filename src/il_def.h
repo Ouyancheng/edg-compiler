@@ -4658,7 +4658,7 @@ typedef struct a_constant {
 			   file scope memory region.  In that case,
 			   a_constant::expr will be NULL and the expression
 			   can be found using find_local_expr_node instead. */
-  a_bit_field	is_naturalized:1;
+  a_bit_field	formed_from_promoted_storage:1;
 			/* TRUE if this is a constant that was originally
 			   created from an interpreter object with dynamic
 			   storage duration.  Note that C++ does not currently

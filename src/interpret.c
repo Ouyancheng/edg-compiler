@@ -924,9 +924,9 @@ typedef struct an_interpreter_state {
 			     for enk_param_ref nodes in Clang enable_if
 			     attribute conditions.
 			   - If ptr points to a complete interpreter object,
-			     ptr-NATURALIZABLE_KEY_OFFSET might be mapped to
-			     its associated static_storage indicating the
-			     object can be naturalized. */
+			     ptr-STORAGE_PROMOTABLE_KEY_OFFSET might be mapped
+			     to its associated static_storage indicating the
+			     object storage can be promoted. */
   a_storage_stack_state
 		storage_stack;
 			/* The current state of the storage stack. */
@@ -3421,60 +3421,60 @@ area.  The static storage is zeroed.
 #if BUILTIN_FUNCTIONS_ENABLED
 
 /*
-The functions for supporting naturalizable below (while not specifically tied
-to builtin functions) are currently only used by builtin functions.  Thus, only
-include them when builtin functions are enabled.
+The functions for supporting storage promotion below (while not specifically
+tied to builtin functions) are currently only used by builtin functions.  Thus,
+only include them when builtin functions are enabled.
 */
 
 /*
 The offset from the complete object pointer.
 */
-#define NATURALIZABLE_KEY_OFFSET   ((a_byte)0x01)
+#define STORAGE_PROMOTABLE_KEY_OFFSET   ((a_byte)0x01)
 
 
-static void mark_naturalizable_object(an_interpreter_state  *ips,
-                                      a_byte                *storage_ptr)
+static void mark_object_storage_promotable(an_interpreter_state  *ips,
+                                           a_byte                *storage_ptr)
 /*
-Mark the given interpreter storage as eligible for naturalization into a
+Mark the given interpreter storage as eligible for storage promotion into a
 runtime constant.
 */
 {
-  map_ptr(&ips->map, storage_ptr - NATURALIZABLE_KEY_OFFSET,
+  map_ptr(&ips->map, storage_ptr - STORAGE_PROMOTABLE_KEY_OFFSET,
           (a_byte*)&ips->static_storage);
-}  /* mark_naturalizable_object */
+}  /* mark_object_storage_promotable */
 
 
-static void alloc_naturalizable_object(an_interpreter_state  *ips,
+static void alloc_storage_promotable_object(an_interpreter_state  *ips,
                                        a_type_ptr            ty_ptr,
                                        a_byte                **storage_ptr,
                                        a_boolean             *p_result)
 /*
 Allocate a complete object of type ty_ptr in the interpreter's storage that's
-eligible for naturalization into a runtime constant.  The storage is zeroed.
+eligible for storage promotion into a runtime constant.  The storage is zeroed.
 If a problem occurs during allocation, *p_result is set to FALSE.
 */
 {
   alloc_static_object(ips, ty_ptr, *storage_ptr, p_result);
   if (*p_result) {
-    mark_naturalizable_object(ips, *storage_ptr);
+    mark_object_storage_promotable(ips, *storage_ptr);
   }  /* if */
-}  /* alloc_naturalizable_object */
+}  /* alloc_storage_promotable_object */
 
 
-static a_boolean is_naturalizable_object(
+static a_boolean is_object_storage_promotable(
                                         an_interpreter_state  *ips,
                                         a_byte                *complete_object)
 /*
-Return TRUE if the given complete object can be naturalized, otherwise return
-FALSE.
+Return TRUE if the given complete object's storage can be promoted into a
+runtime constant, otherwise return FALSE.
 */
 {
   a_byte  *mapped_bytes = NULL;
 
-  get_mapped_ptr(&ips->map, complete_object - NATURALIZABLE_KEY_OFFSET,
+  get_mapped_ptr(&ips->map, complete_object - STORAGE_PROMOTABLE_KEY_OFFSET,
                  mapped_bytes);
   return mapped_bytes == (a_byte*)&ips->static_storage;
-}  /* is_naturalizable_object */
+}  /* is_object_storage_promotable */
 
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
 
@@ -5233,8 +5233,8 @@ END_DISABLE_GCC_WARNING_STR_OVERFLOW
                 }  /* if */
                 if (!result) break;
 #if BUILTIN_FUNCTIONS_ENABLED
-                if (cp->is_naturalized) {
-                  mark_naturalizable_object(ips, con_bytes);
+                if (cp->formed_from_promoted_storage) {
+                  mark_object_storage_promotable(ips, con_bytes);
                 }  /* if */
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
                 mark_complete_object_initialized(con_bytes);
@@ -9446,8 +9446,8 @@ to FALSE and the reason for the failure is recorded in *ips.
 
             interpreted = TRUE;
             /* Allocate the source location __impl object. */
-            alloc_naturalizable_object(ips, interp_inf.impl_type, &obj_storage,
-                                       p_result);
+            alloc_storage_promotable_object(ips, interp_inf.impl_type,
+                                            &obj_storage, p_result);
             if (*p_result) {
               a_source_position *use_pos = get_constexpr_source_pos();
 
@@ -19879,9 +19879,7 @@ diagnostic in *ips.
                     cap->alloc_seq_number == 0) ||
                   (!ips->static_lifetime_init && !permit_local_temp)) {
 #if BUILTIN_FUNCTIONS_ENABLED
-                /* If the complete object is naturalizable, it can be promoted
-                   from a temporary. */
-                if (is_naturalizable_object(ips, cap->complete_object)) {
+                if (is_object_storage_promotable(ips, cap->complete_object)) {
                   /* The allocation sequence number should always represent
                      static storage (i.e., be 0). */
                   check_assertion(cap->alloc_seq_number == 0);
@@ -19906,7 +19904,7 @@ diagnostic in *ips.
                       break;
                     }  /* if */
                   }  /* if */
-                  cp->is_naturalized = TRUE;
+                  cp->formed_from_promoted_storage = TRUE;
                 } else
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
                 /* Do not add code here. */
