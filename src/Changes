@@ -33,8 +33,10 @@ expected to be part of the upcoming C++23 Standard.  A new file in the
 include_c++ directory named stdfloat.stdh provides the typedef members of
 namespace std for the <stdfloat> header.  Note that the std::bfloat16_t
 type is not supported at this time, and std::float128_t is supported if and
-only if the non-standard __float128 type is supported.  For example, with
---c++23:
+only if the non-standard __float128 type is supported.  std::float16_t is
+implemented with the same internal representation as the non-standard
+_Float16 type (see EDGcpfe/20094,EDGcpfe/20264,EDGcpfe/25494).  For
+example, with --c++23:
 
   #include <stdfloat>
   std::float64_t x = 23.9f64;

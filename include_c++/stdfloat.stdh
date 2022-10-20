@@ -1,6 +1,6 @@
 /* Edison Design Group, 2022. */
 /*
-stdfloat -- Include file for extended floating point types ([stdfloat.syn])
+stdfloat -- Include file for extended floating-point types ([stdfloat.syn])
 */
 #ifndef _STDFLOAT_STDH
 #define _STDFLOAT_STDH

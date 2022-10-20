@@ -5316,11 +5316,11 @@ enum a_float_kind : a_byte {
      float kinds are used (e.g., it is not uncommon for __float80 and "long
      double" to designate the same type -- if so, fk_long_double is used in
      both cases).  The extended floating-point types (described in WG21
-     document P1467R9 at the time of this writing) must follow the
-     traditional types, as promoted_float_kind relies on this ordering.  If
-     you add floating point types to this enumeration, be sure to update
-     expr_init() with the new values for the size, mantissa bits, and
-     min/max exponent arrays in exprutil.c.
+     document P1467R9) must follow the traditional types, as
+     promoted_float_kind relies on this ordering.  If you add floating
+     point types to this enumeration, be sure to update expr_init() with
+     the new values for the size, mantissa bits, and min/max exponent
+     arrays in exprutil.c.
 */
   fk_float16,
   fk_float,

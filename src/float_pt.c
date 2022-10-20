@@ -1246,7 +1246,7 @@ before setting it if there are unused bits.
        fill the whole area reserved for the float value. */
     memzero((char *)float_value, sizeof(an_internal_float_value));
     if (kind == fk_float16 || kind == fk_std_float16) {
-      /* Converting to _Float16. */
+      /* Converting to _Float16 or std::float16_t. */
       EDG_float16_t float16_temp;
       conv_host_fp_to_float16(temp, err, &float16_temp);
       if (!*err) {
@@ -1254,7 +1254,7 @@ before setting it if there are unused bits.
                      sizeof(EDG_float16_t));
       }  /* if */
     } else if (kind == fk_float || kind == fk_std_float32) {
-      /* Converting to float. */
+      /* Converting to float or std::float32_t. */
       float	float_temp;
       conv_host_fp_to_float(temp, err, &float_temp);
       if (!*err) {
@@ -1307,7 +1307,7 @@ Fetch the value from float_value (of kind kind) and return it.
   memzero((char *)&temp, sizeof(temp));
   if (kind == fk_float16 || kind == fk_std_float16) {
     EDG_float16_t float16_temp;
-    /* Convert from float16 to a_host_fp_value. */
+    /* Convert from _Float16 or std::float16_t to a_host_fp_value. */
     /* Use memcpy to copy the value since float_value might not be correctly
        aligned. */
     (void)memcpy((char *)&float16_temp, (char *)float_value,
@@ -1319,7 +1319,7 @@ Fetch the value from float_value (of kind kind) and return it.
 #endif /* USE_SOFTFLOAT */
   } else if (kind == fk_float || kind == fk_std_float32) {
     float	float_temp;
-    /* Convert from float to a_host_fp_value. */
+    /* Convert from float or std::float32_t to a_host_fp_value. */
     /* Use memcpy to copy the value since float_value might not be correctly
        aligned. */
     (void)memcpy((char *)&float_temp, (char *)float_value, sizeof(float));
@@ -1349,7 +1349,8 @@ Fetch the value from float_value (of kind kind) and return it.
 #endif /* !USE_DOUBLE_FOR_HOST_FP_VALUE */
 #if HOST_FP_VALUE_IS_128BIT
   } else if (kind == fk_long_double || kind == fk_std_float64) {
-    /* Convert from long double to a_host_fp_value (e.g., __float128). */
+    /* Convert from long double or std::float64_t to a_host_fp_value (e.g.,
+       __float128). */
 #if USE_SOFTFLOAT
     check_assertion(targ_ldbl_mant_dig != 53);
     if (targ_ldbl_mant_dig == 64) {

@@ -5303,7 +5303,7 @@ demangled as part of the template function instead).
           case 'F':
             /* Special encoding of various extended floating-point types.
                All start with "DF", then the number of bits in the type
-               followed by a 'x', '_', or 'b' character to indicate the
+               followed by an 'x', '_', or 'b' character to indicate the
                particular type itself. */
             p = get_number(p, &num, dctl);
             if (*p == 'b' && num == 16) {

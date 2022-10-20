@@ -11443,8 +11443,9 @@ command line -D options.
       }  /* if */
     }  /* if */
     if (extended_float_types) {
-      /* Define the macros for the supported extended floating point
-         types described in WG21 document P1467R9. */
+      /* Define the macros for the supported extended floating-point types
+         described in WG21 document P1467R9.  (Note that std::bfloat16 is
+         not yet supported, so the corresponding macro is not defined.) */
       (void)enter_predef_macro("1", "__STDCPP_FLOAT16_T__",
                                /*cannot_be_redefined=*/TRUE,
                                /*ref_suppresses_pch_file=*/FALSE);
