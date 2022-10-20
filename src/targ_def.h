@@ -5126,7 +5126,7 @@ integral or floating kind for the array element type.
 */
 #ifndef TARG_JMP_BUF_NUM_ELEMENTS
  #error -- TARG_JMP_BUF_NUM_ELEMENTS must specify the number of jmp_buf \
-           for DO_FULL_PORTABLE_EH_LOWERING to be correctly configured
+           elements for DO_FULL_PORTABLE_EH_LOWERING to be correctly configured
 #endif /* !defined(TARG_JMP_BUF_NUM_ELEMENTS) */
 #ifndef TARG_JMP_BUF_ELEMENTS_ARE_FLOAT
  #error -- TARG_JMP_BUF_ELEMENTS_ARE_FLOAT must be set to specify if jmp_buf \
