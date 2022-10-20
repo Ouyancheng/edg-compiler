@@ -8,11 +8,11 @@ when compiling against libstdc++ and the Microsoft standard template library.
 
 These include (for libstdc++) __builtin_source_location(), and (for the
 Microsoft STL) __builtin_LINE(), __builtin_COLUMN(), __builtin_FILE(),
-__builtin_FUNCTION().
+and __builtin_FUNCTION().
 
-Please note, these builtins return standard complaint EDG specific source
+Please note, these builtins return standard-compliant EDG-specific source
 location values in all modes; they do not currently support emulation of the
-source locations values returned by Clang, GCC, or MSVC.
+source location values returned by Clang, GCC, or MSVC.
 
 
 10/19/22 [EDGcpfe/25739]
