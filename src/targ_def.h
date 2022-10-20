@@ -5108,14 +5108,21 @@ initialization, all other instances will do nothing.
 
 #if DO_FULL_PORTABLE_EH_LOWERING
 /*
-jmp_buf is a type defined by <setjmp.h> for use in setjmp/longjmp.
-IL lowering uses setjmp/longjmp for the portable implementation of
-exception try/throw statements.  jmp_buf is defined to be an array type;
-we further assume it is an array of some kind of integral or floating
-type, which is not guaranteed by the standard but is usually a safe
-assumption.  The definitions here specify the number of elements in
-the array type and the integral or floating kind for the array element
-type.
+jmp_buf is a type defined by <setjmp.h> for use in setjmp/longjmp.  IL lowering
+uses setjmp/longjmp for the portable implementation of exception try/throw
+statements.
+
+jmp_buf is defined to be an array type.  The front end only directly supports
+array types of some kind of integral or floating type.  In the case of a struct
+type being used, it's generally sufficient to find an integral type with a
+matching alignment, and then create an array of at least equivalent size (in
+effect creating an aligned buffer for setjmp to write into and longjmp to read
+from).  Notably, this approximation may lead to warnings from the target
+compiler consuming the C-generating back end code; however, assuming correct
+alignment and sizing, this warning is spurious.
+
+The definitions here specify the number of elements in the array type and the
+integral or floating kind for the array element type.
 */
 #ifndef TARG_JMP_BUF_NUM_ELEMENTS
 #define TARG_JMP_BUF_NUM_ELEMENTS 9  /* For SPARC, SunOS 4.1.2. */
@@ -5136,8 +5143,23 @@ type.
 #endif /* !defined(TARG_JMP_BUF_ELEMENT_FLOAT_KIND) */
 			/* Default value, used to initialize global variable
 			   targ_jmp_buf_element_float_kind. */
+/*
+On some targets, the setjmp function is declared as a macro to another
+function.  The macro that follows provides a means to specify the correct
+setjmp function implementation.
+
+A common example of where this occurs is in glibc (i.e., Linux).  setjmp starts
+out declared as a function, but is later declared as a macro to (the more
+efficient) _setjmp.  As setjmp.h is not required to be included for
+DO_FULL_PORTABLE_EH_LOWERING, the function to be used must be configured ahead
+of time.
+*/
 #ifndef TARG_SETJMP_FUNC
+#if defined(__linux__)
+#define TARG_SETJMP_FUNC "_setjmp"
+#else /* !defined(__linux__) */
 #define TARG_SETJMP_FUNC "setjmp"
+#endif /* defined(__linux__) */
 #endif /* !defined(TARG_SETJMP_FUNC) */
 			/* Default value, used to initialize global variable
 			   targ_setjmp_func. */

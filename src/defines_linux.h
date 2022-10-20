@@ -160,7 +160,6 @@ additional target configuration will be added below.
 #define TYPE_FOR_AN_FP_VALUE_PART unsigned int
 #define TARG_JMP_BUF_NUM_ELEMENTS 25
 #define TARG_JMP_BUF_ELEMENT_INT_KIND ((an_integer_kind)ik_long)
-#define TARG_SETJMP_FUNC "_setjmp"
 #define TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES 0
 #elif TARG_SUPPORTS_ARM64
 /* ARM64. */
@@ -185,7 +184,6 @@ additional target configuration will be added below.
 #define TARG_ALIGNOF_LONG_DOUBLE 4
 #define TARG_SIZEOF_LONG_DOUBLE 12
 #define TARG_JMP_BUF_NUM_ELEMENTS 39
-#define TARG_SETJMP_FUNC "_setjmp"
 #ifndef C_GEN_BE_GENERATES_ANSI_C
 #define C_GEN_BE_GENERATES_ANSI_C 1
 #endif /* C_GEN_BE_GENERATES_ANSI_C */
@@ -194,6 +192,7 @@ additional target configuration will be added below.
 #define TARG_DOUBLE_FIELD_ALIGNMENT 4
 #define TARG_LONG_LONG_FIELD_ALIGNMENT 4
 #endif /* TARG_SUPPORTS_X86_64 */
+#define TARG_SETJMP_FUNC "_setjmp"
 
 /*
 wint_t has a different signedness from wchar_t with both 32-bit and 64-bit
