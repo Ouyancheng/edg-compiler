@@ -5125,34 +5125,24 @@ The definitions here specify the number of elements in the array type and the
 integral or floating kind for the array element type.
 */
 #ifndef TARG_JMP_BUF_NUM_ELEMENTS
- #error -- TARG_JMP_BUF_NUM_ELEMENTS must specify the number of jmp_buf \
-           elements for DO_FULL_PORTABLE_EH_LOWERING to be correctly configured
+#define TARG_JMP_BUF_NUM_ELEMENTS 9  /* For SPARC, SunOS 4.1.2. */
 #endif /* !defined(TARG_JMP_BUF_NUM_ELEMENTS) */
+			/* Default value, used to initialize global variable
+			   targ_jmp_buf_num_elements. */
 #ifndef TARG_JMP_BUF_ELEMENTS_ARE_FLOAT
- #error -- TARG_JMP_BUF_ELEMENTS_ARE_FLOAT must be set to specify if jmp_buf \
-           uses floating point or integer types for \
-           DO_FULL_PORTABLE_EH_LOWERING to be correctly configured
+#define TARG_JMP_BUF_ELEMENTS_ARE_FLOAT FALSE
 #endif /* ifndef TARG_JMP_BUF_ELEMENTS_ARE_FLOAT */
-#if TARG_JMP_BUF_ELEMENTS_ARE_FLOAT
-#ifndef TARG_JMP_BUF_ELEMENT_FLOAT_KIND
- #error -- TARG_JMP_BUF_ELEMENT_FLOAT_KIND must be set if jmp_buf is using \
-           floating point types for DO_FULL_PORTABLE_EH_LOWERING to be \
-           correctly configured
-#endif /* !defined(TARG_JMP_BUF_ELEMENT_FLOAT_KIND) */
-#ifndef /* TARG_JMP_BUF_ELEMENT_INT_KIND */
-#define TARG_JMP_BUF_ELEMENT_INT_KIND ik_none
-#endif /* !defined(TARG_JMP_BUF_ELEMENT_INT_KIND) */
-#else /* !TARG_JMP_BUF_ELEMENTS_ARE_FLOAT */
+			/* Choose between integer and float. */
 #ifndef TARG_JMP_BUF_ELEMENT_INT_KIND
- #error -- TARG_JMP_BUF_ELEMENT_INT_KIND must be set if jmp_buf is using \
-           integer types for DO_FULL_PORTABLE_EH_LOWERING to be correctly \
-           configured
+#define TARG_JMP_BUF_ELEMENT_INT_KIND ((an_integer_kind)ik_int)
 #endif /* !defined(TARG_JMP_BUF_ELEMENT_INT_KIND) */
+			/* Default value, used to initialize global variable
+			   targ_jmp_buf_element_int_kind. */
 #ifndef TARG_JMP_BUF_ELEMENT_FLOAT_KIND
-#define TARG_JMP_BUF_ELEMENT_FLOAT_KIND fk_none
+#define TARG_JMP_BUF_ELEMENT_FLOAT_KIND ((a_float_kind)fk_long_double)
 #endif /* !defined(TARG_JMP_BUF_ELEMENT_FLOAT_KIND) */
-#endif /* TARG_JMP_BUF_ELEMENTS_ARE_FLOAT */
-
+			/* Default value, used to initialize global variable
+			   targ_jmp_buf_element_float_kind. */
 /*
 On some targets, the setjmp function is declared as a macro to another
 function.  The macro that follows provides a means to specify the correct
@@ -5165,9 +5155,10 @@ DO_FULL_PORTABLE_EH_LOWERING, the function to be used must be configured ahead
 of time.
 */
 #ifndef TARG_SETJMP_FUNC
- #error -- TARG_SETJMP_FUNC must be set to the underlying setjmp function \
-           for DO_FULL_PORTABLE_EH_LOWERING to be correctly configured
+#define TARG_SETJMP_FUNC "setjmp"
 #endif /* !defined(TARG_SETJMP_FUNC) */
+			/* Default value, used to initialize global variable
+			   targ_setjmp_func. */
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
 
 #if GENERATE_EH_TABLES
