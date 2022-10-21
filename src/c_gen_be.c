@@ -7094,7 +7094,7 @@ the target compiler; otherwise, return FALSE.
 
 static void
 dump_boolean_controlling_expression(an_expr_node_ptr node,
-                                    a_boolean        wrap_with_parens)
+                  /* Defaulted: */  a_boolean        wrap_with_parens)
 /*
 Generate code for the indicated expression, which is the controlling expression
 of a statement or short-circuit operator.  The expression is always surrounded
