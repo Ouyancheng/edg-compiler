@@ -184,6 +184,7 @@ additional target configuration will be added below.
 #define TARG_ALIGNOF_LONG_DOUBLE 4
 #define TARG_SIZEOF_LONG_DOUBLE 12
 #define TARG_JMP_BUF_NUM_ELEMENTS 39
+#define TARG_JMP_BUF_ELEMENT_INT_KIND ((an_integer_kind)ik_int)
 #ifndef C_GEN_BE_GENERATES_ANSI_C
 #define C_GEN_BE_GENERATES_ANSI_C 1
 #endif /* C_GEN_BE_GENERATES_ANSI_C */
