@@ -951,7 +951,7 @@ example, is_pointer_type_to_type("foo*", "foo") == TRUE.
     }  /* if */
   }  /* if */
   return result;
-}  /* is_pointer_type */
+}  /* is_pointer_type_to_type */
 
 
 a_boolean is_plain_pointer_type(a_type_ptr tp)
