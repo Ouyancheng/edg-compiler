@@ -8820,11 +8820,12 @@ static a_boolean do_constexpr_builtin_source_pos_func(
 /*
 If possible, fold the source location builtin (i.e., __builtin_COLUMN,
 __builtin_LINE, __builtin_FILE, __builtin_FUNCTION) into the appropriate
-constant.  Generally, these calls are easily folded, but if they occur
-in a default argument list of a consteval function or a default member
-initializer, they are not folded here.  For default arguments, the folding
-occurs in i_copy_expr_tree when the expression is being copied, and for
-default member initializers, lowering does the work.
+constant.  Generally, these calls are easily folded, but if they occur in a
+default argument list of a consteval function or a default member initializer,
+they are not folded here.  For default arguments, the folding occurs in
+i_copy_expr_tree when the expression is being copied to setup a function call.
+Similarly, for default member initializers, folding occurs in i_copy_expr_tree
+when the expression is being copied to setup a constructor's initializers.
 */
 {
   a_boolean  result = TRUE;
