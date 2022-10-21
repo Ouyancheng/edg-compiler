@@ -10801,6 +10801,8 @@ the kind of token.
                                        (clang_mode || gnu_version_is(>=80100));
   a_boolean     tentative_udl_lookup = FALSE;
   sizeof_t      id_len = 0;
+  an_error_severity
+                sev = es_error;
 
 /*
 Macro to skip over an optional C++14 digit separator (apostrophe).  Reports
@@ -10995,7 +10997,8 @@ int_imaginary_suffix:
         end_of_curr_token = curr_char_loc;
         saved_ch = *end_of_curr_token;
         *(char *)end_of_curr_token = 'i';
-        conv_float_literal(kind == k_hex, &err_code, &start_of_curr_token);
+        conv_float_literal(kind == k_hex, &err_code, &start_of_curr_token,
+                           &sev);
         ctoken = tok_float_constant;
         /* Restore the original character in the suffix and include the
            entire suffix in the token.  Set up to continue the scan
@@ -11221,11 +11224,12 @@ end_float_accum:
     curr_char_loc++;
     if (extended_float_types || (float16_enabled &&
                                  !gpp_version_is(any_version))) {
-      /* Clang accepts the f16 and F16 suffixes in both C and C++, but g++
-         treats them as user-defined literal suffixes. */
+      /* We exclude g++ here because clang accepts the f16 and F16 suffixes
+         in both C and C++, but g++ treats them as user-defined literal
+         suffixes. */
       a_const_char *p = curr_char_loc;
       if (extended_float_types && (ch == 'b' || ch == 'B')) {
-        if (((ch == 'b' && *p == 'f') || (ch == 'B' && *p== 'F')) &&
+        if (((ch == 'b' && *p == 'f') || (ch == 'B' && *p == 'F')) &&
             p[1] == '1' && p[2] == '6') {
           /* bf16 */
           curr_char_loc += 3;
@@ -11526,7 +11530,7 @@ convert_literal_value:
           diagnostic_at_line_pos(strict_ansi_error_severity,
                                  ec_hex_fp_constant, start_of_curr_token);
         }  /* if */
-        conv_float_literal(is_hex_fp_value, &err_code, &err_pos);
+        conv_float_literal(is_hex_fp_value, &err_code, &err_pos, &sev);
         ctoken = tok_float_constant;
         break;
       default:
@@ -11546,7 +11550,7 @@ convert_literal_value:
            suffix. */
         char saved_char = *++end_of_curr_token;
         *((char *)end_of_curr_token) = 'L';
-        conv_float_literal(is_hex_fp_value, &err_code, &err_pos);
+        conv_float_literal(is_hex_fp_value, &err_code, &err_pos, &sev);
         *((char *)end_of_curr_token--) = saved_char;
       }  /* if */
       if (is_error_constant(&const_for_curr_token)) {
@@ -11724,7 +11728,7 @@ convert_literal_value:
     }  /* if */
     /* Check for errors detected. */
     if (err_code != ec_no_error) {
-      error_at_line_pos(err_code, err_pos);
+      diagnostic_at_line_pos(sev, err_code, err_pos);
     }  /* if */
   }  /* if */
 done:

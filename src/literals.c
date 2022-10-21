@@ -719,9 +719,10 @@ This function is modeled after conv_float_literal (see below).
 
 #endif /* FIXED_POINT_ALLOWED */
 
-void conv_float_literal(a_boolean	is_hexadecimal,
-			an_error_code	*err_code,
-                        a_const_char	**err_pos)
+void conv_float_literal(a_boolean         is_hexadecimal,
+			an_error_code     *err_code,
+                        a_const_char      **err_pos,
+                        an_error_severity *severity)
 /*
 Convert a floating constant from external form to internal form.
 start_of_curr_token and end_of_curr_token point to the two ends of the
@@ -730,8 +731,9 @@ as a hexadecimal value.
 
 The internal form is placed in const_for_curr_token.  If there is no
 error, *err_code is set to ec_no_error (which is 0); otherwise,
-*err_code is set to an appropriate error code and *err_pos is set to
-the character position of the error.
+*err_code is set to an appropriate error code, *err_pos is set to
+the character position of the error, and *severity is set to the severity
+of the resulting diagnostic.
 */
 {
   a_float_kind kind;
@@ -785,6 +787,7 @@ the character position of the error.
       } else {
         *err_code = ec_std_float128_not_supported;
         *err_pos = actual_end - 3;
+        *severity = strict_ansi_mode ? strict_ansi_error_severity : es_warning;
         kind = fk_std_float64;
       }  /* if */
       actual_end -= 4;
@@ -794,6 +797,7 @@ the character position of the error.
         /* std::bfloat16 is not yet supported. */
         *err_code = ec_std_bfloat16_not_supported;
         *err_pos = actual_end - 3;
+        *severity = strict_ansi_mode ? strict_ansi_error_severity : es_warning;
         kind = fk_std_float32;
         actual_end -= 4;
       } else {
@@ -888,6 +892,7 @@ the character position of the error.
   if (err) {
     *err_code = ec_bad_float_value;
     *err_pos = start_of_curr_token;
+    *severity = es_error;
   } else {
     /* Build a constant with the right type and value. */
 #if C99_IL_EXTENSIONS_SUPPORTED
@@ -914,7 +919,7 @@ the character position of the error.
       pos_warning(ec_inexact_fp_conversion, &pos);
     }  /* if */
   }  /* if */
-  if (*err_code != ec_no_error) {
+  if (*err_code != ec_no_error && *severity > es_warning) {
     /* Return an error constant. */
     set_error_constant(&const_for_curr_token);
   }  /* if */

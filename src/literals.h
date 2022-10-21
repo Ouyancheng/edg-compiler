@@ -39,9 +39,10 @@ extern void conv_fixed_point_literal(a_boolean      is_hexadecimal,
                                      an_error_code  *err_code,
                                      a_const_char   **err_pos);
 #endif /* FIXED_POINT_ALLOWED */
-extern void conv_float_literal(a_boolean	is_hexadecimal,
-			       an_error_code	*err_code,
-	                       a_const_char	**err_pos);
+extern void conv_float_literal(a_boolean         is_hexadecimal,
+                               an_error_code     *err_code,
+                               a_const_char      **err_pos,
+                               an_error_severity *severity);
 
 /*
 Structure to maintain the current state of the processing of

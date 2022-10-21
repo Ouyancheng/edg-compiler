@@ -1271,7 +1271,7 @@ before setting it if there are unused bits.
       }  /* if */
 #endif /* USE_DOUBLE_FOR_HOST_FP_VALUE */
 #if HOST_FP_VALUE_IS_128BIT
-    } else if (kind == fk_long_double || kind == fk_std_float64) {
+    } else if (kind == fk_long_double) {
       /* Convert from an internal __float128 to a target long double.  This
          can't be converted to a host long double (similar to the float and
          double cases above) because the long double format may differ between
@@ -1348,9 +1348,8 @@ Fetch the value from float_value (of kind kind) and return it.
 #endif /* USE_SOFTFLOAT */
 #endif /* !USE_DOUBLE_FOR_HOST_FP_VALUE */
 #if HOST_FP_VALUE_IS_128BIT
-  } else if (kind == fk_long_double || kind == fk_std_float64) {
-    /* Convert from long double or std::float64_t to a_host_fp_value (e.g.,
-       __float128). */
+  } else if (kind == fk_long_double) {
+    /* Convert from long double to a_host_fp_value (e.g., __float128). */
 #if USE_SOFTFLOAT
     check_assertion(targ_ldbl_mant_dig != 53);
     if (targ_ldbl_mant_dig == 64) {
