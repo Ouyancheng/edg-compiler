@@ -4905,6 +4905,22 @@ cleanup_state_common:
       disp_ptr("nested_req.constraint",
                (char *)ptr->variant.nested_req.constraint, iek_expr_node);
       break;
+    case enk_const_eval_deferred:
+      { auto &deferred_state = ptr->variant.const_eval_deferred;
+
+        (void)printf("enk_const_eval_deferred\n");
+        disp_ptr("const_eval_deferred.wrapped", (char *)deferred_state.wrapped,
+                 iek_expr_node);
+        if (deferred_state.reattempt_state.default_arg) {
+          disp_boolean("const_eval_deferred.reattempt_state.default_arg",
+                       TRUE);
+        }  /* if */
+        if (deferred_state.reattempt_state.default_mem_init) {
+          disp_boolean("const_eval_deferred.reattempt_state.default_mem_init",
+                       TRUE);
+        }  /* if */
+      }
+      break;
     default:
       (void)printf("**BAD EXPR NODE KIND**\n");
   }  /* switch */

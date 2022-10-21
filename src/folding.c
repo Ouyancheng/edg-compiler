@@ -284,6 +284,12 @@ The cast is implicit if is_implicit_cast is TRUE.
                  (is_pointer_type(dst_tp) || is_ptr_to_member_type(dst_tp))) {
         /* A conversion from a nullptr_t type to a pointer or pointer-to-member
            type can be handled by the interpreter. */
+      } else if (has_gnu_source_location_impl_type() &&
+                 is_pointer_to_void_type(src_tp) &&
+                 is_pointer_type_to_type(
+                                    dst_tp, gnu_source_location_impl_type())) {
+        /* This is okay, GCC allows conversion from the source
+           location __impl type to "void*". */
       } else {
         cp->is_reinterpret_like_cast = TRUE;
       }  /* if */
