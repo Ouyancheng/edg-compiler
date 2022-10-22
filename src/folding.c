@@ -288,8 +288,13 @@ The cast is implicit if is_implicit_cast is TRUE.
                  is_pointer_to_void_type(src_tp) &&
                  is_pointer_type_to_type(
                                     dst_tp, gnu_source_location_impl_type())) {
-        /* This is okay, GCC allows conversion from the source
-           location __impl type to "void*". */
+        /* This is okay, Clang implements __builtin_source_location() via a
+           direct return type of std::source_location::__impl*; this is
+           implemented by the front end as a cast on calls to
+           __builtin_source_location().  However, this should be transparent
+           from the perspective of the constant (i.e., as if the function were
+           declared with std::source_location::__impl* as the explicit return
+           type). */
       } else {
         cp->is_reinterpret_like_cast = TRUE;
       }  /* if */

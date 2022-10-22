@@ -169,8 +169,10 @@ extern a_boolean is_arithmetic_or_enum_type(a_type_ptr tp);
 extern a_boolean is_arithmetic_or_unscoped_enum_type(a_type_ptr tp);
 extern a_boolean is_arithmetic_type(a_type_ptr tp);
 extern a_boolean is_pointer_type(a_type_ptr tp);
+#if !STANDALONE_UTILITY_PROGRAM
 extern a_boolean is_pointer_type_to_type(a_type_ptr tp,
                                          a_type_ptr pointee_tp);
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 extern a_boolean is_plain_pointer_type(a_type_ptr tp);
 extern a_boolean is_pointer_to_object_type(a_type_ptr tp);
 extern a_boolean is_pointer_or_handle_type(a_type_ptr tp);
