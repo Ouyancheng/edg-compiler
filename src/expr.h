@@ -375,10 +375,10 @@ typedef struct a_rescan_control_block {
 
 /* Floating point type sizes and precisions. */
 
-EXTERN int num_mantissa_bits[(int)fk_last + 1];
-EXTERN int flt_type_size[(int)fk_last + 1];
-EXTERN int min_exponent[(int)fk_last + 1];
-EXTERN int max_exponent[(int)fk_last + 1];
+EXTERN int           num_mantissa_bits[(int)fk_last + 1];
+EXTERN a_targ_size_t flt_type_size[(int)fk_last + 1];
+EXTERN int           min_exponent[(int)fk_last + 1];
+EXTERN int           max_exponent[(int)fk_last + 1];
 
 #if !STANDALONE_UTILITY_PROGRAM
 extern void prescan_initializer_for_auto_type_deduction(

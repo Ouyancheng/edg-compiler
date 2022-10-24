@@ -8271,8 +8271,9 @@ address).
       do_constexpr_fail(result);
       goto done;
     }  /* if */
-    a_byte_count  n_elems = src_etp->size == 0 ? MAX_ARRAY_LENGTH+1
-                                               : n_target_bytes/src_etp->size;
+    a_byte_count  n_elems = 
+             (a_byte_count)(src_etp->size == 0 ? MAX_ARRAY_LENGTH+1
+                                               : n_target_bytes/src_etp->size);
     if (n_target_bytes-n_elems*src_etp->size != 0) {
       info_with_pos(ec_constexpr_memcpy_partial_object, &call_node->position,
                     ips);
@@ -11348,7 +11349,7 @@ the body of the (constructor) function proper.
              the innermost anonymous union enclosing fp. */
           get_mapped_byte_count(&persistent_map, orig_fp, offset);
           dst_addr.address += offset;
-          offset = dst_addr.address - cap->address;
+          offset = (a_byte_count)(dst_addr.address - cap->address);
         } else {
           get_mapped_byte_count(&persistent_map, fp, offset);
           dst_addr.address += offset;

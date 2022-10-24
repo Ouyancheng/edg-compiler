@@ -933,7 +933,7 @@ underflow.  If the conversion can be done, return the result in "result".
   if (!*err) {
     /* The conversion to float succeeded.  Check the resulting value
        against the _Float16 range limits. */
-    float abs_value = fabs(float_temp);
+    float abs_value = (float)fabs(float_temp);
     if (abs_value > MAX_FLOAT16_VAL ||
         (abs_value < MIN_FLOAT16_DENORM && abs_value != 0.0)) {
       /* The value would overflow or underflow. */
