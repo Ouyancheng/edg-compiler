@@ -5544,21 +5544,21 @@ be called to check and adjust the argument and routine types as needed.
       break;
     case bfk_source_location:
       { /* The source location builtin has been used, require and process the
-           GNU source location impl type (i.e., std::source_location::__impl)
-           here.  Note that this result is only used in clang mode, however,
-           this call is unconditional as it runs required checks for the type
-           in the current translation unit. */
+           GNU std::source_location::__impl type here.  Note that this result
+           is only used in clang mode, however, this call is unconditional as
+           it runs required checks for the type in the current translation
+           unit. */
         a_type_ptr result_type = gnu_source_location_impl_type();
 
-        /* GCC and (for better compatibility with libstdc++) EDG use the
-           original void pointer return type.  Additionally, while the builtin
-           is adjusted for Clang, this occurs only upon first use; thus, we
-           initially assume no processing is required). */
+        /* GCC and (for better compatibility with libstdc++) EDG declare the
+           builtin function's return type as void*. Although the type of the
+           builtin is adjusted in clang mode (see below), this occurs only upon
+           first use; thus, we initially assume no processing is required). */
         requires_processing = FALSE;
         if (clang_mode) {
           a_type_ptr curr_result_ty = rout->type->variant.routine.return_type;
 
-          /* Clang uses a pointer to the impl type as the return type; if the
+          /* Clang uses a pointer to the __impl type as the return type; if the
              result type has not been updated, do that now. */
           if (!is_pointer_type_to_type(curr_result_ty, result_type)) {
             bcap->result_type = make_pointer_type(result_type);
