@@ -5551,7 +5551,7 @@ be called to check and adjust the argument and routine types as needed.
         a_type_ptr result_type = gnu_source_location_impl_type();
 
         /* GCC and (for better compatibility with libstdc++) EDG declare the
-           builtin function's return type as void*. Although the type of the
+           builtin function's return type as void*.  Although the type of the
            builtin is adjusted in clang mode (see below), this occurs only upon
            first use; thus, we initially assume no processing is required). */
         requires_processing = FALSE;
