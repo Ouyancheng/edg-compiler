@@ -5558,8 +5558,10 @@ be called to check and adjust the argument and routine types as needed.
         if (clang_mode) {
           a_type_ptr curr_result_ty = rout->type->variant.routine.return_type;
 
-          /* Clang uses a pointer to the __impl type as the return type; if the
-             result type has not been updated, do that now. */
+          /* Wrap the result_type with const qualification. */
+          result_type = make_qualified_type(result_type, TQ_CONST);
+          /* Clang uses a pointer to the const __impl type as the return type;
+             if the result type has not been updated, do that now. */
           if (!is_pointer_type_to_type(curr_result_ty, result_type)) {
             bcap->result_type = make_pointer_type(result_type);
             bcap->callback = adjust_srcloc_builtin;
