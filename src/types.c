@@ -933,26 +933,6 @@ interior_ptr and pin_ptr types.
   return(is_pointer(tp));
 }  /* is_pointer_type */
 
-#if !STANDALONE_UTILITY_PROGRAM
-
-a_boolean is_pointer_type_to_type(a_type_ptr tp,
-                                  a_type_ptr pointee_tp)
-/*
-Return TRUE if tp is a pointer to pointee_tp.
-*/
-{
-  a_boolean result = FALSE;
-
-  tp = skip_typerefs(tp);
-  if (is_pointer(tp)) {
-    if (identical_types(tp->variant.pointer.type, pointee_tp)) {
-      result = TRUE;
-    }  /* if */
-  }  /* if */
-  return result;
-}  /* is_pointer_type_to_type */
-
-#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 a_boolean is_plain_pointer_type(a_type_ptr tp)
 /*
