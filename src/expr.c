@@ -5267,7 +5267,8 @@ static a_builtin_call_adjustment_callback
 		adjust_sync_atomic_builtin,
 		adjust_builtin_zero_non_value_bits,
 		adjust_elementwise_or_reduce_builtin,
-		adjust_preserve_access_index;
+		adjust_preserve_access_index,
+		adjust_srcloc_builtin;
 
 /*
 Structure used to pass information from builtin_call_needs_adjustment to
@@ -5548,14 +5549,21 @@ be called to check and adjust the argument and routine types as needed.
            required checks for the type in the current translation unit. */
         a_type_ptr result_type = gnu_source_location_impl_type();
 
+        /* GCC and (for better compatibility with libstdc++) EDG use the
+           original void pointer return type.  Additionally, while the builtin
+           is adjusted for Clang, this occurs only upon first use; thus, we
+           initially assume no processing is required). */
+        requires_processing = FALSE;
         if (clang_mode) {
-          /* Clang uses the impl type as the return type. */
-          bcap->result_type = make_pointer_type(result_type);
-          bcap->callback = nullptr;
-        } else {
-          /* GCC and (for better compatibility with libstdc++) EDG use the
-             original void pointer return type. */
-          requires_processing = FALSE;
+          a_type_ptr curr_result_ty = rout->type->variant.routine.return_type;
+
+          /* Clang uses the impl type as the return type; if the result type
+             has not been updated, do that now. */
+          if (!il_identical_types(curr_result_ty, result_type)) {
+            bcap->result_type = make_pointer_type(result_type);
+            bcap->callback = adjust_srcloc_builtin;
+            requires_processing = TRUE;
+          }  /* if */
         }  /* if */
       }
       break;
@@ -6351,6 +6359,29 @@ This consists of setting the return type to that of the first argument.
     /* Convert the argument. */
     *arg_list = make_node_from_operand_for_expr_list(op1);
   }  /* if */
+  return rout;
+}  /* adjust_preserve_access_index */
+
+
+static a_routine_ptr adjust_srcloc_builtin(
+                             an_operand                *target,
+                             an_arg_list_elem_ptr      args,
+                             a_source_position         *closing_paren_position,
+                             a_builtin_call_adjustment *bcap,
+                             an_expr_node_ptr          *arg_list)
+/*
+Perform special processing for the __builtin_source_location builtin.  This is
+used in Clang mode to set the correct return type.
+*/
+{
+  a_routine_ptr rout = routine_from_function_operand(target);
+  a_type_ptr    rout_type = make_routine_type(bcap->result_type,
+                                              (a_type_ptr)NULL,
+                                              (a_type_ptr)NULL,
+                                              (a_type_ptr)NULL,
+                                              (a_type_ptr)NULL,
+                                              (a_type_ptr)NULL);
+  rout->type = rout_type;
   return rout;
 }  /* adjust_preserve_access_index */
 
