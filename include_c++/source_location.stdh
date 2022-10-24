@@ -13,7 +13,7 @@ source_location -- Include file for std::source_location support
 #endif /* ifndef __cplusplus */
 #ifndef __cpp_constexpr
  #error -- <source_location> requires constexpr support
-#endif /* !defiend(__cpp_constexpr) */
+#endif /* !defined(__cpp_constexpr) */
 #ifndef __cpp_consteval
  #error -- <source_location> requires consteval support
 #endif /* !defined(__cpp_consteval) */
