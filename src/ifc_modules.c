@@ -514,6 +514,26 @@ Given a partition kind, return a reference to the corresponding metadata entry.
 }  /* get_partition_metadata */
 
 
+static an_ifc_index_type to_partition_index(an_ifc_module         *mod,
+                                            an_ifc_partition_kind partition,
+                                            size_t                file_offset)
+/*
+Give a partition kind and an offset into the give module's file for an element,
+return the respective partition index.
+*/
+{
+  /* Compute the index into the partition by first subtracting the start of the
+     partition in the file, producing "part_offset".  Then compute the index
+     into the partition by dividing the offset by the size of entries in the
+     partition. */
+  an_ifc_partition_metadata &part_meta =
+                                       mod->get_partition_metadata(partition);
+  size_t                    part_offset = file_offset - part_meta.offset;
+
+  return (an_ifc_index_type)(part_offset / part_meta.entry_size);
+}  /* to_partition_index */
+
+
 static an_ifc_partition_kind_index to_partition_kind_index(
                                                        a_module_entity_ptr mep)
 /*
@@ -526,12 +546,11 @@ offset stored on the given module entity pointer.
      the partition by dividing our offset by the size of entries in the
      partition.  Use the partition information and the index value to form an
      an_ifc_partition_kind_index. */
-  an_ifc_partition_kind     partition = mep->variant.ifc_partition;
-  an_ifc_module             *mod =
+  an_ifc_partition_kind partition = mep->variant.ifc_partition;
+  an_ifc_module         *mod =
                             (an_ifc_module*)mep->module_info->module_interface;
-  an_ifc_partition_metadata &metadata = mod->get_partition_metadata(partition);
-  size_t                    part_offset = mep->file_offset - metadata.offset;
-  an_ifc_index_type         part_index = part_offset / metadata.entry_size;
+  an_ifc_index_type     part_index =
+                          to_partition_index(mod, partition, mep->file_offset);
 
   return an_ifc_partition_kind_index{mod, partition, part_index};
 }  /* to_partition_kind_index */
@@ -17559,26 +17578,6 @@ invalid:
   cache->invalidate();
 done:;
 }  /* cache_form */
-
-
-static an_ifc_index_type to_partition_index(an_ifc_module         *mod,
-                                            an_ifc_partition_kind partition,
-                                            size_t                file_offset)
-/*
-Give a partition kind and an offset into the give module's file for an element,
-return the respective partition index.
-*/
-{
-  /* Compute the index into the partition by first subtracting the start of the
-     partition in the file, producing "part_offset".  Then compute the index
-     into the partition by dividing the offset by the size of entries in the
-     partition. */
-  an_ifc_partition_metadata &part_meta =
-                                       mod->get_partition_metadata(partition);
-  size_t                    part_offset = file_offset - part_meta.offset;
-
-  return part_offset / part_meta.entry_size;
-}  /* to_partition_index */
 
 
 inline an_ifc_decl_index an_ifc_module::decl_index_of(
