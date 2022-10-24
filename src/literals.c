@@ -2114,7 +2114,8 @@ the given character kind, or a mix of the given kind and chk_char.
         a_string_or_char_literal_kind this_lit_kind = lit_kind;
         check_assertion(con->character_kind == (a_character_kind)chk_char);
         conv_string_literal(old_val, old_val + con->variant.string.length - 1,
-                            this_lit_kind, con->variant.string.length - 1,
+                            this_lit_kind,
+                            (unsigned long)con->variant.string.length - 1,
                             &err_code, &err_loc, /*is_rescan=*/TRUE);
         con = &const_for_curr_token;
       }  /* if */

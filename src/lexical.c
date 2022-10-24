@@ -15336,7 +15336,7 @@ buffers.
                                                 : SPELLING_STORAGE_BUFFER_SIZE;
 #if DEBUG
   ++num_spelling_storage_buffers_allocated;
-  spelling_storage_buffer_space += new_ssbp->allocated_size;
+  spelling_storage_buffer_space += (unsigned long)new_ssbp->allocated_size;
 #endif /* DEBUG */
   new_ssbp->next_available = 0;
   new_ssbp->buffer = alloc_fe(new_ssbp->allocated_size);
