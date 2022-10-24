@@ -1,6 +1,7 @@
 /* Edison Design Group, 1992-2022. */
 /*
 source_location -- Include file for std::source_location support
+                   ([support.srcloc])
 */
 #ifndef _SOURCE_LOCATION_STDH
 #define _SOURCE_LOCATION_STDH
@@ -10,9 +11,12 @@ source_location -- Include file for std::source_location support
 #if (!defined(__cplusplus) || __cplusplus < 202000L)
  #error -- <source_location> header requires C++20 mode
 #endif /* ifndef __cplusplus */
-#ifndef __EDG_CONSTEXPR_ENABLED__
+#ifndef __cpp_constexpr
  #error -- <source_location> requires constexpr support
-#endif /* ifndef __EDG_CONSTEXPR_ENABLED__ */
+#endif /* !defiend(__cpp_constexpr) */
+#ifndef __cpp_consteval
+ #error -- <source_location> requires consteval support
+#endif /* !defined(__cpp_consteval) */
 
 namespace std {
   struct source_location {
