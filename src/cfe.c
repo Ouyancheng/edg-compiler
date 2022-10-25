@@ -20,8 +20,9 @@ Changed to C++ front end and enhanced by
   William M. Miller   2004-
   Michael J. Herrick  2006-
   Ellen Herrick       2018-
-  Caleb Sunstrum      2019-
+  Caleb Sunstrum      2019-2022
   Wyatt Childers      2021-
+  Christof Meerwald   2022-
 */
 
 /* Header files common to all files. */
