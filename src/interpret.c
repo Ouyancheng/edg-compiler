@@ -14014,7 +14014,6 @@ Evaluate the given new-expression.
       mark_subobject_initialized(elem, complete_obj);
       mark_complete_class_object_if_needed(elem_type, complete_obj);
     }  /* for */
-    mark_complete_object_initialized(complete_obj);
   }  /* if */
 done:
   return result;
@@ -19609,6 +19608,12 @@ diagnostic in *ips.
     con->is_result_of_constexpr_call = TRUE;
   }  /* if */
   switch (type->kind) {
+    case tk_error:
+      do_constexpr_fail(result);
+      info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
+                    &ips->position, ips);
+      ips->input_error = TRUE;
+      break;
     case tk_integer:
       set_constant_kind(con, (a_constant_repr_kind)ck_integer);
       con->variant.integer_value = *(an_integer_value *)object;
