@@ -1,5 +1,24 @@
 Version 6.5
 
+10/26/22 [EDGcpfe/25618]
+Parent scope of partial specializations of variable templates
+
+Consider:
+
+  namespace {
+    namespace N {
+      template<typename> bool trait;
+    }
+    template<typename T> bool N::trait<T*> = true;
+  }
+
+Previously, the front end erroneously recorded the parent scope of partial
+specialization to be the unnamed namespace when instead it should match the
+primary template's parent scope.  That in turn caused the C++-generating back
+end to fail to emit the "N::" name qualifier in its rendering of the partial
+specialization.  That is now fixed.
+
+
 10/26/22 [EDGcpfe/25729]
 C++-generating back end: parenthesized braced-init-list initializers
 

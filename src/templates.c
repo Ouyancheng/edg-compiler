@@ -21948,6 +21948,32 @@ the text of the message to be issued.
 }  /* same_name_as_template_param */
 
 
+static void set_partial_spec_parent_and_primary(
+                                      a_tmpl_decl_state_ptr  decl_state,
+                                      a_symbol_ptr           ps_sym,
+                                      a_symbol_ptr           primary_sym)
+/*
+A partial specialization ps_sym of a primary variable or class template
+primary_sym is being declared, and decl_state is the associated declaration
+state.  Record the partial specialization's scope to match the primary
+template's and also record the primary template itself in the partial
+specialization's template symbol supplement.
+*/
+{
+  a_template_symbol_supplement_ptr  tssp = ps_sym->variant.template_info;
+
+  ps_sym->decl_scope = primary_sym->decl_scope;
+  if (primary_sym->is_class_member) {
+    ps_sym->parent.class_type = sym_parent_class(primary_sym);
+    ps_sym->is_class_member = TRUE;
+    tssp->variant.class_template.access = decl_state->access; 
+  } else if (sym_is_namespace_member(primary_sym)) {
+    ps_sym->parent.namespace_ptr = sym_parent_namespace_or_null(primary_sym);
+  }  /* if */
+  tssp->primary_template_sym = primary_sym;
+}  /* set_partial_spec_parent_and_primary */
+
+
 static a_symbol_ptr add_partial_specialization(
 			a_tmpl_decl_state_ptr	decl_state,
 			a_symbol_ptr		partial_spec_nonreal_sym,
@@ -21971,7 +21997,6 @@ sure it matches the primary template.
   a_symbol_ptr				primary_sym;
   a_template_symbol_supplement_ptr	primary_tssp;
   a_symbol_ptr				sym;
-  a_template_symbol_supplement_ptr	tssp;
 
   primary_sym = partial_spec_nonreal_sym->
                          variant.class_struct_union.extra_info->class_template;
@@ -21981,16 +22006,7 @@ sure it matches the primary template.
   primary_tssp = primary_sym->variant.template_info;
   sym = alloc_symbol((a_symbol_kind)sk_class_template, primary_sym->header,
                      &locator->source_position);
-  sym->decl_scope = primary_sym->decl_scope;
-  tssp = sym->variant.template_info;
-  if (primary_sym->is_class_member) {
-    sym->parent.class_type = sym_parent_class(primary_sym);
-    sym->is_class_member = TRUE;
-    tssp->variant.class_template.access = decl_state->access; 
-  } else if (sym_is_namespace_member(primary_sym)) {
-    sym->parent.namespace_ptr = sym_parent_namespace_or_null(primary_sym);
-  }  /* if */
-  tssp->primary_template_sym = primary_sym;
+  set_partial_spec_parent_and_primary(decl_state, sym, primary_sym);
   if (!decl_state->decl_scope_err && !is_error_locator(*locator)) {
     /* Only link the symbol to the primary template if some error has not
        already occurred. */
@@ -28062,7 +28078,7 @@ Create the variable entry variable template specified by template_sym.
       decl_state->decl_scope_err = TRUE;
       check_assertion(is_at_least_one_error());
     } else {
-      add_to_variables_list(var, decl_state->effective_decl_level);
+      add_to_variables_list(var, NO_SCOPE_DEPTH);
     }  /* if */
   }  /* if */
 }  /* create_prototype_variable */
@@ -28071,12 +28087,11 @@ Create the variable entry variable template specified by template_sym.
 a_symbol_ptr create_variable_template_symbol(
                                   a_tmpl_decl_state_ptr     decl_state,
                                   a_symbol_locator          *locator,
-                                  a_scope_number            primary_decl_scope)
+                                  a_symbol_ptr              primary_sym)
 /*
 Create the symbol entry, template symbol supplement, etc. for the
 variable template specified by locator.  Return the symbol.  If this is for a
-partial specialization, primary_decl_scope is the scope number associated with
-the primary template entry.
+partial specialization, primary_sym is the corresponding primary template.
 */
 {
   a_symbol_ptr				sym;
@@ -28086,17 +28101,21 @@ the primary template entry.
     sym = enter_symbol((a_symbol_kind)sk_variable_template, locator,
                        decl_state->effective_decl_level,
                        /*suppress_error=*/FALSE);
+    set_membership_of_template(decl_state, sym);
   } else {
     sym = alloc_symbol((a_symbol_kind)sk_variable_template,
                        locator->symbol_header,
                        &locator->source_position);
-    /* The call to alloc_symbol doesn't set decl_scope, and the below call to
-       create_prototype_variable will propagate that to the prototype
-       instantiation.  Set it here to ensure the prototype instantiation has
-       the correct decl_scope. */
-    sym->decl_scope = primary_decl_scope;
+    if (primary_sym != NULL) {
+      /* Associate the partial specialization with the primary template; its
+         parent scope is also that of the primary template even if the partial
+         specialization appeared in a different scope. */
+      set_partial_spec_parent_and_primary(decl_state, sym, primary_sym);
+    } else {
+      expect_error();
+      set_membership_of_template(decl_state, sym);
+    }  /* if */
   }  /* if */
-  set_membership_of_template(decl_state, sym);
   tssp = sym->variant.template_info;
   tssp->is_variadic = decl_state->is_variadic;
   tssp->has_variadic_template_params =
@@ -28191,7 +28210,7 @@ and returned.  Otherwise, NULL is returned.
     /* Create the symbol and associated entries for the variable template. */
     check_assertion(!decl_state->is_partial_specialization);
     sym = create_variable_template_symbol(decl_state, locator,
-                                          NO_SCOPE_NUMBER);
+                                          (a_symbol*)NULL);
     decl_state->is_var_templ_initial_decl = TRUE;
   }  /* if */
   return sym;
@@ -28224,7 +28243,7 @@ return an error variable template symbol.
     decl_state->decl_scope_err = TRUE;
     set_to_named_error_locator(*locator);
     ps_sym = create_variable_template_symbol(decl_state, locator,
-                                             NO_SCOPE_NUMBER);
+                                             (a_symbol*)NULL);
   } else {
     a_symbol_ptr			primary_sym;
     a_template_symbol_supplement_ptr	primary_tssp;
@@ -28254,7 +28273,7 @@ return an error variable template symbol.
       a_template_symbol_supplement_ptr	tssp;
       decl_state->decl_parse->first_decl = TRUE;
       ps_sym = create_variable_template_symbol(decl_state, locator,
-                                               primary_sym->decl_scope);
+                                               primary_sym);
       tssp = ps_sym->variant.template_info;
       tssp->primary_template_sym = primary_sym;
       ps_var = variable_for_symbol(ps_sym);
@@ -28504,7 +28523,7 @@ supplement for this template should be returned to the caller.
   if (err) {
     set_to_named_error_locator(*locator);
     sym = create_variable_template_symbol(decl_state, locator,
-                                          NO_SCOPE_NUMBER);
+                                          (a_symbol*)NULL);
     sym->decl_scope = scope_stack_top().number;
     set_template_cache_info(&sym->variant.template_info->cache,
                             (a_token_cache*)NULL, decl_state->decl_info);
