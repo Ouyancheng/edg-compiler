@@ -1,5 +1,18 @@
 Version 6.5
 
+10/26/22 [EDGcpfe/25729]
+C++-generating back end: parenthesized braced-init-list initializers
+
+When the initializer for a variable is a parenthesized braced-init-list,
+the C++-generating back end sometimes incorrectly omitted the braces.  This
+is now fixed.  For example, with --c++11:
+
+  struct {
+    long a;
+    long b;
+  } b({0, 0});  // Previously generated as "b((0), (0))"
+
+
 -------------------------------------------------------------------------------
 Version 6.4, October 25, 2022
 

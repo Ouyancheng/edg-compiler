@@ -21092,13 +21092,19 @@ Output the initializer, if any, for the indicated variable.
              avoids having to deal with parsing ambiguities. */
           if (braced_init) {
             write_tok_ch('{');
+          } else if (parenthesized_init && con->explicit_braces_on_aggregate) {
+            write_tok_ch('(');
           } else if (!con->explicit_parentheses_on_aggregate) {
             write_tok_str(" = ");
           }  /* if */
           gen_initializer_constant(con, var->type,
                                    /*transparent_case=*/FALSE,
                                    /*suppress_braces=*/braced_init);
-          if (braced_init) write_tok_ch('}');
+          if (braced_init) {
+            write_tok_ch('}');
+          } else if (parenthesized_init && con->explicit_braces_on_aggregate) {
+            write_tok_ch(')');
+          }  /* if */
         }  /* if */
         break;
       case initk_dynamic:

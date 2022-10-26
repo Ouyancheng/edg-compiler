@@ -5615,7 +5615,8 @@ returned set to TRUE.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       remove_stop_token(tok_rparen);
       check_closing_paren_after_expr_list();
-      if (init_con != NULL && constant_is(init_con, ck_aggregate)) {
+      if (init_con != NULL && constant_is(init_con, ck_aggregate) &&
+          dps->init_state.paren_as_aggregate_init) {
         /* C++20 parenthesized aggregate initialization is handled "as if"
            braces were specified in the source.  Record that parentheses were
            seen instead. */
