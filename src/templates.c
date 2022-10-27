@@ -21960,8 +21960,11 @@ template's and also record the primary template itself in the partial
 specialization's template symbol supplement.
 */
 {
-  a_template_symbol_supplement_ptr  tssp = ps_sym->variant.template_info;
+  a_template_symbol_supplement_ptr  tssp;
 
+  check_assertion(symbol_is(ps_sym, sk_class_template) ||
+                  symbol_is(ps_sym, sk_variable_template));
+  tssp = ps_sym->variant.template_info;
   ps_sym->decl_scope = primary_sym->decl_scope;
   if (primary_sym->is_class_member) {
     ps_sym->parent.class_type = sym_parent_class(primary_sym);

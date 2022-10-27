@@ -12,7 +12,7 @@ Consider:
     template<typename T> bool N::trait<T*> = true;
   }
 
-Previously, the front end erroneously recorded the parent scope of partial
+Previously, the front end erroneously recorded the parent scope of the partial
 specialization to be the unnamed namespace when instead it should match the
 primary template's parent scope.  That in turn caused the C++-generating back
 end to fail to emit the "N::" name qualifier in its rendering of the partial
