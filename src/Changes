@@ -1,6 +1,6 @@
 Version 6.5
 
-10/26/22 [EDGcpfe/25618]
+10/26/22 [EDGcpfe/24575,EDGcpfe/25618]
 Parent scope of partial specializations of variable templates
 
 Consider:
