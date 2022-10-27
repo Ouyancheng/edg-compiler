@@ -5851,7 +5851,9 @@ returned set to TRUE.
                                         is_constant_evaluated,
                                         folded_con, &diag_list)) {
         if (is_error_constant(folded_con)) init_err = TRUE;
-        if (static_lifetime) {
+        if (static_lifetime &&
+            (init_dip->destructor == NULL ||
+             init_dip->destructor->is_trivial_destructor)) {
           init_con = move_local_constant_to_il(&folded_con);
           init_dip = NULL;
         } else {
