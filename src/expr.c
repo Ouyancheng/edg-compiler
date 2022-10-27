@@ -47596,7 +47596,8 @@ escape at the end of the expression.)
        of floating-point type. */
     error_in_operand(expr_not_integral_or_any_enum_code(), operand);
   }  /* if */
-  if (is_indefinite_function_operand(operand) && operand->is_template_id) {
+  if (is_indefinite_function_operand(operand) && operand->is_template_id &&
+      !symbol_is(operand->symbol, sk_overloaded_function)) {
     /* Converting a function template-id to a single specialization avoids
        exponential time explosion for certain odd cases.  For example:
          template <int(*PF)()> int f() { return 0; }
@@ -47608,7 +47609,9 @@ escape at the end of the expression.)
        it from the outside in, which is a process that produces a tree of
        tentative substitutions with a total cost that is exponential in the
        depth of that tree.  If the operand is not dependent and can't be
-       reduced to a single function, the conversion is not possible. */
+       reduced to a single function, the conversion is not possible.
+       Unfortunately, this early reduction is not always correct if the
+       operand refers to multiple overloaded function templates. */
     a_symbol_ptr  single_func_sym;
     a_boolean     dependent;
     convert_function_template_to_single_function_full(
