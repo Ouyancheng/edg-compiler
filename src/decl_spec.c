@@ -9796,6 +9796,25 @@ dps->specifier_attributes list.
     *p_ap = to_prefix;
     *end_specifier = to_specifier;
     if (dps->specifier_attributes != NULL) {
+      if (type_is(dps->specifiers_type, tk_routine)) {
+        /* A specifiers type can be a tk_routine type only if the type
+           specifier was a template type parameter substituted with a routine
+           type.  Do not apply attributes directly to that routine type,
+           because the type might be shared.  For example:
+             template<typename T> struct S {
+               using X = T;
+               using Y = T [[nodebug]];
+             };
+             S<int(int)> sf;
+           We should not modify the routine type int(int) directly with the
+           attribute [[my_attr]] since that would, e.g., also (erroneously)
+           modify the type S<int(int)>::X.  Instead, we add a typeref layer
+           to which the attributes will be attached. */
+        a_type_ptr  trtp = alloc_type((a_type_kind)tk_typeref);
+        trtp->variant.typeref.type = dps->specifiers_type;
+        trtp->variant.typeref.for_type_attributes = TRUE;
+        dps->specifiers_type = trtp;
+      }  /* if */
       attach_type_attributes(&dps->specifiers_type, dps->specifier_attributes,
                              (void*)dps);
     }  /* if */
