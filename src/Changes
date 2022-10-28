@@ -4,7 +4,7 @@ Version 6.5
 IL write-read error after initializer folding
 
 In some complex situations the front end could abort with an IL write-read
-error after that initializer of a static-lifetime variable with a nontrivial
+error after the initializer of a static-lifetime variable with a nontrivial
 destructor was successfully folded (in configurations with the configuration
 macro IL_SHOULD_BE_WRITTEN_TO_FILE set to TRUE).  That problem, which was
 observed in some tests based on the Boost libraries, is now fixed.
