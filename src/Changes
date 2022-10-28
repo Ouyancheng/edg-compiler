@@ -31,12 +31,12 @@ Consider:
   template<template<typename> class TEMPL>
     TEMPL<float> f(const float&);           // (2)
   template <typename T, X<T>(F)(T const&)> 
-    int g();                                // (3).
+    int g();                                // (3)
   int r = g<int, &f<X>>();  // Previously an error.  Now okay.
 
-When processing &f<X> as a nontype template argument the front end prematurely
-reduced it to candidate (2) even though (1) is also a potential match (and in
-fact the correct match when deducing against the second template parameter of
+When processing &f<X> as a nontype template argument, the front end prematurely
+reduced it to candidate (2), even though (1) is also a potential match (and, in
+fact, the correct match when deducing against the second template parameter of
 (3)).  That problem -- which caused a deduction failure and an error in this
 case -- is now fixed.  (This was a regression introduced by the changes for
 EDGcpfe/18315 in version 4.14 of the front end.)
