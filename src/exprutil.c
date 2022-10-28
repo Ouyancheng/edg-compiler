@@ -21386,7 +21386,13 @@ it might produce an error).
         } else {
           /* Below, we'll record the expression for the constant, so make
              the prvalue version of the expression. */
+          an_expr_node_ptr  orig_node = node;
           node = expr_to_record_for_variable(variable, /*is_lvalue=*/FALSE);
+          if (is_variable_node(node)) {
+            node->variant.variable.name_reference =
+                                   orig_node->variant.variable.name_reference;
+            orig_node->variant.variable.name_reference = NULL;
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */

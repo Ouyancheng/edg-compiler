@@ -1,5 +1,26 @@
 Version 6.5
 
+10/28/22 [EDGcpfe/25453]
+C++-generating back end: qualifier for inherited static data member
+
+In configurations with DEFAULT_RECORD_FORM_OF_NAME_REFERENCE set to TRUE,
+the C++-generating back end sometimes used the base class name qualifier to
+refer to an inherited static data member in the generated code, even though
+the static data member is referred to using a derived class name qualifier
+in the source code.  (In configurations with
+DEFAULT_RECORD_FORM_OF_NAME_REFERENCE set to FALSE, static data members are
+always referred to using the class of which they are a direct member as the
+qualifier, but in configurations where it is TRUE, the source qualifier
+should be reproduced in the generated code.)  This is now fixed.  For
+example, with --c++17:
+
+  template<typename> struct A {
+    static constexpr bool val = true;
+  };
+  template<typename T> struct B : A<T> { };
+  static_assert(B<int>::val);   // Previously generated as A<int>::val
+
+
 10/28/22 [EDGcpfe/25745]
 IL write-read error after initializer folding
 
