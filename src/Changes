@@ -14,7 +14,7 @@ Consider (e.g., in Clang mode):
 Previously, the front end applied the attribute ([[nodebug]]) directly to the
 representation of the function type int(int).  That is incorrect, since that
 type is also used in S<int(int)>::X, which does not carry the attribute.  The
-problem was particularly visible with the C++-generating back end which
+problem was particularly visible with the C++-generating back end, which
 rendered the type of variable sf as "S<int(int) [[nodebug]]>" (that syntax is
 not accepted by Clang).  This is now fixed (by layering a typeref entry on top
 of the routine type and attaching the attributes to that typeref entry).

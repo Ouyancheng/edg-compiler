@@ -9800,14 +9800,14 @@ dps->specifier_attributes list.
         /* A specifiers type can be a tk_routine type only if the type
            specifier was a template type parameter substituted with a routine
            type.  Do not apply attributes directly to that routine type,
-           because the type might be shared.  For example:
+           because the type might be shared.  For example (in Clang mode):
              template<typename T> struct S {
                using X = T;
                using Y = T [[nodebug]];
              };
              S<int(int)> sf;
            We should not modify the routine type int(int) directly with the
-           attribute [[my_attr]] since that would, e.g., also (erroneously)
+           attribute [[nodebug]] since that would, e.g., also (erroneously)
            modify the type S<int(int)>::X.  Instead, we add a typeref layer
            to which the attributes will be attached. */
         a_type_ptr  trtp = alloc_type((a_type_kind)tk_typeref);
