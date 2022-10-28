@@ -1,5 +1,15 @@
 Version 6.5
 
+10/28/22 [EDGcpfe/25745]
+IL write-read error after initializer folding
+
+In some complex situations the front end could abort with an IL write-read
+error after that initializer of a static-lifetime variable with a nontrivial
+destructor was successfully folded (in configurations with the configuration
+macro IL_SHOULD_BE_WRITTEN_TO_FILE set to TRUE).  That problem, which was
+observed in some tests based on the Boost libraries, is now fixed.
+
+
 10/27/22 [EDGcpfe/25632]
 Attributes applied to a template type parameter substituted by a routine type
 
