@@ -21388,7 +21388,7 @@ it might produce an error).
              the prvalue version of the expression. */
           an_expr_node_ptr  orig_node = node;
           node = expr_to_record_for_variable(variable, /*is_lvalue=*/FALSE);
-          if (is_variable_node(node)) {
+          if (node != NULL && is_variable_node(node)) {
             node->variant.variable.name_reference =
                                    orig_node->variant.variable.name_reference;
             orig_node->variant.variable.name_reference = NULL;
