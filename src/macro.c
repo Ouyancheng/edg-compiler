@@ -423,18 +423,6 @@ typedef struct a_macro_arg {
 			   This affects how stringizing works: a stringized
 			   empty argument produces "", while a stringized
 			   omitted argument produces nothing. */
-  a_byte_boolean
-		contains_inert_macro;
-			/* TRUE if the raw text of the argument contains
-			   the name of an inert macro, i.e., the use of a
-			   macro name in its own expansion.  This is needed
-			   to emulate the behavior of the traditional
-			   Microsoft preprocessor regarding commas
-			   appearing in __VA_ARGS__ text.  See the comments
-			   in macro_invocation describing the use of
-			   a_source_line_modif::is_concat_with_inert_macro
-			   and the handling of comma_is_from_argument for
-			   details. */
 } a_macro_arg;
 
 static a_macro_arg_ptr
@@ -2164,7 +2152,6 @@ and return a pointer to it.
   map->comma_pos = null_source_position;
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
   map->is_empty_arg = FALSE;
-  map->contains_inert_macro = FALSE;
   db_exit();
   return map;
 }  /* alloc_macro_arg */
@@ -5478,7 +5465,7 @@ associated global variables will also have been set).
   a_boolean       empty_variadic_arg = FALSE;
   int             saved_white_space_kind = kind_of_white_space_skipped;
   a_boolean       saved_preserve_white_space_kind = preserve_white_space_kind;
-  a_boolean       concatenates_inert_macro = FALSE;
+  a_boolean       concatenates_macro_argument = FALSE;
   a_boolean       concatenates_va_args = FALSE;
 
   /* WATCH OUT: Pointers into macro_buffer or the raw_text of a macro arg
@@ -6168,9 +6155,6 @@ make_inert_macro:
           map = alloc_macro_arg();
           add_to_arg_values(map);
           arg_position = pos_curr_token;
-          if (curr_token_is_inert_macro) {
-            map->contains_inert_macro = TRUE;
-          }  /* if */
 do_argument_again:
           if (pp == NULL) {
             /* Too many arguments. */
@@ -6363,27 +6347,20 @@ do_argument_again:
                    special meaning to a comma from an argument - i.e., it
                    does not suppress its interpretation as separating macro
                    arguments - if it's used as an argument in a macro
-                   invocation in which the macro name is constructed from
-                   the name of the outer macro in a a deeply-nested macro
-                   expansion.  For example, given something like
+                   invocation in which the macro name is the result of
+                   concatenation with a macro argument in a a deeply-nested
+                   macro expansion.  For example, given something like
 
-                     #define M(...) X(M,1)(__VA_ARGS__)
+                     #define M(...) X(FOO)(__VA_ARGS__)
                      M(x,y)
 
                    where X is a macro whose ultimate expansion is the name
-                   of a macro Y and that name contains "M" (e.g., "M_1"),
-                   whether Y is invoked with one or two arguments depends
-                   on how deeply nested the name Y is in the expansion of
-                   the invocation of X relative to the nesting depth of the
-                   comma. */
-                unsigned long comma_depth = 0;
-                for (slmp2 = assoc_source_line_modif(start_of_curr_token);
-                     slmp2 != top_microsoft_slmp && slmp2 != NULL;
-                     slmp2 = parent_source_line_modif(slmp2)) {
-                  ++comma_depth;
-                }  /* for */
-                if (macro_name_depth >= comma_depth + 2 &&
-                    invocation_slmp->is_concat_with_inert_macro) {
+                   of a macro Y, whether Y is invoked with one or two
+                   arguments depends on whether the name Y resulted from a
+                   concatenation involving a macro argument and how deeply
+                   nested the concatenation is in the expansion of the
+                   invocation of X. */
+                if (invocation_slmp->is_concat_with_macro_argument) {
                   comma_is_from_argument = FALSE;
                 }  /* if */
               /* coverity[var_deref_op] */
@@ -6802,7 +6779,6 @@ end_arg_expansion:;
           map->expanded_text[0] = LE_ESCAPE;
           map->expanded_text[1] = LE_END_OF_INSERTION;
           map->is_empty_arg = FALSE;
-          map->contains_inert_macro = FALSE;
 #if FULLY_RESOLVED_MACRO_POSITIONS
           /* Add empty text map entries. */
           add_entry_to_macro_text_map(&map->raw_text_map,
@@ -7319,8 +7295,8 @@ end_arg_expansion:;
         if (prev_section_is_va_arg_substitution) {
           concatenates_va_args = TRUE;
         }  /* if */
-        if (prev_macro_arg != NULL && prev_macro_arg->contains_inert_macro) {
-          concatenates_inert_macro = TRUE;
+        if (prev_macro_arg != NULL) {
+          concatenates_macro_argument = TRUE;
         }  /* if */
         sect_len = 0;
         inert_escape = find_final_inert_escape(rescan_loc, src_loc);
@@ -7344,8 +7320,8 @@ end_arg_expansion:;
       } else {
         /* Other section kinds have an associated parameter number. */
         get_arg_value(rts_number, map);
-        if (prev_section_is_paste && map->contains_inert_macro) {
-          concatenates_inert_macro = TRUE;
+        if (prev_section_is_paste) {
+          concatenates_macro_argument = TRUE;
         }  /* if */
         switch (rts_kind) {
           case rt_raw_argument:
@@ -7696,7 +7672,7 @@ copy_done:
   }  /* if */
   slmp->assoc_macro = macro_symbol;
   slmp->source_position = start_pos;
-  slmp->is_concat_with_inert_macro = concatenates_inert_macro;
+  slmp->is_concat_with_macro_argument = concatenates_macro_argument;
   slmp->is_concat_with_va_args = concatenates_va_args;
   if (invocation_slmp != NULL &&
       ptr_in_range(delete_source_from_loc, invocation_slmp->inserted_text,

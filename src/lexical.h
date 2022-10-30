@@ -1477,17 +1477,16 @@ typedef struct a_source_line_modif {
 			   nested macro invocation.  See the comments on
 			   choose_raw_or_expanded_arg in macro.c for
 			   details. */
-  a_bit_field	is_concat_with_inert_macro:1;
+  a_bit_field	is_concat_with_macro_argument:1;
 			/* TRUE if the inserted text of this modification
 			   includes the result of the concatenation
-			   operator ## applied to the name of an inert
-			   macro, i.e., the use of a macro name in its own
-			   expansion.  This is needed to emulate the
-			   behavior of the traditional Microsoft
-			   preprocessor regarding commas appearing in
-			   __VA_ARGS__ text.  See the comments in
-			   macro_invocation describing the handling of
-			   comma_is_from_argument for details. */
+			   operator ## applied to a macro argument.  This
+			   is needed to emulate the behavior of the
+			   traditional Microsoft preprocessor regarding
+			   commas appearing in __VA_ARGS__ text.  See the
+			   comments in macro_invocation describing the
+			   handling of comma_is_from_argument for
+			   details. */
   a_bit_field	is_concat_with_va_args:1;
 			/* TRUE if the inserted text of this modification
 			   includes the result of applying the

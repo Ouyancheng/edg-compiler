@@ -4823,7 +4823,7 @@ invocations.
   slmp->is_whitespace_kwd   = FALSE;
   slmp->is_raw_or_expanded_arg
                             = FALSE;
-  slmp->is_concat_with_inert_macro
+  slmp->is_concat_with_macro_argument
                             = FALSE;
   slmp->is_concat_with_va_args
                             = FALSE;

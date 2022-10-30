@@ -1,5 +1,26 @@
 Version 6.5
 
+10/29/22 [EDGcpfe/21344]
+Microsoft compatibility: commas in variadic macro arguments
+
+As described in the entry for EDGcpfe/23821, the traditional Microsoft
+preprocessor usually treats commas appearing in variadic macro arguments as
+ordinary text, not delimiting macro arguments if the variadic argument is
+used as an argument to another macro when the original expansion is
+rescanned.  Under some circumstances, however, such commas do delimit macro
+arguments in a subsequent macro invocation.  The front end previously
+failed to recognize one of the patterns that results in argument-delimiting
+commas, leading to warnings about too few arguments in a macro invocation
+and incorrect macro expansions.  This is now fixed.  For example, with
+--microsoft -E:
+
+  #define CAT(x, y) x ## y
+  #define A(x, ...) CAT(x, 2)(__VA_ARGS__)
+  #define M(...) A(M, __VA_ARGS__)
+  #define M2(x, y) x + y
+  M(abc, def)   // Should expand to "abc + def", previously gave "abc, def +"
+
+
 10/28/22 [EDGcpfe/25453]
 C++-generating back end: qualifier for inherited static data member
 
@@ -9770,6 +9791,7 @@ The changes for EDGcpfe/16179 addressed some of those patterns but failed
 to emulate the behavior of the traditional Microsoft preprocessor in others.
 For example, with -E --microsoft, both
 
+  #define M1(x,...) x + __VA_ARGS__
   #define CAT_V(x,...) x##__VA_ARGS__
   #define B(...) CAT_V(M,1)(__VA_ARGS__)
   B(abc, def)
