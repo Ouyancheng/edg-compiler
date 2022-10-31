@@ -25153,13 +25153,6 @@ be suppressed (i.e., SFINAE mode).
     } else if (!issue_errors) {
       if (local_error_detected) record_suppressed_error();
     }  /* if */
-    if (!local_error_detected && dtor != NULL &&
-        construct_not_allowed_in_cpp11_constant_expr(ec_expr_not_constant,
-                                                     pos)) {
-      /* Initializer list with a destructor not allowed in a C++11
-         constant expression. */
-      dtor = NULL;
-    }  /* if */
   }  /* if */
   if (!is_complete_object_type(element_type)) {
     /* Something like initializer_list<void>. */
@@ -25203,10 +25196,10 @@ be suppressed (i.e., SFINAE mode).
       /* Count the number of elements in the array. */
       num_elements++;
     }  /* if */
-    if (exceptions_enabled && dtor != NULL && curr_expr_is_evaluated()) {
+    if (exceptions_enabled && dtor != NULL && curr_expr_is_evaluated() &&
+        !curr_expr_kind_is_const()) {
       /* This element will need a destructor in case an exception is
          thrown when part of the aggregate is constructed. */
-      check_assertion(!curr_expr_kind_is_const());
       will_need_partial_aggregate_destructor = TRUE;
     }  /* if */
     expr_clear_init_state(&init_state);
