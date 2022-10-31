@@ -8778,7 +8778,7 @@ void an_ifc_module::unsigned_integer_for_expr_index(
 /*
 Returns in *value, the unsigned integer value represented by expr_index
 (which must be either a LiteralSort::Immediate or LiteralSort::Integer).
-No casting is performed.
+No casting is performed (the caller must do that if needed).
 */
 {
   Opt<an_ifc_expr_literal> opt_iel;
@@ -8807,16 +8807,10 @@ No casting is performed.
             goto invalid;
           }  /* if */
 
-          char               raw_val[8];
           an_ifc_u64_storage raw_value = get_ifc_value(*opt_ici64);
-          static_assert(sizeof(raw_val) == sizeof(raw_value),
-                        "Generated storage doesn't match expected byte size.");
-          static_assert(sizeof(raw_val) == sizeof(uint64_t),
+          static_assert(sizeof(raw_value) == sizeof(a_host_large_unsigned),
                         "Expected byte size isn't 64 bits wide.");
-          memcpy(&raw_val, &raw_value, 8);
-          if (!conv_bytes_to_integer_value(value, raw_val, sizeof(raw_val))) {
-            unexpected_condition_str("Failed to get 64-bit integer");
-          }  /* if */
+          set_unsigned_integer_value(value, (a_host_large_unsigned)raw_value);
         }
         break;
       case ifc_ls_floating_point:
@@ -8899,9 +8893,15 @@ FIXME: what other expressions can we get here?
                   } else {
                     a_type_ptr stripped_type = skip_typerefs(constant_type);
                     if (type_is(stripped_type, tk_integer)) {
-                      set_unsigned_integer_constant(
-                                      cp, value,
+                      if (int_type_is_signed(stripped_type)) {
+                        sign_extend_integer_value(&value,
+                                   (int)(stripped_type->size * targ_char_bit));
+                        set_integer_constant(cp, value,
                                       stripped_type->variant.integer.int_kind);
+                      } else {
+                        set_unsigned_integer_constant(cp, value,
+                                      stripped_type->variant.integer.int_kind);
+                      }  /* if */
                     } else {
                       ifc_unexpected(this, "expected an integer type");
                     }  /* if */

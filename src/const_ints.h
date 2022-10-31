@@ -356,10 +356,6 @@ extern a_boolean swap_bytes_in_unsigned_integer(unsigned int     bytes,
                                                 an_integer_value *swapped);
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
 
-extern a_boolean conv_bytes_to_integer_value(an_integer_value *value,
-                                             char             *bytes,
-                                             size_t           num_bytes);
-
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE
 

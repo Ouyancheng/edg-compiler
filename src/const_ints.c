@@ -2180,35 +2180,6 @@ Assumes bytes are 8 bits.
 
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
 
-a_boolean conv_bytes_to_integer_value(an_integer_value *value,
-                                      char             *bytes,
-                                      size_t           num_bytes)
-/*
-Given an array of bytes that represent an integer of arbitrary size,
-encode those bytes into an integer value (*value).  Returns TRUE
-unless num_bytes is larger than the largest integer or an error is
-encountered.
-*/
-{
-  a_boolean        result = TRUE, err;
-  an_integer_value byte_val;
-
-  if (num_bytes > TARG_SIZEOF_LARGEST_INTEGER) {
-    result = FALSE;
-  } else {
-    set_unsigned_integer_value(value, (a_host_large_unsigned)0);
-    for (; num_bytes > 0; --num_bytes, ++bytes) {
-      a_host_large_unsigned bval = (unsigned char)*bytes;
-      set_unsigned_integer_value(&byte_val, bval);
-      shift_left_integer_value(value, CHAR_BIT, &err);
-      result = result && !err;
-      add_integer_values(value, &byte_val, /*is_signed=*/FALSE, &err);
-      result = result && !err;
-    }  /* for */
-  }  /* if */
-  return result;
-}
-
 static void init_int_kind_min_max_values(an_integer_kind ikind)
 /*
 Initialize the elements of min_integer_value_of_kind and
