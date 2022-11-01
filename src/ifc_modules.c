@@ -8808,8 +8808,6 @@ No casting is performed (the caller must do that if needed).
           }  /* if */
 
           an_ifc_u64_storage raw_value = get_ifc_value(*opt_ici64);
-          static_assert(sizeof(raw_value) == sizeof(a_host_large_unsigned),
-                        "Expected byte size isn't 64 bits wide.");
           set_unsigned_integer_value(value, (a_host_large_unsigned)raw_value);
         }
         break;
