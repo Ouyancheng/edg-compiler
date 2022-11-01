@@ -2248,7 +2248,7 @@ by octl.
       break;
     case tk_template_param:
       {
-        if (is_auto_type(type)) {
+        if (is_auto_type(type) || type->variant.template_param.is_auto_param) {
           /* A type entry representing an "auto" or "decltype(auto)" type
              specifier. */
           /* If the placeholder is constrained, render that constraint. */
@@ -2265,10 +2265,6 @@ by octl.
           } else {
             octl->output_str("auto", octl);
           }  /* if */
-        } else if (type->variant.template_param.is_auto_param) {
-          /* A template type parameter declared for an "auto" parameter in a
-             C++14-style generic lambda. */
-          octl->output_str("auto", octl);
         } else {
           a_source_correspondence_ptr scp = &type->source_corresp;
           an_il_entry_kind            scp_kind = iek_type;

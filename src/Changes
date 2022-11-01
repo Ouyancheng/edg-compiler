@@ -1,5 +1,17 @@
 Version 6.5
 
+11/1/22  [EDGcpfe/25088]
+C++-generating back end: constrained parameters in abbreviated function
+templates
+
+The C++-generating back end previously failed to put out constraints
+appearing in the auto parameters of abbreviated function templates.  This
+is now fixed.  For example, with --c++20:
+
+  template <typename T> concept large = (sizeof(T) > sizeof(char));
+  int g(large auto a);   // Previously generated as "int g(auto a);"
+
+
 10/31/22 [EDGcpfe/25757]
 Spurious error on deduced initializer_list cast
 
