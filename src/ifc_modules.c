@@ -8778,7 +8778,7 @@ void an_ifc_module::unsigned_integer_for_expr_index(
 /*
 Returns in *value, the unsigned integer value represented by expr_index
 (which must be either a LiteralSort::Immediate or LiteralSort::Integer).
-No casting is performed (the caller must do that if needed).
+No casting is performed.
 */
 {
   Opt<an_ifc_expr_literal> opt_iel;
@@ -8807,8 +8807,16 @@ No casting is performed (the caller must do that if needed).
             goto invalid;
           }  /* if */
 
+          char               raw_val[8];
           an_ifc_u64_storage raw_value = get_ifc_value(*opt_ici64);
-          set_unsigned_integer_value(value, (a_host_large_unsigned)raw_value);
+          static_assert(sizeof(raw_val) == sizeof(raw_value),
+                        "Generated storage doesn't match expected byte size.");
+          static_assert(sizeof(raw_val) == sizeof(uint64_t),
+                        "Expected byte size isn't 64 bits wide.");
+          memcpy(&raw_val, &raw_value, 8);
+          if (!conv_bytes_to_integer_value(value, raw_val, sizeof(raw_val))) {
+            unexpected_condition_str("Failed to get 64-bit integer");
+          }  /* if */
         }
         break;
       case ifc_ls_floating_point:

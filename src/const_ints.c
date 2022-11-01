@@ -2180,6 +2180,38 @@ Assumes bytes are 8 bits.
 
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
 
+a_boolean conv_bytes_to_integer_value(an_integer_value *value,
+                                      char             *bytes,
+                                      size_t           num_bytes)
+/*
+Given an array of bytes that represent a host integer of arbitrary size,
+encode those bytes into an_integer_value (*value).  Returns TRUE
+unless num_bytes is larger than the largest integer or an error is
+encountered.
+*/
+{
+  a_boolean        result = TRUE, err;
+  an_integer_value byte_val;
+
+  if (num_bytes > targ_sizeof_largest_integer) {
+    result = FALSE;
+  } else {
+    set_unsigned_integer_value(value, (a_host_large_unsigned)0);
+    if (host_little_endian) {
+      bytes += num_bytes - 1;
+    }  /* if */
+    for (; num_bytes > 0; --num_bytes, host_little_endian ? --bytes : ++bytes){
+      a_host_large_unsigned bval = (unsigned char)*bytes;
+      set_unsigned_integer_value(&byte_val, bval);
+      shift_left_integer_value(value, CHAR_BIT, &err);
+      result = result && !err;
+      or_integer_values(value, &byte_val);
+    }  /* for */
+  }  /* if */
+  return result;
+}  /* conv_bytes_to_integer_value */
+
+
 static void init_int_kind_min_max_values(an_integer_kind ikind)
 /*
 Initialize the elements of min_integer_value_of_kind and
