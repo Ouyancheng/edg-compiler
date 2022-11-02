@@ -1,5 +1,13 @@
 Version 6.5
 
+11/2/22  [EDGcpfe/25773]
+Uninitialized call frame field when constant-evaluating a statement expression
+
+In GNU modes, the constant evaluation interpreter failed to initialize a field
+of the "call frame" structure created for the evaluation of a GNU statement
+expression.  That is now fixed.
+
+
 11/1/22  [EDGcpfe/25088]
 C++-generating back end: constrained parameters in abbreviated function
 templates

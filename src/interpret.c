@@ -1343,6 +1343,7 @@ call frame).
     (p_frame)->variant.expr = (stmt_expr);                                   \
     (p_frame)->result_storage = (p_result);                                  \
     (p_frame)->complete_object = (p_complete);                               \
+    (p_frame)->entry_seq_number = (ips)->curr_alloc_seq_number;              \
     (p_frame)->return_active = FALSE;                                        \
     (p_frame)->loop_break_active = FALSE;                                    \
     (p_frame)->continue_active = FALSE;                                      \
