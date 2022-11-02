@@ -2259,12 +2259,13 @@ by octl.
             form_expression(constraint, octl);
             octl->output_str(" ", octl);
           }  /* if */
-          if (type->variant.template_param.is_auto_param ||
-              type->variant.template_param.extra_info
-                  ->coordinates.position == PLAIN_AUTO_TYPE_POS_NUMBER) {
-            octl->output_str("auto", octl);
-          } else {
+          if (type->variant.template_param.extra_info->coordinates.depth ==
+                                                     AUTO_TYPE_NESTING_DEPTH &&
+              type->variant.template_param.extra_info->coordinates.position ==
+                                                    DECLTYPE_AUTO_POS_NUMBER) {
             octl->output_str("decltype(auto)", octl);
+          } else {
+            octl->output_str("auto", octl);
           }  /* if */
         } else {
           a_source_correspondence_ptr scp = &type->source_corresp;
