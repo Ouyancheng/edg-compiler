@@ -835,6 +835,9 @@ other things to access the fields that contain the captures of local variables.
 }  /* this_variable_for_lambda_closure */
 
 
+extern an_expr_node_ptr this_expr_node_for_lambda_closure(
+                                                 a_scope_depth  depth_lambda);
+
 extern an_expr_node_ptr make_selection_for_captured_variable(
                                               a_lambda_capture *lambda_capture,
                                               a_scope_depth    depth_lambda,
