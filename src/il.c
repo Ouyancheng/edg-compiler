@@ -22617,8 +22617,7 @@ in C++ mode.
   a_variable_ptr   this_param_var;
 
   check_assertion(innermost_function_scope != NULL);
-  this_param_var =
-                 innermost_function_scope->variant.routine.this_param_variable;
+  this_param_var = this_variable_for_func_scope(innermost_function_scope);
 #if CHECKING
   if (this_param_var == NULL) {
     internal_error("this_param_value_expr: no this param");

@@ -820,10 +820,20 @@ extern a_boolean variable_this_exists(a_variable_ptr *this_var,
 extern a_boolean this_exists_for_member_access(a_symbol_ptr member_sym,
                                                a_boolean    allow_lambda_this);
 
-extern a_variable_ptr this_variable_for_lambda_closure(void);
+extern a_variable_ptr this_variable_for_func_scope(a_scope_ptr  scope);
 
-extern an_expr_node_ptr this_expr_node_for_lambda_closure(
-                                                 a_scope_depth  depth_lambda);
+
+inline a_variable_ptr this_variable_for_lambda_closure(
+                                                  a_scope_depth  depth_lambda)
+/*
+depth_lambda is the scope depth of a lambda body.  Return a pointer to the
+"this" variable for the corresponding lambda closure class, which is used among
+other things to access the fields that contain the captures of local variables.
+*/
+{
+  return this_variable_for_func_scope(scope_stack[depth_lambda].il_scope);
+}  /* this_variable_for_lambda_closure */
+
 
 extern an_expr_node_ptr make_selection_for_captured_variable(
                                               a_lambda_capture *lambda_capture,

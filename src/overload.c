@@ -12360,36 +12360,32 @@ allow_lambda_this is TRUE.
 }  /* this_exists_for_member_access */
 
 
-a_variable_ptr this_variable_for_lambda_closure(a_scope_depth  depth_lambda)
+a_variable_ptr this_variable_for_func_scope(a_scope_ptr  scope)
 /*
-depth_lambda is the scope depth of a lambda body.  Return a pointer to the
-"this" variable for the corresponding lambda closure class, which is used among
-other things to access the fields that contain the captures of local variables.
+The given scope is a function scope for a member function.  Return the
+associated "this" variable (either the traditional, implicitly-declared one,
+or a C++23 "explicit this" variable.  This function should only be called for
+a function with such a parameter variable.
 */
 {
   a_variable_ptr  this_var;
   a_type_ptr      routine_type;
-  a_scope_ptr     lm_scope;
-  a_routine_ptr   lm_rout;
+  a_routine_ptr   rout;
 
-  check_assertion(depth_lambda != NO_SCOPE_DEPTH);
-  lm_scope = scope_stack[depth_lambda].il_scope;
-  lm_rout = lm_scope->variant.routine.ptr;
-  check_assertion(lm_rout->is_lambda_body);
-  routine_type = skip_typerefs(lm_rout->type);
+  rout = scope->variant.routine.ptr;
+  routine_type = skip_typerefs(rout->type);
   if (has_explicit_this_parameter(routine_type)) {
-    /* A lambda with an explicit "this" parameter, which is the first entry on
-       the ordinary parameter variables list. */
-    this_var = lm_scope->variant.routine.parameters;
-    /* We have to make a variable for the explicit "this" parameter. */
+    /* A routine with an explicit "this" parameter, which is the first entry
+       on the ordinary parameter variables list. */
+    this_var = scope->variant.routine.parameters;
     check_assertion(this_var != NULL);
   } else {
-    /* A normal lambda: Use the implicit this. */
-    this_var = lm_scope->variant.routine.this_param_variable;
+    /* A normal nonstatic member function: Use the implicit this. */
+    this_var = scope->variant.routine.this_param_variable;
     check_assertion(this_var != NULL && this_var->is_this_parameter);
   }
   return this_var;
-}  /* this_variable_for_lambda_closure */
+}  /* this_variable_for_func_scope */
 
 
 an_expr_node_ptr this_expr_node_for_lambda_closure(a_scope_depth  depth_lambda)
