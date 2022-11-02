@@ -544,7 +544,19 @@ Output the indicated template argument in the way described by octl.
           if (is_any_reference_type(con->type)) {
             /* A reference parameter.  Display specially -- one level of
                indirection must be removed. */
+            a_type_ptr targ_type = type_pointed_to(con->type);
+            a_boolean  need_closing_paren = FALSE;
+            if (is_function_type(targ_type) || is_array_type(targ_type)) {
+              /* Enclose the argument in parentheses to prevent the type
+                 from decaying to a pointer if the corresponding parameter
+                 is a decltype(auto). */
+              octl->output_str("(", octl);
+              need_closing_paren = TRUE;
+            }  /* if */
             form_lvalue_address_constant(con, need_parens, octl);
+            if (need_closing_paren) {
+              octl->output_str(")", octl);
+            }  /* if */
           } else {
             /* Normal (non-reference) case. */
             a_boolean saved_implicit_cast = con->implicit_cast;

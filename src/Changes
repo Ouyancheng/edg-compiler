@@ -1,5 +1,30 @@
 Version 6.5
 
+11/2/22  [EDGcpfe/25670]
+C++-generating back end: function reference argument to decltype(auto)
+non-type template parameter
+
+When a reference to a function is passed to a decltype(auto) non-type
+template parameter, the C++-generating back end previously generated
+incorrect code for the template argument.  In particular, it replaced the
+reference with the name of the function to which the reference is bound.
+This change meant that the function-to-pointer decay applied to the
+argument, giving the non-type template parameter a different type in the
+generated code than it has in the source code.  This has now been fixed by
+enclosing such arguments in parentheses, preventing the function-to-pointer
+decay from occurring.  For example, with --c++17:
+
+  #include <typeinfo>
+  using TIR = const std::type_info &;
+  template <typename T> constexpr TIR x(T &t) { return typeid(t); }
+  template <decltype(auto) F> constexpr TIR y() { return typeid(F); }
+  int f();
+  int (&r)() = f;
+  static_assert(&x(f) == &y<r>());   // Previously generated as "y<f>",
+                                     // causing the assertion to fail in the
+                                     // generated code.  Now "y(f)>".
+
+
 11/2/22  [EDGcpfe/25776]
 Abort on capturing of explicit-this parameter
 
