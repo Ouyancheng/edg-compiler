@@ -5467,6 +5467,8 @@ associated global variables will also have been set).
   a_boolean       saved_preserve_white_space_kind = preserve_white_space_kind;
   a_boolean       concatenates_macro_argument = FALSE;
   a_boolean       concatenates_va_args = FALSE;
+  a_boolean       first_token_of_arg;
+  char            *comma_from_arg_marker;
 
   /* WATCH OUT: Pointers into macro_buffer or the raw_text of a macro arg
      are dangerous, since those things can be reallocated.  Such pointers
@@ -6238,6 +6240,8 @@ do_argument_again:
              occurring inside a substituted macro argument do not terminate
              a macro argument.
           */
+          first_token_of_arg = TRUE;
+          comma_from_arg_marker = NULL;
           while (!(curr_token == tok_newline ||
                    curr_token == tok_end_of_source ||
                    (paren_count == 0 &&
@@ -6245,18 +6249,31 @@ do_argument_again:
                      (curr_token == tok_comma &&
                       !comma_is_from_argument &&
                       !(pp != NULL && pp->next == NULL && mdp->variadic)))))) {
+            if (comma_from_arg_marker != NULL) {
+              /* Clang only implements the non-delimiting comma semantics
+                 if the comma is the only token in the argument.  If we're
+                 here, another token follows the comma, so we replace the
+                 special comma marker with an ordinary end-of-token. */
+              *comma_from_arg_marker = LE_END_OF_TOKEN;
+              comma_from_arg_marker = NULL;
+            }  /* if */
             /* Track nesting of parentheses. */
             if (curr_token == tok_lparen) {
               paren_count++;
             } else if (curr_token == tok_rparen) {
               if (paren_count > 0) paren_count--;
             } else if (comma_ignored_inside_argument &&
-                       curr_token == tok_comma && paren_count == 0) {
+                       curr_token == tok_comma && paren_count == 0 &&
+                       (first_token_of_arg || !clang_mode)) {
               /* Mark this comma as not delimiting arguments. */
               ensure_arg_raw_text_space(LE_ESCAPE_LEN, map);
               *(map->raw_text+map->raw_len++) = LE_ESCAPE;
               *(map->raw_text+map->raw_len++) = LE_COMMA_FROM_ARGUMENT;
+              if (clang_mode) {
+                comma_from_arg_marker = map->raw_text + map->raw_len - 1;
+              }  /* if */
             }  /* if */
+            first_token_of_arg = FALSE;
             if (scanning_text_not_in_primary_source_line) {
               /* This token was fetched from a source line modification.
                  Mark that modification so it will be saved if we advance
@@ -6543,6 +6560,8 @@ scan_expanded_tokens:
           /* Note that the tok_end_of_source here is returned because
              of the is_isolated_text flag; it's not actually the end of
              source. */
+          first_token_of_arg = TRUE;
+          comma_from_arg_marker = NULL;
           while (curr_token != tok_end_of_source) {
             a_boolean token_ends_macro_expansion = 
                               (!within_curr_source_line(start_of_curr_token) &&
@@ -6563,16 +6582,31 @@ scan_expanded_tokens:
                  the macro M will be invoked with one argument, not two.  To
                  implement this, we add a marker to the expanded text for
                  every comma that is to be ignored. */
+              if (comma_from_arg_marker != NULL) {
+                /* Clang only implements the non-delimiter semantics if the
+                   comma is the only token in the argument.  If we're here,
+                   there is a token following the comma, so we replace the
+                   special comma marker with an ordinary end-of-token
+                   marker. */
+                *comma_from_arg_marker = LE_END_OF_TOKEN;
+                comma_from_arg_marker = NULL;
+              }  /* if */
               if (curr_token == tok_lparen) {
                 ++paren_count;
               } else if (curr_token == tok_rparen && paren_count > 0) {
                 --paren_count;
-              } else if (curr_token == tok_comma && paren_count == 0) {
+              } else if (curr_token == tok_comma && paren_count == 0 &&
+                         (first_token_of_arg || !clang_mode)) {
                 ensure_arg_expanded_text_space(LE_ESCAPE_LEN, map);
                 *(map->expanded_text+map->expanded_len++) = LE_ESCAPE;
                 *(map->expanded_text+map->expanded_len++) =
                                                         LE_COMMA_FROM_ARGUMENT;
+                if (clang_mode) {
+                  comma_from_arg_marker =
+                                    map->expanded_text + map->expanded_len - 1;
+                }  /* if */
               }  /* if */
+              first_token_of_arg = FALSE;
             }  /* if */
             /* Put the text of the token into the argument expanded_text
                array. */

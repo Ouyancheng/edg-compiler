@@ -1,5 +1,43 @@
 Version 6.5
 
+11/2/22  [EDGcpfe/25476]
+Clang compatibility: --ms_compatibility and commas in variadic macro arguments
+
+As noted in the entry for EDGcpfe/16179, the traditional Microsoft
+preprocessor has a nonstandard treatment of commas appearing in variadic
+macro arguments, such that passing __VA_ARGS__ to another macro when the
+expansion is rescanned only passes a single argument, regardless of the
+presence of commas in the text of __VA_ARGS__.  The clang preprocessor in
+-fms-compatibility mode only implements a very limited version of this
+nonstandard processing, treating a single comma that appears alone with no
+other text in __VA_ARGS__ as a single argument, rather than two empty
+arguments, but in all other cases gives commas their standard meaning.
+Previously, the front end fully emulated the Microsoft preprocessor in
+clang mode with --ms_compatibility.  For example:
+
+  #define M(x) --> x <--
+  #define V(...) M(__VA_ARGS__)
+  #define M2(x, y) x + y
+  #define V2(...) M2(__VA_ARGS__)
+  V( , )
+  V2(x, y)
+
+The clang preprocessor with -E -fms-compatibility accepts this example
+without error and produces
+
+  --> , <--
+  x + y
+
+and the front end with -E --clang --ms_compatibility now does so as well.
+By contrast, MSVC and the front end in Microsoft mode warn about too few
+arguments in the invocation of M2 and produce
+
+  --> , <--
+  x, y +
+
+passing the string "x, y" to M2 as a single argument instead of two.
+
+
 11/2/22  [EDGcpfe/25670]
 C++-generating back end: function reference argument to decltype(auto)
 non-type template parameter
@@ -22,7 +60,7 @@ decay from occurring.  For example, with --c++17:
   int (&r)() = f;
   static_assert(&x(f) == &y<r>());   // Previously generated as "y<f>",
                                      // causing the assertion to fail in the
-                                     // generated code.  Now "y(f)>".
+                                     // generated code.  Now "y<(f)>".
 
 
 11/2/22  [EDGcpfe/25776]
