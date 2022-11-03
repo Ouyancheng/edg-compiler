@@ -6249,28 +6249,30 @@ do_argument_again:
                      (curr_token == tok_comma &&
                       !comma_is_from_argument &&
                       !(pp != NULL && pp->next == NULL && mdp->variadic)))))) {
-            if (comma_from_arg_marker != NULL) {
-              /* Clang only implements the non-delimiting comma semantics
-                 if the comma is the only token in the argument.  If we're
-                 here, another token follows the comma, so we replace the
-                 special comma marker with an ordinary end-of-token. */
-              *comma_from_arg_marker = LE_END_OF_TOKEN;
-              comma_from_arg_marker = NULL;
-            }  /* if */
             /* Track nesting of parentheses. */
             if (curr_token == tok_lparen) {
               paren_count++;
             } else if (curr_token == tok_rparen) {
               if (paren_count > 0) paren_count--;
-            } else if (comma_ignored_inside_argument &&
-                       curr_token == tok_comma && paren_count == 0 &&
-                       (first_token_of_arg || !clang_mode)) {
-              /* Mark this comma as not delimiting arguments. */
-              ensure_arg_raw_text_space(LE_ESCAPE_LEN, map);
-              *(map->raw_text+map->raw_len++) = LE_ESCAPE;
-              *(map->raw_text+map->raw_len++) = LE_COMMA_FROM_ARGUMENT;
-              if (clang_mode) {
-                comma_from_arg_marker = map->raw_text + map->raw_len - 1;
+            } else if (comma_ignored_inside_argument) {
+              if (comma_from_arg_marker != NULL) {
+                /* Clang only implements the non-delimiting comma semantics
+                   if the comma is the only token in the argument.  If
+                   we're here, another token follows the comma, so we
+                   replace the special comma marker with an ordinary
+                   end-of-token. */
+                *comma_from_arg_marker = LE_END_OF_TOKEN;
+                comma_from_arg_marker = NULL;
+              }  /* if */
+              if (curr_token == tok_comma && paren_count == 0 &&
+                  (first_token_of_arg || !clang_mode)) {
+                /* Mark this comma as not delimiting arguments. */
+                ensure_arg_raw_text_space(LE_ESCAPE_LEN, map);
+                *(map->raw_text+map->raw_len++) = LE_ESCAPE;
+                *(map->raw_text+map->raw_len++) = LE_COMMA_FROM_ARGUMENT;
+                if (clang_mode) {
+                  comma_from_arg_marker = map->raw_text + map->raw_len - 1;
+                }  /* if */
               }  /* if */
             }  /* if */
             first_token_of_arg = FALSE;
