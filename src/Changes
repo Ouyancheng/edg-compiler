@@ -60,7 +60,7 @@ decay from occurring.  For example, with --c++17:
   int (&r)() = f;
   static_assert(&x(f) == &y<r>());   // Previously generated as "y<f>",
                                      // causing the assertion to fail in the
-                                     // generated code.  Now "y(f)>".
+                                     // generated code.  Now "y<(f)>".
 
 
 11/2/22  [EDGcpfe/25776]
