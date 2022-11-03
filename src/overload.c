@@ -12364,7 +12364,7 @@ a_variable_ptr this_variable_for_func_scope(a_scope_ptr  scope)
 /*
 The given scope is a function scope for a member function.  Return the
 associated "this" variable (either the traditional, implicitly-declared one,
-or a C++23 "explicit this" variable.  This function should only be called for
+or a C++23 "explicit this" variable).  This function should only be called for
 a function with such a parameter variable.
 */
 {
@@ -12372,6 +12372,7 @@ a function with such a parameter variable.
   a_type_ptr      routine_type;
   a_routine_ptr   rout;
 
+  check_assertion(scope_is(scope, sck_function));
   rout = scope->variant.routine.ptr;
   routine_type = skip_typerefs(rout->type);
   if (has_explicit_this_parameter(routine_type)) {
