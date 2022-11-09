@@ -4890,8 +4890,8 @@ struct a_class_qualified_lookup_options_set {
       is_member_of_direct_base((options & IDL_MEMBER_OF_UNKNOWN_BASE) != 0),
       is_expr_context((options & IDL_IS_EXPR_CONTEXT) != 0),
       is_typename_lookup((options & IDL_TYPENAME_LOOKUP) != 0),
-      is_tenative_type_lookup((options & IDL_TENTATIVE_TYPE_LOOKUP) != 0),
-      is_tenative_template_lookup(
+      is_tentative_type_lookup((options & IDL_TENTATIVE_TYPE_LOOKUP) != 0),
+      is_tentative_template_lookup(
                                (options & IDL_TENTATIVE_TEMPLATE_LOOKUP) != 0),
       are_proxy_members_template_ids((options & IDL_TREAT_AS_TEMPLATE_ID) != 0)
   {}
@@ -4919,8 +4919,8 @@ struct a_class_qualified_lookup_options_set {
   const a_boolean is_member_of_direct_base;
   const a_boolean is_expr_context;
   const a_boolean is_typename_lookup;
-  const a_boolean is_tenative_type_lookup;
-  const a_boolean is_tenative_template_lookup;
+  const a_boolean is_tentative_type_lookup;
+  const a_boolean is_tentative_template_lookup;
   const a_boolean are_proxy_members_template_ids;
 private:
   inline a_boolean is_valid_gnu_injected_symbol(a_symbol_ptr fund_sym) const;
@@ -4994,7 +4994,7 @@ g++ mode, otherwise return FALSE.
     } else if (gnu_version < 30400) {
       result = TRUE;
     } else if (gnu_version < 40500 &&
-               (is_tenative_type_lookup || is_tenative_template_lookup)) {
+               (is_tentative_type_lookup || is_tentative_template_lookup)) {
       result = TRUE;
     } else if (are_proxy_members_template_ids &&
                is_injected_template_symbol(fund_sym)) {
