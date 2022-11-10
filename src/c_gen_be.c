@@ -10412,14 +10412,14 @@ by dump_routine_decl.
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
   /* Now that we're done with the function, free its IL information if it
      is the top-level function of a memory region. */
-  if (rout->is_top_level_in_mem_region) {
+  if (rout->is_top_level_in_mem_region && !skip_il_read) {
     free_memory_region(scope_region_number);
   }  /* if */
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
   if (master_routine != NULL) {
     /* Finished a wrapper routine. */
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
-    if (master_routine->is_top_level_in_mem_region) {
+    if (master_routine->is_top_level_in_mem_region && !skip_il_read) {
       free_memory_region(master_scope_region_number);
     }  /* if */
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */

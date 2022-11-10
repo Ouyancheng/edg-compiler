@@ -1,5 +1,14 @@
 Version 6.5
 
+11/20/22 [EDGcpfe/25789]
+Segfault in fseek with --il_display
+
+In configurations that use the C-generating back end, adding --il_display
+(or --set_flag skip_il_read) to the command-line options had resulted in a
+segfault in fseek when called by read_memory_region in certain cases.  Now
+fixed.
+
+
 11/2/22  [EDGcpfe/25476]
 Clang compatibility: --ms_compatibility and commas in variadic macro arguments
 
