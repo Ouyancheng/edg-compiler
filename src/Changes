@@ -1,6 +1,6 @@
 Version 6.5
 
-11/20/22 [EDGcpfe/25789]
+11/10/22 [EDGcpfe/25789]
 Segfault in fseek with --il_display
 
 In configurations that use the C-generating back end, adding --il_display
