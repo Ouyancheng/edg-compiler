@@ -6274,6 +6274,7 @@ in il_alloc_init.)
   /* Save static variables that are needed for precompiled headers */
   if (precompiled_header_processing_required) {
     static a_pch_saved_variable saved_vars[] = {
+      pch_saved_var_array_elem(avail_param_types),
       pch_saved_var_array_elem(avail_template_args),
       pch_saved_var_array_elem(available_local_constants),
       pch_saved_var_array_elem(avail_fs_nodes),
@@ -6412,6 +6413,7 @@ in il_alloc_init.)
     register_pch_saved_variables(saved_vars);
   }  /* if */
   register_trans_unit_variable(file_scope_entry_prefix_size);
+  register_trans_unit_variable(avail_param_types);
   register_trans_unit_variable(avail_template_args);
   register_trans_unit_variable(available_local_constants);
   register_trans_unit_variable(avail_fs_nodes);
@@ -6467,6 +6469,7 @@ Initialize static variables related to IL allocation.  These are variables
 that need initialization for every (primary and secondary) translation unit.
 */
 {
+  avail_param_types = NULL;
   avail_template_args = NULL;
   available_local_constants = NULL;
   avail_fs_nodes = NULL;

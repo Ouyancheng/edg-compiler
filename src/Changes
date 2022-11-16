@@ -1,5 +1,15 @@
 Version 6.5
 
+11/16/22 [EDGcpfe/25800]
+initialization of avail_param_types
+
+The changes for EDGcpfe/21589,EDGcpfe/22350,EDGcpfe/22466,EDGcpfe/22465 (see
+entry of 4/20/21) introduced a translation-unit-dependent variable
+avail_param_types, but failed to initialize that variable in situations
+involving multiple translation units or precompiled header files.  That is now
+fixed.
+
+
 11/15/22 [EDGcpfe/25746]
 Unbounded recursion while looking for a user-defined conversion
 
