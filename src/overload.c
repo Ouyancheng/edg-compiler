@@ -6109,13 +6109,24 @@ in a new-expression).
         /* Do not insert code here. */
         {
           /* Normal argument matching */
+          a_boolean  allow_udc = allow_udc_on_arguments;
+          if (allow_udc && ovl_context == oc_conv_to_class_check &&
+              !(conv_context & (CCO_CAST |
+                                CCO_ARG_VIA_COPY_CTOR |
+                                CCO_INITIALIZING_VARIABLE |
+                                CCO_INITIALIZING_RETURN_VALUE |
+                                CCO_ALLOW_EXPLICIT_CONV_FUNCTIONS)) &&
+              !is_braced_init_component(arg_list_elem)) {
+            /* Prevent unbounded recursion looking for a user-defined
+               conversion match. */
+            allow_udc = FALSE;
+          }  /* if */
           determine_arg_list_elem_match_level(
                                     arg_list_elem,
                                     param->type,
                                     param,
                                     param_type_is_deduced,
-                                    /*try_user_conversions=*/
-                                                        allow_udc_on_arguments,
+                                    /*try_user_conversions=*/allow_udc,
                                     allow_expl_conv_funcs_this_arg,
                                     arg_match);
           if (enum_param_still_needed) {

@@ -1,5 +1,20 @@
 Version 6.5
 
+11/15/22 [EDGcpfe/25746]
+Unbounded recursion while looking for a user-defined conversion
+
+Consider:
+
+  struct B { const int (&raic)[2]; };
+  struct C: B {};
+  struct D: B, C {};
+  D d = { D(), {{1, 2}} };  // Previously aborted.  Now a plain error.
+
+This example previously sent the front end in an unbounded recursion (and thus
+eventually an abort) while looking for a user-defined conversion (from type D
+to type B const).  That is now fixed.
+
+
 11/10/22 [EDGcpfe/25789]
 Segfault in fseek with --il_display
 
