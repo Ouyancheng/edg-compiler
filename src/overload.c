@@ -6115,7 +6115,8 @@ in a new-expression).
                                 CCO_ARG_VIA_COPY_CTOR |
                                 CCO_INITIALIZING_VARIABLE |
                                 CCO_INITIALIZING_RETURN_VALUE |
-                                CCO_ALLOW_EXPLICIT_CONV_FUNCTIONS)) &&
+                                CCO_ALLOW_EXPLICIT_CONV_FUNCTIONS |
+                                CCO_UNWRAPPED_BRACED_LIST)) &&
               !is_braced_init_component(arg_list_elem)) {
             /* Prevent unbounded recursion looking for a user-defined
                conversion match. */
@@ -19708,6 +19709,7 @@ error.  conv_context describes the context of the conversion.
     if (alep != NULL) {
       check_assertion(is_braced_init_component(alep));
       arg_list = alep->variant.braced.list;
+      conv_context |= CCO_UNWRAPPED_BRACED_LIST;
     } else {
       arg_list = alloc_arg_list_elem_for_operand(source_operand);
     }  /* if */

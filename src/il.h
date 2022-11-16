@@ -2317,6 +2317,10 @@ typedef int a_conv_context_set;
 #define CCO_BUILTIN_OP ((a_conv_context_set)0x2000000)
 			/* Used to indicate that this is a conversion for a
 			   built-in operator. */
+#define CCO_UNWRAPPED_BRACED_LIST ((a_conv_context_set)0x4000000)
+			/* Used while looking for a conversion to class type to
+			   indicate that the argument list was originally
+			   enclosed by braces. */
 
 
 /*
