@@ -25195,6 +25195,7 @@ be suppressed (i.e., SFINAE mode).
     a_conv_context_set   econv_context = conv_context &
                              (CCO_INITIALIZING_VARIABLE | CCO_STATIC_LIFETIME |
                               CCO_NEW_INITIALIZER);
+    econv_context |= CCO_UNWRAPPED_BRACED_LIST;
     if (unknown_num_elements ||
         elem_icp->pack_expansion_descr != NULL) {
       /* The list element is a pack expansion, or we previously encountered

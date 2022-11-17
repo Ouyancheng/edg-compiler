@@ -2340,7 +2340,8 @@ typedef int a_conv_context_set;
 #define CCO_UNWRAPPED_BRACED_LIST ((a_conv_context_set)0x4000000)
 			/* Used while looking for a conversion to class type to
 			   indicate that the argument list was originally
-			   enclosed by braces. */
+			   enclosed by braces.  Also TRUE when initializing the
+			   elements of a std::initializer_list object. */
 
 
 /*
