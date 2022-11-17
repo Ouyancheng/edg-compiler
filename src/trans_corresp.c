@@ -3098,6 +3098,8 @@ Return TRUE if the given routines are compatible with each other.
                               TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING)) {
     /* result = FALSE; */
   } else if (rp1->compiler_generated != rp2->compiler_generated &&
+             !is_implicitly_declared_c_func(rp1) &&
+             !is_implicitly_declared_c_func(rp2) &&
              !is_generated_new_or_delete_operator(rp1) &&
              !is_generated_new_or_delete_operator(rp2)) {
     /* result = FALSE; */
@@ -6713,8 +6715,10 @@ with sym.  This is called from find_corresponding_routine_on_list.
                           (a_name_linkage_kind)nlk_external &&
              corresp_routine->source_corresp.name_linkage ==
                           (a_name_linkage_kind)nlk_external &&
-             !(routine->compiler_generated ||
-               corresp_routine->compiler_generated)) {
+             !((routine->compiler_generated ||
+                corresp_routine->compiler_generated) &&
+               !is_implicitly_declared_c_func(routine) &&
+               !is_implicitly_declared_c_func(corresp_routine))) {
     /* Two C-linkage functions with corresponding names but different types are
        usually an error.  An exception occurs with certain built-in functions
        that are "instantiated" for various invocation points (e.g.,

@@ -608,6 +608,26 @@ Macro to test a routine entry's special_kind field.
 #define special_kind_is(rp, sfk)                                            \
   ((rp)->special_kind == (a_special_function_kind)(sfk))
 
+inline a_boolean is_implicitly_declared_c_func(a_routine_ptr  rp)
+/*
+Return TRUE if rp is declared in C mode as the result of "calling" an unknown
+identifier.  For example:
+
+  int main() { return unknown(); }  // "unknown" is implicitly declared in C.
+*/
+{
+  a_boolean  result = rp->compiler_generated &&
+                      special_kind_is(rp, sfk_none) && C_mode();
+
+#if BUILTIN_FUNCTIONS_ENABLED
+  if (result &&
+      rp->variant.builtin_function_kind != (a_builtin_function_kind)0) {
+    result = FALSE;
+  }  /* if */
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
+  return result;
+}  /* is_implicitly_declared_c_func */
+
 /*
 Functions and macros to test whether a routine is a GNU built-in function.
 */
