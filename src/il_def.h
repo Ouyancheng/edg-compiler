@@ -11591,13 +11591,14 @@ typedef struct a_routine {
 			   the actual definition in the library (e.g.,
 			   "std::is_constant_evaluated"). */
   a_bit_field	compiler_generated:1;
-			/* TRUE for functions that are created by the
-			   compiler and have not been declared in the source,
-			   e.g., default constructors in C++.  If a valid
-			   declaration is found in the source -- as could for
-			   example be true of "operator delete" -- the flag
-			   will be cleared; hence the bit is not necessarily
-			   TRUE for "intrinsic" routines. */
+			/* TRUE for functions that are created by the compiler
+			   and have not been declared in the source, e.g.,
+			   default constructors in C++ or previously-unknown
+			   identifiers appearing in a call-expression in C89
+			   mode.  If a valid declaration is found in the
+			   source -- as could for example be true of "operator
+			   delete" -- the flag will be cleared; hence the bit
+			   is not necessarily TRUE for "intrinsic" routines. */
   a_bit_field	defined:1;
 			/* TRUE once the definition of the function has been
 			   completed.  (While the function body is being

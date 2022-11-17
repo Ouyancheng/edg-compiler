@@ -1,5 +1,19 @@
 Version 6.5
 
+11/16/22 [EDGcpfe/25775]
+C-mode implicitly-declared functions
+
+Consider:
+
+  int main() {
+    return f();
+  }
+
+which is allowed in some C modes despite f() not being declared.  Previously,
+the routine entry created for f() did not reflect that it is implicitly
+declared.  Now its compiler_generated flag is set to TRUE.
+
+
 11/16/22 [EDGcpfe/25800]
 initialization of avail_param_types
 

@@ -12687,6 +12687,7 @@ symbol has already been entered as an undefined symbol.
   /* Set the referenced flag on the routine entry.  The implicit declaration
      is also an immediate reference. */
   dps.sym->variant.routine.ptr->source_corresp.referenced = TRUE;
+  dps.sym->variant.routine.ptr->compiler_generated = TRUE;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   source_sequence_entries_disallowed = saved_sses_disallowed;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
