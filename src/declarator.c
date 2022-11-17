@@ -1233,8 +1233,8 @@ the specifiers and declarator that formed the new type.
             if ((tqs & TQ_VOLATILE) != TQ_NONE &&
                 !is_void_type(new_type_ptr)) {
               tqs &= ~(a_type_qualifier_set)tqs;
-              new_type_ptr = make_qualified_type(skip_typerefs(new_type_ptr),
-                                                 tqs);
+              new_type_ptr = make_qualified_type(
+                               skip_typerefs_not_typedefs(new_type_ptr), tqs);
             }  /* if */
           }  /* if */
         }  /* if */
