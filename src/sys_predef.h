@@ -437,6 +437,13 @@ EXTERN a_builtin_user_descr builtin_user_table[]
   { "__builtin_FUNCTION", "Lx(90000-)s+(202002-)m+(1927-)",
     "const char*(void) __edg_throw__()", bfk_FUNCTION },
 
+  /* These Clang builtins were automatically detected until version 13.0.0
+     (but are manually added here for later releases). */
+  { "__builtin_coro_destroy", "Lx(120002-)", "void (void*)", bfk_coro_destroy},
+  { "__builtin_coro_done", "Lx(120002-)",
+    "__edg_bool_type__ (void*) __edg_throw__()", bfk_coro_done },
+  { "__builtin_coro_resume", "Lx(120002-)", "void (void*)", bfk_coro_resume },
+
   { NULL, NULL, 0, bfk_none }   /* end of table marker */
 }
 #endif /* VAR_INITIALIZERS */
