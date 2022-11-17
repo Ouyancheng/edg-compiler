@@ -15,7 +15,7 @@ declared.  Now its compiler_generated flag is set to TRUE.
 
 
 11/16/22 [EDGcpfe/25800]
-initialization of avail_param_types
+Initialization of avail_param_types
 
 The changes for EDGcpfe/21589,EDGcpfe/22350,EDGcpfe/22466,EDGcpfe/22465 (see
 entry of 4/20/21) introduced a translation-unit-dependent variable
