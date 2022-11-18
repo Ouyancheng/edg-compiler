@@ -14898,8 +14898,10 @@ BEGIN_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
                                        int_type, pm1_copy);
     expr_eq->next = make_operator_node((an_expr_operator_kind)eok_land,
                                        int_type, expr_ne);
-    overwrite_node(expr, make_operator_node((an_expr_operator_kind)eok_land,
-                                            int_type, expr_eq));
+    an_expr_node_ptr new_expr =
+        make_operator_node((an_expr_operator_kind)eok_land, int_type, expr_eq);
+    new_expr = add_cast_if_necessary(new_expr, expr->type);
+    overwrite_node(expr, new_expr);
   }  /* if */
 END_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
 }  /* lower_is_corresponding_member */

@@ -1,5 +1,22 @@
 Version 6.5
 
+11/18/22 [EDGcpfe/25569]
+Missing cast in lowered code for __builtin_is_corresponding_member
+
+The lowered code generated for some invocations of the
+__builtin_is_corresponding_member builtin was missing a cast in some cases,
+resulting in code that could be problematic for a back end.  For example
+(with --gnu_version=120000):
+
+  template <class T1, class T2, class C1, class C2>
+  constexpr bool f(C1 T1::*t1, C2 T2::*t2) {
+    return __builtin_is_corresponding_member(t1, t2);
+  }
+  struct A {} A::*a;
+  struct B {} B::*b;
+  bool x = f(a, b);
+
+
 11/18/22 [EDGcpfe/25611]
 Build issues with MAKE_FRONT_END_CALLABLE
 
