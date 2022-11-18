@@ -1,5 +1,13 @@
 Version 6.5
 
+11/18/22 [EDGcpfe/25796]
+a_src_seq_secondary_decl::first_declaration for variable declarations
+
+The field first_declaration in a_src_seq_secondary_decl is now also set for
+entries representing the initial declaration of a variable (including that of
+a static data member).
+
+
 11/18/22 [EDGcpfe/25798]
 Spurious lifetime expiration during constant evaluation
 

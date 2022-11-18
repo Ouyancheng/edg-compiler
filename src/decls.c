@@ -7752,6 +7752,7 @@ for use in generating cross-reference output describing this declaration.
   }  /* if */
   if (!is_variable_def || (srk_flags & SRK_TENTATIVE_DEF)) {
     an_sssd_flag_set  flags = SSSD_NO_FLAGS;
+    if (dps->first_decl) flags |= SSSD_FIRST_DECLARATION;
 #if GNU_EXTENSIONS_ALLOWED
     if (dps->decl_modifiers.marked_as_gnu_extension) {
       flags |= SSSD_MARKED_AS_GNU_EXTENSION;

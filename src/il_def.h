@@ -2008,8 +2008,8 @@ typedef struct a_src_seq_secondary_decl {
   a_bit_field	first_declaration:1;
 			/* TRUE if the declaration is the initial appearance
 			   of an entity in the translation unit; defined only
-			   for entries referring to class or enum types or
-			   to routines. */
+			   for entries referring to class or enum types, to
+			   to routines, and to variables. */
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
   a_bit_field	is_partial_instantiation:1;
 			/* TRUE if this entry represents the partial

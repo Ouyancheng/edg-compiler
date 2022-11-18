@@ -18618,13 +18618,14 @@ template declaration and is NULL otherwise.
            secondary source sequence entry. */
         sssdp = secondary_src_seq_for_template(il_template_entry);
         sssdp->declared_type = declared_type;
+        sssdp->first_declaration = TRUE;
       }  /* if */
       if (srk_flags & SRK_DEFINITION) {
         var->declared_type = declared_type;
         var->declared_storage_class = decl_state->declared_storage_class;
       }  /* if */
     } else if (!(srk_flags & (SRK_DEFINITION | SRK_INITIALIZATION))) {
-      an_sssd_flag_set  flags = SSSD_NO_FLAGS;
+      an_sssd_flag_set  flags = SSSD_FIRST_DECLARATION;
 #if GNU_EXTENSIONS_ALLOWED
       if (decl_state->marked_as_gnu_extension) {
         flags |= SSSD_MARKED_AS_GNU_EXTENSION;
