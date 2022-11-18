@@ -1,5 +1,38 @@
 Version 6.5
 
+11/18/22 [EDGcpfe/25798]
+Spurious lifetime expiration during constant evaluation
+
+Consider (in C++20 mode):
+
+  struct P;
+  struct C { P *p = nullptr; };
+  struct P { C *c = nullptr; };
+  struct I {
+    constexpr I(C *c) { f(c); }
+    constexpr I(const I &i) { f(i.p->c); }
+    constexpr void f(C *pc) { p = pc->p; }
+    P *p = nullptr;
+  };
+  struct V {
+    constexpr V() { c.p = new P{ &c }; }
+    constexpr ~V() { delete c.p; }
+    C c;
+  };
+  constexpr bool cond(I) { return true; }
+  constexpr bool g() {
+    V v;
+    I i = I(&v.c);
+    return cond(i);
+  }
+  static_assert(g());
+
+A bug in the constexpr interpreter caused the lifetime of the variable v during
+the evaluation of the call to g() to be aborted earlier.  In turn, that caused
+the use of i in the call cond(i) to be considered non-constant because it was
+mistakenly treated as accessing expired storage.  That is now fixed.
+
+
 11/18/22 [EDGcpfe/25678]
 C++-generating back end: function reference argument to decltype(auto)
 non-type template parameter

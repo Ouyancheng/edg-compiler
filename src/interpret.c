@@ -717,6 +717,8 @@ Double the number of entries in the given set.  This requires rehashing.
 }  /* expand_live_set */
 
 
+void interceptor() {}
+
 /*
 Macro to add an allocation sequence number to a live set.  (It may not be in
 the set already.)
@@ -727,6 +729,7 @@ the set already.)
   a_live_set_index     mask = (set)->hash_mask;                              \
   a_live_set_index     idx = hash & mask;                                    \
   an_alloc_seq_number  *table = (set)->table;                                \
+  if (alloc_seq == 3) interceptor(); \
   if (table[idx] == 0) {                                                     \
     table[idx] = (alloc_seq);                                                \
   } else {                                                                   \
@@ -773,6 +776,7 @@ at idx.
   a_live_set_index     idx = hash & mask;                                    \
   an_alloc_seq_number  *table = (set)->table;                                \
   /* Find the item to delete (we're assuming it exists). */                  \
+  if (alloc_seq == 3) interceptor(); \
   while (table[idx] != (alloc_seq)) {                                        \
     idx = (idx+1) & mask;                                                    \
   }  /* while */                                                             \
@@ -6356,8 +6360,13 @@ otherwise, this routine will look up that storage in ips->map.
     } else {
       a_boolean            saved_is_constant_evaluated =
                                                    ips->is_constant_evaluated;
+      a_byte_count         var_size = value_bytes_for_type(ips, tp, &result);
+      a_var_postfix        *postfix;
       a_constexpr_address  dst_addr;
+      do_host_alignment(var_size);
+      postfix = (a_var_postfix*)(storage+var_size);
       set_active_address(ips, &dst_addr, storage, storage);
+      dst_addr.alloc_seq_number = postfix->alloc_seq_number;
       if (vp->init_kind == (an_init_kind)initk_static ||
           (type_is(tp, tk_integer) && is_const_qualified_type(vp->type))) {
         ips->is_constant_evaluated = TRUE;
@@ -11026,10 +11035,9 @@ static a_boolean do_constexpr_ctor(an_interpreter_state  *ips,
 Interpret the constructor call represented by the given dynamic initialization
 entry.  Return TRUE if no error occurred; otherwise, return FALSE and update
 *ips accordingly.  pos is the position of the call.  The object is constructed
-at the location indicated by result_storage, which is within the given complete
-object whose allocation sequence number is alloc_seq.  If implied_src is
-non-NULL, this is a copy/move constructor invocation and the source object is
-stored at the location indicated by implied_src.
+at the location indicated by cap.  If implied_src is non-NULL, this is a
+copy/move constructor invocation and the source object is stored at the
+location indicated by implied_src.
 
 This is similar to do_constexpr_call, but the call has a different
 representation, and mem-initializers must be interpreted prior to interpreting
@@ -11230,6 +11238,12 @@ the body of the (constructor) function proper.
       }  /* if */
     }  /* for */
     /* Phase 2: Map the parameters to the arguments. */
+    /* Associate with the parameter variables a new allocation number.  For
+       ordinary calls, we just use the allocation number about to be created
+       for the function scope, but for constructors that is not an option
+       because constructor initializers must first be evaluated. */
+    alloc_seq_number = ++ips->curr_alloc_seq_number;
+    add_to_live_set(&ips->live_set, alloc_seq_number);
     /* First map the "this" pointer. */
     this_var = callee_scope->variant.routine.this_param_variable;
     if (this_var == NULL) {
@@ -11246,8 +11260,6 @@ the body of the (constructor) function proper.
       a_byte_count   with_postfix_bytes;
       a_var_postfix  *postfix;
       do_host_alignment(this_n_bytes);
-      alloc_seq_number = ips->curr_alloc_seq_number++;
-      add_to_live_set(&ips->live_set, alloc_seq_number);
       with_postfix_bytes = this_n_bytes+sizeof(a_var_postfix);
       alloc_complete_object(ips, with_postfix_bytes, this_type, this_bytes);
       *(a_constexpr_address*)this_bytes = *cap;
@@ -11257,12 +11269,6 @@ the body of the (constructor) function proper.
       map_or_replace_ptr(&ips->map, this_var, this_bytes,
                          postfix->prev_storage);
     }  /* if */
-    /* Associate with the parameter variables a new allocation number.  For
-       ordinary calls, we just use the allocation number about to be created
-       for the function scope, but for constructors that is not an option
-       because constructor initializers must first be evaluated. */
-    alloc_seq_number += 1;
-    add_to_live_set(&ips->live_set, alloc_seq_number);
     p_arg_ptr = (a_byte**)arg_ptrs+1;
     arg_size = (a_byte_count*)arg_sizes;
     for (param = params; param != NULL; param = param->next) {
@@ -11527,7 +11533,6 @@ the body of the (constructor) function proper.
       } else {
         replace_mapped_ptr(&ips->map, this_var, postfix->prev_storage);
       }  /* if */
-      remove_from_live_set(&ips->live_set, alloc_seq_number-1);
     }
     remove_from_live_set(&ips->live_set, alloc_seq_number);
     /* Reduce the cost of the call to just 2. */
