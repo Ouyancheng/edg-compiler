@@ -1,5 +1,19 @@
 Version 6.5
 
+11/18/22 [EDGcpfe/25611]
+Build issues with MAKE_FRONT_END_CALLABLE
+
+In configurations where MAKE_FRONT_END_CALLABLE and BACK_END_SHOULD_BE_CALLED
+are TRUE but BACK_END_IS_C_GEN_BE and BACK_END_IS_CP_GEN_BE are both FALSE,
+a compilation error (in cfe.c) had occurred because back_end was not declared.
+That is now fixed.
+
+Also, in configurations where MAKE_FRONT_END_CALLABLE and USE_EDG_NAMESPACE
+are TRUE, the definition of EDG_MAIN had been "edg_main" however the
+declaration had been "edg::edg_main", leading to linker errors.  The
+definition has now been changed to be "edg::edg_main".
+
+
 11/18/22 [EDGcpfe/25805]
 Constant-evaluation of dynamically-allocated array of length 1
 

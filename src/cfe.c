@@ -47,6 +47,14 @@ Changed to C++ front end and enhanced by
 #if BACK_END_IS_CP_GEN_BE
 #include "cp_gen_be.h"
 #endif /* BACK_END_IS_CP_GEN_BE */
+#if BACK_END_SHOULD_BE_CALLED && \
+    !BACK_END_IS_C_GEN_BE && !BACK_END_IS_CP_GEN_BE
+/*
+Provide a declaration for a non-EDG-supplied back end (not in the "edg"
+namespace).
+*/
+extern void back_end(void);
+#endif /* BACK_END_SHOULD_BE_CALLED && !BACK_END_IS_C_GEN_BE && !... */
 
 /*
 Note that the EDG namespace is not opened here.  Instead we do a
@@ -185,6 +193,9 @@ MAKE_FRONT_END_CALLABLE is TRUE.
   exit_compilation(most_severe_diagnostic);
 }  /* cfe_main */
 
+#if MAKE_FRONT_END_CALLABLE
+BEGIN_EDG_NAMESPACE
+#endif /* MAKE_FRONT_END_CALLABLE */
 
 int EDG_MAIN(int argc, char *argv[]) /*lint !e759*/
 /*
@@ -207,6 +218,11 @@ status is returned to the caller.
   return exit_status;
 #endif /* !MAKE_FRONT_END_CALLABLE */
 }  /* EDG_MAIN */
+
+#if MAKE_FRONT_END_CALLABLE
+END_EDG_NAMESPACE
+#endif /* MAKE_FRONT_END_CALLABLE */
+
 
 /******************************************************************************
 *                                                             \  ___  /       *
