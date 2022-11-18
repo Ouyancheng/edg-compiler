@@ -3,10 +3,12 @@ Version 6.5
 11/17/22 [EDGcpfe/25777]
 Clang compatibility: __builtin_coro_* routines
 
-The Clang builtin signatures for all of the __builtin_coro_* routines had all
-been successfully extracted by the tool used to do the extractions, but for
-some reason were missing after Clang version 13.0.0.  Those builtins are now
-available in later Clang modes.
+Prior to version 13.0.0 of Clang, the builtin signatures for all of the
+__builtin_coro_* routines had been successfully extracted by the tool used to
+do the extractions, but beginning with Clang version 13.0.0 the
+__builtin_coro_* builtins are available only in C++20 mode.  The tool has been
+modified appropriately and those builtins are now available in later Clang
+modes (unconditionally).
 
 
 11/16/22 [EDGcpfe/25775]
