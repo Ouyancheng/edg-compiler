@@ -9612,15 +9612,18 @@ static a_constexpr_allocation_ptr do_constexpr_dynamic_alloc(
                                            an_interpreter_state  *ips,
                                            a_type_ptr            elem_tp,
                                            a_byte_count          alloc_length,
+                                           a_boolean             is_array,
                                            a_source_position     *diag_pos,
                                            a_constexpr_address   *cap,
                                            a_byte_count          *p_elem_size)
 /*
 Allocate alloc_length consecutive objects of type elem_tp on the interpreter's
-dynamic allocation heap and place the result in *cap.  Return a pointer to the
-complete allocation structure if successful, and NULL otherwise (in which case,
-a diagnostic is registered in *ips for the given position).  If successful,
-also return the interpreter size of the allocated elements in *p_elem_size.
+dynamic allocation heap and place the result in *cap.  If is_array is TRUE, the
+allocation should be treated as an array (and *cap should reflect that).
+Return a pointer to the complete allocation structure if successful, and NULL
+otherwise (in which case, a diagnostic is registered in *ips for the given
+position).  If successful, also return the interpreter size of the allocated
+elements in *p_elem_size.
 */
 {
   a_boolean            result = TRUE;
@@ -9704,7 +9707,7 @@ also return the interpreter size of the allocated elements in *p_elem_size.
   clear_address(cap, block+prefix_size);
   cap->variant.base_address = cap->address;
   record_complete_object_type(orig_elem_tp, cap->complete_object);
-  if (alloc_length != 1) {
+  if (is_array) {
     cap->flags |= CA_ARRAY_ELEMENT;
     cap->length = orig_alloc_length;
     if (alloc_length == 0) {
@@ -9779,7 +9782,7 @@ where the result should be stored.
     goto done;
   }  /* if */
   if (do_constexpr_dynamic_alloc(ips, tap->variant.type,
-                                 (a_byte_count)alloc_length,
+                                 (a_byte_count)alloc_length, /*is_array=*/TRUE,
                                  &call_node->position,
                                  (a_constexpr_address*)result_storage,
                                  &elem_size) == NULL) {
@@ -13785,7 +13788,7 @@ static a_boolean do_constexpr_new(an_interpreter_state  *ips,
 Evaluate the given new-expression.
 */
 {
-  a_boolean                    result = TRUE;
+  a_boolean                    result = TRUE, is_array = FALSE;
   a_new_delete_supplement_ptr  ndsp = expr->variant.new_delete;
   a_byte_count                 alloc_length, elem_size, orig_alloc_length;
   a_constexpr_address          *cap;
@@ -13807,6 +13810,7 @@ Evaluate the given new-expression.
       alloc_length = (a_byte_count)type->variant.array
                                         .variant.number_of_elements;
       elem_type = skip_typerefs(type->variant.array.element_type);
+      is_array = TRUE;
     } else {
       alloc_length = 1;
       elem_type = type;
@@ -13836,6 +13840,7 @@ Evaluate the given new-expression.
     alloc_length = (a_byte_count)length;
     check_assertion(type_is(type, tk_array));
     elem_type = skip_typerefs(type->variant.array.element_type);
+    is_array = TRUE;
   }  /* if */
   orig_alloc_length = alloc_length;
   cap = (a_constexpr_address*)result_storage;
@@ -13894,7 +13899,8 @@ Evaluate the given new-expression.
     elem_size = value_bytes_for_type(ips, elem_type, &result); 
   } else {
     allocation = do_constexpr_dynamic_alloc(ips, elem_type, alloc_length,
-                                            &expr->position, cap, &elem_size);
+                                            is_array, &expr->position,
+                                            cap, &elem_size);
     if (allocation == NULL) {
       result = FALSE;
       goto done;
@@ -18189,7 +18195,7 @@ the value representation of the integer value.
                                 *ptr_val = (a_constexpr_address*)dst->address;
                   if (host_int_val == 0) {
                     /* Leave the address unchanged. */
-                  } else if (!is_array_element(ptr_val)) {
+                  } else if (!is_array_element(ptr_val) && host_int_val != 1) {
                     do_constexpr_fail(result);
                     info_with_pos(ec_constexpr_non_array_pointer_arithmetic,
                                   &expr->position, ips);

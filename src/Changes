@@ -1,5 +1,25 @@
 Version 6.5
 
+11/18/22 [EDGcpfe/25805]
+Constant-evaluation of dynamically-allocated array of length 1
+
+The front end did not always treat a dynamically-allocated array of length 1
+correctly during constant evaluation.  As a result, it sometimes treated as
+non-constant expressions that are constant expressions.  For example, in C++20
+mode:
+
+  constexpr bool g() {
+    auto obj = new int[1]{42};
+    auto p = obj;
+    p += 1;
+    delete[] obj;
+    return true;
+  }
+  static_assert(g());  // Previously a spurious error.  Now okay.
+
+That is now fixed.
+
+
 11/17/22 [EDGcpfe/25777]
 Clang compatibility: __builtin_coro_* routines
 
