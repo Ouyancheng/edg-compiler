@@ -3999,20 +3999,23 @@ argument lists are required.
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 
 static a_boolean name_has_template_arguments(
-                                        a_source_correspondence *scp,
-                                        an_il_entry_kind        entry_kind,
-                                        a_template_arg_ptr      *arg_ptr,
-                                        a_boolean               *insert_space)
+                                        a_source_correspondence  *scp,
+                                        an_il_entry_kind         entry_kind,
+                                        a_template_arg_ptr       *arg_ptr,
+                                        a_template_parameter_ptr *param_ptr,
+                                        a_boolean                *insert_space)
 /*
 If the name of the entity designated by scp and entry_kind should be put
-out with a template argument list, return TRUE and, if arg_ptr is non-NULL,
-set *arg_ptr to point to the first argument in the list.  Otherwise, return
-FALSE.  If insert_space is non-null, *insert_space will be set to TRUE if a
-space should be inserted between the bare name and the explicit template
-argument list and to FALSE otherwise.
+out with a template argument list, return TRUE; if arg_ptr is non-NULL, set
+*arg_ptr to point to the first argument in the list and, if param_ptr is
+non-NULL, set *param_ptr to point to the first parameter of the associated
+template.  Otherwise, return FALSE.  If insert_space is non-null,
+*insert_space will be set to TRUE if a space should be inserted between the
+bare name and the explicit template argument list and to FALSE otherwise.
 */
 {
   a_template_arg_ptr tap = NULL;
+  a_template_ptr     assoc_template = NULL;
   a_boolean          result = FALSE;
 
   if (arg_ptr != NULL) {
@@ -4025,10 +4028,10 @@ argument list and to FALSE otherwise.
     /* Check for template arguments on a class name. */
     a_type_ptr type = (a_type_ptr)scp;
     if (is_immediate_class_type(type)) {
-      tap = type->variant.class_struct_union.extra_info->template_arg_list;
+      tap = class_type_supp(type)->template_arg_list;
+      assoc_template = class_type_supp(type)->assoc_template;
       if (tap == NULL && type->variant.class_struct_union.is_template_class &&
-          type->variant.class_struct_union.extra_info->assoc_template->kind ==
-                                               (a_template_kind)templk_class) {
+          class_type_supp(type)->assoc_template->kind == templk_class) {
         /* This can occur with a reference to a dependent template that
            assumes that all its parameters have default arguments, e.g.,
            with a template parameter T, "T::template M<>".  We return TRUE
@@ -4041,6 +4044,7 @@ argument list and to FALSE otherwise.
       }  /* if */
     } else if (type->kind == (a_type_kind)tk_typeref) {
       tap = type->variant.typeref.extra_info->template_arg_list;
+      assoc_template = type->variant.typeref.extra_info->assoc_template;
       result = (tap != NULL);
     }  /* if */
   } else if (entry_kind == iek_routine) {
@@ -4052,6 +4056,7 @@ argument list and to FALSE otherwise.
     if (rout->expl_template_arg_list_used ||
         args_needed_for_compiler_bugs(rout)) {
       tap = rout->template_arg_list;
+      assoc_template = rout->assoc_template;
       result = TRUE;
       if (insert_space != NULL &&
           rout->special_kind == (a_special_function_kind)sfk_operator) {
@@ -4068,11 +4073,19 @@ argument list and to FALSE otherwise.
     a_variable_ptr var = (a_variable_ptr)scp;
     if (var->template_info != NULL) {
       tap = var->template_info->template_arg_list;
+      assoc_template = var->template_info->assoc_template;
       result = (tap != NULL);
     } /* if */
   }  /* if */
   if (arg_ptr != NULL) {
     *arg_ptr = tap;
+  }  /* if */
+  if (param_ptr != NULL) {
+    if (assoc_template != NULL && assoc_template->template_decl != NULL) {
+      *param_ptr = assoc_template->template_decl->param_list;
+    } else {
+      *param_ptr = NULL;
+    }  /* if */
   }  /* if */
   return result;
 }  /* name_has_template_arguments */
@@ -4181,15 +4194,16 @@ the list is truncated at that point so that the remaining arguments will be
 defaulted.
 */
 {
-  a_boolean          insert_space, render_args;
-  a_template_arg_ptr tap;
+  a_boolean                insert_space, render_args;
+  a_template_arg_ptr       tap;
+  a_template_parameter_ptr tpp;
 
   if (scp == NULL || templ_args != NULL) {
     tap = templ_args;
     render_args = tap != NULL;
     insert_space = FALSE;
   } else {
-    render_args = name_has_template_arguments(scp, entry_kind, &tap,
+    render_args = name_has_template_arguments(scp, entry_kind, &tap, &tpp,
                                               &insert_space);
   }  /* if */
   if (render_args) {
@@ -4361,7 +4375,7 @@ defaulted.
     } else {
       a_boolean saved_in_template_argument_list = in_template_argument_list;
       in_template_argument_list = TRUE;
-      form_template_args(tap, &octl);
+      form_template_args(tap, tpp, &octl);
       in_template_argument_list = saved_in_template_argument_list;
       if (argp != NULL && prev_argp != NULL) {
         /* Restore the full argument list. */
@@ -5183,10 +5197,9 @@ but the problem goes away with a leading qualifier.
   a_boolean force_qualifier = 
                 (msvc_target_version_number == 1300 &&
                  (options & GN_QUALIFIER) && !(options & GN_DEPENDENT) &&
-                 name_has_template_arguments(
-                                           scp, entry_kind,
-                                           (a_template_arg_ptr *)NULL,
-                                           /*insert_space=*/(a_boolean*)NULL));
+                 name_has_template_arguments(scp, entry_kind, /*arg_ptr=*/NULL,
+                                             /*param_ptr=*/NULL,
+                                             /*insert_space=*/NULL));
   return force_qualifier;
 }  /* force_qualifier_for_msvc */
 
@@ -5921,10 +5934,9 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
              ((options & GN_QUALIFIER) &&
               !(options & GN_SUPPRESS_TEMPLATE_KEYWORD))) &&
             (((!(options & GN_NO_TEMPLATE_ARGS) &&
-               name_has_template_arguments(
-                                        scp, entry_kind,
-                                        (a_template_arg_ptr *)NULL,
-                                        /*insert_space=*/(a_boolean *)NULL)) ||
+               name_has_template_arguments(scp, entry_kind, /*arg_ptr=*/NULL,
+                                           /*param_ptr=*/NULL,
+                                           /*insert_space=*/NULL)) ||
              (options & GN_TEMPLATE)) &&
             !(msvc_is_generated_code_target &&
               is_unknown_function_operator))) {
@@ -6132,8 +6144,8 @@ put out nothing.
       if (is_immediate_class_type(class_type) &&
           class_type->variant.class_struct_union.is_nonreal_class &&
           name_has_template_arguments(&class_type->source_corresp, iek_type,
-                                      (a_template_arg_ptr *)NULL,
-                                      /*insert_space=*/(a_boolean *)NULL) &&
+                                      /*arg_ptr=*/NULL, /*param_ptr=*/NULL,
+                                      /*insert_space=*/NULL) &&
           nqp->previous_qualifier != NULL) {
         /* This qualifier is a dependent template-id and must be prefixed
            with the "template" keyword. */
@@ -7110,7 +7122,10 @@ a definition.
           var->template_info->template_arg_list != NULL) {
         /* This is an explicit instantiation or partial specialization of a
            variable template.  Put out its template argument list. */
-        form_template_args(var->template_info->template_arg_list, &octl);
+        form_template_args(var->template_info->template_arg_list,
+                           var->template_info->assoc_template->template_decl->
+                                                                    param_list,
+                           &octl);
       }  /* if */
     }  /* if */
     if (need_closing_paren) write_tok_ch(')');
@@ -7132,9 +7147,9 @@ declaration.
   a_type_ptr  enclosing_class = curr_name_context->class_type;
   if (!scp->is_class_member &&
       !(scp->qualification_needed && !omit_template_args &&
-        (name_has_template_arguments(scp, iek_routine,
-                                     (a_template_arg_ptr *)NULL,
-                                     /*insert_space=*/(a_boolean *)NULL) ||
+        (name_has_template_arguments(scp, iek_routine, /*arg_ptr=*/NULL,
+                                     /*param_ptr=*/NULL,
+                                     /*insert_space=*/NULL) ||
          ((a_routine_ptr)scp)->expl_template_arg_list_used)) &&
       enclosing_class != NULL &&
       !enclosing_class->source_corresp.is_local_to_function &&
@@ -11359,7 +11374,8 @@ is_or_uses_unnameable_class_type.
     }  /* if */
     if (!result &&
         name_has_template_arguments(&type->source_corresp, iek_type, &argp,
-                                    (a_boolean *)NULL)) {
+                                    /*param_ptr=*/NULL,
+                                    /*insert_space=*/NULL)) {
       /* Check if any of the type's template arguments are unnameable. */
       begin_template_arg_list_traversal_simple(argp, &argp);
       for (; argp != NULL && !result;
@@ -14109,8 +14125,8 @@ function reference.
       if (gcc_or_clang_is_generated_code_target &&
           in_prototype_instantiation_context() &&
           name_has_template_arguments(&rout->source_corresp, iek_routine,
-                                      (a_template_arg_ptr *)NULL,
-                                      /*insert_space=*/(a_boolean *)NULL)) {
+                                      /*arg_ptr=*/NULL, /*param_ptr=*/NULL,
+                                      /*insert_space=*/NULL)) {
         /* In some circumstances, g++ requires the "template" keyword in
            references to template-ids that are not actually dependent and
            does not complain when the keyword is used unnecessarily, so we

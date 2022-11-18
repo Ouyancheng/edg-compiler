@@ -16,6 +16,7 @@ il_to_str.c -- Produce an external string-form representation for various
 
 /* Header files common to all files. */
 #include "fe_common.h"
+#include "templates.h"
 
 #if BACK_END_IS_CP_GEN_BE
 #include "cp_gen_be.h"
@@ -544,7 +545,20 @@ Output the indicated template argument in the way described by octl.
           if (is_any_reference_type(con->type)) {
             /* A reference parameter.  Display specially -- one level of
                indirection must be removed. */
+            a_type_ptr targ_type = type_pointed_to(con->type);
+            a_boolean  need_closing_paren = FALSE;
+            if (tap->param_is_decltype_auto &&
+                (is_function_type(targ_type) || is_array_type(targ_type))) {
+              /* Enclose the argument in parentheses to prevent the type
+                 from decaying to a pointer, which would cause
+                 decltype(auto) to deduce the wrong type. */
+              octl->output_str("(", octl);
+              need_closing_paren = TRUE;
+            }  /* if */
             form_lvalue_address_constant(con, need_parens, octl);
+            if (need_closing_paren) {
+              octl->output_str(")", octl);
+            }  /* if */
           } else {
             /* Normal (non-reference) case. */
             a_boolean saved_implicit_cast = con->implicit_cast;
@@ -587,13 +601,70 @@ Output the indicated template argument in the way described by octl.
   if (tap->is_pack || tap->has_pack_ellipsis) octl->output_str("...", octl);
 }  /* form_a_template_arg */
 
+static void skip_start_of_pack_markers(a_template_arg_ptr        *tap_p,
+                                       a_template_parameter_ptr  *tpp_p)
+/*
+Advance *tap_p over any tak_start_of_pack_expansion markers, updating *tpp_p
+(if non-NULL) if a skipped marker has no actual pack expansion arguments.
+*/
+{
+  a_template_arg_ptr       tap = *tap_p;
+  a_template_parameter_ptr tpp = *tpp_p;
+
+  while (tap != NULL && tap->kind == tak_start_of_pack_expansion) {
+    tap = tap->next;
+    if (tap == NULL || !(tap->is_pack_element || tap->is_pack)) {
+      /* An empty pack expansion.  Advance to the next parameter. */
+      if (tpp != NULL) {
+        tpp = tpp->next;
+      }  /* if */
+    }  /* if */
+  }  /* while */
+  *tap_p = tap;
+  *tpp_p = tpp;
+}  /* skip_start_of_pack_markers */
+
+
+static void next_template_arg_and_param(a_template_arg_ptr       *tap_p,
+                                        a_template_parameter_ptr *tpp_p)
+/*
+Advance *tap_p to point to the next template argument (skipping over
+tak_start_of_pack_expansion markers) and, if *tpp_p is not NULL, advance it
+to the corresponding template parameter.
+*/
+{
+  a_template_arg_ptr       tap = *tap_p;
+  a_template_parameter_ptr tpp = *tpp_p;
+  a_boolean                curr_was_pack_elem = (tap->is_pack_element ||
+                                                 tap->is_pack);
+
+  tap = tap->next;
+  if (tpp != NULL) {
+    /* Adjust the parameter pointer as necessary. */
+    if (!curr_was_pack_elem) {
+      /* The previous argument was not part of a pack, so advance to the
+         next parameter. */
+      tpp = tpp->next;
+    } else if (tap == NULL || !(tap->is_pack_element || tap->is_pack)) {
+      /* The previous argument was the end of a pack expansion, so advance
+         to the next parameter. */
+      tpp = tpp->next;
+    }  /* if */
+  }  /* if */
+  skip_start_of_pack_markers(&tap, &tpp);
+  *tap_p = tap;
+  *tpp_p = tpp;
+}  /* next_template_arg_and_param */
+
 
 void form_template_args(a_template_arg_ptr                    tap,
+                        a_template_parameter_ptr              tpp,
                         an_il_to_str_output_control_block_ptr octl)
 /*
-Output the indicated template arguments list (e.g., something like
-<int, float>) in the way described by octl.  If tap is NULL or if octl
-indicates that template arguments should be suppressed, nothing is put out.
+Output the indicated template argument list (e.g., something like <int,
+float>) matching the indicated template parameter list (which may be NULL),
+in the way described by octl.  If tap is NULL or if octl indicates that
+template arguments should be suppressed, nothing is put out.
 */
 {
   if (!octl->suppress_template_args && tap != NULL) {
@@ -625,15 +696,22 @@ indicates that template arguments should be suppressed, nothing is put out.
          argument begins with a "::" global qualifier. */
       octl->output_str(" ", octl);
     }  /* if */
-    begin_template_arg_list_traversal_simple(tap, &tap);
+    skip_start_of_pack_markers(&tap, &tpp);
     if (tap != NULL) {
       for (;;) {
 #if BACK_END_IS_CP_GEN_BE
         tap->parent_arg = parent_arg;
         octl->curr_template_arg = tap;
 #endif /* BACK_END_IS_CP_GEN_BE */
+        if (tap->kind == tak_nontype && tpp != NULL &&
+            is_decltype_auto_template_param_type(
+                                        tpp->variant.nontype.constant->type)) {
+          /* Mark the argument as matching a decltype(auto) template
+             parameter for possible special processing. */
+          tap->param_is_decltype_auto = TRUE;
+        }  /* if */
         form_a_template_arg(tap, octl);
-        advance_to_next_template_arg_simple(&tap);
+        next_template_arg_and_param(&tap, &tpp);
         /* Stop after the last argument. */
         if (tap == NULL) break;
         /* Put a comma between arguments. */
@@ -829,7 +907,7 @@ The output includes template arguments on template classes.
     if (tap != NULL) {
       /* This is a template class name or template alias name.  Put out the
          template argument list, e.g., "<int, float>". */
-      form_template_args(tap, octl);
+      form_template_args(tap, /*tpp=*/NULL, octl);
     }  /* if */
   }  /* if */
 }  /* form_unqualified_name */
@@ -5209,7 +5287,7 @@ decided by the caller.  Do the output in the way described by octl.
     } else {
       form_template_args(constant->variant.template_param.variant.
                                                          template_ref.arg_list,
-                         octl);
+                         /*tpp=*/NULL, octl);
     }  /* if */
   }  /* if */
 }  /* form_unknown_function_constant */

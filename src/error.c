@@ -1913,7 +1913,7 @@ symbol_name:
                         msg_buffer, error_text(ec_based_on_template_argument));
       }  /* if */
       add_string_to_text_buffer(msg_buffer, " ");
-      form_template_args(ssep->template_arg_list, &octl);
+      form_template_args(ssep->template_arg_list, /*tpp=*/NULL, &octl);
     }  /* if */
   }  /* if */
   /* Add the declaration position as requested. */

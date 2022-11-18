@@ -390,6 +390,7 @@ extern void form_a_template_arg(a_template_arg_ptr                    tap,
                                 an_il_to_str_output_control_block_ptr octl);
 
 extern void form_template_args(a_template_arg_ptr                    tap,
+                               a_template_parameter_ptr              tpp,
                                an_il_to_str_output_control_block_ptr octl);
 
 extern void form_class_or_namespace_qualifier(

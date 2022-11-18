@@ -3456,6 +3456,9 @@ Display the indicated name and template arg list.
         disp_name("  **BAD TMP ARG KIND**");
         (void)printf("\n");
       }  /* if */
+      if (ptr->is_array_bound_of_unknown_type) {
+        disp_boolean("  is_array_bound_of_unknown_type", TRUE);
+      }  /* if */
       if (ptr->explicitly_specified) {
         disp_boolean("  explicitly_specified", TRUE);
       }  /* if */
@@ -3464,6 +3467,24 @@ Display the indicated name and template arg list.
       }  /* if */
       if (ptr->is_pack) {
         disp_boolean("  is_pack", TRUE);
+      }  /* if */
+      if (ptr->has_pack_ellipsis) {
+        disp_boolean("  has_pack_ellipsis", TRUE);
+      }  /* if */
+      if (ptr->is_integer_pack) {
+        disp_boolean("  is_integer_pack", TRUE);
+      }  /* if */
+      if (ptr->type_is_injected_class_name) {
+        disp_boolean("  type_is_injected_class_name", TRUE);
+      }  /* if */
+      if (ptr->is_provisional_value) {
+        disp_boolean("  is_provisional_value", TRUE);
+      }  /* if */
+      if (ptr->is_error) {
+        disp_boolean("  is_error", TRUE);
+      }  /* if */
+      if (ptr->param_is_decltype_auto) {
+        disp_boolean("  param_is_decltype_auto", TRUE);
       }  /* if */
     }  /* for */
   }  /* if */
