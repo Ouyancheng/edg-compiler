@@ -439,10 +439,33 @@ EXTERN a_builtin_user_descr builtin_user_table[]
 
   /* These Clang builtins were automatically detected until version 13.0.0
      (but are manually added here for later releases). */
+  { "__builtin_coro_alloc", "Lx(120002-)",
+    "__edg_bool_type__ (void) __edg_throw__()", bfk_coro_alloc },
+  { "__builtin_coro_begin", "Lx(120002-)", "void*(void*) __edg_throw__()",
+    bfk_coro_begin },
   { "__builtin_coro_destroy", "Lx(120002-)", "void (void*)", bfk_coro_destroy},
   { "__builtin_coro_done", "Lx(120002-)",
     "__edg_bool_type__ (void*) __edg_throw__()", bfk_coro_done },
+  { "__builtin_coro_end", "Lx(120002-)",
+    "__edg_bool_type__ (void*,__edg_bool_type__) __edg_throw__()",
+    bfk_coro_end },
+  { "__builtin_coro_frame", "Lx(120002-)", "void*(void) __edg_throw__()",
+    bfk_coro_frame },
+  { "__builtin_coro_free", "Lx(120002-)", "void*(void*) __edg_throw__()",
+    bfk_coro_free },
+  { "__builtin_coro_id", "Lx(120002-)",
+    "void*(int,void*,void*,void*) __edg_throw__()", bfk_coro_id },
+  { "__builtin_coro_noop", "Lx(120002-)", "void*(void) __edg_throw__()",
+    bfk_coro_noop },
+  { "__builtin_coro_param", "Lx(120002-)",
+    "__edg_bool_type__ (void*,void*) __edg_throw__()", bfk_coro_param },
+  { "__builtin_coro_promise", "Lx(120002-)",
+    "void*(void*,int,__edg_bool_type__) __edg_throw__()", bfk_coro_promise },
   { "__builtin_coro_resume", "Lx(120002-)", "void (void*)", bfk_coro_resume },
+  { "__builtin_coro_size", "Lx(120002-)", "__edg_size_type__ (void)",
+    bfk_coro_size},
+  { "__builtin_coro_suspend", "Lx(120002-)",
+    "char (__edg_bool_type__) __edg_throw__()", bfk_coro_suspend},
 
   { NULL, NULL, 0, bfk_none }   /* end of table marker */
 }
