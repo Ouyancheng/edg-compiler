@@ -4234,19 +4234,19 @@ defaulted.
                injected-class-name and the first template parameter has
                no default argument.  If that is the case, we can't put out
                T<>, but just T by itself will work. */
-            a_template_parameter_ptr tpp;
+            a_template_parameter_ptr params;
             a_boolean                has_dft = FALSE;
-            tpp = tp->variant.class_struct_union.extra_info->
+            params = tp->variant.class_struct_union.extra_info->
                                      assoc_template->template_decl->param_list;
-            switch (tpp->kind) {
+            switch (params->kind) {
               case tpk_type:
-                has_dft = tpp->variant.type.default_arg_type != NULL;
+                has_dft = params->variant.type.default_arg_type != NULL;
                 break;
               case tpk_nontype:
-                has_dft = tpp->variant.nontype.default_arg_constant != NULL;
+                has_dft = params->variant.nontype.default_arg_constant != NULL;
                 break;
               case tpk_template:
-                has_dft = tpp->variant.templ.default_arg_template != NULL;
+                has_dft = params->variant.templ.default_arg_template != NULL;
                 break;
               default:
                 unexpected_condition();
