@@ -16,7 +16,6 @@ il_to_str.c -- Produce an external string-form representation for various
 
 /* Header files common to all files. */
 #include "fe_common.h"
-#include "templates.h"
 
 #if BACK_END_IS_CP_GEN_BE
 #include "cp_gen_be.h"
