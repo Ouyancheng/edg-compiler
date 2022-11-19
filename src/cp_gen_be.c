@@ -4028,7 +4028,13 @@ bare name and the explicit template argument list and to FALSE otherwise.
     a_type_ptr type = (a_type_ptr)scp;
     if (is_immediate_class_type(type)) {
       tap = class_type_supp(type)->template_arg_list;
-      assoc_template = class_type_supp(type)->assoc_template;
+      if (class_type_supp(type)->partial_spec_template_arg_list == NULL) {
+        /* Do not record the template parameters for a partial
+           specialization, because the argument list corresponds to the
+           parameters of the primary template, not the partial
+           specialization. */
+        assoc_template = class_type_supp(type)->assoc_template;
+      }  /* if */
       if (tap == NULL && type->variant.class_struct_union.is_template_class &&
           class_type_supp(type)->assoc_template->kind == templk_class) {
         /* This can occur with a reference to a dependent template that
@@ -4072,7 +4078,13 @@ bare name and the explicit template argument list and to FALSE otherwise.
     a_variable_ptr var = (a_variable_ptr)scp;
     if (var->template_info != NULL) {
       tap = var->template_info->template_arg_list;
-      assoc_template = var->template_info->assoc_template;
+      if (var->template_info->partial_spec_template_arg_list == NULL) {
+        /* Do not record the template parameters for a partial
+           specialization, because the argument list corresponds to the
+           parameters of the primary template, not the partial
+           specialization. */
+        assoc_template = var->template_info->assoc_template;
+      }  /* if */
       result = (tap != NULL);
     } /* if */
   }  /* if */
