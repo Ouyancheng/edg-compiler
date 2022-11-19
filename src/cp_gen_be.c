@@ -624,8 +624,7 @@ static void gen_constant(a_constant_ptr constant,
 static void gen_type(a_type_ptr type);
 static void gen_type_reference(a_type_ptr type);
 static void gen_enum_definition(a_type_ptr type);
-static void gen_class_definition(a_type_ptr type,
-                                 a_boolean  use_temp_tag_name);
+static void gen_class_definition(a_type_ptr type);
 static a_boolean process_preprocessing_directives(void);
 static void gen_pragma(void);
 static void gen_pragma_start(a_pragma_ptr pp);
@@ -7910,7 +7909,7 @@ al_tag_name attributes (if any).
     if (type->kind == (a_type_kind)tk_enum) {
       gen_enum_definition(type);
     } else {
-      gen_class_definition(type, /*use_temp_tag_name=*/TRUE);
+      gen_class_definition(type);
     }  /* if */
     /* Restore the source sequence list position. */
     restore_source_sequence_scan_state(&saved_state);
@@ -10532,14 +10531,11 @@ Render the given delegate type as a C++/CLI delegate definition.  E.g.:
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-static void gen_class_definition(a_type_ptr type,
-                                 a_boolean  use_temp_tag_name)
+static void gen_class_definition(a_type_ptr type)
 /*
 Output the definition of the indicated class type.  This is in the form of
 a type specifier (no trailing ";").  The current source sequence entry
-is the one associated with the definition of the class.  If use_temp_tag_name
-is TRUE, in gcc mode put out a temporary name as the tag for an unnamed
-struct.
+is the one associated with the definition of the class.
 */
 {
   a_class_type_supplement_ptr
@@ -10585,22 +10581,12 @@ struct.
   } else if (type->variant.class_struct_union.is_nonstd_anonymous_union_type) {
     /* The type is a nonstandard anonymous union or struct, so suppress
        the name. */
-  } else if (type->variant.class_struct_union.originally_unnamed &&
-             !(gcc_mode && use_temp_tag_name)) {
-    /* The type was unnamed, so suppress the name here.  This normally
-       includes the case where an unnamed class gets a name from a typedef.
+  } else if (type->variant.class_struct_union.originally_unnamed) {
+    /* The type was unnamed, so suppress the name here.  This includes
+       the case where an unnamed class gets a name from a typedef.
        For example:
          typedef struct { int A; } A;
-       In gcc mode, however, under some circumstances the IL can refer
-       directly to an unnamed struct rather than to the typedef name for
-       it.  This can occur in an example like the following (assuming the
-       preceding typedef):
-         volatile A f();
-       In such a case in gcc mode, the volatile qualifier is dropped and
-       the return type of f() is the unnamed struct type, not the typedef,
-       resulting in use of a temporary name.  We therefore generate the
-       originally-unnamed struct type with the temporary name as its tag so
-       the generated return type of f() will not be undeclared. */
+    */
   } else {
     a_boolean  gen_sealed = FALSE;
     /* Put out the name. */
@@ -12250,7 +12236,7 @@ this one is such a continuation.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       /* Do not insert code here. */
       {
-        gen_class_definition(type, /*use_temp_tag_name=*/FALSE);
+        gen_class_definition(type);
       }  /* if */
     }  /* if */
     if (!suppress_closing_punct) {

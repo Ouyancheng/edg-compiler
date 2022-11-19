@@ -1,5 +1,31 @@
 Version 6.5
 
+11/18/22 [EDGcpfe/25802]
+C++-generating back end: gcc mode, typedefs, and volatile return types
+
+The changes for EDGcpfe/22074 (in version 6.1) addressed a problem in GNU C
+mode by changing unnamed struct types to have a generated tag name (of the
+form __T12345678).  While harmless in a single translation unit and in
+early C modes, if the same struct appeared in multiple translation units
+(e.g., via a header file), it would typically be given different different
+tag names in each TU, violating the type compatibility rules of C99 and
+later standards.  This problem has been resolved by addressing the original
+problem in a different way.  The example for EDGcpfe/22074, with --gcc,
+was:
+
+  typedef struct { int i; } S;
+  volatile S f(void);  // generated as "struct __T12345678 f(void);"
+
+The original change was to use the generated name as the tag name for the
+unnamed struct in the generated code so that the generated return type
+would match the struct declaration.  The new approach is to preserve the
+typedef (but not the meaningless "volatile" qualifier) in the return type
+and to leave the struct as unnamed:
+
+  typedef struct { int i; } S;
+  S f(void);
+
+
 11/18/22 [EDGcpfe/25796]
 a_src_seq_secondary_decl::first_declaration for variable declarations
 
