@@ -118,7 +118,7 @@ a compilation error (in cfe.c) had occurred because back_end was not declared.
 That is now fixed.
 
 Also, in configurations where MAKE_FRONT_END_CALLABLE and USE_EDG_NAMESPACE
-are TRUE, the definition of EDG_MAIN had been "edg_main" however the
+are TRUE, the definition of EDG_MAIN had been "edg_main" but the
 declaration had been "edg::edg_main", leading to linker errors.  The
 definition has now been changed to be "edg::edg_main".
 
