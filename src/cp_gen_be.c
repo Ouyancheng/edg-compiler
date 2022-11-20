@@ -4207,7 +4207,7 @@ defaulted.
 {
   a_boolean                insert_space, render_args;
   a_template_arg_ptr       tap;
-  a_template_parameter_ptr tpp;
+  a_template_parameter_ptr tpp = NULL;
 
   if (scp == NULL || templ_args != NULL) {
     tap = templ_args;
