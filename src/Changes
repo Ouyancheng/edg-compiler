@@ -87,7 +87,7 @@ the use of i in the call cond(i) to be considered non-constant because it was
 mistakenly treated as accessing expired storage.  That is now fixed.
 
 
-11/18/22 [EDGcpfe/25678]
+11/18/22 [EDGcpfe/25670]
 C++-generating back end: function reference argument to decltype(auto)
 non-type template parameter
 
