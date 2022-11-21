@@ -633,14 +633,34 @@ to the corresponding template parameter.
 */
 {
   a_template_arg_ptr       tap = *tap_p;
+  a_template_arg_ptr       prev_tap = tap;
   a_template_parameter_ptr tpp = *tpp_p;
-  a_boolean                curr_was_pack_elem = (tap->is_pack_element ||
-                                                 tap->is_pack);
 
   tap = tap->next;
   if (tpp != NULL) {
     /* Adjust the parameter pointer as necessary. */
-    if (!curr_was_pack_elem) {
+    if (prev_tap->is_pack) {
+      /* The previous argument was a dependent pack, which can match either
+         a parameter pack or several non-pack parameters of the same kind
+         as the argument. */
+      if (tpp->is_pack) {
+        tpp = tpp->next;
+      } else {
+        /* Advance over all template parameters that match the kind of the
+           argument pack. */
+        a_template_parameter_kind kind;
+        if (prev_tap->kind == tak_type) {
+          kind = tpk_type;
+        } else if (prev_tap->kind == tak_nontype) {
+          kind = tpk_nontype;
+        } else {
+          kind = tpk_template;
+        }  /* if */
+        while (tpp != NULL && tpp->kind == kind) {
+          tpp = tpp->next;
+        }  /* while */
+      }  /* if */
+    } else if (!prev_tap->is_pack_element) {
       /* The previous argument was not part of a pack, so advance to the
          next parameter. */
       tpp = tpp->next;
