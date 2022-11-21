@@ -12505,7 +12505,7 @@ The subtree of the node has not yet been lowered.
        we are allocating, e.g., it might be "void *"; a cast is done later. */
     if (dip != NULL && dip->kind != (a_dynamic_init_kind)dik_none) {
       /* Initialization is required.  It must be done only if the allocation
-         succeeds, so build an expression like
+         succeeds (or if this is a placement new), so build an expression like
            ((temp = (type *)new-call(...)) != NULL) ?
                                      (initialization, temp) : NULL
       */
@@ -12582,16 +12582,21 @@ The subtree of the node has not yet been lowered.
         }  /* if */
       }
       init_node = insert_location.variant.expr;
-      /* Build the ?: operation.  Its first argument is the test of the temp
-         pointer; its second is the initialization code; and its third is a
-         NULL constant of the right type. */
-      test_node = boolean_controlling_expr(assign_node);
-      make_zero_of_proper_type(ptr_new_type, null_constant);
-      null_node = alloc_node_for_constant(null_constant);
-      test_node->next = init_node;
-      init_node->next = null_node;
-      call_node = make_operator_node((an_expr_operator_kind)eok_question,
-                                     ptr_new_type, test_node);
+      if (ndsp->placement_new) {
+        /* No check for allocation failure is needed for placement new. */
+        call_node = make_comma_node(assign_node, init_node);
+      } else {
+        /* Build the ?: operation.  Its first argument is the test of the temp
+           pointer; its second is the initialization code; and its third is a
+           NULL constant of the right type. */
+        test_node = boolean_controlling_expr(assign_node);
+        make_zero_of_proper_type(ptr_new_type, null_constant);
+        null_node = alloc_node_for_constant(null_constant);
+        test_node->next = init_node;
+        init_node->next = null_node;
+        call_node = make_operator_node((an_expr_operator_kind)eok_question,
+                                       ptr_new_type, test_node);
+      }  /* if */
     }  /* if */
     if (pre_call_insert_location.variant.expr != NULL) {
       /* If there was any code generated to initialize the number of
