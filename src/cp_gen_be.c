@@ -4029,9 +4029,9 @@ bare name and the explicit template argument list and to FALSE otherwise.
     if (is_immediate_class_type(type)) {
       tap = class_type_supp(type)->template_arg_list;
       if (class_type_supp(type)->partial_spec_template_arg_list == NULL) {
-        /* Do not record the template parameters for a partial
-           specialization, because the argument list corresponds to the
-           parameters of the primary template, not the partial
+        /* We do not record the template parameters for a partial
+           specialization because the argument list corresponds to the
+           parameters of the primary template, not those of the partial
            specialization. */
         assoc_template = class_type_supp(type)->assoc_template;
       }  /* if */
@@ -4079,9 +4079,9 @@ bare name and the explicit template argument list and to FALSE otherwise.
     if (var->template_info != NULL) {
       tap = var->template_info->template_arg_list;
       if (var->template_info->partial_spec_template_arg_list == NULL) {
-        /* Do not record the template parameters for a partial
-           specialization, because the argument list corresponds to the
-           parameters of the primary template, not the partial
+        /* We do not record the template parameters for a partial
+           specialization because the argument list corresponds to the
+           parameters of the primary template, not those of the partial
            specialization. */
         assoc_template = var->template_info->assoc_template;
       }  /* if */
