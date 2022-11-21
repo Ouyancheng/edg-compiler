@@ -1036,7 +1036,7 @@ Allocate an init component/arg list element containing the given operand.
      explicitly by the caller.  At this level, we can't deal with the
      allocation/freeing issues without modifying the source operand
      or deep copying. */
-  check_assertion(!is_braced_init_list_operand(icp));
+  check_assertion(!is_braced_init_list_operand(operand));
   copy_operand(operand, operand_of_arg_list_elem(icp));
   return icp;
 }  /* alloc_arg_list_elem_for_operand */

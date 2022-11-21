@@ -103,7 +103,14 @@ typedef struct an_operand *an_operand_ptr;
 Enumeration of the kinds of initializer values described by
 an_init_component.
 */
-enum an_init_component_kind : a_byte {
+/*
+Originally, this enum was declared with the underlying type of a_byte in order
+to control storage size, however, declaring it as a bit field (and then
+constraining the number of bits to 8) results in a better layout with some
+compilers).
+*/
+#define NUM_BITS_FOR_INIT_COMPONENT_KIND 8
+enum an_init_component_kind : a_bit_field {
   ick_expression,	/* An expression. */
   ick_braced,		/* A brace-enclosed list. */
   ick_designator,	/* A designator (for C99-style or GNU-style
@@ -140,12 +147,10 @@ typedef struct an_init_component {
 		next;	/* When this entity is on a list, a pointer to the
 			   next component on the list.  NULL if this is the
 			   last component or if the entry is not on a list. */
-  a_bit_field
-		kind:8;	/* The kind of initializer value (e.g., brace-enclosed
-			   list).  (Originally, this field was declared as an
-			   ordinary field of type an_init_component_kind, but
-			   declaring it as a bit field produces a better layout
-			   with some compilers.) */
+  ENUM_TYPE_FOR_BIT_FIELD(an_init_component_kind)
+		kind:NUM_BITS_FOR_INIT_COMPONENT_KIND;
+			/* The kind of initializer value (e.g., brace-enclosed
+			   list). */
   a_bit_field	bundled:1;
 			/* Set to TRUE if expressions within this component
 			   have been "bundled," meaning some things like
