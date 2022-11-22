@@ -3721,6 +3721,7 @@ and return a pointer to it.
 #endif /* DEBUG */
   /* Initialize its fields. */
   tssp->pending_instantiations = 0;
+  tssp->instantiation_suppressor = NULL;
   tssp->pragmas_bound_to_template = NULL;
   tssp->token_sequence_number = NO_TOKEN_SEQUENCE_NUMBER;
   clear_template_cache(&tssp->cache, /*reusable=*/TRUE);
@@ -17016,6 +17017,7 @@ Allocate a new function instantiation entry and return a pointer to it.
   tip->explicit_do_not_instantiate = FALSE;
   tip->explicit_can_instantiate    = FALSE;
   tip->can_be_instantiated	   = FALSE;
+  tip->instantiation_suppressed    = FALSE;
   tip->on_instantiations_list	   = FALSE;
   tip->error_issued                = FALSE;
   tip->suppress_default_arg_instantiations

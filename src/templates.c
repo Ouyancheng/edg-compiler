@@ -35583,6 +35583,19 @@ such cases).
 }  /* check_if_already_specialized */
 
 
+static a_boolean is_instantiation_suppressed(a_template_instance_ptr tip)
+/*
+If the instantiation of the given template instance is suppressed, return TRUE;
+otherwise, return FALSE.
+*/
+{
+  a_template_symbol_supplement_ptr tssp =
+                             template_supplement_for_symbol(tip->template_sym);
+
+  return tssp->instantiation_suppressor != NULL;
+}  /* is_instantiation_suppressed */
+
+
 static void instantiate_entity(a_template_instance_ptr tip)
 /*
 Call the appropriate routine to instantiate the function or static
@@ -35662,9 +35675,14 @@ data member specified by tip.
     }  /* if */
 #endif /* DEBUG */
   }  /* if */
+
   if (tip == NULL) {
     /* This can occur when no corresponding instance could be found in the
        translation unit containing the template. */
+  } else if (is_instantiation_suppressed(tip)) {
+    /* The instantiation was suppressed because a previous instantiation of the
+       same template resulted in an error. */
+    tip->instantiation_suppressed = TRUE;
   } else if (symbol_is(tip->instance_sym, sk_static_data_member) ||
              symbol_is(tip->instance_sym, sk_variable)) {
     /* Static data member or variable template definition. */
@@ -37919,7 +37937,10 @@ that might be required.
   for (tip = instantiations_required;
        tip != NULL;
        tip = tip->next_in_instantiation_list) {
-    a_master_instance_ptr	mip;
+    /* Skip entries that have been suppressed. */
+    if (tip->instantiation_suppressed) continue;
+
+    a_master_instance_ptr mip;
     mip = master_instance_of(tip);
     /* Make sure the is_static_or_inline flag is set (if needed)
        for this entity. */

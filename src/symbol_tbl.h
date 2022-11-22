@@ -2505,6 +2505,11 @@ typedef struct a_template_instance {
 			   been supplied since the last time the check was
 			   done.  The can_be_instantiated routine should
 		           be used instead of this field. */
+  a_bit_field  instantiation_suppressed:1;
+			/* TRUE if this entity's instantiation is suppressed
+			   because it appeared as an artifact of an
+			   instantiation (of the same underlying template) that
+			   had one or more errors during instantiation. */
   a_bit_field	on_instantiations_list:1;
 			/* TRUE if this entry is already on the instantiations
 			   required list. */
@@ -2688,6 +2693,11 @@ typedef struct a_template_symbol_supplement {
 			/* The number of instantiations of this template
 			   that are in the process of being instantiated.
 			   Used to detect runaway recursive instantiations. */
+  a_symbol_ptr	instantiation_suppressor;
+			/* When the template should have its instantiations
+			   suppressed, this is the symbol for the template
+			   instantiation that triggered the suppression;
+			   otherwise, NULL. */
   a_pending_pragma_ptr
 		pragmas_bound_to_template;
 			/* A list of pbk_next_construct pragmas to be bound
