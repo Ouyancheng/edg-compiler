@@ -11627,6 +11627,31 @@ the new-expression (a pointer type).
 }  /* extra_args_for_operator_delete */
 
 
+static a_boolean null_check_needed(a_new_delete_supplement_ptr ndsp)
+/*
+Returns TRUE if a runtime check for a null pointer is needed following a
+call to an allocation routine (before the storage is initialized).  This check
+can be omitted in cases that are enumerated below.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (!is_non_throwing_routine(ndsp->routine)) {
+    /* The chosen operator new routine has a throwing exception specification
+       so any failure cases are to be indicated by throwing of an exception
+       (and not returning a null pointer). */
+    result = FALSE;
+  } else if (ndsp->placement_new &&
+             is_void_star_type(rout_type_supp(ndsp->routine->type)
+                                              ->param_type_list->next->type)) {
+    /* A non-allocating routine has undefined behavior if null is passed to
+       it, so the check can be omitted. */
+    result = FALSE;
+  }  /* if */
+  return result;
+}  /* null_check_needed */
+
+
 static void lower_array_new(an_expr_node_ptr expr)
 /*
 Do lowering of an array new operation.  expr points to the enk_new_delete
@@ -11639,9 +11664,8 @@ arrays with class elements.
   a_dynamic_init_ptr          dip = ndsp->dynamic_init, elem_dip;
   a_routine_ptr               new_routine = ndsp->routine;
   a_type_ptr                  array_type, elem_type, ptr_elem_type;
-  an_expr_node_ptr            entity_node, new_node, test_node = NULL;
+  an_expr_node_ptr            entity_node, new_node;
   an_expr_node_ptr            assign_node, num_elem_node, vec_new_node;
-  a_constant_ptr              null_constant = local_constant();
   a_variable_ptr              temp_var, new_temp_var = NULL;
   an_expr_node_ptr            size_node;
   a_routine_ptr               ctor_routine, dtor_routine, delete_routine;
@@ -11719,6 +11743,8 @@ arrays with class elements.
        The "new" call is assigned to a temporary, and entity_node uses
        the temporary, as in
          (temp = (type *)new-call(...)) ? (type *)__vec_new(temp, ...) : NULL
+       Note that the NULL check can be omitted in some cases (see
+       null_check_needed).
     */
     /* Prepare the argument list for the "new" call.  Note that the first
        argument was created during lowering (but is lowered anyway). */
@@ -11775,7 +11801,6 @@ arrays with class elements.
     assign_node = make_var_assignment_expr(temp_var,
                                            add_cast_if_necessary(new_node,
                                                                ptr_elem_type));
-    test_node = boolean_controlling_expr(assign_node);
 #if ABI_CHANGES_FOR_PLACEMENT_DELETE
     /* Add the array prefix size to get from the address returned to
        the actual starting address of the array. */
@@ -11790,8 +11815,8 @@ arrays with class elements.
       add_node = make_operator_node((an_expr_operator_kind)eok_padd,
                                     temp_var_node->type, temp_var_node);
       add_node = add_cast_if_necessary(add_node, ptr_elem_type);
-      assign_node = make_var_assignment_expr(temp_var, add_node);
-      insert_expr(assign_node, &insert_location);
+      insert_expr(make_var_assignment_expr(temp_var, add_node),
+                  &insert_location);
     }  /* if */
 #endif /* ABI_CHANGES_FOR_PLACEMENT_DELETE */
     new_routine = NULL;  /* Allocation done outside of __vec_new. */
@@ -11988,13 +12013,21 @@ arrays with class elements.
   }  /* if */
   vec_new_node = insert_location.variant.expr;
   if (ndsp->placement_new || ndsp->aligned_version || aligned_delete) {
-    /* Placement or aligned new.  Add the "?" operator over the whole
-       expression. */
-    test_node->next = vec_new_node;
-    make_zero_of_proper_type(vec_new_node->type, null_constant);
-    vec_new_node->next = alloc_node_for_constant(null_constant);
-    vec_new_node = make_operator_node((an_expr_operator_kind)eok_question,
-                                      vec_new_node->type, test_node);
+    /* Placement or aligned new. */
+    if (null_check_needed(ndsp)) {
+      /* Verify that the result of the operator new call above is non null. */
+      a_constant_ptr   null_constant = local_constant();
+      an_expr_node_ptr test_node = boolean_controlling_expr(assign_node);
+      test_node->next = vec_new_node;
+      make_zero_of_proper_type(vec_new_node->type, null_constant);
+      vec_new_node->next = alloc_node_for_constant(null_constant);
+      vec_new_node = make_operator_node((an_expr_operator_kind)eok_question,
+                                        vec_new_node->type, test_node);
+      release_local_constant(&null_constant);
+    } else {
+      /* No null check is needed; allocate the storage and initialize it. */
+      vec_new_node = make_comma_node(assign_node, vec_new_node);
+    }  /* if */
   }  /* if */
   /* Make sure that code created to set/check the number of elements
      occurs early in the initialization. */
@@ -12005,7 +12038,6 @@ arrays with class elements.
   /* Overwrite expr with a cast of the result of __vec_new (of type void *)
      to the right pointer type. */
   change_to_cast(expr, vec_new_node, expr->type);
-  release_local_constant(&null_constant);
 }  /* lower_array_new */
 
 
@@ -12505,9 +12537,11 @@ The subtree of the node has not yet been lowered.
        we are allocating, e.g., it might be "void *"; a cast is done later. */
     if (dip != NULL && dip->kind != (a_dynamic_init_kind)dik_none) {
       /* Initialization is required.  It must be done only if the allocation
-         succeeds (or if this is a placement new), so build an expression like
+         succeeds, so build an expression like
            ((temp = (type *)new-call(...)) != NULL) ?
                                      (initialization, temp) : NULL
+         Note that the NULL check can be omitted in some cases (see
+         null_check_needed).
       */
       a_boolean is_constructor_init = FALSE;
       if (ctors_return_this) {
@@ -12582,10 +12616,7 @@ The subtree of the node has not yet been lowered.
         }  /* if */
       }
       init_node = insert_location.variant.expr;
-      if (ndsp->placement_new) {
-        /* No check for allocation failure is needed for placement new. */
-        call_node = make_comma_node(assign_node, init_node);
-      } else {
+      if (null_check_needed(ndsp)) {
         /* Build the ?: operation.  Its first argument is the test of the temp
            pointer; its second is the initialization code; and its third is a
            NULL constant of the right type. */
@@ -12596,6 +12627,9 @@ The subtree of the node has not yet been lowered.
         init_node->next = null_node;
         call_node = make_operator_node((an_expr_operator_kind)eok_question,
                                        ptr_new_type, test_node);
+      } else {
+        /* Skip the check; perform the initialization without checking. */
+        call_node = make_comma_node(assign_node, init_node);
       }  /* if */
     }  /* if */
     if (pre_call_insert_location.variant.expr != NULL) {

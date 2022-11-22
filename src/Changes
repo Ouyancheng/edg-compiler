@@ -1,13 +1,14 @@
 Version 6.5
 
-11/21/22 [EDGcpfe/25597]
-Remove unneeded runtime check for placement new
+11/22/22 [EDGcpfe/25597]
+Remove unneeded runtime check for calls to operator new
 
-In cases where initialization is required of memory allocated by a
-"non-allocating form" of operator new (i.e., placement new), lowering had
-inserted code to suppress the initialization in the case that the call to
-operator new returned NULL.  According to the standard that check is
-superfluous and has now been removed.
+In cases where initialization is required of memory allocated by an allocation
+function, lowering had inserted a runtime check to ensure that the result of
+the allocation function was non-NULL.  Now the front end omits that check for
+cases that have undefined behavior (i.e., when a throwing allocation routine is
+invoked and when the routine has a non-allocating form).  For example (with
+--c++14):
 
   typedef decltype(sizeof(0)) size_t;
   void* operator new(size_t s, void *p) noexcept {
