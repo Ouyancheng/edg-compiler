@@ -1646,6 +1646,7 @@ line processing is done.
   il_write_early_init();
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
   depth_scope_stack = NO_SCOPE_DEPTH;
+  depth_innermost_instantiation_scope = NO_SCOPE_DEPTH;
 #if NEAR_AND_FAR_ALLOWED
   il_header.near_and_far_are_enabled = DEFAULT_NEAR_AND_FAR_ENABLED;
   il_header.far_data_pointers = DEFAULT_FAR_DATA_POINTERS;
