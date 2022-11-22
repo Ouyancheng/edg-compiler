@@ -8246,6 +8246,14 @@ new declaration is a friend declaration.
   a_symbol_kind  sym_kind = (a_symbol_kind)sk_routine;
   a_boolean      overload_set_is_invisible = FALSE;
 
+#if CHECKING
+  {
+    a_symbol_ptr inspected_sym = homonym_symbol;
+
+    reduce_projection_symbol_to_fundamental_symbol(inspected_sym);
+    check_assertion(is_function_or_template_symbol(inspected_sym));
+  }
+#endif /* CHECKING */
   if (is_template) {
     sym_kind = (a_symbol_kind)sk_function_template;
   }  /* if */
@@ -10998,12 +11006,23 @@ definition of a member function of a class template.
       sym = idlb.linked_symbol;
       homonym_symbol = idlb.homonym_symbol;
       overload_symbol = idlb.overload_symbol;
-      if (sym != NULL && sym->kind != (a_symbol_kind)sk_function_template) {
+      if (sym != NULL && sym->kind != sk_function_template) {
         /* Invalid redeclaration. */
         pos_sy_error(ec_not_compatible_with_previous_decl,
                      &locator->source_position, sym);
         sym = NULL;
         set_to_error_locator(*locator);
+      } else if (sym == NULL && homonym_symbol != NULL) {
+        a_symbol_ptr inspected_sym = homonym_symbol;
+
+        reduce_projection_symbol_to_fundamental_symbol(inspected_sym);
+        if (!is_function_or_template_symbol(inspected_sym)) {
+          /* Invalid redeclaration. */
+          pos_sy_error(ec_not_compatible_with_previous_decl,
+                       &locator->source_position, homonym_symbol);
+          homonym_symbol = NULL;
+          set_to_error_locator(*locator);
+        }  /* if */
       }  /* if */
     }  /* if */
     if (sym == NULL) {
