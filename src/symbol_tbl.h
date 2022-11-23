@@ -2691,11 +2691,13 @@ typedef struct a_template_symbol_supplement {
 			/* The number of instantiations of this template
 			   that are in the process of being instantiated.
 			   Used to detect runaway recursive instantiations. */
-  a_symbol_ptr	instantiation_suppressor;
-			/* When the template should have its instantiations
-			   suppressed, this is the symbol for the template
-			   instantiation that triggered the suppression;
-			   otherwise, NULL. */
+  a_symbol_ptr	invalid_active_instantiation;
+			/* When the template should have new (recursive)
+			   instantiations suppressed due to an invalid
+			   instantiation of the same template being
+			   instantiated in the current scope stack, this is the
+			   symbol for the template instantiation that triggered
+			   the suppression; otherwise, NULL. */
   a_pending_pragma_ptr
 		pragmas_bound_to_template;
 			/* A list of pbk_next_construct pragmas to be bound

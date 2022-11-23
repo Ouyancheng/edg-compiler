@@ -3721,7 +3721,7 @@ and return a pointer to it.
 #endif /* DEBUG */
   /* Initialize its fields. */
   tssp->pending_instantiations = 0;
-  tssp->instantiation_suppressor = NULL;
+  tssp->invalid_active_instantiation = NULL;
   tssp->pragmas_bound_to_template = NULL;
   tssp->token_sequence_number = NO_TOKEN_SEQUENCE_NUMBER;
   clear_template_cache(&tssp->cache, /*reusable=*/TRUE);

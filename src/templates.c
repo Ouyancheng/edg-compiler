@@ -35583,17 +35583,19 @@ such cases).
 }  /* check_if_already_specialized */
 
 
-static a_boolean is_instantiation_suppressed(a_template_instance_ptr tip)
+static a_boolean is_artifact_of_failing_instantiation(
+                                                   a_template_instance_ptr tip)
 /*
-If the instantiation of the given template instance is suppressed, return TRUE;
-otherwise, return FALSE.
+If the instantiation of the given template instance should be suppressed as it
+would be a (recursive) instantiation originating from an invalid template
+instantiation (of the same template), return TRUE; otherwise, return FALSE.
 */
 {
   a_template_symbol_supplement_ptr tssp =
                              template_supplement_for_symbol(tip->template_sym);
 
-  return tssp->instantiation_suppressor != NULL;
-}  /* is_instantiation_suppressed */
+  return tssp->invalid_active_instantiation != NULL;
+}  /* is_artifact_of_failing_instantiation */
 
 
 static void instantiate_entity(a_template_instance_ptr tip)
@@ -35679,7 +35681,7 @@ data member specified by tip.
   if (tip == NULL) {
     /* This can occur when no corresponding instance could be found in the
        translation unit containing the template. */
-  } else if (is_instantiation_suppressed(tip)) {
+  } else if (is_artifact_of_failing_instantiation(tip)) {
     /* The instantiation was suppressed because a previous instantiation of the
        same template resulted in an error. */
     tip->suppress_instantiation = TRUE;

@@ -9431,9 +9431,9 @@ being popped.
     if (ssep->names_hidden_by_old_for_init != NULL) {
       free_names_hidden_by_old_for_init(ssep->names_hidden_by_old_for_init);
     }  /* if */
-    /* Check to see if there's an instantiation suppression held by the
-       template instantiation being popped off the scope stack, if so, release
-       the suppression. */
+    /* Check to see if the scope being popped off the scope stack is an invalid
+       instantiation that's suppressing further (recursive) instantiations of
+       its associated template. */
     if (depth_innermost_instantiation_scope == depth_scope_stack) {
       a_symbol_ptr templ_sym = ssep->template_sym;
 
@@ -9441,8 +9441,11 @@ being popped.
         a_template_symbol_supplement_ptr sup =
                                               templ_sym->variant.template_info;
 
-        if (sup->instantiation_suppressor == ssep->instance_sym) {
-          sup->instantiation_suppressor = NULL;
+        if (sup->invalid_active_instantiation == ssep->instance_sym) {
+          /* As this instantiation will no longer be in scope (and thus
+             subsequent instantiations of this template are not recursive),
+             resume allowing instantiations of this template. */
+          sup->invalid_active_instantiation = NULL;
         }  /* if */
       }  /* if */
     }  /* if */
