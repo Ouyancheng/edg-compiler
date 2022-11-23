@@ -12,13 +12,12 @@ invoked and when the routine has a non-allocating form).  For example (with
 
   #include <new>
   void* operator new[](size_t) {
-     return nullptr;       // Undefined behavior
+    return nullptr;       // Undefined behavior
   }
   void f() {
     int buffer[4];
     new (buffer) int{42};  // Okay (now more efficient)
-    new (nullptr) int{42}; // Had been okay, now causes a
-                           // segfault at runtime
+    new (nullptr) int{42}; // Had been okay, now causes a segfault at runtime
     new int[2]{1,2};       // Ditto
   }
 
