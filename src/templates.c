@@ -35677,7 +35677,6 @@ data member specified by tip.
     }  /* if */
 #endif /* DEBUG */
   }  /* if */
-
   if (tip == NULL) {
     /* This can occur when no corresponding instance could be found in the
        translation unit containing the template. */
