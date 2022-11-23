@@ -11642,8 +11642,9 @@ can be omitted in cases that are enumerated below.
        (and not returning a null pointer). */
     result = FALSE;
   } else if (ndsp->placement_new &&
-             is_void_star_type(rout_type_supp(ndsp->routine->type)
-                                              ->param_type_list->next->type)) {
+             is_void_star_type(
+                     function_type_params(ndsp->routine->type)->next->type) &&
+             function_type_params(ndsp->routine->type)->next->next == NULL) {
     /* A non-allocating routine has undefined behavior if null is passed to
        it, so the check can be omitted. */
     result = FALSE;
@@ -11665,7 +11666,7 @@ arrays with class elements.
   a_routine_ptr               new_routine = ndsp->routine;
   a_type_ptr                  array_type, elem_type, ptr_elem_type;
   an_expr_node_ptr            entity_node, new_node;
-  an_expr_node_ptr            assign_node, num_elem_node, vec_new_node;
+  an_expr_node_ptr            assign_node = NULL, num_elem_node, vec_new_node;
   a_variable_ptr              temp_var, new_temp_var = NULL;
   an_expr_node_ptr            size_node;
   a_routine_ptr               ctor_routine, dtor_routine, delete_routine;
@@ -12016,6 +12017,7 @@ arrays with class elements.
     /* Placement or aligned new. */
     if (null_check_needed(ndsp)) {
       /* Verify that the result of the operator new call above is non null. */
+      check_assertion(assign_node != NULL);
       a_constant_ptr   null_constant = local_constant();
       an_expr_node_ptr test_node = boolean_controlling_expr(assign_node);
       test_node->next = vec_new_node;
@@ -12024,7 +12026,7 @@ arrays with class elements.
       vec_new_node = make_operator_node((an_expr_operator_kind)eok_question,
                                         vec_new_node->type, test_node);
       release_local_constant(&null_constant);
-    } else {
+    } else if (assign_node != NULL) {
       /* No null check is needed; allocate the storage and initialize it. */
       vec_new_node = make_comma_node(assign_node, vec_new_node);
     }  /* if */
