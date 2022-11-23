@@ -600,6 +600,7 @@ Output the indicated template argument in the way described by octl.
   if (tap->is_pack || tap->has_pack_ellipsis) octl->output_str("...", octl);
 }  /* form_a_template_arg */
 
+
 static void skip_start_of_pack_markers(a_template_arg_ptr        *tap_p,
                                        a_template_parameter_ptr  *tpp_p)
 /*
