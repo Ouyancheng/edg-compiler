@@ -7133,9 +7133,7 @@ a definition.
           var->template_info->template_arg_list != NULL) {
         /* This is an explicit instantiation or partial specialization of a
            variable template.  Put out its template argument list. */
-        form_template_args(var->template_info->template_arg_list,
-                           var->template_info->assoc_template->template_decl->
-                                                                    param_list,
+        form_template_args(var->template_info->template_arg_list, /*tpp=*/NULL,
                            &octl);
       }  /* if */
     }  /* if */
