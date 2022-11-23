@@ -35682,7 +35682,7 @@ data member specified by tip.
   } else if (is_instantiation_suppressed(tip)) {
     /* The instantiation was suppressed because a previous instantiation of the
        same template resulted in an error. */
-    tip->instantiation_suppressed = TRUE;
+    tip->suppress_instantiation = TRUE;
   } else if (symbol_is(tip->instance_sym, sk_static_data_member) ||
              symbol_is(tip->instance_sym, sk_variable)) {
     /* Static data member or variable template definition. */
@@ -37938,7 +37938,7 @@ that might be required.
        tip != NULL;
        tip = tip->next_in_instantiation_list) {
     /* Skip entries that have been suppressed. */
-    if (tip->instantiation_suppressed) continue;
+    if (tip->suppress_instantiation) continue;
 
     a_master_instance_ptr mip;
     mip = master_instance_of(tip);

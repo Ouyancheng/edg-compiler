@@ -2467,9 +2467,12 @@ typedef struct a_template_instance {
   a_bit_field	suppress_instantiation:1;
 			/* TRUE if the instantiation of this entity should be
 			   suppressed because of previous errors that occurred
-			   during the partial instantiation of the entity or
+			   during the partial instantiation of the entity,
 			   because the instance is ineligible (e.g., because
-			   C++20 constraints were not satisfied). */
+			   C++20 constraints were not satisfied), or because
+			   the instantiation appeared as an artifact of an
+			   instantiation (of the same underlying template) that
+			   had one or more errors during instantiation. */
   a_bit_field	is_guiding_decl:1;
 			/* For instances of nonmember function templates,
 			   TRUE if this instance is a guiding declaration
@@ -2505,11 +2508,6 @@ typedef struct a_template_instance {
 			   been supplied since the last time the check was
 			   done.  The can_be_instantiated routine should
 		           be used instead of this field. */
-  a_bit_field  instantiation_suppressed:1;
-			/* TRUE if this entity's instantiation is suppressed
-			   because it appeared as an artifact of an
-			   instantiation (of the same underlying template) that
-			   had one or more errors during instantiation. */
   a_bit_field	on_instantiations_list:1;
 			/* TRUE if this entry is already on the instantiations
 			   required list. */
