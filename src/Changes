@@ -1,5 +1,14 @@
 Version 6.5
 
+11/23/22 [EDGcpfe/25693]
+Clang compatibility: Additional changes for __builtin_elementwise_* and
+__builtin_reduce_* builtins
+
+Clang 15.0.0 added some new builtins for which special handling is required
+(__builtin_elementwise_add_sat, __builtin_elementwise_sub_sat,
+__builtin_reduce_add, and __builtin_reduce_mul).  Now fixed.
+
+
 11/23/22 [EDGcpfe/25627]
 Ignoring top-level qualifiers on calls to __builtin_shuffle
 

@@ -5581,6 +5581,8 @@ be called to check and adjust the argument and routine types as needed.
       break;
     case bfk_elementwise_max:
     case bfk_elementwise_min:
+    case bfk_elementwise_add_sat:
+    case bfk_elementwise_sub_sat:
       bcap->n_args = 2;
       bcap->is_elementwise = TRUE;
       bcap->callback = adjust_elementwise_or_reduce_builtin;
@@ -5590,6 +5592,8 @@ be called to check and adjust the argument and routine types as needed.
     case bfk_reduce_min:
     case bfk_reduce_or:
     case bfk_reduce_xor:
+    case bfk_reduce_add:
+    case bfk_reduce_mul:
       bcap->n_args = 1;
       bcap->is_reduce = TRUE;
       bcap->callback = adjust_elementwise_or_reduce_builtin;
@@ -6259,6 +6263,10 @@ resulting return type is determined for the routine.
           case bfk_reduce_and:
           case bfk_reduce_or:
           case bfk_reduce_xor:
+          case bfk_reduce_add:
+          case bfk_reduce_mul:
+          case bfk_elementwise_add_sat:
+          case bfk_elementwise_sub_sat:
             err = !is_integral_type(type);
             break;
           default:
