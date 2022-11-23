@@ -2418,7 +2418,8 @@ option values if they were not already set by a command line option.
   end_of_line_comments_allowed = TRUE;
   IEEE_handling_on_float_operation_exceptions = FALSE;
   /* Floating-point template parameters are supported by MSVC++ through
-     version 7.0. */
+     version 7.0.  These are also supported in later versions in some cases
+     (see below for specifics). */
   floating_point_template_parameters_allowed = microsoft_version <= 1300;
   equiv_typedefs_are_lookup_equivalent = FALSE;
   null_chars_allowed_in_source = TRUE;
@@ -3083,6 +3084,7 @@ option values if they were not already set by a command line option.
         if (ms_cpp20_mode) {
           consteval_enabled = TRUE;
           constinit_enabled = TRUE;
+          floating_point_template_parameters_allowed = TRUE;
         }  /* if */
       }  /* if */
       if (microsoft_version >= 1927) {

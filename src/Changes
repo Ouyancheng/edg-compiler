@@ -1,5 +1,15 @@
 Version 6.5
 
+11/23/22 [EDGcpfe/24131,EDGcpfe/24367,EDGcpfe/25703]
+Microsoft compatibility: floating-point template parameters
+
+A change has been made to accept floating-point template parameters in
+Microsoft emulation mode when microsoft_version >= 1926 and --std_c++latest is
+specified.  Note that floating-point template parameters continue to be
+accepted when emulating early Microsoft versions (i.e., microsoft_version <=
+1300).
+
+
 11/23/22 [EDGcpfe/25693]
 Clang compatibility: Additional changes for __builtin_elementwise_* and
 __builtin_reduce_* builtins
