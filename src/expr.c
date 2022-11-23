@@ -15128,7 +15128,7 @@ __builtin_shuffle or Clang __builtin_shufflevector construct.
        an integral vector type with the same number of elements as the first
        argument. */
     if (op1_is_vector && op2_is_vector &&
-        !(identical_types(p_op1->type, p_op2->type) ||
+        !(identical_types_ignoring_qualifiers(p_op1->type, p_op2->type) ||
           (is_shufflevector && p_op3 == NULL &&
            is_integral_type(
                     skip_typerefs(p_op2->type)->variant.vector.element_type) &&
