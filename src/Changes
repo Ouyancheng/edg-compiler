@@ -30,7 +30,7 @@ back end to not emit the initializer.  For example, with --c++14 --clang:
 Microsoft compatibility: floating-point template parameters
 
 A change has been made to accept floating-point template parameters in
-Microsoft emulation mode when microsoft_version >= 1926 and --std_c++latest is
+Microsoft emulation mode when microsoft_version >= 1926 and --ms_c++latest is
 specified.  Note that floating-point template parameters continue to be
 accepted when emulating early Microsoft versions (i.e., microsoft_version <=
 1300).
