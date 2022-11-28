@@ -3084,6 +3084,8 @@ option values if they were not already set by a command line option.
         if (ms_cpp20_mode) {
           consteval_enabled = TRUE;
           constinit_enabled = TRUE;
+        }  /* if */
+        if (ms_cpplatest_mode) {
           floating_point_template_parameters_allowed = TRUE;
         }  /* if */
       }  /* if */
