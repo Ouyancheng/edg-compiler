@@ -17613,31 +17613,43 @@ The current token is the token after the "if" or "else" keyword.
      substatements that are "else if" statements are handled properly. */
   if (curr_token == tok_if) {
     (void)get_token();
+    if (curr_token == tok_not) {
+      /* Skip the "not" token only if it is followed by "consteval". */
+      (void)get_token();
+      if (curr_token != tok_consteval) unget_token();
+    }  /* if */
+    if (curr_token == tok_consteval) {
+      (void)get_token();
+    } else {
+      if (curr_token == tok_constexpr) (void)get_token();
+      if (curr_token == tok_lparen) {
+        flush_until_matching_token_full(/*limit_flush=*/FALSE);
+        (void)get_token();
+      } else {
+        pos_error(ec_exp_lparen, &error_position);
+      }  /* if */
+    }  /* if */
     flush_if_or_else_statement();
     if (curr_token == tok_else) {
       (void)get_token();
       flush_if_or_else_statement();
     }  /* if */
   } else {
-    /* Initialize a local stop token set.  Also stop on newline and end
-       of source for error cases. */
-    a_token_set_array  stop_tokens;
-    clear_token_set_array(stop_tokens);
-    incr_token_set_array_element(stop_tokens, tok_end_of_source);
-    incr_token_set_array_element(stop_tokens, tok_rbrace);
-    incr_token_set_array_element(stop_tokens, tok_lbrace);
-    incr_token_set_array_element(stop_tokens, tok_semicolon);
     push_lexical_state_stack();
     curr_lexical_state_stack_entry->flushing_tokens = TRUE;
-    /* If we are not already at a left brace skip over tokens (e.g., of the
-       "if" expression) to find the end of the statement or a left brace. */
-    if (curr_token != tok_lbrace) {
-      flush_tokens_with_stop_tokens_and_warning_flag(
-                                       stop_tokens, /*suppress_warning=*/TRUE);
-    }  /* if */
     /* If we found a left brace, skip the compound statement. */
     if (curr_token == tok_lbrace) {
       flush_until_matching_token_full(/*limit_flush=*/FALSE);
+    } else {
+      /* Initialize a local stop token set.  Also stop on right brace and end
+         of source for error cases. */
+      a_token_set_array  stop_tokens;
+      clear_token_set_array(stop_tokens);
+      incr_token_set_array_element(stop_tokens, tok_end_of_source);
+      incr_token_set_array_element(stop_tokens, tok_rbrace);
+      incr_token_set_array_element(stop_tokens, tok_semicolon);
+      flush_tokens_with_stop_tokens_and_warning_flag(stop_tokens,
+                                                    /*suppress_warning=*/TRUE);
     }  /* if */
     if (curr_token != tok_end_of_source) (void)get_token();
     pop_lexical_state_stack();
