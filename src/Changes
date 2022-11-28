@@ -1,5 +1,19 @@
 Version 6.5
 
+11/28/22 [EDGcpfe/25751]
+C++-generating back end: initializer for in-class explicit specialization
+
+An in-class explicit specialization of a static data member template always had
+its initializer_in_class flag set to FALSE, resulting in the C++-generating
+back end to not emit the initializer.  For example, with --c++14 --clang:
+
+  struct C {
+    template<int I> static const int i = I;
+    template<> static const int i<0> = -1;  // Previously generated without the
+                                            // initializer
+  };
+
+
 11/23/22 [EDGcpfe/24131,EDGcpfe/24367,EDGcpfe/25703]
 Microsoft compatibility: floating-point template parameters
 

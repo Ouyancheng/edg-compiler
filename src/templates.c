@@ -32228,7 +32228,6 @@ that follows.
                   symbol_is(sym, sk_variable)) &&
                  template_instance_for_symbol(sym) != NULL) {
         a_variable_ptr	var = variable_for_symbol(sym);
-        var->initializer_in_class = FALSE;
         if ((dps->dso_flags & DSO_CONSTEXPR) != 0 &&
             !is_const_qualified_type(dps->type)) {
           /* constexpr variables are implicitly const. */
@@ -32359,9 +32358,6 @@ that follows.
                               curr_token == tok_assign ||
                               has_parenthesized_initializer ||
                               (list_init_enabled && curr_token == tok_lbrace));
-        if (symbol_is(sym, sk_variable)) {
-          update_variable_decl_info(vp, dps, dps->is_definition);
-        }  /* if */
         if (dps->is_definition && !dps->in_class_scope &&
             vp->is_specialized && vp->is_in_class_specialization) {
           if (decl_state->specialization_levels > 1) {
@@ -32381,6 +32377,17 @@ that follows.
           }  /* if */
         } else {
           already_specialized = vp->is_specialized;
+        }  /* if */
+        if (dps->in_class_scope) {
+          vp->initializer_in_class = (curr_token != tok_semicolon);
+        } else if (!vp->is_in_class_specialization) {
+          /* Only reset the in-class initializer flag if it is an out-of-class
+             specialization (and not just an out-of-class definition for an
+             in-class declaration). */
+          vp->initializer_in_class = FALSE;
+        }  /* if */
+        if (symbol_is(sym, sk_variable)) {
+          update_variable_decl_info(vp, dps, dps->is_definition);
         }  /* if */
         if (!already_specialized) {
           /* For a static data member, the instantiation of the enclosing class
@@ -32586,6 +32593,7 @@ that follows.
           if (first_decl || vp->declared_type == NULL) {
             vp->declared_type = dps->declared_type;
           }  /* if */
+          vp->declared_storage_class = dps->declared_storage_class;
         }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
         check_assertion(vp != NULL);
