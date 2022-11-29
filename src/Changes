@@ -142,7 +142,7 @@ Consider (in C++20 mode):
   static_assert(g());
 
 A bug in the constexpr interpreter caused the lifetime of the variable v during
-the evaluation of the call to g() to be aborted earlier.  In turn, that caused
+the evaluation of the call to g() to be ended too soon.  In turn, that caused
 the use of i in the call cond(i) to be considered non-constant because it was
 mistakenly treated as accessing expired storage.  That is now fixed.
 

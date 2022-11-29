@@ -717,8 +717,6 @@ Double the number of entries in the given set.  This requires rehashing.
 }  /* expand_live_set */
 
 
-void interceptor() {}
-
 /*
 Macro to add an allocation sequence number to a live set.  (It may not be in
 the set already.)
@@ -729,7 +727,6 @@ the set already.)
   a_live_set_index     mask = (set)->hash_mask;                              \
   a_live_set_index     idx = hash & mask;                                    \
   an_alloc_seq_number  *table = (set)->table;                                \
-  if (alloc_seq == 3) interceptor(); \
   if (table[idx] == 0) {                                                     \
     table[idx] = (alloc_seq);                                                \
   } else {                                                                   \
@@ -776,7 +773,6 @@ at idx.
   a_live_set_index     idx = hash & mask;                                    \
   an_alloc_seq_number  *table = (set)->table;                                \
   /* Find the item to delete (we're assuming it exists). */                  \
-  if (alloc_seq == 3) interceptor(); \
   while (table[idx] != (alloc_seq)) {                                        \
     idx = (idx+1) & mask;                                                    \
   }  /* while */                                                             \
