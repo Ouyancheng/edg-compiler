@@ -2843,6 +2843,60 @@ an IFC expression index (that token should be a tok_ifc_entity_ref).
 }  /* load_tok_ifc_entity_ref */
 
 
+a_symbol_ptr load_tok_ifc_template_param(void)
+/*
+The current token is tok_ifc_template_param, which encodes template parameter
+coordinates.  Return the symbol for the corresponding parameter.
+*/
+{
+  a_lexical_ifc_index_reference
+                     *idx = &ifc_index_for_curr_token;
+  an_ifc_module*     mod = (an_ifc_module*)idx->module;
+  an_ifc_decl_index  decl_idx{ mod, (an_ifc_decl_sort)idx->sort, idx->index}; 
+  a_source_position  pos = pos_curr_token;
+  a_symbol_ptr       result = NULL;
+  Opt<an_ifc_decl_parameter>  opt_idp;
+
+  construct_node(&opt_idp, decl_idx);
+  if (opt_idp.has_value()) {
+    an_ifc_decl_parameter      idp = *opt_idp;
+    a_template_nesting_depth   pdepth = get_ifc_level(idp);
+    a_template_param_list_pos  pnum = get_ifc_position(idp);
+    a_scope_depth              sd = depth_scope_stack;
+    /* We currently have no structure that maps parameter coordinates to the
+       parameter representation.  We therefore just search the scope stack for
+       the required information. */
+    do {
+      a_template_param_ptr  tpp = NULL;
+      a_template_decl_info  *tdip = scope_stack[sd].template_decl_info;
+      a_symbol_ptr          tsym = scope_stack[sd].template_sym;
+      /* In some cases, the parameters can be retrieved from the template
+         declaration scope (via tdip) and in some cases from the associated
+         template symbol. */
+      if (tdip != NULL) {
+        tpp = tdip->parameters;
+      } else if (tsym != NULL) {
+        tpp = templ_params_of(tsym);
+      }   /* if */
+      if (tpp != NULL) {
+        a_template_param_coordinate_ptr  coord;
+        coord = coordinates_of_template_param(tpp);
+        if (coord->depth == pdepth) {
+          for (; tpp != NULL; tpp = tpp->next) {
+            if (tpp->param_num == pnum) {
+              result = tpp->param_symbol;
+              goto done;
+            }  /* if */
+          }  /* for */
+        }  /* if */
+      }  /* if */
+    } while (--sd != DEPTH_OF_FILE_SCOPE);
+  }  /* if */
+done:
+  return result;
+}  /* load_tok_ifc_template_param */
+
+
 template<typename Index_Type>
 static void cache_token_with_index(a_module_token_cache_ptr cache,
                                    a_token_kind             tok_to_cache,
@@ -11787,6 +11841,12 @@ this is needed.
           cache_token(cache, tok_auto, &pos);
         } else if (is_name_qualifiable(decl)) {
           cache_qualified_name_from_decl(cache, decl, locus);
+        } else if (decl.sort == ifc_ds_decl_parameter) {
+          /* Represent the reference to a template parameter with a special
+             token because the name recorded for a parameter may not be the
+             one that the parameter was declared with in the current
+             context. */
+          cache_token_with_index(cache, tok_ifc_template_param, decl, &pos);
         } else {
           /* We are contextually forbidden from qualifying this name or the
              declaration type otherwise is considered to never appear

@@ -712,6 +712,8 @@ extern void record_symbol_for_ifc_decl(a_symbol_ptr  sym);
 
 extern a_symbol_ptr load_tok_ifc_entity_ref(void);
 
+extern a_symbol_ptr load_tok_ifc_template_param(void);
+
 extern void ifc_modules_one_time_init();
 
 extern void ifc_modules_init();

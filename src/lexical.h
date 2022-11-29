@@ -320,6 +320,7 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
    (an_opname_kind)onk_none,          /* tok_pending_ifc_var_init */
    (an_opname_kind)onk_none,          /* tok_pending_ifc_expr  */
    (an_opname_kind)onk_none,          /* tok_ifc_entity_ref */
+   (an_opname_kind)onk_none,          /* tok_ifc_template_param */
    (an_opname_kind)onk_none,          /* tok_ifc_decl */
    (an_opname_kind)onk_none,          /* tok_unimplemented */
    (an_opname_kind)onk_subscript,     /* operator[] starts with tok_lbracket */
