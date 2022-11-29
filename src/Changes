@@ -16,8 +16,8 @@ containing braces during instantiation.  For example, with --c++17:
 C++-generating back end: initializer for in-class explicit specialization
 
 An in-class explicit specialization of a static data member template always had
-its initializer_in_class flag set to FALSE, resulting in the C++-generating
-back end to not emit the initializer.  For example, with --c++14 --clang:
+its initializer_in_class flag set to FALSE, causing the C++-generating back end
+not to emit the initializer.  For example, with --c++14 --clang:
 
   struct C {
     template<int I> static const int i = I;
