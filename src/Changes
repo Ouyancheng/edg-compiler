@@ -1,5 +1,16 @@
 Version 6.5
 
+11/20/22 [EDGcpfe/25808]
+GNU/Clang compatibility: abi_tag attribute on friend definition
+
+A spurious error had been given on a declaration of a friend definition with
+an abi_tag attribute.  Now fixed.  For example, with --gnu_version 110000:
+
+  template <class T> struct A {
+    __attribute__((__abi_tag__("v15000"))) friend A f() {}
+  };
+
+
 11/30/22 [EDGcpfe/24910,EDGcpfe/24982]
 GNU C++ compatibility: typename-qualified lookups
 

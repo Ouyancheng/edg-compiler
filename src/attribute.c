@@ -8355,7 +8355,9 @@ to match GNU's behavior).
       } else {
         a_boolean redeclaration = FALSE;
         if (dps != NULL &&
-            ((entity_kind == iek_routine && !dps->first_decl) ||
+            ((entity_kind == iek_routine &&
+              !dps->first_decl &&
+              !rp->defined_in_friend_decl) ||
              (entity_kind == iek_type &&
               dps->redeclares_tag &&
               dps->tag_def_or_forward_decl))) {
