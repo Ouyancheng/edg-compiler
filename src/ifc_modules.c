@@ -2851,10 +2851,11 @@ coordinates.  Return the symbol for the corresponding parameter.
 {
   a_lexical_ifc_index_reference
                      *idx = &ifc_index_for_curr_token;
-  an_ifc_module*     mod = (an_ifc_module*)idx->module;
+  an_ifc_module      *mod = (an_ifc_module*)idx->module;
   an_ifc_decl_index  decl_idx{ mod, (an_ifc_decl_sort)idx->sort, idx->index}; 
   a_symbol_ptr       result = NULL;
-  Opt<an_ifc_decl_parameter>  opt_idp;
+  Opt<an_ifc_decl_parameter>
+                     opt_idp;
 
   construct_node(&opt_idp, decl_idx);
   if (opt_idp.has_value()) {
