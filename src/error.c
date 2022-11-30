@@ -2710,8 +2710,12 @@ no source line is available).  Return TRUE if so, FALSE otherwise.
   a_line_number     line_no;
   a_boolean         at_end_of_source;
 
+  /* Do not use physical lines; modules don't consistently have sensible
+     physical lines since they're loaded lazily.  Additionally, physical lines
+     are both slower, and may result in the translation unit source file being
+     returned rather than the implicitly created module source file. */
   src_file = source_file_for_seq(pos->seq, &line_no, &at_end_of_source,
-                                 /*physical_line=*/TRUE);
+                                 /*physical_line=*/FALSE);
   if (src_file != NULL && src_file->assoc_module != NULL) {
     result = TRUE;
   }  /* if */

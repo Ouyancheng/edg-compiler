@@ -4015,8 +4015,11 @@ initial source position for the file is returned in *starting_seq_num.
   if (is_implicit_include) {
     /* Emulate the end of source logic that would normally be handled by
        read_logical_source_line when finishing an implicit include -- as we
-       don't actually read any source lines here. */
-    curr_seq_number = ++seq_number_last_read;
+       don't actually read any source lines here.  Note that unlike
+       read_logical_source_line, the curr_seq_number is not updated, as we're
+       not actually modifying the token stream, just expanding the translation
+       unit's line count to include an end-of-source position. */
+    ++seq_number_last_read;
 #if EXPENSIVE_CHECKING && DEBUG
     curr_translation_unit->is_fully_sequenced = TRUE;
 #endif /* EXPENSIVE_CHECKING && DEBUG */
