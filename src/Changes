@@ -1,5 +1,20 @@
 Version 6.5
 
+11/30/22 [EDGcpfe/24631]
+Microsoft C++ compatibility: Rvalue reference binding
+
+The changes for EDGcpfe/15137 (in version 4.10 of the front end) enabled the
+emulation of an MSVC bug regarding the binding of an rvalue reference to a
+converted lvalue.  It appears that MSVC 19.29 fixed this nonstandard behavior
+and the front end now matches that.  For example:
+
+  void g(char const*&);
+  void g(char const*&&);
+  void f() {
+    g("Message");  // Previously an error in all Microsoft modes.
+  }                // Now okay if microsoft_version >= 1929.
+
+
 11/20/22 [EDGcpfe/25808]
 GNU/Clang compatibility: abi_tag attribute on friend definition
 
