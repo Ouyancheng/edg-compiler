@@ -5471,7 +5471,7 @@ completed.
 {
   if (dps->sym == NULL || !is_function_or_template_symbol(dps->sym)) {
     pos_st_warning(ec_wrong_entity_for_attribute, &dps->start_pos,
-                   "enable_if");
+                   "unavailable");
   } else {
     func_sym_routine(dps->sym)->is_deleted = TRUE;
   }  /* if */
