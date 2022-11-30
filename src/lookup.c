@@ -4867,10 +4867,7 @@ struct a_class_qualified_lookup_options_set {
   a_class_qualified_lookup_options_set(an_id_lookup_options_set options)
     : must_be_class_or_namespace(
                               (options & IDL_MUST_BE_CLASS_OR_NAMESPACE) != 0),
-      /* g++ ignores non-types for typename lookups. */
-      must_be_tag((options & IDL_MUST_BE_TAG) != 0 ||
-                  (gpp_version_is(any_version) &&
-                   (options & IDL_TYPENAME_LOOKUP) != 0)),
+      must_be_tag((options & IDL_MUST_BE_TAG) != 0),
       must_be_class((options & IDL_MUST_BE_CLASS) != 0),
       is_declarator((options & IDL_IS_DECLARATOR) != 0),
       is_do_not_add_to_nonreal(
@@ -4945,23 +4942,27 @@ options.
   if (!sym->is_class_member) {
     result = FALSE;
   } else if (is_injected_class_symbol(sym) &&
-             !is_valid_injected_symbol(class_type_ptr, fund_sym)) {
+             !this->is_valid_injected_symbol(class_type_ptr, fund_sym)) {
     result = FALSE;
   } else if (sym_parent_class(sym) != class_type_ptr) {
     /* Note that same_entities must not be used for this test. */
     result = FALSE;
-  } else if (must_be_class_or_namespace &&
+  } else if (this->must_be_class_or_namespace &&
              !symbol_may_precede_qualifier(fund_sym)) {
     result = FALSE;
-  } else if (must_be_class &&
+  } else if (this->must_be_class &&
              !is_class_or_class_proxy_symbol(fund_sym)) {
     result = FALSE;
-  } else if (must_be_tag && !is_tag(fund_sym)) {
+  } else if (this->must_be_tag && !this->is_tag(fund_sym)) {
     result = FALSE;
-  } else if (sym->is_invisible && sym->kind != (a_symbol_kind)sk_projection &&
+  } else if (sym->is_invisible && !symbol_is(sym, sk_projection) &&
              !sym->qualified_lookup) {
     /* Ignore invisible symbols except for invisible projection symbols
        and class member symbols marked as visible to qualified lookup. */
+    result = FALSE;
+  } else if (this->is_typename_lookup && gpp_version_is(any_version) &&
+             !is_type_symbol(sym) && !this->is_tag(sym)) {
+    /* g++ ignores non-types for typename lookups. */
     result = FALSE;
   }  /* if */
   return result;
@@ -5045,8 +5046,7 @@ otherwise return FALSE.
 
 
 inline a_boolean a_class_qualified_lookup_options_set::is_tag(
-                                                         a_symbol_ptr fund_sym)
-                                                                          const
+                                                  a_symbol_ptr fund_sym) const
 /*
 Return TRUE if the given symbol is a tag or should be considered a tag for the
 purposes of emulating a bug, FALSE otherwise.
@@ -5056,7 +5056,7 @@ purposes of emulating a bug, FALSE otherwise.
 
   if (is_tag_or_tag_proxy_symbol(fund_sym, is_friend_lookup)) {
     result = TRUE;
-  } else if (microsoft_bugs && fund_sym->kind == (a_symbol_kind)sk_type) {
+  } else if (microsoft_bugs && symbol_is(fund_sym, sk_type)) {
     result = TRUE;
   }
   return result;

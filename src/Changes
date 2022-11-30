@@ -1,5 +1,15 @@
 Version 6.5
 
+11/30/22 [EDGcpfe/24910,EDGcpfe/24982]
+GNU C++ compatibility: typename-qualified lookups
+
+The changes for EDGcpfe/18326 attempt to emulate GCC behavior whereby the
+lookup of a class-qualified name preceded by the keyword "typename" ignores
+names that don't designate types.  Sometimes, however, that caused the front
+end to ignore non-tag-types, resulting in spurious errors.  That issue is now
+fixed.
+
+
 11/28/22 [EDGcpfe/23173,EDGcpfe/24085,EDGcpfe/25551,EDGcpfe/25750]
 Spurious error on non-compound discarded statements
 

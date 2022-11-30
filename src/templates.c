@@ -15087,7 +15087,8 @@ being looked up is known to be a type.
          we are in a mode where access errors should result in deduction
          failures, set the copy_error flag. */
       if (ambiguous ||
-          (new_sym != NULL && cpp11_sfinae_enabled &&
+          (new_sym != NULL && new_sym->is_class_member &&
+           cpp11_sfinae_enabled &&
            !cpp11_sfinae_ignore_access &&
            !have_access_to_symbol(new_sym))) {
         subst_fail(*copy_error);
@@ -15097,7 +15098,6 @@ being looked up is known to be a type.
 done:
   return new_sym;
 }  /* look_up_member_in_substituted_parent */
-
 
 
 a_symbol_ptr copy_parent_type_with_substitution(
