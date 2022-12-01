@@ -162,7 +162,16 @@ Print the given amount of double space indent.
   for (unsigned i = 0; i < amount; ++i) {
     fprintf(f_debug, "  ");
   }  /* for */
-}  /* if */
+}  /* db_print_indent */
+
+
+inline a_boolean db_color_flag_is_set()
+/*
+Return TRUE if a db flag is set for colorization.
+*/
+{
+  return db_flag_is_set("brightcolor") || db_flag_is_set("darkcolor");
+}  /* db_color_flag_is_set */
 
 
 #endif /* DEBUG */

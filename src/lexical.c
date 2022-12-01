@@ -25755,6 +25755,29 @@ temporary text buffer.
   put_str_to_temp_text_buffer(") :!)");
 }  /* put_psuedo_token_end_to_temp_text_buffer */
 
+#if DEBUG
+
+static constexpr a_const_char
+                *tok_dbg_bright_colors [] = { "092", "094", "091"};
+                        /* Colors used for -d-brightcolor token accenting. */
+
+static constexpr a_const_char
+                *tok_dbg_dark_colors [] = { "032", "034", "031"};
+                        /* Colors used for -d-darkcolor token accenting. */
+
+static constexpr unsigned
+                tok_dbg_num_bright_colors = sizeof(tok_dbg_bright_colors) /
+                                                         sizeof(a_const_char*);
+                        /* The number of colors available for use by
+                           -d-brightcolor token accenting. */
+
+static constexpr unsigned
+                tok_dbg_num_dark_colors = sizeof(tok_dbg_dark_colors) /
+                                                         sizeof(a_const_char*);
+                        /* The number of colors available for use by
+                           -d-darkcolor token accenting. */
+
+#endif /* DEBUG */
 
 void add_token_cache_segment_to_string(a_token_cache_ptr	cache,
 				       a_token_sequence_number	start_tsn,
@@ -25767,8 +25790,9 @@ and < end_tsn are included in the string.
 */
 {
   a_cached_token_ptr	ctp = cache->first_token;
-
 #if DEBUG
+  unsigned              color_idx = 0;
+
   if (db_flag_is_set("atcts")) {
     db_token_cache(cache, "add_token_cache_segment_to_string");
   }  /* if */
@@ -25795,6 +25819,27 @@ and < end_tsn are included in the string.
       ctp = ctp->variant.extracted_template.next_in_token_string;
     }  /* if */
     teik_kind = ctp->extra_info_kind;
+#if DEBUG
+    if (db_flag_is_set("brightcolor")) {
+      put_ch_to_temp_text_buffer('\033');
+      put_ch_to_temp_text_buffer('[');
+      /* Update the current color. */
+      color_idx = (color_idx + 1) % tok_dbg_num_bright_colors;
+
+      a_const_char *color_code = tok_dbg_bright_colors[color_idx];
+      put_str_to_temp_text_buffer(color_code);
+      put_ch_to_temp_text_buffer('m');
+    } else if (db_flag_is_set("darkcolor")) {
+      put_ch_to_temp_text_buffer('\033');
+      put_ch_to_temp_text_buffer('[');
+      /* Update the current color. */
+      color_idx = (color_idx + 1) % tok_dbg_num_dark_colors;
+
+      a_const_char *color_code = tok_dbg_dark_colors[color_idx];
+      put_str_to_temp_text_buffer(color_code);
+      put_ch_to_temp_text_buffer('m');
+    }  /* if */
+#endif /* DEBUG */
     if (teik_kind == (a_token_extra_info_kind)teik_pragma) {
       /* This token entry represents one or more pragmas.  Call a routine
          to add the pragmas to the string. */
@@ -25885,6 +25930,14 @@ and < end_tsn are included in the string.
       put_str_to_temp_text_buffer(ctp->variant.asm_string);
     }  /* if */
   }  /* for */
+#if DEBUG
+  if (db_color_flag_is_set()) {
+    put_ch_to_temp_text_buffer('\033');
+    put_ch_to_temp_text_buffer('[');
+    put_ch_to_temp_text_buffer(0);
+    put_ch_to_temp_text_buffer('m');
+  }  /* if */
+#endif /* DEBUG */
 }  /* add_token_cache_segment_to_string */
 
 
