@@ -4961,7 +4961,7 @@ options.
        and class member symbols marked as visible to qualified lookup. */
     result = FALSE;
   } else if (this->is_typename_lookup && gpp_version_is(any_version) &&
-             !is_type_symbol(sym) && !this->is_tag(sym)) {
+             !is_type_symbol(fund_sym) && !this->is_tag(fund_sym)) {
     /* g++ ignores non-types for typename lookups. */
     result = FALSE;
   }  /* if */
