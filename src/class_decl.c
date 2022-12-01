@@ -33275,13 +33275,16 @@ issue an error at the given position and return TRUE.  Otherwise, return FALSE.
       }  /* while */
       source_field = eff_lcp->capture_info.source_closure_field;
       if (source_field == NULL) {
+        source_field = eff_lcp->closure_field;
+      }  /* if */
+      if (source_field == NULL) {
         expect_error();
       } else if (symbol_for(source_field) != NULL &&
                  symbol_for(source_field)->header == sym_hdr) {
         break;
       }  /* if */
     }  /* if */
-  }  /* if */
+  }  /* for */
   if (lcp != NULL) {
     pos_error(ec_more_than_one_capture, diag_pos);
     err = TRUE;

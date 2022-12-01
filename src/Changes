@@ -1,5 +1,33 @@
 Version 6.5
 
+12/1/22  [EDGcpfe/25780]
+Abort elicited by checking for duplicate captures in a nested lambda
+
+The changes for EDGcpfe/25246 included a bug that caused the front end to
+sometimes fail an assertion check in diagnose_duplicate_capture after looking
+for duplicate captured in a nested lambda.  For example:
+
+  template<typename Fn, typename Out, typename... In>
+  struct W {
+    W (Fn fn): fn(fn) {}
+    virtual void call (In... in) { fn(in...); }
+    Fn fn;
+  };
+  template<typename> class F;
+  template <typename Out, typename... In>
+  struct F<Out(In...)> {
+    template<typename Fn> F(Fn fn) {
+      W<Fn, Out, In...> tmp(fn);
+    }
+  };
+  void f(F<void(int)>); 
+  void g(int x, int y) {
+    f( [x = x, y = y](auto) { [x, y]() {}; } );  // Previously triggered an
+  }                                              // internal error.  Now okay.
+
+That is now fixed.
+
+
 12/1/22  [EDGcpfe/25801]
 C++-generating back end: call to non-dependent member of dependent class
 
