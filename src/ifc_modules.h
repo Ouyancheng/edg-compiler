@@ -690,6 +690,12 @@ template<typename an_ifc_Node_type, typename an_ifc_Index_type>
 extern void construct_node_unchecked(an_ifc_Node_type  *result,
                                      an_ifc_Index_type idx);
 
+template<typename an_ifc_Index_type>
+extern an_ifc_Index_type from_lexical_index(a_lexical_ifc_index_reference idx);
+
+template<typename an_ifc_Index_type>
+extern a_lexical_ifc_index_reference to_lexical_index(an_ifc_Index_type idx);
+
 extern a_boolean check_module(const an_ifc_module_reference &ref);
 
 extern an_ifc_module* get_module(const an_ifc_module_reference &ref);

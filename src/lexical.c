@@ -18042,9 +18042,9 @@ the given routine with that pending function body.
 
   if (ctp != NULL && ctp->token == tok_pending_ifc_func_body) {
     a_lexical_ifc_index_reference index = ctp->variant.ifc_index;
-    an_ifc_decl_index             decl_idx = {(an_ifc_module*)index.module,
-                                              (an_ifc_decl_sort)index.sort,
-                                              index.index};
+    an_ifc_decl_index             decl_idx =
+                                  from_lexical_index<an_ifc_decl_index>(index);
+
     record_pending_ifc_function_body(rout_sym->variant.routine.ptr, decl_idx);
     result = TRUE;
   }  /* if */

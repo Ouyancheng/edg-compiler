@@ -498,6 +498,90 @@ INST_CONSTRUCT_NODE_UN(an_ifc_trait_specialization,
    construct_node_prechecked, and construct_node_unchecked, all in one. */
 /* none */
 
+#if DEBUG
+
+namespace {
+
+template<typename an_ifc_Index_type>
+a_lexical_ifc_index_kind get_lexical_ifc_kind() = delete;
+
+template<>
+a_lexical_ifc_index_kind get_lexical_ifc_kind<an_ifc_decl_index>()
+/*
+Return the corresponding lexical IFC index kind.
+*/
+{
+  return liik_decl_index;
+}  /* get_lexical_ifc_kind<an_ifc_decl_index> */
+
+
+template<>
+a_lexical_ifc_index_kind get_lexical_ifc_kind<an_ifc_expr_index>()
+/*
+Return the corresponding lexical IFC index kind.
+*/
+{
+  return liik_expr_index;
+}  /* get_lexical_ifc_kind<an_ifc_expr_index> */
+
+}  /* namespace */
+
+#endif /* DEBUG */
+
+template<typename an_ifc_Index_type>
+an_ifc_Index_type from_lexical_index(a_lexical_ifc_index_reference idx)
+/*
+Given a lexical index, return the corresponding IFC index.
+*/
+{
+  an_ifc_Index_type result;
+
+  static_assert(sizeof(result.sort) >= sizeof(idx.sort), "undersized sort");
+#if DEBUG
+  {
+    a_lexical_ifc_index_kind lexical_kind =
+                                     get_lexical_ifc_kind<an_ifc_Index_type>();
+
+    check_assertion(idx.reference_kind == lexical_kind);
+  }
+#endif /* DEBUG */
+  result.sort = (decltype(result.sort))idx.sort;
+  result.value = idx.index;
+  result.mod = (an_ifc_module*)idx.module;
+  return result;
+}  /* from_lexical_index */
+
+
+template<typename an_ifc_Index_type>
+a_lexical_ifc_index_reference to_lexical_index(an_ifc_Index_type idx)
+/*
+Given an IFC index, return the corresponding lexical index.
+*/
+{
+  a_lexical_ifc_index_reference result;
+
+  result.sort = idx.sort;
+  result.index = idx.value;
+  result.module = idx.mod;
+#if DEBUG
+  result.reference_kind = get_lexical_ifc_kind<an_ifc_Index_type>();
+#endif /* DEBUG */
+  return result;
+}  /* to_lexical_index */
+
+/* Macro used to explicitly instantiate from_lexical_index and
+   to_lexical_index. */
+#define INST_LEXICAL_IDX_CONVERSION(idx_type) \
+  template \
+  idx_type from_lexical_index(a_lexical_ifc_index_reference idx); \
+  template \
+  a_lexical_ifc_index_reference to_lexical_index(idx_type idx);
+
+/* Manually defined explicit instantiations of from_lexical_index and
+   to_lexical_index. */
+INST_LEXICAL_IDX_CONVERSION(an_ifc_decl_index)
+INST_LEXICAL_IDX_CONVERSION(an_ifc_expr_index)
+
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE
 

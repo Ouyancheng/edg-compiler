@@ -1181,8 +1181,7 @@ initializer.
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
   {
-    an_ifc_expr_index expr_idx{(an_ifc_module*)index->module,
-                               (an_ifc_expr_sort)index->sort, index->index};
+    an_ifc_expr_index expr_idx = from_lexical_index<an_ifc_expr_index>(*index);
 
     result = load_variable_init_from_ifc_module(tp, expr_idx);
   }
@@ -1204,8 +1203,9 @@ FALSE.
   a_boolean            result = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_module_token_cache cache;
-  an_ifc_expr_index    expr_index{(an_ifc_module*)index->module,
-                                  (an_ifc_expr_sort)index->sort, index->index};
+  an_ifc_expr_index    expr_index =
+                                 from_lexical_index<an_ifc_expr_index>(*index);
+
   expr_index.mod->cache_expr(&cache, expr_index, /*cinfo=*/{});
   if (cache.is_valid()) {
     (void)enter_module_token_rescan(&cache);

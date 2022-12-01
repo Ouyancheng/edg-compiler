@@ -2595,10 +2595,8 @@ The current token is a tok_ifc_decl token.  Map its associated IFC declaration
 index information to the given symbol.
 */
 {
-  a_lexical_ifc_index_reference  *lex_idx = &ifc_index_for_curr_token;
-  an_ifc_decl_index              decl_idx = {(an_ifc_module*)lex_idx->module,
-                                             (an_ifc_decl_sort)lex_idx->sort,
-                                             lex_idx->index};
+  an_ifc_decl_index decl_idx =
+               from_lexical_index<an_ifc_decl_index>(ifc_index_for_curr_token);
 
   ifc_decl_lookup_table->map(decl_idx, sym);
 }  /* record_symbol_for_ifc_decl */
@@ -2826,7 +2824,7 @@ an IFC expression index (that token should be a tok_ifc_entity_ref).
   a_lexical_ifc_index_reference
                      *idx = &ifc_index_for_curr_token;
   an_ifc_module*     mod = (an_ifc_module*)idx->module;
-  an_ifc_expr_index  expr_idx{ mod, (an_ifc_expr_sort)idx->sort, idx->index}; 
+  an_ifc_expr_index  expr_idx = from_lexical_index<an_ifc_expr_index>(*idx);
   a_source_position  pos = pos_curr_token;
   a_symbol_ptr       result = load_ifc_entity_ref(expr_idx);
 
@@ -2852,7 +2850,7 @@ coordinates.  Return the symbol for the corresponding parameter.
   a_lexical_ifc_index_reference
                      *idx = &ifc_index_for_curr_token;
   an_ifc_module      *mod = (an_ifc_module*)idx->module;
-  an_ifc_decl_index  decl_idx{ mod, (an_ifc_decl_sort)idx->sort, idx->index}; 
+  an_ifc_decl_index  decl_idx = from_lexical_index<an_ifc_decl_index>(*idx);
   a_symbol_ptr       result = NULL;
   Opt<an_ifc_decl_parameter>
                      opt_idp;
@@ -2896,11 +2894,10 @@ done:
   return result;
 }  /* load_tok_ifc_template_param */
 
-
-template<typename Index_Type>
+template<typename an_ifc_Index_type>
 static void cache_token_with_index(a_module_token_cache_ptr cache,
                                    a_token_kind             tok_to_cache,
-                                   Index_Type               index,
+                                   an_ifc_Index_type        idx,
                                    a_source_position_ptr    pos)
 /*
 Add tok_to_cache to cache and associate it with index.  pos is the position of
@@ -2911,7 +2908,7 @@ the initializer.
 
   a_cached_token_ptr last_token = cache->get_last_token();
   last_token->extra_info_kind = teik_ifc_index;
-  last_token->variant.ifc_index = {index.sort, index.value, index.mod};
+  last_token->variant.ifc_index = to_lexical_index(idx);
 }  /* cache_token_with_index */
 
 

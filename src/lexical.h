@@ -2074,6 +2074,12 @@ enum a_token_extra_info_kind : a_byte {
 };
 
 
+enum a_lexical_ifc_index_kind {
+  liik_decl_index,      /* IFC DeclIndex. */
+  liik_expr_index       /* IFC ExprIndex. */
+};
+
+
 typedef struct a_lexical_ifc_index_reference {
   /* Information on an IFC index to be used in conjunction with a_cached_token
      below, saved for later rescanning.  Separated from a_cached_token to allow
@@ -2088,6 +2094,11 @@ typedef struct a_lexical_ifc_index_reference {
   const void    *module;
 			/* An opaque pointer to the IFC module (an_ifc_module)
 			   containing this declaration. */
+#if DEBUG
+  a_lexical_ifc_index_kind
+		reference_kind;
+			/* The kind of IFC index being referenced. */
+#endif /* DEBUG */
 } a_lexical_ifc_index_reference;
 
 EXTERN a_lexical_ifc_index_reference
