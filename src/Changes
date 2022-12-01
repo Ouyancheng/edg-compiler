@@ -1,5 +1,24 @@
 Version 6.5
 
+12/1/22  [EDGcpfe/25801]
+C++-generating back end: call to non-dependent member of dependent class
+
+In configurations in which template definitions are generated from the
+prototype instantiation IL, the C++-generating back end previously added
+an "&" operator to the name of the function in a call to a static member
+function of a dependent class.  In most cases, this superfluous operation
+was harmless, but the code was ill-formed if the member function is
+overloaded.  This is now fixed, and the "&" is suppressed in such cases.
+For example:
+
+  template<typename T> struct S {
+    static void f(int) {}
+    static void f(double) {
+      f(42);   // Previously generated as (&f)(42)
+    }
+  };
+
+
 11/30/22 [EDGcpfe/24631]
 Microsoft C++ compatibility: Rvalue reference binding
 

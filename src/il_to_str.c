@@ -4822,6 +4822,25 @@ it is a tk_template_param type, a nonreal type, or a dependent typeref.
 }  /* standalone_is_dependent_type */
 
 
+static a_boolean base_entity_is_dependent_class_member_function(
+                                                            a_constant_ptr con)
+/*
+Return TRUE if con (a ck_address constant) is based on a member function of
+a class that is dependent.
+*/
+{
+  a_boolean result = FALSE;
+
+  check_assertion(constant_is(con, ck_address));
+  if (con->variant.address.kind == abk_routine &&
+      con->variant.address.variant.routine->source_corresp.is_class_member) {
+    a_type_ptr parent = parent_class_of(con->variant.address.variant.routine);
+    result = standalone_is_dependent_type(parent);
+  }  /* if */
+  return result;
+}  /* base_entity_is_dependent_class_member_function */
+
+
 static void form_address_constant(
                           a_constant_ptr                        constant,
                           a_boolean                             form_lvalue,
@@ -4956,14 +4975,16 @@ precedence confusion.  Do the output in the way described by octl.
     }  /* if */
   } else if (type_decay_used && is_pointer_type(orig_type) &&
              desired_type != NULL && is_function_type(desired_type) &&
-             !standalone_is_dependent_type(desired_type)) {
+             !standalone_is_dependent_type(desired_type) &&
+             !base_entity_is_dependent_class_member_function(constant)) {
     /* In case this constant is being used for type deduction, add the "&"
        to ensure that the constant has a pointer type in the generated
-       code.  (The exclusion of dependent types is because an "&" in the
-       original source would be represented in the IL as an eok_address_of
-       applied to an enk_routine node, not as a ck_address constant; i.e.,
-       if we are here with a pointer to a dependent function type, there
-       was no "&" in the original source and we should not add one
+       code.  (The exclusion of dependent types and member functions is
+       because an "&" in the original source would be represented in the IL
+       as an eok_address_of applied to an enk_routine node, not as a
+       ck_address constant; i.e., if we are here with a pointer to a
+       dependent function type or member function of a dependent class,
+       there was no "&" in the original source and we should not add one
        here.) */
     type_decay_used = FALSE;
   }  /* if */
