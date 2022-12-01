@@ -26844,31 +26844,6 @@ a_boolean has_ifc_locus(an_ifc_expr_index idx);
 
 extern an_ifc_source_location get_ifc_locus(an_ifc_expr_index idx);
 
-/*
-Visitor functions for printing diagnostic textual representations on a given
-index.
-*/
-
-extern void db_node_at_idx(an_ifc_attr_index idx);
-
-extern void db_node_at_idx(an_ifc_chart_index idx);
-
-extern void db_node_at_idx(an_ifc_decl_index idx);
-
-extern void db_node_at_idx(an_ifc_expr_index idx);
-
-extern void db_node_at_idx(an_ifc_form_index idx);
-
-extern void db_node_at_idx(an_ifc_macro_index idx);
-
-extern void db_node_at_idx(an_ifc_name_index idx);
-
-extern void db_node_at_idx(an_ifc_stmt_index idx);
-
-extern void db_node_at_idx(an_ifc_syntax_index idx);
-
-extern void db_node_at_idx(an_ifc_type_index idx);
-
 
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE
