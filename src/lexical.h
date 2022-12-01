@@ -3222,6 +3222,11 @@ and all entities declared in functions.
 /* Show space used in the lexical routines, for debugging purposes. */
 extern unsigned long show_lexical_space_used(void);
 
+/* Useful for quickly grabbing a particular cached token for inspection in a
+   debugger; not optimized for general usage. */
+extern a_cached_token_ptr get_cache_token(a_token_cache_ptr       cache,
+                                          a_token_sequence_number seq_number);
+
 extern void db_rescan_list(void);
 
 extern void db_token_cache(a_token_cache *cache,

@@ -48,6 +48,9 @@ and parsing of them into tokens.
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #include "ms_metadata.h"
 #include "ifc_modules.h"
+#if DEBUG
+#include "ifc_map_functions.h"
+#endif /* DEBUG */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /* Conditionally open the "edg" namespace. */
@@ -25727,6 +25730,32 @@ encountered, whatever their other characteristics, are included.
 }  /* add_pragmas_to_string */
 
 
+static void put_psuedo_token_start_to_temp_text_buffer(
+                                        a_token_kind            kind,
+                                        a_token_sequence_number tsn)
+/*
+Add a starting character sequence, indicating the beginning of a pseudo token
+of the given kind at the given token sequence number to temporary the text
+buffer.
+*/
+{
+  put_str_to_temp_text_buffer(" (!: TSN ");
+  put_uint_to_temp_text_buffer(tsn);
+  put_str_to_temp_text_buffer(" aka (");
+  put_str_to_temp_text_buffer(token_names[(int)kind]);
+}  /* put_psuedo_token_start_to_temp_text_buffer */
+
+
+static void put_psuedo_token_end_to_temp_text_buffer()
+/*
+Add a ending character sequence, indicating the end of a pseudo token to the
+temporary text buffer.
+*/
+{
+  put_str_to_temp_text_buffer(") :!)");
+}  /* put_psuedo_token_end_to_temp_text_buffer */
+
+
 void add_token_cache_segment_to_string(a_token_cache_ptr	cache,
 				       a_token_sequence_number	start_tsn,
 				       a_token_sequence_number	end_tsn)
@@ -25812,7 +25841,33 @@ and < end_tsn are included in the string.
         put_ch_to_temp_text_buffer(';');
       }  /* if */
     } else if (teik_kind == teik_ifc_index) {
-      put_str_to_temp_text_buffer(" <IFC entity ref>\n");
+      put_psuedo_token_start_to_temp_text_buffer(ctp->token,
+                                                 ctp->token_sequence_number);
+#if DEBUG
+      {
+        a_lexical_ifc_index_reference ifc_idx = ctp->variant.ifc_index;
+
+        put_str_to_temp_text_buffer(" - ");
+        switch (ifc_idx.reference_kind) {
+          case liik_decl_index:
+            { an_ifc_decl_sort sort = (an_ifc_decl_sort)ifc_idx.sort;
+
+              put_str_to_temp_text_buffer(str_for(sort));
+            }
+            break;
+          case liik_expr_index:
+            { an_ifc_expr_sort sort = (an_ifc_expr_sort)ifc_idx.sort;
+
+              put_str_to_temp_text_buffer(str_for(sort));
+            }
+            break;
+          default_is_unexpected();
+        }  /* switch */
+        put_str_to_temp_text_buffer(" - ");
+        put_uint_to_temp_text_buffer(ifc_idx.index);
+      }
+#endif /* DEBUG */
+      put_psuedo_token_end_to_temp_text_buffer();
     } else {
       /* A normal token (including, possibly, a pp-token). */
       if (ctp->token == tok_removed_template_body) {
@@ -26261,6 +26316,22 @@ Display a single cached token.
     }  /* if */
   }  /* if */
 }  /* db_cached_token */
+
+
+a_cached_token_ptr get_cache_token(a_token_cache_ptr       cache,
+                                   a_token_sequence_number seq_number)
+/*
+Return the token identified by the given sequence number in the given cache; or
+NULL if not found.
+*/
+{
+  a_cached_token_ptr ctp = cache->first_token;
+
+  while (ctp != NULL && ctp->token_sequence_number != seq_number) {
+    ctp = ctp->next;
+  }  /* if */
+  return ctp;
+}  /* get_cache_token */
 
 
 void db_rescan_list(void)

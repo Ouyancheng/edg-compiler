@@ -1075,6 +1075,8 @@ expand temp_text_buffer by reallocating it.
 
 extern void put_str_to_temp_text_buffer(a_const_char *str);
 
+extern void put_uint_to_temp_text_buffer(unsigned long long value);
+
 extern void put_str_to_temp_text_buffer_octl(
                                a_const_char                          *str,
                                an_il_to_str_output_control_block_ptr octl);

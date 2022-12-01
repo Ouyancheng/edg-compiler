@@ -3378,6 +3378,19 @@ is copied but not counted in updating pos_in_temp_text_buffer.
 }  /* put_str_to_temp_text_buffer */
 
 
+void put_uint_to_temp_text_buffer(unsigned long long value)
+/*
+Output the indicated unsigned value as a string to temp_text_buffer at the
+position indicated by pos_in_temp_text_buffer, and update the latter.
+*/
+{
+  char buffer[50];
+
+  (void)snprintf(buffer, sizeof(buffer), "%llu", value);
+  put_str_to_temp_text_buffer(buffer);
+}  /* put_uint_to_temp_text_buffer */
+
+
 void put_str_to_temp_text_buffer_octl(
                          a_const_char                                     *str,
                          ARG_UNUSED an_il_to_str_output_control_block_ptr octl)

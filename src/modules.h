@@ -381,11 +381,14 @@ the module entity rescan.
   }
 }  /* ~a_module_entity_rescan */
 
-
 #if DEBUG
+
+extern void db_tokens(a_module_token_cache_ptr cache);
+
 extern void db_module(a_module_ptr mod);
 
 extern void db_module_entity(a_module_entity_ptr mep);
+
 #endif /* DEBUG */
 
 extern void modules_pch_reset(void);

@@ -218,18 +218,6 @@ using an IFC token cache pointer.
   cache_token(cache->as_canonical(), tok, pos);
 }  /* cache_token */
 
-#if DEBUG
-
-static void db_tokens(a_module_token_cache_ptr cache)
-/*
-This function proxies calls to the common db_tokens function when using
-an IFC token cache pointer.
-*/
-{
-  db_tokens(cache->as_canonical());
-}  /* db_tokens */
-
-#endif /* DEBUG */
 
 static void cache_identifier(a_module_token_cache_ptr cache,
                              a_const_char             *name,
@@ -2849,7 +2837,6 @@ coordinates.  Return the symbol for the corresponding parameter.
 {
   a_lexical_ifc_index_reference
                      *idx = &ifc_index_for_curr_token;
-  an_ifc_module      *mod = (an_ifc_module*)idx->module;
   an_ifc_decl_index  decl_idx = from_lexical_index<an_ifc_decl_index>(*idx);
   a_symbol_ptr       result = NULL;
   Opt<an_ifc_decl_parameter>
@@ -6050,6 +6037,42 @@ Print information about the module entity stack.
     state = state->parent;
   }  /* while */
 }  /* db_mep_stack */
+
+
+void db_node_at_tsn(a_token_cache_ptr        cache,
+                    a_token_sequence_number  tsn)
+/*
+Print diagnostic information about the node identified by a given token (if
+any).
+*/
+{
+  a_cached_token_ptr ctp = get_cache_token(cache, tsn);
+
+  if (ctp->extra_info_kind == teik_ifc_index) {
+    a_lexical_ifc_index_reference ifc_idx = ctp->variant.ifc_index;
+
+    switch (ifc_idx.reference_kind) {
+      case liik_decl_index:
+        db_node_at_idx(from_lexical_index<an_ifc_decl_index>(ifc_idx));
+        break;
+      case liik_expr_index:
+        db_node_at_idx(from_lexical_index<an_ifc_expr_index>(ifc_idx));
+        break;
+      default_is_unexpected();
+    }  /* if */
+  }  /* if */
+}  /* db_node_at_tsn */
+
+
+void db_node_at_tsn(a_module_token_cache_ptr cache,
+                    a_token_sequence_number  tsn)
+/*
+This function proxies calls to the common db_node_at_tsn function when using a
+module token cache pointer.
+*/
+{
+  db_node_at_tsn(cache->as_canonical(), tsn);
+}  /* db_node_at_tsn */
 
 
 void an_ifc_module::db_locus(const an_ifc_source_location &locus)

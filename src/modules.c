@@ -1217,6 +1217,16 @@ FALSE.
 
 #if DEBUG
 
+void db_tokens(a_module_token_cache_ptr cache)
+/*
+This function proxies calls to the common db_tokens function when using
+a module token cache pointer.
+*/
+{
+  db_tokens(cache->as_canonical());
+}  /* db_tokens */
+
+
 void db_module(a_module_ptr mod)
 /*
 Display debug information about the specified module.

@@ -812,6 +812,15 @@ extern a_boolean validate_element_exists(
 
 #if DEBUG
 extern void db_mep(a_module_entity_ptr mep);
+
+extern void db_mep_stack();
+
+extern void db_node_at_tsn(a_token_cache_ptr        cache,
+                           a_token_sequence_number  tsn);
+
+extern void db_node_at_tsn(a_module_token_cache_ptr cache,
+                           a_token_sequence_number  tsn);
+
 #endif /* DEBUG */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
