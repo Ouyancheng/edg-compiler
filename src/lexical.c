@@ -17617,10 +17617,9 @@ The current token is the token after the "if" or "else" keyword.
      substatements that are "else if" statements are handled properly. */
   if (curr_token == tok_if) {
     (void)get_token();
-    if (curr_token == tok_not) {
+    if (curr_token == tok_not && next_token() == tok_consteval) {
       /* Skip the "not" token only if it is followed by "consteval". */
       (void)get_token();
-      if (curr_token != tok_consteval) unget_token();
     }  /* if */
     if (curr_token == tok_consteval) {
       (void)get_token();
