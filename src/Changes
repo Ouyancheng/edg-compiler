@@ -1,5 +1,17 @@
 Version 6.5
 
+12/2/22  [EDGcpfe/25453]
+Representation of typeid operator [IL CHANGE]
+
+Previously, the enk_typeid representation did not represent a nondependent
+operand expression if the typeid operation does not need to be computed at run
+time.  Among other things, this prevented the C++-generating back end from
+reliably rendering certain expressions of the form typeid(<expr>).  The
+representation has now been revised to record the expression whenever it is
+specified, thus also allowing reliable rendering by the C++-generating back
+end.
+
+
 12/1/22  [EDGcpfe/25780]
 Abort elicited by checking for duplicate captures in a nested lambda
 

@@ -4684,8 +4684,12 @@ Display the indicated expression node.
       break;
     case enk_typeid:
       (void)printf("enk_typeid\n");
-      disp_ptr("type", (char *)ptr->variant.typeid_info.type, iek_type);
-      disp_ptr("expr", (char *)ptr->variant.typeid_info.expr, iek_expr_node);
+      disp_ptr("type_with_opt_expr",
+               (char *)ptr->variant.typeid_info.type_with_opt_expr,
+               iek_expr_node);
+      if (ptr->variant.typeid_info.is_dynamic) {
+        disp_boolean("is_dynamic", TRUE);
+      }  /* if */
       break;
     case enk_alignof:
       (void)printf("enk_alignof\n");

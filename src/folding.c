@@ -6628,17 +6628,16 @@ start_underlying_expression:
       }
       break;
     case enk_typeid:
-      if (expr->variant.typeid_info.expr == NULL
-#if MICROSOFT_EXTENSIONS_ALLOWED
-          && !expr->is_cli_typeid
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-                                 ) {
-        /* The type is known at compile time, so the address of the
-           std::type_info object is a compile-time constant. */
-        is_constant_addr = TRUE;
-        make_typeid_constant(expr->variant.typeid_info.type,
-                             /*is_cli_typeid*/FALSE, con);
-      }  /* if */
+      { an_expr_node_ptr  opnds = expr->variant.typeid_info.type_with_opt_expr;
+        if (opnds->next == NULL
+            if_microsoft_extensions(&& !expr->is_cli_typeid)) {
+          /* The type is known at compile time, so the address of the
+             std::type_info object is a compile-time constant. */
+          is_constant_addr = TRUE;
+          make_typeid_constant(opnds->variant.type_operand.type,
+                               /*is_cli_typeid*/FALSE, con);
+        }  /* if */
+      }
       break;
     case enk_operation:
       { an_expr_node_ptr      op1 = expr->variant.operation.operands;

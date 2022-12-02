@@ -13310,11 +13310,12 @@ given complete object).
 {
   a_boolean         result = TRUE;
   a_type_ptr        type = NULL;
-  an_expr_node_ptr  opnd = expr->variant.typeid_info.expr;
+  an_expr_node_ptr  opnds = expr->variant.typeid_info.type_with_opt_expr,
+                    opnd = opnds->next;
 
   if (opnd == NULL && (expr->is_lvalue || expr->is_xvalue)) {
     /* A non-polymorphic typeid construct. */
-    type = expr->variant.typeid_info.type;
+    type = opnds->variant.type_operand.type;
   } else {
     /* Polymorphic typeid: not allowed in constant expressions prior to
        C++20. */
@@ -13354,7 +13355,7 @@ given complete object).
         /* The interpreter representation includes embedded base class
            pointers that can be traversed to find the dynamic type of the
            object being referred to. */
-        type = skip_typerefs(expr->variant.typeid_info.type);
+        type = skip_typerefs(opnds->variant.type_operand.type);
         type = most_derived_object_type(opnd_addr, type);
       }  /* if */
     }  /* if */

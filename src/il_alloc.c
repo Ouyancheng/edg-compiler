@@ -3617,8 +3617,8 @@ fields to default values.
       node->variant.object_lifetime.ptr  = NULL;
       break;
     case enk_typeid:
-      node->variant.typeid_info.type = NULL;
-      node->variant.typeid_info.expr = NULL;
+      node->variant.typeid_info.type_with_opt_expr = NULL;
+      node->variant.typeid_info.is_dynamic = FALSE;
       break;
     case enk_sizeof:
     case enk_alignof:

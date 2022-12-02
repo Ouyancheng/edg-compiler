@@ -3440,13 +3440,8 @@ as specified in the control block.
       traverse_expr(expr->variant.object_lifetime.expr, tblock);
       break;
     case enk_typeid:
-      if (tblock->process_type != NULL) {
-        tblock->process_type(expr->variant.typeid_info.type, tblock);
-        if (tblock->terminate) goto end_of_routine;
-      }  /* if */
-      if (expr->variant.typeid_info.expr != NULL) {
-        traverse_expr(expr->variant.typeid_info.expr, tblock);
-      }  /* if */
+      traverse_expr_list(expr->variant.typeid_info.type_with_opt_expr, tblock);
+      if (tblock->terminate) goto end_of_routine;
       break;
     case enk_sizeof:
     case enk_alignof:

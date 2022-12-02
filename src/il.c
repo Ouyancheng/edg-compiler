@@ -2141,14 +2141,23 @@ Dump the contents of the indicated expression node for debug purposes.
       db_expr_node(node->variant.object_lifetime.expr, level + 2);
       break;
     case enk_typeid:
-      fputs("typeid: type = ", f_debug);
-      db_abbreviated_type(node->variant.typeid_info.type);
-      if (node->variant.typeid_info.expr == NULL) {
-        fputc('\n', f_debug);
-      } else {
-        fputs(", expr =\n", f_debug);
-        db_expr_node(node->variant.typeid_info.expr, level + 2);
-      }  /* if */
+      {
+        an_expr_node_ptr  opnds = node->variant.typeid_info.type_with_opt_expr;
+        fputs("typeid: type = ", f_debug);
+        if (opnds == NULL) {
+          fputs("<missing>", f_debug);
+        } else if (!node_is(opnds, enk_type_operand)) {
+          fputs("<invalid (not enk_type_operand)>", f_debug);
+        } else {
+          db_abbreviated_type(opnds->variant.type_operand.type);
+          if (opnds->next == NULL) {
+            fputc('\n', f_debug);
+          } else {
+            fputs(", expr =\n", f_debug);
+            db_expr_node(opnds->next, level + 2);
+          }  /* if */
+        }  /* if */
+      }
       break;
     case enk_alignof:
       fputs("alignof: ", f_debug);
@@ -7742,12 +7751,12 @@ are done.
                                  options);
         break;
       case enk_typeid:
-        eq = (identical_types_full(node1->variant.typeid_info.type,
-                                   node2->variant.typeid_info.type,
-                                   itf_options) &&
-              compare_expressions(node1->variant.typeid_info.expr,
-                                  node2->variant.typeid_info.expr,
-                                  options));
+        eq = compare_expression_lists(
+                                node1->variant.typeid_info.type_with_opt_expr,
+                                node2->variant.typeid_info.type_with_opt_expr,
+                                options) &&
+             node1->variant.typeid_info.is_dynamic ==
+                                        node2->variant.typeid_info.is_dynamic;
         break;
       case enk_sizeof:
       case enk_alignof:
@@ -21515,12 +21524,9 @@ be called to start a copy.
 #endif /* MINIMAL_INLINING */
       break;
     case enk_typeid:
-      /* If the expr field is non-NULL, copy it. */
-      if (expr->variant.typeid_info.expr != NULL) {
-        expr_copy->variant.typeid_info.expr =
-                               i_copy_expr_tree(expr->variant.typeid_info.expr,
-                                                options, cblock);
-      }  /* if */
+      expr_copy->variant.typeid_info.type_with_opt_expr =
+        i_copy_list_of_expr_trees(expr->variant.typeid_info.type_with_opt_expr,
+                                  options, cblock);
       break;
     case enk_sizeof:
     case enk_alignof:
@@ -23718,15 +23724,18 @@ doing nothing should be suppressed.
       tblock->suppress_subtree_walk = TRUE;
       break;
     case enk_typeid:
-      if (node->variant.typeid_info.expr != NULL) {
-        /* A typeid applied to an expression that is a pointer to a
-           polymorphic class type can throw an exception if the pointer is
-           NULL. */
-        if (is_polymorphic_class_type(node->variant.typeid_info.type) ||
-            could_be_dependent_class_type(node->variant.typeid_info.type)) {
-          has_side_effects = TRUE;
+      { an_expr_node_ptr  opnds = node->variant.typeid_info.type_with_opt_expr;
+        if (opnds->next != NULL) {
+          /* A typeid applied to an expression that is a pointer to a
+             polymorphic class type can throw an exception if the pointer is
+             NULL. */
+          if (node->variant.typeid_info.is_dynamic ||
+              could_be_dependent_class_type(
+                                          opnds->variant.type_operand.type)) {
+            has_side_effects = TRUE;
+          }  /* if */
         }  /* if */
-      }  /* if */
+      }
       break;
 #if GNU_EXTENSIONS_ALLOWED
     case enk_statement:
@@ -24301,15 +24310,18 @@ expression-traversal routines.  Set tblock->result to TRUE if so.
       tblock->suppress_subtree_walk = TRUE;
       break;
     case enk_typeid:
-      if (node->variant.typeid_info.expr != NULL) {
-        /* A typeid applied to an expression that is a pointer to a
-           polymorphic class type can throw an exception if the pointer is
-           NULL. */
-        if (is_polymorphic_class_type(node->variant.typeid_info.type) ||
-            could_be_dependent_class_type(node->variant.typeid_info.type)) {
-          might_throw = TRUE;
+      { an_expr_node_ptr  opnds = node->variant.typeid_info.type_with_opt_expr;
+        if (opnds->next != NULL) {
+          /* A typeid applied to an expression that is a pointer to a
+             polymorphic class type can throw an exception if the pointer is
+             NULL. */
+          if (node->variant.typeid_info.is_dynamic ||
+              could_be_dependent_class_type(
+                                          opnds->variant.type_operand.type)) {
+            might_throw = TRUE;
+          }  /* if */
         }  /* if */
-      }  /* if */
+      }
       break;
 #if GNU_EXTENSIONS_ALLOWED
     case enk_statement:

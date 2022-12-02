@@ -1743,10 +1743,8 @@ do_set_proper_definition_needed_flag:
                                  an_object_lifetime_ptr, iek_object_lifetime);
             break;
           case enk_typeid:
-            walk_ptr(eptr->variant.typeid_info.type, a_type_ptr, iek_type);
-            definition_needed_if_class(eptr->variant.typeid_info.type);
-            walk_ptr(eptr->variant.typeid_info.expr, an_expr_node_ptr,
-                     iek_expr_node);
+            walk_list(eptr->variant.typeid_info.type_with_opt_expr,
+                      an_expr_node_ptr, iek_expr_node);
 #if MICROSOFT_EXTENSIONS_ALLOWED
             if (!eptr->is_cli_typeid)
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

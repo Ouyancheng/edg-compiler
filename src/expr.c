@@ -17707,20 +17707,28 @@ This is allowed in both Microsoft C and C++ modes.
 
 static an_expr_node_ptr make_typeid_node(a_type_ptr             typeid_type,
                                          an_expr_node_ptr       typeid_expr,
+                                         a_boolean              is_dynamic,
                                          ARG_UNUSED a_boolean   is_cli_typeid,
                                          a_type_ptr             node_type)
 /*
 Make an enk_typeid node for an operand represented by typeid_type and
-typeid_expr.  The node type is set to node_type.
+typeid_expr.  The node type is set to node_type.  is_dynamic is TRUE if the
+typeid operation must be evaluated at run time.
 
 If is_cli_typeid is TRUE, this is the C++/CLI typeid variant (T::typeid). 
 */
 {
-  an_expr_node_ptr  typeid_node;
+  an_expr_node_ptr  typeid_node, type_arg;
 
   typeid_node = alloc_expr_node((an_expr_node_kind)enk_typeid);
-  typeid_node->variant.typeid_info.expr = typeid_expr;
-  typeid_node->variant.typeid_info.type = typeid_type;
+  type_arg = alloc_expr_node((an_expr_node_kind)enk_type_operand);
+  type_arg->type = void_type();
+  type_arg->variant.type_operand.type = typeid_type;
+  typeid_node->variant.typeid_info.type_with_opt_expr = type_arg;
+  if (typeid_expr != NULL) {
+    type_arg->next = typeid_expr;
+  }  /* if */
+  typeid_node->variant.typeid_info.is_dynamic = is_dynamic;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   typeid_node->is_cli_typeid = is_cli_typeid;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -17733,6 +17741,7 @@ If is_cli_typeid is TRUE, this is the C++/CLI typeid variant (T::typeid).
 static void make_typeid_operand(a_rescan_control_block *rcblock,
                                 a_type_ptr             typeid_type,
                                 an_expr_node_ptr       typeid_expr,
+                                a_boolean              is_dynamic,
                                 a_boolean              is_cli_typeid,
                                 a_boolean              make_constant,
                                 an_operand             *result)
@@ -17740,12 +17749,13 @@ static void make_typeid_operand(a_rescan_control_block *rcblock,
 Create an operand (in *result) representing the application of a typeid
 operator.  typeid_type is the adjusted static type passed to the typeid
 operator, and typeid_expr is the expression from which the dynamic type should
-be retrieved (or NULL if only the static type should be used).
-If is_cli_typeid is TRUE, this is the C++/CLI typeid variant (T::typeid).
-If make_constant is TRUE, an operand based on a constant address should be
-produced; otherwise, an expression operand whose top-level node is an
-enk_typeid entry should be created.  If rcblock is non-NULL, this is
-being done in the context of the rescan of a previously-scanned expression.
+be retrieved (or NULL if only the static type should be used).  is_dynamic is
+TRUE if the typeid operation must be evaluated at run time.  If is_cli_typeid
+is TRUE, this is the C++/CLI typeid variant (T::typeid).  If make_constant is
+TRUE, an operand based on a constant address should be produced; otherwise, an
+expression operand whose top-level node is an enk_typeid entry should be
+created.  If rcblock is non-NULL, this is being done in the context of the
+rescan of a previously-scanned expression.
 */
 {
   an_expr_node_ptr typeid_node;
@@ -17775,7 +17785,8 @@ being done in the context of the rescan of a previously-scanned expression.
       /* Non-template-dependent case: Use a ck_address/abk_typeid constant. */
       make_typeid_constant(typeid_type, is_cli_typeid, typeid_con);
       typeid_con->expr = make_typeid_node(typeid_type, typeid_expr,
-                                          is_cli_typeid, result_type);
+                                          /*is_dynamic=*/FALSE, is_cli_typeid,
+                                          result_type);
     } else {
       /* Template-dependent case: Use a ck_template_param/tpck_typeid
          constant. */
@@ -17805,8 +17816,8 @@ being done in the context of the rescan of a previously-scanned expression.
     release_local_constant(&typeid_con);
   } else {
     /* Normal case: Create an enk_typeid expression. */
-    typeid_node = make_typeid_node(typeid_type, typeid_expr, is_cli_typeid,
-                                   result_type);
+    typeid_node = make_typeid_node(typeid_type, typeid_expr, is_dynamic,
+                                   is_cli_typeid, result_type);
     make_glvalue_expression_operand(typeid_node, result);
   }  /* if */
   if (rcblock == NULL || !rcblock->error_detected) {
@@ -17883,7 +17894,6 @@ indication in *rcblock).
   a_boolean         potentially_unevaluated_lambda_seen = FALSE;
   a_source_position potentially_unevaluated_lambda_pos;
   a_boolean         saved_cpp11_constant_expr_ruled_out;
-  a_boolean         expr_needed_for_cp_gen_be = FALSE;
 #if BACK_END_IS_CP_GEN_BE
   a_type_ptr        underlying_typeid_type;
 #endif /* BACK_END_IS_CP_GEN_BE */
@@ -18098,27 +18108,8 @@ indication in *rcblock).
     }  /* if */
 #if BACK_END_IS_CP_GEN_BE
     underlying_typeid_type = skip_typerefs(typeid_type);
-    if (is_tag_type(underlying_typeid_type) &&
-        type_is_unnamed(underlying_typeid_type)) {
-      /* We need to keep the expression because the C++-generating back end
-         can't refer to an unnamed type in a typeid expression and thus
-         must put out the expression-operand form. */
-      expr_needed_for_cp_gen_be = TRUE;
-    }  /* if */
 #endif /* BACK_END_IS_CP_GEN_BE */
-    if (runtime_case || expr_needed_for_cp_gen_be ||
-        (is_template_dependent_context() &&
-         (is_template_dependent_type(typeid_type) ||
-          is_instantiation_dependent_type(typeid_type)))) {
-      /* Keep the expression in the typeid if required: because the type
-         must be determined at runtime, because the C++-generating back end
-         will need it, or because we need the expression to be able to
-         rescan a template-dependent case. */
-      expr = make_node_from_operand(&operand);
-    } else {
-      /* We're not keeping the expression in the IL. */
-      discard_operand(&operand);
-    }  /* if */
+    expr = make_node_from_operand(&operand);
   }  /* if */
   if (!runtime_case) {
     /* If this is not a runtime case, the expression is not evaluated,
@@ -18245,8 +18236,8 @@ indication in *rcblock).
     make_error_operand(result);
   } else {
     /* Create a typeid operand. */
-    make_typeid_operand(rcblock, typeid_type, expr, is_cli_typeid,
-                        make_constant, result);
+    make_typeid_operand(rcblock, typeid_type, expr, runtime_case,
+                        is_cli_typeid, make_constant, result);
   }  /* if */
   set_operand_position(result, &start_position, &end_position,
                        &operator_position);

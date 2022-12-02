@@ -6826,19 +6826,12 @@ is TRUE.
       break;
 #endif /* IA64_ABI */
     case enk_typeid:
-      if (expr->variant.typeid_info.expr == NULL) {
-        mangled_encoding_for_sizeof(expr->variant.typeid_info.type,
-                                    (an_expr_node_ptr)NULL,
-                                   (a_template_param_constant_kind)tpck_typeid,
-                                    expr,
-                                    mctl);
-      } else {
-        mangled_encoding_for_sizeof((a_type_ptr)NULL,
-                                    expr->variant.typeid_info.expr,
-                                   (a_template_param_constant_kind)tpck_typeid,
-                                    expr,
-                                    mctl);
-      }  /* if */
+      { an_expr_node_ptr  opnds = expr->variant.typeid_info.type_with_opt_expr,
+                          arg = opnds->next;
+        a_type_ptr        tp = NULL;
+        if (arg == NULL) tp = opnds->variant.type_operand.type;
+        mangled_encoding_for_sizeof(tp, arg, tpck_typeid, expr, mctl);
+      }
       break;
     case enk_sizeof_pack:
       /* Mangle sizeof...(T). */

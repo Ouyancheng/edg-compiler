@@ -5233,10 +5233,12 @@ template argument list being tried.
     }  /* if */
   } else if (expr->kind == (an_expr_node_kind)enk_typeid) {
      /* typeid in expression form. */
-    op_expr = expr->variant.typeid_info.expr;
+    an_expr_node_ptr  opnds = expr->variant.typeid_info.type_with_opt_expr;
+    op_expr = opnds->next;
     is_type = (op_expr == NULL);
     if (is_type) {
-      type = expr->variant.typeid_info.type;
+      check_assertion(node_is(opnds, enk_type_operand));
+      type = opnds->variant.type_operand.type;
     }  /* if */
   } else if (is_operation_node(expr) &&
              node_operator_is(expr, eok_noexcept)) {

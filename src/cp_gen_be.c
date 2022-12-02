@@ -17173,25 +17173,28 @@ done_with_operation_after_parens:
       break;
     case enk_typeid:
       /* C++ typeid operator. */
+      { an_expr_node_ptr  opnds = expr->variant.typeid_info.type_with_opt_expr;
+        a_type_ptr        type = opnds->variant.type_operand.type;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      if (expr->is_cli_typeid) {
-        /* C++/CLI variant, T::typeid. */
-        gen_type(expr->variant.typeid_info.type);
-        write_tok_str("::typeid");
-      } else
+        if (expr->is_cli_typeid) {
+          /* C++/CLI variant, T::typeid. */
+          gen_type(type);
+          write_tok_str("::typeid");
+        } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      /* Do not insert code here. */
-      {
-        write_tok_str("typeid(");
-        if (expr->variant.typeid_info.expr == NULL) {
-          /* Use type. */
-          gen_type(expr->variant.typeid_info.type);
-        } else {
-          /* Use expression. */
-          gen_expression(expr->variant.typeid_info.expr);
+        /* Do not insert code here. */
+        {
+          write_tok_str("typeid(");
+          if (opnds->next == NULL) {
+            /* Use the type. */
+            gen_type(type);
+          } else {
+            /* Use the expression. */
+            gen_expression(opnds->next);
+          }  /* if */
+          write_tok_ch(')');
         }  /* if */
-        write_tok_ch(')');
-      }  /* if */
+      }
       break;
     case enk_alignof:
       if (msvc_is_generated_code_target || sun_is_generated_code_target) {

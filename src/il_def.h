@@ -14449,15 +14449,19 @@ typedef struct an_expr_node {
 			   type of the expression specified.  In either case,
 			   top-level type qualifiers are removed. */
       an_expr_node_ptr
-		expr;
-			/* If the argument of the typeid operator is an
-			   expression with one of the special forms (*p or
-			   p[x]), and the type is a polymorphic class type,
-			   or if the expression is in a prototype
-			   instantiation and the operand has a dependent
-			   type that was specified using the "auto"
-			   type-specifier, this is the expression
-			   specified; otherwise NULL. */
+		type_with_opt_expr;
+			/* A list with one or two expression nodes.  The first
+			   is always an enk_type_operand node that records
+			   either the type specified in the corresponding
+			   typeid(...) expression, or the type of the specified
+			   expression operand.  (In either case, top-level type
+			   qualifiers are removed.)  If an expression operand
+			   was specified, a second expression node is present
+			   describing that expression. */
+      a_bit_field
+		is_dynamic:1;
+			/* TRUE if the result value depends on the dynamic
+			   type of the operand expression. */
     } typeid_info;
     /* When kind == enk_sizeof or kind == enk_alignof: */
     struct {

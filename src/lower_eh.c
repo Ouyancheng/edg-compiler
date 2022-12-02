@@ -2379,8 +2379,8 @@ front end as lvalues, but may have undergone an lvalue-to-rvalue
 conversion in cases where their value is not used.
 */
 {
-  a_type_ptr       typeid_type = expr->variant.typeid_info.type;
-  an_expr_node_ptr typeid_expr = expr->variant.typeid_info.expr;
+  a_type_ptr       typeid_type;
+  an_expr_node_ptr typeid_expr, opnds;
   an_expr_node_ptr new_expr, null_constant_node, test_node;
   an_expr_node_ptr vptr_expr;
   a_variable_ptr   typeinfo_var;
@@ -2392,13 +2392,17 @@ conversion in cases where their value is not used.
   an_expr_node_ptr question_node;
 #endif /* !IA64_ABI */
 
-  check_assertion(expr->kind == (an_expr_node_kind)enk_typeid);
-  if (typeid_expr == NULL) {
+  check_assertion(node_is(expr, enk_typeid));
+  opnds = expr->variant.typeid_info.type_with_opt_expr;
+  check_assertion(node_is(opnds, enk_type_operand));
+  typeid_type = opnds->variant.type_operand.type;
+  typeid_expr = opnds->next;
+  if (!expr->variant.typeid_info.is_dynamic) {
+    /* The operand expression is not needed; the type is known statically. */
+    /* Make the runtime typeinfo variable. */
 #if IA64_ABI
     a_type_ptr typeinfo_type;
 #endif /* !IA64_ABI */
-    /* No expression; the type is known statically. */
-    /* Make the runtime typeinfo variable. */
     typeinfo_var = get_typeinfo_var(typeid_type);
     /* Make an expression that refers to the user type_info member within
        the implementation typeinfo variable. */
@@ -2418,8 +2422,8 @@ conversion in cases where their value is not used.
     }  /* for */
 #endif /* !IA64_ABI */
   } else {
-    check_assertion(is_glvalue_node(typeid_expr));
     /* Polymorphic class case with expression. */
+    check_assertion(is_glvalue_node(typeid_expr));
     check_assertion(is_immediate_class_type(typeid_type) &&
                     is_polymorphic_class_type(typeid_type));
 #if IA64_ABI
