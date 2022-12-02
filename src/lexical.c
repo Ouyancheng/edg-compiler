@@ -3211,6 +3211,7 @@ This is used to save tokens for later rescanning.
        (e.g., a string) has been allocated in the file scope and doesn't
        need to be copied. */
     copy_constant(&const_for_curr_token, ctp->variant.constant);
+#if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (curr_token == tok_pending_ifc_var_init ||
              curr_token == tok_pending_ifc_func_body ||
              curr_token == tok_pending_ifc_expr ||
@@ -3220,6 +3221,7 @@ This is used to save tokens for later rescanning.
     /* This token has an associated index. */
     ctp->extra_info_kind = teik_ifc_index;
     ctp->variant.ifc_index = ifc_index_for_curr_token;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else if (curr_token == tok_ud_literal) {
       /* Save the information needed to restore the user-defined literal
          from the cache. */
@@ -4312,8 +4314,10 @@ is set to TRUE in that case, FALSE otherwise.
                                 strlen(ctp->variant.ud_lit.suffix),
                                 &locator_for_curr_id, &pos_curr_token);
     ud_lit_type_for_curr_token = ctp->variant.ud_lit.type;
+#if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (ctp->extra_info_kind == teik_ifc_index) {
     ifc_index_for_curr_token = ctp->variant.ifc_index;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
   free_cached_token(ctp);
 done:
@@ -4465,8 +4469,10 @@ an equivalent change.
                                      /*from_cache=*/TRUE,
                                      (a_diagnostic_ptr)NULL);
     ud_lit_type_for_curr_token = ctp->variant.ud_lit.type;
+#if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (ctp->extra_info_kind == teik_ifc_index) {
     ifc_index_for_curr_token = ctp->variant.ifc_index;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
   /* Check whether we have reached the end of this cache. */
   while (reusable_cache_stack->next_cached_token == NULL &&
@@ -25728,6 +25734,7 @@ encountered, whatever their other characteristics, are included.
   db_exit();
 }  /* add_pragmas_to_string */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
 
 static void put_psuedo_token_start_to_temp_text_buffer(
                                         a_token_kind            kind,
@@ -25754,6 +25761,7 @@ temporary text buffer.
   put_str_to_temp_text_buffer(") :!)");
 }  /* put_psuedo_token_end_to_temp_text_buffer */
 
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if DEBUG
 
 static constexpr a_const_char
@@ -25884,6 +25892,7 @@ and < end_tsn are included in the string.
         ctp = ctp->variant.extracted_template.next_in_token_string;
         put_ch_to_temp_text_buffer(';');
       }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
     } else if (teik_kind == teik_ifc_index) {
       put_psuedo_token_start_to_temp_text_buffer(ctp->token,
                                                  ctp->token_sequence_number);
@@ -25912,6 +25921,7 @@ and < end_tsn are included in the string.
       }
 #endif /* DEBUG */
       put_psuedo_token_end_to_temp_text_buffer();
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else {
       /* A normal token (including, possibly, a pp-token). */
       if (ctp->token == tok_removed_template_body) {
