@@ -17189,8 +17189,11 @@ done_with_operation_after_parens:
             /* Use the type. */
             gen_type(type);
           } else {
-            /* Use the expression. */
-            gen_expression(opnds->next);
+            /* Use the expression.  Add a set of parentheses to avoid type vs.
+               expression ambiguities.  E.g., the expression "T()" with type T
+               would otherwise be parsed as "function returning a value of
+               type T". */
+            gen_expr_with_parens(opnds->next);
           }  /* if */
           write_tok_ch(')');
         }  /* if */
