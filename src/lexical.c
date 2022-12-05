@@ -26472,15 +26472,10 @@ formatting.
 {
   sizeof_t                 saved_pos = pos_in_temp_text_buffer, indent = 0;
   a_cached_token_ptr       ctp = cache->first_token;
-  a_token_sequence_number  first_tsn = 0, last_tsn = 0;
 
   /* If any of the tokens in the cache has an associated position, output a
      description of that position first. */
   for (; ctp != NULL; ctp = ctp->next) {
-    if (ctp == cache->first_token) {
-      first_tsn = ctp->token_sequence_number;
-    }  /* if */
-    last_tsn = ctp->token_sequence_number;
     if (ctp->source_position.seq != 0) {
       if (ctp != cache->first_token) {
         fprintf(f_debug, "(approx.) ");
@@ -26490,11 +26485,44 @@ formatting.
       break;
     }  /* if */
   }  /* for */
-  for (; ctp != NULL; ctp = ctp->next) {
-    last_tsn = ctp->token_sequence_number;
+
+  /* Print token sequence number ranges. */
+  fprintf(f_debug, "[tsn: ");
+  a_boolean                any_printed = FALSE;
+  a_token_sequence_number  start_tsn = 0;
+  a_token_sequence_number  prev_tsn;
+  /* Populate initial first and last token sequence numbers. */
+  if (cache->first_token != NULL) {
+    start_tsn = cache->first_token->token_sequence_number;
+  } else {
+    start_tsn = 0;
   }  /* if */
-  fprintf(f_debug, "[tsn: %ld - %ld]\n", (long)first_tsn, (long)last_tsn);
+  prev_tsn = start_tsn;
+  for (ctp = cache->first_token; ctp != NULL; ctp = ctp->next) {
+    a_token_sequence_number curr_tsn = ctp->token_sequence_number;
+
+    if (curr_tsn < prev_tsn) {
+      /* Print this range. */
+      if (any_printed) {
+        fprintf(f_debug, ", ");
+      }  /* if */
+      fprintf(f_debug, "%ld - %ld",
+              (long)start_tsn, (long)prev_tsn);
+      any_printed = TRUE;
+      /* Update the range. */
+      start_tsn = curr_tsn;
+    }  /* if */
+    prev_tsn = curr_tsn;
+  }  /* if */
+  if (any_printed) {
+    fprintf(f_debug, ", ");
+  }  /* if */
+  fprintf(f_debug, "%ld - %ld",
+          (long)start_tsn, (long)prev_tsn);
+  fprintf(f_debug, "]\n");
+  /* Add the tokens to the temp_text_buffer. */
   add_token_cache_to_string(cache);
+
   sizeof_t  k = saved_pos;
   /* Skip leading spaces. */
   while (temp_text_buffer[k] == ' ') ++k;
