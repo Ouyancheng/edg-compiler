@@ -2439,6 +2439,9 @@ typedef int a_ctws_options_set;
 			   substitution process must deal with these (and
 			   that requires special handling of pack expansions,
 			   in particular). */
+#define CTWS_ALIAS_DEDUCTION_GUIDE	0x80000
+			/* TRUE when doing substitution to create a deduction
+			   guide routine type for an alias template. */
 
 
 /*
@@ -2508,6 +2511,20 @@ typedef struct a_ctws_state {
 			/* During deduction guide substitution, if this is
 			   non-NULL, it is used as a replacement for
 			   a this_class that matches old_this_class. */
+  const Dyn_array<a_template_param_ptr>
+		*alias_parameter_pack_mapping;
+			/* During deduction guide substitution for alias
+			   templates, if this is non-NULL, it is used as a map
+			   for parameter packs, indexed by the parameter
+			   position in the deduction guide template parameter
+			   list, to the new template parameter. */
+  Dyn_array<a_boolean>
+		*record_used_arguments;
+			/* During deduction guide substitution for alias
+			   templates, if this is non-NULL, it is used to record
+			   the positions of template arguments being used
+			   during substitution.  This array is resized and
+			   updated by the template substitution routines. */
   int32_t	routine_type_levels;
 			/* The level of nesting of routine types. */
   int32_t	parent_levels;
@@ -2526,6 +2543,9 @@ typedef struct a_ctws_state {
 			   pack expansion and such expansions should be
 			   ignored unless the pack uses only non-enclosing
 			   packs. */
+  a_boolean	substituted_parameter_pack;
+			/* TRUE if a pack argument was substituted.  This is
+			   set by the template substitution routines. */
 } a_ctws_state;
 
 

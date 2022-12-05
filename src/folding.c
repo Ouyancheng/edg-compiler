@@ -9305,6 +9305,44 @@ expression for the returned constant will be set as well.
 }  /* fold_is_same */
 
 
+static void fold_edg_is_deducible(an_expr_node_ptr   expr,
+                                  a_constant_ptr     constant)
+/*
+expr is an enk_builtin_operation node for an __edg_is_deducible operation.  If
+the operand types are nondependent, store a boolean constant in *constant.  The
+boolean constant will have value "true" if the template arguments for the
+template operand are deducible from the operand type; otherwise, the constant
+will have value "false".  If either of the operands is dependent, store a
+ck_template_param constant in *constant.  The constant will be of the
+tpck_expression variant and will point to the given expression.
+*/
+{
+  an_expr_node_ptr  arg1 = expr->variant.builtin_operation.operands,
+                    arg2 = arg1->next;
+  a_template_ptr    tmpl;
+  a_type_ptr        type;
+
+  /* eok_parens shouldn't appear here, since the construct is generated. */
+  check_assertion(arg1 != NULL && arg2 != NULL && arg2->next == NULL &&
+                  arg1->kind == enk_template_name &&
+                  arg2->kind == enk_type_operand);
+  tmpl = arg1->variant.template_name.class_template;
+  type = arg2->variant.type_operand.type;
+  if (tmpl->kind == templk_template_template_param ||
+      is_nonreal_template_symbol(symbol_for(tmpl)) ||
+      is_template_dependent_type(type)) {
+    clear_constant(constant, ck_template_param);
+    set_template_param_constant_kind(constant, tpck_expression);
+    constant->variant.template_param.variant.expr = expr;
+  } else {
+    clear_constant(constant, ck_integer);
+    set_integer_value(&constant->variant.integer_value,
+                      is_template_deducible_from(tmpl, type));
+  }  /* if */
+  constant->type = expr->type;
+}  /* fold_edg_is_deducible */
+
+
 static void fold_builtin_has_attribute(an_expr_node_ptr   expr,
                                        a_constant_ptr     constant,
                                        a_boolean          maintain_expression)
@@ -9978,6 +10016,9 @@ constant is set as well.
       case bok_builtin_is_corresponding_member:
         fold_is_corresponding_member(expr, constant, maintain_expression,
                                      not_a_constant);
+        break;
+      case bok_edg_is_deducible:
+        fold_edg_is_deducible(expr, constant);
         break;
       case bok_array_rank:
       case bok_array_extent:

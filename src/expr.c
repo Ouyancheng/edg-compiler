@@ -13814,6 +13814,7 @@ Describes the various argument types that can occur.
 enum a_builtin_arg_kind {
   bak_none,       /* Used to indicate no argument. */
   bak_type,       /* A type argument is expected. */
+  bak_template,   /* A template argument is expected. */
   bak_any_expr,   /* An expression (possibly an lvalue) is expected. */
   bak_prvalue     /* A prvalue expression is expected. */
 };
@@ -13860,6 +13861,45 @@ rcblock->argument_list.
         }  /* if */
         result->position = start_position;
         record_type_operand_position_for_rescan(result, &start_position);
+      }
+      break;
+    case bak_template:
+      { a_template_ptr  templ = NULL;
+        if (rcblock != NULL) {
+          /* Get the template by doing substitution on the previously-scanned
+             template name. */
+          make_template_name_rescan_template(rcblock, &templ, &start_position);
+        } else {
+          /* Scan the template name from source. */
+          start_position = pos_curr_token;
+          if (is_generalized_identifier_start(GID_CLASS_TEMPLATE_REQUIRED)) {
+            a_boolean    err = FALSE;
+            a_symbol_ptr sym = coalesce_and_lookup_generalized_identifier(
+                                                   GID_CLASS_TEMPLATE_REQUIRED,
+                                                   ilm_normal, &err);
+            if (err) {
+              syntax_error(ec_exp_identifier);
+            } else if (!is_class_template_symbol(sym)) {
+              pos_sy_error(ec_sym_not_a_class_template, &start_position, sym);
+            } else {
+              sym = template_argument_if_template_template_param(sym);
+              templ = sym->variant.template_info->il_template_entry;
+            }  /* if */
+            (void)get_token();
+          } else {
+            syntax_error(ec_exp_identifier);
+          }  /* if */
+        }  /* if */
+        if (templ == NULL) {
+          result = alloc_expr_node(enk_error);
+        } else {
+          result = alloc_expr_node(enk_template_name);
+          result->type = void_type();
+          result->variant.template_name.class_template = templ;
+          result->position = start_position;
+          record_position_in_expr_for_rescan(result, &start_position,
+                                             &null_source_position);
+        }  /* if */
       }
       break;
     case bak_prvalue:
@@ -14408,6 +14448,41 @@ case, the interpreter may be able to "fold" the expression later.
     conv_to_error_operand(result);
   }  /* if */
 }  /* scan_is_corresponding_member */
+
+
+static void scan_edg_is_deducible(a_rescan_control_block *rcblock,
+                                  an_operand             *result)
+/*
+Scan a call to __edg_is_deducible:
+
+  __edg_is_deducible( <template>, <type> )
+
+If rcblock is non-NULL, redo semantic analysis on a previously-scanned
+construct of this kind.  Either way, return the result in *result (or an error
+indication in *rcblock).
+*/
+{
+  a_type_ptr                result_type;
+  a_builtin_operation_kind  op;
+
+  if (rcblock != NULL) {
+    an_expr_node_ptr expr = rcblock->expr;
+    check_assertion(expr != NULL && expr->kind == enk_builtin_operation);
+    op = expr->variant.builtin_operation.kind;
+  } else {
+    op = bok_edg_is_deducible;
+  }  /* if */
+  check_assertion(op == bok_edg_is_deducible);
+  result_type = type_traits_helper_check(op);
+  scan_call_like_builtin_operation(rcblock, op, result_type,
+                                   bak_template, bak_type,
+                                   /*arg2_repeats=*/FALSE, result);
+  if (!type_traits_helpers_enabled) {
+    /* Turn the operand into an error operand to avoid any surprises later
+       on. */
+    conv_to_error_operand(result);
+  }  /* if */
+}  /* scan_edg_is_deducible */
 
 
 static void scan_array_type_trait_helper(a_rescan_control_block *rcblock,
@@ -16036,7 +16111,8 @@ name.  We do not advance to the token after the decltype in this case.
              (rcblock->options & (CTWS_PRESERVE_DEDUCED_PACKS |
                                   CTWS_PARTIAL_ARG_LIST_OKAY |
                                   CTWS_MAY_BE_RESCANNED |
-                                  CTWS_DEDUCTION_GUIDE)) == 0) {
+                                  CTWS_DEDUCTION_GUIDE |
+                                  CTWS_ALIAS_DEDUCTION_GUIDE)) == 0) {
     /* A rescanned decltype construct that will not itself require further
        rescanning.  Rather than produce a typeref type representing the
        decltype construct, we just return the underlying type in this case,
@@ -31359,6 +31435,7 @@ Return TRUE if the given token kind represents a "trait" name (like
     case tok_builtin_is_pointer_interconvertible_with_class:
     case tok_is_corresponding_member:
     case tok_builtin_is_corresponding_member:
+    case tok_edg_is_deducible:
     case tok_is_arithmetic:
     case tok_is_complete_type:
     case tok_is_compound:
@@ -34149,6 +34226,7 @@ Return TRUE if the indicated token is one that could start an expression.
     case tok_builtin_is_pointer_interconvertible_with_class:
     case tok_is_corresponding_member:
     case tok_builtin_is_corresponding_member:
+    case tok_edg_is_deducible:
     case tok_requires:
     case tok_array_rank:
     case tok_array_extent:
@@ -40248,6 +40326,10 @@ handle_identifier:
       /* Various binary type traits helper constructs: */
       scan_binary_type_trait_helper((a_rescan_control_block *)NULL,
                                     &local_result);
+      break;
+
+    case tok_edg_is_deducible:
+      scan_edg_is_deducible((a_rescan_control_block *)NULL, &local_result);
       break;
 
     case tok_is_pointer_interconvertible_with_class:
@@ -48541,6 +48623,9 @@ TRUE if the operator is a unary operator, FALSE otherwise.
     case bok_builtin_is_corresponding_member:
       operator_token = tok_builtin_is_corresponding_member;
       break;
+    case bok_edg_is_deducible:
+      operator_token = tok_edg_is_deducible;
+      break;
     case bok_builtin_has_attribute:
       operator_token = tok_builtin_has_attribute;
       break;
@@ -49136,7 +49221,8 @@ a enclosing expression).
   if ((rcblock->options & (CTWS_PRESERVE_DEDUCED_PACKS |
                            CTWS_PARTIAL_ARG_LIST_OKAY |
                            CTWS_MAY_BE_RESCANNED |
-                           CTWS_DEDUCTION_GUIDE)) == 0) {
+                           CTWS_DEDUCTION_GUIDE |
+                           CTWS_ALIAS_DEDUCTION_GUIDE)) == 0) {
     /* A rescanned expression normally does not need rescanning itself.  An
        exception occurs when we are in a context where only part of the
        template parameters are rescanned (e.g., substituting explicit template
@@ -49434,6 +49520,9 @@ a enclosing expression).
       case tok_is_corresponding_member:
       case tok_builtin_is_corresponding_member:
         scan_is_corresponding_member(rcblock, result);
+        break;
+      case tok_edg_is_deducible:
+        scan_edg_is_deducible(rcblock, result);
         break;
       case tok_intaddr:
         scan_intaddr_operator(rcblock, result);
@@ -51369,6 +51458,39 @@ operator op, and return a pointer to it.
   }  /* if */
   return assign_node;
 }  /* make_assignment_expr */
+
+
+an_expr_node_ptr make_builtin_edg_is_deducible_expr(a_template_ptr  templ,
+                                                    a_type_ptr      type)
+/*
+Create a compiler-generated expression for "__edg_is_deducible(templ, type)"
+and return a pointer to it.
+*/
+{
+  an_expr_node_ptr  arg1, arg2, is_deducible_expr;
+
+  arg1 = alloc_expr_node(enk_template_name);
+  arg1->compiler_generated = TRUE;
+  arg1->type = void_type();
+  arg1->variant.template_name.class_template = templ;
+  record_position_in_expr_for_rescan(arg1, &null_source_position,
+                                     &null_source_position);
+  arg2 = alloc_expr_node(enk_type_operand);
+  arg2->compiler_generated = TRUE;
+  arg2->type = void_type();
+  arg2->variant.type_operand.type = type;
+  record_position_in_expr_for_rescan(arg2, &null_source_position,
+                                     &null_source_position);
+  arg1->next = arg2;
+  is_deducible_expr = alloc_expr_node(enk_builtin_operation);
+  is_deducible_expr->compiler_generated = TRUE;
+  is_deducible_expr->type = bool_type();
+  is_deducible_expr->variant.builtin_operation.kind = bok_edg_is_deducible;
+  is_deducible_expr->variant.builtin_operation.operands = arg1;
+  record_position_in_expr_for_rescan(is_deducible_expr, &null_source_position,
+                                     &null_source_position);
+  return is_deducible_expr;
+}  /* make_builtin_edg_is_deducible_expr */
 
 
 static an_arg_list_elem_ptr make_declval_arg(a_type_ptr  tp)

@@ -5187,6 +5187,37 @@ substituted type, or an error indication in rcblock.
 }  /* do_type_substitution_for_rescan */
 
 
+static a_template_ptr do_template_substitution_for_rescan(
+                                        a_template_ptr                templ,
+                                        a_rescan_control_block        *rcblock,
+                                        an_expr_rescan_info_entry_ptr eriep)
+/*
+As part of rescanning an expression for template deduction, do template
+substitution on the template "templ" using the template arguments etc. given
+by rcblock, and with additional information from *eriep, and return the
+substituted template, or an error indication in rcblock.
+*/
+{
+  a_template_ptr      new_templ;
+  a_boolean           copy_error = FALSE;
+  a_ctws_options_set  ctws_options = CTWS_NON_CONSTANT_EXPR;
+
+  ctws_options |= (rcblock->options & (CTWS_PRESERVE_DEDUCED_PACKS |
+                                       CTWS_PARTIAL_ARG_LIST_OKAY |
+                                       CTWS_MAY_BE_RESCANNED));
+  new_templ = copy_template_with_substitution(templ,
+                                              rcblock->template_arg_list,
+                                              rcblock->template_param_list,
+                                              &eriep->saved_operand.position,
+                                              ctws_options, &copy_error,
+                                              rcblock->ctws_state);
+  if (copy_error) {
+    subst_fail(rcblock->error_detected);
+  }  /* if */
+  return new_templ;
+}  /* do_template_substitution_for_rescan */
+
+
 void make_sizeof_et_al_rescan_operands(
                               a_rescan_control_block  *rcblock,
                               a_boolean               *p_is_type,
@@ -5596,6 +5627,31 @@ it (using information from rcblock), and return the substituted type in
                                           rcblock, eriep);
   *type_position = eriep->saved_operand.position;
 }  /* make_type_operand_rescan_type */
+
+
+void make_template_name_rescan_template(a_rescan_control_block *rcblock,
+                                        a_template_ptr         *templ,
+                                        a_source_position      *templ_position)
+/*
+rcblock->argument_list points to a template-name argument for a builtin
+operation (like a type trait test).  Get the template, do substitution on it
+(using information from rcblock), and return the substituted template in
+*templ.  Also return the source position of the operand in *templ_position.
+*/
+{
+  an_expr_node_ptr              expr = rcblock->argument_list;
+  an_expr_rescan_info_entry_ptr eriep;
+
+  check_assertion(expr != NULL);
+  check_assertion(expr->kind == enk_template_name);
+  /* We pass NULL for the second argument because we want to require
+     explicit rescan information on all type operands. */
+  eriep = get_expr_rescan_info(expr, (an_expr_rescan_info_entry *)NULL);
+  *templ = do_template_substitution_for_rescan(
+                                    expr->variant.template_name.class_template,
+                                    rcblock, eriep);
+  *templ_position = eriep->saved_operand.position;
+}  /* make_template_operand_rescan_type */
 
 
 an_arg_list_elem_ptr rescan_expr_as_arg_list_elem(

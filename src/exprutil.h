@@ -2531,6 +2531,11 @@ extern void make_type_operand_rescan_type(
                                    a_type_ptr             *type,
                                    a_source_position      *type_position);
 
+extern void make_template_name_rescan_template(
+                                   a_rescan_control_block *rcblock,
+                                   a_template_ptr         *templ,
+                                   a_source_position      *templ_position);
+
 extern an_arg_list_elem_ptr rescan_expr_as_arg_list_elem(
                                               an_expr_node_ptr       expr,
                                               a_rescan_control_block *rcblock);

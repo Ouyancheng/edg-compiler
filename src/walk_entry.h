@@ -1943,6 +1943,10 @@ do_set_proper_definition_needed_flag:
             walk_ptr(eptr->variant.const_eval_deferred.wrapped,
                      an_expr_node_ptr, iek_expr_node);
             break;
+          case enk_template_name:
+            walk_ptr(eptr->variant.template_name.class_template,
+                     a_template_ptr, iek_template);
+            break;
           default:
             unexpected_condition_str(
                                  "walk_entry_and_subtree: bad expr node kind");

@@ -904,6 +904,10 @@ extern an_expr_node_ptr make_assignment_expr(
                                       an_expr_operator_kind  op,
                                       an_expr_node_ptr       rvalue_expr);
 
+extern an_expr_node_ptr make_builtin_edg_is_deducible_expr(
+                                                       a_template_ptr    templ,
+                                                       a_type_ptr        type);
+
 #if !STANDALONE_UTILITY_PROGRAM
 
 extern void determine_get_call_for_tuple_like_binding(

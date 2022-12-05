@@ -841,6 +841,7 @@ modes.
   enter_keyword((a_token_kind)tok_has_unique_object_representations,
                 "__has_unique_object_representations");
   enter_keyword((a_token_kind)tok_is_aggregate, "__is_aggregate");
+  enter_keyword((a_token_kind)tok_edg_is_deducible, "__edg_is_deducible");
 }  /* enter_type_traits_helpers */
 
 

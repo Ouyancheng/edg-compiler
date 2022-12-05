@@ -1116,7 +1116,8 @@ return the symbol representing that template.
       if (assoc_symbol != NULL) {
         if (!in_prescan && class_template_arg_deduction_enabled &&
             !locator_for_curr_id.is_template_id &&
-            is_class_template_but_not_alias_symbol(assoc_symbol)) {
+            (alias_ctad_enabled ? is_class_template_symbol(assoc_symbol)
+                     : is_class_template_but_not_alias_symbol(assoc_symbol))) {
           /* We found a class template and we are doing class template
              argument deduction.  Create a placeholder type to represent
              the class template reference.  This is not done for a template-id
@@ -20779,6 +20780,11 @@ placeholder type corresponding to the template name that was just scanned).
              access_for_symbol(ct_sym) != scope_stack_top().current_access) {
     pos_sy_error(ec_bad_deduction_guide_access, &dps->specifiers_pos, ct_sym);
   }  /* if */
+  if (ct_sym->variant.template_info
+            ->variant.class_template.is_alias_template) {
+    pos_sy_error(ec_alias_template_deduction_guide, &dps->specifiers_pos,
+                 ct_sym);
+  }  /* if */
   check_deduction_guide_return_type(dps, ct_sym);
   /* Allocate a symbol representing the guide. */
   guide_sym = alloc_symbol((a_symbol_kind)sk_routine, locator->symbol_header,
@@ -20815,6 +20821,7 @@ placeholder type corresponding to the template name that was just scanned).
   ct_tssp = template_supplement_for_symbol(ct_sym);
   add_deduction_guide(guide_sym,
                       &ct_tssp->variant.class_template.deduction_guides);
+  ct_tssp->variant.class_template.explicit_deduction_guides_added = TRUE;
   /* Do processing required for any pragmas that are bound to the current
      declaration. */
   process_curr_construct_pragmas(guide_sym, (a_statement_ptr)NULL);

@@ -475,15 +475,6 @@ static an_equiv_templ_arg_options_set eta_options_for_template(
 			a_symbol_ptr				template_sym,
 			a_template_symbol_supplement_ptr	tssp);
 
-static a_template_ptr copy_template_with_substitution(
-			a_template_ptr			templ,
-			a_template_arg_ptr		templ_arg_list,
-			a_template_param_ptr		templ_param_list,
-			a_source_position		*source_pos,
-			a_ctws_options_set		options,
-			a_boolean			*copy_error,
-			a_ctws_state_ptr		ctws_state);
-
 static a_pack_expansion_descr_ptr copy_pack_expansion_descr_with_substitution(
 				a_pack_expansion_descr_ptr	pedp,
 				a_ctws_state_ptr		ctws_state);
@@ -619,10 +610,13 @@ Initialize a template argument substitution state block.
   csp->new_templ_params = NULL;
   csp->old_this_class = NULL;
   csp->new_this_class = NULL;
+  csp->alias_parameter_pack_mapping = NULL;
+  csp->record_used_arguments = NULL;
   csp->routine_type_levels = -1;
   csp->parent_levels = 0;
   csp->preserve_deduced_packs = FALSE;
   csp->in_parent_substitution = FALSE;
+  csp->substituted_parameter_pack = FALSE;
 }  /* init_ctws_state */
 
 
@@ -2112,7 +2106,8 @@ template argument matching.
 
   default_allowed = (function_template_default_args_allowed &&
                      !is_partial_order_check) || is_templ_templ_param_check;
-  implicit_guide = tssp->variant.function.implicit_deduction_guide;
+  implicit_guide = symbol_is(template_sym, sk_function_template) &&
+                   tssp->variant.function.implicit_deduction_guide;
   if (is_partial_order_check) {
     /* The routine type of the prototype instantiation of the template
        is only needed below when doing the partial ordering check. */
@@ -3319,13 +3314,15 @@ entire_type is FALSE, and must be zero otherwise.
   if (!is_templ_templ_param_check) {
     local_match1 = matches_template_type(param_type1, param_type2,
                                          templ_arg_list1, templ_param_list1,
-                                         MTT_NO_FLAGS);
+                                         is_pack1 ? MTT_IS_PACK
+                                                  : MTT_NO_FLAGS);
   } else {
     mtt_flags = MTT_TEMPL_TEMPL_MATCH;
   }  /* if */
   local_match2 = matches_template_type(param_type2, param_type1,
                                        templ_arg_list2, templ_param_list2,
-                                       mtt_flags);
+                                       mtt_flags | (is_pack2 ? MTT_IS_PACK
+                                                             : MTT_NO_FLAGS));
   if (!local_match1 || !local_match2) {
     /* There was only a match in one direction.  Update the caller's flags
        with the status. */
@@ -12535,6 +12532,7 @@ partial specialization.
   a_template_arg_ptr			prev_templ_tap = NULL;
   a_boolean				tap_is_pack = FALSE;
   a_boolean				templ_tap_is_pack = FALSE;
+  an_mtt_flag_set			new_flags = flags;
 
   /* templ_tap is not tested here so that any placeholders in tap will
      still be skipped in the loop. */
@@ -12564,6 +12562,13 @@ partial specialization.
                                    templ_arg_list,
                                    &pesep);
     }  /* if */
+    if (tap->is_pack) {
+      new_flags |= MTT_IS_PACK;
+    } else if (tap->is_pack_element) {
+      new_flags = flags & ~MTT_IS_PACK;
+    } else {
+      new_flags = flags;
+    }  /* if */
     if (tap->kind != templ_tap->kind) {
       /* The argument kinds do not match */
       match = FALSE;
@@ -12573,14 +12578,15 @@ partial specialization.
                                     templ_tap->variant.type,
                                     templ_arg_list,
                                     templ_param_list,
-                                    (flags & MTT_PARTIAL_SPEC) |
+                                    (new_flags & (MTT_PARTIAL_SPEC |
+                                                  MTT_IS_PACK)) |
                                       MTT_NESTED_TYPE_MATCH);
     } else if (is_nontype_templ_arg(tap)) {
       /* A nontype template parameter. */
       match = matches_template_constant(tap->variant.constant,
                                         templ_tap->variant.constant,
                                         templ_arg_list,
-                                        templ_param_list, flags);
+                                        templ_param_list, new_flags);
     } else if (is_template_templ_arg(tap)) {
       /* A template template argument. */
       match = matches_template_template_param(tap->variant.templ.ptr,
@@ -12962,7 +12968,7 @@ points to the template parameter list.
   /* When this routine calls itself recursively, the recursive calls
      should not allow conversions or the special unknown this class
      type checks.  Use a mask of flags allowed to be passed down. */
-  new_flags = (flags & MTT_TEMPL_TEMPL_MATCH);
+  new_flags = (flags & (MTT_TEMPL_TEMPL_MATCH | MTT_IS_PACK));
   templ_type = skip_typedefs_not_dependent_decltypes(templ_type);
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (is_handle_ptr(templ_type) &&
@@ -13095,7 +13101,7 @@ points to the template parameter list.
             type = strip_qualifiers_from_param_types(type);
             tap->variant.type = type;
             /* If the new type is a pack, copy over the flag. */
-            tap->is_pack = type_is_pack(type);
+            tap->is_pack = (flags & MTT_IS_PACK) != 0;
             tap->is_provisional_value = (flags & MTT_PROVISIONAL_VALUE) != 0;
             match = TRUE;
           } else {
@@ -13497,7 +13503,10 @@ points to the template parameter list.
                 }  /* if */
                 if (!matches_template_type(tp, ttp, templ_arg_list,
                                            templ_param_list,
-                                           new_flags)) {
+                                           new_flags |
+                                           (ptp->is_parameter_pack
+                                                            ? MTT_IS_PACK
+                                                            : MTT_NO_FLAGS))) {
                   /* The first param type for which there is a mismatch causes
                      a mismatch for the entire type.  No need to keep
                      looping. */
@@ -13742,7 +13751,7 @@ a set of bit flags used to control how names are looked up, if needed.
 }  /* get_template_arg_for_coordinates */
 
 
-static a_template_ptr copy_template_with_substitution(
+a_template_ptr copy_template_with_substitution(
 			a_template_ptr			templ,
 			a_template_arg_ptr		templ_arg_list,
 			a_template_param_ptr		templ_param_list,
@@ -13798,9 +13807,23 @@ Otherwise, return the original template.
       /* No value has been provided for this template parameter yet.
          Don't do the substitution, but don't consider this to be
          a copy error either. */
+      if ((options & CTWS_DEDUCTION_GUIDE) != 0) {
+        ctws_state->substituted_parameter_pack |= templ->is_pack;
+      }  /* if */
     } else {
+      Dyn_array<a_boolean>  *record_used = ctws_state->record_used_arguments;
       /* Use the template specified by this template argument. */
       result = tap->variant.templ.ptr;
+      if (record_used != NULL) {
+        /* Set a "used" marker for the position of the template argument. */
+        record_used->resize(max_val<a_ptrdiff>(coordinates->position,
+                                               record_used->length()),
+                            FALSE);
+        (*record_used)[coordinates->position - 1] = TRUE;
+      }  /* if */
+      if (tap->is_pack) {
+        ctws_state->substituted_parameter_pack = TRUE;
+      }  /* if */
     }  /* if */
   }  /* if */
   return result;
@@ -13991,6 +14014,8 @@ parameters.
   a_template_arg_ptr	tap = templ_arg;
   a_boolean		have_params = (param_list_for_copy != NULL);
   a_boolean		is_partial_spec_check;
+  a_boolean		saved_substituted_parameter_pack =
+                                        ctws_state->substituted_parameter_pack;
 
   is_partial_spec_check =
                          (options & CTWS_IS_PARTIAL_SPECIALIZATION_CHECK) != 0;
@@ -14005,6 +14030,7 @@ parameters.
       goto done;
     }  /* if */
   }  /* if */
+  ctws_state->substituted_parameter_pack = FALSE;
   if (is_type_templ_arg(tap)) {
     a_boolean		is_unnamed, is_local, is_vla, is_generic;
     tap->variant.type =
@@ -14013,7 +14039,6 @@ parameters.
 					   source_pos, options, copy_error,
                                            ctws_state);
     if (*copy_error) goto done;
-    tap->is_pack = type_is_pack(tap->variant.type);
     /* Make sure the resulting type is a valid template argument. */
     if (!*copy_error &&
          is_invalid_template_arg_type(tap->variant.type,
@@ -14094,7 +14119,6 @@ parameters.
                                                    copy_error,
                                                    ctws_state);
     if (*copy_error) goto done;
-    tap->is_pack = constant_is_pack(tap->variant.constant);
     if (have_params && tpp->uses_auto) {
       /* Make sure the new argument is compatible with the auto template
          parameter. */
@@ -14138,7 +14162,6 @@ parameters.
                                  ctws_state);
     if (*copy_error) goto done;
     tap->variant.templ.ptr = templ;
-    tap->is_pack = templ->is_pack;
     if (have_params && templ != orig_templ) {
       /* Make sure the substituted template matches the template parameter.
          This is suppressed for a top-level check in partial specialization
@@ -14156,7 +14179,14 @@ parameters.
       }  /* if */
     }  /* if */
   }  /* if */
-done:;
+  /* It's a pack only if a pack was substituted into a pack, Otherwise we pass
+     the flag to the outer level. */
+  if (tap->is_pack) {
+    tap->is_pack = ctws_state->substituted_parameter_pack;
+    ctws_state->substituted_parameter_pack = FALSE;
+  }  /* if */
+done:
+  ctws_state->substituted_parameter_pack |= saved_substituted_parameter_pack;
 }  /* substitute_template_argument */
 
 
@@ -14454,6 +14484,7 @@ If there is an error in the copying, set *copy_error to TRUE.
       }  /* if */
       new_tap = alloc_template_arg(tap->kind);
       new_tap->is_pack_element = have_params && tpp->is_pack;
+      new_tap->is_pack = tap->is_pack;
       /* Copy the unsubstituted value to the new argument. */
       switch (tap->kind) {
         case tak_type:
@@ -14521,11 +14552,13 @@ do_substitution:
       }  /* if */
       /* Exit the loop if the substitution failed. */
       if (*copy_error) goto done;
-      if (tap->pack_expansion_descr != NULL &&
-          (options & CTWS_DEDUCTION_GUIDE) != 0) {
+      if (tap->pack_expansion_descr != NULL && new_tap->is_pack &&
+          (options & (CTWS_DEDUCTION_GUIDE |
+                      CTWS_ALIAS_DEDUCTION_GUIDE)) != 0) {
         /* For deduction guide substitution, transfer the pack expansion
            information. */
-        if (ctws_state->new_templ_params == NULL) {
+        if (ctws_state->new_templ_params == NULL &&
+            ctws_state->alias_parameter_pack_mapping == NULL) {
           new_tap->pack_expansion_descr = tap->pack_expansion_descr;
         } else {
           /* This is used when creating deduction guide templates to create
@@ -14652,6 +14685,7 @@ to an alias template, the substituted type is returned in *new_type
      instantiation. */
   orig_is_prototype = is_immediate_class_type(orig_type) &&
                       (options & CTWS_DEDUCTION_GUIDE) == 0 &&
+                      (options & CTWS_ALIAS_DEDUCTION_GUIDE) == 0 &&
                       orig_type->
                         variant.class_struct_union.is_prototype_instantiation;
   if (orig_is_prototype && orig_tssp->primary_template_sym == NULL &&
@@ -15371,40 +15405,51 @@ NULL pointer.
     a_pack_reference_ptr	new_prp_tail = NULL;
     a_template_param_ptr	old_tpp;
     a_template_param_ptr	new_tpp;
-    new_pedp = alloc_pack_expansion_descr();
     for (prp = pedp->packs_referenced; prp != NULL; prp = prp->next) {
       check_assertion(prp->kind == prk_template_param);
-      new_prp = alloc_pack_reference(prk_template_param);
-      /* Look for the template parameter in the lists in ctws_state.
-         First go through the class template params.  If it is not found
-         in that list, continue to the constructor template params. */
-      for (old_tpp = ctws_state->orig_class_templ_params,
+      if (ctws_state->alias_parameter_pack_mapping != NULL) {
+        /* When doing substitution for an alias template deduction guide, a
+           mapping of pack positions to the new template parameter is provided.
+           Look up the new template parameter in the mapping array. */
+        const Dyn_array<a_template_param_ptr> &pack_mapping =
+                                     *ctws_state->alias_parameter_pack_mapping;
+        check_assertion(pack_mapping.length() >= prp->coordinates->position);
+        new_tpp = pack_mapping[prp->coordinates->position - 1];
+        if (new_tpp == NULL) continue;
+      } else {
+        /* Look for the template parameter in the lists in ctws_state.
+           First go through the class template params.  If it is not found
+           in that list, continue to the constructor template params. */
+        for (old_tpp = ctws_state->orig_class_templ_params,
              new_tpp = ctws_state->new_templ_params;
-           old_tpp != NULL;
-           old_tpp = old_tpp->next, new_tpp = new_tpp->next) {
-        if (prp->symbol == old_tpp->param_symbol) break;
-      }  /* for */
-      if (old_tpp == NULL) {
-        for (old_tpp = ctws_state->orig_ctor_templ_params;
              old_tpp != NULL;
              old_tpp = old_tpp->next, new_tpp = new_tpp->next) {
           if (prp->symbol == old_tpp->param_symbol) break;
         }  /* for */
-      }  /* if */
-      if (old_tpp == NULL) {
-        /* If a match was not found above, look through the new list to see
-           if this is an already-substituted parameter. */
-        for (new_tpp = ctws_state->new_templ_params;
-             new_tpp != NULL; new_tpp = new_tpp->next) {
-          if (prp->symbol == new_tpp->param_symbol) break;
+        if (old_tpp == NULL) {
+          for (old_tpp = ctws_state->orig_ctor_templ_params;
+               old_tpp != NULL;
+               old_tpp = old_tpp->next, new_tpp = new_tpp->next) {
+            if (prp->symbol == old_tpp->param_symbol) break;
+          }  /* for */
+        }  /* if */
+        if (old_tpp == NULL) {
+          /* If a match was not found above, look through the new list to see
+             if this is an already-substituted parameter. */
+          for (new_tpp = ctws_state->new_templ_params;
+               new_tpp != NULL; new_tpp = new_tpp->next) {
+            if (prp->symbol == new_tpp->param_symbol) break;
+          }  /* if */
         }  /* if */
       }  /* if */
       check_assertion(new_tpp != NULL);
+      new_prp = alloc_pack_reference(prk_template_param);
       new_prp->template_param = new_tpp;
       new_prp->coordinates = coordinates_of_template_param(new_tpp);
       new_prp->symbol = new_tpp->param_symbol;
       /* Add the new entry to the end of the new list. */
-      if (new_prp_tail == NULL) {
+      if (new_pedp == NULL) {
+        new_pedp = alloc_pack_expansion_descr();
         new_pedp->packs_referenced = new_prp;
       } else {
         new_prp_tail->next = new_prp;
@@ -15502,6 +15547,7 @@ parameters.
       a_type_ptr ptype = param_type_restoring_orig_templ_array(ptp);
       a_type_ptr declared_type;
       a_type_ptr tp;
+      a_boolean  is_pack = FALSE;
       a_type_qualifier_set
                  param_qualifiers = TQ_NONE;
       elements++;
@@ -15517,13 +15563,25 @@ parameters.
         tp = first_substituted_type;
         first_substituted_type = NULL;
       } else {
+        a_boolean  saved_substituted_parameter_pack =
+                                        ctws_state->substituted_parameter_pack;
+
         /* copy_type_with_substitution has not been called yet. */
+        ctws_state->substituted_parameter_pack = FALSE;
         tp = copy_type_with_substitution(ptype, templ_arg_list,
                                          templ_param_list, source_pos,
                                          options, copy_error,
                                          ctws_state);
         if (microsoft_mode && (ptp->qualifiers & TQ_RESTRICT)) {
           tp = make_qualified_type(tp, TQ_RESTRICT);
+        }  /* if */
+        if (ptp->is_parameter_pack) {
+          /* We only have a pack if type substitution resulted in a pack. */
+          is_pack = ctws_state->substituted_parameter_pack;
+          ctws_state->substituted_parameter_pack =
+                                              saved_substituted_parameter_pack;
+        } else {
+          is_pack = FALSE;
         }  /* if */
       }  /* if */
       declared_type = tp;
@@ -15566,31 +15624,29 @@ parameters.
       new_ptp->is_cli_param_array = ptp->is_cli_param_array;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       if (ptp->is_parameter_pack) {
-        /* If the type is a pack, make the new parameter a pack as well,
-           otherwise make the new parameter a pack element.  For deduction
-           guides we want to preserve the original pack and pack element
-           status. */
-        a_type_ptr	bottom_tp;
-        a_boolean       is_deduction_guide =
-                                         (options & CTWS_DEDUCTION_GUIDE) != 0;
-        a_boolean       bottom_is_pack;
-        bottom_tp = find_bottom_of_type(tp);
-        bottom_is_pack = type_is_pack(bottom_tp);
-        if (!bottom_is_pack || (is_deduction_guide && ptp->is_pack_element)) {
-          new_ptp->is_pack_element = TRUE;
-        }  /* if */
-        if (bottom_is_pack || is_deduction_guide) {
-          new_ptp->is_parameter_pack = TRUE;
-          if (ctws_state->new_templ_params == NULL) {
-            new_ptp->pack_expansion_descr = ptp->pack_expansion_descr;
-          } else {
-            /* This is used when creating deduction guide templates to create
-               a new pack expansion descriptor that refers to the template
-               parameters of the new template. */
-            new_ptp->pack_expansion_descr =
-                       copy_pack_expansion_descr_with_substitution(
-                                       ptp->pack_expansion_descr, ctws_state);
+        if ((options & CTWS_DEDUCTION_GUIDE) == 0) {
+          /* If the parameter is not a pack, make the new parameter a pack
+             element. */
+          if (!is_pack) {
+            new_ptp->is_pack_element = TRUE;
           }  /* if */
+        } else {
+          /* For deduction guides we want to preserve the original pack and
+             pack element status. */
+          new_ptp->is_pack_element = ptp->is_pack_element;
+        }  /* if */
+        if (is_pack) {
+          a_pack_expansion_descr_ptr  pedp = ptp->pack_expansion_descr;
+          new_ptp->is_parameter_pack = TRUE;
+          if (ctws_state->new_templ_params != NULL ||
+              ctws_state->alias_parameter_pack_mapping != NULL) {
+            /* This is used when creating deduction guide templates to create a
+               new pack expansion descriptor that refers to the template
+               parameters of the new template. */
+            pedp = copy_pack_expansion_descr_with_substitution(pedp,
+                                                               ctws_state);
+          }  /* if */
+          new_ptp->pack_expansion_descr = pedp;
         }  /* if */
       }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -15611,7 +15667,8 @@ parameters.
         new_ptp->orig_param_type_for_unevaluated_default_arg_expr =
                    ptp->orig_param_type_for_unevaluated_default_arg_expr;
       }  /* if */
-      if ((options & CTWS_DEDUCTION_GUIDE) != 0) {
+      if ((options & (CTWS_DEDUCTION_GUIDE |
+                      CTWS_ALIAS_DEDUCTION_GUIDE)) != 0) {
         /* When doing substitution to create a deduction guide, copy the
            deduction flags in the parameter type entry. */
         new_ptp->type_involves_template_param =
@@ -15727,7 +15784,7 @@ a pointer over a reference type or creating an array of references.
        type.  However, such a type will be replaced in deduction guides.  If
        the type is a typedef, use the underlying type so that we don't
        end up with an incorrect A<T'>::X. */
-    if ((options & CTWS_DEDUCTION_GUIDE) != 0) {
+    if ((options & (CTWS_DEDUCTION_GUIDE | CTWS_ALIAS_DEDUCTION_GUIDE)) != 0) {
       type = skip_typerefs_not_dependent_decltypes(type);
     }  /* if */
   }  /* if */
@@ -15816,10 +15873,29 @@ a pointer over a reference type or creating an array of references.
                  Don't do the substitution, but don't consider this to be
                  a copy error either. */
               new_type = type;
+              if ((options & CTWS_DEDUCTION_GUIDE) != 0) {
+                ctws_state->substituted_parameter_pack |= type_is_pack(type);
+              }  /* if */
             } else {
               new_type = tap->variant.type;
               if (tap->is_error) {
                 subst_fail(*copy_error);
+              } else {
+                Dyn_array<a_boolean>  *record_used =
+                                            ctws_state->record_used_arguments;
+
+                if (record_used != NULL) {
+                  /* Set a "used" marker for the position of the template
+                     argument. */
+                  record_used->resize(max_val<a_ptrdiff>(
+                                                        coordinates->position,
+                                                        record_used->length()),
+                                      FALSE);
+                  (*record_used)[coordinates->position - 1] = TRUE;
+                }  /* if */
+                if (tap->is_pack) {
+                  ctws_state->substituted_parameter_pack = TRUE;
+                }  /* if */
               }  /* if*/
             }  /* if */
           }  /* if */
@@ -41356,17 +41432,19 @@ pointed to by orig_sym.  Return a pointer to the new symbol.
 
 
 static void copy_template_params_to_new_list(
-				a_template_param_ptr	params_to_add,
-				a_template_param_ptr	*new_list,
-				a_template_param_ptr	*first_added_param,
-				a_boolean		from_class_template)
+				a_template_param_ptr	   params_to_add,
+				a_template_param_ptr	   *new_list,
+				a_template_param_ptr	   *first_added_param,
+				const Dyn_array<a_boolean> *mask,
+				a_boolean		   from_class_template)
 /*
 This routine is used to create a new template parameter list, or add entries
-to a template parameter list, based on an existing list.
+to a template parameter list, based on an existing list and an optional mask.
 
 *new_list is the list to which the newly created template parameters should
 be added, and can be NULL.  params_to_add are the template parameters to
-be added to the list.
+be added to the list.  If mask is non-NULL, only parameters where the
+corresponding mask element is TRUE will be added to the new list.
 
 If the new list is empty, the parameters will be added with their original
 coordinates.  If there are already entries on the new list, the parameters
@@ -41408,6 +41486,14 @@ a class template parameter list.
   for (old_tpp = params_to_add; old_tpp != NULL; old_tpp = old_tpp->next) {
     a_symbol_ptr	new_sym;
     a_symbol_ptr	old_sym = old_tpp->param_symbol;
+    a_template_param_list_pos
+			old_pos = coordinates_of_template_param(old_tpp)
+								    ->position;
+    if ((mask != NULL) &&
+        (old_pos > mask->length() || !(*mask)[old_pos - 1])) {
+      /* Skip over this template parameter. */
+      continue;
+    }  /* if */
     new_sym = copy_template_param_symbol(old_sym);
     if (new_sym->kind == (a_symbol_kind)sk_type) {
       a_type_ptr				old_type;
@@ -41451,11 +41537,11 @@ a class template parameter list.
     new_tpp = make_copy_of_template_param_based_on_new_symbol(old_tpp,
                                                               new_sym);
     /* Assign a new parameter number based on the position. */
-    new_tpp->param_num = pos;
+    new_tpp->param_num = ++pos;
     /* Update the coordinates of the new template parameter. */
     coord_ptr = coordinates_of_template_param(new_tpp);
     coord_ptr->depth = depth;
-    coord_ptr->position = ++pos;
+    coord_ptr->position = pos;
     /* Add the entry to the end of the list. */
     if (list_tail == NULL) {
       *new_list = new_tpp;
@@ -41467,6 +41553,73 @@ a class template parameter list.
     if (*first_added_param == NULL) *first_added_param = new_tpp;
   }  /* for */
 }  /* copy_template_params_to_new_list */
+
+
+static void replace_args_with_proto_args_for_mask(
+                                   a_template_arg_ptr          *p_tap,
+                                   a_symbol_ptr                sym,
+                                   a_template_param_ptr        template_params,
+                                   const Dyn_array<a_boolean>  &mask)
+/*
+Go through the template argument list *p_tap and replace the template arguments
+with a corresponding mask element of TRUE with a prototype template argument
+for the template parameter in template_params.  Elements from the original
+template argument list that have been replaced are freed.
+*/
+{
+  a_template_arg_ptr  tap = *p_tap, tail = NULL,
+                      replacement_args, replacement_tap;
+  if (mask.is_empty() || tap == NULL) return;
+  replacement_args = create_prototype_arg_list(sym, template_params,
+                                               /*add_pack_descr=*/TRUE);
+  replacement_tap = replacement_args;
+  for (unsigned int i = 0; tap != NULL; ++i) {
+    a_template_arg_ptr  arg_to_add, tap_list, tap_tail;
+    if (i >= mask.length()) {
+      /* Add the remainder of the template arguments to the result list as
+         there will be no more replacements. */
+      tail->next = tap;
+      break;
+    }  /* if */
+    if (i < mask.length() && mask[i]) {
+      arg_to_add = replacement_tap;
+      /* Advance to next element in the replacement argument list and skip over
+         any pack elements. */
+      replacement_tap = replacement_tap->next;
+      while (replacement_tap != NULL && replacement_tap->is_pack_element) {
+        replacement_tap = replacement_tap->next;
+      }  /* while */
+    } else {
+      arg_to_add = tap;
+    }  /* if */
+    if (tail == NULL) {
+      /* Set the output list to the first element of the result list. */
+      *p_tap = arg_to_add;
+    } else {
+      /* Add the element to the end of list. */
+      tail->next = arg_to_add;
+    }  /* if */
+    tail = arg_to_add;
+    /* Skip over any pack elements that were added to the list. */
+    while ((tail->next != NULL) && (tail->next->is_pack_element)) {
+      tail = tail->next;
+    }  /* while */
+    tap_list = tap;
+    tap_tail = tap;
+    /* Advance to the next element in the template argument list and skip over
+       any pack elements. */
+    tap = tap->next;
+    while (tap != NULL && tap->is_pack_element) {
+      tap_tail = tap;
+      tap = tap->next;
+    }  /* while */
+    if (mask[i]) {
+      /* Free any template arguments that were replaced. */
+      tap_tail->next = NULL;
+      free_template_arg_list(tap_list);
+    }  /* if */
+  }  /* for */
+}  /* replace_args_with_proto_args_for_mask */
 
 
 static void substitute_template_param_list(
@@ -41578,6 +41731,7 @@ not be completed.
 static a_symbol_ptr make_implicit_deduction_guide_template(
 			a_symbol_ptr				ct_sym,
 			a_type_ptr				proto_type,
+			a_symbol_ptr				from_sym,
 			a_symbol_ptr				ctor_sym,
 			a_symbol_ptr				orig_ct_sym)
 /*
@@ -41590,7 +41744,11 @@ orig_ct_sym describes the class template for which a deduction guide template
 entry is to be created.  ct_sym describe the associated prototype template (if
 this is not for a nested class template, ct_sym and orig_ct_sym will be
 identical).  proto_type is the prototype instantiation of that class template
-and ctor_sym is the constructor for which a guide is being synthesized.
+and from_sym is the constructor or deduction guide for which a guide is being
+synthesized.  ctor_sym, if non-NULL, is the constructor for which a guide is
+being synthesized (ctor_sym will be NULL when creating an alias template
+deduction guide for an explicitly-declared guide or for a hypothetical
+constructor).
 */
 {
   a_template_decl_info_ptr          tdip;
@@ -41598,20 +41756,20 @@ and ctor_sym is the constructor for which a guide is being synthesized.
   a_template_cache_ptr              tcp;
   a_template_ptr                    templ;
   a_boolean                         is_hypothetical = FALSE;
-  a_template_symbol_supplement_ptr  tssp, ctor_tssp = NULL,
+  a_template_symbol_supplement_ptr  tssp, from_tssp = NULL,
                                     ct_tssp = ct_sym->variant.template_info;
 
   /* The constructor for a hypothetical constructor won't have a template
      instance. */
-  if (symbol_is(ctor_sym, sk_function_template) ||
-      ctor_sym->variant.routine.instance_ptr != NULL) {
-    ctor_tssp = template_supplement_for_symbol(ctor_sym);
+  if (symbol_is(from_sym, sk_function_template) ||
+      from_sym->variant.routine.instance_ptr != NULL) {
+    from_tssp = template_supplement_for_symbol(from_sym);
   } else {
     is_hypothetical = TRUE;
   }  /* if */
   tcp = &ct_tssp->cache;
   sym = alloc_symbol((a_symbol_kind)sk_function_template,
-                     ctor_sym->header,
+                     from_sym->header,
                      &null_source_position);
   sym->decl_scope = orig_ct_sym->decl_scope;
   tssp = sym->variant.template_info;
@@ -41620,14 +41778,14 @@ and ctor_sym is the constructor for which a guide is being synthesized.
   tssp->variant.function.decl_cache.decl_info = tdip;
   tssp->variant.function.implicit_deduction_guide = TRUE;
   tssp->is_variadic = ct_tssp->is_variadic ||
-                      (ctor_tssp != NULL && ctor_tssp->is_variadic);
+                      (from_tssp != NULL && from_tssp->is_variadic);
   tssp->has_variadic_template_params = ct_tssp->has_variadic_template_params ||
-                                     (ctor_tssp != NULL &&
-                                      ctor_tssp->has_variadic_template_params);
+                                     (from_tssp != NULL &&
+                                      from_tssp->has_variadic_template_params);
   tssp->has_template_param_constraint =
                                    ct_tssp->has_template_param_constraint ||
-                                   (ctor_tssp != NULL &&
-                                    ctor_tssp->has_template_param_constraint);
+                                   (from_tssp != NULL &&
+                                    from_tssp->has_template_param_constraint);
   if (!is_hypothetical) {
     tssp->variant.function.constructor_symbol_for_guide = ctor_sym;
   }  /* if */
@@ -41710,14 +41868,14 @@ identical).
      below. */
   push_instantiation_scope_for_rescan(ct_sym);
   if (ctor_tssp != NULL && ctor_tssp->is_error) goto done;
-  sym = make_implicit_deduction_guide_template(ct_sym, proto_type,
+  sym = make_implicit_deduction_guide_template(ct_sym, proto_type, ctor_sym,
                                                ctor_sym, orig_ct_sym);
   sym->decl_position = ctor_sym->decl_position;
   /* Add the template parameters of the class to the new template parameter
      list that is being created. */
   orig_class_templ_params = tcp->decl_info->parameters,
   copy_template_params_to_new_list(tcp->decl_info->parameters,
-                                   &templ_param_list, &first_param,
+                                   &templ_param_list, &first_param, NULL,
                                    /*from_class_template=*/TRUE);
   /* Create the argument list corresponding to the class's parameters. */
   class_templ_args = create_prototype_arg_list(ct_sym, templ_param_list,
@@ -41748,7 +41906,7 @@ identical).
                   ctor_tssp->variant.function.decl_cache.decl_info->parameters;
     copy_template_params_to_new_list(orig_ctor_templ_params,
                                      &templ_param_list,
-                                     &ctor_templ_params,
+                                     &ctor_templ_params, NULL,
                                      /*from_class_template=*/FALSE);
     /* Create an argument list corresponding to the template parameters
        in the new parameter list. */
@@ -41970,52 +42128,6 @@ original class template for which deduction guides are needed is orig_ct_sym.
 }  /* create_implicit_deduction_guide */
 
 
-static void create_implicit_deduction_guides(a_symbol_ptr  orig_ct_sym)
-/*
-Go through the constructors of the class template specified by orig_ct_sym 
-and create implicit deduction guides for each constructor.  orig_ct_sym may
-not be a prototype template when dealing with nested class templates.
-*/
-{
-  a_symbol_ptr        		 proto_sym, ctor_set_sym, ctor_sym, ct_sym;
-  a_class_symbol_supplement_ptr  proto_cssp;
-  a_type_ptr        		 proto_type;
-  a_boolean        		 is_list = FALSE;
-  a_template_symbol_supplement_ptr
-                                 ct_tssp;
-
-  ct_sym = prototype_template_of(orig_ct_sym);
-  ct_tssp = template_supplement_for_symbol(ct_sym);
-  proto_sym = ct_tssp->variant.class_template.prototype_instantiation;
-  proto_cssp = class_symbol_supp(proto_sym);
-  proto_type = type_symbol_type(proto_sym);
-  ctor_set_sym = proto_cssp->constructor;
-  if (ctor_set_sym != NULL &&
-      symbol_is(ctor_set_sym, sk_overloaded_function)) {
-    is_list = TRUE;
-    ctor_sym = ctor_set_sym->variant.overloaded_function.symbols;
-  } else {
-    ctor_sym = ctor_set_sym;
-  }  /* if */
-  for (; ctor_sym != NULL; ctor_sym = is_list ? ctor_sym->next : NULL) {
-    create_implicit_deduction_guide(ct_sym, proto_type, ctor_sym, orig_ct_sym);
-  }  /* for */
-  if (ctor_set_sym == NULL) {
-    /* If there are no constructors, create a guide for a default
-       constructor. */
-    add_guide_for_hypothetical_constructor(orig_ct_sym, proto_type,
-                                           (a_type_ptr)NULL);
-    /* If the class template is incomplete, the default constructor guide
-       should be removed if and when the class template is completed. */
-    orig_ct_sym->variant.template_info
-               ->variant.class_template.interim_implicit_deduction_guides =
-                                                is_incomplete_type(proto_type);
-  }  /* if */
-  /* Add the copy deduction candidate. */
-  add_guide_for_hypothetical_constructor(orig_ct_sym, proto_type, proto_type);
-}  /* create_implicit_deduction_guides */
-
-
 static void remove_hypothetical_default_guide(a_symbol_ptr	ct_sym)
 /*
 Remove the generated default deduction guide from the set of deduction
@@ -42038,7 +42150,8 @@ guides.
   }  /* if */
   for (; guide_sym != NULL; guide_sym = is_list ? guide_sym->next : NULL) {
     a_template_symbol_supplement_ptr	tssp;
-    check_assertion(symbol_is(guide_sym, sk_function_template));
+    /* Ignore explicitly declared non-template deduction guides. */
+    if (!symbol_is(guide_sym, sk_function_template)) continue;
     tssp = template_supplement_for_symbol(guide_sym);
     /* Look for a hypothetical guide with an empty parameter list. */
     if (tssp->variant.function.constructor_symbol_for_guide == NULL) {
@@ -42063,16 +42176,561 @@ guides.
 }  /* remove_hypothetical_default_guide */
 
 
+static void create_implicit_deduction_guides(a_symbol_ptr  orig_ct_sym)
+/*
+Go through the constructors of the class template specified by orig_ct_sym and
+create implicit deduction guides for each constructor.  The explicitly-declared
+guides are already recorded in the template symbol supplement associated with
+the prototype template of orig_ct_sym.  orig_ct_sym may not be a prototype
+template when dealing with nested class templates.
+*/
+{
+  a_symbol_ptr        		 proto_sym, ctor_set_sym, ctor_sym, ct_sym;
+  a_class_symbol_supplement_ptr  proto_cssp;
+  a_type_ptr        		 proto_type;
+  a_boolean        		 is_list = FALSE;
+  a_template_symbol_supplement_ptr
+                                 ct_tssp;
+
+  ct_sym = prototype_template_of(orig_ct_sym);
+  ct_tssp = template_supplement_for_symbol(ct_sym);
+  proto_sym = ct_tssp->variant.class_template.prototype_instantiation;
+  proto_cssp = class_symbol_supp(proto_sym);
+  proto_type = type_symbol_type(proto_sym);
+  ctor_set_sym = proto_cssp->constructor;
+  if (ctor_set_sym != NULL &&
+      symbol_is(ctor_set_sym, sk_overloaded_function)) {
+    is_list = TRUE;
+    ctor_sym = ctor_set_sym->variant.overloaded_function.symbols;
+  } else {
+    ctor_sym = ctor_set_sym;
+  }  /* if */
+  if (!orig_ct_sym->variant.template_info
+                  ->variant.class_template.interim_implicit_deduction_guides) {
+    /* Add the copy deduction candidate. */
+    add_guide_for_hypothetical_constructor(orig_ct_sym, proto_type,
+                                           proto_type);
+  } else {
+    /* Remove the default constructor guide previously created. */
+    remove_hypothetical_default_guide(orig_ct_sym);
+  }  /* if */
+  for (; ctor_sym != NULL; ctor_sym = is_list ? ctor_sym->next : NULL) {
+    create_implicit_deduction_guide(ct_sym, proto_type, ctor_sym, orig_ct_sym);
+  }  /* for */
+  if (ctor_set_sym == NULL) {
+    /* If there are no constructors, create a guide for a default
+       constructor. */
+    add_guide_for_hypothetical_constructor(orig_ct_sym, proto_type,
+                                           (a_type_ptr)NULL);
+  }  /* if */
+  /* If the class template is incomplete, the default constructor guide
+     should be removed if and when the class template is completed. */
+  orig_ct_sym->variant.template_info
+             ->variant.class_template.interim_implicit_deduction_guides =
+                                                is_incomplete_type(proto_type);
+}  /* create_implicit_deduction_guides */
+
+
+a_symbol_ptr create_transformed_deduction_guide_for_alias_template(
+                                              a_symbol_ptr         alias_sym,
+                                              a_symbol_ptr         guide_sym)
+/*
+Transform the deduction guide guide_sym for the alias template alias_sym
+according to the rules in N4868 [over.match.class.deduct]/2.  Each transformed
+guide is recorded in the template symbol supplement associated with alias_sym.
+*/
+{
+  a_symbol_ptr           new_guide = NULL, proto_sym;
+  a_type_ptr             proto_type, def_type;
+  a_template_symbol_supplement_ptr
+                         alias_tssp, guide_tssp;
+  a_routine_ptr          guide;
+  a_type_ptr             ret_type, rout_type;
+  a_template_arg_ptr     deduced_guide_args = NULL;
+  a_template_param_ptr   guide_template_params = NULL;
+  a_source_position_ptr  alias_position = &alias_sym->decl_position;
+
+  alias_tssp = template_supplement_for_symbol(alias_sym);
+  proto_sym = alias_tssp->variant.class_template.prototype_instantiation;
+  proto_type = type_symbol_type(proto_sym);
+  def_type = proto_type->variant.typeref.type;
+  if (symbol_is(guide_sym, sk_function_template)) {
+    guide_tssp = template_supplement_for_symbol(guide_sym);
+    guide = guide_tssp->variant.function.routine;
+    guide_template_params = guide_tssp->variant.function.decl_cache.decl_info
+                                      ->parameters;
+  } else {
+    guide = guide_sym->variant.routine.ptr;
+  }  /* if */
+  rout_type = guide->type;
+#if DEBUG
+  if (db_flag_is_set("ctad")) {
+    fputs("ctad for alias template: ", f_debug); db_type(def_type);
+    fputs("\n  guide: ", f_debug); db_type(guide->type);
+    fputs("\n", f_debug);
+  }  /* if */
+#endif /* DEBUG */
+  /* A rescan context is needed because nonreal types will be created below. */
+  push_instantiation_scope_for_rescan(NULL);
+  /* The template arguments (if any) of the return type of the deduction guide
+     (ret_type) are deduced from the defining-type-id of the alias template
+     (def_type). */
+  ret_type = rout_type->variant.routine.return_type;
+  deduced_guide_args = create_initial_template_arg_list(guide_template_params,
+                                                        NULL, FALSE, NULL);
+  if ((guide_template_params == NULL) ||
+      matches_template_type(def_type, ret_type, &deduced_guide_args,
+                            guide_template_params, MTT_NO_FLAGS)) {
+    a_template_param_ptr  new_template_params = NULL;
+    a_routine_ptr         rout;
+    a_ctws_state          ctws_state;
+    a_boolean             copy_error = FALSE;
+
+    if (guide_template_params != NULL) {
+      a_symbol_ptr          class_sym = symbol_for(ret_type)
+                                        ->variant.class_struct_union.extra_info
+                                        ->class_template;
+      a_template_symbol_supplement_ptr
+                            class_tssp = class_sym->variant.template_info;
+      a_template_param_ptr  new_alias_template_params,
+                            alias_template_params = alias_tssp->cache.decl_info
+                                                              ->parameters,
+                            guide_tpp;
+      a_template_arg_ptr    alias_proto_args;
+      unsigned int          number_of_guide_params = 0;
+      Dyn_array<a_boolean>  nondeduced_args, used_parameters;
+      Dyn_array<a_template_param_ptr>
+                            pack_mapping, alias_pack_mapping;
+
+      /* Substitute the prototype arguments of the template alias into each of
+         the deduced template arguments to record which template parameters of
+         the alias template are used in the above deductions. */
+      init_ctws_state(&ctws_state);
+      ctws_state.record_used_arguments = &used_parameters;
+      alias_proto_args = create_prototype_arg_list(alias_sym,
+                                                   alias_template_params,
+                                                   /*add_pack_descr=*/TRUE);
+      guide_tpp = guide_template_params;
+      for (a_template_arg_ptr tap = deduced_guide_args; tap != NULL;
+           tap = tap->next) {
+        number_of_guide_params = guide_tpp->param_num;
+        if (!is_start_of_pack_expansion_templ_arg(tap)) {
+          unsigned  idx = guide_tpp->param_num - 1;
+          if (nondeduced_args.length() <= idx) {
+            if (nondeduced_args.length() != idx) {
+              nondeduced_args.resize(idx, TRUE);
+            }  /* if */
+            nondeduced_args.push_back(!template_arg_has_value(tap));
+          }  /* if */
+          if (template_arg_has_value(tap)) {
+            substitute_template_argument(tap, guide_tpp, NULL, NULL,
+                                         alias_proto_args,
+                                         alias_template_params,
+                                         alias_position,
+                                         CTWS_DEDUCTION_GUIDE,
+                                         /*is_generic=*/FALSE,
+                                         &copy_error, &ctws_state);
+            check_assertion(!copy_error);
+          }  /* if */
+        }  /* if */
+        if (!guide_tpp->is_pack) guide_tpp = guide_tpp->next;
+      }  /* for */
+      if (guide_tpp != NULL) {
+        for (; guide_tpp != NULL; guide_tpp = guide_tpp->next) {
+          number_of_guide_params = guide_tpp->param_num;
+        }  /* for */
+        if (nondeduced_args.length() < number_of_guide_params) {
+          nondeduced_args.resize(number_of_guide_params, TRUE);
+        }  /* if */
+      }  /* if */
+      /* Recursively check for use for template parameters in default
+         arguments. */
+      Dyn_array<a_boolean>  recursively_used(used_parameters.length(), FALSE);
+      a_boolean done = FALSE;
+      while (!done) {
+        a_template_param_ptr  tpp;
+        a_boolean             all_used = TRUE;
+        done = TRUE;
+        for (tpp = alias_template_params; tpp != NULL; tpp = tpp->next) {
+          unsigned int  i = tpp->param_num - 1;
+          if (i >= used_parameters.length()) {
+            break;
+          }  /* if */
+          if (used_parameters[i]) {
+            /* Record the parameter use in the accumulated list, but reset in
+               the local list in case its default argument was already
+               checked. */
+            recursively_used[i] = TRUE;
+            used_parameters[i] = FALSE;
+            if (tpp->has_default_arg) {
+              /* The template parameter has a default argument and was used
+                 either in the deduction for the return type or in another
+                 default argument. */
+              a_template_arg_ptr  tap;
+              a_templ_arg_kind    arg_kind;
+              a_symbol_ptr        param_sym = tpp->param_symbol;
+              arg_kind = templ_arg_kind_for_symbol_kind(param_sym->kind);
+              tap = alloc_template_arg(arg_kind);
+              get_template_arg_value_from_default(alias_sym, tap, tpp,
+                                                  alias_template_params);
+              substitute_template_argument(tap, tpp, NULL, NULL,
+                                           alias_proto_args,
+                                           alias_template_params,
+                                           alias_position,
+                                           CTWS_DEDUCTION_GUIDE,
+                                           /*is_generic=*/FALSE,
+                                           &copy_error, &ctws_state);
+              free_template_arg_list(tap);
+              done = FALSE;
+            }  /* if */
+          } else {
+            all_used &= recursively_used[i];
+          }  /* if */
+        }  /* for */
+      }  /* while */
+      used_parameters = move_from(&recursively_used);
+      pack_mapping.resize(number_of_guide_params, NULL);
+      /* Create a new template parameter list consisting of all the template
+         parameters of the alias template that appear in the above deductions
+         or (recursively) in their default template arguments. */
+      copy_template_params_to_new_list(alias_template_params,
+                                       &new_template_params,
+                                       &new_alias_template_params,
+                                       &used_parameters,
+                                       /*from_class_template=*/FALSE);
+      /* Adjust the prototype arguments for those template parameters that have
+         been copied to the new template parameter list. */
+      replace_args_with_proto_args_for_mask(&alias_proto_args,
+                                            alias_sym,
+                                            new_template_params,
+                                            used_parameters);
+      /* Adjust any constraints and default arguments in the new template
+         parameter list to refer to template parameters from within that
+         list. */
+      substitute_template_param_list(alias_sym, new_template_params,
+                                     alias_template_params, alias_proto_args,
+                                     &copy_error);
+      if (copy_error) goto done;
+      /* Set up the mapping for parameter packs to refer to the pack from the
+         new template parameter list.  Note that an alias template can only
+         have a single template parameter pack. */
+      for (a_template_param_ptr new_tpp = new_template_params;
+           new_tpp != NULL; new_tpp = new_tpp->next) {
+        if (new_tpp->is_pack) {
+          /* Set up the pack mapping from the guide parameter list to the new
+             parameter list (to be used later). */
+          guide_tpp = guide_template_params;
+          for (a_template_arg_ptr tap = deduced_guide_args; tap != NULL;
+               tap = tap->next) {
+            if (tap->is_pack) {
+              pack_mapping[guide_tpp->param_num - 1] = new_tpp;
+            }  /* if */
+            if (!guide_tpp->is_pack) guide_tpp = guide_tpp->next;
+          }  /* for */
+          /* Set up the pack mapping from the alias parameter list to the new
+             parameter list. */
+          for (a_template_param_ptr alias_tpp = alias_template_params;
+               alias_tpp != NULL; alias_tpp = alias_tpp->next) {
+            if (alias_tpp->is_pack) {
+              alias_pack_mapping.resize(alias_tpp->param_num, NULL);
+              alias_pack_mapping[alias_tpp->param_num - 1] = new_tpp;
+              break;
+            }  /* if */
+          }  /* for */
+          break;
+        }  /* if */
+      }  /* for */
+      /* Adjust any deduced template arguments from the deduction guide to
+         refer to template parameters from the new template parameter list. */
+      init_ctws_state(&ctws_state);
+      ctws_state.alias_parameter_pack_mapping = &alias_pack_mapping;
+      ctws_state.new_templ_params = new_template_params;
+      a_template_param_ptr class_tpp = class_tssp->cache.decl_info->parameters;
+      for (a_template_arg_ptr tap = deduced_guide_args;
+           tap != NULL; tap = tap->next) {
+        if (!is_start_of_pack_expansion_templ_arg(tap) &&
+            template_arg_has_value(tap)) {
+          substitute_template_argument(tap, class_tpp, NULL, NULL,
+                                       alias_proto_args,
+                                       alias_template_params,
+                                       alias_position,
+                                       CTWS_DEDUCTION_GUIDE,
+                                       /*templ_is_generic=*/FALSE,
+                                       &copy_error, &ctws_state);
+          if (copy_error) goto done;
+          if (!class_tpp->is_pack) class_tpp = class_tpp->next;
+        }  /* if */
+      }  /* for */
+      if (guide_template_params != NULL) {
+        a_template_param_ptr  nondeduced_tpp;
+
+        /* Add any template parameters to the new template parameter list from
+           the deduction guide parameter list that were not deduced. */
+        copy_template_params_to_new_list(guide_template_params,
+                                         &new_template_params,
+                                         &nondeduced_tpp,
+                                         &nondeduced_args,
+                                         /*from_class_template=*/FALSE);
+        /* Fill in any non-deduced template arguments with prototype arguments
+           from the new template parameter list to adjust any referenced from
+           the original guide parameter to the corresponding one in the new
+           template parameter list. */
+        replace_args_with_proto_args_for_mask(&deduced_guide_args,
+                                              alias_sym,
+                                              nondeduced_tpp,
+                                              nondeduced_args);
+        /* Adjust any constraints and default arguments in the new template
+           parameter list to refer to template parameters from within that
+           list. */
+        substitute_template_param_list(alias_sym, nondeduced_tpp,
+                                       guide_template_params,
+                                       deduced_guide_args,
+                                       &copy_error);
+        if (copy_error) goto done;
+        /* Update the pack mapping to include parameter packs from the
+           deduction guide parameter list to the corresponding parameter pack
+           in the new template parameter list. */
+        for (guide_tpp = guide_template_params; guide_tpp != NULL;
+             guide_tpp = guide_tpp->next) {
+          if (nondeduced_args[guide_tpp->param_num - 1]) {
+            if (guide_tpp->is_pack) {
+              pack_mapping[guide_tpp->param_num - 1] = nondeduced_tpp;
+            }  /* if */
+            nondeduced_tpp = nondeduced_tpp->next;
+          }  /* if */
+        }  /* for */
+      }  /* if */
+      free_template_arg_list(alias_proto_args);
+      /* Substitute the result of these deductions into the original deduction
+         guide. */
+      init_ctws_state(&ctws_state);
+      ctws_state.new_templ_params = new_template_params;
+      ctws_state.alias_parameter_pack_mapping = &pack_mapping;
+      rout_type = copy_type_with_substitution(rout_type, deduced_guide_args,
+                                              guide_template_params,
+                                              alias_position,
+                                              CTWS_ALIAS_DEDUCTION_GUIDE,
+                                              &copy_error, &ctws_state);
+      if (copy_error) goto done;
+      ret_type = rout_type->variant.routine.return_type;
+    }  /* if */
+    rout = alloc_routine();
+    if (new_template_params != NULL) {
+      a_requires_clause_ptr    trailing_rcp;
+      a_symbol_ptr             ctor_sym;
+      a_template_decl_ptr      guide_template_decl;
+      a_template_symbol_supplement_ptr
+                               new_tssp;
+      an_expr_node_ptr         is_deducible_expr;
+      an_expr_stack_entry_ptr  saved_expr_stack;
+      an_expr_stack_entry      expr_stack_entry;
+
+      ctor_sym = guide_tssp->variant.function.constructor_symbol_for_guide;
+      new_guide = make_implicit_deduction_guide_template(alias_sym, proto_type,
+                                                         guide_sym, ctor_sym,
+                                                         alias_sym);
+      new_guide->decl_position = *alias_position;
+      new_tssp = new_guide->variant.template_info;
+      new_tssp->cache.decl_info->parameters = new_template_params;
+      /* Create an expression to check whether the alias template parameters
+         are deducible from the return type of the transformed guide. */
+      save_expr_stack(&saved_expr_stack);
+      push_expr_stack(ek_sizeof, &expr_stack_entry,
+                      /*force_object_lifetime=*/FALSE,
+                      /*suppress_object_lifetime=*/TRUE);
+      expr_stack_entry.possible_rescan_context = TRUE;
+      is_deducible_expr = make_builtin_edg_is_deducible_expr(
+                                                 alias_tssp->il_template_entry,
+                                                 ret_type);
+      pop_expr_stack();
+      restore_expr_stack(saved_expr_stack);
+      guide_template_decl = guide_tssp->variant.function.decl_cache.decl_info
+                                      ->template_decl;
+      if (guide_template_decl != NULL) {
+        a_template_decl_ptr    new_template_decl = alloc_template_decl();
+        a_requires_clause_ptr  guide_rcp;
+
+        new_template_decl->parent = guide_template_decl->parent;
+        new_template_decl->scope = guide_template_decl->scope;
+        new_template_decl->template_pos = guide_template_decl->template_pos;
+        /* Substitute any requires clause from the template declaration of the
+           original guide. */
+        guide_rcp = guide_template_decl->constraint.requires_clause;
+        if (guide_rcp != NULL) {
+          a_source_position      requires_pos = guide_rcp->requires_pos;
+          a_requires_clause_ptr  rcp;
+          an_expr_node_ptr       subst_expr;
+
+          subst_expr = copy_expr_with_substitutions(
+                                                  guide_rcp->constraint,
+                                                  deduced_guide_args,
+                                                  guide_template_params,
+                                                  (CTWS_ALIAS_DEDUCTION_GUIDE |
+                                                   CTWS_MAY_BE_RESCANNED |
+                                                   CTWS_NON_CONSTANT_EXPR),
+                                                  &copy_error,
+                                                  &ctws_state);
+          if (copy_error) goto done;
+          rcp = alloc_requires_clause();
+          rcp->constraint = subst_expr;
+          rcp->requires_pos = requires_pos;
+          new_template_decl->constraint.requires_clause = rcp;
+        }  /* if */
+        complete_template_decl(new_template_decl, new_template_params);
+        new_tssp->variant.function.decl_cache.decl_info
+                                           ->template_decl = new_template_decl;
+        new_tssp->il_template_entry->template_decl = new_template_decl;
+      }  /*if */
+      /* The associated constraints are the conjunction of the associated
+         constraints of the guide and a constraint that is satisfied if and
+         only if the arguments of the alias template are deducible from the
+         return type of the guide. */
+      trailing_rcp = guide_tssp->variant.function.routine
+                               ->trailing_requires_clause;
+      if (trailing_rcp != NULL) {
+        a_source_position  requires_pos = trailing_rcp->requires_pos;
+        an_expr_node_ptr   conj_expr, subst_expr;
+
+        /* Substitute the existing trailing requires clause. */
+        subst_expr = copy_expr_with_substitutions(trailing_rcp->constraint,
+                                                  deduced_guide_args,
+                                                  guide_template_params,
+                                                  (CTWS_ALIAS_DEDUCTION_GUIDE |
+                                                   CTWS_MAY_BE_RESCANNED |
+                                                   CTWS_NON_CONSTANT_EXPR),
+                                                  &copy_error, &ctws_state);
+        if (copy_error) goto done;
+        /* Add a deducible-from constraint to the requires clause. */
+        conj_expr = alloc_expr_node(enk_operation);
+        conj_expr->compiler_generated = TRUE;
+        conj_expr->type = bool_type();
+        conj_expr->variant.operation.kind = eok_land;
+        conj_expr->variant.operation.operands = subst_expr;
+        subst_expr->next = is_deducible_expr;
+        trailing_rcp = alloc_requires_clause();
+        trailing_rcp->constraint = conj_expr;
+        trailing_rcp->requires_pos = requires_pos;
+      } else {
+        trailing_rcp = alloc_requires_clause();
+        trailing_rcp->constraint = is_deducible_expr;
+      }  /* if */
+      rout->trailing_requires_clause = trailing_rcp;
+      rout->variant.class_template = alias_tssp->il_template_entry;
+      rout->is_prototype_instantiation = TRUE;
+      new_tssp->variant.function.routine = rout;
+      new_tssp->il_template_entry->prototype_instantiation.routine = rout;
+    } else {
+      /* For the non-template case, check if the arguments of the alias can be
+         deduced from the return type. */
+      if (is_template_deducible_from(alias_tssp->il_template_entry,
+                                     ret_type)) {
+        new_guide = alloc_symbol(sk_routine, guide_sym->header,
+                                 alias_position);
+        new_guide->variant.routine.ptr = rout;
+      } else {
+        goto done;
+      }  /* if */
+    }  /* if */
+    rout->type = rout_type;
+    set_routine_special_kind(rout, sfk_deduction_guide);
+    rout->compiler_generated = guide->compiler_generated;
+    add_to_routines_list(rout, NO_SCOPE_DEPTH);
+#if DEBUG
+    if (db_flag_is_set("ctad")) {
+      db_symbol(new_guide, "transformed guide: ", 2);
+    }  /* if */
+#endif /* DEBUG */
+    add_deduction_guide(new_guide,
+                        &alias_tssp->variant.class_template.deduction_guides);
+  }  /* if */
+done:
+  pop_instantiation_scope_for_rescan();
+  return new_guide;
+}  /* create_transformed_deduction_guide_for_alias_template */
+
+
+static void create_deduction_guides_for_alias_template(a_symbol_ptr  alias_sym)
+/*
+alias_sym is an alias template for which the set of deduction guides is needed.
+If the defining-type-id of the alias template is a deducible template, the
+deduction guides for that template are updated and then each guide is
+transformed for the alias template.
+*/
+{
+  a_symbol_ptr			 proto_sym, def_sym = NULL;
+  a_type_ptr			 proto_type, def_type;
+  a_template_symbol_supplement_ptr
+                                 alias_tssp;
+
+  alias_tssp = template_supplement_for_symbol(alias_sym);
+  proto_sym = alias_tssp->variant.class_template.prototype_instantiation;
+  proto_type = type_symbol_type(proto_sym);
+  def_type = proto_type->variant.typeref.type;
+  if (is_immediate_class_type(def_type) &&
+      def_type->variant.class_struct_union.is_template_class) {
+    /* The defining-type-id names a class template. */
+    a_symbol_ptr  ct_sym = symbol_for(def_type);
+    def_sym = class_symbol_supp(ct_sym)->class_template;
+  } else if (type_is(def_type, tk_typeref) &&
+             def_type->variant.typeref.is_template_alias) {
+    /* The defining-type-id names another alias template. */
+    a_typeref_type_supplement_ptr  ttsp = def_type->variant.typeref.extra_info;
+    def_sym = symbol_for(ttsp->assoc_template);
+  }  /* if */
+  if ((def_sym != NULL) && (!def_sym->is_nonreal_member)) {
+    a_template_symbol_supplement_ptr
+                     def_tssp;
+    a_symbol_ptr     guide_set, guide_sym;
+    a_boolean        is_list = FALSE, interim_implicit_guides_added;
+
+    /* Ensure the implicit deduction guides of the aliased symbol have been
+       created. */
+    update_implicit_deduction_guides(def_sym);
+    def_tssp = template_supplement_for_symbol(def_sym);
+    interim_implicit_guides_added =
+          alias_tssp->variant.class_template.interim_implicit_deduction_guides;
+    /* Only update the deduction guide if no guides have been created at all
+       or if the guides for the aliased type are complete. */
+    if (!def_tssp->variant.class_template.interim_implicit_deduction_guides ||
+        !interim_implicit_guides_added) {
+      if (interim_implicit_guides_added) {
+        /* Remove the default constructor guide previously created. */
+        remove_hypothetical_default_guide(alias_sym);
+      }  /* if */
+      guide_set = def_tssp->variant.class_template.deduction_guides;
+      if (guide_set != NULL) {
+        if (symbol_is(guide_set, sk_overloaded_function)) {
+          is_list = TRUE;
+          guide_sym = guide_set->variant.overloaded_function.symbols;
+        } else {
+          guide_sym = guide_set;
+        }  /* if */
+        for (; guide_sym != NULL;
+             guide_sym = is_list ? guide_sym->next : NULL) {
+          /* Only add a transformed guide for a copy construction candidate if
+             we haven't added one earlier. */
+          if (!interim_implicit_guides_added ||
+              guide_sym->kind != sk_function_template ||
+              guide_sym->variant.template_info
+                     ->variant.function.constructor_symbol_for_guide != NULL) {
+            create_transformed_deduction_guide_for_alias_template(alias_sym,
+                                                                  guide_sym);
+          }  /* if */
+        }  /* for */
+      }  /* if */
+      alias_tssp->variant.class_template.interim_implicit_deduction_guides =
+            def_tssp->variant.class_template.interim_implicit_deduction_guides;
+    }  /* if */
+  }  /* if */
+}  /* create_deduction_guides_for_alias_template */
+
+
 void update_implicit_deduction_guides(a_symbol_ptr  ct_sym)
 /*
 ct_sym is a class template for which the set of deduction guides is needed.
-That set is obtained by generating function templates from the constructors
-of the class template and adding to them any explicitly-declared deduction
-guides.  The explicitly-declared guides are already recorded in the template
-symbol supplement associated with ct_sym.  The generated guides may or may
-not already be generated; if they are already generated, they may be
-out-of-date if the class template has been defined since the recorded
-guides were generated.
+The generated guides may or may not already be generated; if they are already
+generated, they may be out-of-date if the class template has been defined since
+the recorded guides were generated.
 
 This function ensures that the recorded generated deduction guides are
 up-to-date.
@@ -42086,13 +42744,13 @@ up-to-date.
        !ct_tssp->variant.class_template.interim_implicit_deduction_guides)) {
     /* Nothing to do. */
   } else {
-    check_assertion(!ct_tssp->variant.class_template.is_alias_template);
-    if (ct_tssp->variant.class_template.interim_implicit_deduction_guides) {
-      /* Remove the default constructor guide previously created. */
-      remove_hypothetical_default_guide(ct_sym);
+    if (ct_tssp->variant.class_template.is_alias_template) {
+      /* Generate guides for an alias template. */
+      create_deduction_guides_for_alias_template(ct_sym);
+    } else {
+      /* Generate guides from constructors of a class template. */
+      create_implicit_deduction_guides(ct_sym);
     }  /* if */
-    /* Generate guides from constructors. */
-    create_implicit_deduction_guides(ct_sym);
     ct_tssp->variant.class_template.implicit_deduction_guides_added = TRUE;
   }  /* if */
 }  /* update_implicit_deduction_guides */
@@ -42119,6 +42777,44 @@ template and return a symbol for it.
   guide = add_guide_for_param_type_list(ct_sym, proto_type, params);
   return guide;
 }  /* make_aggregate_deduction_candidate */
+
+
+a_boolean is_template_deducible_from(a_template_ptr   templ,
+                                     a_type_ptr       type)
+/*
+Check if the template arguments for a template "P" (templ) are deducible from a
+type "T".  For the following declaration
+
+  template<typename> struct A { };
+  template<typename S> void f(A<P<S>>);
+
+where the template parameters of "f" are the template parameters of "templ",
+deduction is performed for an argument of type "A<T>".  Returns TRUE if
+deduction succeeds and results in the same type "A<T>".
+*/
+{
+  a_symbol_ptr          template_sym = symbol_for(templ);
+  a_template_symbol_supplement_ptr
+                        tssp = template_sym->variant.template_info;
+  a_template_param_ptr  template_params = tssp->cache.decl_info->parameters;
+  a_template_arg_ptr    tap = NULL;
+  a_boolean             result = FALSE;
+
+  tap = create_initial_template_arg_list(template_params, NULL,
+                                         /*is_templ_templ_param_check=*/FALSE,
+                                         NULL);
+  if (matches_template_type(type, templ->prototype_instantiation.type,
+                            &tap, template_params, MTT_NESTED_TYPE_MATCH) &&
+      all_templ_params_have_values(tap, template_params, CTWS_NO_OPTIONS,
+                                   /*is_templ_templ_param_check=*/FALSE,
+                                   template_sym, tssp, 0)) {
+    a_symbol_ptr  inst_sym = find_template_class_simple(template_sym, &tap);
+    a_type_ptr    inst_type = inst_sym->variant.type.ptr;
+    result = identical_types(type, inst_type);
+  }  /* if */
+  free_template_arg_list(tap);
+  return result;
+}  /* is_template_deducible_from */
 
 
 #if DEBUG

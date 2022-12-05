@@ -698,6 +698,7 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
                        /* tok_builtin_is_pointer_interconvertible_with_class */
    (an_opname_kind)onk_none,          /* tok_is_corresponding_member */
    (an_opname_kind)onk_none,          /* tok_builtin_is_corresponding_member */
+   (an_opname_kind)onk_none,          /* tok_is_deducible */
    (an_opname_kind)onk_none,          /* tok_is_array */
    (an_opname_kind)onk_none,          /* tok_array_rank */
    (an_opname_kind)onk_none,          /* tok_array_extent */

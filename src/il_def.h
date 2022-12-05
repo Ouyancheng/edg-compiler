@@ -1439,6 +1439,7 @@ enum a_token_kind : unsigned short {
   tok_builtin_is_pointer_interconvertible_with_class,
   tok_is_corresponding_member,
   tok_builtin_is_corresponding_member,
+  tok_edg_is_deducible,
   tok_is_array,
   tok_array_rank,
   tok_array_extent,
@@ -1664,6 +1665,7 @@ EXTERN a_const_char
    "__builtin_is_pointer_interconvertible_with_class",
    "__is_corresponding_member",
    "__builtin_is_corresponding_member",
+   "__edg_is_deducible",
    "__is_array",
    "__array_rank",
    "__array_extent",
@@ -12838,6 +12840,8 @@ enum an_expr_node_kind : a_bit_field {
   enk_nested_req,	/* A nested-requirement. */
   enk_const_eval_deferred,
 			/* A deferred constant evaluation node. */
+  enk_template_name,	/* Used to represent a template name in builtin
+			   operation expressions. */
   enk_last
 };
 
@@ -13564,6 +13568,8 @@ enum a_builtin_operation_kind : a_byte {
                            arguments. (Visual Studio) */
   bok_builtin_is_corresponding_member,
                         /* Two pointer-to-member arguments. (GCC) */
+  bok_edg_is_deducible,
+                        /* A class template operand and a type arguments. */
   bok_is_array,		/* __is_array. One type operand. */
   bok_array_rank,       /* __array_rank (Clang).  One type operand (returns
                            size_t). */
@@ -14711,6 +14717,12 @@ typedef struct an_expr_node {
 		args;
 			/* The template arguments passed to the concept. */
     } concept_id;
+    /* When kind == enk_template_name: */
+    struct {
+      a_template_ptr
+		class_template;
+			/* The template this template-name refers to. */
+    } template_name;
     /* When kind == enk_requires: */
     struct {
       an_expr_node_ptr
@@ -18134,6 +18146,7 @@ EXTERN a_const_char *builtin_operation_names[(int)bok_last+1]
   "__builtin_is_pointer_interconvertible_with_class",
   "__is_corresponding_member",
   "__builtin_is_corresponding_member",
+  "__edg_is_deducible",
   "__is_array",
   "__array_rank",
   "__array_extent",

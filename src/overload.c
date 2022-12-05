@@ -28834,6 +28834,45 @@ appropriate, produce the "aggregate deduction candidate" (see N4885
 
   proto_type = ct_tssp->variant.class_template.prototype_instantiation
                       ->variant.class_struct_union.type;
+  if (ct_tssp->variant.class_template.is_alias_template) {
+    a_symbol_ptr  dealiased_sym = NULL;
+    a_type_ptr    defining_type;
+
+    /* Check if the defining-type-id of the alias template names a deducible
+       template, and if so recursively check if an aggregate deduction
+       candidate needs to be added. */
+    defining_type = proto_type->variant.typeref.type;
+    if (is_immediate_class_type(defining_type) &&
+        defining_type->variant.class_struct_union.is_template_class) {
+      /* The defining-type-id names a class template. */
+      a_class_type_supplement_ptr  ctsp;
+      ctsp = defining_type->variant.class_struct_union.extra_info;
+      dealiased_sym = symbol_for(ctsp->assoc_template);
+    } else if (type_is(defining_type, tk_typeref) &&
+               defining_type->variant.typeref.is_template_alias) {
+      /* The defining-type-id names another alias template. */
+      a_typeref_type_supplement_ptr  ttsp;
+      ttsp = defining_type->variant.typeref.extra_info;
+      dealiased_sym = symbol_for(ttsp->assoc_template);
+    }  /* if */
+    if ((dealiased_sym != NULL) && (dealiased_sym->defined)) {
+      a_template_symbol_supplement_ptr  dealiased_tssp;
+      dealiased_tssp = dealiased_sym->variant.template_info;
+      if (!dealiased_tssp
+                    ->variant.class_template.explicit_deduction_guides_added) {
+        a_symbol_ptr  guide;
+        guide = add_aggregate_deduction_candidate_if_needed(dealiased_sym,
+                                                            initializer_alep,
+                                                            pos);
+        if (guide != NULL) {
+          aggr_candidate =
+            create_transformed_deduction_guide_for_alias_template(ct_sym,
+                                                                  guide);
+        }  /* if */
+      }  /* if */
+    }  /* if */
+    goto done;
+  }  /* if */
   if (!is_immediate_class_type(proto_type) ||
       !class_symbol_supp(symbol_for(proto_type))->is_class_aggregate) {
     goto done;

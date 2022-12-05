@@ -19478,7 +19478,7 @@ options is a set of substitution options.
       break;
     case enk_requires:
       if (template_arg_list_is_dependent(template_arg_list) &&
-          !(options & CTWS_DEDUCTION_GUIDE)) {
+          !(options & (CTWS_DEDUCTION_GUIDE | CTWS_ALIAS_DEDUCTION_GUIDE))) {
         /* Don't attempt to substitute requires-expressions with dependent
            parameter lists (unless we are synthesizing a deduction guide). */
         subst_fail(*copy_error);
@@ -20140,7 +20140,8 @@ expression nodes may be reclaimed later on
       (options & (CTWS_PRESERVE_DEDUCED_PACKS |
                   CTWS_PARTIAL_ARG_LIST_OKAY |
                   CTWS_MAY_BE_RESCANNED |
-                  CTWS_DEDUCTION_GUIDE)) == 0) {
+                  CTWS_DEDUCTION_GUIDE |
+                  CTWS_ALIAS_DEDUCTION_GUIDE)) == 0) {
     copy_constant(*orig_con, caller_con);
     caller_con->expr = NULL;
     *orig_con = NULL;
@@ -20197,8 +20198,24 @@ options.
                !tap->is_array_bound_of_unknown_type)) {
             if (tap != NULL && tap->variant.constant != NULL) {
               /* Only use the template argument value if one was specified. */
+              Dyn_array<a_boolean>  *record_used;
               con_copy = tap->variant.constant;
               copy_constant_for_rescan_if_needed(&con_copy, constant, options);
+              record_used = ctws_state->record_used_arguments;
+              if (record_used != NULL) {
+                /* Set a "used" marker for the position of the template
+                   argument. */
+                record_used->resize(max_val<a_ptrdiff>(
+                                                        coordinates->position,
+                                                        record_used->length()),
+                                               FALSE);
+                (*record_used)[coordinates->position - 1] = TRUE;
+              }  /* if */
+              if (tap->is_pack) {
+                ctws_state->substituted_parameter_pack = TRUE;
+              }  /* if */
+            } else if ((options & CTWS_DEDUCTION_GUIDE) != 0) {
+              ctws_state->substituted_parameter_pack |= constant_is_pack(con);
             }  /* if */
           } else {
             *copy_error = TRUE;

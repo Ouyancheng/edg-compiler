@@ -1,5 +1,21 @@
 Version 6.5
 
+12/5/22  [EDGcpfe/22681]
+C++: Class template argument deduction for alias templates
+
+The C++20 feature that extends class template argument deduction to include
+alias templates (described in committee paper P1814R0) is now implemented.
+
+  template <typename T> struct C {
+    C(T);
+  };
+  template <typename T> using A = C<T *>;
+  A a = "Hello"; // A<const char> deduced
+
+This feature is also enabled in Microsoft mode when microsoft_version >=
+1927 and --ms_c++20 (or --ms_c++latest) is specified.
+
+
 12/2/22  [EDGcpfe/25453]
 Representation of typeid operator [IL CHANGE]
 

@@ -3363,6 +3363,7 @@ ec_no_chained_designators_with_destructor;;"chained designators are not permitte
 ec_explicit_specialization_friend;;"an explicit specialization declaration may not be a friend declaration"
 ec_std_float128_not_supported;;"the std::float128_t type is not supported; std::float64_t will be used instead"
 ec_std_bfloat16_not_supported;;"the std::bfloat16_t type is not supported; std::float32_t will be used instead"
+ec_alias_template_deduction_guide;;"a deduction guide may not be declared for alias template %no"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

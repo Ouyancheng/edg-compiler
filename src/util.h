@@ -620,6 +620,8 @@ struct Dyn_array: private Allocator<an_Elem> {
   inline void insert(an_index i, an_elem  &&value);
   inline void remove(an_index i);
   inline void clear();
+  void resize(a_size new_n, const an_elem  &value);
+  void resize(a_size new_n, an_elem  &&value);
   void reserve(a_size);
   void shrink_wrap();
   /* Interfaces to allow range-based for loop. */
@@ -908,6 +910,56 @@ Remove all the elements in the array.
     this->pop_back();
   }  /* for */
 }  /* Dyn_array::clear */
+
+
+template<typename an_Elem, template<typename> class Allocator>
+void Dyn_array<an_Elem, Allocator>::resize(a_size        new_n,
+                                           const an_elem &value)
+/*
+Resize the array to the given length.  Any new elements are copy-inserted from
+the given value.
+*/
+{
+  a_size  old_n = this->n_elems;
+
+  if (new_n > old_n) {
+    this->reserve(new_n);
+    an_elem  *arr_elems = this->elems;
+    for (an_index k = old_n; k<new_n; ++k) {
+      construct(arr_elems+k, value);
+      ++this->n_elems;
+    }  /* for */
+  } else if (new_n < old_n) {
+    for (an_index k = old_n; k>new_n; --k) {
+      this->pop_back();
+    }  /* for */
+  }  /* if */
+}  /* Dyn_array::resize */
+
+
+template<typename an_Elem, template<typename> class Allocator>
+void Dyn_array<an_Elem, Allocator>::resize(a_size   new_n,
+                                           an_elem  &&value)
+/*
+Resize the array to the given length.  Any new elements are move-inserted from
+the given value.
+*/
+{
+  a_size  old_n = this->n_elems;
+
+  if (new_n > old_n) {
+    this->reserve(new_n);
+    an_elem  *arr_elems = this->elems;
+    for (an_index k = old_n; k<new_n; ++k) {
+      construct(arr_elems+k, move_from(&value));
+      ++this->n_elems;
+    }  /* for */
+  } else if (new_n < old_n) {
+    for (an_index k = old_n; k>new_n; --k) {
+      this->pop_back();
+    }  /* for */
+  }  /* if */
+}  /* Dyn_array::resize */
 
 
 template<typename an_Elem, template<typename> class Allocator>

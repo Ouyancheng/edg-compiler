@@ -744,7 +744,8 @@ typedef unsigned int an_mtt_flag_set;
 #define MTT_TEMPL_TEMPL_ARG_MATCH 0x800
 			/* TRUE when checking whether the arguments of a
 			   deduced template template parameter match. */
-
+#define MTT_IS_PACK 0x1000
+			/* TRUE when matching a type for a parameter pack. */
 
 extern a_boolean matches_template_type_with_qualification_conversion(
 				a_type_ptr           type,
@@ -944,6 +945,16 @@ extern a_symbol_ptr copy_parent_type_with_substitution(
 			a_ctws_options_set		options,
 			a_boolean			*copy_error,
 			a_ctws_state_ptr		ctws_state);
+
+extern a_template_ptr copy_template_with_substitution(
+			a_template_ptr			templ,
+			a_template_arg_ptr		templ_arg_list,
+			a_template_param_ptr		templ_param_list,
+			a_source_position		*source_pos,
+			a_ctws_options_set		options,
+			a_boolean			*copy_error,
+			a_ctws_state_ptr		ctws_state);
+
 
 extern a_symbol_ptr copy_template_variable_with_substitution(
 			a_variable_ptr			var,
@@ -1467,9 +1478,17 @@ extern void complete_generated_member_template(
 
 extern void update_implicit_deduction_guides(a_symbol_ptr  ct_sym);
 
+extern a_symbol_ptr create_transformed_deduction_guide_for_alias_template(
+                                                      a_symbol_ptr  alias_sym,
+                                                      a_symbol_ptr  guide_sym);
+
 extern a_symbol_ptr make_aggregate_deduction_candidate(
                                                      a_symbol_ptr      ct_sym,
                                                      a_param_type_ptr  params);
+
+extern a_boolean is_template_deducible_from(a_template_ptr  tmpl,
+                                            a_type_ptr      type);
+
 #if DEBUG
 extern unsigned long db_show_template_space_used(unsigned long grand_total);
 #endif /* DEBUG */

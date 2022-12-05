@@ -3557,6 +3557,8 @@ as specified in the control block.
     case enk_const_eval_deferred:
       traverse_expr(expr->variant.const_eval_deferred.wrapped, tblock);
       break;
+    case enk_template_name:
+      break;
     default:
       unexpected_condition_str("traverse_expr: bad expr kind");
   }  /* switch */

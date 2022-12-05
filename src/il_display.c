@@ -3291,6 +3291,7 @@ Print the name of a special function kind.
     case sfk_udl_operator:       s = "sfk_udl_operator";       break;
     case sfk_operator:           s = "sfk_operator";           break;
     case sfk_lambda_entry_point: s = "sfk_lambda_entry_point"; break;
+    case sfk_deduction_guide:    s = "sfk_deduction_guide";    break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case sfk_static_constructor: s = "sfk_static_constructor"; break;
     case sfk_property_get:       s = "sfk_property_get";       break;
@@ -4945,6 +4946,12 @@ cleanup_state_common:
                        TRUE);
         }  /* if */
       }
+      break;
+    case enk_template_name:
+      (void)printf("enk_template_name\n");
+      disp_ptr("template_name.class_template",
+               (char *)ptr->variant.template_name.class_template,
+               iek_template);
       break;
     default:
       (void)printf("**BAD EXPR NODE KIND**\n");
