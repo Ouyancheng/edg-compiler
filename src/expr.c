@@ -17894,9 +17894,6 @@ indication in *rcblock).
   a_boolean         potentially_unevaluated_lambda_seen = FALSE;
   a_source_position potentially_unevaluated_lambda_pos;
   a_boolean         saved_cpp11_constant_expr_ruled_out;
-#if BACK_END_IS_CP_GEN_BE
-  a_type_ptr        underlying_typeid_type;
-#endif /* BACK_END_IS_CP_GEN_BE */
   a_boolean         make_constant = FALSE;
 
   db_enter(4, "scan_typeid_operator");
@@ -18106,9 +18103,6 @@ indication in *rcblock).
       }  /* if */
       runtime_case = FALSE;
     }  /* if */
-#if BACK_END_IS_CP_GEN_BE
-    underlying_typeid_type = skip_typerefs(typeid_type);
-#endif /* BACK_END_IS_CP_GEN_BE */
     expr = make_node_from_operand(&operand);
   }  /* if */
   if (!runtime_case) {
