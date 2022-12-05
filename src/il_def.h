@@ -4443,7 +4443,9 @@ typedef struct a_constant {
 			   then be retrieved using find_local_expr_node.
 			   (Note that for some implicitly-converted constants,
 			   this field is NULL and the conversion's original
-			   type is recorded in orig_type instead.) */
+			   type is recorded in orig_type instead.)  Note also
+			   that this expression is never lowered (even in
+			   configurations that perform lowering). */
   an_expr_rescan_info_entry_ptr
 		rescan_info;
 			/* For constants (particularly for nontype template
