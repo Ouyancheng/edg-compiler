@@ -9,7 +9,20 @@ time.  Among other things, this prevented the C++-generating back end from
 reliably rendering certain expressions of the form typeid(<expr>).  The
 representation has now been revised to record the expression whenever it is
 specified, thus also allowing reliable rendering by the C++-generating back
-end.
+end.  This change also corrected some constant-evaluation cases, such as:
+
+  #include <typeinfo>
+  struct B1 { virtual void f(); };
+  struct B2 {};
+  struct D: B1, B2 {} d;
+  template<typename T> constexpr T f(T x) {
+    return typeid(d), x;
+  }
+  int x[f(37)];  // Previously accepted.  Now an error in pre-C++20 modes.
+
+Previously, the typeid was considered a constant in all modes.  Now, it is
+(correctly) treated as a core constant expression in C++20 (and later) modes
+only.
 
 
 12/1/22  [EDGcpfe/25780]
