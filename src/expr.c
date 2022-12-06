@@ -17951,7 +17951,8 @@ indication in *rcblock).
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_position end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  an_operand        operand;
+  an_arg_list_elem  *alep = NULL;
+  an_operand        opnd, *operand = &opnd;
   an_expr_node_ptr  expr = NULL;
   a_boolean         is_type;
   a_type_ptr        typeid_type;
@@ -17979,8 +17980,7 @@ indication in *rcblock).
     check_assertion(rcblock->operator_token == tok_typeid
                     if_microsoft_extensions(
                        || rcblock->operator_token == tok_cli_typeid));
-    make_sizeof_et_al_rescan_operands(rcblock,
-                                      &is_type, &operand, &typeid_type,
+    make_sizeof_et_al_rescan_operands(rcblock, &is_type, &opnd, &typeid_type,
                                       &operator_position,
                                       &operator_tok_seq_number,
                                       &operand_position);
@@ -17990,7 +17990,7 @@ indication in *rcblock).
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     end_position = rcblock->expr->expr_range.end;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-    if (!is_type) operand_position = operand.position;
+    if (!is_type) operand_position = operand->position;
   } else {
     /* Normal, non-rescan, processing. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -18096,10 +18096,30 @@ indication in *rcblock).
         operand_position = pos_curr_token;
         type_name(&typeid_type);
       } else {
-        /* Scan an expression. */
-        is_type = FALSE;
-        scan_expr(&operand, PREC_LOWEST, EOPT_NO_OPTIONS);
-        operand_position = operand.position;
+        /* Scan an expression.  We do not know at this point whether the
+           expression will be evaluated or not.  This presents a problem
+           particularly for lifetime management.  Our way around this is to
+           scan the expression as an initializer component (which bundles any
+           associated lifetime), determine from the type whether this is a
+           "run time" case or not, and then discard the object lifetime if it
+           is not a "run time" case. */
+        an_expr_stack_entry  *saved_expr_stack;
+        an_expr_stack_entry  temp_stack_entry;
+        an_object_lifetime_ptr  saved_olp = curr_object_lifetime;
+        if (saved_olp->kind == olk_expr_temporary) {
+          /* We're about to cache an expression and it might create its own
+             old_expr_temporary object lifetime.  That process assumes that
+             the current object lifetime is not already a temporary lifetime
+             context. */
+          curr_object_lifetime = curr_object_lifetime->parent_lifetime;
+        }  /* if */
+        save_expr_stack(&saved_expr_stack);
+        push_expr_stack(saved_expr_stack->expression_kind, &temp_stack_entry,
+                        /*force_object_lifetime=*/TRUE,
+                        /*suppress_object_lifetime=*/FALSE);
+        expr_stack->potentially_unevaluated = TRUE;
+        transfer_expr_context_if_applicable(saved_expr_stack);
+        alep = scan_expr_as_init_component(/*bundle=*/TRUE, EOPT_NO_OPTIONS);
         objectless_nonstatic_data_ref_seen =
                                 expr_stack->objectless_nonstatic_data_ref_seen;
         objectless_nonstatic_data_ref_pos =
@@ -18108,6 +18128,15 @@ indication in *rcblock).
                                expr_stack->potentially_unevaluated_lambda_seen;
         potentially_unevaluated_lambda_pos =
                                 expr_stack->potentially_unevaluated_lambda_pos;
+        pop_expr_stack();
+        restore_expr_stack(saved_expr_stack);
+        if (saved_olp->kind == olk_expr_temporary) {
+          curr_object_lifetime = saved_olp;
+        }  /* if */
+        operand = operand_of_arg_list_elem(alep);
+        check_assertion(is_expression_component(alep));
+        is_type = FALSE;
+        operand_position = operand->position;
       }  /* if */
     }  /* if */
   }  /* if */
@@ -18130,17 +18159,17 @@ indication in *rcblock).
   } else {
     /* Expression case. */
     /* Rule out indefinite functions. */
-    eliminate_unusual_operand_kinds(&operand);
-    force_complete_type_if_a_variable(&operand);
-    typeid_type = operand.type;
+    eliminate_unusual_operand_kinds(operand);
+    force_complete_type_if_a_variable(operand);
+    typeid_type = operand->type;
     /* *p and p[expr] yielding polymorphic class objects are special cases
        that use runtime typeid determination. */
-    if (((is_a_glvalue(&operand) && is_polymorphic_class_type(typeid_type)) ||
+    if (((is_a_glvalue(operand) && is_polymorphic_class_type(typeid_type)) ||
          /* For a dependent case, we don't know the value category for sure. */
          could_be_dependent_class_type(typeid_type)) &&
         /* An objectless nonstatic data member reference is not
            polymorphic, regardless of the type of the member. */
-        !operand_is_objectless_nonstatic_data_mem_ref(&operand)) {
+        !operand_is_objectless_nonstatic_data_mem_ref(operand)) {
       if (objectless_nonstatic_data_ref_seen) {
         /* Objectless references to nonstatic data members are permitted
            only in unevaluated operands, but a glvalue of a polymorphic
@@ -18153,15 +18182,15 @@ indication in *rcblock).
       if (operator_not_allowed_in_cpp11_constant_expr(&operator_position)) {
         err = TRUE;
       }  /* if */
-      if (is_expression_operand(&operand)) {
+      if (is_expression_operand(operand)) {
         /* Passing call_case TRUE here because we want to treat something
            like "*this" in a constructor as having known type, and not go
            to the virtual function table. */
         if (!could_be_dependent_class_type(typeid_type) &&
-            operand_complete_object_type(&operand,
+            operand_complete_object_type(operand,
                                          /*call_case=*/TRUE) != NULL &&
             /* Special case for (*(T *)0), which should throw an exception. */
-            !op_is_null_address_lvalue(&operand)) {
+            !op_is_null_address_lvalue(operand)) {
           /* The complete object type can be determined, so runtime processing
              is not needed. */
           runtime_case = FALSE;
@@ -18179,7 +18208,17 @@ indication in *rcblock).
       }  /* if */
       runtime_case = FALSE;
     }  /* if */
-    expr = make_node_from_operand(&operand);
+    if (alep != NULL) {
+      if (!runtime_case) {
+        /* This turned out to be an unevaluated context.  Discard the object
+           lifetime. */
+        alep->bundled = FALSE;
+        alep->variant.expr.lifetime = NULL;
+      }  /* if */
+      unbundle_init_component_expressions(alep);
+      free_init_component_list(alep);
+    }  /* if */
+    expr = make_node_from_operand(operand);
   }  /* if */
   if (!runtime_case) {
     /* If this is not a runtime case, the expression is not evaluated,
@@ -41696,6 +41735,7 @@ return an init-component for it.
   transfer_expr_context_if_applicable(saved_expr_stack);
   icp = scan_expr_as_init_component(/*bundle=*/TRUE, EOPT_NO_OPTIONS);
   pop_expr_stack();
+  restore_expr_stack(saved_expr_stack);
   return icp;
 }  /* cache_expression */
 
