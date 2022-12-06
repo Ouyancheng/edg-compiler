@@ -25786,24 +25786,21 @@ static constexpr unsigned
 
 #endif /* DEBUG */
 
-void add_token_cache_segment_to_string(a_token_cache_ptr	cache,
-				       a_token_sequence_number	start_tsn,
-				       a_token_sequence_number	end_tsn)
+void add_cached_tokens_to_string(a_cached_token_ptr       first_token,
+                                 a_token_sequence_number  start_tsn,
+                                 a_token_sequence_number  end_tsn)
 /*
-Go through a token cache and add the tokens to the string that is
-being constructed that represents the tokens in the cache.  If start_tsn
-and/or end_tsn are not NO_TOKEN_SEQUENCE_NUMBER only the tokens >= start_tsn
-and < end_tsn are included in the string.
+Go through a list of cached tokens and add the tokens to the string that is
+being constructed that represents the tokens.  If start_tsn and/or end_tsn are
+not NO_TOKEN_SEQUENCE_NUMBER only the tokens >= start_tsn and < end_tsn are
+included in the string.
 */
 {
-  a_cached_token_ptr	ctp = cache->first_token;
+  a_cached_token_ptr	ctp = first_token;
 #if DEBUG
   unsigned              color_idx = 0;
-
-  if (db_flag_is_set("atcts")) {
-    db_token_cache(cache, "add_token_cache_segment_to_string");
-  }  /* if */
 #endif /* DEBUG */
+
   /* Skip any tokens that are before the desired starting point. */
   if (start_tsn != NO_TOKEN_SEQUENCE_NUMBER) {
     for (; ctp != NULL; ctp = ctp->next) {
@@ -25875,7 +25872,9 @@ and < end_tsn are included in the string.
         }  /* if */
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS && ... */
         if (add_body_string) { /*lint !e774*/
-          add_token_cache_to_string(&tssp->cache.tokens);
+          add_cached_tokens_to_string(tssp->cache.tokens.first_token,
+                                      /*start_tsn=*/NO_TOKEN_SEQUENCE_NUMBER,
+                                      /*end_tsn=*/NO_TOKEN_SEQUENCE_NUMBER);
         }  /* if */
         /* This semicolon was inserted, and so should be suppressed if the body
            is output above. */
@@ -25947,6 +25946,22 @@ and < end_tsn are included in the string.
     put_ch_to_temp_text_buffer('m');
   }  /* if */
 #endif /* DEBUG */
+}  /* add_cached_tokens_to_string */
+
+void add_token_cache_segment_to_string(a_token_cache_ptr	cache,
+				       a_token_sequence_number	start_tsn,
+				       a_token_sequence_number	end_tsn)
+/*
+Go through a token cache and add the tokens to the string that is
+being constructed that represents the tokens in the cache.  If start_tsn
+and/or end_tsn are not NO_TOKEN_SEQUENCE_NUMBER only the tokens >= start_tsn
+and < end_tsn are included in the string.
+*/
+{
+  if (db_flag_is_set("atcts")) {
+    db_token_cache(cache, "add_token_cache_segment_to_string");
+  }  /* if */
+  add_cached_tokens_to_string(cache->first_token, start_tsn, end_tsn);
 }  /* add_token_cache_segment_to_string */
 
 
@@ -26464,20 +26479,20 @@ and using the associated file name and line number.
 }  /* db_source_position */
 
 
-void db_tokens(a_token_cache  *cache)
+void db_tokens(a_cached_token_ptr  first_token)
 /*
 Display the contents of the given token cache as text, with some simple-minded
 formatting.
 */
 {
-  sizeof_t                 saved_pos = pos_in_temp_text_buffer, indent = 0;
-  a_cached_token_ptr       ctp = cache->first_token;
+  sizeof_t           saved_pos = pos_in_temp_text_buffer, indent = 0;
+  a_cached_token_ptr ctp = first_token;
 
   /* If any of the tokens in the cache has an associated position, output a
      description of that position first. */
   for (; ctp != NULL; ctp = ctp->next) {
     if (ctp->source_position.seq != 0) {
-      if (ctp != cache->first_token) {
+      if (ctp != first_token) {
         fprintf(f_debug, "(approx.) ");
       }  /* if */
       db_source_position(&ctp->source_position);
@@ -26492,13 +26507,13 @@ formatting.
   a_token_sequence_number  start_tsn = 0;
   a_token_sequence_number  prev_tsn;
   /* Populate initial first and last token sequence numbers. */
-  if (cache->first_token != NULL) {
-    start_tsn = cache->first_token->token_sequence_number;
+  if (first_token != NULL) {
+    start_tsn = first_token->token_sequence_number;
   } else {
     start_tsn = 0;
   }  /* if */
   prev_tsn = start_tsn;
-  for (ctp = cache->first_token; ctp != NULL; ctp = ctp->next) {
+  for (ctp = first_token; ctp != NULL; ctp = ctp->next) {
     a_token_sequence_number curr_tsn = ctp->token_sequence_number;
 
     if (curr_tsn < prev_tsn) {
@@ -26521,7 +26536,9 @@ formatting.
           (long)start_tsn, (long)prev_tsn);
   fprintf(f_debug, "]\n");
   /* Add the tokens to the temp_text_buffer. */
-  add_token_cache_to_string(cache);
+  add_cached_tokens_to_string(first_token,
+                              /*start_tsn=*/NO_TOKEN_SEQUENCE_NUMBER,
+                              /*end_tsn=*/NO_TOKEN_SEQUENCE_NUMBER);
 
   sizeof_t  k = saved_pos;
   /* Skip leading spaces. */
@@ -26592,6 +26609,16 @@ formatting.
   /* Restore the temporary text buffer to its prior state. */
   pos_in_temp_text_buffer = saved_pos;
   temp_text_buffer[saved_pos] = '\0';
+}  /* db_tokens */
+
+
+void db_tokens(a_token_cache  *cache)
+/*
+Display the contents of the given list of cached tokens as text, with some
+simple-minded formatting.
+*/
+{
+  db_tokens(cache->first_token);
 }  /* db_tokens */
 
 

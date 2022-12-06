@@ -3170,6 +3170,11 @@ extern void lexical_cleanup(void);
   }
 
 extern
+void add_cached_tokens_to_string(a_cached_token_ptr      first_token,
+                                 a_token_sequence_number start_tsn,
+                                 a_token_sequence_number end_tsn);
+
+extern
 void add_token_cache_segment_to_string(a_token_cache_ptr	cache,
 				       a_token_sequence_number	start_tsn,
 				       a_token_sequence_number	end_tsn);
@@ -3236,6 +3241,8 @@ extern void db_token_cache(a_token_cache *cache,
                            a_const_char	 *cache_name);
 
 extern void db_source_position(a_source_position  *pos);
+
+extern void db_tokens(a_cached_token_ptr  first_token);
 
 extern void db_tokens(a_token_cache  *cache);
 
