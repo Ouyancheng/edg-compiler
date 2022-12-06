@@ -15413,7 +15413,9 @@ NULL pointer.
            Look up the new template parameter in the mapping array. */
         const Dyn_array<a_template_param_ptr> &pack_mapping =
                                      *ctws_state->alias_parameter_pack_mapping;
-        check_assertion(pack_mapping.length() >= prp->coordinates->position);
+        check_assertion(static_cast<a_template_param_list_pos>(
+                                                         pack_mapping.length())
+                                                >= prp->coordinates->position);
         new_tpp = pack_mapping[prp->coordinates->position - 1];
         if (new_tpp == NULL) continue;
       } else {
@@ -41573,7 +41575,7 @@ template argument list that have been replaced are freed.
   replacement_args = create_prototype_arg_list(sym, template_params,
                                                /*add_pack_descr=*/TRUE);
   replacement_tap = replacement_args;
-  for (unsigned int i = 0; tap != NULL; ++i) {
+  for (int i = 0; tap != NULL; ++i) {
     a_template_arg_ptr  arg_to_add, tap_list, tap_tail;
     if (i >= mask.length()) {
       /* Add the remainder of the template arguments to the result list as
@@ -42243,7 +42245,7 @@ guide is recorded in the template symbol supplement associated with alias_sym.
   a_symbol_ptr           new_guide = NULL, proto_sym;
   a_type_ptr             proto_type, def_type;
   a_template_symbol_supplement_ptr
-                         alias_tssp, guide_tssp;
+                         alias_tssp, guide_tssp = NULL;
   a_routine_ptr          guide;
   a_type_ptr             ret_type, rout_type;
   a_template_arg_ptr     deduced_guide_args = NULL;
@@ -42297,7 +42299,7 @@ guide is recorded in the template symbol supplement associated with alias_sym.
                                                               ->parameters,
                             guide_tpp;
       a_template_arg_ptr    alias_proto_args;
-      unsigned int          number_of_guide_params = 0;
+      int                   number_of_guide_params = 0;
       Dyn_array<a_boolean>  nondeduced_args, used_parameters;
       Dyn_array<a_template_param_ptr>
                             pack_mapping, alias_pack_mapping;
@@ -42315,7 +42317,7 @@ guide is recorded in the template symbol supplement associated with alias_sym.
            tap = tap->next) {
         number_of_guide_params = guide_tpp->param_num;
         if (!is_start_of_pack_expansion_templ_arg(tap)) {
-          unsigned  idx = guide_tpp->param_num - 1;
+          int  idx = guide_tpp->param_num - 1;
           if (nondeduced_args.length() <= idx) {
             if (nondeduced_args.length() != idx) {
               nondeduced_args.resize(idx, TRUE);
@@ -42352,7 +42354,7 @@ guide is recorded in the template symbol supplement associated with alias_sym.
         a_boolean             all_used = TRUE;
         done = TRUE;
         for (tpp = alias_template_params; tpp != NULL; tpp = tpp->next) {
-          unsigned int  i = tpp->param_num - 1;
+          int  i = tpp->param_num - 1;
           if (i >= used_parameters.length()) {
             break;
           }  /* if */
