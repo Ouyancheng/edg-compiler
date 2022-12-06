@@ -17427,6 +17427,11 @@ sizeof_cases:
     case enk_const_eval_deferred:
       gen_expression(expr->variant.const_eval_deferred.wrapped);
       break;
+    case enk_template_name:
+      gen_template_name((char *)&expr->variant.template_name.class_template
+                                     ->source_corresp,
+                        iek_template);
+      break;
 
     case enk_initializer:
 #if VLA_DEALLOCATIONS_IN_IL
