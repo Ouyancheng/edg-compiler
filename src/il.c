@@ -7890,6 +7890,10 @@ are done.
                                  node2->variant.nested_req.constraint,
                                  options);
         break;
+      case enk_template_name:
+        eq = node1->variant.template_name.class_template ==
+                                   node2->variant.template_name.class_template;
+        break;
       case enk_error:
         /* Nonequivalence is assumed. */
         break;
