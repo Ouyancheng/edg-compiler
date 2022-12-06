@@ -3210,6 +3210,11 @@ option values if they were not already set by a command line option.
     /* Support for P0929R2 began in version 19.25. */
     relaxed_abstract_checking = microsoft_version >= 1925;
   }  /* if */
+  if (!option_kind_used[(int)optk_old_id_chars]) {
+    /* MSVC has not (as of version 19.33) implemented Unicode-based
+       identifier characters. */
+    old_id_chars = TRUE;
+  }  /* if */
 }  /* set_microsoft_mode_flags */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -5034,6 +5039,11 @@ This function is also called in clang mode.
       /* As of clang 12.0.0, __VA_OPT__ is supported in both C and C++. */
       va_opt_enabled = TRUE;
     }  /* if */
+    if (clang_version < 140000 && !option_kind_used[(int)optk_old_id_chars]) {
+      /* Clang implemented Unicode-based identifier characters in version
+         14.0.0. */
+      old_id_chars = TRUE;
+    }  /* if */
   } else {
 #if USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES
     /* GNU produces wrappers only for dynamically-initialized thread_local
@@ -5050,6 +5060,11 @@ This function is also called in clang mode.
          (a C++20 feature) is accepted by gcc in both C and C++ modes in
          all standard versions. */
       va_opt_enabled = TRUE;
+    }  /* if */
+    if (!option_kind_used[(int)optk_old_id_chars]) {
+      /* gcc has not (as of version 12.2) implemented Unicode-based
+         identifier characters. */
+      old_id_chars = TRUE;
     }  /* if */
   }  /* if */
 }  /* check_and_set_gnu_mode_options */

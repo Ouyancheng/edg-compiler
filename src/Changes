@@ -1,5 +1,23 @@
 Version 6.5
 
+12/6/22  [EDGcpfe/25834]
+Unicode-based identifier syntax in GNU, clang, and Microsoft emulation
+
+The changes for EDGcpfe/24774 implemented C++ Committee document P1949R7,
+basing the determination of which characters are allowed in identifiers on
+the Unicode standard.  Because this document was adopted as a defect report
+applying to earlier versions of C++, the change applied universally,
+allowing the previous behavior via the --old_id_chars command-line option.
+Because of varying adoption of P1949R7 among emulated compilers, however,
+the front end now determines applicability of those changes based on the
+version of the emulation dialect: clang versions before 140000, as well as
+all versions of Microsoft and GNU emulations, now implement the older
+character classification.  For example:
+
+  void *to_\U00010185_and_beyond = nullptr;  // Now accepted in Microsoft,
+                                             // GNU, and older clang modes
+
+
 12/5/22  [EDGcpfe/22681]
 C++: Class template argument deduction for alias templates
 
