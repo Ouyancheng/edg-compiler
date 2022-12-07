@@ -35,7 +35,7 @@ character classification.  For example:
                                              // GNU, and older clang modes
 
 
-12/5/22  [EDGcpfe/21595,EDGcpfe/22681]
+12/5/22  [EDGcpfe/21595,EDGcpfe/22681,EDGcpfe/25461]
 C++: Class template argument deduction for alias templates
 
 The C++20 feature that extends class template argument deduction to include
