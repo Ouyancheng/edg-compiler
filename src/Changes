@@ -7,7 +7,7 @@ In GNU C++20 mode, the front end now accepts floating-point template
 parameters when gnu_version >= 110000.
 
 
-12/6/22  [EDGcpfe/25747]
+12/6/22  [EDGcpfe/24224,EDGcpfe/25747]
 GNU C++ compatibility: Instantiation of in-class initializers
 
 In GNU C++ mode, the front end instantiates the in-class initializer of a
