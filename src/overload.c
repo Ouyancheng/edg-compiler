@@ -18646,7 +18646,7 @@ select_best_function:
     /* The candidate_functions list now contains all the viable functions.
        Find the best. */
     if (p_none_viable != NULL && candidate_functions == NULL &&
-        !dependent_call && !*p_defer_resolution) {
+        !*p_defer_resolution) {
       *p_none_viable = TRUE;
     }  /* if */
     select_best_candidate_functions(&candidate_functions, operator_position,

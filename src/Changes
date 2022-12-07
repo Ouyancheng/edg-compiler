@@ -1,5 +1,26 @@
 Version 6.5
 
+12/7/22  [EDGcpfe/25833]
+Spurious error on default operator<=> for template class
+
+Consider:
+
+  #include <compare>
+  struct S {
+    bool operator==(S s) const;
+    bool operator<(S s) const;
+  };
+  template<typename T> struct X {
+    S s;
+    std::strong_ordering operator<=>(X const&) const = default;
+  };
+  X<int> x;
+  auto r = x <=> x;  // Previously an error.  Now okay.
+
+Previously, this resulted in a spurious error claiming operator<=> is deleted.
+That is now fixed.
+
+
 12/6/22  [EDGcpfe/25584]
 GNU C++ compatibility: Floating-point template parameters
 
