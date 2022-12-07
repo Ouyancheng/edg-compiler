@@ -18211,9 +18211,17 @@ indication in *rcblock).
     if (alep != NULL) {
       if (!runtime_case) {
         /* This turned out to be an unevaluated context.  Discard the object
-           lifetime. */
+           lifetime if one was recorded. */
+        if (alep->variant.expr.lifetime != NULL) {
+          a_dynamic_init_ptr  dip = alep->variant.expr.lifetime->destructions;
+          /* Remove the lifetime from the dynamic initializers it is
+             associated with. */
+          for (; dip != NULL; dip = dip->next_in_destruction_list) {
+            dip->lifetime = NULL;
+          }  /* for */
+          alep->variant.expr.lifetime = NULL;
+        }  /* if */
         alep->bundled = FALSE;
-        alep->variant.expr.lifetime = NULL;
       }  /* if */
       unbundle_init_component_expressions(alep);
       free_init_component_list(alep);
