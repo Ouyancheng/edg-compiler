@@ -5273,7 +5273,9 @@ before this routine is called.
   }  /* if */
   c_and_cpp_function_types_are_distinct = FALSE;
   allow_default_arg_on_template_member_definition = TRUE;
-  floating_point_template_parameters_allowed = FALSE;
+  if (gnu_version < 110000) {
+    floating_point_template_parameters_allowed = FALSE;
+  }  /* if */
   equiv_typedefs_are_lookup_equivalent = FALSE;
   type_keyword_in_dtor_allowed = (gnu_version <= 30300);
   /* Early GNU C++ compilers do not check accessibility of friend function

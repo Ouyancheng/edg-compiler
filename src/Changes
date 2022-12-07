@@ -1,5 +1,12 @@
 Version 6.5
 
+12/6/22  [EDGcpfe/25584]
+GNU C++ compatibility: Floating-point template parameters
+
+In GNU C++20 mode, the front end now accepts floating-point template
+parameters when gnu_version >= 110000.
+
+
 12/6/22  [EDGcpfe/25747]
 GNU C++ compatibility: Instantiation of in-class initializers
 
