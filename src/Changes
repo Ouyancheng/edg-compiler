@@ -1,5 +1,15 @@
 Version 6.5
 
+12/6/22  [EDGcpfe/25747]
+GNU C++ compatibility: Instantiation of in-class initializers
+
+In GNU C++ mode, the front end instantiates the in-class initializer of a
+static data member when that member is used instead of when the enclosing
+class is instantiated.  A tweak has been made to more consistently do so;
+previously, the initializer was not instantiated even in cases where GCC
+would do so.
+
+
 12/6/22  [EDGcpfe/25834]
 Unicode-based identifier syntax in GNU, clang, and Microsoft emulation
 

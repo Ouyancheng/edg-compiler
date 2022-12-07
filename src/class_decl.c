@@ -4334,6 +4334,9 @@ In C++17 mode, the initializer need not be a constant-expression.
       initializer(&dps, &var_pos, idl_external, is_parenthesized_initializer,
                   &incomplete_type_error_reported, &decl_pos_block);
       dps.has_deduced_type = saved_has_deduced_type;
+      if (var->storage_class == sc_extern && var->is_inline) {
+        var->storage_class = sc_unspecified;
+      }  /* if */
     } else {
       a_constant_ptr  constant = local_constant();
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -18525,6 +18528,8 @@ template declaration and is NULL otherwise.
     }  /* if */
     /* Skip over the cache terminator. */
     (void)get_token();
+    /* Until the initializer is instantiated, the variable is not "defined". */
+    var->storage_class = sc_extern;
   } else if (var->is_constexpr) {
     /* A constexpr static data member declaration must have an initializer:
        Issue an error. */
