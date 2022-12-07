@@ -23,9 +23,9 @@ symbol_ref.c - Routines to manage references to symbols.
 #endif /* ifdef PCH_PRAGMA_GUARD */
 
 /* Additional header files. */
+#include "class_decl.h"
 #include "symbol_ref.h"
 #if MICROSOFT_EXTENSIONS_ALLOWED
-#include "class_decl.h"
 #include "statements.h"
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
