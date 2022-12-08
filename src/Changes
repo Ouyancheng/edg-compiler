@@ -1,5 +1,16 @@
 Version 6.5
 
+12/8/22  [EDGcpfe/25832]
+Dummy variable for empty function parameter pack expansion
+
+The changes for EDGcpfe/24711 (in version 6.4 of the front end) introduced a
+"dummy" static parameter variable for empty function parameter pack expansions.
+In some configurations, such compiler generated entries ended up both on the
+associated function scope's "variables" list and on the orphaned variables
+list.  That situation could cause problems for certain back ends.  That problem
+is now fixed.
+
+
 12/7/22  [EDGcpfe/25833]
 Spurious error on default operator<=> for template class
 

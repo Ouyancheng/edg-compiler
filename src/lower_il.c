@@ -21014,6 +21014,17 @@ contains a reference to a GNU address label.
 }  /* constant_must_remain_in_function_scope */
 
 
+static inline
+a_boolean is_empty_pack_parameter(a_variable_ptr  vp)
+/*
+Return TRUE if the given variable represents an empty expansion of a function
+parameter pack (those are "dummy" variables).
+*/
+{
+  return vp->compiler_generated && type_is(vp->type, tk_template_param);
+}  /* is_empty_pack_parameter */
+
+
 static void promote_static_variable_out_of_function(
                                                a_variable_ptr variable,
                                                a_scope_ptr    scope,
@@ -21033,13 +21044,15 @@ been removed from the scope variables list).
     (void)fprintf(f_debug, "\n");
   }  /* if */
 #endif /* DEBUG */
-  /* Mangle the name if necessary (e.g., if it is part of a template
-     function). */
-  mangle_promoted_entity_name(&variable->source_corresp, iek_variable,
-                              /*final=*/FALSE, routine, scope);
+  if (!is_empty_pack_parameter(variable)) {
+    /* Mangle the name if necessary (e.g., if it is part of a template
+       function). */
+    mangle_promoted_entity_name(&variable->source_corresp, iek_variable,
+                                /*final=*/FALSE, routine, scope);
+  }  /* if */
   variable->source_corresp.is_local_to_function = FALSE;
   clear_local_scope_ref_if_present(&variable->source_corresp);
-  if (has_name(variable) &&
+  if (has_name(variable) && !is_empty_pack_parameter(variable) &&
       routine_might_exist_in_multiple_copies(routine)) {
     /* A routine whose body might exist in multiple copies, such as
        an extern inline routine.  Make the promoted variable externally
@@ -21263,7 +21276,7 @@ scope that is part of the indicated routine) to the file scope.
       if (variable->source_corresp.decl_position.seq != 0 &&
           !variable->is_anonymous_parent_object &&
           !variable->is_struct_binding &&
-          !type_is(variable->type, tk_template_param)) {
+          !is_empty_pack_parameter(variable)) {
         /* Count the number of variables declared in the source (that excludes
            compiler-generated variables and binding variables for structured
            bindings).  The count is used later to optimize the removal of these
@@ -21271,16 +21284,8 @@ scope that is part of the indicated routine) to the file scope.
         n_promoted_source_vars += 1;
       }  /* if */
       list = list->next;
-      if (type_is(variable->type, tk_template_param)) {
-        /* This is a dummy variable introduced in the function to represent
-           an empty function parameter pack expansion.  Ignore it for lowering
-           purposes. */
-        variable->next = scope->variables;
-        scope->variables = variable;
-      } else {
-        /* Promote the local static variable to file scope. */
-        promote_static_variable_out_of_function(variable, scope, routine);
-      }  /* if */
+      /* Promote the local static variable to file scope. */
+      promote_static_variable_out_of_function(variable, scope, routine);
     }  /* while */
     /* Reset the scope stack pointer to the last static variable (in case
        static variables were added during the lowering process). */

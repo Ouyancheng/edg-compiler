@@ -702,7 +702,6 @@ associated with a variadic parameter, but not the initial one.
     vp->source_corresp.is_local_to_function = TRUE;
     vp->is_parameter_pack = TRUE;
     vp->compiler_generated = TRUE;
-    add_to_variables_list(vp, depth_scope_stack);
   } else {
     vp = make_param_variable(tp, param_id->storage_class);
     add_to_parameters_list(vp);
