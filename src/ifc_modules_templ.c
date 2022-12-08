@@ -537,14 +537,14 @@ Given a lexical index, return the corresponding IFC index.
   an_ifc_Index_type result;
 
   static_assert(sizeof(result.sort) >= sizeof(idx.sort), "undersized sort");
-#if DEBUG
+#if DEBUG && CHECKING
   {
     a_lexical_ifc_index_kind lexical_kind =
                                      get_lexical_ifc_kind<an_ifc_Index_type>();
 
     check_assertion(idx.reference_kind == lexical_kind);
   }
-#endif /* DEBUG */
+#endif /* DEBUG && CHECKING */
   result.sort = (decltype(result.sort))idx.sort;
   result.value = idx.index;
   result.mod = (an_ifc_module*)idx.module;
