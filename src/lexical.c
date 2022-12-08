@@ -25792,8 +25792,8 @@ void add_cached_tokens_to_string(a_cached_token_ptr       first_token,
 /*
 Go through a list of cached tokens and add the tokens to the string that is
 being constructed that represents the tokens.  If start_tsn and/or end_tsn are
-not NO_TOKEN_SEQUENCE_NUMBER only the tokens >= start_tsn and < end_tsn are
-included in the string.
+not NO_TOKEN_SEQUENCE_NUMBER only the tokens (inclusively) following start_tsn
+and (exclusively) preceding end_tsn are included in the string.
 */
 {
   a_cached_token_ptr	ctp = first_token;
@@ -26479,66 +26479,59 @@ and using the associated file name and line number.
 }  /* db_source_position */
 
 
-void db_tokens(a_cached_token_ptr  first_token)
+static void db_token_range(a_cached_token_ptr      first_token,
+                           a_token_sequence_number last_tsn)
 /*
-Display the contents of the given token cache as text, with some simple-minded
-formatting.
+Print diagnostics for the range of tokens starting at the given cached token
+pointer, and ending (inclusive) with the token identified by last_tsn.
 */
 {
-  sizeof_t           saved_pos = pos_in_temp_text_buffer, indent = 0;
-  a_cached_token_ptr ctp = first_token;
+  sizeof_t                 saved_pos = pos_in_temp_text_buffer;
+  sizeof_t                 indent = 0;
+  a_cached_token_ptr       ctp = first_token;
+  a_boolean                printed_position = FALSE;
+  a_token_sequence_number  end_tsn = NO_TOKEN_SEQUENCE_NUMBER;
 
   /* If any of the tokens in the cache has an associated position, output a
-     description of that position first. */
+     description of that position first.  Additionally, look out for the true
+     end_tsn (as last_tsn is inclusive, and end_tsn is not). */
   for (; ctp != NULL; ctp = ctp->next) {
-    if (ctp->source_position.seq != 0) {
+    if (!printed_position && ctp->source_position.seq != 0) {
       if (ctp != first_token) {
         fprintf(f_debug, "(approx.) ");
       }  /* if */
       db_source_position(&ctp->source_position);
       fprintf(f_debug, " (seq = %ld) ", (long)ctp->source_position.seq);
+      printed_position = TRUE;
+    }  /* if */
+    /* If the current token matches the last printed token sequence number, and
+       there's a next token, the next differing token sequence number is
+       considered the end. */
+    if (ctp->token_sequence_number == last_tsn && ctp->next != NULL) {
+      /* Scan ahead for the first token that has a different token sequence
+         number.  This is important as tok_end_of_source tokens share the same
+         token sequence number as their preceding tokens (and other tokens
+         might unintentionally do so as well). */
+      do {
+        ctp = ctp->next;
+      } while (ctp != NULL && ctp->token_sequence_number == last_tsn);
+      if (ctp != NULL) {
+        end_tsn = ctp->token_sequence_number;
+      }  /* if */
       break;
     }  /* if */
   }  /* for */
 
   /* Print token sequence number ranges. */
-  fprintf(f_debug, "[tsn: ");
-  a_boolean                any_printed = FALSE;
-  a_token_sequence_number  start_tsn = 0;
-  a_token_sequence_number  prev_tsn;
-  /* Populate initial first and last token sequence numbers. */
+  a_token_sequence_number  start_tsn;
   if (first_token != NULL) {
     start_tsn = first_token->token_sequence_number;
   } else {
     start_tsn = 0;
   }  /* if */
-  prev_tsn = start_tsn;
-  for (ctp = first_token; ctp != NULL; ctp = ctp->next) {
-    a_token_sequence_number curr_tsn = ctp->token_sequence_number;
-
-    if (curr_tsn < prev_tsn) {
-      /* Print this range. */
-      if (any_printed) {
-        fprintf(f_debug, ", ");
-      }  /* if */
-      fprintf(f_debug, "%ld - %ld",
-              (long)start_tsn, (long)prev_tsn);
-      any_printed = TRUE;
-      /* Update the range. */
-      start_tsn = curr_tsn;
-    }  /* if */
-    prev_tsn = curr_tsn;
-  }  /* if */
-  if (any_printed) {
-    fprintf(f_debug, ", ");
-  }  /* if */
-  fprintf(f_debug, "%ld - %ld",
-          (long)start_tsn, (long)prev_tsn);
-  fprintf(f_debug, "]\n");
+  fprintf(f_debug, "[tsn: %ld - %ld]\n", (long)start_tsn, (long)last_tsn);
   /* Add the tokens to the temp_text_buffer. */
-  add_cached_tokens_to_string(first_token,
-                              /*start_tsn=*/NO_TOKEN_SEQUENCE_NUMBER,
-                              /*end_tsn=*/NO_TOKEN_SEQUENCE_NUMBER);
+  add_cached_tokens_to_string(first_token, start_tsn, end_tsn);
 
   sizeof_t  k = saved_pos;
   /* Skip leading spaces. */
@@ -26558,7 +26551,7 @@ formatting.
                             temp_text_buffer[*p_k+1] == ' ') {
                        *p_k += 1;
                      }  /* while */
-                   }; 
+                   };
   /*lint --e{850} k modified in loop */
   for (; k<pos_in_temp_text_buffer; ++k) {
     if (temp_text_buffer[k] == '{') {
@@ -26597,7 +26590,7 @@ formatting.
       do_indent(&k);
     } else if (temp_text_buffer[k] == '\n') {
       if (k<2 || temp_text_buffer[k-1] != '\n' ||
-          temp_text_buffer[k-2] != '\n') { 
+          temp_text_buffer[k-2] != '\n') {
         (void)fputc('\n', f_debug);
         do_indent(&k);
       }  /* if */
@@ -26609,6 +26602,35 @@ formatting.
   /* Restore the temporary text buffer to its prior state. */
   pos_in_temp_text_buffer = saved_pos;
   temp_text_buffer[saved_pos] = '\0';
+}  /* db_token_range */
+
+void db_tokens(a_cached_token_ptr  first_token)
+/*
+Display the contents of the given token cache as text, with some simple-minded
+formatting.
+*/
+{
+  a_cached_token_ptr       ctp = first_token;
+  a_cached_token_ptr       start_ctp = first_token;
+  a_token_sequence_number  prev_tsn;
+
+  /* Populate initial last token sequence numbers. */
+  if (first_token != NULL) {
+    prev_tsn = first_token->token_sequence_number;
+  } else {
+    prev_tsn = 0;
+  }  /* if */
+  for (ctp = first_token; ctp != NULL; ctp = ctp->next) {
+    a_token_sequence_number curr_tsn = ctp->token_sequence_number;
+
+    if (curr_tsn < prev_tsn) {
+      db_token_range(start_ctp, prev_tsn);
+      /* Update the range. */
+      start_ctp = ctp;
+    }  /* if */
+    prev_tsn = curr_tsn;
+  }  /* if */
+  db_token_range(start_ctp, prev_tsn);
 }  /* db_tokens */
 
 
