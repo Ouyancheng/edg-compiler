@@ -2862,7 +2862,7 @@ coordinates.  Return the symbol for the corresponding parameter.
         tpp = tdip->parameters;
       } else if (tsym != NULL) {
         tpp = templ_params_of(tsym);
-      }   /* if */
+      }  /* if */
       if (tpp != NULL) {
         a_template_param_coordinate_ptr  coord;
         coord = coordinates_of_template_param(tpp);
