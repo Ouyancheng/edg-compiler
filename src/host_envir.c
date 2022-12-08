@@ -4946,7 +4946,6 @@ null-terminated.
 */
 {
   a_const_char  *p;
-  unsigned long len = 0;
 #if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
   a_boolean	is_native = FALSE;
   a_boolean	err;
@@ -4983,7 +4982,6 @@ null-terminated.
          returned. */
       if (process_escapes && (ch == '"' || ch == '\\')) {
         add_char_to_text_buffer(buffer, '\\');
-        len++;
       }  /* if */
       /* Output all of the characters of a multibyte sequence so that
          the length returned will be correct.  Note that err and
@@ -4995,18 +4993,15 @@ null-terminated.
       }  /* for */
       /* Decrement p because it will be incremented at the end of the loop. */
       p--;
-      len++;
     } else if (ch == '\n') {
       /* Put out newline as \n. */
       add_string_to_text_buffer(buffer, "\\n");
-      len += 2;
     } else {
       char sprintf_buffer[20];
       /* Unprintable characters: put out as \ooo. */
       (void)sprintf(sprintf_buffer, "\\%03o",
                     (unsigned int)(ch&((1<<targ_host_string_char_bit)-1)));
       add_string_to_text_buffer(buffer, sprintf_buffer);
-      len += 4;
     }  /* if */
   }  /* for */
 #if EDG_WIN32 && NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE

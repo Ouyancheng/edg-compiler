@@ -15527,7 +15527,6 @@ parameters.
   for (ptp = ptp_list; ptp != NULL; ptp = ptp->next) {
     a_pack_expansion_stack_entry_ptr	pesep;
     a_boolean				any_more;
-    uint32_t				elements = 0;
     a_param_type_ptr			first_element = NULL;
     a_boolean				err = FALSE;
     
@@ -15552,7 +15551,7 @@ parameters.
       a_boolean  is_pack = FALSE;
       a_type_qualifier_set
                  param_qualifiers = TQ_NONE;
-      elements++;
+
       if (reusable_param_types > 0) {
         /* We have already called copy_type_with_substitution for this
            parameter and we know we can reuse the existing type. */
