@@ -29278,6 +29278,13 @@ TRUE and FALSE is returned.
         } else {
           a_symbol_ptr       sym;
           a_template_arg_ptr local_arg_list;
+          if (il_header.imported_modules != NULL &&
+              symbol_for_std_initializer_list == NULL) {
+            /* If we've seen module imports, it is possible that one of them
+               provides std::initializer_list.  Perform a lookup to force it
+               to be loaded. */
+            (void)look_up_name_string_in_std("initializer_list");
+          }  /* if */
           if (symbol_for_std_initializer_list == NULL) {
             /* The <initializer_list> header has not been included. */
             expr_pos_error(ec_initializer_list_not_included,

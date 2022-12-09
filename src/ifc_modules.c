@@ -4607,6 +4607,14 @@ class_struct_union_case:
                   if (ifc_decl_is_ignorable_redecl(&loc, mep,
                                                    &error_position, iek_type,
                                                    &il_entity, &kind)) {
+                    if (il_entity == (char*)type_of_type_info) {
+                      /* The type_info type is predeclared, which means it is
+                         initially not associated with a module.  If its
+                         definition is actually coming from a module, it will
+                         appear as a redeclaration and the module association
+                         should be recorded at that time. */
+                      type_of_type_info->source_corresp.module_entity = mep;
+                    }  /* if */
                     break;
                   }  /* if */
                   class_type = alloc_type(type_kind);

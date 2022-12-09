@@ -18034,6 +18034,18 @@ indication in *rcblock).
   }  /* if */
   /* typeid is valid only after the type_info type has been defined in a
      header file.  In Clang mode, a declaration is sufficient. */
+  if (il_header.imported_modules != NULL && type_of_type_info != NULL) {
+    /* If we've seen module imports, it is possible that one of them provides
+       std::type_info.  Perform a lookup to force it to be loaded and request
+       it to be complete. */
+    if (type_info_in_namespace_std) {
+      (void)look_up_name_string_in_std("type_info");
+    } else {
+      (void)look_up_name_string_in_namespace("type_info", (a_namespace*)NULL,
+                                             IDL_NO_OPTIONS);
+    }  /* if*/
+    complete_type_is_needed(type_of_type_info);
+  }  /* if */
   if (!err && !is_cli_typeid &&
       (clang_mode && !ms_compat ?
             (symbol_for(type_of_type_info)->decl_scope == NO_SCOPE_DEPTH) :
