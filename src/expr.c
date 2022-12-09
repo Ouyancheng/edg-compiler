@@ -13895,7 +13895,7 @@ rcblock->argument_list.
         } else {
           result = alloc_expr_node(enk_template_name);
           result->type = void_type();
-          result->variant.template_name.class_template = templ;
+          result->variant.template_name = templ;
           result->position = start_position;
           record_position_in_expr_for_rescan(result, &start_position,
                                              &null_source_position);
@@ -51521,7 +51521,7 @@ and return a pointer to it.
   arg1 = alloc_expr_node(enk_template_name);
   arg1->compiler_generated = TRUE;
   arg1->type = void_type();
-  arg1->variant.template_name.class_template = templ;
+  arg1->variant.template_name = templ;
   record_position_in_expr_for_rescan(arg1, &null_source_position,
                                      &null_source_position);
   arg2 = alloc_expr_node(enk_type_operand);

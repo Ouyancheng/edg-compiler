@@ -9323,10 +9323,10 @@ tpck_expression variant and will point to the given expression.
   a_type_ptr        type;
 
   /* eok_parens shouldn't appear here, since the construct is generated. */
-  check_assertion(arg1 != NULL && arg2 != NULL && arg2->next == NULL &&
+  check_assertion(arg2 != NULL && arg2->next == NULL &&
                   arg1->kind == enk_template_name &&
                   arg2->kind == enk_type_operand);
-  tmpl = arg1->variant.template_name.class_template;
+  tmpl = arg1->variant.template_name;
   type = arg2->variant.type_operand.type;
   if (tmpl->kind == templk_template_template_param ||
       is_nonreal_template_symbol(symbol_for(tmpl)) ||

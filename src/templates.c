@@ -14179,7 +14179,7 @@ parameters.
       }  /* if */
     }  /* if */
   }  /* if */
-  /* It's a pack only if a pack was substituted into a pack, Otherwise we pass
+  /* It's a pack only if a pack was substituted into a pack; otherwise, we pass
      the flag to the outer level. */
   if (tap->is_pack) {
     tap->is_pack = ctws_state->substituted_parameter_pack;
@@ -41558,12 +41558,11 @@ a class template parameter list.
 
 static void replace_args_with_proto_args_for_mask(
                                    a_template_arg_ptr          *p_tap,
-                                   a_symbol_ptr                sym,
                                    a_template_param_ptr        template_params,
                                    const Dyn_array<a_boolean>  &mask)
 /*
 Go through the template argument list *p_tap and replace the template arguments
-with a corresponding mask element of TRUE with a prototype template argument
+whose corresponding element in mask is TRUE with a prototype template argument
 for the template parameter in template_params.  Elements from the original
 template argument list that have been replaced are freed.
 */
@@ -41571,7 +41570,7 @@ template argument list that have been replaced are freed.
   a_template_arg_ptr  tap = *p_tap, tail = NULL,
                       replacement_args, replacement_tap;
   if (mask.is_empty() || tap == NULL) return;
-  replacement_args = create_prototype_arg_list(sym, template_params,
+  replacement_args = create_prototype_arg_list(NULL, template_params,
                                                /*add_pack_descr=*/TRUE);
   replacement_tap = replacement_args;
   for (int i = 0; tap != NULL; ++i) {
@@ -41584,8 +41583,8 @@ template argument list that have been replaced are freed.
     }  /* if */
     if (i < mask.length() && mask[i]) {
       arg_to_add = replacement_tap;
-      /* Advance to next element in the replacement argument list and skip over
-         any pack elements. */
+      /* Advance to the next element in the replacement argument list and skip
+         over any pack elements. */
       replacement_tap = replacement_tap->next;
       while (replacement_tap != NULL && replacement_tap->is_pack_element) {
         replacement_tap = replacement_tap->next;
@@ -42129,7 +42128,7 @@ original class template for which deduction guides are needed is orig_ct_sym.
 }  /* create_implicit_deduction_guide */
 
 
-static void remove_hypothetical_default_guide(a_symbol_ptr	ct_sym)
+static void remove_hypothetical_default_guide(a_symbol_ptr      ct_sym)
 /*
 Remove the generated default deduction guide from the set of deduction
 guides.
@@ -42137,10 +42136,10 @@ guides.
 {
   a_template_symbol_supplement_ptr
                 ct_tssp = template_supplement_for_symbol(ct_sym);
-  a_symbol_ptr	*prev_ptr = &ct_tssp->variant.class_template.deduction_guides;
-  a_symbol_ptr	guide_set = *prev_ptr;
-  a_symbol_ptr	guide_sym;
-  a_boolean	is_list = FALSE;
+  a_symbol_ptr  *prev_ptr = &ct_tssp->variant.class_template.deduction_guides;
+  a_symbol_ptr  guide_set = *prev_ptr;
+  a_symbol_ptr  guide_sym;
+  a_boolean     is_list = FALSE;
 
   if (symbol_is(guide_set, sk_overloaded_function)) {
     is_list = TRUE;
@@ -42150,15 +42149,15 @@ guides.
     guide_sym = guide_set;
   }  /* if */
   for (; guide_sym != NULL; guide_sym = is_list ? guide_sym->next : NULL) {
-    a_template_symbol_supplement_ptr	tssp;
+    a_template_symbol_supplement_ptr    tssp;
     /* Ignore explicitly declared non-template deduction guides. */
     if (!symbol_is(guide_sym, sk_function_template)) continue;
     tssp = template_supplement_for_symbol(guide_sym);
     /* Look for a hypothetical guide with an empty parameter list. */
     if (tssp->variant.function.constructor_symbol_for_guide == NULL) {
-      a_routine_ptr			rout;
-      a_type_ptr			rout_type;
-      a_routine_type_supplement_ptr	rtsp;
+      a_routine_ptr                     rout;
+      a_type_ptr                        rout_type;
+      a_routine_type_supplement_ptr     rtsp;
       rout = tssp->variant.function.routine;
       rout_type = skip_typerefs(rout->type);
       rtsp = rout_type->variant.routine.extra_info;
@@ -42350,7 +42349,6 @@ guide is recorded in the template symbol supplement associated with alias_sym.
       a_boolean done = FALSE;
       while (!done) {
         a_template_param_ptr  tpp;
-        a_boolean             all_used = TRUE;
         done = TRUE;
         for (tpp = alias_template_params; tpp != NULL; tpp = tpp->next) {
           int  i = tpp->param_num - 1;
@@ -42384,8 +42382,6 @@ guide is recorded in the template symbol supplement associated with alias_sym.
               free_template_arg_list(tap);
               done = FALSE;
             }  /* if */
-          } else {
-            all_used &= recursively_used[i];
           }  /* if */
         }  /* for */
       }  /* while */
@@ -42402,7 +42398,6 @@ guide is recorded in the template symbol supplement associated with alias_sym.
       /* Adjust the prototype arguments for those template parameters that have
          been copied to the new template parameter list. */
       replace_args_with_proto_args_for_mask(&alias_proto_args,
-                                            alias_sym,
                                             new_template_params,
                                             used_parameters);
       /* Adjust any constraints and default arguments in the new template
@@ -42477,7 +42472,6 @@ guide is recorded in the template symbol supplement associated with alias_sym.
            the original guide parameter to the corresponding one in the new
            template parameter list. */
         replace_args_with_proto_args_for_mask(&deduced_guide_args,
-                                              alias_sym,
                                               nondeduced_tpp,
                                               nondeduced_args);
         /* Adjust any constraints and default arguments in the new template
@@ -42658,8 +42652,8 @@ deduction guides for that template are updated and then each guide is
 transformed for the alias template.
 */
 {
-  a_symbol_ptr			 proto_sym, def_sym = NULL;
-  a_type_ptr			 proto_type, def_type;
+  a_symbol_ptr                   proto_sym, def_sym = NULL;
+  a_type_ptr                     proto_type, def_type;
   a_template_symbol_supplement_ptr
                                  alias_tssp;
 
@@ -42784,7 +42778,7 @@ a_boolean is_template_deducible_from(a_template_ptr   templ,
                                      a_type_ptr       type)
 /*
 Check if the template arguments for a template "P" (templ) are deducible from a
-type "T".  For the following declaration
+type "T".  For the following declarations
 
   template<typename> struct A { };
   template<typename S> void f(A<P<S>>);

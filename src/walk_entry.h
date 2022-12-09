@@ -1944,8 +1944,8 @@ do_set_proper_definition_needed_flag:
                      an_expr_node_ptr, iek_expr_node);
             break;
           case enk_template_name:
-            walk_ptr(eptr->variant.template_name.class_template,
-                     a_template_ptr, iek_template);
+            walk_ptr(eptr->variant.template_name, a_template_ptr,
+                     iek_template);
             break;
           default:
             unexpected_condition_str(

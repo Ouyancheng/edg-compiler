@@ -4949,8 +4949,7 @@ cleanup_state_common:
       break;
     case enk_template_name:
       (void)printf("enk_template_name\n");
-      disp_ptr("template_name.class_template",
-               (char *)ptr->variant.template_name.class_template,
+      disp_ptr("template_name", (char *)ptr->variant.template_name,
                iek_template);
       break;
     default:

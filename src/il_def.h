@@ -13568,8 +13568,7 @@ enum a_builtin_operation_kind : a_byte {
                            arguments. (Visual Studio) */
   bok_builtin_is_corresponding_member,
                         /* Two pointer-to-member arguments. (GCC) */
-  bok_edg_is_deducible,
-                        /* A class template operand and a type arguments. */
+  bok_edg_is_deducible, /* A class template operand and a type argument. */
   bok_is_array,		/* __is_array. One type operand. */
   bok_array_rank,       /* __array_rank (Clang).  One type operand (returns
                            size_t). */
@@ -14718,11 +14717,9 @@ typedef struct an_expr_node {
 			/* The template arguments passed to the concept. */
     } concept_id;
     /* When kind == enk_template_name: */
-    struct {
-      a_template_ptr
-		class_template;
+    a_template_ptr
+		template_name;
 			/* The template this template-name refers to. */
-    } template_name;
     /* When kind == enk_requires: */
     struct {
       an_expr_node_ptr

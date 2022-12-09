@@ -7891,8 +7891,7 @@ are done.
                                  options);
         break;
       case enk_template_name:
-        eq = node1->variant.template_name.class_template ==
-                                   node2->variant.template_name.class_template;
+        eq = node1->variant.template_name == node2->variant.template_name;
         break;
       case enk_error:
         /* Nonequivalence is assumed. */
@@ -20209,10 +20208,9 @@ options.
               if (record_used != NULL) {
                 /* Set a "used" marker for the position of the template
                    argument. */
-                record_used->resize(max_val<a_ptrdiff>(
-                                                        coordinates->position,
-                                                        record_used->length()),
-                                               FALSE);
+                record_used->resize(max_val<a_ptrdiff>(coordinates->position,
+                                                       record_used->length()),
+                                    FALSE);
                 (*record_used)[coordinates->position - 1] = TRUE;
               }  /* if */
               if (tap->is_pack) {

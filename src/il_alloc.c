@@ -3718,7 +3718,7 @@ fields to default values.
       node->variant.const_eval_deferred.reattempt_state = {};
       break;
     case enk_template_name:
-      node->variant.template_name.class_template = NULL;
+      node->variant.template_name = NULL;
       break;
     default:
       unexpected_condition_str("set_expr_node_kind: bad kind");

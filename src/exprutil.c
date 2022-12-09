@@ -5193,9 +5193,9 @@ static a_template_ptr do_template_substitution_for_rescan(
                                         an_expr_rescan_info_entry_ptr eriep)
 /*
 As part of rescanning an expression for template deduction, do template
-substitution on the template "templ" using the template arguments etc. given
-by rcblock, and with additional information from *eriep, and return the
-substituted template, or an error indication in rcblock.
+substitution on the template "templ" using the template arguments, etc., given
+by rcblock as well as additional information from eriep.  Return the
+substituted template or an error indication in rcblock.
 */
 {
   a_template_ptr      new_templ;
@@ -5647,11 +5647,10 @@ operation (like a type trait test).  Get the template, do substitution on it
   /* We pass NULL for the second argument because we want to require
      explicit rescan information on all type operands. */
   eriep = get_expr_rescan_info(expr, (an_expr_rescan_info_entry *)NULL);
-  *templ = do_template_substitution_for_rescan(
-                                    expr->variant.template_name.class_template,
-                                    rcblock, eriep);
+  *templ = do_template_substitution_for_rescan(expr->variant.template_name,
+                                               rcblock, eriep);
   *templ_position = eriep->saved_operand.position;
-}  /* make_template_operand_rescan_type */
+}  /* make_template_name_rescan_template */
 
 
 an_arg_list_elem_ptr rescan_expr_as_arg_list_elem(

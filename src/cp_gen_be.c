@@ -17428,8 +17428,7 @@ sizeof_cases:
       gen_expression(expr->variant.const_eval_deferred.wrapped);
       break;
     case enk_template_name:
-      gen_template_name((char *)&expr->variant.template_name.class_template
-                                     ->source_corresp,
+      gen_template_name((char *)&expr->variant.template_name->source_corresp,
                         iek_template);
       break;
 
