@@ -6569,14 +6569,12 @@ FALSE is returned) for non-class objects.
     if (is_class_template_placeholder_type(var->type)) {
       /* Make sure the type is deduced if needed. */
       a_boolean  still_dependent = FALSE;
-      if (deduce_class_template_args(var->type, /*is_direct_init=*/TRUE,
-                                     /*parenthesized_init=*/FALSE,
-                                     /*keep_placeholder=*/FALSE,
-                                     (an_arg_list_elem*)NULL,
-                                     err_pos, &var->type,
-                                     &still_dependent)) {
-        complete_type_is_needed(var->type);
-      }  /* if */
+      (void)deduce_class_template_args(var->type, /*is_direct_init=*/TRUE,
+                                       /*parenthesized_init=*/FALSE,
+                                       /*keep_placeholder=*/FALSE,
+                                       (an_arg_list_elem*)NULL,
+                                       err_pos, &var->type,
+                                       &still_dependent);
     }  /* if */
     static_lifetime = var_has_static_or_thread_storage_duration(var);
     is_const = is_const_qualified_type(var->type);
@@ -6595,6 +6593,7 @@ FALSE is returned) for non-class objects.
     /* We don't test just is_cpp03_POD because we want to catch cases where
        there is a user-declared defaulted constructor or destructor that's not
        accessible. */
+    complete_type_is_needed(tp);
     if (cssp != NULL &&
         (!cssp->is_cpp03_POD ||
          cssp->constructor != NULL || cssp->destructor != NULL ||

@@ -1,5 +1,22 @@
 Version 6.5
 
+12/9/22  [EDGcpfe/25825]
+Default initialization of static data member with template class type
+
+The front end previously failed to consistently complete the type of static
+data members, which could result in invalid initializers.  For example:
+
+  template<typename> struct X {
+    int x;
+    X(): x(10) {}
+  };
+  struct S {
+    inline static X<int> xi;  // Previously, xi was not correctly initialized.
+  };
+
+That is now fixed.
+
+
 12/8/22  [EDGcpfe/25829]
 Unbounded recursion during overload resolution
 
