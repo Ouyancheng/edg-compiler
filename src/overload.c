@@ -28856,7 +28856,7 @@ appropriate, produce the "aggregate deduction candidate" (see N4885
     a_type_ptr    defining_type;
 
     /* Check if the defining-type-id of the alias template names a deducible
-       template, and, if so, recursively check if an aggregate deduction
+       template and, if so, recursively check if an aggregate deduction
        candidate needs to be added. */
     defining_type = proto_type->variant.typeref.type;
     if (is_immediate_class_type(defining_type) &&
