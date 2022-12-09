@@ -353,7 +353,9 @@ extern an_attribute_ptr attribute_string_literal_arg(
                                             an_attribute_kind            kind,
                                             a_source_correspondence_ptr  scp);
 
-extern a_const_char *deprecation_string_for(a_source_correspondence_ptr  scp);
+extern a_const_char *attribute_string_for_kind(
+                                              an_attribute_kind           kind,
+                                              a_source_correspondence_ptr scp);
 
 
 extern void attribute_one_time_init(void);

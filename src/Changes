@@ -1,5 +1,21 @@
 Version 6.5
 
+12/9/22  [EDGcpfe/25689]
+GNU compatibility: "unavailable" attribute
+
+The "unavailable" attribute is now available in GNU emulation modes when
+gnu_version >= 120000.  These changes also modify the original changes for
+the "unavailable" attribute (see the Changes entry for EDGcpfe/23647) to 
+make the implementation similar to the "deprecated" attribute (the main
+difference being that the "deprecated" attribute elicits a warning and the
+"unavailable" attribute results in an error if the entity is subsequently
+referred to).
+
+Additionally, the clang-specific attribute_unavailable_with_message and
+attribute_deprecated_with_message feature tests (with __has_extension) have
+been implemented.
+
+
 12/9/22  [EDGcpfe/25825]
 Default initialization of static data member with template class type
 

@@ -205,8 +205,9 @@ void reference_to_trivial_copy_constructor(a_type_ptr        class_type,
                                            a_boolean         elided_reference,
                                            a_boolean         *error_detected);
 
-void check_use_of_deprecated_entity(a_source_correspondence_ptr  scp,
-                                    a_source_position            *pos);
+void check_use_of_deprecated_or_unavailable_entity(
+                                            a_source_correspondence_ptr  scp,
+                                            a_source_position            *pos);
 
 #if RECORD_HIDDEN_NAMES_IN_IL
 extern void check_name_hiding_for_scope(a_scope_ptr  sp);

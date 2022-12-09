@@ -257,7 +257,6 @@ static an_attr_descr known_attr_table[] = {
   /* Nonstandard attributes. */
   { "enable_if", "(X,sn)", "lx(30500-)", ak_enable_if },
   { "overloadable", "", "lx", ak_overloadable },
-  { "unavailable", "?(sn)", "lx(30500-)", ak_unavailable },
 
 #if GNU_EXTENSIONS_ALLOWED
   /* GNU Attributes. */
@@ -334,6 +333,7 @@ static an_attr_descr known_attr_table[] = {
   { "tls_model", "(sn)", "gx(30300-)", ak_tls_model },
 #endif /* THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED */
   { "transparent_union", "", "gc", ak_transparent_union },
+  { "unavailable", "?(sn)", "gx(120000-)", ak_unavailable },
   { "unused", "", "gx", ak_unused },
   { "used", "", "gx", ak_used },
 #if GNU_VECTOR_TYPES_ALLOWED
@@ -423,6 +423,7 @@ static an_attr_descr known_attr_table[] = {
 
   /* Clang-specific attributes. */
   { "availability", "(*)", "lx{clang}", ak_availability },
+  { "unavailable", "?(sn)", "lx(30500-)", ak_unavailable },
   { "using_if_exists", "", "l+{clang}", ak_using_if_exists },
 
   { NULL, NULL, NULL, ak_last }
@@ -538,7 +539,7 @@ typedef struct an_attr_appl_descr {
 static an_attr_application_fn apply_align_attr;
 static an_attr_application_fn apply_base_check_attr;
 static an_attr_application_fn apply_carries_dependency_attr;
-static an_attr_application_fn apply_deprecated_attr;
+static an_attr_application_fn apply_deprecated_or_unavailable_attr;
 static an_attr_application_fn apply_final_attr;
 static an_attr_application_fn apply_hiding_attr;
 static an_attr_application_fn apply_noreturn_attr;
@@ -554,7 +555,6 @@ static an_attr_application_fn apply_conditional_explicit;
 
 /* Other attributes. */
 static an_attr_application_fn apply_enable_if_attr;
-static an_attr_application_fn apply_unavailable_attr;
 
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
 /* Application functions for nonstandard attributes available in both GNU and
@@ -674,7 +674,7 @@ static an_attr_appl_descr known_attr_appl_table[(int)ak_last+1] = {
   { ak_align, "", apply_align_attr },
   { ak_base_check, "c:+d", apply_base_check_attr },
   { ak_carries_dependency, "r|p", apply_carries_dependency_attr },
-  { ak_deprecated, "t|p|c|e|r|v|d|n|E", apply_deprecated_attr },
+  { ak_deprecated, "t|p|c|e|r|v|d|n|E", apply_deprecated_or_unavailable_attr },
   { ak_final, "r:+v!|c:+d!", apply_final_attr },
   { ak_hiding, "t|c|e|r:+m!|v|d", apply_hiding_attr },
   { ak_known_semantics, "", NO_APPL_FN },
@@ -690,7 +690,7 @@ static an_attr_appl_descr known_attr_appl_table[(int)ak_last+1] = {
   /* Nonstandard attributes. */
   { ak_enable_if, "t", apply_enable_if_attr },
   { ak_overloadable, "r", NO_APPL_FN },
-  { ak_unavailable, "t", apply_unavailable_attr },
+  { ak_unavailable, "t|p|c|e|r|v|d|n|E", apply_deprecated_or_unavailable_attr},
   /* Nonstandard attributes available in both GNU and Microsoft
      configurations. */
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
@@ -834,14 +834,15 @@ typedef struct an_attr_corresp_descr {
 		kind;	/* The kind of attribute this entry describes. */
   an_attribute_family
 		family;	/* The attribute family to which this entry applies,
-			   or iek_last if it applies to all families. */
+			   or af_last if it applies to all families. */
   an_il_entry_kind
 		target_kind;
 			/* The kind of target entity for which this entry
 			   is meant (e.g., an attribute X may apply to both
 			   variables and types, but the handling of cross-
 			   translation-unit correspondences may be different
-			   for variables and types). */
+			   for variables and types).  A value of iek_last
+			   applies to all entities. */
   an_attr_corresp_flag_set
 		corresp_flags;
 			/* Flags describing how correspondence checking
@@ -4280,6 +4281,7 @@ their syntactic location recorded as al_implicit.
         break;
 #endif /* GNU_EXTENSIONS_ALLOWED */
       case ak_deprecated:
+      case ak_unavailable:
       case ak_maybe_unused:
         do_copy = TRUE;
         break;
@@ -4914,12 +4916,17 @@ in diagnostics).
 }  /* check_for_previous_string_literal */
 
 
-static char* apply_deprecated_attr(an_attribute_ptr  ap,
-                                   char              *entity,
-                                   an_il_entry_kind  entity_kind)
+static char* apply_deprecated_or_unavailable_attr(
+                                                 an_attribute_ptr  ap,
+                                                 char              *entity,
+                                                 an_il_entry_kind  entity_kind)
 /*
-The given entity must be a variable, routine, type, or field.  Apply the
-"deprecated" attribute to it, and return the entity.
+This routine applies the "deprecated" or "unavailable" (GNU and Clang modes
+only) attribute to the given entity and returns it.  The processing for these
+attributes is identical (except "deprecated" results in a warning and
+"unavailable" in an error if the entity is later referenced).  Note that both
+attributes can appertain to the same entity (though if the entity is referenced
+the "unavailable" error will trump the "deprecated" warning).
 */
 {
   check_assertion(entity_kind == iek_routine || entity_kind == iek_variable ||
@@ -4928,9 +4935,9 @@ The given entity must be a variable, routine, type, or field.  Apply the
                   entity_kind == iek_namespace ||
                   entity_kind == iek_constant);
   if (entity_kind == iek_type) {
-    /* Only user-defined types can be deprecated. */
+    /* Only user-defined types can be marked as deprecated or unavailable. */
     a_type_ptr  tp = (a_type_ptr)entity;
-    if (!(is_tag_type(tp) || type_is_typedef(tp))) {
+    if (!(is_tag_type(tp) || type_is_typedef(tp) || is_function_type(tp))) {
       report_bad_attribute_target(es_warning, ap);
     } else if (ap->family == af_ms_declspec &&
                ap->syntactic_location == al_tag_name) {
@@ -4975,16 +4982,15 @@ The given entity must be a variable, routine, type, or field.  Apply the
       } else if (scp != NULL) {
         /* Issue any diagnostics associated with the string literal, if
            needed. */
-        check_for_previous_string_literal(ak_deprecated, scp, cp,
-                                          &aap->position);
+        check_for_previous_string_literal(ap->kind, scp, cp, &aap->position);
       }  /* if */
     }  /* if */
-    if (scp != NULL) {
-      scp->is_deprecated = TRUE;
+    if (scp != NULL && ap->kind != ak_unrecognized) {
+      scp->is_deprecated_or_unavailable = TRUE;
     }  /* if */
   }  /* if */
   return entity;
-}  /* apply_deprecated_attr */
+}  /* apply_deprecated_or_unavailable_attr */
  
 
 an_attribute_ptr attribute_string_literal_arg(an_attribute_kind           kind,
@@ -5014,23 +5020,22 @@ only the first such matching attribute is returned.
 }  /* attribute_string_literal_arg */
 
 
-a_const_char *deprecation_string_for(a_source_correspondence_ptr  scp)
+a_const_char *attribute_string_for_kind(an_attribute_kind           kind,
+                                        a_source_correspondence_ptr scp)
 /*
-Return the value of the narrow string literal recorded for the "deprecated"
-attribute (if any) applied to the entity associated with scp.
+Return the value of the narrow string literal recorded for the particular
+attribute kind (if any) applied to the entity associated with scp.
 */
 {
   a_const_char      *result = NULL;
 
-  if (scp->is_deprecated) {
-    an_attribute_ptr  ap = attribute_string_literal_arg(ak_deprecated, scp);
-    if (ap != NULL &&
-        is_ordinary_string_constant(ap->arguments->variant.constant)) {
-      result = ap->arguments->variant.constant->variant.string.value;
-    }  /* if */
+  an_attribute_ptr  ap = attribute_string_literal_arg(kind, scp);
+  if (ap != NULL &&
+      is_ordinary_string_constant(ap->arguments->variant.constant)) {
+    result = ap->arguments->variant.constant->variant.string.value;
   }  /* if */
   return result;
-}  /* deprecation_string_for */
+}  /* attribute_string_for_kind */
 
 
 static char* apply_final_attr(an_attribute_ptr  ap,
@@ -5461,38 +5466,6 @@ to it and return the entity.
   }  /* if */
   return entity;
 }  /* apply_enable_if_attr */
-
-
-static void deferred_check_unavailable_attr(a_decl_parse_state_ptr  dps)
-/*
-A check for the "unavailable" attribute has been deferred and can now be
-completed.
-*/
-{
-  if (dps->sym == NULL || !is_function_or_template_symbol(dps->sym)) {
-    pos_st_warning(ec_wrong_entity_for_attribute, &dps->start_pos,
-                   "unavailable");
-  } else {
-    func_sym_routine(dps->sym)->is_deleted = TRUE;
-  }  /* if */
-}  /* deferred_check_unavailable_attr */
-
-
-static char* apply_unavailable_attr(an_attribute_ptr  ap,
-                                    char              *entity,
-                                    an_il_entry_kind  entity_kind)
-/*
-The given entity must be a routine type.  Apply the Clang "unavailable"
-attribute to it and return the entity.
-*/
-{
-  a_decl_parse_state  *dps = (a_decl_parse_state*)ap->assoc_info;
-
-  check_assertion(entity_kind == iek_type && dps != NULL);
-  add_end_of_parse_action(deferred_check_unavailable_attr, dps,
-                          /*secondary_decls=*/TRUE);
-  return entity;
-}  /* apply_unavailable_attr */
 
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
 #if GNU_NAKED_ATTRIBUTE_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
@@ -10035,6 +10008,7 @@ attributes from new_list are applied to tssp->attributes.
            }  /* if */
           break;
         case ak_deprecated:
+        case ak_unavailable:
         case ak_maybe_unused:
           /* Declarations and definitions do not need to match, but if the
              attribute appears anywhere, it applies to the entity.  In this
@@ -10082,6 +10056,7 @@ attributes from new_list are applied to tssp->attributes.
         }  /* if */
         break;
       case ak_deprecated:
+      case ak_unavailable:
       case ak_maybe_unused:
         /* Declarations and definitions do not need to match, but if the
            attribute appears anywhere, it applies to the entity.  Add it

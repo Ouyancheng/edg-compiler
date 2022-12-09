@@ -14846,20 +14846,21 @@ language mode flags.
 }  /* add_implicit_ttt_flags */
 
 
-static a_boolean ttt_warn_about_use_of_deprecated_type(
+static a_boolean ttt_warn_about_use_of_deprecated_or_unavailable_type(
                                           a_type_ptr  type_ptr,
                                           a_boolean   *force_end_of_traversal)
 /*
-Return TRUE if the given type was marked as deprecated (either using a GNU
-attribute or using a Microsoft declspec specifier).  Also set
+Return TRUE if the given type was marked as deprecated or unavailable (either
+using a GNU attribute or using a Microsoft declspec specifier).  Also set
 *force_end_of_traversal to TRUE in that case, and issue a warning.
 */
 {
   a_boolean  found = FALSE;
 
-  if (type_ptr->source_corresp.is_deprecated) {
+  if (type_ptr->source_corresp.is_deprecated_or_unavailable) {
     *force_end_of_traversal = found = TRUE;
-    check_use_of_deprecated_entity(&type_ptr->source_corresp, &error_position);
+    check_use_of_deprecated_or_unavailable_entity(&type_ptr->source_corresp,
+                                                  &error_position);
   } else if ((type_ptr->kind == (a_type_kind)tk_typeref &&
               (typeref_is_typedef(type_ptr) ||
                typeref_is_type_operator(type_ptr))) ||
@@ -14871,15 +14872,15 @@ attribute or using a Microsoft declspec specifier).  Also set
     *force_end_of_traversal = TRUE;
   }  /* if */
   return found;
-}  /* ttt_warn_about_use_of_deprecated_type */
+}  /* ttt_warn_about_use_of_deprecated_or_unavailable_type */
 
 
-void warn_about_use_of_deprecated_type(a_type_ptr         type,
-                                       a_source_position  *pos)
+void warn_about_use_of_deprecated_or_unavailable_type(a_type_ptr         type,
+                                                      a_source_position  *pos)
 /*
-Warn if the given type has a component that has been marked as deprecated.
-Components under typedefs are not considered.  The warning is issued for
-the given position.
+Warn if the given type has a component that has been marked as deprecated or
+unavailable.  Components under typedefs are not considered.  The warning is
+issued for the given position.
 */
 {
   a_source_position               saved_pos;
@@ -14893,10 +14894,11 @@ the given position.
   saved_pos = error_position;
   error_position = *pos;
   add_implicit_ttt_flags(&ttt_flags);
-  (void)traverse_type_tree(type, ttt_warn_about_use_of_deprecated_type,
-                           ttt_flags);
+  (void)traverse_type_tree(type,
+                          ttt_warn_about_use_of_deprecated_or_unavailable_type,
+                          ttt_flags);
   error_position = saved_pos;
-}  /* warn_about_use_of_deprecated_type */
+}  /* warn_about_use_of_deprecated_or_unavailable_type */
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 

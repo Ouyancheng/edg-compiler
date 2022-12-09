@@ -4352,6 +4352,12 @@ static a_boolean
 			   __has_feature(attribute_deprecated_with_message). */
 
 static a_boolean
+		attribute_unavailable_with_message;
+			/* TRUE if the "unavailable" attribute can take a
+			   string argument.  Used to support
+			   __has_feature(attribute_unavailable_with_message).*/
+
+static a_boolean
 		decltype_keyword_enabled;
 			/* TRUE if the C++11 "decltype" keyword is enabled.
 			   This is needed to support
@@ -4607,6 +4613,11 @@ static a_feature_support feature_support_list[] = {
   { "attribute_deprecated_with_message",
     0,
     &attribute_deprecated_with_message,
+    NULL,
+    NULL },
+  { "attribute_unavailable_with_message",
+    0,
+    &attribute_unavailable_with_message,
     NULL,
     NULL },
   { "c_alignas",
@@ -11095,7 +11106,9 @@ command line -D options.
      macros. */
   access_control_sfinae = cpp11_mode && !cpp11_sfinae_ignore_access;
   contextual_conversions = TRUE;
-  attribute_deprecated_with_message = (gnu_version >= 40500);
+  attribute_deprecated_with_message = (gnu_version_is(>= 40500) || 
+                                       clang_version_is(>=30500));
+  attribute_unavailable_with_message = (clang_version_is(>=30500));
   decltype_keyword_enabled = decltype_enabled &&
                                             !enable_underscore_decltype_only;
   initializer_lists_enabled = cpp11_mode;

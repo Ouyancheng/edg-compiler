@@ -6067,7 +6067,7 @@ Clear the fields of the source correspondence for an IL entry that was
 just copied if those fields should not apply to the copy.
 */
 {
-  scp->is_deprecated = FALSE;
+  scp->is_deprecated_or_unavailable = FALSE;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   scp->source_sequence_entry = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */

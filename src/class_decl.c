@@ -16378,10 +16378,10 @@ implicitly declared member functions.
                                  sym, class_state->corresp_prototype_tag_sym);
         }  /* if */
       }  /* if */
-      if (!rtn->source_corresp.is_deprecated) {
+      if (!rtn->source_corresp.is_deprecated_or_unavailable) {
         /* Check if a deprecated type was involved in this declaration. */
-        warn_about_use_of_deprecated_type(member_type,
-                                          &locator->source_position);
+        warn_about_use_of_deprecated_or_unavailable_type(member_type,
+                                                    &locator->source_position);
       }  /* if */
     }  /* if */
     if (!special_kind_is(rtn, sfk_none)) {
@@ -18777,9 +18777,10 @@ template declaration and is NULL otherwise.
                                   !decl_state->is_definition &&
                                                       decl_state->sym->defined,
                                   decl_state->is_definition);
-  if (!var->source_corresp.is_deprecated) {
+  if (!var->source_corresp.is_deprecated_or_unavailable) {
     /* Check if a deprecated type was involved in this declaration. */
-    warn_about_use_of_deprecated_type(member_type, &locator->source_position);
+    warn_about_use_of_deprecated_or_unavailable_type(member_type,
+                                                    &locator->source_position);
   }  /* if */
   /* Check for the case in which the type is or contains a routine type for
      which default arguments have been specified. */
@@ -20782,8 +20783,9 @@ be entered.
   /* Check if a deprecated type was involved in this declaration.
      Unlike other similar cases, the warning is issued even when the field
      itself is marked as deprecated in GNU mode. */
-  if (!field->source_corresp.is_deprecated || gnu_mode) {
-    warn_about_use_of_deprecated_type(member_type, &locator->source_position);
+  if (!field->source_corresp.is_deprecated_or_unavailable || gnu_mode) {
+    warn_about_use_of_deprecated_or_unavailable_type(member_type,
+                                                    &locator->source_position);
   }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
   if (gnu_mode) {

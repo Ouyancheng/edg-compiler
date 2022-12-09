@@ -7087,6 +7087,28 @@ Do the output in the way described by octl.
 }  /* form_routine_type_attributes */
 
 
+static inline void form_deprecated_or_unavailable_attribute(
+                     a_source_correspondence               *scp,
+                     a_boolean                             *need_leading_space,
+                     an_il_to_str_output_control_block_ptr octl)
+/*
+Output "deprecated" and/or "unavailable" attributes if applicable.
+*/
+{
+  if (scp->is_deprecated_or_unavailable && !octl->c_generating_back_end) {
+    /* If we're generating output for the C-generating back end, we do not
+       output the __deprecated__ or __unavailable__ attributes because any
+       diagnostics it might trigger were already issued by the front end. */
+    if (find_attribute(ak_deprecated, scp->attributes)) {
+      form_simple_attribute("__deprecated__", need_leading_space, octl);
+    }  /* if */
+    if (find_attribute(ak_unavailable, scp->attributes)) {
+      form_simple_attribute("__unavailable__", need_leading_space, octl);
+    }  /* if */
+  }  /* if */
+}  /* form_deprecated_or_unavailable_attribute */
+
+
 a_boolean form_type_attributes(
                     a_type_ptr                             type,
                     a_boolean                              need_leading_space,
@@ -7128,12 +7150,8 @@ described by octl.
       /* Output the "unused" attribute. */
       form_simple_attribute("__unused__", &need_leading_space, octl);
     }  /* if */
-    if (type->source_corresp.is_deprecated && !octl->c_generating_back_end) {
-      /* If we're generating output for the C-generating back end, we do not
-         output the attribute __deprecated__ because any diagnostics it might
-         trigger were already issued by the front end. */
-      form_simple_attribute("__deprecated__", &need_leading_space, octl);
-    }  /* if */
+    form_deprecated_or_unavailable_attribute(&type->source_corresp,
+                                             &need_leading_space, octl);
     form_recorded_gnu_attribute(ak_alloc_size, type->source_corresp.attributes,
                                 &need_leading_space, octl);
     form_recorded_gnu_attribute(ak_mode, type->source_corresp.attributes,
@@ -7215,12 +7233,8 @@ Do the output in the way described by octl.
     if (var->has_gnu_used_attribute) {
       form_simple_attribute("__used__", &need_leading_space, octl);
     }  /* if */
-    if (var->source_corresp.is_deprecated && !octl->c_generating_back_end) {
-      /* If we're generating output for the C-generating back end, we do not
-         output the attribute __deprecated__ because any diagnostics it might
-         trigger were already issued by the front end. */
-      form_simple_attribute("__deprecated__", &need_leading_space, octl);
-    }  /* if */
+    form_deprecated_or_unavailable_attribute(&var->source_corresp,
+                                             &need_leading_space, octl);
     if (var->is_not_common) {
       form_simple_attribute("__nocommon__", &need_leading_space, octl);
     }  /* if */
@@ -7273,12 +7287,8 @@ Do the output in the way described by octl.
     form_recorded_gnu_attribute(ak_alloc_size,
                                 field->source_corresp.attributes,
                                 &need_leading_space, octl);
-    if (field->source_corresp.is_deprecated && !octl->c_generating_back_end) {
-      /* If we're generating output for the C-generating back end, we do not
-         output the attribute __deprecated__ because any diagnostics it might
-         trigger were already issued by the front end. */
-      form_simple_attribute("__deprecated__", &need_leading_space, octl);
-    }  /* if */
+    form_deprecated_or_unavailable_attribute(&field->source_corresp,
+                                             &need_leading_space, octl);
     if (field->is_packed) {
       form_simple_attribute("__packed__", &need_leading_space, octl);
     }  /* if */
@@ -7375,12 +7385,8 @@ Do the output in the way described by octl.
     if (rout->has_gnu_used_attribute) {
       form_simple_attribute("__used__", &need_leading_space, octl);
     }  /* if */
-    if (rout->source_corresp.is_deprecated && !octl->c_generating_back_end) {
-      /* If we're generating output for the C-generating back end, we do not
-         output the attribute __deprecated__ because any diagnostics it might
-         trigger were already issued by the front end. */
-      form_simple_attribute("__deprecated__", &need_leading_space, octl);
-    }  /* if */
+    form_deprecated_or_unavailable_attribute(&rout->source_corresp,
+                                             &need_leading_space, octl);
     if (rout->allocates_memory) {
       form_simple_attribute("__malloc__", &need_leading_space, octl);
     }  /* if */

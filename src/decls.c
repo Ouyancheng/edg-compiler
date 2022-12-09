@@ -7692,9 +7692,11 @@ for use in generating cross-reference output describing this declaration.
                    &locator->source_position);
   /* Copy the decl-modifiers into the variable entry. */
   update_variable_decl_modifiers(dps);
-  if (!variable_ptr->source_corresp.is_deprecated) {
-    /* Check if a deprecated type was involved in this declaration. */
-    warn_about_use_of_deprecated_type(type_ptr, &locator->source_position);
+  if (!variable_ptr->source_corresp.is_deprecated_or_unavailable) {
+    /* Check if a deprecated or unavailable type was involved in this
+       declaration. */
+    warn_about_use_of_deprecated_or_unavailable_type(type_ptr,
+                                                    &locator->source_position);
   }  /* if */
   /* If cross-reference information is being issued, update the output.  If
      source sequence entries are being generated, update the source sequence
@@ -10512,10 +10514,12 @@ skip_overloading:;
   }
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-  if (!routine_ptr->source_corresp.is_deprecated &&
+  if (!routine_ptr->source_corresp.is_deprecated_or_unavailable &&
       !routine_ptr->compiler_generated) {
-    /* Check if a deprecated type was involved in this declaration. */
-    warn_about_use_of_deprecated_type(type_ptr, &locator->source_position);
+    /* Check if a deprecated or unavailable type was involved in this
+       declaration. */
+    warn_about_use_of_deprecated_or_unavailable_type(type_ptr,
+                                                    &locator->source_position);
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (dps->ms_attributes != NULL && !idlb.is_block_extern_decl) {
@@ -11553,9 +11557,11 @@ definition of a member function of a class template.
       pop_namespace_extension_scope();
     }  /* if */
   }  /* if */
-  if (!rout_ptr->source_corresp.is_deprecated) {
-    /* Check if a deprecated type was involved in this declaration. */
-    warn_about_use_of_deprecated_type(type_ptr, &locator->source_position);
+  if (!rout_ptr->source_corresp.is_deprecated_or_unavailable) {
+    /* Check if a deprecated or unavailable type was involved in this
+       declaration. */
+    warn_about_use_of_deprecated_or_unavailable_type(type_ptr,
+                                                    &locator->source_position);
   }  /* if */
   if (special_kind_is(rout_ptr, sfk_udl_operator)) {
     (void)check_udl_operator_template(sym, &locator->source_position);
@@ -12581,9 +12587,11 @@ symbol entry, and return a pointer to it in state->sym.
   state->sym = sym;
   attach_decl_attributes(state, /*primary_decl=*/!is_redecl);
   if (!is_redecl && !is_error_type(type_ptr)) {
-    if (!tp->source_corresp.is_deprecated) {
-      /* Check if a deprecated type was involved in this declaration. */
-      warn_about_use_of_deprecated_type(type_ptr, &locator->source_position);
+    if (!tp->source_corresp.is_deprecated_or_unavailable) {
+      /* Check if a deprecated or unavailable type was involved in this
+         declaration. */
+      warn_about_use_of_deprecated_or_unavailable_type(type_ptr,
+                                                    &locator->source_position);
     }  /* if */
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED

@@ -13366,10 +13366,10 @@ end_potential_pack_expansion_context).
 }  /* record_pack_expansion_ellipsis */
 
 
-a_boolean in_deprecated_definition(void)
+a_boolean in_deprecated_or_unavailable_definition(void)
 /*
 Return TRUE if and only if we're inside the definition of an entity marked as
-deprecated.
+deprecated or unavailable.
 */
 {
   a_boolean                result = FALSE;
@@ -13385,13 +13385,13 @@ deprecated.
       case sck_class_struct_union:
       case sck_class_reactivation:
       case sck_enum:
-        if (ssep->assoc_type->source_corresp.is_deprecated) {
+        if (ssep->assoc_type->source_corresp.is_deprecated_or_unavailable) {
           result = TRUE;
           goto done;
         }  /* if */
         break;
       case sck_function:
-        if (ssep->assoc_routine->source_corresp.is_deprecated) {
+        if (ssep->assoc_routine->source_corresp.is_deprecated_or_unavailable) {
           result = TRUE;
           goto done;
         }  /* if */
@@ -13403,7 +13403,7 @@ deprecated.
   }  /* for */
 done:
   return result;
-}  /* in_deprecated_definition */
+}  /* in_deprecated_or_unavailable_definition */
 
 
 a_boolean in_ms_nonreal_class_instantiation(void)

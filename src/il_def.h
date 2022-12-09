@@ -2774,7 +2774,7 @@ enum an_attribute_kind : a_byte {
      flags. */
   ak_enable_if,		/* "enable_if" (clang). */
   ak_overloadable,	/* "overloadable" (clang). */
-  ak_unavailable,	/* "unavailable" (clang). */
+  ak_unavailable,	/* "unavailable" (gnu, clang). */
 
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
   /* Nonstandard attributes available in both GNU and Microsoft
@@ -3321,9 +3321,9 @@ typedef struct a_source_correspondence {
 			   a similar flag is present in the corresponding
 			   secondary source sequence entry.) */
 #endif /* GNU_EXTENSIONS_ALLOWED && GENERATE_SOURCE_SEQUENCE_LISTS */
-  a_bit_field   is_deprecated:1;
+  a_bit_field   is_deprecated_or_unavailable:1;
 			/* TRUE if this entity was marked as deprecated
-			   (using an attribute). */
+			   or unavailable (using an attribute). */
   a_bit_field	externalized:1;
 			/* TRUE if this is a variable or routine that was
 			   originally static and has been made external, e.g.,

@@ -6253,7 +6253,7 @@ in il_alloc_init.)
 #if GNU_EXTENSIONS_ALLOWED && GENERATE_SOURCE_SEQUENCE_LISTS
   def_source_corresp.marked_as_gnu_extension = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED && GENERATE_SOURCE_SEQUENCE_LISTS */
-  def_source_corresp.is_deprecated = FALSE;
+  def_source_corresp.is_deprecated_or_unavailable = FALSE;
   def_source_corresp.externalized = FALSE;
 #if IA64_ABI
   def_source_corresp.on_mangling_substitution_list = FALSE;

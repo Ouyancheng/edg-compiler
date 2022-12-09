@@ -2151,26 +2151,56 @@ created for this entity; otherwise, it is NULL.
 }  /* record_symbol_declaration */
 
 
-void check_use_of_deprecated_entity(a_source_correspondence_ptr  scp,
-                                    a_source_position            *pos)
+void check_use_of_deprecated_or_unavailable_entity(
+                                              a_source_correspondence_ptr scp,
+                                              a_source_position           *pos)
 /*
 The entity represented by the given source correspondence is referenced
 at the given position.  Issue a warning if the entity was declared with
-the GNU attribute "deprecated" or the Microsoft "__declspec(deprecated)"
-specifier.
+the "deprecated" attribute and an error if it was declared with the
+"unavailable" attribute.
 */
 {
-  if (scp->is_deprecated && !in_deprecated_definition()) {
-    a_symbol_ptr  sym = (a_symbol_ptr)scp->assoc_info;
+  if (scp->is_deprecated_or_unavailable &&
+      !in_deprecated_or_unavailable_definition()) {
+    a_symbol_ptr      sym = (a_symbol_ptr)scp->assoc_info;
+    an_error_severity sev;
+    an_attribute_kind kind;
+    an_attribute_ptr  ap;
+    an_error_code     diag_str, diag_no_str, diag_more;
     check_assertion(sym != NULL);
-    if (deprecation_string_for(scp) != NULL) {
-      pos_stsy_warning(ec_deprecated_entity_with_custom_message, pos,
-                       deprecation_string_for(scp), sym);
+    ap = find_attribute(ak_unavailable, scp->attributes);
+    if (ap != NULL) {
+      kind = ak_unavailable;
+      sev = es_error;
+      diag_str = ec_unavailable_entity_with_custom_message;
+      diag_no_str = ec_unavailable_entity;
+      diag_more = ec_unavailable_attr;
     } else {
-      pos_sy_warning(ec_deprecated_entity, pos, sym);
-    }  /*if */
+      ap = find_attribute(ak_deprecated, scp->attributes);
+      check_assertion(ap != NULL);
+      kind = ak_deprecated;
+      sev = es_warning;
+      diag_str = ec_deprecated_entity_with_custom_message;
+      diag_no_str = ec_deprecated_entity;
+      diag_more = ec_deprecated_attr;
+    }  /* if */
+    a_const_char      *str = attribute_string_for_kind(kind, scp);
+    a_diagnostic_ptr  dp;
+    a_diag_list       diag_list;
+    if (str != NULL) {
+      dp = pos_stsy_start_diagnostic(sev, diag_str, pos, str, sym);
+    } else {
+      dp = pos_sy_start_diagnostic(sev, diag_no_str, pos, sym);
+    }  /* if */
+    clear_diag_list(&diag_list);
+    more_info_diagnostic(diag_more, &ap->position, &diag_list);
+if (kind == ak_unavailable) { // FIXME: for now (also remove %nd)
+    add_more_info_list(dp, &diag_list);
+}
+    end_diagnostic(dp);
   }  /* if */
-}  /* check_use_of_deprecated_entity */
+}  /* check_use_of_deprecated_or_unavailable_entity */
 
 
 a_boolean check_use_of_deleted_function(a_symbol_ptr      rout_sym,
@@ -2211,20 +2241,8 @@ elided copy constructor.
       if (pos == NULL) {
         err = is_effective_sfinae_error(err_code, sev, &error_position);
       } else {
-        a_diagnostic_ptr  dp;
-        an_attribute_ptr  ap;
         err = is_effective_error(err_code, sev, pos);
-        dp = pos_ty_start_diagnostic(sev, err_code, pos,
-                                     parent_class_of(rout));
-        ap = find_attribute(ak_unavailable,
-                            rout->type->source_corresp.attributes);
-        if (ap != NULL) {
-          a_diag_list  diag_list;
-          clear_diag_list(&diag_list);
-          more_info_diagnostic(ec_unavailable_attr, &ap->position, &diag_list);
-          add_more_info_list(dp, &diag_list);
-        }  /* if */
-        end_diagnostic(dp);
+        pos_ty_diagnostic(sev, err_code, pos, parent_class_of(rout));
       }  /* if */
     } else {
       err_code = elided_ref ? ec_deleted_elided_cctor : ec_deleted_function;
@@ -2233,19 +2251,8 @@ elided copy constructor.
       if (pos == NULL) {
         err = is_effective_sfinae_error(err_code, sev, &error_position);
       } else {
-        a_diagnostic_ptr  dp;
-        an_attribute_ptr  ap;
         err = is_effective_error(err_code, sev, pos);
-        dp = pos_sy_start_diagnostic(sev, err_code, pos, rout_sym);
-        ap = find_attribute(ak_unavailable,
-                            rout->type->source_corresp.attributes);
-        if (ap != NULL) {
-          a_diag_list  diag_list;
-          clear_diag_list(&diag_list);
-          more_info_diagnostic(ec_unavailable_attr, &ap->position, &diag_list);
-          add_more_info_list(dp, &diag_list);
-        }  /* if */
-        end_diagnostic(dp);
+        pos_sy_diagnostic(sev, err_code, pos, rout_sym);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -2649,7 +2656,7 @@ check_label_decl_seq:
   if ((gnu_mode || ms_extensions || cpp14_mode) &&
       scptr != NULL &&
       !(sym_kind == (a_symbol_kind)sk_type || is_tag_symbol_kind(sym_kind))) {
-    check_use_of_deprecated_entity(scptr, source_position);
+    check_use_of_deprecated_or_unavailable_entity(scptr, source_position);
   }  /* if */
   if (is_simple_function_symbol(sym_ptr)) {
     (void)check_use_of_deleted_function(sym_ptr, /*elided_ref=*/FALSE,

@@ -7145,6 +7145,26 @@ entry that will be passed in for the subsequent messages.
 }  /* pos_sy_start_diagnostic */
 
 
+a_diagnostic_ptr pos_stsy_start_diagnostic(an_error_severity  error_severity,
+                                           an_error_code      error_code,
+                                           a_source_position  *error_pos,
+                                           a_const_char       *error_string,
+                                           struct a_symbol    *symbol)
+/*
+Begin a multiple message diagnostic with the specified severity, error code,
+source position, string, and symbol fill-in.  Return a pointer to the
+diagnostic entry that will be passed in for the subsequent messages.
+*/
+{
+  a_diagnostic_ptr	dp;
+
+  dp = create_primary_diagnostic(error_code, error_pos, error_severity);
+  add_string_fill_in(dp, error_string);
+  add_symbol_fill_in(dp, symbol);
+  return dp;
+}  /* pos_stsy_start_diagnostic */
+
+
 a_diagnostic_ptr pos_sy_start_error(an_error_code     error_code,
                                     a_source_position *error_pos,
                                     a_symbol_ptr      symbol)

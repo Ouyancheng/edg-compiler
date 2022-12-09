@@ -2539,7 +2539,7 @@ void record_pack_expansion_ellipsis_position(a_source_position  *ellipsis_pos);
 
 extern void record_pack_expansion_ellipsis(void);
 
-extern a_boolean in_deprecated_definition(void);
+extern a_boolean in_deprecated_or_unavailable_definition(void);
 
 extern a_boolean in_ms_nonreal_class_instantiation(void);
 
