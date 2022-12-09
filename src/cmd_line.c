@@ -2419,8 +2419,11 @@ option values if they were not already set by a command line option.
   IEEE_handling_on_float_operation_exceptions = FALSE;
   /* Floating-point template parameters are supported by MSVC++ through
      version 7.0.  These are also supported in later versions in some cases
-     (see below for specifics). */
-  floating_point_template_parameters_allowed = microsoft_version <= 1300;
+     (see below for specifics).  The flag has already been set when --c++20
+     is specified. */
+  if (!cpp20_mode) {
+    floating_point_template_parameters_allowed = microsoft_version <= 1300;
+  }  /* if */
   equiv_typedefs_are_lookup_equivalent = FALSE;
   null_chars_allowed_in_source = TRUE;
   /* This will be enabled below in some cases.  Note: Microsoft does not
