@@ -9670,6 +9670,7 @@ of the literal.
   cp->type = string_literal_type(kind, length);
   cp->variant.string.length = length;
   cp->variant.string.value  = val;
+  cp->variant.string.literal_kind = SCLK_ORDINARY_STRING_LITERAL;
   ctp->variant.ud_lit.spelling_con = alloc_cached_constant();
   copy_constant(cp, ctp->variant.ud_lit.spelling_con);
   ctp->variant.ud_lit.type = cp->type;
