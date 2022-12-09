@@ -25958,9 +25958,11 @@ and/or end_tsn are not NO_TOKEN_SEQUENCE_NUMBER only the tokens >= start_tsn
 and < end_tsn are included in the string.
 */
 {
+#if DEBUG
   if (db_flag_is_set("atcts")) {
     db_token_cache(cache, "add_token_cache_segment_to_string");
   }  /* if */
+#endif /* DEBUG */
   add_cached_tokens_to_string(cache->first_token, start_tsn, end_tsn);
 }  /* add_token_cache_segment_to_string */
 
