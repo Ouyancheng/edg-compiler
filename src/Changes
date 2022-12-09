@@ -1,5 +1,26 @@
 Version 6.5
 
+12/8/22  [EDGcpfe/25829]
+Unbounded recursion during overload resolution
+
+Consider (in C++11 mode):
+
+  template<typename> struct P;
+  template<typename T> struct P<T const&> { using Type = T&; };
+  template<typename T> T const& constify(T&) noexcept;
+  struct X {
+    int const& f() const;
+    template<typename ...Ts>
+      auto f(Ts &&...ps) -> typename P<decltype(f(ps...))>::Type;
+  };
+  int g(X x) {
+    x.f() = 42;
+  }
+
+Previously, this triggered unbounded recursion in some configurations or a
+spurious error about excessive recursive instantiation.  That is now fixed.
+
+
 12/8/22  [EDGcpfe/25832]
 Dummy variable for empty function parameter pack expansion
 

@@ -6220,6 +6220,23 @@ next_argument:
       n_deduction_viability_failures += 1;
 #endif /* DEBUG */
       goto reject_function;
+    } else if (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH) {
+      a_scope_stack_entry_ptr  ssep;
+      an_equiv_templ_param_options_set
+                               eta_flags = ETA_EXACT_MATCH_REQUIRED;
+      if (function_symbol->variant.template_info
+                         ->has_variadic_template_params) {
+        eta_flags |= ETA_IS_VARIADIC;
+      }  /* if */
+      ssep = &scope_stack[depth_innermost_instantiation_scope];
+      if (ssep->function_partial_instantiation &&
+          ssep->template_sym == function_symbol &&
+          equiv_template_arg_lists(local_template_arg_list,
+                                   ssep->template_arg_list, eta_flags)) {
+        /* While partially instantiating a function template, do not consider
+           that particular candidate instance. */
+        goto reject_function;
+      }  /* if */
     }  /* if */
     if (concepts_enabled) {
       /* Check that the constraints are satisfied. */
