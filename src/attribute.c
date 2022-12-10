@@ -4937,7 +4937,7 @@ the "unavailable" error will trump the "deprecated" warning).
   if (entity_kind == iek_type) {
     /* Only user-defined types can be marked as deprecated or unavailable. */
     a_type_ptr  tp = (a_type_ptr)entity;
-    if (!(is_tag_type(tp) || type_is_typedef(tp) || is_function_type(tp))) {
+    if (!(is_tag_type(tp) || type_is_typedef(tp))) {
       report_bad_attribute_target(es_warning, ap);
     } else if (ap->family == af_ms_declspec &&
                ap->syntactic_location == al_tag_name) {
