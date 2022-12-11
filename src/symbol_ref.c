@@ -2195,9 +2195,7 @@ the "deprecated" attribute and an error if it was declared with the
     }  /* if */
     clear_diag_list(&diag_list);
     more_info_diagnostic(diag_more, &ap->position, &diag_list);
-if (kind == ak_unavailable) { // FIXME: for now (also remove %nd)
     add_more_info_list(dp, &diag_list);
-}
     end_diagnostic(dp);
   }  /* if */
 }  /* check_use_of_deprecated_or_unavailable_entity */
