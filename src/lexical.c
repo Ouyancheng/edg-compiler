@@ -26665,6 +26665,8 @@ pointer, and ending (inclusive) with the token identified by last_tsn.
       (void)fputc(temp_text_buffer[k], f_debug);
     }  /* if */
   }  /* for */
+  /* Ensure there's a trailing newline. */
+  fprintf(f_debug, "\n");
   /* Restore the temporary text buffer to its prior state. */
   pos_in_temp_text_buffer = saved_pos;
   temp_text_buffer[saved_pos] = '\0';
