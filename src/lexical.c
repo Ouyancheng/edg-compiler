@@ -25734,9 +25734,8 @@ encountered, whatever their other characteristics, are included.
   db_exit();
 }  /* add_pragmas_to_string */
 
-#if MICROSOFT_EXTENSIONS_ALLOWED
 
-static void put_psuedo_token_start_to_temp_text_buffer(
+static void put_pseudo_token_start_to_temp_text_buffer(
                                         a_token_kind            kind,
                                         a_token_sequence_number tsn)
 /*
@@ -25749,19 +25748,29 @@ buffer.
   put_uint_to_temp_text_buffer(tsn);
   put_str_to_temp_text_buffer(" aka (");
   put_str_to_temp_text_buffer(token_names[(int)kind]);
-}  /* put_psuedo_token_start_to_temp_text_buffer */
+}  /* put_pseudo_token_start_to_temp_text_buffer */
 
 
-static void put_psuedo_token_end_to_temp_text_buffer()
+static void put_pseudo_token_start_to_temp_text_buffer(a_cached_token_ptr ctp)
+/*
+Add a starting character sequence, indicating the beginning of a pseudo token
+cached as the given cached token.
+*/
+{
+  put_pseudo_token_start_to_temp_text_buffer(ctp->token,
+                                             ctp->token_sequence_number);
+}  /* put_pseudo_token_start_to_temp_text_buffer */
+
+
+static void put_pseudo_token_end_to_temp_text_buffer()
 /*
 Add a ending character sequence, indicating the end of a pseudo token to the
 temporary text buffer.
 */
 {
   put_str_to_temp_text_buffer(") :!)");
-}  /* put_psuedo_token_end_to_temp_text_buffer */
+}  /* put_pseudo_token_end_to_temp_text_buffer */
 
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if DEBUG
 
 static constexpr a_const_char
@@ -25786,6 +25795,79 @@ static constexpr unsigned
 
 #endif /* DEBUG */
 
+static void add_cached_token_to_string(a_cached_token_ptr ctp,
+                                       a_boolean          print_pseudo_tokens)
+/*
+Add the given token to the string that is being construct.  If
+print_pseudo_tokens is TRUE, pseudo tokens will be printed explicitly.
+*/
+{
+  a_token_extra_info_kind teik_kind = ctp->extra_info_kind;
+
+  if (teik_kind == (a_token_extra_info_kind)teik_pragma) {
+    /* This token entry represents one or more pragmas.  Call a routine to add
+       the pragmas to the string. */
+    add_pragmas_to_string(ctp->variant.pragmas);
+  } else if (print_pseudo_tokens &&
+             teik_kind == (a_token_extra_info_kind)teik_extracted_body) {
+    put_pseudo_token_start_to_temp_text_buffer(ctp);
+    put_pseudo_token_end_to_temp_text_buffer();
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  } else if (print_pseudo_tokens && teik_kind == teik_ifc_index) {
+    put_pseudo_token_start_to_temp_text_buffer(ctp);
+#if DEBUG
+    {
+      a_lexical_ifc_index_reference ifc_idx = ctp->variant.ifc_index;
+
+      put_str_to_temp_text_buffer(" - ");
+      switch (ifc_idx.reference_kind) {
+        case liik_decl_index:
+          { an_ifc_decl_sort sort = (an_ifc_decl_sort)ifc_idx.sort;
+
+            put_str_to_temp_text_buffer(str_for(sort));
+          }
+          break;
+        case liik_expr_index:
+          { an_ifc_expr_sort sort = (an_ifc_expr_sort)ifc_idx.sort;
+
+            put_str_to_temp_text_buffer(str_for(sort));
+          }
+          break;
+        default_is_unexpected();
+      }  /* switch */
+      put_str_to_temp_text_buffer(" - ");
+      put_uint_to_temp_text_buffer(ifc_idx.index);
+    }
+#endif /* DEBUG */
+    put_pseudo_token_end_to_temp_text_buffer();
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  } else {
+    /* A normal token (including, possibly, a pp-token). */
+    if (print_pseudo_tokens && ctp->token == tok_end_of_source) {
+      put_pseudo_token_start_to_temp_text_buffer(ctp);
+      put_pseudo_token_end_to_temp_text_buffer();
+    } else if (ctp->token == tok_removed_template_body) {
+      if (print_pseudo_tokens) {
+        put_pseudo_token_start_to_temp_text_buffer(ctp);
+        put_pseudo_token_end_to_temp_text_buffer();
+      } else {
+        /* If a removed template body token is re-cached, it may not have
+           the extra info.  Replace it with a semicolon. */
+        put_ch_to_temp_text_buffer(';');
+      }  /* if */
+    } else {
+      add_token_to_string(ctp);
+    }  /* if */
+  }  /* if */
+  if (teik_kind == (a_token_extra_info_kind)teik_asm_string) {
+    /* A Microsoft asm string.  Add the asm string to the buffer. */
+    /* Insert a space between the asm token and the asm string. */
+    add_whitespace_to_string((a_seq_number)0, (a_column_number)1);
+    put_str_to_temp_text_buffer(ctp->variant.asm_string);
+  }  /* if */
+}  /* add_cached_token_to_string */
+
+
 void add_cached_tokens_to_string(a_cached_token_ptr       first_token,
                                  a_token_sequence_number  start_tsn,
                                  a_token_sequence_number  end_tsn)
@@ -25793,14 +25875,17 @@ void add_cached_tokens_to_string(a_cached_token_ptr       first_token,
 Go through a list of cached tokens and add the tokens to the string that is
 being constructed that represents the tokens.  If start_tsn and/or end_tsn are
 not NO_TOKEN_SEQUENCE_NUMBER only the tokens (inclusively) following start_tsn
-and (exclusively) preceding end_tsn are included in the string.
+and (exclusively) preceding end_tsn are included in the string.  This function
+assumes token sequence numbers appear in order.  Additionally, if an end of
+source token is encountered before end_tsn, this function will stop before the
+end_tsn.
 */
 {
   a_cached_token_ptr	ctp = first_token;
-#if DEBUG
-  unsigned              color_idx = 0;
-#endif /* DEBUG */
 
+  check_assertion(start_tsn < end_tsn ||
+                  start_tsn == NO_TOKEN_SEQUENCE_NUMBER ||
+                  end_tsn == NO_TOKEN_SEQUENCE_NUMBER);
   /* Skip any tokens that are before the desired starting point. */
   if (start_tsn != NO_TOKEN_SEQUENCE_NUMBER) {
     for (; ctp != NULL; ctp = ctp->next) {
@@ -25809,7 +25894,6 @@ and (exclusively) preceding end_tsn are included in the string.
   }  /* if */
   /*lint --e{850} ctp modified in loop */
   for (; ctp != NULL; ctp = ctp->next) {
-    a_token_extra_info_kind	teik_kind;
     /* Stop when we run out of tokens or hit an end-of-source token. */
     if ((a_token_kind)ctp->token == tok_end_of_source) break;
     /* Stop if we've reached the specified ending token sequence number. */
@@ -25822,42 +25906,20 @@ and (exclusively) preceding end_tsn are included in the string.
          the template string. */
       ctp = ctp->variant.extracted_template.next_in_token_string;
     }  /* if */
-    teik_kind = ctp->extra_info_kind;
-#if DEBUG
-    if (db_flag_is_set("brightcolor")) {
-      put_ch_to_temp_text_buffer('\033');
-      put_ch_to_temp_text_buffer('[');
-      /* Update the current color. */
-      color_idx = (color_idx + 1) % tok_dbg_num_bright_colors;
 
-      a_const_char *color_code = tok_dbg_bright_colors[color_idx];
-      put_str_to_temp_text_buffer(color_code);
-      put_ch_to_temp_text_buffer('m');
-    } else if (db_flag_is_set("darkcolor")) {
-      put_ch_to_temp_text_buffer('\033');
-      put_ch_to_temp_text_buffer('[');
-      /* Update the current color. */
-      color_idx = (color_idx + 1) % tok_dbg_num_dark_colors;
-
-      a_const_char *color_code = tok_dbg_dark_colors[color_idx];
-      put_str_to_temp_text_buffer(color_code);
-      put_ch_to_temp_text_buffer('m');
-    }  /* if */
-#endif /* DEBUG */
-    if (teik_kind == (a_token_extra_info_kind)teik_pragma) {
-      /* This token entry represents one or more pragmas.  Call a routine
-         to add the pragmas to the string. */
-      add_pragmas_to_string(ctp->variant.pragmas);
-    } else if (teik_kind == (a_token_extra_info_kind)teik_extracted_body) {
+    a_token_extra_info_kind teik_kind = ctp->extra_info_kind;
+    /* Do special processing for teik_extracted_body tokens. */
+    if (teik_kind == (a_token_extra_info_kind)teik_extracted_body) {
       if (ctp->variant.extracted_template.next_in_token_string == NULL) {
-        a_boolean	add_orig_token = TRUE;
-        a_boolean	add_body_string = TRUE;
+        a_boolean                        add_orig_token = TRUE;
+        a_boolean                        add_body_string = TRUE;
         /* A template body was extracted at this location.  Insert the body of
            the template at this point in the string. */
-        a_symbol_ptr			sym;
-        a_template_symbol_supplement_ptr	tssp;
-        sym =   ctp->variant.extracted_template.symbol;
-        tssp = template_supplement_for_symbol(sym);
+        a_symbol_ptr                     sym =
+                                        ctp->variant.extracted_template.symbol;
+        a_template_symbol_supplement_ptr tssp =
+                                           template_supplement_for_symbol(sym);
+
 #if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS && \
     REMOVE_INLINE_BODIES_FROM_CLASS_TEMPLATE_DEFINITIONS
         if (sym->kind == (a_symbol_kind)sk_member_function &&
@@ -25879,8 +25941,8 @@ and (exclusively) preceding end_tsn are included in the string.
         /* This semicolon was inserted, and so should be suppressed if the body
            is output above. */
         add_orig_token = ctp->token != tok_removed_template_body &&
-                         (!add_body_string ||
-                          !ctp->variant.extracted_template.semicolon_inserted);
+          (!add_body_string ||
+           !ctp->variant.extracted_template.semicolon_inserted);
         if (add_orig_token) {
           add_token_to_string(ctp);
         }  /* if */
@@ -25891,61 +25953,12 @@ and (exclusively) preceding end_tsn are included in the string.
         ctp = ctp->variant.extracted_template.next_in_token_string;
         put_ch_to_temp_text_buffer(';');
       }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    } else if (teik_kind == teik_ifc_index) {
-      put_psuedo_token_start_to_temp_text_buffer(ctp->token,
-                                                 ctp->token_sequence_number);
-#if DEBUG
-      {
-        a_lexical_ifc_index_reference ifc_idx = ctp->variant.ifc_index;
-
-        put_str_to_temp_text_buffer(" - ");
-        switch (ifc_idx.reference_kind) {
-          case liik_decl_index:
-            { an_ifc_decl_sort sort = (an_ifc_decl_sort)ifc_idx.sort;
-
-              put_str_to_temp_text_buffer(str_for(sort));
-            }
-            break;
-          case liik_expr_index:
-            { an_ifc_expr_sort sort = (an_ifc_expr_sort)ifc_idx.sort;
-
-              put_str_to_temp_text_buffer(str_for(sort));
-            }
-            break;
-          default_is_unexpected();
-        }  /* switch */
-        put_str_to_temp_text_buffer(" - ");
-        put_uint_to_temp_text_buffer(ifc_idx.index);
-      }
-#endif /* DEBUG */
-      put_psuedo_token_end_to_temp_text_buffer();
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else {
-      /* A normal token (including, possibly, a pp-token). */
-      if (ctp->token == tok_removed_template_body) {
-        /* If a removed template body token is re-cached, it may not have
-           the extra info.  Replace it with a semicolon. */
-        put_ch_to_temp_text_buffer(';');
-      } else {
-        add_token_to_string(ctp);
-      }  /* if */
-    }  /* if */
-    if (teik_kind == (a_token_extra_info_kind)teik_asm_string) {
-      /* A Microsoft asm string.  Add the asm string to the buffer. */
-      /* Insert a space between the asm token and the asm string. */
-      add_whitespace_to_string((a_seq_number)0, (a_column_number)1);
-      put_str_to_temp_text_buffer(ctp->variant.asm_string);
-    }  /* if */
+      /* Otherwise, fallback to the common token printing, ignoring pseudo
+         tokens. */
+      add_cached_token_to_string(ctp, /*print_pseudo_tokens=*/FALSE);
+    } /* if */
   }  /* for */
-#if DEBUG
-  if (db_color_flag_is_set()) {
-    put_ch_to_temp_text_buffer('\033');
-    put_ch_to_temp_text_buffer('[');
-    put_ch_to_temp_text_buffer(0);
-    put_ch_to_temp_text_buffer('m');
-  }  /* if */
-#endif /* DEBUG */
 }  /* add_cached_tokens_to_string */
 
 void add_token_cache_segment_to_string(a_token_cache_ptr	cache,
@@ -26481,6 +26494,57 @@ and using the associated file name and line number.
 }  /* db_source_position */
 
 
+static void add_cached_tokens_to_string_for_debug(
+                                          a_cached_token_ptr       first_token,
+                                          a_token_sequence_number  end_tsn)
+/*
+Go through a list of cached tokens and add the tokens to the string that is
+being constructed that represents the tokens.  If end_tsn is not
+NO_TOKEN_SEQUENCE_NUMBER only the tokens (exclusively) preceding end_tsn are
+included in the string.
+*/
+{
+  a_cached_token_ptr ctp = first_token;
+  unsigned           color_idx = 0;
+
+  /*lint --e{850} ctp modified in loop */
+  for (; ctp != NULL; ctp = ctp->next) {
+    /* Stop if we've reached the specified ending token sequence number. */
+    if (end_tsn != NO_TOKEN_SEQUENCE_NUMBER &&
+        ctp->token_sequence_number == end_tsn) break;
+
+    /* Add the color rotation if relevant. */
+    if (db_flag_is_set("brightcolor")) {
+      put_ch_to_temp_text_buffer('\033');
+      put_ch_to_temp_text_buffer('[');
+      /* Update the current color. */
+      color_idx = (color_idx + 1) % tok_dbg_num_bright_colors;
+
+      a_const_char *color_code = tok_dbg_bright_colors[color_idx];
+      put_str_to_temp_text_buffer(color_code);
+      put_ch_to_temp_text_buffer('m');
+    } else if (db_flag_is_set("darkcolor")) {
+      put_ch_to_temp_text_buffer('\033');
+      put_ch_to_temp_text_buffer('[');
+      /* Update the current color. */
+      color_idx = (color_idx + 1) % tok_dbg_num_dark_colors;
+
+      a_const_char *color_code = tok_dbg_dark_colors[color_idx];
+      put_str_to_temp_text_buffer(color_code);
+      put_ch_to_temp_text_buffer('m');
+    }  /* if */
+
+    add_cached_token_to_string(ctp, /*print_pseudo_tokens=*/TRUE);
+  }  /* for */
+  if (db_color_flag_is_set()) {
+    put_ch_to_temp_text_buffer('\033');
+    put_ch_to_temp_text_buffer('[');
+    put_ch_to_temp_text_buffer(0);
+    put_ch_to_temp_text_buffer('m');
+  }  /* if */
+}  /* add_cached_tokens_to_string_for_debug */
+
+
 static void db_token_range(a_cached_token_ptr      first_token,
                            a_token_sequence_number last_tsn)
 /*
@@ -26533,7 +26597,7 @@ pointer, and ending (inclusive) with the token identified by last_tsn.
   }  /* if */
   fprintf(f_debug, "[tsn: %ld - %ld]\n", (long)start_tsn, (long)last_tsn);
   /* Add the tokens to the temp_text_buffer. */
-  add_cached_tokens_to_string(first_token, start_tsn, end_tsn);
+  add_cached_tokens_to_string_for_debug(first_token, end_tsn);
 
   sizeof_t  k = saved_pos;
   /* Skip leading spaces. */
