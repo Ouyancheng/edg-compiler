@@ -51525,11 +51525,24 @@ an_expr_node_ptr make_builtin_edg_is_deducible_expr(a_template_ptr  templ,
                                                     a_type_ptr      type)
 /*
 Create a compiler-generated expression for "__edg_is_deducible(templ, type)"
-and return a pointer to it.
+and return a pointer to it.  This expression is used to implement the
+constraint for class template argument deduction for alias templates that is
+satisfied if the template arguments of "templ" are deducible from "type".  (See
+N4868 [over.match.class.deduct]/3.)
 */
 {
-  an_expr_node_ptr  arg1, arg2, is_deducible_expr;
+  an_expr_stack_entry_ptr  saved_expr_stack;
+  an_expr_stack_entry      expr_stack_entry;
+  an_expr_node_ptr         arg1, arg2, is_deducible_expr;
 
+  /* Even though this is not an expression scan, make sure the expr_stack
+     has something on it.  If there is already something on the stack,
+     save it, clear the stack, and restore it later. */
+  save_expr_stack(&saved_expr_stack);
+  push_expr_stack(ek_sizeof, &expr_stack_entry,
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/TRUE);
+  expr_stack_entry.possible_rescan_context = TRUE;
   arg1 = alloc_expr_node(enk_template_name);
   arg1->compiler_generated = TRUE;
   arg1->type = void_type();
@@ -51550,6 +51563,8 @@ and return a pointer to it.
   is_deducible_expr->variant.builtin_operation.operands = arg1;
   record_position_in_expr_for_rescan(is_deducible_expr, &null_source_position,
                                      &null_source_position);
+  pop_expr_stack();
+  restore_expr_stack(saved_expr_stack);
   return is_deducible_expr;
 }  /* make_builtin_edg_is_deducible_expr */
 

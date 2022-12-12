@@ -12532,11 +12532,11 @@ partial specialization.
   a_template_arg_ptr			prev_templ_tap = NULL;
   a_boolean				tap_is_pack = FALSE;
   a_boolean				templ_tap_is_pack = FALSE;
-  an_mtt_flag_set			new_flags = flags;
 
   /* templ_tap is not tested here so that any placeholders in tap will
      still be skipped in the loop. */
   for (match = TRUE; match && tap != NULL;) {
+    an_mtt_flag_set  new_flags = flags;
     /* See if the current tap list is a start-of-pack entry, and if so,
        skip any placeholders. */
     tap_is_pack = is_start_of_pack_expansion_templ_arg(tap);
@@ -12565,9 +12565,7 @@ partial specialization.
     if (tap->is_pack) {
       new_flags |= MTT_IS_PACK;
     } else if (tap->is_pack_element) {
-      new_flags = flags & ~MTT_IS_PACK;
-    } else {
-      new_flags = flags;
+      new_flags &= ~MTT_IS_PACK;
     }  /* if */
     if (tap->kind != templ_tap->kind) {
       /* The argument kinds do not match */
@@ -14186,6 +14184,7 @@ parameters.
     ctws_state->substituted_parameter_pack = FALSE;
   }  /* if */
 done:
+  /* Merge the saved flag back into the resulting state. */
   ctws_state->substituted_parameter_pack |= saved_substituted_parameter_pack;
 }  /* substitute_template_argument */
 
@@ -41490,8 +41489,7 @@ a class template parameter list.
     a_template_param_list_pos
 			old_pos = coordinates_of_template_param(old_tpp)
 								    ->position;
-    if ((mask != NULL) &&
-        (old_pos > mask->length() || !(*mask)[old_pos - 1])) {
+    if (mask != NULL && (old_pos > mask->length() || !(*mask)[old_pos - 1])) {
       /* Skip over this template parameter. */
       continue;
     }  /* if */
@@ -41569,7 +41567,7 @@ template argument list that have been replaced are freed.
 {
   a_template_arg_ptr  tap = *p_tap, tail = NULL,
                       replacement_args, replacement_tap;
-  if (mask.is_empty() || tap == NULL) return;
+  if (mask.is_empty() || tap == NULL) goto done;
   replacement_args = create_prototype_arg_list(NULL, template_params,
                                                /*add_pack_descr=*/TRUE);
   replacement_tap = replacement_args;
@@ -41601,7 +41599,7 @@ template argument list that have been replaced are freed.
     }  /* if */
     tail = arg_to_add;
     /* Skip over any pack elements that were added to the list. */
-    while ((tail->next != NULL) && (tail->next->is_pack_element)) {
+    while (tail->next != NULL && tail->next->is_pack_element) {
       tail = tail->next;
     }  /* while */
     tap_list = tap;
@@ -41619,6 +41617,7 @@ template argument list that have been replaced are freed.
       free_template_arg_list(tap_list);
     }  /* if */
   }  /* for */
+done:;
 }  /* replace_args_with_proto_args_for_mask */
 
 
@@ -42265,8 +42264,10 @@ guide is recorded in the template symbol supplement associated with alias_sym.
   rout_type = guide->type;
 #if DEBUG
   if (db_flag_is_set("ctad")) {
-    fputs("ctad for alias template: ", f_debug); db_type(def_type);
-    fputs("\n  guide: ", f_debug); db_type(guide->type);
+    fputs("ctad for alias template: ", f_debug);
+    db_type(def_type);
+    fputs("\n  guide: ", f_debug);
+    db_type(guide->type);
     fputs("\n", f_debug);
   }  /* if */
 #endif /* DEBUG */
@@ -42517,8 +42518,6 @@ guide is recorded in the template symbol supplement associated with alias_sym.
       a_template_symbol_supplement_ptr
                                new_tssp;
       an_expr_node_ptr         is_deducible_expr;
-      an_expr_stack_entry_ptr  saved_expr_stack;
-      an_expr_stack_entry      expr_stack_entry;
 
       ctor_sym = guide_tssp->variant.function.constructor_symbol_for_guide;
       new_guide = make_implicit_deduction_guide_template(alias_sym, proto_type,
@@ -42529,16 +42528,9 @@ guide is recorded in the template symbol supplement associated with alias_sym.
       new_tssp->cache.decl_info->parameters = new_template_params;
       /* Create an expression to check whether the alias template parameters
          are deducible from the return type of the transformed guide. */
-      save_expr_stack(&saved_expr_stack);
-      push_expr_stack(ek_sizeof, &expr_stack_entry,
-                      /*force_object_lifetime=*/FALSE,
-                      /*suppress_object_lifetime=*/TRUE);
-      expr_stack_entry.possible_rescan_context = TRUE;
       is_deducible_expr = make_builtin_edg_is_deducible_expr(
                                                  alias_tssp->il_template_entry,
                                                  ret_type);
-      pop_expr_stack();
-      restore_expr_stack(saved_expr_stack);
       guide_template_decl = guide_tssp->variant.function.decl_cache.decl_info
                                       ->template_decl;
       if (guide_template_decl != NULL) {
@@ -42672,7 +42664,7 @@ transformed for the alias template.
     a_typeref_type_supplement_ptr  ttsp = def_type->variant.typeref.extra_info;
     def_sym = symbol_for(ttsp->assoc_template);
   }  /* if */
-  if ((def_sym != NULL) && (!def_sym->is_nonreal_member)) {
+  if (def_sym != NULL && !def_sym->is_nonreal_member) {
     a_template_symbol_supplement_ptr
                      def_tssp;
     a_symbol_ptr     guide_set, guide_sym;
