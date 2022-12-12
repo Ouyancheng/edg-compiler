@@ -48,18 +48,6 @@ static a_text_buffer_ptr
                        /* A text buffer used for processing file names from the
                           IFC. */
 
-an_error_severity
-		unhandled_ifc_node_severity = es_remark;
-			/* The error severity to use for individually reported
-			   unhandled IFC nodes.  This has the potential to be
-			   extremely spammy. */
-
-an_error_severity
-		file_contains_unhandled_nodes_sev = es_warning;
-			/* The error severity to use for reporting that an IFC
-			   file contains unhandled nodes.  Typically only one
-			   report per module will be issued. */
-
 namespace {
 
 struct a_module_entity_stack_state;
@@ -1095,50 +1083,23 @@ END_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
 }  /* cache_name */
 
 
-inline void an_ifc_module::issue_unsupported_node_diag(a_const_char      *node,
-                                                       a_source_position *pos)
-/*
-Issue a diagnostic that an unhandled node was encountered.  node is the textual
-representation of the problematic node.  pos is the source position associated
-with the diagnostic.  The severity of the diagnostic is controlled externally
-(e.g., through a command-line option).  If an error entry is created as part of
-failure recovery call an_ifc_module::issue_unsupported_node_error instead to
-ensure an actual error is emitted (other parts of the front end assert that an
-error is expected when they encounter an error entry).
-*/
-{
-  if ((int)this->unhandled_node_diag_sev <
-                                     (int)file_contains_unhandled_nodes_sev) {
-    pos_st_diagnostic(file_contains_unhandled_nodes_sev,
-                      ec_module_file_contains_unsupported_constructs,
-                      &null_source_position, this->assoc_module_info->name);
-    this->unhandled_node_diag_sev = file_contains_unhandled_nodes_sev;
-  }  /* if */
-  pos_st_diagnostic(unhandled_ifc_node_severity, ec_unhandled_ifc_construct,
-                    pos, node);
-}  /* issue_unsupported_node_diag */
-
-
-inline void an_ifc_module::issue_unsupported_node_error(
-                                                      a_const_char      *node,
-                                                      a_source_position *pos)
+static void issue_unsupported_construct_error(an_ifc_module     *mod,
+                                              a_const_char      *node,
+                                              a_source_position *pos)
 /*
 Issue an error that an unhandled node was encountered.  node is the textual
 representation of the problematic node.  pos is the source position associated
 with the diagnostic.  Call this function when encountering unsupported IFC
-nodes that are handled by creating error entries (such as produced by
-error_type()): This ensures that an actual error is recorded, whereas the
-similar function an_ifc_module::issue_unsupported_node_diag may just issue a
-warning.
+nodes.
 */
 {
-  if ((int)this->unhandled_node_diag_sev < (int)es_error) {
+  if (!mod->assoc_module_info->contains_unsupported_constructs) {
     pos_st_error(ec_module_file_contains_unsupported_constructs,
-                 &null_source_position, this->assoc_module_info->name);
-    this->unhandled_node_diag_sev = es_error;
+                 &null_source_position, mod->assoc_module_info->name);
+    mod->assoc_module_info->contains_unsupported_constructs = TRUE;
   }  /* if */
   pos_st_error(ec_unhandled_ifc_construct, pos, node);
-}  /* an_ifc_module::issue_unsupported_node_error */
+}  /* issue_unsupported_construct_error */
 
 
 static a_const_char *get_string_at_offset(an_ifc_text_offset offset)
@@ -2794,8 +2755,8 @@ error occurs, return NULL.
       }
       break;
     default:
-      expr_idx.mod->issue_unsupported_node_diag(
-                                        "ExprIndex entity", &error_position);
+      issue_unsupported_construct_error(expr_idx.mod, "ExprIndex entity",
+                                        &error_position);
       break;
   }  /* switch */
 invalid:
@@ -2948,8 +2909,8 @@ braces for a compound statement).
 
   switch (stmt_idx.sort) {
     case ifc_ss_stmt_vendor_extension:
-      issue_unsupported_node_diag("StmtSort::VendorExtension",
-                                  &error_position);
+      issue_unsupported_construct_error(this, "StmtSort::VendorExtension",
+                                        &error_position);
       break;
     case ifc_ss_stmt_empty:
       { Opt<an_ifc_stmt_empty> opt_ise;
@@ -3024,10 +2985,12 @@ braces for a compound statement).
       }
       break;
     case ifc_ss_stmt_goto:
-      issue_unsupported_node_diag("StmtSort::Goto", &error_position);
+      issue_unsupported_construct_error(this, "StmtSort::Goto",
+                                        &error_position);
       break;
     case ifc_ss_stmt_handler:
-      issue_unsupported_node_diag("StmtSort::Handler", &error_position);
+      issue_unsupported_construct_error(this, "StmtSort::Handler",
+                                        &error_position);
       break;
     case ifc_ss_stmt_case:
       { Opt<an_ifc_stmt_case> opt_isc;
@@ -3187,7 +3150,8 @@ braces for a compound statement).
       }
       break;
     case ifc_ss_stmt_labeled:
-      issue_unsupported_node_diag("StmtSort::Labeled", &error_position);
+      issue_unsupported_construct_error(this, "StmtSort::Labeled",
+                                        &error_position);
       break;
     case ifc_ss_stmt_return:
       { Opt<an_ifc_stmt_return> opt_isr;
@@ -3207,7 +3171,8 @@ braces for a compound statement).
       }
       break;
     case ifc_ss_stmt_tuple:
-      issue_unsupported_node_diag("StmtSort::Tuple", &error_position);
+      issue_unsupported_construct_error(this, "StmtSort::Tuple",
+                                        &error_position);
       break;
     case ifc_ss_stmt_variable_decl:
       { Opt<an_ifc_stmt_variable_decl> opt_isvd;
@@ -3228,11 +3193,13 @@ braces for a compound statement).
         if (!opt_ise.has_value()) {
           goto invalid;
         }  /* if */
-        issue_unsupported_node_diag("StmtSort::Expansion", &error_position);
+        issue_unsupported_construct_error(this, "StmtSort::Expansion",
+                                          &error_position);
       }
       break;
     case ifc_ss_stmt_syntax_tree:
-      issue_unsupported_node_diag("StmtSort::SyntaxTree", &error_position);
+      issue_unsupported_construct_error(this, "StmtSort::SyntaxTree",
+                                        &error_position);
       break;
     default_is_unexpected_str("Unknown StmtSort kind");
   }  /* switch */
@@ -3357,7 +3324,8 @@ FALSE otherwise.
   an_ifc_module *mod = idt.get_module();
 
   /* FIXME: Currently unsupported. */
-  mod->issue_unsupported_node_diag("DeclSort::Temploid", &error_position);
+  issue_unsupported_construct_error(mod, "DeclSort::Temploid",
+                                    &error_position);
   return FALSE;
 }  /* cache_decl */
 
@@ -4250,7 +4218,8 @@ principal associated IL entity.
       case ifc_ds_decl_explicit_specialization:
         /* FIXME: Need a proper source position for this. */
         error_position = null_source_position;
-        issue_unsupported_node_error(str_for(decl_idx.sort), &error_position);
+        issue_unsupported_construct_error(this, str_for(decl_idx.sort),
+                                          &error_position);
         il_entity = (char *)error_type();
         kind = iek_type;
         break;
@@ -4712,8 +4681,9 @@ class_struct_union_case:
               } else if (basis == ifc_tbs_namespace) {
                 /* A namespace alias. */
                 /* FIXME: unimplemented. */
-                issue_unsupported_node_error("DeclSort::Alias namespace",
-                                             &error_position);
+                issue_unsupported_construct_error(this,
+                                                  "DeclSort::Alias namespace",
+                                                  &error_position);
                 il_entity = (char *)error_type();
                 kind = iek_type;
               } else {
@@ -5201,16 +5171,17 @@ class_struct_union_case:
           if (type_idx.sort == ifc_ts_type_expansion) {
             /* FIXME: Currently unsupported. */
             is_pack = TRUE;
-            issue_unsupported_node_diag("DeclSort::Parameter packs",
-                                        &error_position);
+            issue_unsupported_construct_error(this,
+                                              "DeclSort::Parameter packs",
+                                              &error_position);
           }  /* if */
           /* FIXME: Currently all paths that lead here have
              curr_templ_decl_state == NULL. */
           switch (get_ifc_sort(idp)) {
             case ifc_ps_object:
               /* FIXME: Currently unsupported. */
-              issue_unsupported_node_error("ParameterSort::Object",
-                                           &error_position);
+              issue_unsupported_construct_error(this, "ParameterSort::Object",
+                                                &error_position);
               param = make_nontype_template_param(get_ifc_level(idp),
                                                   get_ifc_position(idp),
                                                   /*is_unnamed=*/FALSE,
@@ -5246,8 +5217,9 @@ class_struct_union_case:
               break;
             case ifc_ps_template:
               /* FIXME: Currently unsupported. */
-              issue_unsupported_node_error("ParameterSort::Template",
-                                           &error_position);
+              issue_unsupported_construct_error(this,
+                                                "ParameterSort::Template",
+                                                &error_position);
               param = make_nontype_template_param(get_ifc_level(idp),
                                                   get_ifc_position(idp),
                                                   /*is_unnamed=*/FALSE,
@@ -5644,8 +5616,8 @@ class_struct_union_case:
         { /* FIXME: Need a proper source position here. */
           error_position = null_source_position;
 unhandled:
-          issue_unsupported_node_error(str_for(decl_idx.sort),
-                                       &error_position);
+          issue_unsupported_construct_error(this, str_for(decl_idx.sort),
+                                            &error_position);
           il_entity = (char *)error_type();
           kind = iek_type;
         }
@@ -6877,10 +6849,10 @@ position of the function declaration if not.
     /* FIXME: It is unclear what these sorts mean - leave as unsupported for
        now. */
     case ifc_ns_inferred:
-      issue_unsupported_node_diag("NoexceptSort::Inferred", pos);
+      issue_unsupported_construct_error(this, "NoexceptSort::Inferred", pos);
       break;
     case ifc_ns_unenforced:
-      issue_unsupported_node_diag("NoexceptSort::Unenforced", pos);
+      issue_unsupported_construct_error(this, "NoexceptSort::Unenforced", pos);
       break;
     case ifc_ns_none:
       /* This shouldn't be reachable, but is included here to prevent compiler
@@ -7104,19 +7076,18 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
             case ifc_tbs_enum:
               check_assertion(precision == ifc_tps_default);
               /* FIXME: Currently unsupported. */
-              issue_unsupported_node_error("TypeBasis::Enum", &error_position);
-              result = error_type();
-              break;
+              issue_unsupported_construct_error(this, "TypeBasis::Enum",
+                                                &error_position);
+              goto invalid;
             case ifc_tbs_typename:
               check_assertion(precision == ifc_tps_default);
               result = unknown_type();
               break;
             case ifc_tbs_segment_type:
               /* FIXME: Currently unsupported. */
-              issue_unsupported_node_error("TypeBasis::SegmentType",
-                                           &error_position);
-              result = error_type();
-              break;
+              issue_unsupported_construct_error(this, "TypeBasis::SegmentType",
+                                                &error_position);
+              goto invalid;
             case ifc_tbs_function:
               check_assertion(precision == ifc_tps_default);
               result = make_routine_type(unknown_type(), /*param1=*/NULL,
@@ -7134,16 +7105,14 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
               break;
             case ifc_tbs_concept:
               /* FIXME: Currently unsupported. */
-              issue_unsupported_node_error("TypeBasis::Concept",
-                                           &error_position);
-              result = error_type();
-              break;
+              issue_unsupported_construct_error(this, "TypeBasis::Concept",
+                                                &error_position);
+              goto invalid;
             case ifc_tbs_overload:
               /* FIXME: Currently unsupported. */
-              issue_unsupported_node_error("TypeBasis::Overload",
-                                           &error_position);
-              result = error_type();
-              break;
+              issue_unsupported_construct_error(this, "TypeBasis::Overload",
+                                                &error_position);
+              goto invalid;
             default_is_unexpected_str("Unexpected TypeBasis kind");
           }  /* switch */
         }
@@ -7247,8 +7216,9 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
             goto invalid;
           }  /* if */
           /* FIXME: Currently unsupported. */
-          issue_unsupported_node_error("TypeSort::Method", &error_position);
-          result = error_type();
+          issue_unsupported_construct_error(this, "TypeSort::Method",
+                                            &error_position);
+          goto invalid;
         }
         break;
       case ifc_ts_type_function:
@@ -7432,9 +7402,9 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
             goto invalid;
           }  /* if */
           /* FIXME: Currently unsupported. */
-          issue_unsupported_node_error("TypeSort::PointerToMember",
-                                       &error_position);
-          result = error_type();
+          issue_unsupported_construct_error(this, "TypeSort::PointerToMember",
+                                            &error_position);
+          goto invalid;
         }
         break;
       case ifc_ts_type_tuple:
@@ -7445,8 +7415,9 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
             goto invalid;
           }  /* if */
           /* FIXME: Currently unsupported. */
-          issue_unsupported_node_error("TypeSort::Tuple", &error_position);
-          result = error_type();
+          issue_unsupported_construct_error(this, "TypeSort::Tuple",
+                                            &error_position);
+          goto invalid;
         }
         break;
       case ifc_ts_type_forall:
@@ -7457,8 +7428,9 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
             goto invalid;
           }  /* if */
           /* FIXME: Currently unsupported. */
-          issue_unsupported_node_error("TypeSort::Forall", &error_position);
-          result = error_type();
+          issue_unsupported_construct_error(this, "TypeSort::Forall",
+                                            &error_position);
+          goto invalid;
         }
         break;
       case ifc_ts_type_syntactic:
@@ -7495,8 +7467,9 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
             goto invalid;
           }  /* if */
           /* FIXME: Currently unsupported. */
-          issue_unsupported_node_error("TypeSort::Expansion", &error_position);
-          result = error_type();
+          issue_unsupported_construct_error(this, "TypeSort::Expansion",
+                                            &error_position);
+          goto invalid;
         }
         break;
       case ifc_ts_type_typename:
@@ -7507,8 +7480,9 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
             goto invalid;
           }  /* if */
           /* FIXME: Currently unsupported. */
-          issue_unsupported_node_error("TypeSort::Typename", &error_position);
-          result = error_type();
+          issue_unsupported_construct_error(this, "TypeSort::Typename",
+                                            &error_position);
+          goto invalid;
         }
         break;
       case ifc_ts_type_base:
@@ -7519,8 +7493,9 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
             goto invalid;
           }  /* if */
           /* FIXME: Currently unsupported. */
-          issue_unsupported_node_error("TypeSort::Base", &error_position);
-          result = error_type();
+          issue_unsupported_construct_error(this, "TypeSort::Base",
+                                            &error_position);
+          goto invalid;
         }
         break;
       case ifc_ts_type_unaligned:
@@ -7531,8 +7506,9 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
             goto invalid;
           }  /* if */
           /* FIXME: Currently unsupported. */
-          issue_unsupported_node_error("TypeSort::Unaligned", &error_position);
-          result = error_type();
+          issue_unsupported_construct_error(this, "TypeSort::Unaligned",
+                                            &error_position);
+          goto invalid;
         }
         break;
       case ifc_ts_type_decltype:
@@ -7543,8 +7519,9 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
             goto invalid;
           }  /* if */
           /* FIXME: Currently unsupported. */
-          issue_unsupported_node_error("TypeSort::Decltype", &error_position);
-          result = error_type();
+          issue_unsupported_construct_error(this, "TypeSort::Decltype",
+                                            &error_position);
+          goto invalid;
         }
         break;
       case ifc_ts_type_syntax_tree:
@@ -7555,15 +7532,15 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
             goto invalid;
           }  /* if */
           /* FIXME: Currently unsupported. */
-          issue_unsupported_node_error("TypeSort::Syntaxtree",
-                                       &error_position);
-          result = error_type();
+          issue_unsupported_construct_error(this, "TypeSort::Syntaxtree",
+                                            &error_position);
+          goto invalid;
         }
         break;
       case ifc_ts_type_vendor_extension:
-        issue_unsupported_node_error(str_for(type_idx.sort), &error_position);
-        result = error_type();
-        break;
+        issue_unsupported_construct_error(this, str_for(type_idx.sort),
+                                          &error_position);
+        goto invalid;
       default_is_unexpected_str("Unexpected TypeSort");
     }  /* switch */
     /* Record this mapping for future reference. */
@@ -7573,7 +7550,10 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
     mep->entity.ptr = (char *)result;
     mep->entity.kind = iek_type;
   }  /* if */
+  goto done;
 invalid:
+  result = error_type();
+done:;
   return result;
 }  /* type_for_type_index */
 
@@ -7614,9 +7594,11 @@ template_args_for_expr_list instead.
           goto invalid;
         }  /* if */
         /* FIXME: Currently unsupported. */
-        issue_unsupported_node_error("ExprSort::UnaryFold", &error_position);
+        issue_unsupported_construct_error(this, "ExprSort::UnaryFold",
+                                          &error_position);
         kind = (a_templ_arg_kind)tak_type;
         type = error_type();
+        goto invalid;
       }
       break;
     case ifc_es_expr_read:
@@ -8036,11 +8018,12 @@ accordingly.
             goto invalid;
           }  /* if */
           /* FIXME: Currently unsupported. */
-          issue_unsupported_node_diag("NameSort::Specialization",
-                                      &error_position);
+          issue_unsupported_construct_error(this, "NameSort::Specialization",
+                                            &error_position);
           result = "<error-name>";
           /* String literals have static duration, no buffer required. */
           requires_buffer = FALSE;
+          goto invalid;
         }
         break;
       case ifc_ns_name_guide:
@@ -8051,10 +8034,12 @@ accordingly.
             goto invalid;
           }  /* if */
           /* FIXME: Currently unsupported. */
-          issue_unsupported_node_diag("NameSort::Guide", &error_position);
+          issue_unsupported_construct_error(this, "NameSort::Guide",
+                                            &error_position);
           result = "<error-name>";
           /* String literals have static duration, no buffer required. */
           requires_buffer = FALSE;
+          goto invalid;
         }
         break;
       case ifc_ns_text_offset:
@@ -8137,8 +8122,9 @@ Given a declaration, return the name associated with that declaration.
     case ifc_ds_decl_vendor_extension:
     case ifc_ds_decl_explicit_instantiation:
     case ifc_ds_decl_explicit_specialization:
-      issue_unsupported_node_diag(str_for(decl_idx.sort), &error_position);
-      break;
+      issue_unsupported_construct_error(this, str_for(decl_idx.sort),
+                                        &error_position);
+      goto invalid;
     case ifc_ds_decl_enumerator:
       { Opt<an_ifc_decl_enumerator> opt_ide;
 
@@ -8431,7 +8417,9 @@ Given a declaration, return the name associated with that declaration.
           goto invalid;
         }  /* if */
         /* FIXME: Currently unsupported. */
-        issue_unsupported_node_diag("DeclSort::Friend", &error_position);
+        issue_unsupported_construct_error(this, "DeclSort::Friend",
+                                          &error_position);
+        goto invalid;
       }
       break;
     case ifc_ds_decl_expansion:
@@ -8453,10 +8441,10 @@ Given a declaration, return the name associated with that declaration.
           goto invalid;
         }  /* if */
         /* FIXME: Currently unsupported. */
-        issue_unsupported_node_diag("DeclSort::DeductionGuide",
-                                    &error_position);
+        issue_unsupported_construct_error(this, "DeclSort::DeductionGuide",
+                                          &error_position);
+        goto invalid;
       }
-      break;
     case ifc_ds_decl_tuple:
       /* An overload set. */
       { Opt<an_ifc_decl_tuple> opt_idt;
@@ -8521,8 +8509,9 @@ Given a declaration, return the name associated with that declaration.
     case ifc_ds_decl_using_directive:
     case ifc_ds_decl_syntax_tree:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag(str_for(decl_idx.sort), &error_position);
-      break;
+      issue_unsupported_construct_error(this, str_for(decl_idx.sort),
+                                        &error_position);
+      goto invalid;
     default_is_unexpected_str("Unexpected DeclSort");
   }  /* switch */
   check_assertion(result != NULL);
@@ -9036,20 +9025,15 @@ FIXME: what other expressions can we get here?
       break;
     case ifc_es_expr_array_value:
       { Opt<an_ifc_expr_array_value> opt_ieav;
-        an_error_severity            saved_sev = unhandled_ifc_node_severity;
 
         construct_node(&opt_ieav, expr_idx);
         if (!opt_ieav.has_value()) {
           goto invalid;
         }  /* if */
         /* FIXME: Currently unsupported. */
-        /* Because we're allocating an error constant, we need to issue an
-           error, otherwise this may get to lowering. */
-        unhandled_ifc_node_severity = es_discretionary_error;
-        issue_unsupported_node_error("ExprSort::ArrayValue", &error_position);
-        cp = alloc_error_constant();
-        expect_error();
-        unhandled_ifc_node_severity = saved_sev;
+        issue_unsupported_construct_error(this, "ExprSort::ArrayValue",
+                                          &error_position);
+        goto invalid;
       }
       break;
     case ifc_es_expr_product_type_value:
@@ -9292,6 +9276,7 @@ FIXME: what other expressions can we get here?
   goto done;
 invalid:
   cp = alloc_error_constant();
+  expect_error_str("expected errors for bad constant");
 done:
   return cp;
 }  /* constant_for_expr_index */
@@ -9329,23 +9314,17 @@ FIXME: what other types of named declarations can we get here?
       }
       break;
     case ifc_ds_decl_function:
-      { an_error_severity saved_sev = unhandled_ifc_node_severity;
-        /* Since we're creating an error constant this needs to be an error so
-           that we do not proceed to lowering. */
-        unhandled_ifc_node_severity = es_error;
-        issue_unsupported_node_error("DeclSort::Function"
-                                     " for ExprSort::NamedDecl",
-                                     &error_position);
-        cp = alloc_error_constant();
-        unhandled_ifc_node_severity = saved_sev;
-      }
-      break;
+      issue_unsupported_construct_error(this, "DeclSort::Function"
+                                        " for ExprSort::NamedDecl",
+                                        &error_position);
+      goto invalid;
     default:
       unexpected_condition_str("Unexpected DeclSort for ExprSort::NamedDecl");
   }  /* switch */
   goto done;
 invalid:
   cp = alloc_error_constant();
+  expect_error_str("expected errors for bad constant");
 done:
   return cp;
 }  /* constant_for_named_decl */
@@ -9998,9 +9977,11 @@ Sentence containing punctuator.
       break;
     case ifc_sps_msvc_default_argument_start:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SourcePunctuator::MsvcDefaultArgumentStart",
+      issue_unsupported_construct_error(
+                                  this,
+                                  "SourcePunctuator::MsvcDefaultArgumentStart",
                                   &error_position);
-      break;
+      goto invalid;
     case ifc_sps_msvc_alignas_edict_start:
       break;
     case ifc_sps_msvc_default_init_start:
@@ -10009,6 +9990,11 @@ Sentence containing punctuator.
       break;
     default_is_unexpected_str("Unknown SourcePunctuator");
   }  /* switch */
+  goto done;
+invalid:
+  expect_error_str("expected errors for bad source punctuator cache");
+  cache->invalidate();
+done:;
 }  /* cache_source_punctuator */
 
 
@@ -10116,21 +10102,18 @@ locus is the location of the Sentence containing literal.
     case ifc_sls_msvc_defined_constant:
       /* FIXME: Is this correct? */
       cache_expr(cache, literal.variant.msvc_defined_constant, /*cinfo=*/{});
-      issue_unsupported_node_diag("SourceLiteral::MsvcDefinedConstant", &pos);
       break;
     case ifc_sls_msvc_cast_target_type:
       /* FIXME: Is this correct? */
       cache_token(cache, tok_lparen, &pos);
       cache_type(cache, literal.variant.msvc_cast_target_type, locus);
       cache_token(cache, tok_rparen, &pos);
-      issue_unsupported_node_diag("SourceLiteral::MsvcCastTargetType", &pos);
       break;
     default_is_unexpected_str("Unknown SourceLiteral");
   }  /* switch */
   goto done;
 invalid:
-  check_assertion_str(is_at_least_one_error(),
-                      "expected errors for bad source literal cache");
+  expect_error_str("expected errors for bad source literal cache");
   cache->invalidate();
 done:;
 }  /* cache_source_literal */
@@ -10449,8 +10432,9 @@ Sentence containing keyword.
       break;
     case ifc_sks_pragma:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SourceKeyword::Pragma", &error_position);
-      break;
+      issue_unsupported_construct_error(this, "SourceKeyword::Pragma",
+                                        &error_position);
+      goto invalid;
     case ifc_sks_private:
       cache_token(cache, tok_private, &pos);
       break;
@@ -10576,8 +10560,9 @@ Sentence containing keyword.
       break;
     case ifc_sks_msvc_eabi:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SourceKeyword::MsvcEabi", &error_position);
-      break;
+      issue_unsupported_construct_error(this, "SourceKeyword::MsvcEabi",
+                                        &error_position);
+      goto invalid;
     case ifc_sks_msvc_event:
       cache_token(cache, tok_event, &pos);
       break;
@@ -10595,8 +10580,9 @@ Sentence containing keyword.
       break;
     case ifc_sks_msvc_hook:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SourceKeyword::MsvcHook", &error_position);
-      break;
+      issue_unsupported_construct_error(this, "SourceKeyword::MsvcHook",
+                                        &error_position);
+      goto invalid;
     case ifc_sks_msvc_identifier:
       cache_token(cache, tok_microsoft_identifier, &pos);
       break;
@@ -10631,22 +10617,24 @@ Sentence containing keyword.
       break;
     case ifc_sks_msvc_multiple_inheritance:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SourceKeyword::MsvcMultipleInheritance",
-                                  &error_position);
-      break;
+      issue_unsupported_construct_error(
+                                      this,
+                                      "SourceKeyword::MsvcMultipleInheritance",
+                                      &error_position);
+      goto invalid;
     case ifc_sks_msvc_nullptr:
       cache_token(cache, tok_nullptr, &pos);
       break;
     case ifc_sks_msvc_novtordisp:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SourceKeyword::MsvcNovtordisp",
-                                  &error_position);
-      break;
+      issue_unsupported_construct_error(this, "SourceKeyword::MsvcNovtordisp",
+                                          &error_position);
+      goto invalid;
     case ifc_sks_msvc_pragma:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SourceKeyword::MsvcPragma",
-                                  &error_position);
-      break;
+      issue_unsupported_construct_error(this, "SourceKeyword::MsvcPragma",
+                                        &error_position);
+      goto invalid;
     case ifc_sks_msvc_ptr32:
       cache_token(cache, tok_microsoft_ptr32, &pos);
       break;
@@ -10658,9 +10646,10 @@ Sentence containing keyword.
       break;
     case ifc_sks_msvc_single_inheritance:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SourceKeyword::MsvcSingleInheritance",
-                                  &error_position);
-      break;
+      issue_unsupported_construct_error(this,
+                                        "SourceKeyword::MsvcSingleInheritance",
+                                        &error_position);
+      goto invalid;
     case ifc_sks_msvc_sptr:
       cache_token(cache, tok_microsoft_sptr, &pos);
       break;
@@ -10687,17 +10676,19 @@ Sentence containing keyword.
       break;
     case ifc_sks_msvc_unhook:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SourceKeyword::MsvcUnhook",
-                                  &error_position);
-      break;
+      issue_unsupported_construct_error(this, "SourceKeyword::MsvcUnhook",
+                                        &error_position);
+      goto invalid;
     case ifc_sks_msvc_vectorcall:
       cache_token(cache, tok_vectorcall, &pos);
       break;
     case ifc_sks_msvc_virtual_inheritance:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SourceKeyword::MsvcVirtualInheritance",
-                                  &error_position);
-      break;
+      issue_unsupported_construct_error(
+                                       this,
+                                       "SourceKeyword::MsvcVirtualInheritance",
+                                       &error_position);
+      goto invalid;
     case ifc_sks_msvc_w64:
       cache_token(cache, tok_microsoft_w64, &pos);
       break;
@@ -10724,10 +10715,11 @@ Sentence containing keyword.
       break;
     case ifc_sks_msvc_is_trivially_copy_constructible:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag(
+      issue_unsupported_construct_error(
+                             this,
                              "SourceKeyword::MsvcIsTriviallyCopyConstructible",
                              &error_position);
-      break;
+      goto invalid;
     case ifc_sks_msvc_is_trivially_copy_assignable:
       cache_token(cache, tok_is_trivially_copy_assignable, &pos);
       break;
@@ -10742,15 +10734,18 @@ Sentence containing keyword.
       break;
     case ifc_sks_msvc_is_nothrow_copy_constructible:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag(
+      issue_unsupported_construct_error(
+                               this,
                                "SourceKeyword::MsvcIsNothrowCopyConstructible",
                                &error_position);
-      break;
+      goto invalid;
     case ifc_sks_msvc_is_nothrow_copy_assignable:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SourceKeyword::MsvcIsNothrowCopyAssignable",
+      issue_unsupported_construct_error(
+                                  this,
+                                  "SourceKeyword::MsvcIsNothrowCopyAssignable",
                                   &error_position);
-      break;
+      goto invalid;
     case ifc_sks_msvc_is_pod:
       cache_token(cache, tok_is_pod, &pos);
       break;
@@ -10777,24 +10772,28 @@ Sentence containing keyword.
       break;
     case ifc_sks_msvc_is_trivially_move_constructible:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag(
+      issue_unsupported_construct_error(
+                             this,
                              "SourceKeyword::MsvcIsTriviallyMoveConstructible",
                              &error_position);
-      break;
+      goto invalid;
     case ifc_sks_msvc_has_trivial_move_assign:
       cache_token(cache, tok_has_trivial_move_assign, &pos);
       break;
     case ifc_sks_msvc_is_trivially_move_assignable:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag(
+      issue_unsupported_construct_error(
+                                this,
                                 "SourceKeyword::MsvcIsTriviallyMoveAssignable",
                                 &error_position);
-      break;
+      goto invalid;
     case ifc_sks_msvc_is_nothrow_move_assignable:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SourceKeyword::MsvcIsNothrowMoveAssignable",
+      issue_unsupported_construct_error(
+                                  this,
+                                  "SourceKeyword::MsvcIsNothrowMoveAssignable",
                                   &error_position);
-      break;
+      goto invalid;
     case ifc_sks_msvc_is_constructible:
       cache_token(cache, tok_is_constructible, &pos);
       break;
@@ -10891,6 +10890,11 @@ Sentence containing keyword.
       break;
     default_is_unexpected_str("Unknown SourceKeyword");
   }  /* switch */
+  goto done;
+invalid:
+  expect_error_str("expected errors for bad source keyword cache");
+  cache->invalidate();
+done:;
 }  /* cache_source_keyword */
 
 
@@ -11106,8 +11110,7 @@ return the index of that token.  Otherwise the return value is meaningless.
   }  /* if */
   goto done;
 invalid:
-  check_assertion_str(is_at_least_one_error(),
-                      "expected errors for bad sentence cache");
+  expect_error_str("expected errors for bad sentence cache");
   cache->invalidate();
 done:
   return idx;
@@ -11283,39 +11286,33 @@ that precede a declaration.  pos is the position to use for the traits.
   }  /* if */
   if (test_bitmask<ifc_mtb_code_segment>(traits)) {
     /* FIXME: Currently unsupported. */
-    pos_st_diagnostic(unhandled_ifc_node_severity,
-                      ec_module_file_contains_unsupported_constructs,
-                      &error_position, "MsvcTraits::CodeSegment");
+    issue_unsupported_construct_error(traits.mod, "MsvcTraits::CodeSegment",
+                                      &error_position);
   }  /* if */
   if (test_bitmask<ifc_mtb_intrinsic_type>(traits)) {
     /* FIXME: Currently unsupported. */
-    pos_st_diagnostic(unhandled_ifc_node_severity,
-                      ec_module_file_contains_unsupported_constructs,
-                      &error_position, "MsvcTraits::IntrinsicType");
+    issue_unsupported_construct_error(traits.mod, "MsvcTraits::IntrinsicType",
+                                      &error_position);
   }  /* if */
   if (test_bitmask<ifc_mtb_empty_bases>(traits)) {
     /* FIXME: Currently unsupported. */
-    pos_st_diagnostic(unhandled_ifc_node_severity,
-                      ec_module_file_contains_unsupported_constructs,
-                      &error_position, "MsvcTraits::EmptyBases");
+    issue_unsupported_construct_error(traits.mod, "MsvcTraits::EmptyBases",
+                                      &error_position);
   }  /* if */
   if (test_bitmask<ifc_mtb_allocate>(traits)) {
     /* FIXME: Currently unsupported. */
-    pos_st_diagnostic(unhandled_ifc_node_severity,
-                      ec_module_file_contains_unsupported_constructs,
-                      &error_position, "MsvcTraits::Allocate");
+    issue_unsupported_construct_error(traits.mod, "MsvcTraits::Allocate",
+                                      &error_position);
   }  /* if */
   if (test_bitmask<ifc_mtb_comdat>(traits)) {
     /* FIXME: Currently unsupported. */
-    pos_st_diagnostic(unhandled_ifc_node_severity,
-                      ec_module_file_contains_unsupported_constructs,
-                      &error_position, "MsvcTraits::Comdat");
+    issue_unsupported_construct_error(traits.mod, "MsvcTraits::Comdat",
+                                      &error_position);
   }  /* if */
   if (test_bitmask<ifc_mtb_uuid>(traits)) {
     /* FIXME: Currently unsupported. */
-    pos_st_diagnostic(unhandled_ifc_node_severity,
-                      ec_module_file_contains_unsupported_constructs,
-                      &error_position, "MsvcTraits::Uuid");
+    issue_unsupported_construct_error(traits.mod, "MsvcTraits::Uuid",
+                                      &error_position);
   }  /* if */
 }  /* cache_vendor_traits */
 
@@ -11369,15 +11366,15 @@ pos is the position to use for the traits.
   }  /* if */
   if (test_bitmask<ifc_ftb_hidden_friend>(traits)) {
     /* FIXME: Currently unsupported. */
-    pos_st_diagnostic(unhandled_ifc_node_severity,
-                      ec_module_file_contains_unsupported_constructs,
-                      &error_position, "FunctionTraits::HiddenFriend");
+    issue_unsupported_construct_error(traits.mod,
+                                      "FunctionTraits::HiddenFriend",
+                                      &error_position);
   }  /* if */
   if (test_bitmask<ifc_ftb_constrained>(traits)) {
     /* FIXME: Currently unsupported. */
-    pos_st_diagnostic(unhandled_ifc_node_severity,
-                      ec_module_file_contains_unsupported_constructs,
-                      &error_position, "FunctionTraits::Constrained");
+    issue_unsupported_construct_error(traits.mod,
+                                      "FunctionTraits::Constrained",
+                                      &error_position);
   }  /* if */
 }  /* cache_func_traits */
 
@@ -11469,19 +11466,24 @@ cache.  pos is the position of the exception specification.
       break;
     case ifc_ns_unenforced:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("NoexceptSort::Unenforced", &error_position);
-      break;
+      issue_unsupported_construct_error(this, "NoexceptSort::Unenforced",
+                                        &error_position);
+      goto invalid;
     case ifc_ns_inferred:
       /* Unreachable, but place here to have all enums covered. */
-      unexpected_condition_str("NoexceptSort::Inferred is not expected here");
-      break;
+      ifc_unexpected(this, "NoexceptSort::Inferred is not expected here");
+      goto invalid;
     case ifc_ns_none:
       /* Unreachable, but place here to have all enums covered. */
-      unexpected_condition_str("NoexceptSort::None is not expected here");
-      break;
+      ifc_unexpected(this, "NoexceptSort::None is not expected here");
+      goto invalid;
     default_is_unexpected_str("Unexpected NoexceptSpecification");
   }  /* switch */
   cache_token(cache, tok_rparen, pos);
+  goto done;
+invalid:
+  expect_error_str("expected errors for bad exception specifier cache");
+  cache->invalidate();
 done:;
 }  /* cache_exception_spec */
 
@@ -11661,9 +11663,9 @@ this is needed.
   source_position_from_locus(&pos, locus);
   switch (type.sort) {
     case ifc_ts_type_vendor_extension:
-      issue_unsupported_node_diag("TypeSort::VendorExtension",
-                                  &error_position);
-      break;
+      issue_unsupported_construct_error(this, "TypeSort::VendorExtension",
+                                        &error_position);
+      goto invalid;
     case ifc_ts_type_fundamental:
       { Opt<an_ifc_type_fundamental> opt_itf;
 
@@ -11771,9 +11773,9 @@ this is needed.
             break;
           case ifc_tbs_segment_type:
             /* FIXME: Currently unsupported. */
-            issue_unsupported_node_diag("TypeBasis::SegmentType",
-                                        &error_position);
-            break;
+            issue_unsupported_construct_error(this, "TypeBasis::SegmentType",
+                                              &error_position);
+            goto invalid;
           case ifc_tbs_class:
             check_assertion(precision == ifc_tps_default);
             cache_token(cache, tok_class, &pos);
@@ -11804,16 +11806,17 @@ this is needed.
             break;
           case ifc_tbs_function:
             /* FIXME: Currently unsupported. */
-            issue_unsupported_node_diag("TypeBasis::Function",
-                                        &error_position);
-            break;
+            issue_unsupported_construct_error(this, "TypeBasis::Function",
+                                              &error_position);
+            goto invalid;
           case ifc_tbs_empty:
             break;
           case ifc_tbs_variable_template:
             /* FIXME: Currently unsupported. */
-            issue_unsupported_node_diag("TypeBasis::VariableTemplate",
-                                        &error_position);
-            break;
+            issue_unsupported_construct_error(this,
+                                              "TypeBasis::VariableTemplate",
+                                              &error_position);
+            goto invalid;
           case ifc_tbs_auto:
             check_assertion(precision == ifc_tps_default);
             cache_token(cache, tok_auto_type, &pos);
@@ -11827,14 +11830,15 @@ this is needed.
             break;
           case ifc_tbs_concept:
             /* FIXME: Currently unsupported. */
-            issue_unsupported_node_diag("TypeBasis::Concept",
-                                        &error_position);
-            break;
+            issue_unsupported_construct_error(this,
+                                              "TypeBasis::Concept",
+                                              &error_position);
+            goto invalid;
           case ifc_tbs_overload:
             /* FIXME: Currently unsupported. */
-            issue_unsupported_node_diag("TypeBasis::Overload",
-                                        &error_position);
-            break;
+            issue_unsupported_construct_error(this, "TypeBasis::Overload",
+                                              &error_position);
+            goto invalid;
           default_is_unexpected_str("Unexpected TypeBasis");
         }  /* switch */
       }
@@ -12008,8 +12012,9 @@ this is needed.
       break;
     case ifc_ts_type_method:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("TypeSort::Method", &error_position);
-      break;
+      issue_unsupported_construct_error(this, "TypeSort::Method",
+                                        &error_position);
+      goto invalid;
     case ifc_ts_type_array:
       { Opt<an_ifc_type_array> opt_ita;
 
@@ -12139,8 +12144,9 @@ this is needed.
       break;
     case ifc_ts_type_unaligned:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("TypeSort::Unaligned", &error_position);
-      break;
+      issue_unsupported_construct_error(this, "TypeSort::Unaligned",
+                                        &error_position);
+      goto invalid;
     case ifc_ts_type_syntax_tree:
       { Opt<an_ifc_type_syntax_tree> opt_tst;
 
@@ -12155,8 +12161,7 @@ this is needed.
   }  /* switch */
   goto done;
 invalid:
-  check_assertion_str(is_at_least_one_error(),
-                      "expected errors for bad type cache");
+  expect_error_str("expected errors for bad type cache");
   cache->invalidate();
 done:;
 }  /* cache_type_first_part */
@@ -12185,9 +12190,9 @@ this is needed.
   source_position_from_locus(&pos, locus);
   switch (type.sort) {
     case ifc_ts_type_vendor_extension:
-      issue_unsupported_node_diag("TypeSort::VendorExtension",
-                                  &error_position);
-      break;
+      issue_unsupported_construct_error(this, "TypeSort::VendorExtension",
+                                        &error_position);
+      goto invalid;
     case ifc_ts_type_tor:
       /* This type should only be encountered when processing a constructor,
          and that is directly handled with that constructor declaration.*/
@@ -12330,8 +12335,7 @@ this is needed.
   }  /* switch */
   goto done;
 invalid:
-  check_assertion_str(is_at_least_one_error(),
-                      "expected errors for bad type cache");
+  expect_error_str("expected errors for bad type cache");
   cache->invalidate();
 done:;
 }  /* cache_type_second_part */
@@ -12415,7 +12419,6 @@ is the position of the chart.
           }  /* if */
           first = FALSE;
         }  /* for */
-        issue_unsupported_node_diag("ChartSort::Multilevel", &error_position);
       }
       break;
     default_is_unexpected_str("Unexpected ChartSort");
@@ -12427,8 +12430,7 @@ is the position of the chart.
   }  /* if */
   goto done;
 invalid:
-  check_assertion_str(is_at_least_one_error(),
-                      "expected errors for bad chart cache");
+  expect_error_str("expected errors for bad chart cache");
   cache->invalidate();
 done:;
 }  /* cache_chart */
@@ -12501,32 +12503,41 @@ the location of the operator.
       break;
     case ifc_nos_phantom:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("NiladicOperator::Phantom", &error_position);
-      break;
+      issue_unsupported_construct_error(this, "NiladicOperator::Phantom",
+                                        &error_position);
+      goto invalid;
     case ifc_nos_constant:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("NiladicOperator::Constant",
-                                  &error_position);
-      break;
+      issue_unsupported_construct_error(this, "NiladicOperator::Constant",
+                                        &error_position);
+      goto invalid;
     case ifc_nos_nil:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("NiladicOperator::Nil", &error_position);
-      break;
+      issue_unsupported_construct_error(this, "NiladicOperator::Nil",
+                                        &error_position);
+      goto invalid;
     case ifc_nos_msvc:
       unexpected_condition();
       break;
     case ifc_nos_msvc_constant_object:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("NiladicOperator::MsvcConstantObject",
-                                  &error_position);
-      break;
+      issue_unsupported_construct_error(this,
+                                        "NiladicOperator::MsvcConstantObject",
+                                        &error_position);
+      goto invalid;
     case ifc_nos_msvc_lambda:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("NiladicOperator::MsvcLambda",
-                                  &error_position);
-      break;
+      issue_unsupported_construct_error(this,
+                                        "NiladicOperator::MsvcLambda",
+                                        &error_position);
+      goto invalid;
     default_is_unexpected_str("Unexpected NiladicOperator");
   }  /* switch */
+  goto done;
+invalid:
+  expect_error_str("expected errors for bad operator cache");
+  cache->invalidate();
+done:;
 }  /* cache_operator */
 
 
@@ -12577,25 +12588,30 @@ the location of the operator.
       break;
     case ifc_mos_truncate:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("MonadicOperator::Truncate",
-                                  &error_position);
-      break;
+      issue_unsupported_construct_error(this,
+                                        "MonadicOperator::Truncate",
+                                        &error_position);
+      goto invalid;
     case ifc_mos_ceil:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("MonadicOperator::Ceil", &error_position);
-      break;
+      issue_unsupported_construct_error(this, "MonadicOperator::Ceil",
+                                        &error_position);
+      goto invalid;
     case ifc_mos_floor:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("MonadicOperator::Floor", &error_position);
-      break;
+      issue_unsupported_construct_error(this, "MonadicOperator::Floor",
+                                        &error_position);
+      goto invalid;
     case ifc_mos_paren:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("MonadicOperator::Paren", &error_position);
-      break;
+      issue_unsupported_construct_error(this, "MonadicOperator::Paren",
+                                        &error_position);
+      goto invalid;
     case ifc_mos_brace:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("MonadicOperator::Brace", &error_position);
-      break;
+      issue_unsupported_construct_error(this, "MonadicOperator::Brace",
+                                        &error_position);
+      goto invalid;
     case ifc_mos_alignas:
       cache_token(cache, tok_alignas, &pos);
       break;
@@ -12646,19 +12662,20 @@ the location of the operator.
       break;
     case ifc_mos_read:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("MonadicOperator::Read",
-                                  &error_position);
-      break;
+      issue_unsupported_construct_error(this, "MonadicOperator::Read",
+                                        &error_position);
+      goto invalid;
     case ifc_mos_materialize:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("MonadicOperator::Materialize",
-                                  &error_position);
-      break;
+      issue_unsupported_construct_error(this, "MonadicOperator::Materialize",
+                                        &error_position);
+      goto invalid;
     case ifc_mos_pseudo_dtor_call:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("MonadicOperator::PseudoDtorCall",
-                                  &error_position);
-      break;
+      issue_unsupported_construct_error(this,
+                                        "MonadicOperator::PseudoDtorCall",
+                                        &error_position);
+      goto invalid;
     case ifc_mos_msvc:
       unexpected_condition();
       break;
@@ -12691,10 +12708,11 @@ the location of the operator.
       break;
     case ifc_mos_msvc_is_trivially_copy_constructible:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag(
+      issue_unsupported_construct_error(
+                           this,
                            "MonadicOperator::MsvcIsTriviallyCopyConstructible",
                            &error_position);
-      break;
+      goto invalid;
     case ifc_mos_msvc_is_trivially_copy_assignable:
       cache_token(cache, tok_is_trivially_copy_assignable, &pos);
       break;
@@ -12706,16 +12724,18 @@ the location of the operator.
       break;
     case ifc_mos_msvc_is_nothrow_copy_constructible:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag(
+      issue_unsupported_construct_error(
+                             this,
                              "MonadicOperator::MsvcIsNothrowCopyConstructible",
                              &error_position);
-      break;
+      goto invalid;
     case ifc_mos_msvc_is_nothrow_copy_assignable:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag(
+      issue_unsupported_construct_error(
+                                this,
                                 "MonadicOperator::MsvcIsNothrowCopyAssignable",
                                 &error_position);
-      break;
+      goto invalid;
     case ifc_mos_msvc_is_pod:
       cache_token(cache, tok_is_pod, &pos);
       break;
@@ -12736,25 +12756,28 @@ the location of the operator.
       break;
     case ifc_mos_msvc_is_trivially_move_constructible:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag(
+      issue_unsupported_construct_error(
+                           this,
                            "MonadicOperator::MsvcIsTriviallyMoveConstructible",
                            &error_position);
-      break;
+      goto invalid;
     case ifc_mos_msvc_has_trivial_move_assign:
       cache_token(cache, tok_has_trivial_move_assign, &pos);
       break;
     case ifc_mos_msvc_is_trivially_move_assignable:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag(
+      issue_unsupported_construct_error(
+                              this,
                               "MonadicOperator::MsvcIsTriviallyMoveAssignable",
                               &error_position);
-      break;
+      goto invalid;
     case ifc_mos_msvc_is_nothrow_move_assignable:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag(
+      issue_unsupported_construct_error(
+                                this,
                                 "MonadicOperator::MsvcIsNothrowMoveAssignable",
                                 &error_position);
-      break;
+      goto invalid;
     case ifc_mos_msvc_underlying_type:
       cache_token(cache, tok_underlying_type, &pos);
       break;
@@ -12818,6 +12841,11 @@ the location of the operator.
       break;
     default_is_unexpected_str("Unexpected MonadicOperator");
   }  /* switch */
+  goto done;
+invalid:
+  expect_error_str("expected errors for bad operator cache");
+  cache->invalidate();
+done:;
 }  /* cache_operator */
 
 
@@ -12948,76 +12976,90 @@ the location of the operator.
       break;
     case ifc_dos_curry:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("DyadicOperator::Curry", &error_position);
-      break;
+      issue_unsupported_construct_error(this, "DyadicOperator::Curry",
+                                        &error_position);
+      goto invalid;
     case ifc_dos_apply:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("DyadicOperator::Apply", &error_position);
-      break;
+      issue_unsupported_construct_error(this, "DyadicOperator::Apply",
+                                        &error_position);
+      goto invalid;
     case ifc_dos_index:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("DyadicOperator::Index", &error_position);
-      break;
+      issue_unsupported_construct_error(this, "DyadicOperator::Index",
+                                        &error_position);
+      goto invalid;
     case ifc_dos_default_at:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("DyadicOperator::DefaultAt",
-                                  &error_position);
-      break;
+      issue_unsupported_construct_error(this, "DyadicOperator::DefaultAt",
+                                        &error_position);
+      goto invalid;
     case ifc_dos_new:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("DyadicOperator::New", &error_position);
-      break;
+      issue_unsupported_construct_error(this, "DyadicOperator::New",
+                                        &error_position);
+      goto invalid;
     case ifc_dos_new_array:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("DyadicOperator::NewArray", &error_position);
-      break;
+      issue_unsupported_construct_error(this, "DyadicOperator::NewArray",
+                                        &error_position);
+      goto invalid;
     case ifc_dos_destruct:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("DyadicOperator::Destruct", &error_position);
-      break;
+      issue_unsupported_construct_error(this, "DyadicOperator::Destruct",
+                                        &error_position);
+      goto invalid;
     case ifc_dos_destruct_at:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("DyadicOperator::DestructAt",
-                                  &error_position);
-      break;
+      issue_unsupported_construct_error(this, "DyadicOperator::DestructAt",
+                                        &error_position);
+      goto invalid;
     case ifc_dos_cleanup:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("DyadicOperator::Cleanup", &error_position);
-      break;
+      issue_unsupported_construct_error(this, "DyadicOperator::Cleanup",
+                                        &error_position);
+      goto invalid;
     case ifc_dos_qualification:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("DyadicOperator::Qualification",
-                                  &error_position);
-      break;
+      issue_unsupported_construct_error(this, "DyadicOperator::Qualification",
+                                        &error_position);
+      goto invalid;
     case ifc_dos_promote:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("DyadicOperator::Promote", &error_position);
-      break;
+      issue_unsupported_construct_error(this, "DyadicOperator::Promote",
+                                        &error_position);
+      goto invalid;
     case ifc_dos_demote:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("DyadicOperator::Demote", &error_position);
-      break;
+      issue_unsupported_construct_error(this, "DyadicOperator::Demote",
+                                        &error_position);
+      goto invalid;
     case ifc_dos_coerce:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("DyadicOperator::Coerce", &error_position);
-      break;
+      issue_unsupported_construct_error(this, "DyadicOperator::Coerce",
+                                        &error_position);
+      goto invalid;
     case ifc_dos_rewrite:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("DyadicOperator::Rewrite", &error_position);
-      break;
+      issue_unsupported_construct_error(this, "DyadicOperator::Rewrite",
+                                        &error_position);
+      goto invalid;
     case ifc_dos_bless:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("DyadicOperator::Bless", &error_position);
-      break;
+      issue_unsupported_construct_error(this, "DyadicOperator::Bless",
+                                        &error_position);
+      goto invalid;
     case ifc_dos_cast:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("DyadicOperator::Cast", &error_position);
-      break;
+      issue_unsupported_construct_error(this, "DyadicOperator::Cast",
+                                        &error_position);
+      goto invalid;
     case ifc_dos_explicit_conversion:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("DyadicOperator::ExplicitConversion",
-                                  &error_position);
-      break;
+      issue_unsupported_construct_error(this,
+                                        "DyadicOperator::ExplicitConversion",
+                                        &error_position);
+      goto invalid;
     case ifc_dos_reinterpret_cast:
       cache_token(cache, tok_reinterpret_cast, &pos);
       break;
@@ -13032,73 +13074,82 @@ the location of the operator.
       break;
     case ifc_dos_narrow:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("DyadicOperator::Narrow", &error_position);
-      break;
+      issue_unsupported_construct_error(this, "DyadicOperator::Narrow",
+                                        &error_position);
+      goto invalid;
     case ifc_dos_widen:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("DyadicOperator::Widen", &error_position);
-      break;
+      issue_unsupported_construct_error(this, "DyadicOperator::Widen",
+                                        &error_position);
+      goto invalid;
     case ifc_dos_pretend:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("DyadicOperator::Pretend", &error_position);
-      break;
+      issue_unsupported_construct_error(this, "DyadicOperator::Pretend",
+                                        &error_position);
+      goto invalid;
     case ifc_dos_closure:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("DyadicOperator::Closure", &error_position);
-      break;
+      issue_unsupported_construct_error(this, "DyadicOperator::Closure",
+                                        &error_position);
+      goto invalid;
     case ifc_dos_zero_initialize:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("DyadicOperator::ZeroInitialize",
-                                  &error_position);
-      break;
+      issue_unsupported_construct_error(this, "DyadicOperator::ZeroInitialize",
+                                        &error_position);
+      goto invalid;
     case ifc_dos_clear_storage:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("DyadicOperator::ClearStorage",
-                                  &error_position);
-      break;
+      issue_unsupported_construct_error(this, "DyadicOperator::ClearStorage",
+                                        &error_position);
+      goto invalid;
     case ifc_dos_msvc:
       unexpected_condition();
       break;
     case ifc_dos_msvc_try_cast:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("DyadicOperator::MsvcTryCast",
-                                  &error_position);
-      break;
+      issue_unsupported_construct_error(this, "DyadicOperator::MsvcTryCast",
+                                        &error_position);
+      goto invalid;
     case ifc_dos_msvc_curry:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("DyadicOperator::MsvcCurry",
-                                  &error_position);
-      break;
+      issue_unsupported_construct_error(this, "DyadicOperator::MsvcCurry",
+                                        &error_position);
+      goto invalid;
     case ifc_dos_msvc_virtual_curry:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("DyadicOperator::MsvcVirtualCurry",
-                                  &error_position);
-      break;
+      issue_unsupported_construct_error(this,
+                                        "DyadicOperator::MsvcVirtualCurry",
+                                        &error_position);
+      goto invalid;
     case ifc_dos_msvc_align:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("DyadicOperator::MsvcAlign",
-                                  &error_position);
-      break;
+      issue_unsupported_construct_error(this, "DyadicOperator::MsvcAlign",
+                                        &error_position);
+      goto invalid;
     case ifc_dos_msvc_bit_span:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("DyadicOperator::MsvcBitSpan",
-                                  &error_position);
-      break;
+      issue_unsupported_construct_error(this, "DyadicOperator::MsvcBitSpan",
+                                        &error_position);
+      goto invalid;
     case ifc_dos_msvc_bitfield_access:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("DyadicOperator::MsvcBitfieldAccess",
-                                  &error_position);
-      break;
+      issue_unsupported_construct_error(this,
+                                        "DyadicOperator::MsvcBitfieldAccess",
+                                        &error_position);
+      goto invalid;
     case ifc_dos_msvc_obscure_bitfield_access:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("DyadicOperator::MsvcObscureBitfieldAccess",
-                                  &error_position);
-      break;
+      issue_unsupported_construct_error(
+                                   this,
+                                   "DyadicOperator::MsvcObscureBitfieldAccess",
+                                   &error_position);
+      goto invalid;
     case ifc_dos_msvc_initialize:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("DyadicOperator::MsvcInitialize",
-                                  &error_position);
-      break;
+      issue_unsupported_construct_error(this,
+                                        "DyadicOperator::MsvcInitialize",
+                                        &error_position);
+      goto invalid;
     case ifc_dos_msvc_builtin_offset_of:
       cache_token(cache, tok_builtin_offsetof, &pos);
       break;
@@ -13125,35 +13176,44 @@ the location of the operator.
       break;
     case ifc_dos_msvc_builtin_is_layout_compatible:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag(
+      issue_unsupported_construct_error(
+                               this,
                                "DyadicOperator::MsvcBuiltinIsLayoutCompatible",
                                &error_position);
-      break;
+      goto invalid;
     case ifc_dos_msvc_builtin_is_pointer_interconvertible_base_of:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag(
+      issue_unsupported_construct_error(
+                  this,
                   "DyadicOperator::MsvcBuiltinIsPointerInterconvertibleBaseOf",
                   &error_position);
-      break;
+      goto invalid;
     case ifc_dos_msvc_builtin_is_pointer_interconvertible_with_class:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag(
+      issue_unsupported_construct_error(
+               this,
                "DyadicOperator::MsvcBuiltinIsPointerInterconvertibleWithClass",
                &error_position);
-      break;
+      goto invalid;
     case ifc_dos_msvc_builtin_is_corresponding_member:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag(
+      issue_unsupported_construct_error(
+                            this,
                             "DyadicOperator::MsvcBuiltinIsCorrespondingMember",
                             &error_position);
-      break;
+      goto invalid;
     case ifc_dos_msvc_intrinsic:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("DyadicOperator::MsvcIntrinsic",
-                                  &error_position);
-      break;
+      issue_unsupported_construct_error(this, "DyadicOperator::MsvcIntrinsic",
+                                        &error_position);
+      goto invalid;
     default_is_unexpected_str("Unexpected DyadicOperator");
   }  /* switch */
+  goto done;
+invalid:
+  expect_error_str("expected errors for bad operator cache");
+  cache->invalidate();
+done:;
 }  /* cache_operator */
 
 
@@ -13174,7 +13234,7 @@ the location of the operator.
     case ifc_tos_msvc_confused_choice:
     case ifc_tos_msvc_confused_push_state:
       ifc_unexpected(this, "unsupported TriadicOperator");
-      break;
+      goto invalid;
     case ifc_tos_choice:
       cache_token(cache, tok_quest_mark, &pos);
       break;
@@ -13183,14 +13243,19 @@ the location of the operator.
       break;
     case ifc_tos_initialize:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("TriadicOperator::Initialize",
-                                  &error_position);
-      break;
+      issue_unsupported_construct_error(this, "TriadicOperator::Initialize",
+                                        &error_position);
+      goto invalid;
     case ifc_tos_msvc:
       unexpected_condition();
       break;
     default_is_unexpected_str("Unexpected TriadicOperator");
   }  /* switch */
+  goto done;
+invalid:
+  expect_error_str("expected errors for bad operator cache");
+  cache->invalidate();
+done:;
 }  /* cache_operator */
 
 
@@ -13214,29 +13279,38 @@ the location of the operator.
       break;
     case ifc_sios_allocate_single:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("StorageOperator::AllocateSingle",
-                                  &error_position);
-      break;
+      issue_unsupported_construct_error(this,
+                                        "StorageOperator::AllocateSingle",
+                                        &error_position);
+      goto invalid;
     case ifc_sios_allocate_array:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("StorageOperator::AllocateArray",
-                                  &error_position);
-      break;
+      issue_unsupported_construct_error(this,
+                                        "StorageOperator::AllocateArray",
+                                        &error_position);
+      goto invalid;
     case ifc_sios_deallocate_single:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("StorageOperator::DeallocateSingle",
-                                  &error_position);
-      break;
+      issue_unsupported_construct_error(this,
+                                        "StorageOperator::DeallocateSingle",
+                                          &error_position);
+      goto invalid;
     case ifc_sios_deallocate_array:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("StorageOperator::DeallocateArray",
-                                  &error_position);
-      break;
+      issue_unsupported_construct_error(this,
+                                        "StorageOperator::DeallocateArray",
+                                        &error_position);
+      goto invalid;
     case ifc_sios_msvc:
       unexpected_condition();
       break;
     default_is_unexpected_str("Unexpected StorageOperator");
   }  /* switch */
+  goto done;
+invalid:
+  expect_error_str("expected errors for bad operator cache");
+  cache->invalidate();
+done:;
 }  /* cache_operator */
 
 
@@ -13257,14 +13331,14 @@ the location of the operator.
       break;
     case ifc_vos_collection:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("VariadicOperator::Collection",
-                                  &error_position);
-      break;
+      issue_unsupported_construct_error(this, "VariadicOperator::Collection",
+                                        &error_position);
+      goto invalid;
     case ifc_vos_sequence:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("VariadicOperator::Sequence",
-                                  &error_position);
-      break;
+      issue_unsupported_construct_error(this, "VariadicOperator::Sequence",
+                                        &error_position);
+      goto invalid;
     case ifc_vos_msvc:
       unexpected_condition();
       break;
@@ -13282,6 +13356,11 @@ the location of the operator.
       break;
     default_is_unexpected_str("Unexpected VariadicOperator");
   }  /* switch */
+  goto done;
+invalid:
+  expect_error_str("expected errors for bad operator cache");
+  cache->invalidate();
+done:;
 }  /* cache_operator */
 
 
@@ -13825,8 +13904,7 @@ Add the tokens corresponding to the given partial specialization declaration
   }  /* switch */
   goto done;
 invalid:
-  check_assertion_str(is_at_least_one_error(),
-                      "expected errors for bad partial specialization cache");
+  expect_error_str("expected errors for bad partial specialization cache");
   cache->invalidate();
 done:;
 }  /* cache_decl_partial_specialization */
@@ -14101,8 +14179,7 @@ END_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
   }  /* switch */
   goto done;
 invalid:
-  check_assertion_str(is_at_least_one_error(),
-                      "expected errors for bad specialization cache");
+  expect_error_str("expected errors for bad specialization cache");
   cache->invalidate();
 done:;
 }  /* cache_decl_specialization */
@@ -14368,8 +14445,7 @@ is responsible for ensuring that the brackets are cached appropriately.
   }  /* switch */
   goto done;
 invalid:
-  check_assertion_str(is_at_least_one_error(),
-                      "expected errors for bad attr cache");
+  expect_error_str("expected errors for bad attr cache");
   cache->invalidate();
 done:;
 }  /* cache_attr */
@@ -14453,8 +14529,7 @@ list (individual parameters will have their own locus associated with them).
   }  /* if */
   goto done;
 invalid:
-  check_assertion_str(is_at_least_one_error(),
-                      "expected errors for bad function param cache");
+  expect_error_str("expected errors for bad function param cache");
   cache->invalidate();
 done:;
 }  /* cache_function_parameters */
@@ -14472,8 +14547,9 @@ Add the tokens corresponding to the given declaration (decl) to cache.
     case ifc_ds_decl_vendor_extension:
     case ifc_ds_decl_explicit_instantiation:
     case ifc_ds_decl_explicit_specialization:
-      issue_unsupported_node_diag(str_for(decl.sort), &error_position);
-      break;
+      issue_unsupported_construct_error(this, str_for(decl.sort),
+                                        &error_position);
+      goto invalid;
     case ifc_ds_decl_enumerator:
       { Opt<an_ifc_decl_enumerator> opt_ide;
 
@@ -14701,8 +14777,9 @@ Add the tokens corresponding to the given declaration (decl) to cache.
       break;
     case ifc_ds_decl_temploid:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("DeclSort::Temploid", &error_position);
-      break;
+      issue_unsupported_construct_error(this, "DeclSort::Temploid",
+                                        &error_position);
+      goto invalid;
     case ifc_ds_decl_template:
       { Opt<an_ifc_decl_template> opt_idt;
 
@@ -14744,8 +14821,9 @@ Add the tokens corresponding to the given declaration (decl) to cache.
       break;
     case ifc_ds_decl_concept:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("DeclSort::Concept", &error_position);
-      break;
+      issue_unsupported_construct_error(this, "DeclSort::Concept",
+                                        &error_position);
+      goto invalid;
     case ifc_ds_decl_function:
       { Opt<an_ifc_decl_function> opt_idf;
 
@@ -14890,8 +14968,9 @@ Add the tokens corresponding to the given declaration (decl) to cache.
       break;
     case ifc_ds_decl_reference:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("DeclSort::Reference", &error_position);
-      break;
+      issue_unsupported_construct_error(this, "DeclSort::Reference",
+                                        &error_position);
+      goto invalid;
     case ifc_ds_decl_using_declaration:
       { Opt<an_ifc_decl_using_declaration> opt_idud;
 
@@ -14917,8 +14996,9 @@ Add the tokens corresponding to the given declaration (decl) to cache.
       break;
     case ifc_ds_decl_using_directive:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("DeclSort::UsingDirective", &error_position);
-      break;
+      issue_unsupported_construct_error(this, "DeclSort::UsingDirective",
+                                        &error_position);
+      goto invalid;
     case ifc_ds_decl_friend:
       /* A friend declaration.  IFC encodes the friend as an expression that
          refers to the friend entity (normally, ifc_es_expr_named_decl or
@@ -14948,28 +15028,34 @@ Add the tokens corresponding to the given declaration (decl) to cache.
       break;
     case ifc_ds_decl_expansion:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("DeclSort::Expansion", &error_position);
-      break;
+      issue_unsupported_construct_error(this, "DeclSort::Expansion",
+                                        &error_position);
+      goto invalid;
     case ifc_ds_decl_deduction_guide:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("DeclSort::DeductionGuide", &error_position);
-      break;
+      issue_unsupported_construct_error(this, "DeclSort::DeductionGuide",
+                                        &error_position);
+      goto invalid;
     case ifc_ds_decl_barren:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("DeclSort::Barren", &error_position);
-      break;
+      issue_unsupported_construct_error(this, "DeclSort::Barren",
+                                        &error_position);
+      goto invalid;
     case ifc_ds_decl_tuple:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("DeclSort::Tuple", &error_position);
-      break;
+      issue_unsupported_construct_error(this, "DeclSort::Tuple",
+                                        &error_position);
+      goto invalid;
     case ifc_ds_decl_syntax_tree:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("DeclSort::SyntaxTree", &error_position);
-      break;
+      issue_unsupported_construct_error(this, "DeclSort::SyntaxTree",
+                                        &error_position);
+      goto invalid;
     case ifc_ds_decl_intrinsic:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("DeclSort::Intrinsic", &error_position);
-      break;
+      issue_unsupported_construct_error(this, "DeclSort::Intrinsic",
+                                        &error_position);
+      goto invalid;
     case ifc_ds_decl_property:
       { Opt<an_ifc_decl_property> opt_idp;
 
@@ -15004,14 +15090,14 @@ Add the tokens corresponding to the given declaration (decl) to cache.
       break;
     case ifc_ds_decl_output_segment:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("DeclSort::OutputSegment", &error_position);
-      break;
+      issue_unsupported_construct_error(this, "DeclSort::OutputSegment",
+                                        &error_position);
+      goto invalid;
     default_is_unexpected_str("Unexpected DeclSort");
   }  /* switch */
   goto done;
 invalid:
-  check_assertion_str(is_at_least_one_error(),
-                      "expected errors for bad decl cache");
+  expect_error_str("expected errors for bad decl cache");
   cache->invalidate();
 done:;
 }  /* cache_decl */
@@ -15119,8 +15205,9 @@ tuple elements by '::' instead of ','.
     case ifc_es_expr_delete:
     case ifc_es_expr_new:
     case ifc_es_expr_label:
-      issue_unsupported_node_diag(str_for(expr.sort), &error_position);
-      break;
+      issue_unsupported_construct_error(this, str_for(expr.sort),
+                                        &error_position);
+      goto invalid;
     case ifc_es_expr_empty:
       /* Nothing to cache here - literally an empty expression. */
       break;
@@ -15149,8 +15236,9 @@ tuple elements by '::' instead of ','.
       break;
     case ifc_es_expr_lambda:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("ExprSort::Lambda", &error_position);
-      break;
+      issue_unsupported_construct_error(this, "ExprSort::Lambda",
+                                        &error_position);
+      goto invalid;
     case ifc_es_expr_type:
       { Opt<an_ifc_expr_type> opt_iet;
 
@@ -15528,9 +15616,9 @@ tuple elements by '::' instead of ','.
             }  /* if */
             break;
           default:
-            issue_unsupported_node_diag("TriadicOperator::???",
-                                        &error_position);
-            break;
+            issue_unsupported_construct_error(this, "TriadicOperator::???",
+                                              &error_position);
+            goto invalid;
         }  /* switch */
       }
       break;
@@ -15607,8 +15695,10 @@ tuple elements by '::' instead of ','.
           cache_type(cache, base, get_ifc_locus(iemi));
         } else {
           /* A delegating constructor. */
-          issue_unsupported_node_diag("ExprSort::MemberInitializer",
-                                      &error_position);
+          issue_unsupported_construct_error(this,
+                                            "ExprSort::MemberInitializer",
+                                            &error_position);
+          goto invalid;
         }  /* if */
         cache_token(cache, tok_lparen, &null_source_position);
         { an_ifc_cache_info cache_info = cinfo;
@@ -15634,14 +15724,14 @@ tuple elements by '::' instead of ','.
       break;
     case ifc_es_expr_inheritance_path:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("ExprSort::InheritancePath",
-                                  &error_position);
-      break;
+      issue_unsupported_construct_error(this, "ExprSort::InheritancePath",
+                                        &error_position);
+      goto invalid;
     case ifc_es_expr_initializer_list:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("ExprSort::InitializerList",
-                                  &error_position);
-      break;
+      issue_unsupported_construct_error(this, "ExprSort::InitializerList",
+                                        &error_position);
+      goto invalid;
     case ifc_es_expr_cast:
       { Opt<an_ifc_expr_cast> opt_iec;
 
@@ -15695,8 +15785,9 @@ common_cast:
       break;
     case ifc_es_expr_condition:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("ExprSort::Condition", &error_position);
-      break;
+      issue_unsupported_construct_error(this, "ExprSort::Condition",
+                                        &error_position);
+      goto invalid;
     case ifc_es_expr_expression_list:
       { Opt<an_ifc_expr_expression_list> opt_eel;
 
@@ -15744,16 +15835,19 @@ common_cast:
       break;
     case ifc_es_expr_alignof:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("ExprSort::Alignof", &error_position);
-      break;
+      issue_unsupported_construct_error(this, "ExprSort::Alignof",
+                                        &error_position);
+      goto invalid;
     case ifc_es_expr_typeid:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("ExprSort::Typeid", &error_position);
-      break;
+      issue_unsupported_construct_error(this, "ExprSort::Typeid",
+                                        &error_position);
+      goto invalid;
     case ifc_es_expr_destructor_call:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("ExprSort::DestructorCall", &error_position);
-      break;
+      issue_unsupported_construct_error(this, "ExprSort::DestructorCall",
+                                        &error_position);
+      goto invalid;
     case ifc_es_expr_syntax_tree:
       { Opt<an_ifc_expr_syntax_tree> opt_iest;
 
@@ -15766,20 +15860,24 @@ common_cast:
       break;
     case ifc_es_expr_function_string:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("ExprSort::FunctionString", &error_position);
-      break;
+      issue_unsupported_construct_error(this, "ExprSort::FunctionString",
+                                        &error_position);
+      goto invalid;
     case ifc_es_expr_compound_string:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("ExprSort::CompoundString", &error_position);
-      break;
+      issue_unsupported_construct_error(this, "ExprSort::CompoundString",
+                                        &error_position);
+      goto invalid;
     case ifc_es_expr_string_sequence:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("ExprSort::StringSequence", &error_position);
-      break;
+      issue_unsupported_construct_error(this, "ExprSort::StringSequence",
+                                        &error_position);
+      goto invalid;
     case ifc_es_expr_initializer:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("ExprSort::Initializer", &error_position);
-      break;
+      issue_unsupported_construct_error(this, "ExprSort::Initializer",
+                                        &error_position);
+      goto invalid;
     case ifc_es_expr_requires:
       { Opt<an_ifc_expr_requires> opt_ier;
 
@@ -15805,17 +15903,19 @@ common_cast:
       break;
     case ifc_es_expr_unary_fold:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("ExprSort::UnaryFold", &error_position);
-      break;
+      issue_unsupported_construct_error(this, "ExprSort::UnaryFold",
+                                        &error_position);
+      goto invalid;
     case ifc_es_expr_binary_fold:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("ExprSort::BinaryFold", &error_position);
-      break;
+      issue_unsupported_construct_error(this, "ExprSort::BinaryFold",
+                                        &error_position);
+      goto invalid;
     case ifc_es_expr_hierarchy_conversion:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("ExprSort::HierarchyConversion",
-                                  &error_position);
-      break;
+      issue_unsupported_construct_error(this, "ExprSort::HierarchyConversion",
+                                        &error_position);
+      goto invalid;
     case ifc_es_expr_product_type_value:
       { Opt<an_ifc_expr_product_type_value> opt_ieptv;
 
@@ -15835,38 +15935,45 @@ common_cast:
       break;
     case ifc_es_expr_sum_type_value:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("ExprSort::SumTypeValue", &error_position);
-      break;
+      issue_unsupported_construct_error(this, "ExprSort::SumTypeValue",
+                                        &error_position);
+      goto invalid;
     case ifc_es_expr_subobject_value:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("ExprSort::SubobjectValue", &error_position);
-      break;
+      issue_unsupported_construct_error(this, "ExprSort::SubobjectValue",
+                                        &error_position);
+      goto invalid;
     case ifc_es_expr_array_value:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("ExprSort::ArrayValue", &error_position);
-      break;
+      issue_unsupported_construct_error(this, "ExprSort::ArrayValue",
+                                        &error_position);
+      goto invalid;
     case ifc_es_expr_dynamic_dispatch:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("ExprSort::DynamicDispatch",
-                                  &error_position);
-      break;
+      issue_unsupported_construct_error(this, "ExprSort::DynamicDispatch",
+                                        &error_position);
+      goto invalid;
     case ifc_es_expr_virtual_function_conversion:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("ExprSort::VirtualFunctionConversion",
-                                  &error_position);
-      break;
+      issue_unsupported_construct_error(this,
+                                        "ExprSort::VirtualFunctionConversion",
+                                        &error_position);
+      goto invalid;
     case ifc_es_expr_placeholder:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("ExprSort::Placeholder", &error_position);
-      break;
+      issue_unsupported_construct_error(this, "ExprSort::Placeholder",
+                                        &error_position);
+      goto invalid;
     case ifc_es_expr_expansion:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("ExprSort::Expansion", &error_position);
-      break;
+      issue_unsupported_construct_error(this, "ExprSort::Expansion",
+                                        &error_position);
+      goto invalid;
     case ifc_es_expr_generic:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("ExprSort::Generic", &error_position);
-      break;
+      issue_unsupported_construct_error(this, "ExprSort::Generic",
+                                        &error_position);
+      goto invalid;
     case ifc_es_expr_tuple:
       { Opt<an_ifc_expr_tuple> opt_iet;
 
@@ -15905,12 +16012,14 @@ common_cast:
       break;
     case ifc_es_expr_nullptr:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("ExprSort::Nullptr", &error_position);
-      break;
+      issue_unsupported_construct_error(this, "ExprSort::Nullptr",
+                                        &error_position);
+      goto invalid;
     case ifc_es_expr_this:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("ExprSort::This", &error_position);
-      break;
+      issue_unsupported_construct_error(this, "ExprSort::This",
+                                        &error_position);
+      goto invalid;
     case ifc_es_expr_template_reference:
       { Opt<an_ifc_expr_template_reference> opt_ietr;
 
@@ -15938,18 +16047,20 @@ common_cast:
       break;
     case ifc_es_expr_push_state:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("ExprSort::PushState", &error_position);
-      break;
+      issue_unsupported_construct_error(this, "ExprSort::PushState",
+                                        &error_position);
+      goto invalid;
     case ifc_es_expr_type_trait_intrinsic:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("ExprSort::TypeTraitIntrinsic",
-                                  &error_position);
-      break;
+      issue_unsupported_construct_error(this, "ExprSort::TypeTraitIntrinsic",
+                                        &error_position);
+      goto invalid;
     case ifc_es_expr_designated_initializer:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("ExprSort::DesignatedInitializer",
-                                  &error_position);
-      break;
+      issue_unsupported_construct_error(this,
+                                        "ExprSort::DesignatedInitializer",
+                                        &error_position);
+      goto invalid;
     case ifc_es_expr_packed_template_arguments:
       { Opt<an_ifc_expr_packed_template_arguments> opt_iepta;
 
@@ -15972,15 +16083,15 @@ common_cast:
       break;
     case ifc_es_expr_assign_initializer:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("ExprSort::AssignInitializer",
-                                  &error_position);
-      break;
+      issue_unsupported_construct_error(this,
+                                        "ExprSort::AssignInitializer",
+                                        &error_position);
+      goto invalid;
     default_is_unexpected_str("Unknown ExprSort");
   }  /* switch */
   goto done;
 invalid:
-  check_assertion_str(is_at_least_one_error(),
-                      "expected errors for bad expr cache");
+  expect_error_str("expected errors for bad expr cache");
   cache->invalidate();
 done:;
 }  /* cache_expr */
@@ -16001,8 +16112,8 @@ Otherwise, parameter references should only include the parameter name.
 
   switch (syntax.sort) {
     case ifc_ss_syntax_vendor_extension:
-      issue_unsupported_node_diag("SyntaxSort::VendorExtension",
-                                  &error_position);
+      issue_unsupported_construct_error(this, "SyntaxSort::VendorExtension",
+                                        &error_position);
       break;
     case ifc_ss_syntax_simple_type_specifier:
       { Opt<an_ifc_syntax_simple_type_specifier> opt_issts;
@@ -16180,48 +16291,50 @@ Otherwise, parameter references should only include the parameter name.
       break;
     case ifc_ss_syntax_enum_specifier:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SyntaxSort::EnumSpecifier",
-                                  &error_position);
+      issue_unsupported_construct_error(this, "SyntaxSort::EnumSpecifier",
+                                        &error_position);
       break;
     case ifc_ss_syntax_enumerator_definition:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SyntaxSort::EnumeratorDefinition",
-                                  &error_position);
+      issue_unsupported_construct_error(this,
+                                        "SyntaxSort::EnumeratorDefinition",
+                                        &error_position);
       break;
     case ifc_ss_syntax_class_specifier:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SyntaxSort::ClassSpecifier",
-                                  &error_position);
+      issue_unsupported_construct_error(this, "SyntaxSort::ClassSpecifier",
+                                        &error_position);
       break;
     case ifc_ss_syntax_member_specification:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SyntaxSort::MemberSpecification",
-                                  &error_position);
+      issue_unsupported_construct_error(this,
+                                        "SyntaxSort::MemberSpecification",
+                                        &error_position);
       break;
     case ifc_ss_syntax_member_declaration:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SyntaxSort::MemberDeclaration",
-                                  &error_position);
+      issue_unsupported_construct_error(this, "SyntaxSort::MemberDeclaration",
+                                        &error_position);
       break;
     case ifc_ss_syntax_member_declarator:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SyntaxSort::MemberDeclarator",
-                                  &error_position);
+      issue_unsupported_construct_error(this, "SyntaxSort::MemberDeclarator",
+                                        &error_position);
       break;
     case ifc_ss_syntax_access_specifier:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SyntaxSort::AccessSpecifier",
-                                  &error_position);
+      issue_unsupported_construct_error(this, "SyntaxSort::AccessSpecifier",
+                                        &error_position);
       break;
     case ifc_ss_syntax_base_specifier_list:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SyntaxSort::BaseSpecifierList",
-                                  &error_position);
+      issue_unsupported_construct_error(this, "SyntaxSort::BaseSpecifierList",
+                                        &error_position);
       break;
     case ifc_ss_syntax_base_specifier:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SyntaxSort::BaseSpecifier",
-                                  &error_position);
+      issue_unsupported_construct_error(this, "SyntaxSort::BaseSpecifier",
+                                        &error_position);
       break;
     case ifc_ss_syntax_type_id:
       { Opt<an_ifc_syntax_type_id> opt_isti;
@@ -16453,8 +16566,8 @@ Otherwise, parameter references should only include the parameter name.
       break;
     case ifc_ss_syntax_new_declarator:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SyntaxSort::NewDeclarator",
-                                  &error_position);
+      issue_unsupported_construct_error(this, "SyntaxSort::NewDeclarator",
+                                        &error_position);
       break;
     case ifc_ss_syntax_simple_declaration:
       { Opt<an_ifc_syntax_simple_declaration> opt_issd;
@@ -16477,13 +16590,15 @@ Otherwise, parameter references should only include the parameter name.
       break;
     case ifc_ss_syntax_exception_declaration:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SyntaxSort::ExceptionDeclaration",
-                                  &error_position);
+      issue_unsupported_construct_error(this,
+                                        "SyntaxSort::ExceptionDeclaration",
+                                        &error_position);
       break;
     case ifc_ss_syntax_condition_declaration:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SyntaxSort::ConditionDeclaration",
-                                  &error_position);
+      issue_unsupported_construct_error(this,
+                                        "SyntaxSort::ConditionDeclaration",
+                                        &error_position);
       break;
     case ifc_ss_syntax_static_assert_declaration:
       { Opt<an_ifc_syntax_static_assert_declaration> opt_issad;
@@ -16510,126 +16625,138 @@ Otherwise, parameter references should only include the parameter name.
       break;
     case ifc_ss_syntax_alias_declaration:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SyntaxSort::AliasDeclaration",
-                                  &error_position);
+      issue_unsupported_construct_error(this, "SyntaxSort::AliasDeclaration",
+                                        &error_position);
       break;
     case ifc_ss_syntax_concept_definition:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SyntaxSort::ConceptDefinition",
-                                  &error_position);
+      issue_unsupported_construct_error(this, "SyntaxSort::ConceptDefinition",
+                                        &error_position);
       break;
     case ifc_ss_syntax_compound_statement:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SyntaxSort::CompoundStatement",
-                                  &error_position);
+      issue_unsupported_construct_error(this, "SyntaxSort::CompoundStatement",
+                                        &error_position);
       break;
     case ifc_ss_syntax_return_statement:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SyntaxSort::ReturnStatement",
-                                  &error_position);
+      issue_unsupported_construct_error(this, "SyntaxSort::ReturnStatement",
+                                        &error_position);
       break;
     case ifc_ss_syntax_if_statement:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SyntaxSort::IfStatement", &error_position);
+      issue_unsupported_construct_error(this, "SyntaxSort::IfStatement",
+                                        &error_position);
       break;
     case ifc_ss_syntax_while_statement:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SyntaxSort::WhileStatement",
-                                  &error_position);
+      issue_unsupported_construct_error(this, "SyntaxSort::WhileStatement",
+                                        &error_position);
       break;
     case ifc_ss_syntax_do_while_statement:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SyntaxSort::DoWhileStatement",
-                                  &error_position);
+      issue_unsupported_construct_error(this, "SyntaxSort::DoWhileStatement",
+                                        &error_position);
       break;
     case ifc_ss_syntax_for_statement:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SyntaxSort::ForStatement", &error_position);
+      issue_unsupported_construct_error(this, "SyntaxSort::ForStatement",
+                                        &error_position);
       break;
     case ifc_ss_syntax_init_statement:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SyntaxSort::InitStatement",
-                                  &error_position);
+      issue_unsupported_construct_error(this, "SyntaxSort::InitStatement",
+                                        &error_position);
       break;
     case ifc_ss_syntax_range_based_for_statement:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SyntaxSort::RangeBasedForStatement",
-                                  &error_position);
+      issue_unsupported_construct_error(this,
+                                        "SyntaxSort::RangeBasedForStatement",
+                                        &error_position);
       break;
     case ifc_ss_syntax_for_range_declaration:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SyntaxSort::ForRangeDeclaration",
-                                  &error_position);
+      issue_unsupported_construct_error(this,
+                                        "SyntaxSort::ForRangeDeclaration",
+                                        &error_position);
       break;
     case ifc_ss_syntax_labeled_statement:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SyntaxSort::LabeledStatement",
-                                  &error_position);
+      issue_unsupported_construct_error(this, "SyntaxSort::LabeledStatement",
+                                        &error_position);
       break;
     case ifc_ss_syntax_break_statement:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SyntaxSort::BreakStatement",
-                                  &error_position);
+      issue_unsupported_construct_error(this, "SyntaxSort::BreakStatement",
+                                        &error_position);
       break;
     case ifc_ss_syntax_continue_statement:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SyntaxSort::ContinueStatement",
-                                  &error_position);
+      issue_unsupported_construct_error(this, "SyntaxSort::ContinueStatement",
+                                        &error_position);
       break;
     case ifc_ss_syntax_switch_statement:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SyntaxSort::SwitchStatement",
-                                  &error_position);
+      issue_unsupported_construct_error(this, "SyntaxSort::SwitchStatement",
+                                        &error_position);
       break;
     case ifc_ss_syntax_goto_statement:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SyntaxSort::GotoStatement",
-                                  &error_position);
+      issue_unsupported_construct_error(this, "SyntaxSort::GotoStatement",
+                                        &error_position);
       break;
     case ifc_ss_syntax_declaration_statement:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SyntaxSort::DeclarationStatement",
-                                  &error_position);
+      issue_unsupported_construct_error(this,
+                                        "SyntaxSort::DeclarationStatement",
+                                        &error_position);
       break;
     case ifc_ss_syntax_expression_statement:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SyntaxSort::ExpressionStatement",
-                                  &error_position);
+      issue_unsupported_construct_error(this,
+                                        "SyntaxSort::ExpressionStatement",
+                                        &error_position);
       break;
     case ifc_ss_syntax_try_block:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SyntaxSort::TryBlock", &error_position);
+      issue_unsupported_construct_error(this, "SyntaxSort::TryBlock",
+                                        &error_position);
       break;
     case ifc_ss_syntax_handler:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SyntaxSort::Handler", &error_position);
+      issue_unsupported_construct_error(this, "SyntaxSort::Handler",
+                                        &error_position);
       break;
     case ifc_ss_syntax_handler_seq:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SyntaxSort::HandlerSeq", &error_position);
+      issue_unsupported_construct_error(this, "SyntaxSort::HandlerSeq",
+                                        &error_position);
       break;
     case ifc_ss_syntax_function_try_block:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SyntaxSort::FunctionTryBlock",
-                                  &error_position);
+      issue_unsupported_construct_error(this, "SyntaxSort::FunctionTryBlock",
+                                        &error_position);
       break;
     case ifc_ss_syntax_type_id_list_element:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SyntaxSort::TypeIdListElement",
-                                  &error_position);
+      issue_unsupported_construct_error(this, "SyntaxSort::TypeIdListElement",
+                                        &error_position);
       break;
     case ifc_ss_syntax_dynamic_exception_spec:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SyntaxSort::DynamicExceptionSpec",
-                                  &error_position);
+      issue_unsupported_construct_error(this,
+                                        "SyntaxSort::DynamicExceptionSpec",
+                                        &error_position);
       break;
     case ifc_ss_syntax_statement_seq:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SyntaxSort::StatementSeq", &error_position);
+      issue_unsupported_construct_error(this, "SyntaxSort::StatementSeq",
+                                        &error_position);
       break;
     case ifc_ss_syntax_function_body:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SyntaxSort::FunctionBody", &error_position);
+      issue_unsupported_construct_error(this, "SyntaxSort::FunctionBody",
+                                        &error_position);
       break;
     case ifc_ss_syntax_expression:
       { Opt<an_ifc_syntax_expression> opt_ise;
@@ -16643,13 +16770,15 @@ Otherwise, parameter references should only include the parameter name.
       break;
     case ifc_ss_syntax_function_definition:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SyntaxSort::FunctionDefinition",
-                                  &error_position);
+      issue_unsupported_construct_error(this, "SyntaxSort::FunctionDefinition",
+                                        &error_position);
       break;
     case ifc_ss_syntax_member_function_declaration:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SyntaxSort::MemberFunctionDeclaration",
-                                  &error_position);
+      issue_unsupported_construct_error(
+                                       this,
+                                       "SyntaxSort::MemberFunctionDeclaration",
+                                       &error_position);
       break;
     case ifc_ss_syntax_template_declaration:
       { Opt<an_ifc_syntax_template_declaration> opt_istd;
@@ -16736,8 +16865,8 @@ Otherwise, parameter references should only include the parameter name.
       break;
     case ifc_ss_syntax_nested_requirement:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SyntaxSort::NestedRequirement",
-                                  &error_position);
+      issue_unsupported_construct_error(this, "SyntaxSort::NestedRequirement",
+                                        &error_position);
       break;
     case ifc_ss_syntax_requirement_body:
       { Opt<an_ifc_syntax_requirement_body> opt_isrb;
@@ -16918,119 +17047,133 @@ Otherwise, parameter references should only include the parameter name.
       break;
     case ifc_ss_syntax_mem_initializer:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SyntaxSort::MemInitializer",
-                                  &error_position);
+      issue_unsupported_construct_error(this, "SyntaxSort::MemInitializer",
+                                        &error_position);
       break;
     case ifc_ss_syntax_ctor_initializer:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SyntaxSort::CtorInitializer",
-                                  &error_position);
+      issue_unsupported_construct_error(this, "SyntaxSort::CtorInitializer",
+                                        &error_position);
       break;
     case ifc_ss_syntax_lambda_introducer:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SyntaxSort::LambdaIntroducer",
-                                  &error_position);
+      issue_unsupported_construct_error(this, "SyntaxSort::LambdaIntroducer",
+                                        &error_position);
       break;
     case ifc_ss_syntax_lambda_declarator:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SyntaxSort::LambdaDeclarator",
-                                  &error_position);
+      issue_unsupported_construct_error(this, "SyntaxSort::LambdaDeclarator",
+                                        &error_position);
       break;
     case ifc_ss_syntax_capture_default:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SyntaxSort::CaptureDefault",
-                                  &error_position);
+      issue_unsupported_construct_error(this, "SyntaxSort::CaptureDefault",
+                                        &error_position);
       break;
     case ifc_ss_syntax_simple_capture:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SyntaxSort::SimpleCapture",
-                                  &error_position);
+      issue_unsupported_construct_error(this, "SyntaxSort::SimpleCapture",
+                                        &error_position);
       break;
     case ifc_ss_syntax_init_capture:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SyntaxSort::InitCapture", &error_position);
+      issue_unsupported_construct_error(this, "SyntaxSort::InitCapture",
+                                        &error_position);
       break;
     case ifc_ss_syntax_this_capture:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SyntaxSort::ThisCapture", &error_position);
+      issue_unsupported_construct_error(this, "SyntaxSort::ThisCapture",
+                                        &error_position);
       break;
     case ifc_ss_syntax_attributed_statement:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SyntaxSort::AttributedStatement",
-                                  &error_position);
+      issue_unsupported_construct_error(this,
+                                        "SyntaxSort::AttributedStatement",
+                                        &error_position);
       break;
     case ifc_ss_syntax_attributed_declaration:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SyntaxSort::AttributedDeclaration",
-                                  &error_position);
+      issue_unsupported_construct_error(this,
+                                        "SyntaxSort::AttributedDeclaration",
+                                        &error_position);
       break;
     case ifc_ss_syntax_attribute_specifier_seq:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SyntaxSort::AttributeSpecifierSeq",
-                                  &error_position);
+      issue_unsupported_construct_error(this,
+                                        "SyntaxSort::AttributeSpecifierSeq",
+                                        &error_position);
       break;
     case ifc_ss_syntax_attribute_specifier:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SyntaxSort::AttributeSpecifier",
-                                  &error_position);
+      issue_unsupported_construct_error(this, "SyntaxSort::AttributeSpecifier",
+                                        &error_position);
       break;
     case ifc_ss_syntax_attribute_using_prefix:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SyntaxSort::AttributeUsingPrefix",
-                                  &error_position);
+      issue_unsupported_construct_error(this,
+                                        "SyntaxSort::AttributeUsingPrefix",
+                                        &error_position);
       break;
     case ifc_ss_syntax_attribute:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SyntaxSort::Attribute", &error_position);
+      issue_unsupported_construct_error(this, "SyntaxSort::Attribute",
+                                        &error_position);
       break;
     case ifc_ss_syntax_attribute_argument_clause:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SyntaxSort::AttributeArgumentClause",
-                                  &error_position);
+      issue_unsupported_construct_error(this,
+                                        "SyntaxSort::AttributeArgumentClause",
+                                        &error_position);
       break;
     case ifc_ss_syntax_alignas:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SyntaxSort::Alignas", &error_position);
+      issue_unsupported_construct_error(this, "SyntaxSort::Alignas",
+                                        &error_position);
       break;
     case ifc_ss_syntax_using_declaration:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SyntaxSort::UsingDeclaration",
-                                  &error_position);
+      issue_unsupported_construct_error(this, "SyntaxSort::UsingDeclaration",
+                                        &error_position);
       break;
     case ifc_ss_syntax_using_declarator:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SyntaxSort::UsingDeclarator",
-                                  &error_position);
+      issue_unsupported_construct_error(this, "SyntaxSort::UsingDeclarator",
+                                        &error_position);
       break;
     case ifc_ss_syntax_using_directive:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SyntaxSort::UsingDirective",
-                                  &error_position);
+      issue_unsupported_construct_error(this, "SyntaxSort::UsingDirective",
+                                        &error_position);
       break;
     case ifc_ss_syntax_array_index:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SyntaxSort::ArrayIndex", &error_position);
+      issue_unsupported_construct_error(this, "SyntaxSort::ArrayIndex",
+                                        &error_position);
       break;
     case ifc_ss_syntax_seh_try:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SyntaxSort::SEHTry", &error_position);
+      issue_unsupported_construct_error(this, "SyntaxSort::SEHTry",
+                                        &error_position);
       break;
     case ifc_ss_syntax_seh_except:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SyntaxSort::SEHExcept", &error_position);
+      issue_unsupported_construct_error(this, "SyntaxSort::SEHExcept",
+                                        &error_position);
       break;
     case ifc_ss_syntax_seh_finally:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SyntaxSort::SEHFinally", &error_position);
+      issue_unsupported_construct_error(this, "SyntaxSort::SEHFinally",
+                                        &error_position);
       break;
     case ifc_ss_syntax_seh_leave:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SyntaxSort::SEHLeave", &error_position);
+      issue_unsupported_construct_error(this, "SyntaxSort::SEHLeave",
+                                        &error_position);
       break;
     case ifc_ss_syntax_type_trait_intrinsic:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SyntaxSort::TypeTraitIntrinsic",
-                                  &error_position);
+      issue_unsupported_construct_error(this, "SyntaxSort::TypeTraitIntrinsic",
+                                        &error_position);
       break;
     case ifc_ss_syntax_tuple:
       { Opt<an_ifc_syntax_tuple> opt_ist;
@@ -17052,53 +17195,62 @@ Otherwise, parameter references should only include the parameter name.
       break;
     case ifc_ss_syntax_asm_statement:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SyntaxSort::AsmStatement", &error_position);
+      issue_unsupported_construct_error(this, "SyntaxSort::AsmStatement",
+                                        &error_position);
       break;
     case ifc_ss_syntax_namespace_alias_definition:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SyntaxSort::NamespaceAliasDefinition",
-                                  &error_position);
+      issue_unsupported_construct_error(this,
+                                        "SyntaxSort::NamespaceAliasDefinition",
+                                        &error_position);
       break;
     case ifc_ss_syntax_super:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SyntaxSort::Super", &error_position);
+      issue_unsupported_construct_error(this, "SyntaxSort::Super",
+                                        &error_position);
       break;
     case ifc_ss_syntax_unary_fold_expression:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SyntaxSort::UnaryFoldExpression",
-                                  &error_position);
+      issue_unsupported_construct_error(this,
+                                        "SyntaxSort::UnaryFoldExpression",
+                                        &error_position);
       break;
     case ifc_ss_syntax_binary_fold_expression:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SyntaxSort::BinaryFoldExpression",
-                                  &error_position);
+      issue_unsupported_construct_error(this,
+                                        "SyntaxSort::BinaryFoldExpression",
+                                        &error_position);
       break;
     case ifc_ss_syntax_empty_statement:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SyntaxSort::EmptyStatement",
-                                  &error_position);
+      issue_unsupported_construct_error(this, "SyntaxSort::EmptyStatement",
+                                        &error_position);
       break;
     case ifc_ss_syntax_structured_binding_declaration:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SyntaxSort::StructuredBindingDeclaration",
-                                  &error_position);
+      issue_unsupported_construct_error(
+                                    this,
+                                    "SyntaxSort::StructuredBindingDeclaration",
+                                    &error_position);
       break;
     case ifc_ss_syntax_structured_binding_identifier:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SyntaxSort::StructuredBindingIdentifier",
-                                  &error_position);
+      issue_unsupported_construct_error(
+                                     this,
+                                     "SyntaxSort::StructuredBindingIdentifier",
+                                     &error_position);
       break;
     case ifc_ss_syntax_using_enum_declaration:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SyntaxSort::UsingEnumDeclaration",
-                                  &error_position);
+      issue_unsupported_construct_error(this,
+                                        "SyntaxSort::UsingEnumDeclaration",
+                                        &error_position);
       break;
     default_is_unexpected_str("Unexpected SyntaxSort");
   }  /* switch */
   goto done;
 invalid:
-  check_assertion_str(is_at_least_one_error(),
-                      "expected errors for bad syntax cache");
+  expect_error_str("expected errors for bad syntax cache");
   cache->invalidate();
 done:;
 }  /* cache_syntax */
@@ -17220,15 +17372,15 @@ of the name.
           goto invalid;
         }  /* if */
         /* FIXME: Currently unsupported. */
-        issue_unsupported_node_diag("NameSort::Guide", &error_position);
+        issue_unsupported_construct_error(this, "NameSort::Guide",
+                                          &error_position);
       }
       break;
     default_is_unexpected();
   }  /* switch */
   goto done;
 invalid:
-  check_assertion_str(is_at_least_one_error(),
-                      "expected errors for bad name cache");
+  expect_error_str("expected errors for bad name cache");
   cache->invalidate();
 done:;
 }  /* cache_name */
@@ -17421,8 +17573,7 @@ Add the tokens corresponding to the given macro's definition to cache.
   }  /* switch */
   goto done;
 invalid:
-  check_assertion_str(is_at_least_one_error(),
-                      "expected errors for bad macro cache");
+  expect_error_str("expected errors for bad macro cache");
   cache->invalidate();
 done:;
 }  /* cache_macro */
@@ -17669,8 +17820,7 @@ raw-text spelling.
   }  /* switch */
   goto done;
 invalid:
-  check_assertion_str(is_at_least_one_error(),
-                      "expected errors for bad form cache");
+  expect_error_str("expected errors for bad form cache");
   cache->invalidate();
 done:;
 }  /* cache_form */

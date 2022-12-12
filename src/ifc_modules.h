@@ -175,11 +175,6 @@ struct an_ifc_module : public a_module_interface {
 		referenced_modules;
 			/* A map from a module reference to the corresponding
 			   import decl. */
-  an_error_severity
-		unhandled_node_diag_sev = es_none;
-			/* The highest severity with which an unhandled node
-			   diagnostic has already been issued for this
-			   module. */
   a_boolean
 		suppress_default_arguments = FALSE;
 			/* Flag to indicate whether default arguments should be
@@ -249,10 +244,6 @@ public:
     ntk_namespace,
     ntk_empty_pack_expansion,
   };
-  inline void issue_unsupported_node_diag(a_const_char      *node,
-                                          a_source_position *pos);
-  inline void issue_unsupported_node_error(a_const_char      *node,
-                                           a_source_position *pos);
   a_boolean init_string_table_and_header(a_module_import_decl_ptr midp,
                                          a_boolean                issue_diag);
   a_boolean initialize_members_from_ifc_module_file(

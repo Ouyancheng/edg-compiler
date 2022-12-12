@@ -321,9 +321,9 @@ calls to exit_module_token_rescan automatically upon destruction.
   {
     a_cached_token_ptr last_tok = cache->get_last_token();
 
-    check_assertion_str((last_tok == NULL ||
-                         last_tok->token != tok_end_of_source),
-                        "the cache is pre-terminated.");
+    check_assertion_str(last_tok != NULL, "the cache cannot be empty");
+    check_assertion_str(last_tok->token != tok_end_of_source,
+                        "the cache cannot be pre-terminated.");
   }
 #endif /* CHECKING */
   terminate_token_cache(cache->as_canonical());

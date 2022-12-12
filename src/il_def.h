@@ -17635,6 +17635,11 @@ typedef struct a_module {
 			   Normally a header unit will export macros, but not
 			   when the header unit is being transitively imported
 			   via another non-header-unit module. */
+  a_bit_field	contains_unsupported_constructs:1;
+			/* TRUE if this module contains one or more unsupported
+			   binary module interface constructs (i.e., the module
+			   made use of a feature of its binary module format
+			   that EDG knows about but does not yet support). */
 } a_module;
 
 
