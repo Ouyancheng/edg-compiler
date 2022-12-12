@@ -39736,11 +39736,11 @@ see expr.h).
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_boolean         has_discarded_typename = FALSE;
   a_source_position typename_position;
+  a_boolean         scanning_deferred_module_expr = FALSE;
   a_token_sequence_number
                     expected_ifc_rescan_end_tsn;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_boolean         in_subscript_op = FALSE;
-  a_boolean         scanning_deferred_module_expr = FALSE;
   a_boolean         saved_allow_call_with_incomplete_return_type =
                            expr_stack->allow_call_with_incomplete_return_type;
 
@@ -41216,10 +41216,12 @@ end_of_routine:
      become TRUE again. */
   expr_stack->allow_call_with_incomplete_return_type =
                                  saved_allow_call_with_incomplete_return_type;
+#if MICROSOFT_EXTENSIONS_ALLOWED
   if (scanning_deferred_module_expr) {
     /* Cleanup the module token rescan. */
     exit_module_token_rescan(expected_ifc_rescan_end_tsn);
   }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   db_exit();
 }  /* scan_expr_full */
 
