@@ -265,7 +265,8 @@ extern a_dynamic_init_ptr load_variable_init_from_module(
                                          a_lexical_ifc_index_reference *index);
 
 extern a_boolean extract_tokens_for_module_expr(
-                                         a_lexical_ifc_index_reference *index);
+                              a_lexical_ifc_index_reference *index,
+                              a_token_sequence_number       *expected_end_tsn);
 
 
 /*
@@ -303,29 +304,51 @@ private:
 using a_module_token_cache_ptr = a_module_token_cache*;
 
 
-inline void enter_module_token_rescan(a_module_token_cache_ptr cache)
+inline a_token_sequence_number enter_module_token_rescan(
+                                                a_module_token_cache_ptr cache)
 /*
-Begin a token rescan of the given module token cache.  The caller is
-responsible for calling exit_module_token_rescan after the rescanned tokens
-have been used.
+Begin a token rescan of the given module token cache.  The module token cache
+will be terminated by this function, and should not be pre-terminated.  The
+token sequence number for the added terminator token (end of source) will be
+returned.  The caller is responsible for calling exit_module_token_rescan after
+the rescanned tokens have been used.
 
 If possible, prefer use of the RAII class a_module_entity_rescan which handles
 calls to exit_module_token_rescan automatically upon destruction.
 */
 {
-  push_stop_token_stack();
+#if CHECKING
+  {
+    a_cached_token_ptr last_tok = cache->get_last_token();
+
+    check_assertion_str((last_tok == NULL ||
+                         last_tok->token != tok_end_of_source),
+                        "the cache is pre-terminated.");
+  }
+#endif /* CHECKING */
   terminate_token_cache(cache->as_canonical());
+
+  a_cached_token_ptr last_tok = cache->get_last_token();
+  push_stop_token_stack();
   rescan_cached_tokens(cache->as_canonical());
+  return last_tok->token_sequence_number;
 }  /* enter_module_token_rescan */
 
 
 inline void exit_module_token_rescan(
-                               ARG_UNUSED a_token_kind final_token = tok_error)
+                    ARG_UNUSED a_token_sequence_number expected_end_tsn,
+                    ARG_UNUSED a_token_kind            final_token = tok_error)
 /*
-Restore the token stream state after processing a module token cache.  The
-given final token argument is the expected current token at the time this
-function is called.  If the given final token doesn't match the current token,
-the front end will expect an error in CHECKING modes.  If there is no specific
+Restore the token stream state after processing a module token cache.
+
+The given expected_end_tsn argument is the expected token sequence number for
+the associated terminator (end of source) token.  If upon clearing any
+remaining tokens the encountered end of source token's sequence number doesn't
+match, the front end will expect an error in CHECKING modes.
+
+The given final token argument is the expected current token at the time this
+function is called.  If the final token doesn't match the current token, the
+front end will expect an error in CHECKING modes.  If there is no specific
 expected token, tok_error can be used to safely skip this check.
 */
 {
@@ -338,6 +361,7 @@ expected token, tok_error can be used to safely skip this check.
   flush_to_end_of_source(/*suppress_warning=*/TRUE);
   pop_stop_token_stack();
   check_assertion(curr_token == tok_end_of_source);
+  check_assertion(curr_token_sequence_number == expected_end_tsn);
   (void)get_token();
 }  /* exit_module_token_rescan */
 
@@ -348,10 +372,9 @@ operation.  This class should be used to reenter a module token cache for
 parsing.
 */
 struct a_module_entity_rescan {
-  a_module_entity_rescan(a_module_token_cache_ptr cache,
-                         a_token_kind             *final_token_ptr_val = NULL)
-    : valid(cache->is_valid()), final_token_ptr(final_token_ptr_val)
-    { if (this->valid) enter_module_token_rescan(cache); }
+  inline a_module_entity_rescan(
+                         a_module_token_cache_ptr cache,
+                         a_token_kind             *final_token_ptr_val = NULL);
   inline ~a_module_entity_rescan();
 private:
   a_boolean     valid;  /* TRUE if the rescan successfully cached one or more
@@ -361,8 +384,33 @@ private:
                            value token to be used on deconstruction, or NULL if
                            tok_error should be passed to
                            exit_module_token_rescan. */
-
+#if CHECKING
+  a_token_sequence_number
+                expected_end_tsn;
+                        /* The expected ending token sequence number. */
+#endif /* CHECKING */
 };  /* a_module_entity_rescan */
+
+
+a_module_entity_rescan::a_module_entity_rescan(
+                                 a_module_token_cache_ptr cache,
+                                 a_token_kind             *final_token_ptr_val)
+  : valid(cache->is_valid()), final_token_ptr(final_token_ptr_val)
+/*
+Apply the appropriate initialization logic to setup the parser for parsing the
+tokens specified in the given cache.  final_token_ptr_val should be the a
+pointed to the expected token kind upon a correct parse, or NULL if no specific
+token is expected.
+*/
+{
+  if (this->valid) {
+#if CHECKING
+    this->expected_end_tsn =
+#endif /* CHECKING */
+      /* Do not put code here. */
+      enter_module_token_rescan(cache);
+  }  /* if */
+}  /* a_module_entity_rescan */
 
 
 a_module_entity_rescan::~a_module_entity_rescan()
@@ -372,12 +420,16 @@ the module entity rescan.
 */
 {
   if (this->valid) {
-    a_token_kind final_token = tok_error;
+    a_token_kind            final_token = tok_error;
+    a_token_sequence_number end_tsn = NO_TOKEN_SEQUENCE_NUMBER;
 
     if (this->final_token_ptr != NULL) {
       final_token = *(this->final_token_ptr);
     }  /* if */
-    exit_module_token_rescan(final_token);
+#if CHECKING
+    end_tsn = this->expected_end_tsn;
+#endif /* CHECKING */
+    exit_module_token_rescan(end_tsn, final_token);
   }
 }  /* ~a_module_entity_rescan */
 

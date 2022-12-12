@@ -1191,13 +1191,15 @@ initializer.
 
 
 a_boolean extract_tokens_for_module_expr(
-                               ARG_UNUSED a_lexical_ifc_index_reference *index)
+                    ARG_UNUSED a_lexical_ifc_index_reference *index,
+                    ARG_UNUSED a_token_sequence_number       *expected_end_tsn)
 /*
 Extract the tokens corresponding to the expression referred to by index and
-insert them into the token stream.  The caller is responsible for calling
-exit_ifc_rescan.  Return TRUE if the token extraction was successful, tokens
-were rescanned, and a call to exit_ifc_rescan is required; otherwise, return
-FALSE.
+insert them into the token stream.  The expected ending token sequence number
+will be written to expected_end_tsn.  The caller is responsible for calling
+exit_ifc_rescan with the associated expected_end_tsn value.  Return TRUE if the
+token extraction was successful, tokens were rescanned, and a call to
+exit_ifc_rescan is required; otherwise, return FALSE.
 */
 {
   a_boolean            result = FALSE;
@@ -1208,7 +1210,7 @@ FALSE.
 
   expr_index.mod->cache_expr(&cache, expr_index, /*cinfo=*/{});
   if (cache.is_valid()) {
-    (void)enter_module_token_rescan(&cache);
+    *expected_end_tsn = enter_module_token_rescan(&cache);
     result = TRUE;
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
