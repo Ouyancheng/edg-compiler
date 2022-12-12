@@ -7309,13 +7309,10 @@ extern a_symbol_ptr look_up_name_string_in_class(
 
 extern a_symbol_ptr look_up_class_template_in_std(a_const_char  *ctname);
 
-#if MICROSOFT_EXTENSIONS_ALLOWED
 extern a_symbol_ptr look_up_name_string_in_namespace(
                                         a_const_char             *symbol_name,
                                         a_namespace_ptr          ns_ptr,
                                         an_id_lookup_options_set options);
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-
 
 extern a_boolean resolve_pending_trailing_requires_clause(a_symbol_ptr  sym);
 
