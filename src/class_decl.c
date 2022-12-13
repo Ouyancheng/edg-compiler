@@ -32485,6 +32485,18 @@ classes.
         class_type->variant.class_struct_union
                            .any_virtual_functions_including_in_base_classes =
                                                                         FALSE;
+        /* Add an empty definition to improve error recovery (including, in
+           the case of template classes, to avoid duplicate errors every time
+           type completion is attempted). */
+        scope_ptr = push_scope((a_scope_kind)sck_class_struct_union,
+                               NO_SCOPE_NUMBER, class_type,
+                               (a_routine_ptr)NULL);
+        ctsp->assoc_scope = scope_ptr;
+        class_type->incomplete = FALSE;
+        symbol_for(class_type)->defined = TRUE;
+        complete_class_definition(class_type, effective_decl_level,
+                                  &class_state);
+        pop_scope();
         if (!instantiation_scope_pushed &&
             delayed_nested_class_def && !is_template_instantiation) {
           /* Restore the scope stack to its original state. For template
@@ -32492,14 +32504,6 @@ classes.
              scope is popped. */
           pop_class_reactivation_scope();
         }  /* if */
-        /* Add an empty definition to improve error recovery (including, in
-           the case of template classes, to avoid duplicate errors every time
-           type completion is attempted). */
-        add_scope_to_class_type(class_type);
-        class_type->incomplete = FALSE;
-        symbol_for(class_type)->defined = TRUE;
-        complete_class_definition(class_type, effective_decl_level,
-                                  &class_state);
       }  /* if */
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
