@@ -9637,7 +9637,8 @@ FIXME: what other types of named declarations can we get here?
                                         &error_position);
       goto invalid;
     default:
-      unexpected_condition_str("Unexpected DeclSort for ExprSort::NamedDecl");
+      ifc_unexpected(resolution.mod,
+                     "Unexpected DeclSort for ExprSort::NamedDecl");
   }  /* switch */
   goto done;
 invalid:
