@@ -32476,7 +32476,9 @@ classes.
         /* Clear the base-classes (and related) fields to avoid problems down
            the line. */
         ctsp->base_classes = NULL;
+#if IA64_ABI
         ctsp->primary_base_class = NULL;
+#endif /* IA64_ABI */
         ctsp->virtual_function_info_base_class = NULL;
         class_type->variant.class_struct_union
                            .any_virtual_base_classes = FALSE;
