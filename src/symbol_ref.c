@@ -2193,9 +2193,11 @@ the "deprecated" attribute and an error if it was declared with the
     } else {
       dp = pos_sy_start_diagnostic(sev, diag_no_str, pos, sym);
     }  /* if */
-    clear_diag_list(&diag_list);
-    more_info_diagnostic(diag_more, &ap->position, &diag_list);
-    add_more_info_list(dp, &diag_list);
+    if (cmp_source_positions(ap->position, null_source_position) != 0) {
+      clear_diag_list(&diag_list);
+      more_info_diagnostic(diag_more, &ap->position, &diag_list);
+      add_more_info_list(dp, &diag_list);
+    }  /* if */
     end_diagnostic(dp);
   }  /* if */
 }  /* check_use_of_deprecated_or_unavailable_entity */
