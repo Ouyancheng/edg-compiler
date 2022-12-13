@@ -3993,9 +3993,10 @@ module, but its definition hasn't been loaded yet.  Load the definition now.
        context that created the templ entry. */
     unexpected_condition();
   } else {
-    Opt<an_ifc_decl_template> opt_idt;
+    Opt<an_ifc_decl_template>   opt_idt;
+    an_ifc_partition_kind_index ifc_idx = to_partition_kind_index(mep);
 
-    construct_node(&opt_idt, to_partition_kind_index(mep));
+    construct_node(&opt_idt, ifc_idx);
     if (opt_idt.has_value()) {
       a_source_position           saved_error_position = error_position;
       a_module_entity_ptr         saved_mep = curr_module_entity;
