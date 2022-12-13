@@ -12410,7 +12410,7 @@ suppression is on the stack.
                                     /*is_deduction=*/FALSE,
                                     allow_empty_list,
                                     (a_ctws_state_ptr)NULL, &err);
-    increment_variadic_rescans_for_reusable_cache();
+    increment_dependent_scans_for_reusable_cache();
     any_args = pesep != NULL;
     if (pesep != NULL && pesep->instantiation_descr != NULL &&
         !pesep->instantiation_descr->is_empty) {
@@ -12425,7 +12425,7 @@ suppression is on the stack.
          after the end of the expansion.  Don't advance when is_lookahead
          is TRUE because we want to return the same result (i.e., FALSE)
          when this routine is called again. */
-      decrement_variadic_rescans_for_reusable_cache();
+      decrement_dependent_scans_for_reusable_cache();
       if (!is_lookahead) skip_pack_expansion_tokens(pedp);
       any_args = FALSE;
     }  /* if */
@@ -13033,7 +13033,7 @@ TRUE is returned if there are any more elements in the pack.  FALSE otherwise.
       }  /* if */
     }  /* for */
     if (done && !pesep->is_rescan) {
-      decrement_variadic_rescans_for_reusable_cache();
+      decrement_dependent_scans_for_reusable_cache();
     }  /* if */
   }  /* if */
   if (!done) {

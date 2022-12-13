@@ -2257,11 +2257,12 @@ typedef struct a_reusable_cache_entry {
 			   at the point at which the cache is actually
 			   discarded. */
   uint32_t
-		variadic_rescans_in_progress;
-			/* If this cache is being used for a variadic
-			   template rescan, this is the number of variadic
-			   rescans in use.  This prevents the cache from
-			   being popped during error recovery. */
+		dependent_scans;
+			/* Non-zero if calls to get_token that would walk off
+			   the end of this cache should instead return an end
+			   of source token.  This is used in cases where the
+			   cache -- may otherwise -- be inadvertently popped
+			   during error recovery. */
   a_byte_boolean
 		discard_cache_when_done;
 			/* TRUE if token_cache should be freed when the
@@ -2447,9 +2448,9 @@ extern
 void update_reusable_cache_rescan_location(
 					a_cached_token_handle	token_handle);
 
-extern void increment_variadic_rescans_for_reusable_cache(void);
+extern void increment_dependent_scans_for_reusable_cache(void);
 
-extern void decrement_variadic_rescans_for_reusable_cache(void);
+extern void decrement_dependent_scans_for_reusable_cache(void);
 
 extern a_boolean same_string_ignoring_underscores(a_const_char *s1, 
                                                   a_const_char *s2);

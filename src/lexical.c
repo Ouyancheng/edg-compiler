@@ -2709,31 +2709,31 @@ stack.
 }  /* pop_reusable_cache_stack */
 
 
-void increment_variadic_rescans_for_reusable_cache(void)
+void increment_dependent_scans_for_reusable_cache(void)
 /*
-Increment the number of variadic rescans in progress for the current
-reusable cache.
+Increment the number of token scans depending on the current reusable cache.
 */
 {
-  reusable_cache_stack->variadic_rescans_in_progress++;
-}  /* increment_variadic_rescans_for_reusable_cache */
+  check_assertion(reusable_cache_stack != NULL);
+  reusable_cache_stack->dependent_scans++;
+}  /* dependent_scans_for_reusable_cache */
 
 
-void decrement_variadic_rescans_for_reusable_cache(void)
+void decrement_dependent_scans_for_reusable_cache(void)
 /*
-Decrement the number of variadic rescans in progress for the current
-reusable cache.
+Decrement the number of token scans depending on the current reusable cache.
 */
 {
-  check_assertion(reusable_cache_stack->variadic_rescans_in_progress > 0);
-  reusable_cache_stack->variadic_rescans_in_progress--;
+  check_assertion(reusable_cache_stack != NULL);
+  check_assertion(reusable_cache_stack->dependent_scans > 0);
+  reusable_cache_stack->dependent_scans--;
   if (reusable_cache_stack->next_cached_token == NULL &&
-      reusable_cache_stack->variadic_rescans_in_progress == 0) {
+      reusable_cache_stack->dependent_scans == 0) {
      /* Don't pop this entry of the stack if it is currently being used
         for a variadic template rescan. */
      pop_reusable_cache_stack();
   }  /* if */
-}  /* decrement_variadic_rescans_for_reusable_cache */
+}  /* decrement_dependent_scans_for_reusable_cache */
 
 
 #if DEBUG
@@ -2791,7 +2791,7 @@ Allocate a reusable cache entry.  Reuse a freed entry if possible.
   rsep->next_cached_token = NULL;
   rsep->token_cache = NULL;
   clear_token_cache(&rsep->copy_of_token_cache, /*is_reusable=*/TRUE);
-  rsep->variadic_rescans_in_progress = 0;
+  rsep->dependent_scans = 0;
   rsep->discard_cache_when_done = FALSE;
   return rsep;
 }  /* alloc_reusable_cache_entry */
@@ -3345,6 +3345,9 @@ If include_last_token is TRUE, last_tsn is included in the cache.
   a_cached_token_ptr		copy_ctp = NULL;
   a_boolean			adjust_final_token = FALSE;
 
+  check_assertion(first_tsn <= last_tsn ||
+                  first_tsn == NO_TOKEN_SEQUENCE_NUMBER ||
+                  last_tsn == NO_TOKEN_SEQUENCE_NUMBER);
   /* first_ctp_to_copy is set for each non-pragma token in the cache, and
      points to the cache entry that follows it (which may be a pragma entry
      the precedes the next token). */
@@ -4382,7 +4385,7 @@ an equivalent change.
   if (reusable_cache_stack->next_cached_token == NULL) {
     /* We make sure we don't pop a reusable cache if an error occurs
        during a rescan. */
-    check_assertion(reusable_cache_stack->variadic_rescans_in_progress);
+    check_assertion(reusable_cache_stack->dependent_scans > 0);
     ctoken = tok_end_of_source;
     curr_token_sequence_number = NO_TOKEN_SEQUENCE_NUMBER;
     last_token_sequence_number_of_token = NO_TOKEN_SEQUENCE_NUMBER;
@@ -4443,6 +4446,15 @@ an equivalent change.
                                     (a_token_extra_info_kind)teik_identifier) {
     /* For an identifier, restore the locator. */
     locator_for_curr_id = ctp->variant.locator;
+#if BUILTIN_FUNCTIONS_ENABLED
+    if (locator_for_curr_id.symbol_header != NULL &&
+        builtin_needs_to_be_loaded(locator_for_curr_id.symbol_header)) {
+      /* If this cached identifier is for a builtin function that has not yet
+         been loaded (because loading is disabled during caching), load it
+         now. */
+      (void)load_matching_builtin_function(locator_for_curr_id.symbol_header);
+    }  /* if */
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
   } else if (ctp->extra_info_kind == 
                                     (a_token_extra_info_kind)teik_asm_string) {
     /* For a Microsoft asm token, restore the asm string pointer. */
@@ -4476,7 +4488,7 @@ an equivalent change.
   }  /* if */
   /* Check whether we have reached the end of this cache. */
   while (reusable_cache_stack->next_cached_token == NULL &&
-         reusable_cache_stack->variadic_rescans_in_progress == 0) {
+         reusable_cache_stack->dependent_scans == 0) {
      /* Don't pop this entry of the stack if it is currently being used
         for a variadic template rescan. */
      pop_reusable_cache_stack();
@@ -17820,6 +17832,27 @@ repeated constructs, as in
 }  /* loop_token */
 
 
+static a_cached_token_ptr next_cached_token()
+/*
+If the next token is a cached token (either on the cached token rescan list
+or the reusable cache stack), return it; otherwise, return NULL.
+*/
+{
+  a_cached_token_ptr result;
+
+  if (cached_token_rescan_list != NULL) {
+    /* There are tokens on the non-reusable rescan list. */
+    result = cached_token_rescan_list;
+  } else if (reusable_cache_stack != NULL) {
+    /* There are tokens on the reusable rescan list. */
+    result = reusable_cache_stack->next_cached_token;
+  } else {
+    result = NULL;
+  }  /* if */
+  return result;
+}  /* next_cached_token */
+
+
 a_token_kind next_token_full(a_token_sequence_number *seq,
                              a_symbol_header_ptr     *sym_hdr)
 /*
@@ -17834,8 +17867,7 @@ identifier, else to NULL.
 {
   a_token_cache 	cache;
   a_token_kind 		ntoken;
-  a_cached_token_ptr	ctp = NULL;
-
+  a_cached_token_ptr	ctp;
   db_enter(5, "next_token_full");
   if (in_preprocessing_directive && curr_token == tok_newline) {
     /* If we have reached the end of a preprocessing directive, don't attempt
@@ -17848,19 +17880,12 @@ identifier, else to NULL.
     if (sym_hdr != NULL) *sym_hdr = NULL;
     goto done;
   }  /* if */
-  /* If we are currently rescanning tokens from a cache then we should
-     just be able to fetch the token kind from the next token on the
-     list to be rescanned.  This code does not handle some of the more complex
-     cases such as when we have to scan over the end of a reusable cache.
-     In those cases we use the more general (and slower) method to fetch
-     the next token. */
-  if (cached_token_rescan_list != NULL) {
-    /* There are tokens on the non-reusable rescan list. */
-    ctp = cached_token_rescan_list;
-  } else if (reusable_cache_stack != NULL) {
-    /* There are tokens on the reusable rescan list. */
-    ctp = reusable_cache_stack->next_cached_token;
-  }  /* if */
+  /* If we are currently rescanning tokens from a cache then we should just be
+     able to fetch the token kind from the next token on the list to be
+     rescanned.  This does not handle some of the more complex cases such as
+     when we have to scan over the end of a reusable cache.  In those cases we
+     use the more general (and slower) method to fetch the next token. */
+  ctp = next_cached_token();
   /* Get the next token that is not a pragma state entry. */
   while (ctp != NULL &&
          ctp->extra_info_kind == (a_token_extra_info_kind)teik_pragma) {
@@ -17929,7 +17954,7 @@ cannot be used when fetching raw preprocessing tokens.
 {
   a_token_cache 	cache;
   a_token_kind		ntoken = tok_error;
-  a_cached_token_ptr	ctp = NULL;
+  a_cached_token_ptr	ctp;
   a_boolean		tokens_found = FALSE;
 
   db_enter(3, "next_two_tokens");
@@ -17941,19 +17966,12 @@ cannot be used when fetching raw preprocessing tokens.
     *token_2 = tok_error;
     goto done;
   }  /* if */
-  /* If we are currently rescanning tokens from a cache then we should
-     just be able to fetch the token kind from the next token on the
-     list to be rescanned.  This code does not handle some of the more complex
-     cases such as when we have to scan over the end of a reusable cache.
-     In these cases the more general (and slower) method is used
-     to fetch the next token. */
-  if (cached_token_rescan_list != NULL) {
-    /* There are tokens on the non-reusable rescan list. */
-    ctp = cached_token_rescan_list;
-  } else if (reusable_cache_stack != NULL) {
-    /* There are tokens on the reusable rescan list. */
-    ctp = reusable_cache_stack->next_cached_token;
-  }  /* if */
+  /* If we are currently rescanning tokens from a cache then we should just be
+     able to fetch the token kind from the next token on the list to be
+     rescanned.  This does not handle some of the more complex cases such as
+     when we have to scan over the end of a reusable cache.  In these cases the
+     more general (and slower) method is used to fetch the next token. */
+  ctp = next_cached_token();
   /* Get the next token that is not a pragma entry. */
   while (ctp != NULL &&
          ctp->extra_info_kind ==
@@ -18046,7 +18064,7 @@ the given routine with that pending function body.
 */
 {
   a_boolean           result = FALSE;
-  a_cached_token_ptr  ctp = cached_token_rescan_list;
+  a_cached_token_ptr  ctp = next_cached_token();
 
   if (ctp != NULL && ctp->token == tok_pending_ifc_func_body) {
     a_lexical_ifc_index_reference index = ctp->variant.ifc_index;

@@ -276,7 +276,7 @@ modules.
 struct a_module_token_cache {
   a_module_token_cache()
     : underlying_cache(), valid(TRUE)
-    { clear_token_cache(&(this->underlying_cache), /*reusable=*/FALSE); }
+    { clear_token_cache(&(this->underlying_cache), /*reusable=*/TRUE); }
   a_module_token_cache(const a_module_token_cache&) = delete;
 
   a_boolean is_valid() const
@@ -330,7 +330,8 @@ calls to exit_module_token_rescan automatically upon destruction.
 
   a_cached_token_ptr last_tok = cache->get_last_token();
   push_stop_token_stack();
-  rescan_cached_tokens(cache->as_canonical());
+  rescan_reusable_cache(cache->as_canonical());
+  increment_dependent_scans_for_reusable_cache();
   return last_tok->token_sequence_number;
 }  /* enter_module_token_rescan */
 
@@ -359,9 +360,11 @@ expected token, tok_error can be used to safely skip this check.
 #endif /* CHECKING */
   clear_stop_tokens();
   flush_to_end_of_source(/*suppress_warning=*/TRUE);
+  decrement_dependent_scans_for_reusable_cache();
   pop_stop_token_stack();
   check_assertion(curr_token == tok_end_of_source);
-  check_assertion(curr_token_sequence_number == expected_end_tsn);
+  check_assertion(curr_token_sequence_number == expected_end_tsn ||
+                  curr_token_sequence_number == NO_TOKEN_SEQUENCE_NUMBER);
   (void)get_token();
 }  /* exit_module_token_rescan */
 
