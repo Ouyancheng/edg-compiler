@@ -3305,7 +3305,8 @@ an error if a default argument expression is encountered.
         /* Mark the start of the parameter declaration as the start of a
            potential variadic pack expansion. */
         is_pack_element = pesep != NULL && pesep->instantiation_descr != NULL;
-        is_non_initial_pack_element = is_non_initial_variadic_element();
+        is_non_initial_pack_element = is_pack_element &&
+                                      is_non_initial_variadic_element();
         /* Start the following flag with value TRUE.  It will be set to FALSE
            if the declaration includes a reference to a local (non-enclosing)
            template pack. */
@@ -3328,6 +3329,7 @@ an error if a default argument expression is encountered.
         param_state.auto_type_allowed = is_top_level_declarator &&
                                         !state->is_explicit_specialization &&
                                         !state->is_explicit_instantiation &&
+                                        !state->for_requires_expr_params &&
                                         (abbr_func_templates_enabled ||
                                          (generic_lambdas_enabled &&
                                           state->is_lambda));
@@ -4473,6 +4475,7 @@ by the scope stack entry created by this function).
 */
 {
   a_type_ptr          func_type = void_type();
+  a_func_info_block   func_info;
   a_decl_pos_block    decl_pos_block;
   a_param_type_ptr    result = NULL;
   a_symbol_locator    loc;
@@ -4483,13 +4486,15 @@ by the scope stack entry created by this function).
                       &pos_curr_token);
   add_stop_token(tok_rparen);
   (void)get_token();
-  function_declarator(dps, DI_NO_INPUT_FLAGS, &func_type,
-                      (a_func_info_block*)NULL, &loc,
+  clear_func_info(&func_info);
+  func_info.keep_param_id_list = TRUE;
+  function_declarator(dps, DI_NO_INPUT_FLAGS, &func_type, &func_info, &loc,
                       /*parent_type=*/(a_type_ptr)NULL,
                       /*is_nonstatic_member=*/FALSE, /*is_constructor=*/FALSE, 
                       /*is_static_constructor=*/FALSE, /*is_destructor=*/FALSE,
                       /*is_finalizer=*/FALSE, /*disallow_default_args=*/TRUE,
                       /*disallow_exception_spec=*/TRUE, &decl_pos_block);
+  done_with_func_info(func_info);
   if (func_type != NULL && type_is(func_type, tk_routine)) {
     a_param_type_ptr  ptp;
     result = function_type_params(func_type);

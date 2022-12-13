@@ -1,5 +1,31 @@
 Version 6.5
 
+12/13/22 [EDGcpfe/25850]
+Requires-expressions with parameters
+
+The front end previously did not correctly handle the parameters of a C++20
+requires-expression.  That could result in spurious and/or missing substitution
+failures.  For example:
+
+  template<typename T> concept C1 = requires (T *t) {
+    { requires (T u) { true; } };
+    *t;
+  };
+  template<typename T> concept C2 = requires (T *t) {
+    { requires (T u) { true; } };
+    1 * t;
+  };
+  template<C1> void f1();
+  template<C2> void f2();
+  void g()
+  {
+    f1<int>(); // Previously a spurious error.  Now okay.
+    f2<int>(); // Previously erroneously accepted.  Now an error.
+  }
+
+That is now fixed.
+
+
 12/9/22  [EDGcpfe/23759,EDGcpfe/25277,EDGcpfe/25650,EDGcpfe/25838]
 GNU C++ compatibility: Defaulted exception-specification compatibility
 
