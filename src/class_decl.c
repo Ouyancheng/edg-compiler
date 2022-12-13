@@ -16383,7 +16383,8 @@ implicitly declared member functions.
       }  /* if */
       if (!rtn->source_corresp.is_deprecated_or_unavailable) {
         /* Check if a deprecated type was involved in this declaration. */
-        warn_about_use_of_deprecated_or_unavailable_type(member_type,
+        diagnose_use_of_deprecated_or_unavailable_type(
+                                                    member_type,
                                                     &locator->source_position);
       }  /* if */
     }  /* if */
@@ -18782,8 +18783,8 @@ template declaration and is NULL otherwise.
                                   decl_state->is_definition);
   if (!var->source_corresp.is_deprecated_or_unavailable) {
     /* Check if a deprecated type was involved in this declaration. */
-    warn_about_use_of_deprecated_or_unavailable_type(member_type,
-                                                    &locator->source_position);
+    diagnose_use_of_deprecated_or_unavailable_type(member_type,
+                                                   &locator->source_position);
   }  /* if */
   /* Check for the case in which the type is or contains a routine type for
      which default arguments have been specified. */
@@ -20787,8 +20788,8 @@ be entered.
      Unlike other similar cases, the warning is issued even when the field
      itself is marked as deprecated in GNU mode. */
   if (!field->source_corresp.is_deprecated_or_unavailable || gnu_mode) {
-    warn_about_use_of_deprecated_or_unavailable_type(member_type,
-                                                    &locator->source_position);
+    diagnose_use_of_deprecated_or_unavailable_type(member_type,
+                                                   &locator->source_position);
   }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
   if (gnu_mode) {

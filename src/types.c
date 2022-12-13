@@ -14846,7 +14846,7 @@ language mode flags.
 }  /* add_implicit_ttt_flags */
 
 
-static a_boolean ttt_warn_about_use_of_deprecated_or_unavailable_type(
+static a_boolean ttt_diagnose_use_of_deprecated_or_unavailable_type(
                                           a_type_ptr  type_ptr,
                                           a_boolean   *force_end_of_traversal)
 /*
@@ -14872,11 +14872,11 @@ using a GNU attribute or using a Microsoft declspec specifier).  Also set
     *force_end_of_traversal = TRUE;
   }  /* if */
   return found;
-}  /* ttt_warn_about_use_of_deprecated_or_unavailable_type */
+}  /* ttt_diagnose_use_of_deprecated_or_unavailable_type */
 
 
-void warn_about_use_of_deprecated_or_unavailable_type(a_type_ptr         type,
-                                                      a_source_position  *pos)
+void diagnose_use_of_deprecated_or_unavailable_type(a_type_ptr         type,
+                                                    a_source_position  *pos)
 /*
 Warn if the given type has a component that has been marked as deprecated or
 unavailable.  Components under typedefs are not considered.  The warning is
@@ -14895,10 +14895,10 @@ issued for the given position.
   error_position = *pos;
   add_implicit_ttt_flags(&ttt_flags);
   (void)traverse_type_tree(type,
-                          ttt_warn_about_use_of_deprecated_or_unavailable_type,
+                          ttt_diagnose_use_of_deprecated_or_unavailable_type,
                           ttt_flags);
   error_position = saved_pos;
-}  /* warn_about_use_of_deprecated_or_unavailable_type */
+}  /* diagnose_use_of_deprecated_or_unavailable_type */
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 

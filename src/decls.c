@@ -7695,8 +7695,8 @@ for use in generating cross-reference output describing this declaration.
   if (!variable_ptr->source_corresp.is_deprecated_or_unavailable) {
     /* Check if a deprecated or unavailable type was involved in this
        declaration. */
-    warn_about_use_of_deprecated_or_unavailable_type(type_ptr,
-                                                    &locator->source_position);
+    diagnose_use_of_deprecated_or_unavailable_type(type_ptr,
+                                                   &locator->source_position);
   }  /* if */
   /* If cross-reference information is being issued, update the output.  If
      source sequence entries are being generated, update the source sequence
@@ -10518,8 +10518,8 @@ skip_overloading:;
       !routine_ptr->compiler_generated) {
     /* Check if a deprecated or unavailable type was involved in this
        declaration. */
-    warn_about_use_of_deprecated_or_unavailable_type(type_ptr,
-                                                    &locator->source_position);
+    diagnose_use_of_deprecated_or_unavailable_type(type_ptr,
+                                                   &locator->source_position);
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (dps->ms_attributes != NULL && !idlb.is_block_extern_decl) {
@@ -11560,8 +11560,8 @@ definition of a member function of a class template.
   if (!rout_ptr->source_corresp.is_deprecated_or_unavailable) {
     /* Check if a deprecated or unavailable type was involved in this
        declaration. */
-    warn_about_use_of_deprecated_or_unavailable_type(type_ptr,
-                                                    &locator->source_position);
+    diagnose_use_of_deprecated_or_unavailable_type(type_ptr,
+                                                   &locator->source_position);
   }  /* if */
   if (special_kind_is(rout_ptr, sfk_udl_operator)) {
     (void)check_udl_operator_template(sym, &locator->source_position);
@@ -12590,7 +12590,8 @@ symbol entry, and return a pointer to it in state->sym.
     if (!tp->source_corresp.is_deprecated_or_unavailable) {
       /* Check if a deprecated or unavailable type was involved in this
          declaration. */
-      warn_about_use_of_deprecated_or_unavailable_type(type_ptr,
+      diagnose_use_of_deprecated_or_unavailable_type(
+                                                    type_ptr,
                                                     &locator->source_position);
     }  /* if */
   }  /* if */

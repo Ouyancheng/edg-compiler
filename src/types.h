@@ -1547,7 +1547,7 @@ extern a_type_ptr strip_local_and_nonreal_typedefs(a_type_ptr  type,
 extern a_type_ptr remove_assoc_vla_dimensions(a_type_ptr  type);
 
 #if !STANDALONE_UTILITY_PROGRAM
-extern void warn_about_use_of_deprecated_or_unavailable_type(
+extern void diagnose_use_of_deprecated_or_unavailable_type(
                                                       a_type_ptr         type,
                                                       a_source_position  *pos);
 #endif /* !STANDALONE_UTILITY_PROGRAM */
