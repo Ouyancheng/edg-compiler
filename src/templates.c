@@ -8202,14 +8202,19 @@ the same constant.
 }  /* equiv_template_arg_lists */
 
 
-static a_boolean equiv_nonreal_templates(a_source_correspondence_ptr	scp_1,
-					 a_symbol_ptr			sym_1,
-					 a_source_correspondence_ptr	scp_2,
-					 a_symbol_ptr			sym_2)
+static a_boolean equiv_nonreal_templates(
+                   a_source_correspondence_ptr  scp_1,
+                   a_symbol_ptr                 sym_1,
+                   a_source_correspondence_ptr  scp_2,
+                   a_symbol_ptr                 sym_2,
+                   a_boolean                    exact_templ_arg_match_required,
+                   a_boolean                    exact_decltype_exprs_required)
 /*
 Return TRUE if sym_1 and sym_2 are equivalent nonreal templates, such
 as X in "T::X<int>" and "Y::X<int>".  scp_1 and scp_2 are nonreal
 entities that are instances of the templates pointed to by sym_1 and sym_2.
+See equiv_class_types for descriptions of exact_templ_arg_match_required
+and exact_decltype_exprs_required.
 */
 {
   a_boolean	result = FALSE;
@@ -8217,9 +8222,16 @@ entities that are instances of the templates pointed to by sym_1 and sym_2.
   if (is_nonreal_template_symbol(sym_1) && is_nonreal_template_symbol(sym_2)) {
     /* They are both nonreal templates. */
     if (sym_1->header == sym_2->header) {
+      an_itf_flag_set  itf_flags = ITF_NO_FLAGS;
+      if (exact_templ_arg_match_required) {
+        itf_flags |= ITF_EXACT_EQUIVALENCE;
+      }  /* if */
+      if (exact_decltype_exprs_required) {
+        itf_flags |= ITF_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED;
+      }  /* if */
       /* They have the same names. */
-      if (identical_types(scp_parent_class(scp_1),
-                          scp_parent_class(scp_2))) {
+      if (f_identical_types(scp_parent_class(scp_1), scp_parent_class(scp_2),
+                            itf_flags)) {
         /* Their parent types are the same. */
         result = TRUE;
       }  /* if */
@@ -8289,7 +8301,9 @@ Return TRUE if the templates and argument lists match.  FALSE otherwise.
       identical_templates_given_symbol(primary_template_of(template_sym_1),
                                        primary_template_of(template_sym_2)) ||
       equiv_nonreal_templates(scp_1, template_sym_1,
-                              scp_2, template_sym_2) ||
+                              scp_2, template_sym_2,
+                              exact_templ_arg_match_required,
+                              exact_decltype_exprs_required) ||
       equiv_template_template_params(template_sym_1,
                                      template_sym_2,
                                      exact_templ_arg_match_required)) {

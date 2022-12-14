@@ -6876,13 +6876,25 @@ check_typerefs:
           goto done;
         }  /* if */
       } else if (is_nonreal1 &&
-                 (flags & ITF_EXACT_EQUIVALENCE) != 0 &&
-                 !f_identical_types(type_1->variant.typeref.type,
-                                    type_2->variant.typeref.type, flags)) {
+                 (flags & ITF_EXACT_EQUIVALENCE) != 0) {
         /* For cases not handled above, if we are looking for exact
-           equivalence, check the underlying types.  If they are not the
-           same, then we need to consider them to be different. */
-        goto done;
+           equivalence, check the underlying types. */
+        if (!f_identical_types(type_1->variant.typeref.type,
+                               type_2->variant.typeref.type, flags)) {
+          /* If they are not the same, then we need to consider them to be
+             different. */
+          goto done;
+        } else if (type_1->variant.typeref.is_dependent &&
+                   type_2->variant.typeref.is_dependent &&
+                   type_1->variant.typeref.is_template_alias &&
+                   type_2->variant.typeref.is_template_alias &&
+                   tp1 != tp2 && is_or_contains_error_type(tp1)) {
+          /* We also need to consider them to be different if the types are
+             dependent template aliases and the underlying types contain an
+             error type.  In this case the template aliases could still refer
+             to template parameters from different template parameter lists. */
+          goto done;
+        }  /* if */
       }  /* if */
     }  /* if */
     if (!(flags & ITF_IGNORE_TOP_LEVEL_QUALIFIERS) &&
