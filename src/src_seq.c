@@ -699,7 +699,12 @@ templ_entry is NULL.
   ssep = start_ssep->next;
   /* Look for entries to move. */
   for (;;) {
-    check_assertion(ssep != NULL);
+    if (ssep == NULL) {
+      /* This can happen, for example, with class definitions generated for
+         error recovery purposes. */
+      expect_error();
+      break;
+    }  /*if */
     if (ss_entry_kind(ssep) == iek_variable) {
       /* A source sequence entry for a variable must be a static data member
          definition or a static member declaration with an in-class
