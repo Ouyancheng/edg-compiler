@@ -28785,7 +28785,7 @@ otherwise it is set to FALSE.
                          : is_template_dependent_type(tp))) {
         /* If the current initializer element is braced or if template
            dependence prevents us from matching initializers with elided
-           braces with the underlying structure of the type, threat the
+           braces with the underlying structure of the type, treat the
            current initializer element as initializing the whole type. */
         if (type_is(utp, tk_array) &&
             (is_braced_init_component(alep) ||
