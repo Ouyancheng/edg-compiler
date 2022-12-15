@@ -490,6 +490,33 @@ Given a partition kind, return a reference to the corresponding metadata entry.
 }  /* get_partition_metadata */
 
 
+static an_ifc_module *get_as_an_ifc_module(a_module_interface_ptr interface)
+/*
+Reinterpret the given module interface pointer as an ifc module pointer with
+additional checks for debug modes.  Return the reinterpreted pointer.
+*/
+{
+#if USE_VIRTUAL_FUNCTIONS
+  check_assertion(dynamic_cast<an_ifc_module*>(interface) != NULL);
+#else /* !USE_VIRTUAL_FUNCTIONS */
+  check_assertion(interface->mod_kind == mk_ifc);
+#endif /* USE_VIRTUAL_FUNCTIONS */
+  return (an_ifc_module*)interface;
+}  /* get_as_an_ifc_module */
+
+
+static an_ifc_module *get_assoc_ifc_module(a_module_entity_ptr mep)
+/*
+Return the associated module interface for the given module entity pointer as
+an ifc module.
+*/
+{
+  a_module_interface *interface = mep->module_info->module_interface;
+
+  return get_as_an_ifc_module(interface);
+}  /* get_assoc_ifc_module */
+
+
 static an_ifc_index_type to_partition_index(an_ifc_module         *mod,
                                             an_ifc_partition_kind partition,
                                             size_t                file_offset)
@@ -510,26 +537,99 @@ return the respective partition index.
 }  /* to_partition_index */
 
 
-static an_ifc_partition_kind_index to_partition_kind_index(
-                                                       a_module_entity_ptr mep)
+static a_module_entity_ptr get_ifc_module_entity_ptr(
+                                               an_ifc_module         *mod,
+                                               an_ifc_partition_kind partition,
+                                               an_ifc_index_type     index)
 /*
-Return the an_ifc_partition_kind_index derived from the partition kind and file
-offset stored on the given module entity pointer.
+Utility to return a module entity pointer for the given module, IFC partition,
+and index into that partition.  For cases where the module entity has just
+been created, the partition is set according to the partition supplied by the
+caller.
 */
 {
-  /* Compute the index into the partition by first subtracting the start of the
-     partition in the file, producing "part_offset".  Then compute our index in
-     the partition by dividing our offset by the size of entries in the
-     partition.  Use the partition information and the index value to form an
-     an_ifc_partition_kind_index. */
-  an_ifc_partition_kind partition = mep->variant.ifc_partition;
-  an_ifc_module         *mod =
-                            (an_ifc_module*)mep->module_info->module_interface;
-  an_ifc_index_type     part_index =
-                          to_partition_index(mod, partition, mep->file_offset);
+  an_ifc_partition_kind_index element_idx{mod, partition, index};
+  a_module_entity_ptr         mep = get_module_entity_ptr(
+                                            mod->assoc_module_info,
+                                            get_partition_offset(element_idx));
 
-  return an_ifc_partition_kind_index{mod, partition, part_index};
-}  /* to_partition_kind_index */
+  /* FIXME: Handle error case, formatting. */
+  if (mep->variant.ifc_partition == ifc_pk_none) {
+    mep->variant.ifc_partition = partition;
+  } else {
+    check_assertion(mep->variant.ifc_partition == partition);
+  }  /* if */
+  return mep;
+}  /* get_ifc_module_entity_ptr */
+
+
+template<typename an_ifc_Index_type>
+static inline a_module_entity_ptr
+get_ifc_module_entity_ptr(an_ifc_Index_type index)
+/*
+Overload wrapper for "get_ifc_module_entity_ptr" that extracts the type sort
+and index from the provided index.
+*/
+{
+  return get_ifc_module_entity_ptr(index.mod, get_partition_kind(index),
+                                   index.value);
+}  /* get_ifc_module_entity_ptr */
+
+
+static inline an_ifc_decl_index
+decl_index_of(an_ifc_module         *mod,
+              an_ifc_partition_kind partition,
+              size_t                file_offset)
+/*
+Return the an_ifc_decl_index in the given module, derived from the partition
+kind and file offset.
+*/
+{
+  an_ifc_index_type part_index = to_partition_index(mod, partition,
+                                                    file_offset);
+
+  return an_ifc_decl_index{mod, to_decl_sort(partition), part_index};
+}  /* decl_index_of */
+
+
+static inline an_ifc_decl_index decl_index_of(a_module_entity_ptr mep)
+/*
+Return the an_ifc_decl_index derived from the partition kind and file offset
+stored on the given module entity pointer.
+*/
+{
+  an_ifc_module *mod = get_assoc_ifc_module(mep);
+
+  return decl_index_of(mod, mep->variant.ifc_partition, mep->file_offset);
+}  /* decl_index_of */
+
+
+static inline an_ifc_type_index
+type_index_of(an_ifc_module         *mod,
+              an_ifc_partition_kind partition,
+              size_t                file_offset)
+/*
+Return the an_ifc_type_index in the given module, derived from the partition
+kind and file offset.
+*/
+{
+  an_ifc_index_type part_index = to_partition_index(mod, partition,
+                                                    file_offset);
+
+  return an_ifc_type_index{mod, to_type_sort(partition), part_index};
+}  /* type_index_of */
+
+
+static inline an_ifc_type_index type_index_of(a_module_entity_ptr mep)
+/*
+Return the an_ifc_type_index derived from the partition kind and file offset
+stored on the given module entity pointer.
+*/
+{
+  an_ifc_module *mod = get_assoc_ifc_module(mep);
+
+  return type_index_of(mod, mep->variant.ifc_partition, mep->file_offset);
+}  /* type_index_of */
 
 
 a_const_char *get_partition_name_from_kind(an_ifc_partition_kind part_kind)
@@ -892,6 +992,24 @@ occurred.
 }  /* find_trait */
 
 
+static inline an_ifc_attr_index attr_index_of(an_ifc_decl_index decl_idx)
+/*
+Search the ".msvc.trait.vendor-traits" partition for any attribute associated
+with a given ifc_DeclIndex (decl_idx).  If a matching attribute is found return
+its ifc_AttrIndex.
+*/
+{
+  an_ifc_attr_index                 result = {};
+  Opt<an_ifc_trait_msvc_decl_attrs> opt_itmda;
+
+  find_trait(&opt_itmda, decl_idx);
+  if (opt_itmda.has_value()) {
+    result = get_ifc_trait(*opt_itmda);
+  }  /* if */
+  return result;
+}  /* attr_index_of */
+
+
 static a_boolean is_class_scope(const an_ifc_decl_index scope_ref)
 /*
 Return TRUE if the provided scope is a class/struct/union scope, FALSE
@@ -936,33 +1054,6 @@ done:
 }  /* is_class_scope */
 
 
-static an_ifc_module *get_as_an_ifc_module(a_module_interface_ptr interface)
-/*
-Reinterpret the given module interface pointer as an ifc module pointer with
-additional checks for debug modes.  Return the reinterpreted pointer.
-*/
-{
-#if USE_VIRTUAL_FUNCTIONS
-  check_assertion(dynamic_cast<an_ifc_module*>(interface) != NULL);
-#else /* !USE_VIRTUAL_FUNCTIONS */
-  check_assertion(interface->mod_kind == mk_ifc);
-#endif /* USE_VIRTUAL_FUNCTIONS */
-  return (an_ifc_module*)interface;
-}  /* get_as_an_ifc_module */
-
-
-static an_ifc_module *get_assoc_ifc_module(a_module_entity_ptr mep)
-/*
-Return the associated module interface for the given module entity pointer as
-an ifc module.
-*/
-{
-  a_module_interface *interface = mep->module_info->module_interface;
-
-  return get_as_an_ifc_module(interface);
-}  /* get_assoc_ifc_module */
-
-
 static inline void ensure_type_has_scope(a_type_ptr tp)
 /*
 Ensure that the provided type has a scope associated with it that can be used
@@ -992,8 +1083,7 @@ Given a scope reference find and return the associated scope.
   if (is_null_index(scope_ref)) {
     result = il_header.primary_scope;
   } else {
-    a_module_entity_ptr mep =
-                     scope_ref.mod->get_ifc_module_entity_ptr(scope_ref);
+    a_module_entity_ptr mep = get_ifc_module_entity_ptr(scope_ref);
     a_type_ptr          assoc_type = NULL;
 
     scope_ref.mod->process_ifc_declaration(mep, /*defer=*/FALSE,
@@ -2254,9 +2344,7 @@ already saved for restoration.
 */
 {
   a_module_token_cache        cache;
-  a_module_entity_ptr         mep = macro.mod->get_ifc_module_entity_ptr(
-                                                     get_partition_kind(macro),
-                                                     macro.value);
+  a_module_entity_ptr         mep = get_ifc_module_entity_ptr(macro);
   a_module_entity_stack_state mep_state(mep);
 
   cache_macro(&cache, macro);
@@ -2646,7 +2734,7 @@ Return NULL if none is found.
        elsewhere). */
     Value_saver<a_boolean>   suppression(&mod->suppress_friend_token,
                                          /*new_value=*/TRUE);
-    mep = mod->get_ifc_module_entity_ptr(decl_idx);
+    mep = get_ifc_module_entity_ptr(decl_idx);
     if (mep->entity.ptr == NULL) {
       mod->process_ifc_declaration(mep, /*defer=*/FALSE, (a_type_ptr)NULL);
       result = ifc_decl_lookup_table->get(decl_idx);
@@ -3765,8 +3853,7 @@ definition.
     a_module_token_cache        def_cache;
     a_decl_flag_set             flags = SFB_NEW_STRUCT_STMT_STACK_REQUIRED;
     a_curr_token_preserver      guard;
-    a_module_entity_stack_state mep_state(
-                                      ifb.mod->get_ifc_module_entity_ptr(ifb));
+    a_module_entity_stack_state mep_state(get_ifc_module_entity_ptr(ifb));
     a_diagnostic_suppression    diag_suppress(
                                            &ifb.mod->suppressed_diagnostics,
                                            !display_module_import_diagnostics);
@@ -3911,14 +3998,13 @@ template's IFC description structure.
          mechanism. */
       an_ifc_module          *itf =
                             (an_ifc_module*)mep->module_info->module_interface;
-      an_ifc_decl_index      decl = itf->decl_index_of(mep);
+      an_ifc_decl_index      decl = decl_index_of(mep);
       Opt<an_ifc_trait_deduction_guide>
                              opt_itdg;
       find_trait(&opt_itdg, decl);
       if (opt_itdg.has_value()) {
-        an_ifc_decl_index    guides_idx = get_ifc_trait(*opt_itdg);
-        a_module_entity_ptr  guides_mep =
-                                    itf->get_ifc_module_entity_ptr(guides_idx);
+        an_ifc_decl_index   guides_idx = get_ifc_trait(*opt_itdg);
+        a_module_entity_ptr guides_mep = get_ifc_module_entity_ptr(guides_idx);
         /* A single guide will have an ifc_DeclSort_Template entry directly
            associated with it, but it doesn't record the parent scope: So set
            it here (a guide is required to be declared in the same scope as the
@@ -3933,7 +4019,7 @@ template's IFC description structure.
   }  /* if */
   /* Compute the DeclIndex of the current template and retrieve the sequence
      of explicit specializations and instantiations. */
-  an_ifc_decl_index    decl = ifc_mod->decl_index_of(mep);
+  an_ifc_decl_index    decl = decl_index_of(mep);
   Opt<an_ifc_sequence> seq = ifc_mod->get_specialization_sequence_from_trait(
                                                                          decl);
   if (seq.has_value()) {
@@ -3973,10 +4059,10 @@ module, but its definition hasn't been loaded yet.  Load the definition now.
        context that created the templ entry. */
     unexpected_condition();
   } else {
-    Opt<an_ifc_decl_template>   opt_idt;
-    an_ifc_partition_kind_index ifc_idx = to_partition_kind_index(mep);
+    Opt<an_ifc_decl_template> opt_idt;
+    an_ifc_decl_index         decl_idx = decl_index_of(mep);
 
-    construct_node(&opt_idt, ifc_idx);
+    construct_node(&opt_idt, decl_idx);
     if (opt_idt.has_value()) {
       a_source_position           saved_error_position = error_position;
       a_module_entity_ptr         saved_mep = curr_module_entity;
@@ -4160,6 +4246,20 @@ using the normal IFC modules function loading logic.
 }  /* is_builtin_function */
 
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
+
+namespace {
+
+enum a_non_type_kind : uint8_t {
+  ntk_none,
+  ntk_ellipsis,
+  ntk_namespace,
+  ntk_empty_pack_expansion,
+};
+
+a_type_ptr type_for_type_index(an_ifc_type_index type_index,
+                               a_non_type_kind   *kind);
+
+}  /* namespace */
 
 /* FIXME: might be able to get rid of enumeration_type now that enums aren't
    deferred */
@@ -4966,8 +5066,9 @@ class_struct_union_case:
             } else {
               if (enumeration_type == NULL) {
                 an_ifc_type_index  type_idx = get_ifc_type(ide);
-                enumeration_type = this->type_for_type_index(type_idx,
-                                                             /*kind=*/NULL);
+
+                enumeration_type = type_for_type_index(type_idx,
+                                                       /*kind=*/NULL);
                 check_assertion(enumeration_type != NULL);
                 check_assertion(is_enum_type(enumeration_type));
               }  /* if */
@@ -6501,7 +6602,7 @@ deferred until they are referenced.
 {
   auto cache_scope_member = [this, scope](const an_ifc_scope_member &ism) {
     an_ifc_decl_index   decl_idx = get_ifc_index(ism);
-    a_module_entity_ptr dmep = this->get_ifc_module_entity_ptr(decl_idx);
+    a_module_entity_ptr dmep = get_ifc_module_entity_ptr(decl_idx);
     a_boolean           defer = TRUE;
 
 #if EXPENSIVE_CHECKING
@@ -6548,53 +6649,6 @@ Return the number of entries in a given partition.
 }  /* get_num_entries */
 
 
-a_module_entity_ptr an_ifc_module::get_ifc_module_entity_ptr(
-                                               an_ifc_partition_kind partition,
-                                               an_ifc_index_type     index)
-/*
-Utility to return a module entity pointer for this module given an IFC
-partition, and an index into that partition.  For cases where the module entity
-has just been created, the partition is set according to the partition supplied
-by the caller.
-*/
-{
-  an_ifc_partition_kind_index element_idx{this, partition, index};
-  a_module_entity_ptr         mep = get_module_entity_ptr(
-                                            assoc_module_info,
-                                            get_partition_offset(element_idx));
-
-  /* FIXME: Handle error case, formatting. */
-  if (mep->variant.ifc_partition == ifc_pk_none) {
-    mep->variant.ifc_partition = partition;
-  } else {
-    check_assertion(mep->variant.ifc_partition == partition);
-  }  /* if */
-  return mep;
-}  /* get_ifc_module_entity_ptr */
-
-
-inline a_module_entity_ptr an_ifc_module::get_ifc_module_entity_ptr(
-                                                       an_ifc_type_index index)
-/*
-Overload wrapper for "get_ifc_module_entity_ptr" that extracts the type sort
-and index from the provided index.
-*/
-{
-  return get_ifc_module_entity_ptr(get_partition_kind(index), index.value);
-}  /* get_ifc_module_entity_ptr */
-
-
-inline a_module_entity_ptr an_ifc_module::get_ifc_module_entity_ptr(
-                                                       an_ifc_decl_index index)
-/*
-Overload wrapper for "get_ifc_module_entity_ptr" that extracts the decl sort
-and index from the provided index.
-*/
-{
-  return get_ifc_module_entity_ptr(get_partition_kind(index), index.value);
-}  /* get_ifc_module_entity_ptr */
-
-
 a_module_entity_ptr an_ifc_module::get_ifc_decl_from_other_module(
                                               const an_ifc_decl_reference &ref)
 /*
@@ -6604,7 +6658,7 @@ entity from the referenced module.
 {
   an_ifc_decl_index result = get_ifc_index(ref);
 
-  return result.mod->get_ifc_module_entity_ptr(result);
+  return get_ifc_module_entity_ptr(result);
 }  /* get_ifc_decl_from_other_module */
 
 
@@ -6754,7 +6808,7 @@ can currently be qualified.
         a_module_entity_ptr dmep = get_ifc_decl_from_other_module(decl_index);
         an_ifc_module       *mod = get_assoc_ifc_module(dmep);
 
-        result = mod->is_name_qualifiable(mod->decl_index_of(dmep));
+        result = mod->is_name_qualifiable(decl_index_of(dmep));
       }
       break;
     case ifc_ds_decl_variable:
@@ -6877,24 +6931,10 @@ done:
   return result;
 }  /* exception_specification */
 
+namespace {
 
-static a_type_ptr type_for_type_index(an_ifc_type_index              type_idx,
-                                      an_ifc_module::a_non_type_kind *kind)
-/*
-Return the type that corresponds to the specified type index.  If there is no
-corresponding type, set *kind to the appropriate non-type kind and return NULL.
-*/
-{
-  /* Disable spurious GCC warning about uninitialized usage of gmf_decl_type
-     (when this function is called by name_from_local_decl). */
-BEGIN_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
-  return type_idx.mod->type_for_type_index(type_idx, kind);
-END_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
-}  /* type_for_type_index */
-
-
-a_type_ptr an_ifc_module::type_for_type_index(an_ifc_type_index type_index,
-                                              a_non_type_kind   *kind)
+a_type_ptr type_for_type_index(an_ifc_type_index type_index,
+                               a_non_type_kind   *kind)
 /*
 Return the type that corresponds to the specified TypeIndex.  If there is no
 corresponding type, set *kind to the appropriate non-type kind and return NULL.
@@ -6915,6 +6955,7 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
     result = (a_type_ptr)mep->entity.ptr;
   } else {
     an_ifc_type_index type_idx = type_index_of(mep);
+    an_ifc_module     *mod = type_index.mod;
 
     switch (type_idx.sort) {
       case ifc_ts_type_fundamental:
@@ -7088,7 +7129,7 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
             case ifc_tbs_enum:
               check_assertion(precision == ifc_tps_default);
               /* FIXME: Currently unsupported. */
-              issue_unsupported_construct_error(this, "TypeBasis::Enum",
+              issue_unsupported_construct_error(mod, "TypeBasis::Enum",
                                                 &error_position);
               goto invalid;
             case ifc_tbs_typename:
@@ -7097,7 +7138,7 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
               break;
             case ifc_tbs_segment_type:
               /* FIXME: Currently unsupported. */
-              issue_unsupported_construct_error(this, "TypeBasis::SegmentType",
+              issue_unsupported_construct_error(mod, "TypeBasis::SegmentType",
                                                 &error_position);
               goto invalid;
             case ifc_tbs_function:
@@ -7117,12 +7158,12 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
               break;
             case ifc_tbs_concept:
               /* FIXME: Currently unsupported. */
-              issue_unsupported_construct_error(this, "TypeBasis::Concept",
+              issue_unsupported_construct_error(mod, "TypeBasis::Concept",
                                                 &error_position);
               goto invalid;
             case ifc_tbs_overload:
               /* FIXME: Currently unsupported. */
-              issue_unsupported_construct_error(this, "TypeBasis::Overload",
+              issue_unsupported_construct_error(mod, "TypeBasis::Overload",
                                                 &error_position);
               goto invalid;
             default_is_unexpected_str("Unexpected TypeBasis kind");
@@ -7212,7 +7253,8 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
           result->variant.array.element_type =
                                             type_for_type_index(element,
                                                                 /*kind=*/NULL);
-          elem_count = constant_for_expr_index(extent, /*default_type=*/NULL);
+          elem_count = mod->constant_for_expr_index(extent,
+                                                    /*default_type=*/NULL);
           check_assertion(elem_count->kind== (a_constant_repr_kind)ck_integer);
           result->variant.array.variant.number_of_elements =
                           unsigned_value_of_integer_constant(elem_count, &err);
@@ -7228,7 +7270,7 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
             goto invalid;
           }  /* if */
           /* FIXME: Currently unsupported. */
-          issue_unsupported_construct_error(this, "TypeSort::Method",
+          issue_unsupported_construct_error(mod, "TypeSort::Method",
                                             &error_position);
           goto invalid;
         }
@@ -7256,7 +7298,7 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
           rtsp->calling_convention =
                               conv_calling_convention(get_ifc_convention(itf));
           rtsp->exception_specification =
-                                  exception_specification(get_ifc_eh_spec(itf),
+                             mod->exception_specification(get_ifc_eh_spec(itf),
                                                           &error_position);
           if (test_bitmask<ifc_fttb_const>(traits)) {
             rtsp->qualifiers |= TQ_CONST;
@@ -7344,7 +7386,7 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
           a_module_entity_ptr    dmep;
           switch (decl.sort) {
             case ifc_ds_decl_reference:
-              dmep = get_and_process_ifc_decl_from_other_module(decl);
+              dmep = mod->get_and_process_ifc_decl_from_other_module(decl);
               result = (a_type_ptr)dmep->entity.ptr;
               check_assertion(result != NULL && dmep->entity.kind == iek_type);
               break;
@@ -7353,7 +7395,8 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
               /* Find the type of the scope declaration by processing it (in
                  case it has been deferred). */
               dmep = get_ifc_module_entity_ptr(decl);
-              process_ifc_declaration(dmep, /*defer=*/FALSE, (a_type_ptr)NULL);
+              mod->process_ifc_declaration(dmep, /*defer=*/FALSE,
+                                           (a_type_ptr)NULL);
               result = (a_type_ptr)dmep->entity.ptr;
               check_assertion(result != NULL && dmep->entity.kind == iek_type);
               break;
@@ -7413,7 +7456,7 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
             goto invalid;
           }  /* if */
           /* FIXME: Currently unsupported. */
-          issue_unsupported_construct_error(this, "TypeSort::PointerToMember",
+          issue_unsupported_construct_error(mod, "TypeSort::PointerToMember",
                                             &error_position);
           goto invalid;
         }
@@ -7425,7 +7468,7 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
             goto invalid;
           }  /* if */
           /* FIXME: Currently unsupported. */
-          issue_unsupported_construct_error(this, "TypeSort::Tuple",
+          issue_unsupported_construct_error(mod, "TypeSort::Tuple",
                                             &error_position);
           goto invalid;
         }
@@ -7437,7 +7480,7 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
             goto invalid;
           }  /* if */
           /* FIXME: Currently unsupported. */
-          issue_unsupported_construct_error(this, "TypeSort::Forall",
+          issue_unsupported_construct_error(mod, "TypeSort::Forall",
                                             &error_position);
           goto invalid;
         }
@@ -7458,7 +7501,7 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
                 if (!opt_ieti.has_value()) {
                   goto invalid;
                 }  /* if */
-                result = type_for_template_id(*opt_ieti);
+                result = mod->type_for_template_id(*opt_ieti);
               }
               break;
             default:
@@ -7475,7 +7518,7 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
             goto invalid;
           }  /* if */
           /* FIXME: Currently unsupported. */
-          issue_unsupported_construct_error(this, "TypeSort::Expansion",
+          issue_unsupported_construct_error(mod, "TypeSort::Expansion",
                                             &error_position);
           goto invalid;
         }
@@ -7487,7 +7530,7 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
             goto invalid;
           }  /* if */
           /* FIXME: Currently unsupported. */
-          issue_unsupported_construct_error(this, "TypeSort::Typename",
+          issue_unsupported_construct_error(mod, "TypeSort::Typename",
                                             &error_position);
           goto invalid;
         }
@@ -7499,7 +7542,7 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
             goto invalid;
           }  /* if */
           /* FIXME: Currently unsupported. */
-          issue_unsupported_construct_error(this, "TypeSort::Base",
+          issue_unsupported_construct_error(mod, "TypeSort::Base",
                                             &error_position);
           goto invalid;
         }
@@ -7511,7 +7554,7 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
             goto invalid;
           }  /* if */
           /* FIXME: Currently unsupported. */
-          issue_unsupported_construct_error(this, "TypeSort::Unaligned",
+          issue_unsupported_construct_error(mod, "TypeSort::Unaligned",
                                             &error_position);
           goto invalid;
         }
@@ -7523,7 +7566,7 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
             goto invalid;
           }  /* if */
           /* FIXME: Currently unsupported. */
-          issue_unsupported_construct_error(this, "TypeSort::Decltype",
+          issue_unsupported_construct_error(mod, "TypeSort::Decltype",
                                             &error_position);
           goto invalid;
         }
@@ -7535,12 +7578,12 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
             goto invalid;
           }  /* if */
           /* FIXME: Currently unsupported. */
-          issue_unsupported_construct_error(this, "TypeSort::Syntaxtree",
+          issue_unsupported_construct_error(mod, "TypeSort::Syntaxtree",
                                             &error_position);
           goto invalid;
         }
       case ifc_ts_type_vendor_extension:
-        issue_unsupported_construct_error(this, str_for(type_idx.sort),
+        issue_unsupported_construct_error(mod, str_for(type_idx.sort),
                                           &error_position);
         goto invalid;
       default_is_unexpected_str("Unexpected TypeSort");
@@ -7559,6 +7602,7 @@ done:;
   return result;
 }  /* type_for_type_index */
 
+}  /* namespace */
 
 a_template_arg_ptr an_ifc_module::template_arg_for_expr(
                                            const a_template_parameter *param,
@@ -8389,8 +8433,7 @@ Given a declaration, return the name associated with that declaration.
         /* References are a special case where we need to recurse to a foreign
            module. */
         a_module_entity_ptr dmep = get_ifc_decl_from_other_module(*opt_idr);
-        an_ifc_module       *mod = get_assoc_ifc_module(dmep);
-        result = name_from_decl(mod->decl_index_of(dmep));
+        result = name_from_decl(decl_index_of(dmep));
       }
       break;
     case ifc_ds_decl_using_declaration:
@@ -17445,7 +17488,7 @@ nested-name-specifier to cache.  pos is the position of the qualified-id this
 nested-name-specifier is part of.
 */
 {
-  a_module_entity_ptr mep = this->get_ifc_module_entity_ptr(decl);
+  a_module_entity_ptr mep = get_ifc_module_entity_ptr(decl);
 
   if (mep->scope == NULL && has_ifc_home_scope(decl)) {
     /* Load the module entity pointer scope if not already processed. */
@@ -17821,72 +17864,6 @@ invalid:
   cache->invalidate();
 done:;
 }  /* cache_form */
-
-
-inline an_ifc_decl_index an_ifc_module::decl_index_of(
-                                             an_ifc_partition_kind partition,
-                                             size_t                file_offset)
-/*
-Return the an_ifc_decl_index derived from the partition kind and file offset.
-*/
-{
-  an_ifc_index_type part_index =
-                  EDG_PREFIX::to_partition_index(this, partition, file_offset);
-
-  return an_ifc_decl_index{this, to_decl_sort(partition), part_index};
-}  /* decl_index_of */
-
-
-inline an_ifc_decl_index an_ifc_module::decl_index_of(a_module_entity_ptr mep)
-/*
-Return the an_ifc_decl_index derived from the partition kind and file offset
-stored on the given module entity pointer.
-*/
-{
-  return decl_index_of(mep->variant.ifc_partition, mep->file_offset);
-}  /* decl_index_of */
-
-
-inline an_ifc_type_index an_ifc_module::type_index_of(
-                                             an_ifc_partition_kind partition,
-                                             size_t                file_offset)
-/*
-Return the an_ifc_type_index derived from the partition kind and file offset.
-*/
-{
-  an_ifc_index_type part_index =
-                  EDG_PREFIX::to_partition_index(this, partition, file_offset);
-
-  return an_ifc_type_index{this, to_type_sort(partition), part_index};
-}  /* type_index_of */
-
-
-inline an_ifc_type_index an_ifc_module::type_index_of(a_module_entity_ptr mep)
-/*
-Return the an_ifc_type_index derived from the partition kind and file offset
-stored on the given module entity pointer.
-*/
-{
-  return type_index_of(mep->variant.ifc_partition, mep->file_offset);
-}  /* type_index_of */
-
-
-an_ifc_attr_index an_ifc_module::attr_index_of(an_ifc_decl_index decl_idx)
-/*
-Search the ".msvc.trait.vendor-traits" partition for any attribute associated
-with a given ifc_DeclIndex (decl_idx).  If a matching attribute is found return
-its ifc_AttrIndex.
-*/
-{
-  an_ifc_attr_index                 result = {};
-  Opt<an_ifc_trait_msvc_decl_attrs> opt_itmda;
-
-  find_trait(&opt_itmda, decl_idx);
-  if (opt_itmda.has_value()) {
-    result = get_ifc_trait(*opt_itmda);
-  }  /* if */
-  return result;
-}  /* attr_index_of */
 
 
 static void add_backtrace(a_diagnostic_ptr              diag_ptr,

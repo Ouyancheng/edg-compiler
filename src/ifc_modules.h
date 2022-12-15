@@ -216,10 +216,6 @@ public:
   const an_ifc_partition_metadata &get_partition_metadata(
                                         an_ifc_partition_kind part_kind) const;
 
-  inline a_module_entity_ptr get_ifc_module_entity_ptr(
-                                                      an_ifc_type_index index);
-  inline a_module_entity_ptr get_ifc_module_entity_ptr(
-                                                      an_ifc_decl_index index);
   void process_ifc_declaration(a_module_entity_ptr mep,
                                a_boolean           defer,
                                a_type_ptr          enumeration_type);
@@ -238,12 +234,6 @@ public:
   void debug() const OVERRIDE;
   void db_module_entity(a_module_entity_ptr mep) const OVERRIDE;
 #endif /* DEBUG */
-  enum a_non_type_kind : uint8_t {
-    ntk_none,
-    ntk_ellipsis,
-    ntk_namespace,
-    ntk_empty_pack_expansion,
-  };
   a_boolean init_string_table_and_header(a_module_import_decl_ptr midp,
                                          a_boolean                issue_diag);
   a_boolean initialize_members_from_ifc_module_file(
@@ -263,9 +253,6 @@ public:
                          a_scope_ptr        scope);
   uint32_t get_num_entries(an_ifc_partition_kind partition) const;
   /* Module entity getters. */
-  a_module_entity_ptr get_ifc_module_entity_ptr(
-                                               an_ifc_partition_kind partition,
-                                               an_ifc_index_type     index);
   a_module_entity_ptr get_ifc_decl_from_other_module(
                                              const an_ifc_decl_reference &ref);
   a_module_entity_ptr get_ifc_decl_from_other_module(an_ifc_decl_index index);
@@ -277,8 +264,6 @@ public:
   /* IFC Scope readers. */
   a_boolean is_home_scope_readable(an_ifc_decl_index decl_index);
   a_boolean is_name_qualifiable(an_ifc_decl_index decl_index);
-  a_type_ptr type_for_type_index(an_ifc_type_index type_index,
-                                 a_non_type_kind   *kind);
   a_type_ptr type_for_template_id(const an_ifc_expr_template_id &templ_id);
   a_template_arg_ptr template_arg_for_expr(
                                         const a_template_parameter *param,
@@ -560,14 +545,6 @@ public:
   void cache_form(a_module_token_cache_ptr cache,
                   an_ifc_form_index        form,
                   a_boolean                is_parameter_form = FALSE);
-  /* Index helpers. */
-  inline an_ifc_decl_index decl_index_of(an_ifc_partition_kind partition,
-                                         size_t                file_offset);
-  inline an_ifc_decl_index decl_index_of(a_module_entity_ptr mep);
-  inline an_ifc_type_index type_index_of(an_ifc_partition_kind partition,
-                                         size_t                file_offset);
-  inline an_ifc_type_index type_index_of(a_module_entity_ptr mep);
-  inline an_ifc_attr_index attr_index_of(an_ifc_decl_index decl_idx);
   an_ifc_chart_index get_func_params_from_trait(an_ifc_decl_index decl);
   an_ifc_msvc_traits_bitfield get_vendor_traits(an_ifc_decl_index decl);
   Opt<an_ifc_sequence> get_specialization_sequence_from_trait(
