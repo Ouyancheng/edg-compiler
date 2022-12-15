@@ -7220,7 +7220,6 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
                                             &error_position);
           goto invalid;
         }
-        break;
       case ifc_ts_type_function:
         { Opt<an_ifc_type_function> opt_itf;
 
@@ -7406,7 +7405,6 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
                                             &error_position);
           goto invalid;
         }
-        break;
       case ifc_ts_type_tuple:
         { Opt<an_ifc_type_tuple> opt_itt;
 
@@ -7419,7 +7417,6 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
                                             &error_position);
           goto invalid;
         }
-        break;
       case ifc_ts_type_forall:
         { Opt<an_ifc_type_forall> opt_itf;
 
@@ -7432,7 +7429,6 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
                                             &error_position);
           goto invalid;
         }
-        break;
       case ifc_ts_type_syntactic:
         { Opt<an_ifc_type_syntactic> opt_its;
 
@@ -7471,7 +7467,6 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
                                             &error_position);
           goto invalid;
         }
-        break;
       case ifc_ts_type_typename:
         { Opt<an_ifc_type_typename> opt_itt;
 
@@ -7484,7 +7479,6 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
                                             &error_position);
           goto invalid;
         }
-        break;
       case ifc_ts_type_base:
         { Opt<an_ifc_type_base> opt_itb;
 
@@ -7497,7 +7491,6 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
                                             &error_position);
           goto invalid;
         }
-        break;
       case ifc_ts_type_unaligned:
         { Opt<an_ifc_type_unaligned> opt_itu;
 
@@ -7510,7 +7503,6 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
                                             &error_position);
           goto invalid;
         }
-        break;
       case ifc_ts_type_decltype:
         { Opt<an_ifc_type_decltype> opt_itd;
 
@@ -7523,7 +7515,6 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
                                             &error_position);
           goto invalid;
         }
-        break;
       case ifc_ts_type_syntax_tree:
         { Opt<an_ifc_type_syntax_tree> opt_itst;
 
@@ -7536,7 +7527,6 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
                                             &error_position);
           goto invalid;
         }
-        break;
       case ifc_ts_type_vendor_extension:
         issue_unsupported_construct_error(this, str_for(type_idx.sort),
                                           &error_position);
@@ -7600,7 +7590,6 @@ template_args_for_expr_list instead.
         type = error_type();
         goto invalid;
       }
-      break;
     case ifc_es_expr_read:
       { Opt<an_ifc_expr_read> opt_ier;
 
@@ -8025,7 +8014,6 @@ accordingly.
           requires_buffer = FALSE;
           goto invalid;
         }
-        break;
       case ifc_ns_name_guide:
         { Opt<an_ifc_name_guide> opt_ing;
 
@@ -8041,7 +8029,6 @@ accordingly.
           requires_buffer = FALSE;
           goto invalid;
         }
-        break;
       case ifc_ns_text_offset:
         unexpected_condition();
         break;
@@ -8421,7 +8408,6 @@ Given a declaration, return the name associated with that declaration.
                                           &error_position);
         goto invalid;
       }
-      break;
     case ifc_ds_decl_expansion:
       { Opt<an_ifc_decl_expansion> opt_ide;
 
@@ -9035,7 +9021,6 @@ FIXME: what other expressions can we get here?
                                           &error_position);
         goto invalid;
       }
-      break;
     case ifc_es_expr_product_type_value:
       { Opt<an_ifc_expr_product_type_value> opt_ieptv;
 
