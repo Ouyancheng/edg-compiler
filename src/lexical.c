@@ -25883,7 +25883,7 @@ end_tsn.
 {
   a_cached_token_ptr	ctp = first_token;
 
-  check_assertion(start_tsn < end_tsn ||
+  check_assertion(start_tsn <= end_tsn ||
                   start_tsn == NO_TOKEN_SEQUENCE_NUMBER ||
                   end_tsn == NO_TOKEN_SEQUENCE_NUMBER);
   /* Skip any tokens that are before the desired starting point. */
