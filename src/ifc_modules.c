@@ -3401,13 +3401,44 @@ done:;
 
 
 template<typename an_ifc_Node_type>
-static a_boolean cache_decl(a_module_token_cache_ptr cache,
-                            const an_ifc_Node_type   &node) DELETED_FN_DEF
+static
+a_boolean cache_direct_decl(a_module_token_cache_ptr cache,
+                            const an_ifc_Node_type   &node,
+                            const an_ifc_cache_info  &cinfo) DELETED_FN_DEF
 
 
 template<>
-a_boolean cache_decl(a_module_token_cache_ptr     cache,
-                     const an_ifc_decl_enumerator &ide)
+a_boolean cache_direct_decl(a_module_token_cache_ptr  cache,
+                            const an_ifc_decl_concept &idc,
+                            const an_ifc_cache_info   &cinfo)
+/*
+Add the given decl concept into the cache.  Return TRUE if caching succeeds,
+FALSE otherwise.
+*/
+{
+  an_ifc_module     *mod = idc.get_module();
+  a_source_position pos;
+
+  source_position_from_locus(&pos, get_ifc_locus(idc));
+  /* Generate the template parameter list. */
+  cache_token(cache, tok_template, &pos);
+  mod->cache_chart(cache, get_ifc_chart(idc), get_ifc_locus(idc), cinfo);
+  /* Generate "concept <concept-name>". */
+  mod->cache_sentence(cache, get_ifc_head(idc));
+  if (cinfo.ignore_definition) {
+    cache_token(cache, tok_semicolon, &pos);
+  } else {
+    /* Generate "= <constraint-expression> ;". */
+    mod->cache_sentence(cache, get_ifc_body(idc));
+  }  /* if */
+  return TRUE;
+}  /* cache_direct_decl */
+
+
+template<>
+a_boolean cache_direct_decl(a_module_token_cache_ptr     cache,
+                            const an_ifc_decl_enumerator &ide,
+                            const an_ifc_cache_info      &cinfo)
 /*
 Add the given decl enumerator into the cache.  Return TRUE if caching succeeds,
 FALSE otherwise.
@@ -3426,12 +3457,13 @@ FALSE otherwise.
     ide.get_module()->cache_expr(cache, initializer, /*cinfo=*/{});
   }  /* if */
   return TRUE;
-}  /* cache_decl */
+}  /* cache_direct_decl */
 
 
 template<>
-a_boolean cache_decl(a_module_token_cache_ptr    cache,
-                     const an_ifc_decl_parameter &idp)
+a_boolean cache_direct_decl(a_module_token_cache_ptr    cache,
+                            const an_ifc_decl_parameter &idp,
+                            const an_ifc_cache_info     &cinfo)
 /*
 Add the given decl parameter into the cache.  Return TRUE if caching succeeds,
 FALSE otherwise.
@@ -3490,7 +3522,11 @@ FALSE otherwise.
   if (need_second_pass) {
     mod->cache_type_second_part(cache, type, locus);
   }  /* if */
-  if (!is_null_index(initializer) && !mod->suppress_default_arguments) {
+
+  a_boolean is_template_param = param_sort != ifc_ps_object;
+  if (!is_null_index(initializer) &&
+      ((!cinfo.ignore_default_arguments && !is_template_param) ||
+       (!cinfo.ignore_default_template_arguments && is_template_param))) {
     cache_token(cache, tok_assign, &pos);
     if (defer_initializer_expr) {
       cache_token_with_index(cache, tok_pending_ifc_expr, initializer, &pos);
@@ -3499,12 +3535,13 @@ FALSE otherwise.
     }  /* if */
   }  /* if */
   return TRUE;
-}  /* cache_decl */
+}  /* cache_direct_decl */
 
 
 template<>
-a_boolean cache_decl(a_module_token_cache_ptr   cache,
-                     const an_ifc_decl_temploid &idt)
+a_boolean cache_direct_decl(a_module_token_cache_ptr   cache,
+                            const an_ifc_decl_temploid &idt,
+                            const an_ifc_cache_info    &cinfo)
 /*
 Add the given decl temploid into the cache.  Return TRUE if caching succeeds,
 FALSE otherwise.
@@ -3516,7 +3553,7 @@ FALSE otherwise.
   issue_unsupported_construct_error(mod, "DeclSort::Temploid",
                                     &error_position);
   return FALSE;
-}  /* cache_decl */
+}  /* cache_direct_decl */
 
 
 static a_diagnostic_ptr start_rp_diag(
@@ -4072,12 +4109,11 @@ template's IFC description structure.
        definitions even when they are not reachable): Load it. */
     a_template_ptr       templ;
     a_module_token_cache cache;
-    {
-      Value_saver<a_boolean> saved_suppress_default_arguments(
-                                          &ifc_mod->suppress_default_arguments,
-                                          /*new_value=*/already_declared);
-      ifc_mod->cache_decl_template(&cache, idst);
-    }
+    an_ifc_cache_info    cinfo;
+
+    cinfo.ignore_default_arguments = already_declared;
+    cinfo.ignore_default_template_arguments = already_declared;
+    ifc_mod->cache_decl_template(&cache, idst, cinfo);
     templ = parse_cached_template(&cache, mep->scope);
     mep->entity.ptr = (char*)templ;
     mep->entity.kind = iek_template;
@@ -4457,7 +4493,9 @@ principal associated IL entity.
             /* Naming aside, setting this is required to allow the inline
                keyword on variable declarations. */
             dps.function_definition_allowed = TRUE;
-            cache_decl(&cache, decl_idx);
+
+            an_ifc_cache_info cache_info;
+            cache_decl(&cache, decl_idx, cache_info);
 #if DEBUG
             if (db_flag_is_set("ms_ifc_token_def")) {
               fprintf(f_debug, "Reconstituted variable declaration:\n");
@@ -4917,7 +4955,7 @@ class_struct_union_case:
                 break;
               }  /* if */
               cache_token(&cache, tok_template, &pos);
-              cache_chart(&cache, get_ifc_chart(itf), locus);
+              cache_chart(&cache, get_ifc_chart(itf), locus, /*cinfo=*/{});
               cache_token(&cache, tok_using, &pos);
               cache_identifier(&cache, get_string_at_offset(get_ifc_name(ida)),
                                &pos);
@@ -5306,12 +5344,11 @@ class_struct_union_case:
             }  /* if */
             if (do_forward_decl) {
               a_module_token_cache   cache;
-              Value_saver<a_boolean> saved_suppress_default_arguments(
-                                             &this->suppress_default_arguments,
-                                             /*new_value=*/FALSE);
+              an_ifc_cache_info      cinfo;
 
-              cache_decl_template_declaration(&cache, idt,
-                                              /*add_semicolon=*/TRUE);
+              cinfo.ignore_default_arguments = FALSE;
+              cinfo.ignore_default_template_arguments = FALSE;
+              cache_decl_template_declaration(&cache, idt, cinfo);
               if (!cache.is_valid()) {
                 goto invalid;
               }  /* if */
@@ -5547,9 +5584,10 @@ class_struct_union_case:
           } else {
             an_ifc_decl_specialization ids = *opt_ids;
             a_module_token_cache       cache;
+            an_ifc_cache_info          cache_info;
 
             lazy_push_module_scope(ids, mep, &scope_push_status);
-            cache_decl_specialization(&cache, decl_idx, ids);
+            cache_decl_specialization(&cache, decl_idx, ids, cache_info);
             if (!cache.is_valid()) {
               goto invalid;
             }  /* if */
@@ -5583,6 +5621,7 @@ class_struct_union_case:
             an_ifc_decl_concept    idc = *opt_idc;
             a_curr_token_preserver guard;
             a_module_token_cache   cache;
+            an_ifc_cache_info      cinfo;
 
             if (is_from_gmf(get_ifc_specifiers(idc))) {
               mep->global_module = TRUE;
@@ -5597,13 +5636,7 @@ class_struct_union_case:
                                              &kind)) {
               break;
             }  /* if */
-            /* Generate the template parameter list. */
-            cache_token(&cache, tok_template, &null_source_position);
-            cache_chart(&cache, get_ifc_chart(idc), get_ifc_locus(idc));
-            /* Generate "concept <concept-name>". */
-            cache_sentence(&cache, get_ifc_head(idc));
-            /* Generate "= <constraint-expression> ;". */
-            cache_sentence(&cache, get_ifc_body(idc));
+            cache_direct_decl(&cache, idc, cinfo);
             /* Parse the definition cache. */
             if (!cache.is_valid()) {
               goto invalid;
@@ -5953,7 +5986,7 @@ is handled by not caching any tokens.
 */
 {
   auto cache_scope_member = [mod, cache](const an_ifc_scope_member &ism) {
-    mod->cache_decl(cache, get_ifc_index(ism));
+    mod->cache_decl(cache, get_ifc_index(ism), /*cinfo=*/{});
   };
 
   if (scope != 0) {
@@ -6079,7 +6112,7 @@ Complete the definition of the class referred to by mep (if needed).
           /* Emit ordinary members: */
           auto cache_member = [this, &cache](const an_ifc_scope_member  &ism) {
             an_ifc_decl_index  member_idx = get_ifc_index(ism);
-            this->cache_decl(&cache, member_idx);
+            this->cache_decl(&cache, member_idx, /*cinfo=*/{});
             cache_token_with_index(&cache, tok_ifc_decl, member_idx,
                                    &error_position);
           };
@@ -11626,7 +11659,7 @@ to this call -- so that we can determine if caching of a given declaration in
   /* Provide a consumer function that accepts a given scope member and caches
      the associated IFC declaration into the cache. */
   auto decl_consumer = [this, cache](const an_ifc_scope_member &ismp) {
-    this->cache_decl(cache, get_ifc_index(ismp));
+    this->cache_decl(cache, get_ifc_index(ismp), /*cinfo=*/{});
   };
 
   /* Iterate over the sequence calling decl_consumer for each element. */
@@ -12262,7 +12295,8 @@ this is needed.
         if (!opt_itfa.has_value()) {
           goto invalid;
         }  /* if */
-        cache_template_head(cache, get_ifc_chart(*opt_itfa), &pos);
+        cache_template_head(cache, get_ifc_chart(*opt_itfa), &pos,
+                            /*cinfo=*/{});
         cache_type(cache, get_ifc_subject(*opt_itfa), locus);
       }
       break;
@@ -12484,7 +12518,8 @@ cache_type_second_part should be used instead.
 
 void an_ifc_module::cache_chart(a_module_token_cache_ptr cache,
                                 an_ifc_chart_index       chart,
-                                a_source_position_ptr    pos)
+                                a_source_position_ptr    pos,
+                                const an_ifc_cache_info  &cinfo)
 /*
 Add the tokens corresponding to the given chart to cache.  The caller is
 expected to have already cached the "template" keyword if it's required.  pos
@@ -12516,7 +12551,7 @@ is the position of the chart.
           if (!first) {
             cache_token(cache, tok_comma, pos);
           }  /* if */
-          if (!EDG_PREFIX::cache_decl(cache, *indexed_idp)) {
+          if (!cache_direct_decl(cache, *indexed_idp, cinfo)) {
             goto invalid;
           }  /* if */
           first = FALSE;
@@ -12538,7 +12573,7 @@ is the position of the chart.
             cache_token(cache, tok_comma, pos);
           }  /* if */
           /* FIXME: Is this correct? */
-          if (!EDG_PREFIX::cache_decl(cache, *indexed_idt)) {
+          if (!cache_direct_decl(cache, *indexed_idt, cinfo)) {
             goto invalid;
           }  /* if */
           first = FALSE;
@@ -12550,7 +12585,7 @@ is the position of the chart.
   cache_token(cache, tok_gt, pos);
   if (!is_null_index(constraint)) {
     /* The template parameter list is followed by a requires-clause. */
-    cache_expr(cache, constraint, /*cinfo=*/{});
+    cache_expr(cache, constraint, cinfo);
   }  /* if */
   goto done;
 invalid:
@@ -12562,7 +12597,8 @@ done:;
 
 void an_ifc_module::cache_chart(a_module_token_cache_ptr     cache,
                                 an_ifc_chart_index           chart,
-                                const an_ifc_source_location &locus)
+                                const an_ifc_source_location &locus,
+                                const an_ifc_cache_info      &cinfo)
 /*
 Add the tokens corresponding to the given chart to cache.  The caller is
 expected to have already cached the "template" keyword if it's required.  locus
@@ -12572,7 +12608,7 @@ is the location of the chart.
   a_source_position pos;
 
   source_position_from_locus(&pos, locus);
-  cache_chart(cache, chart, &pos);
+  cache_chart(cache, chart, &pos, cinfo);
 }  /* cache_chart */
 
 
@@ -13815,7 +13851,7 @@ later processing).
 uint32_t an_ifc_module::cache_decl_template_declaration(
                                       a_module_token_cache_ptr   cache,
                                       const an_ifc_decl_template &decl,
-                                      a_boolean                  add_semicolon)
+                                      const an_ifc_cache_info    &cinfo)
 /*
 Add the tokens corresponding to the given template declaration (decl) to cache.
 If add_semicolon is TRUE, include the terminating semicolon that would be
@@ -13842,7 +13878,7 @@ if there is no offset/the offset is not needed.
     }  /* if */
   }  /* if */
   /* Reconstruct the template-head. */
-  cache_template_head(cache, get_ifc_chart(decl), &pos);
+  cache_template_head(cache, get_ifc_chart(decl), &pos, cinfo);
   /* FIXME: Handle attributes. */
 
   an_ifc_type_index type_index = get_ifc_type(decl);
@@ -13867,7 +13903,7 @@ if there is no offset/the offset is not needed.
        entity.head instead. */
     cache_sentence(cache, get_ifc_head(entity));
   }  /* if */
-  if (add_semicolon) {
+  if (!cinfo.no_final_semicolon) {
     cache_token(cache, tok_semicolon, &pos);
   }  /* if */
   return offset;
@@ -13875,18 +13911,22 @@ if there is no offset/the offset is not needed.
 
 
 void an_ifc_module::cache_decl_template(a_module_token_cache_ptr   cache,
-                                        const an_ifc_decl_template &decl)
+                                        const an_ifc_decl_template &decl,
+                                        const an_ifc_cache_info    &cinfo)
 /*
 Add the tokens corresponding to the given template declaration (decl) to cache.
 */
 {
   an_ifc_sentence_index decl_body = get_ifc_body(get_ifc_entity(decl));
-  a_boolean             decl_only = decl_body == 0;
+  an_ifc_cache_info     cache_info = cinfo;
   uint32_t              offset;
 
-  offset = cache_decl_template_declaration(cache, decl,
-                                           /*add_semicolon=*/decl_only);
-  if (!decl_only) {
+  /* Flag that the definition is ignored if there's no definition to cache. */
+  cache_info.ignore_definition |= decl_body == 0;
+  /* If we're caching a definition, the final semicolon must be cached. */
+  cache_info.no_final_semicolon = !cache_info.ignore_definition;
+  offset = cache_decl_template_declaration(cache, decl, cache_info);
+  if (!cache_info.ignore_definition) {
     (void)cache_sentence(cache, decl_body, offset);
   }  /* if */
 }  /* cache_decl_template */
@@ -13948,7 +13988,7 @@ Add the tokens corresponding to the given partial specialization declaration
 
   source_position_from_locus(&pos, get_ifc_locus(decl));
   /* Reconstruct the template-head. */
-  cache_template_head(cache, get_ifc_chart(decl), &pos);
+  cache_template_head(cache, get_ifc_chart(decl), &pos, /*cinfo=*/{});
   /* Reconstruct the declaration. */
   /* FIXME: Eventually this entire block should be replaceable by a cache_decl
      call (due to problems in the IFC -- namely the templated decl having a
@@ -14035,9 +14075,10 @@ done:;
 
 
 void an_ifc_module::cache_decl_specialization(
-                                     a_module_token_cache_ptr         cache,
-                                     an_ifc_decl_index                decl_idx,
-                                     const an_ifc_decl_specialization &decl)
+                                  a_module_token_cache_ptr         cache,
+                                  an_ifc_decl_index                decl_idx,
+                                  const an_ifc_decl_specialization &decl,
+                                  const an_ifc_cache_info          &cinfo)
 /*
 Add the tokens corresponding to the given specialization declaration (decl
 indexed in the IFC by decl_idx) to cache.
@@ -14056,7 +14097,7 @@ indexed in the IFC by decl_idx) to cache.
     cache_token(cache, tok_template, &pos);
   } else {
     /* Reconstruct the template-head. */
-    cache_template_head(cache, an_ifc_chart_index{}, &pos);
+    cache_template_head(cache, an_ifc_chart_index{}, &pos, cinfo);
   }  /* if */
   /* Reconstruct the declaration. */
   /* FIXME: Eventually this entire block should be replaceable by a
@@ -14094,17 +14135,19 @@ indexed in the IFC by decl_idx) to cache.
           cache_scope_decl(cache, decl_idx, get_ifc_type(ids), ifc_as_none,
                            cache_name_fn, cache_scope_fn, get_ifc_locus(ids));
         } else {
-          auto cache_scope_fn = [this, cache, &ids](
+          auto cache_scope_fn = [this, cache, &cinfo, &ids](
                                               a_source_position_ptr decl_pos) {
-            an_ifc_type_index      base = get_ifc_base(ids);
-            an_ifc_source_location locus = get_ifc_locus(ids);
+            if (!cinfo.ignore_definition) {
+              an_ifc_type_index      base = get_ifc_base(ids);
+              an_ifc_source_location locus = get_ifc_locus(ids);
 
-            /* If there are bases specified, cache the bases. */
-            if (!is_null_index(base)) {
-              cache_token(cache, tok_colon, decl_pos);
-              cache_type(cache, base, locus);
+              /* If there are bases specified, cache the bases. */
+              if (!is_null_index(base)) {
+                cache_token(cache, tok_colon, decl_pos);
+                cache_type(cache, base, locus);
+              }  /* if */
+              cache_scope(this, cache, get_ifc_initializer(ids), locus);
             }  /* if */
-            cache_scope(this, cache, get_ifc_initializer(ids), locus);
             cache_token(cache, tok_semicolon, decl_pos);
           };
 
@@ -14130,14 +14173,16 @@ indexed in the IFC by decl_idx) to cache.
                                               a_source_position_ptr decl_pos) {
           cache_simple_template_id(this, cache, decl, get_ifc_locus(idv));
         };
-        auto cache_spec_init_fn = [this, cache, &idv](
+        auto cache_spec_init_fn = [this, cache, &cinfo, &idv](
                                               a_source_position_ptr decl_pos) {
-          an_ifc_expr_index initializer = get_ifc_initializer(idv);
+          if (!cinfo.ignore_definition) {
+            an_ifc_expr_index initializer = get_ifc_initializer(idv);
 
-          if (!is_null_index(initializer)) {
-            cache_token(cache, tok_lparen, decl_pos);
-            cache_expr(cache, initializer, /*cinfo=*/{});
-            cache_token(cache, tok_rparen, decl_pos);
+            if (!is_null_index(initializer)) {
+              cache_token(cache, tok_lparen, decl_pos);
+              cache_expr(cache, initializer, cinfo);
+              cache_token(cache, tok_rparen, decl_pos);
+            }  /* if */
           }  /* if */
           cache_token(cache, tok_semicolon, decl_pos);
         };
@@ -14211,7 +14256,11 @@ BEGIN_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
                             get_ifc_source(itf), get_ifc_eh_spec(itf),
                             get_ifc_locus(idf));
 END_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
-        maybe_cache_function_def(cache, templated_decl_idx, idf);
+        if (!cinfo.ignore_definition) {
+          maybe_cache_function_def(cache, templated_decl_idx, idf);
+        } else {
+          cache_token(cache, tok_semicolon, &null_source_position);
+        }  /* if */
       }
       break;
     case ifc_ds_decl_method:
@@ -14251,7 +14300,11 @@ END_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
                             get_ifc_target(itm), cache_name_fn, params,
                             get_ifc_source(itm), get_ifc_eh_spec(itm),
                             get_ifc_locus(idm));
-        maybe_cache_function_def(cache, templated_decl_idx, idm);
+        if (!cinfo.ignore_definition) {
+          maybe_cache_function_def(cache, templated_decl_idx, idm);
+        } else {
+          cache_token(cache, tok_semicolon, &null_source_position);
+        }  /* if */
       }
       break;
     case ifc_ds_decl_constructor:
@@ -14295,7 +14348,11 @@ END_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
                             get_vendor_traits(decl_idx), an_ifc_type_index{},
                             cache_name_fn, params, get_ifc_source(itt),
                             get_ifc_eh_spec(itt), get_ifc_locus(idc));
-        maybe_cache_function_def(cache, templated_decl_idx, idc);
+        if (!cinfo.ignore_definition) {
+          maybe_cache_function_def(cache, templated_decl_idx, idc);
+        } else {
+          cache_token(cache, tok_semicolon, &null_source_position);
+        }  /* if */
       }
       break;
     default:
@@ -14593,7 +14650,8 @@ decl_idx to the cache.
 
 void an_ifc_module::cache_template_head(a_module_token_cache_ptr cache,
                                         an_ifc_chart_index       chart_idx,
-                                        a_source_position_ptr    pos)
+                                        a_source_position_ptr    pos,
+                                        const an_ifc_cache_info  &cinfo)
 /*
 Add the tokens corresponding to the template head described by the given
 chart_idx to the cache.  pos is the position of the associated template or
@@ -14605,7 +14663,7 @@ specialization.
     cache_token(cache, tok_lt, pos);
     cache_token(cache, tok_gt, pos);
   } else {
-    cache_chart(cache, chart_idx, pos);
+    cache_chart(cache, chart_idx, pos, cinfo);
   }  /* if */
 }  /* cache_template_head */
 
@@ -14642,7 +14700,7 @@ list (individual parameters will have their own locus associated with them).
       if (!is_first(traverser, indexed_idp)) {
         cache_token(cache, tok_comma, &pos);
       }  /* if */
-      if (!EDG_PREFIX::cache_decl(cache, *indexed_idp)) {
+      if (!cache_direct_decl(cache, *indexed_idp, /*cinfo=*/{})) {
         goto invalid;
       }  /* if */
     }  /* for */
@@ -14659,7 +14717,8 @@ done:;
 
 
 void an_ifc_module::cache_decl(a_module_token_cache_ptr cache,
-                               an_ifc_decl_index        decl)
+                               an_ifc_decl_index        decl,
+                               const an_ifc_cache_info  &cinfo)
 /*
 Add the tokens corresponding to the given declaration (decl) to cache.
 */
@@ -14680,7 +14739,7 @@ Add the tokens corresponding to the given declaration (decl) to cache.
         if (!opt_ide.has_value()) {
           goto invalid;
         }  /* if */
-        if (!EDG_PREFIX::cache_decl(cache, *opt_ide)) {
+        if (!cache_direct_decl(cache, *opt_ide, cinfo)) {
           goto invalid;
         }  /* if */
       }
@@ -14711,7 +14770,7 @@ Add the tokens corresponding to the given declaration (decl) to cache.
         if (!opt_idp.has_value()) {
           goto invalid;
         }  /* if */
-        if (!EDG_PREFIX::cache_decl(cache, *opt_idp)) {
+        if (!cache_direct_decl(cache, *opt_idp, cinfo)) {
           goto invalid;
         }  /* if */
       }
@@ -14809,7 +14868,7 @@ Add the tokens corresponding to the given declaration (decl) to cache.
         if (!is_null_index(alignment)) {
           cache_token(cache, tok_alignas, &pos);
           cache_token(cache, tok_lparen, &pos);
-          cache_expr(cache, alignment, /*cinfo=*/{});
+          cache_expr(cache, alignment, cinfo);
           cache_token(cache, tok_rparen, &pos);
         }  /* if */
         cache_identifier(cache, get_string_at_offset(get_ifc_name(ide)), &pos);
@@ -14831,7 +14890,7 @@ Add the tokens corresponding to the given declaration (decl) to cache.
             if (!is_first(traverser, indexed_iden)) {
               cache_token(cache, tok_comma, &pos);
             }  /* if */
-            if (!EDG_PREFIX::cache_decl(cache, *indexed_iden)) {
+            if (!cache_direct_decl(cache, *indexed_iden, cinfo)) {
               goto invalid;
             }  /* if */
           }  /* for */
@@ -14884,7 +14943,7 @@ Add the tokens corresponding to the given declaration (decl) to cache.
           an_ifc_type_forall itf = *opt_itf;
           check_assertion(get_ifc_aliasee(ida).sort == ifc_ts_type_forall);
           cache_token(cache, tok_template, &pos);
-          cache_chart(cache, get_ifc_chart(itf), locus);
+          cache_chart(cache, get_ifc_chart(itf), locus, cinfo);
           cache_token(cache, tok_using, &pos);
           cache_identifier(cache, get_string_at_offset(get_ifc_name(ida)),
                            &pos);
@@ -14912,7 +14971,7 @@ Add the tokens corresponding to the given declaration (decl) to cache.
         an_ifc_decl_template idt = *opt_idt;
         Opt<an_ifc_sequence> opt_seq =
                                   get_specialization_sequence_from_trait(decl);
-        cache_decl_template(cache, idt);
+        cache_decl_template(cache, idt, cinfo);
         if (opt_seq.has_value()) {
           /* Cache the associated specializations. */
           cache_scope_member_sequence(cache, get_ifc_home_scope(idt),
@@ -14937,14 +14996,21 @@ Add the tokens corresponding to the given declaration (decl) to cache.
         if (!opt_ids.has_value()) {
           goto invalid;
         }  /* if */
-        cache_decl_specialization(cache, decl, *opt_ids);
+        cache_decl_specialization(cache, decl, *opt_ids, cinfo);
       }
       break;
     case ifc_ds_decl_concept:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "DeclSort::Concept",
-                                        &error_position);
-      goto invalid;
+      { Opt<an_ifc_decl_concept> opt_idc;
+
+        construct_node(&opt_idc, decl);
+        if (!opt_idc.has_value()) {
+          goto invalid;
+        }  /* if */
+        if (!cache_direct_decl(cache, *opt_idc, cinfo)) {
+          goto invalid;
+        }  /* if */
+      }
+      break;
     case ifc_ds_decl_function:
       { Opt<an_ifc_decl_function> opt_idf;
 
@@ -15206,7 +15272,7 @@ Add the tokens corresponding to the given declaration (decl) to cache.
         cache_token(cache, tok_rparen, &pos);
         cache_token(cache, tok_rparen, &pos);
 #endif /* 0 */
-        cache_decl(cache, get_ifc_member(idp));
+        cache_decl(cache, get_ifc_member(idp), cinfo);
       }
       break;
     case ifc_ds_decl_output_segment:
@@ -18360,7 +18426,7 @@ Display the contents of the specified declaration.
 {
   a_module_token_cache cache;
 
-  cache_decl(&cache, decl);
+  cache_decl(&cache, decl, /*cinfo=*/{});
   db_tokens(&cache);
 }  /* db_ifc_declaration */
 

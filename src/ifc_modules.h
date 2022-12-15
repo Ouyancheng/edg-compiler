@@ -78,35 +78,54 @@ struct an_ifc_partition_metadata {
                            path." */
 };  /* an_ifc_partition_metadata */
 
+namespace detail {
+
+/*
+The internal bit representation of an_ifc_cache_info.  This type is extracted
+to allow easy zeroing via aggregate initialization.  This type should not be
+used directly.
+*/
+struct an_ifc_cache_info_zero_bits {
+  a_bit_field   qualified_name:1;
+                        /* TRUE if a qualified name is being cached. */
+  a_bit_field   skip_assign:1;
+                        /* TRUE if assignments/initializers should be excluded
+                           from the cache. */
+  a_bit_field   possible_temporary_decl:1;
+                        /* TRUE if the entity being cached could potentially
+                           be a temporary declaration. */
+  a_bit_field   func_body:1;
+                        /* TRUE if the entity being cached is the top-level
+                           function body statement. */
+  a_bit_field   requires_body:1;
+                        /* TRUE if the entity being cached is part of a
+                           requires clause body. */
+  a_bit_field   no_final_semicolon:1;
+                        /* TRUE if the final semicolon should be omitted. */
+  a_bit_field   nested_expr:1;
+                        /* TRUE if the expression being cached is nested within
+                           another expression and should be parenthesized. */
+  a_bit_field   ignore_definition:1;
+                        /* TRUE if any definition being cached should be
+                           ignored. */
+  a_bit_field   ignore_default_arguments:1;
+                        /* TRUE if any function declaration being cached should
+                           be cached without its default arguments. */
+  a_bit_field   ignore_default_template_arguments:1;
+                        /* TRUE if any template declaration being cached should
+                           be cached without its default template arguments. */
+};  /* an_ifc_cache_info_bits */
+
+}  /* namespace detail */
+
 /*
 A structure to contain flags and other information needed to properly cache
 IFC entities.
 */
-struct an_ifc_cache_info {
+struct an_ifc_cache_info : public detail::an_ifc_cache_info_zero_bits {
   an_ifc_cache_info() :
-    qualified_name(FALSE), skip_assign(FALSE), possible_temporary_decl(FALSE),
-    func_body(FALSE), requires_body(FALSE), no_final_semicolon(FALSE),
-    nested_expr(FALSE)
+    an_ifc_cache_info_zero_bits{}
   {}
-  a_bit_field	qualified_name:1;
-			/* TRUE if a qualified name is being cached. */
-  a_bit_field	skip_assign:1;
-			/* TRUE if assignments/initializers should be excluded
-			   from the cache. */
-  a_bit_field	possible_temporary_decl:1;
-			/* TRUE if the entity being cached could potentially
-			   be a temporary declaration. */
-  a_bit_field	func_body:1;
-			/* TRUE if the entity being cached is the top-level
-			   function body statement. */
-  a_bit_field	requires_body:1;
-			/* TRUE if the entity being cached is part of a
-			   requires clause body. */
-  a_bit_field	no_final_semicolon:1;
-			/* TRUE if the final semicolon should be omitted. */
-  a_bit_field	nested_expr:1;
-			/* TRUE if the expression being cached is nested within
-			   another expression and should be parenthesized. */
 };  /* an_ifc_cache_info */
 
 struct a_str_control_block;
@@ -175,11 +194,6 @@ struct an_ifc_module : public a_module_interface {
 		referenced_modules;
 			/* A map from a module reference to the corresponding
 			   import decl. */
-  a_boolean
-		suppress_default_arguments = FALSE;
-			/* Flag to indicate whether default arguments should be
-			   included when processing an entity in this module.
-			*/
   a_boolean
 		suppress_automatic_name_qualification = FALSE;
 			/* Flag to indicate ExprSort_NameDecl should not be
@@ -362,13 +376,15 @@ public:
                    an_ifc_decl_index        decl_idx);
   void cache_template_head(a_module_token_cache_ptr cache,
                            an_ifc_chart_index       chart_idx,
-                           a_source_position_ptr    pos);
+                           a_source_position_ptr    pos,
+                           const an_ifc_cache_info  &cinfo);
   void cache_function_parameters(a_module_token_cache_ptr     cache,
                                  an_ifc_chart_index           params,
                                  an_ifc_type_index            param_types,
                                  const an_ifc_source_location &pos);
   void cache_decl(a_module_token_cache_ptr cache,
-                  an_ifc_decl_index        decl);
+                  an_ifc_decl_index        decl,
+                  const an_ifc_cache_info  &cinfo);
   inline void update_name_qualification_suppression(
                                                 const an_ifc_expr_path &iespp);
   void cache_expr(a_module_token_cache_ptr cache,
@@ -382,10 +398,12 @@ public:
                     const an_ifc_cache_info  &cinfo);
   void cache_chart(a_module_token_cache_ptr cache,
                    an_ifc_chart_index       chart,
-                   a_source_position_ptr    pos);
+                   a_source_position_ptr    pos,
+                   const an_ifc_cache_info  &cinfo);
   void cache_chart(a_module_token_cache_ptr     cache,
                    an_ifc_chart_index           chart,
-                   const an_ifc_source_location &locus);
+                   const an_ifc_source_location &locus,
+                   const an_ifc_cache_info      &cinfo);
   void cache_operator(a_module_token_cache_ptr     cache,
                       an_ifc_operator_category     op,
                       const an_ifc_source_location &locus);
@@ -444,12 +462,12 @@ public:
   uint32_t try_cache_class_attributes_from_body(
                                        a_module_token_cache_ptr cache,
                                        an_ifc_sentence_index    body_sentence);
-  uint32_t cache_decl_template_declaration(
-                                     a_module_token_cache_ptr   cache,
-                                     const an_ifc_decl_template &decl,
-                                     a_boolean                  add_semicolon);
+  uint32_t cache_decl_template_declaration(a_module_token_cache_ptr   cache,
+                                           const an_ifc_decl_template &decl,
+                                           const an_ifc_cache_info    &cinfo);
   void cache_decl_template(a_module_token_cache_ptr   cache,
-                           const an_ifc_decl_template &decl);
+                           const an_ifc_decl_template &decl,
+                           const an_ifc_cache_info    &cinfo);
   void cache_decl_partial_specialization_declaration(
                              a_module_token_cache_ptr                 cache,
                              an_ifc_decl_index                        decl_idx,
@@ -460,7 +478,8 @@ public:
                              const an_ifc_decl_partial_specialization &decl);
   void cache_decl_specialization(a_module_token_cache_ptr         cache,
                                  an_ifc_decl_index                decl_idx,
-                                 const an_ifc_decl_specialization &decl);
+                                 const an_ifc_decl_specialization &decl,
+                                 const an_ifc_cache_info          &cinfo);
   template<typename a_Name_Cache_Fn, typename an_Init_Cache_Fn>
   inline void cache_variable_decl(
                             a_module_token_cache_ptr         cache,
