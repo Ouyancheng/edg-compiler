@@ -8615,6 +8615,9 @@ done:
 #endif /* RECORD_MACRO_INVOCATIONS */
 
 
+static inline
+void macro_line_loc_to_source_pos(a_const_char      *loc_in_line,
+                                  a_source_position &position_var)
 /*
 Convert a pointer to somewhere in curr_source_line or macro_buffer
 (loc_in_line) into the corresponding source sequence number and column
@@ -8635,22 +8638,21 @@ macro invocation; in such cases, that position (kept in the global variable
 pos_of_macro_invocation) is used directly to avoid the overhead of calling
 conv_line_loc_to_source_pos.
 */
-/*lint -emacro(835,macro_line_loc_to_source_pos)*/
-#define macro_line_loc_to_source_pos(loc_in_line, position_var) \
-{ if (no_modifs_to_curr_source_line || \
-      (within_curr_source_line(loc_in_line) && \
-       orig_line_modif_list == NULL && !in_token_insertion_from_string)) { \
-    (position_var).seq    = curr_seq_number; \
-    (position_var).column = (a_column_number) \
-                            ((loc_in_line) - curr_source_line + \
-                             1 - logical_column_offset(loc_in_line)); \
-    copy_pos_to_orig_pos((position_var)); \
-    set_macro_context_to_none((position_var)); \
-  } else if (should_use_pos_of_macro_invocation()) { \
-    copy_pos_of_macro_invocation_to((position_var)); \
-  } else { \
-    conv_line_loc_to_source_pos((loc_in_line), &(position_var)); \
-  }  /* if */ \
+{
+  if (no_modifs_to_curr_source_line ||
+      (within_curr_source_line(loc_in_line) &&
+       orig_line_modif_list == NULL && !in_token_insertion_from_string)) {
+    position_var.seq    = curr_seq_number;
+    position_var.column = (a_column_number)
+                            ((loc_in_line) - curr_source_line +
+                             1 - logical_column_offset(loc_in_line));
+    copy_pos_to_orig_pos((position_var));
+    set_macro_context_to_none((position_var));
+  } else if (should_use_pos_of_macro_invocation()) {
+    copy_pos_of_macro_invocation_to((position_var));
+  } else {
+    conv_line_loc_to_source_pos((loc_in_line), &(position_var));
+  }  /* if */
 }  /* macro_line_loc_to_source_pos */
 
 
@@ -15133,7 +15135,7 @@ process the "import" or "module" that follows it.
                                                 logical_char_info_entries_used;
   a_source_position start_pos;
 
-  macro_line_loc_to_source_pos(start_of_curr_token, start_pos)
+  macro_line_loc_to_source_pos(start_of_curr_token, start_pos);
   /* All processing in this function is as though we're in a preprocessing
      directive. */
   in_preprocessing_directive = TRUE;
