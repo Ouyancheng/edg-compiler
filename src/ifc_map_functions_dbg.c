@@ -4010,6 +4010,21 @@ diagnostic textual representation with the given indent.
       fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
     }  /* if */
   }  /* if */
+  if (has_ifc_primary_template(universal)) {
+    an_ifc_decl_index field = get_ifc_primary_template(universal);
+
+    db_print_indent(indent);
+    fprintf(f_debug, "primary_template:");
+    if (is_null_index(field)) {
+      fprintf(f_debug, " NULL\n");
+    } else {
+      fprintf(f_debug, "\n");
+      db_print_indent(indent);
+      fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
+      db_print_indent(indent);
+      fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
+    }  /* if */
+  }  /* if */
   if (has_ifc_properties(universal)) {
     an_ifc_reachable_properties_bitfield field = get_ifc_properties(universal);
 
@@ -4474,6 +4489,21 @@ textual representation with the given indent.
 
     db_print_indent(indent);
     fprintf(f_debug, "name:");
+    if (is_null_index(field)) {
+      fprintf(f_debug, " NULL\n");
+    } else {
+      fprintf(f_debug, "\n");
+      db_print_indent(indent);
+      fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
+      db_print_indent(indent);
+      fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
+    }  /* if */
+  }  /* if */
+  if (has_ifc_primary_template(universal)) {
+    an_ifc_decl_index field = get_ifc_primary_template(universal);
+
+    db_print_indent(indent);
+    fprintf(f_debug, "primary_template:");
     if (is_null_index(field)) {
       fprintf(f_debug, " NULL\n");
     } else {

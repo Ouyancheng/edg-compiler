@@ -7725,45 +7725,47 @@ struct an_ifc_decl_parameter :
 };  /* an_ifc_decl_parameter */
 
 /*
-  |------------------------------------------------------------|
-  |        DeclPartialSpecialization - 0.33 (44 bytes)         |
-  |-------------|-----------------------------|---------|------|
-  | Name        | Type                        | Version | Size |
-  |-------------|-----------------------------|---------|------|
-  | name        | NameIndex                   | 0.33    | 4    |
-  | locus       | SourceLocation              | 0.33    | 8    |
-  | home_scope  | DeclIndex                   | 0.33    | 4    |
-  | chart       | ChartIndex                  | 0.33    | 4    |
-  | entity      | ParameterizedEntity         | 0.33    | 16   |
-  | form        | FormSpecIndex               | 0.33    | 4    |
-  | specifiers  | BasicSpecifiersBitfield     | 0.33    | 1    |
-  | access      | AccessSort                  | 0.33    | 1    |
-  | properties  | ReachablePropertiesBitfield | 0.33    | 1    |
-  | __padding__ | uint8_t[1]                  |         | 1    |
-  |-------------|-----------------------------|---------|------|
-  | home_scope  | DeclIndex                   | ANY     | TF   |
-  | name        | NameIndex                   | ANY     | TF   |
-  |-------------|-----------------------------|---------|------|
+  |-----------------------------------------------------------------|
+  |           DeclPartialSpecialization - 0.33 (44 bytes)           |
+  |------------------|-----------------------------|---------|------|
+  | Name             | Type                        | Version | Size |
+  |------------------|-----------------------------|---------|------|
+  | name             | NameIndex                   | 0.33    | 4    |
+  | locus            | SourceLocation              | 0.33    | 8    |
+  | home_scope       | DeclIndex                   | 0.33    | 4    |
+  | chart            | ChartIndex                  | 0.33    | 4    |
+  | entity           | ParameterizedEntity         | 0.33    | 16   |
+  | form             | FormSpecIndex               | 0.33    | 4    |
+  | specifiers       | BasicSpecifiersBitfield     | 0.33    | 1    |
+  | access           | AccessSort                  | 0.33    | 1    |
+  | properties       | ReachablePropertiesBitfield | 0.33    | 1    |
+  | __padding__      | uint8_t[1]                  |         | 1    |
+  |------------------|-----------------------------|---------|------|
+  | home_scope       | DeclIndex                   | ANY     | TF   |
+  | name             | NameIndex                   | ANY     | TF   |
+  | primary_template | DeclIndex                   | 0.33    | TF   |
+  |------------------|-----------------------------|---------|------|
 
-  |------------------------------------------------------------|
-  |        DeclPartialSpecialization - 0.41 (44 bytes)         |
-  |-------------|-----------------------------|---------|------|
-  | Name        | Type                        | Version | Size |
-  |-------------|-----------------------------|---------|------|
-  | name        | NameIndex                   | 0.33    | 4    |
-  | locus       | SourceLocation              | 0.33    | 8    |
-  | home_scope  | DeclIndex                   | 0.41    | 4    |
-  | chart       | ChartIndex                  | 0.33    | 4    |
-  | entity      | ParameterizedEntity         | 0.41    | 16   |
-  | form        | FormSpecIndex               | 0.33    | 4    |
-  | specifiers  | BasicSpecifiersBitfield     | 0.33    | 1    |
-  | access      | AccessSort                  | 0.33    | 1    |
-  | properties  | ReachablePropertiesBitfield | 0.33    | 1    |
-  | __padding__ | uint8_t[1]                  |         | 1    |
-  |-------------|-----------------------------|---------|------|
-  | home_scope  | DeclIndex                   | ANY     | TF   |
-  | name        | NameIndex                   | ANY     | TF   |
-  |-------------|-----------------------------|---------|------|
+  |-----------------------------------------------------------------|
+  |           DeclPartialSpecialization - 0.41 (44 bytes)           |
+  |------------------|-----------------------------|---------|------|
+  | Name             | Type                        | Version | Size |
+  |------------------|-----------------------------|---------|------|
+  | name             | NameIndex                   | 0.33    | 4    |
+  | locus            | SourceLocation              | 0.33    | 8    |
+  | home_scope       | DeclIndex                   | 0.41    | 4    |
+  | chart            | ChartIndex                  | 0.33    | 4    |
+  | entity           | ParameterizedEntity         | 0.41    | 16   |
+  | form             | FormSpecIndex               | 0.33    | 4    |
+  | specifiers       | BasicSpecifiersBitfield     | 0.33    | 1    |
+  | access           | AccessSort                  | 0.33    | 1    |
+  | properties       | ReachablePropertiesBitfield | 0.33    | 1    |
+  | __padding__      | uint8_t[1]                  |         | 1    |
+  |------------------|-----------------------------|---------|------|
+  | home_scope       | DeclIndex                   | ANY     | TF   |
+  | name             | NameIndex                   | ANY     | TF   |
+  | primary_template | DeclIndex                   | 0.41    | TF   |
+  |------------------|-----------------------------|---------|------|
 */
 enum an_ifc_decl_partial_specialization_part : uint8_t {};
 using an_ifc_decl_partial_specialization_storage =
@@ -7946,20 +7948,21 @@ struct an_ifc_decl_scope : an_ifc_Byte_buffer<an_ifc_decl_scope_storage> {
 };  /* an_ifc_decl_scope */
 
 /*
-  |---------------------------------------------------|
-  |       DeclSpecialization - 0.41 (12 bytes)        |
-  |-------------|--------------------|---------|------|
-  | Name        | Type               | Version | Size |
-  |-------------|--------------------|---------|------|
-  | form        | FormSpecIndex      | 0.33    | 4    |
-  | decl        | DeclIndex          | 0.41    | 4    |
-  | sort        | SpecializationSort | 0.33    | 1    |
-  | __padding__ | uint8_t[3]         |         | 3    |
-  |-------------|--------------------|---------|------|
-  | home_scope  | DeclIndex          | ANY     | TF   |
-  | locus       | SourceLocation     | ANY     | TF   |
-  | name        | NameIndex          | ANY     | TF   |
-  |-------------|--------------------|---------|------|
+  |--------------------------------------------------------|
+  |          DeclSpecialization - 0.41 (12 bytes)          |
+  |------------------|--------------------|---------|------|
+  | Name             | Type               | Version | Size |
+  |------------------|--------------------|---------|------|
+  | form             | FormSpecIndex      | 0.33    | 4    |
+  | decl             | DeclIndex          | 0.41    | 4    |
+  | sort             | SpecializationSort | 0.33    | 1    |
+  | __padding__      | uint8_t[3]         |         | 3    |
+  |------------------|--------------------|---------|------|
+  | home_scope       | DeclIndex          | ANY     | TF   |
+  | locus            | SourceLocation     | ANY     | TF   |
+  | name             | NameIndex          | ANY     | TF   |
+  | primary_template | DeclIndex          | 0.41    | TF   |
+  |------------------|--------------------|---------|------|
 */
 enum an_ifc_decl_specialization_part : uint8_t {};
 using an_ifc_decl_specialization_storage = an_ifc_decl_specialization_part[12];

@@ -7341,6 +7341,19 @@ the representation is valid; otherwise, return FALSE.
     }  /* if */
   }  /* if */
   if (has_ifc_name(universal)) {
+    an_ifc_decl_index stage_0;
+
+    stage_0 = get_ifc_primary_template(universal);
+    if (!has_ifc_name(stage_0)) {
+      result = FALSE;
+      goto done;
+    }  /* if */
+    if (!validate(stage_0)) {
+      result = FALSE;
+      goto done;
+    }  /* if */
+  }  /* if */
+  if (has_ifc_primary_template(universal)) {
     if (is_at_least(universal.get_module(), 0, 41)) {
       an_ifc_form_spec_index_0_33 stage_0;
       an_ifc_validation_trace     stage_0_trace =
@@ -7350,7 +7363,6 @@ the representation is valid; otherwise, return FALSE.
       an_ifc_decl_index_0_41      stage_3;
       an_ifc_validation_trace     stage_3_trace =
                             {"primary_template", /*offset=*/0, &stage_0_trace};
-      an_ifc_decl_index           stage_4;
 
       /* Copy the field (DeclPartialSpecialization::form - FormSpecIndex) into
          version-specific storage. */
@@ -7369,15 +7381,6 @@ the representation is valid; otherwise, return FALSE.
                     "stage_3 is not properly sized storage!");
       copy_ifc_field(&stage_3, stage_2.get_storage(), /*offset=*/0);
       if (!validate_index(stage_2.get_module(), stage_3, &stage_3_trace)) {
-        result = FALSE;
-        goto done;
-      }  /* if */
-      stage_4 = to_universal_index(stage_2.get_module(), stage_3);
-      if (!has_ifc_name(stage_4)) {
-        result = FALSE;
-        goto done;
-      }  /* if */
-      if (!validate(stage_4)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -7390,7 +7393,6 @@ the representation is valid; otherwise, return FALSE.
       an_ifc_decl_index_0_33      stage_3;
       an_ifc_validation_trace     stage_3_trace =
                             {"primary_template", /*offset=*/0, &stage_0_trace};
-      an_ifc_decl_index           stage_4;
 
       /* Copy the field (DeclPartialSpecialization::form - FormSpecIndex) into
          version-specific storage. */
@@ -7409,15 +7411,6 @@ the representation is valid; otherwise, return FALSE.
                     "stage_3 is not properly sized storage!");
       copy_ifc_field(&stage_3, stage_2.get_storage(), /*offset=*/0);
       if (!validate_index(stage_2.get_module(), stage_3, &stage_3_trace)) {
-        result = FALSE;
-        goto done;
-      }  /* if */
-      stage_4 = to_universal_index(stage_2.get_module(), stage_3);
-      if (!has_ifc_name(stage_4)) {
-        result = FALSE;
-        goto done;
-      }  /* if */
-      if (!validate(stage_4)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -7815,6 +7808,19 @@ representation is valid; otherwise, return FALSE.
     }  /* if */
   }  /* if */
   if (has_ifc_name(universal)) {
+    an_ifc_decl_index stage_0;
+
+    stage_0 = get_ifc_primary_template(universal);
+    if (!has_ifc_name(stage_0)) {
+      result = FALSE;
+      goto done;
+    }  /* if */
+    if (!validate(stage_0)) {
+      result = FALSE;
+      goto done;
+    }  /* if */
+  }  /* if */
+  if (has_ifc_primary_template(universal)) {
     an_ifc_form_spec_index_0_33 stage_0;
     an_ifc_validation_trace     stage_0_trace = {"form", /*offset=*/0, parent};
     an_ifc_form_spec_index      stage_1;
@@ -7822,7 +7828,6 @@ representation is valid; otherwise, return FALSE.
     an_ifc_decl_index_0_41      stage_3;
     an_ifc_validation_trace     stage_3_trace =
                             {"primary_template", /*offset=*/0, &stage_0_trace};
-    an_ifc_decl_index           stage_4;
 
     /* Copy the field (DeclSpecialization::form - FormSpecIndex) into
        version-specific storage. */
@@ -7841,15 +7846,6 @@ representation is valid; otherwise, return FALSE.
                   "stage_3 is not properly sized storage!");
     copy_ifc_field(&stage_3, stage_2.get_storage(), /*offset=*/0);
     if (!validate_index(stage_2.get_module(), stage_3, &stage_3_trace)) {
-      result = FALSE;
-      goto done;
-    }  /* if */
-    stage_4 = to_universal_index(stage_2.get_module(), stage_3);
-    if (!has_ifc_name(stage_4)) {
-      result = FALSE;
-      goto done;
-    }  /* if */
-    if (!validate(stage_4)) {
       result = FALSE;
       goto done;
     }  /* if */

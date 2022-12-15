@@ -9857,13 +9857,52 @@ universal representation of the field "name".
 
   /* Ensure the name field exists in the current module version. */
   check_assertion(has_ifc_name(universal));
+  an_ifc_decl_index stage_0;
+  an_ifc_name_index stage_1;
+
+  stage_0 = get_ifc_primary_template(universal);
+  stage_1 = get_ifc_name(stage_0);
+  result = stage_1;
+  return result;
+}  /* get_ifc_name */
+
+
+template<>
+a_boolean has_ifc_primary_template(
+                           const an_ifc_decl_partial_specialization &universal)
+/*
+Return TRUE if the given universal representation has the field
+"primary_template"; otherwise, return FALSE.
+*/
+{
+  an_ifc_module *mod = universal.get_module();
+  a_boolean     result = get_fallback_presence_value(mod);
+
+  if (is_at_least(mod, 0, 33)) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* has_ifc_primary_template */
+
+
+template<>
+an_ifc_decl_index get_ifc_primary_template(
+                           const an_ifc_decl_partial_specialization &universal)
+/*
+Given the universal representation of DeclPartialSpecialization, return the
+universal representation of the field "primary_template".
+*/
+{
+  an_ifc_decl_index result;
+
+  /* Ensure the primary_template field exists in the current module version. */
+  check_assertion(has_ifc_primary_template(universal));
   if (is_at_least(universal.get_module(), 0, 41)) {
     an_ifc_form_spec_index_0_33 stage_0;
     an_ifc_form_spec_index      stage_1;
     an_ifc_form_spec            stage_2;
     an_ifc_decl_index_0_41      stage_3;
     an_ifc_decl_index           stage_4;
-    an_ifc_name_index           stage_5;
 
     /* Copy the field (DeclPartialSpecialization::form - FormSpecIndex) into
        version-specific storage. */
@@ -9882,15 +9921,13 @@ universal representation of the field "name".
                   "stage_3 is not properly sized storage!");
     copy_ifc_field(&stage_3, stage_2.get_storage(), /*offset=*/0);
     stage_4 = to_universal_index(stage_2.get_module(), stage_3);
-    stage_5 = get_ifc_name(stage_4);
-    result = stage_5;
+    result = stage_4;
   } else {
     an_ifc_form_spec_index_0_33 stage_0;
     an_ifc_form_spec_index      stage_1;
     an_ifc_form_spec            stage_2;
     an_ifc_decl_index_0_33      stage_3;
     an_ifc_decl_index           stage_4;
-    an_ifc_name_index           stage_5;
 
     /* Copy the field (DeclPartialSpecialization::form - FormSpecIndex) into
        version-specific storage. */
@@ -9909,11 +9946,10 @@ universal representation of the field "name".
                   "stage_3 is not properly sized storage!");
     copy_ifc_field(&stage_3, stage_2.get_storage(), /*offset=*/0);
     stage_4 = to_universal_index(stage_2.get_module(), stage_3);
-    stage_5 = get_ifc_name(stage_4);
-    result = stage_5;
+    result = stage_4;
   }  /* if */
   return result;
-}  /* get_ifc_name */
+}  /* get_ifc_primary_template */
 
 
 template<>
@@ -11088,12 +11124,50 @@ representation of the field "name".
 
   /* Ensure the name field exists in the current module version. */
   check_assertion(has_ifc_name(universal));
+  an_ifc_decl_index stage_0;
+  an_ifc_name_index stage_1;
+
+  stage_0 = get_ifc_primary_template(universal);
+  stage_1 = get_ifc_name(stage_0);
+  result = stage_1;
+  return result;
+}  /* get_ifc_name */
+
+
+template<>
+a_boolean has_ifc_primary_template(const an_ifc_decl_specialization &universal)
+/*
+Return TRUE if the given universal representation has the field
+"primary_template"; otherwise, return FALSE.
+*/
+{
+  an_ifc_module *mod = universal.get_module();
+  a_boolean     result = get_fallback_presence_value(mod);
+
+  if (is_at_least(mod, 0, 41)) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* has_ifc_primary_template */
+
+
+template<>
+an_ifc_decl_index get_ifc_primary_template(
+                                   const an_ifc_decl_specialization &universal)
+/*
+Given the universal representation of DeclSpecialization, return the universal
+representation of the field "primary_template".
+*/
+{
+  an_ifc_decl_index result;
+
+  /* Ensure the primary_template field exists in the current module version. */
+  check_assertion(has_ifc_primary_template(universal));
   an_ifc_form_spec_index_0_33 stage_0;
   an_ifc_form_spec_index      stage_1;
   an_ifc_form_spec            stage_2;
   an_ifc_decl_index_0_41      stage_3;
   an_ifc_decl_index           stage_4;
-  an_ifc_name_index           stage_5;
 
   /* Copy the field (DeclSpecialization::form - FormSpecIndex) into
      version-specific storage. */
@@ -11111,10 +11185,9 @@ representation of the field "name".
                 "stage_3 is not properly sized storage!");
   copy_ifc_field(&stage_3, stage_2.get_storage(), /*offset=*/0);
   stage_4 = to_universal_index(stage_2.get_module(), stage_3);
-  stage_5 = get_ifc_name(stage_4);
-  result = stage_5;
+  result = stage_4;
   return result;
-}  /* get_ifc_name */
+}  /* get_ifc_primary_template */
 
 
 template<>

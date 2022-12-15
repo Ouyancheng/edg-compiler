@@ -13957,6 +13957,14 @@ an_ifc_name_index get_ifc_name(
                           const an_ifc_decl_partial_specialization &universal);
 
 template<>
+a_boolean has_ifc_primary_template(
+                          const an_ifc_decl_partial_specialization &universal);
+
+template<>
+an_ifc_decl_index get_ifc_primary_template(
+                          const an_ifc_decl_partial_specialization &universal);
+
+template<>
 a_boolean has_ifc_properties(
                           const an_ifc_decl_partial_specialization &universal);
 
@@ -14211,6 +14219,14 @@ a_boolean has_ifc_name(const an_ifc_decl_specialization &universal);
 
 template<>
 an_ifc_name_index get_ifc_name(const an_ifc_decl_specialization &universal);
+
+template<>
+a_boolean has_ifc_primary_template(
+                                  const an_ifc_decl_specialization &universal);
+
+template<>
+an_ifc_decl_index get_ifc_primary_template(
+                                  const an_ifc_decl_specialization &universal);
 
 template<>
 a_boolean has_ifc_sort(const an_ifc_decl_specialization &universal);
