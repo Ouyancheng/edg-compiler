@@ -704,7 +704,7 @@ templ_entry is NULL.
          error recovery purposes. */
       expect_error();
       break;
-    }  /*if */
+    }  /* if */
     if (ss_entry_kind(ssep) == iek_variable) {
       /* A source sequence entry for a variable must be a static data member
          definition or a static member declaration with an in-class
