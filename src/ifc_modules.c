@@ -6528,8 +6528,8 @@ diagnostics if issue_diag is TRUE.
     size_t size = num_files * sizeof(a_module_sequence_number_mapping);
     sequence_numbers = (a_module_sequence_number_mapping *)alloc_fe(size);
     memzero((char *)sequence_numbers, size);
-    if (get_partition_metadata(ifc_pk_src_line).name != NULL) {
-      check_assertion(get_partition_metadata(ifc_pk_src_line).entry_size != 0);
+    uint32_t num_src_lines = get_num_entries(ifc_pk_src_line);
+    if (num_src_lines > 0) {
       /* As a (hopefully) temporary measure, for each file referenced in the
          module, we need to determine the largest line number that will be seen
          in that file (we don't actually need the last line number in the file,
@@ -6537,8 +6537,7 @@ diagnostics if issue_diag is TRUE.
          the last number would do).  This number will be used (if needed) to
          increment the source sequence when the module is referenced to
          effectively reserve those source sequence numbers for the file. */
-      for (uint32_t idx = 0, num_src_lines = get_num_entries(ifc_pk_src_line);
-           idx < num_src_lines; idx++) {
+      for (uint32_t idx = 0; idx < num_src_lines; idx++) {
         Opt<an_ifc_source_line>     opt_isl;
         an_ifc_partition_kind_index src_idx{this, ifc_pk_src_line, idx};
 
