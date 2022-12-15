@@ -3442,12 +3442,13 @@ FALSE otherwise.
   an_ifc_type_index      type = get_ifc_type(idp);
   an_ifc_text_offset     name = get_ifc_name(idp);
   an_ifc_expr_index      initializer = get_ifc_initializer(idp);
+  an_ifc_parameter_sort  param_sort = get_ifc_sort(idp);
   a_source_position      pos;
   a_boolean              need_second_pass = FALSE;
   a_boolean              defer_initializer_expr = FALSE;
 
   source_position_from_locus(&pos, locus);
-  switch (get_ifc_sort(idp)) {
+  switch (param_sort) {
     case ifc_ps_type:
       { a_boolean is_pack = type.sort == ifc_ts_type_expansion;
 
