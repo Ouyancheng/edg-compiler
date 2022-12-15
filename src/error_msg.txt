@@ -3358,7 +3358,7 @@ ec_ifc_bad_identifier_skipped;;"invalid IFC identifier named %sq skipped during 
 ec_invalid_ifc_sort_value;;"module %sq invalid sort value"
 ec_ifc_function_template_parse_failure;;"a function template loaded from an IFC module was incorrectly parsed as %nd"
 ec_ifc_entity_ref_failure;;"failed to load an IFC entity reference in module %sq"
-ec_ifc_entity_ref_failure_info;;"IFC index sort = %d1, value = %d2"
+ec_ifc_entity_ref_failure_info;;"from partition %sq element %d1 (file position %d2, relative position %d3)"
 ec_no_chained_designators_with_destructor;;"chained designators are not permitted for a class type with a nontrivial destructor"
 ec_explicit_specialization_friend;;"an explicit specialization declaration may not be a friend declaration"
 ec_std_float128_not_supported;;"the std::float128_t type is not supported; std::float64_t will be used instead"

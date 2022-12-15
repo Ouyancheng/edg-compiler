@@ -2779,11 +2779,23 @@ an IFC expression index (that token should be a tok_ifc_entity_ref).
 
   if (result == NULL) {
     /* Something went wrong loading the IFC representation. */
-    a_diagnostic_ptr diag = pos_st_start_error(ec_ifc_entity_ref_failure,
-                                               &pos,
-                                               mod->assoc_module_info->name);
-    num2_add_diag_info(diag, ec_ifc_entity_ref_failure_info,
-                       (int32_t)idx->sort, idx->index);
+    a_diagnostic_ptr            diag = pos_st_start_error(
+                                                 ec_ifc_entity_ref_failure,
+                                                 &pos,
+                                                 mod->assoc_module_info->name);
+    an_ifc_partition_kind       kind = to_partition_kind(expr_idx.sort);
+    an_ifc_partition_kind_index part_kind_idx = {mod, kind, expr_idx.value};
+    an_ifc_partition_metadata   *part_meta =
+                                         get_partition_metadata(part_kind_idx);
+    size_t                      part_start = part_meta->offset;
+    size_t                      abs_offset =
+                                           get_partition_offset(part_kind_idx);
+    size_t                      rel_offset = abs_offset - part_start;
+
+    /* FIXME: Migrate to allowing diagnostics with size_t. */
+    st_num3_add_diag_info(diag, ec_ifc_entity_ref_failure_info,
+                          get_partition_name_from_kind(kind), expr_idx.value,
+                          (uint32_t)abs_offset, (uint32_t)rel_offset);
     end_diagnostic(diag);
   }  /* if */
   return result;
