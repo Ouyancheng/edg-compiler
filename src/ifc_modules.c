@@ -1161,6 +1161,26 @@ scope associated with it, it will continue to not have an associated scope.
 }  /* ensure_type_has_scope */
 
 
+static
+a_module_entity_ptr process_decl_at_index(an_ifc_decl_index decl_idx,
+                                          a_boolean         defer = FALSE)
+/*
+Process the IFC module entity declaration specified at the given declaration
+index either by creating the appropriate IL entity, or, when defer is TRUE,
+mark the appropriate symbol header as having a deferred module entity (which
+will be lazily loaded if referenced).
+*/
+{
+  /* Get the associated IFC module entity pointer, and then use it to
+     process this declaration via process_ifc_declaration. */
+  an_ifc_module       *mod = decl_idx.mod;
+  a_module_entity_ptr dmep = get_ifc_module_entity_ptr(decl_idx);
+
+  mod->process_ifc_declaration(dmep, defer, (a_type_ptr)NULL);
+  return dmep;
+}  /* process_decl_at_index */
+
+
 static a_scope_ptr get_scope(an_ifc_decl_index scope_ref)
 /*
 Given a scope reference find and return the associated scope.
@@ -1171,11 +1191,9 @@ Given a scope reference find and return the associated scope.
   if (is_null_index(scope_ref)) {
     result = il_header.primary_scope;
   } else {
-    a_module_entity_ptr mep = get_ifc_module_entity_ptr(scope_ref);
+    a_module_entity_ptr mep = process_decl_at_index(scope_ref);
     a_type_ptr          assoc_type = NULL;
 
-    scope_ref.mod->process_ifc_declaration(mep, /*defer=*/FALSE,
-                                           /*enumeration_type=*/NULL);
     if (!mep->invalid) {
       if (mep->entity.kind == iek_type) {
         assoc_type = (a_type_ptr)mep->entity.ptr;
@@ -5694,8 +5712,7 @@ class_struct_union_case:
               /* FIXME: Overload set? */
               goto unhandled;
             }  /* if */
-            a_module_entity_ptr umep = get_ifc_module_entity_ptr(resolution);
-            process_ifc_declaration(umep, /*defer=*/FALSE, (a_type_ptr)NULL);
+            a_module_entity_ptr umep = process_decl_at_index(resolution);
             if (scope_is(umep->scope, sck_class_struct_union)) {
               /* FIXME: Need to call create_member_using_declaration here. */
               goto unhandled;
@@ -7516,9 +7533,7 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
             case ifc_ds_decl_enumeration:
               /* Find the type of the scope declaration by processing it (in
                  case it has been deferred). */
-              dmep = get_ifc_module_entity_ptr(decl);
-              mod->process_ifc_declaration(dmep, /*defer=*/FALSE,
-                                           (a_type_ptr)NULL);
+              dmep = process_decl_at_index(decl);
               result = (a_type_ptr)dmep->entity.ptr;
               check_assertion(result != NULL && dmep->entity.kind == iek_type);
               break;
