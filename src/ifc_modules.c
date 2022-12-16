@@ -4722,7 +4722,10 @@ principal associated IL entity.
                                                IDL_TENTATIVE_TYPE_LOOKUP |
                                                               IDL_MUST_BE_TAG);
             mep->imminent = TRUE;
-            check_assertion(sym != NULL && is_class_struct_union_symbol(sym));
+            if (sym == NULL || !is_class_struct_union_symbol(sym)) {
+              expect_error();
+              goto invalid;
+            }  /* if */
             il_entity = (char*)(sym->variant.class_struct_union.type);
             kind = iek_type;
             break;
@@ -7336,18 +7339,26 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
           an_ifc_type_array ita = *opt_ita;
           an_ifc_type_index element = get_ifc_element(ita);
           an_ifc_expr_index extent = get_ifc_extent(ita);
-          a_constant_ptr    elem_count;
-          a_boolean         err = FALSE;
           result = alloc_type((a_type_kind)tk_array);
           result->variant.array.element_type =
                                             type_for_type_index(element,
                                                                 /*kind=*/NULL);
-          elem_count = mod->constant_for_expr_index(extent,
-                                                    /*default_type=*/NULL);
-          check_assertion(elem_count->kind== (a_constant_repr_kind)ck_integer);
+
+          a_constant_ptr    elem_count = mod->constant_for_expr_index(
+                                                        extent,
+                                                        /*default_type=*/NULL);
+          if (elem_count == NULL || elem_count->kind != ck_integer) {
+            ifc_unexpected(mod, "bad element count for type array");
+            goto invalid;
+          }  /* if */
+
+          a_boolean         err = FALSE;
           result->variant.array.variant.number_of_elements =
                           unsigned_value_of_integer_constant(elem_count, &err);
-          check_assertion(!err);
+          if (err) {
+            ifc_unexpected(mod, "integer overflow on type array");
+            goto invalid;
+          }  /* if */
           set_array_type_size(result, /*suppress_error=*/FALSE);
         }
         break;
@@ -7506,8 +7517,9 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
               }
               break;
             default:
-              unexpected_condition_str("Unexpected DeclSort for "
-                                       "TypeSort::Designated");
+              ifc_unexpected(mod,
+                             "Unexpected DeclSort for TypeSort::Designated");
+              break;
           }  /* switch */
         }
         break;
@@ -7596,8 +7608,10 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
               }
               break;
             default:
-              unexpected_condition_str("Unexpected ExprSort kind for "
-                                       "TypeSort::Syntactic.");
+              ifc_unexpected(mod,
+                             "Unexpected ExprSort kind for "
+                             "TypeSort::Syntactic.");
+              break;
           }  /* switch */
         }
         break;
@@ -9049,6 +9063,7 @@ FIXME: what other expressions can we get here?
 */
 {
   a_constant_ptr                   cp = NULL;
+  an_ifc_module                    *mod = expr_idx.mod;
   Value_saver<a_module_entity_ptr> mep_saver(&curr_module_entity);
 
   curr_module_entity = NULL;
@@ -9180,6 +9195,9 @@ FIXME: what other expressions can we get here?
         an_ifc_type_index              type = get_ifc_type(ieptv);
         a_type_ptr                     tp = type_for_type_index(type,
                                                                 /*kind=*/NULL);
+        if (tp == NULL) {
+          goto invalid;
+        }  /* if */
         complete_type_is_needed(tp);
         cp = alloc_constant(ck_aggregate);
 #if DO_IL_LOWERING
@@ -9209,6 +9227,9 @@ FIXME: what other expressions can we get here?
                                                         members,
                                                         /*default_type=*/NULL);
 
+          if (mem_con == NULL) {
+            goto invalid;
+          }  /* if */
           add_constant_to_aggregate(mem_con, cp, NULL, NULL);
 #if DO_IL_LOWERING
           if (!mem_con->initializes_empty_object) {
@@ -9248,14 +9269,19 @@ FIXME: what other expressions can we get here?
 
         an_ifc_expr_tuple      iet = *opt_iet;
         an_expr_heap_traverser traverser(iet);
-        a_constant_ptr         *next_cp = &cp;
+        a_constant_ptr         *curr_const_ptr = &cp;
         for (an_Indexed<an_ifc_heap_expr> traversed_ihe : traverser) {
           if (!traversed_ihe.has_value()) {
             goto invalid;
           }  /* if */
-          *next_cp = constant_for_expr_index(get_ifc_value(*traversed_ihe),
-                                             /*default_type=*/NULL);
-          next_cp = &(*next_cp)->next;
+
+          an_ifc_expr_index heap_idx = get_ifc_value(*traversed_ihe);
+          *curr_const_ptr = constant_for_expr_index(heap_idx,
+                                                       /*default_type=*/NULL);
+          if (*curr_const_ptr == NULL) {
+            goto invalid;
+          }  /* if */
+          curr_const_ptr = &((*curr_const_ptr)->next);
         }  /* for */
       }
       break;
@@ -9403,7 +9429,8 @@ FIXME: what other expressions can we get here?
       }
       break;
     default:
-      unexpected_condition();
+      ifc_unexpected(mod, "Unexpected ExprSort for constant synthesis");
+      break;
   }  /* switch */
   goto done;
 invalid:
