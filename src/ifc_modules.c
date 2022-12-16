@@ -7369,18 +7369,26 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
           an_ifc_type_array ita = *opt_ita;
           an_ifc_type_index element = get_ifc_element(ita);
           an_ifc_expr_index extent = get_ifc_extent(ita);
-          a_constant_ptr    elem_count;
-          a_boolean         err = FALSE;
           result = alloc_type((a_type_kind)tk_array);
           result->variant.array.element_type =
                                             type_for_type_index(element,
                                                                 /*kind=*/NULL);
-          elem_count = mod->constant_for_expr_index(extent,
-                                                    /*default_type=*/NULL);
-          check_assertion(elem_count->kind== (a_constant_repr_kind)ck_integer);
+
+          a_constant_ptr    elem_count = mod->constant_for_expr_index(
+                                                        extent,
+                                                        /*default_type=*/NULL);
+          if (elem_count == NULL || elem_count->kind != ck_integer) {
+            ifc_unexpected(mod, "bad element count for type array");
+            goto invalid;
+          }  /* if */
+
+          a_boolean         err = FALSE;
           result->variant.array.variant.number_of_elements =
                           unsigned_value_of_integer_constant(elem_count, &err);
-          check_assertion(!err);
+          if (err) {
+            ifc_unexpected(mod, "integer overflow on type array");
+            goto invalid;
+          }  /* if */
           set_array_type_size(result, /*suppress_error=*/FALSE);
         }
         break;
@@ -7537,8 +7545,9 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
               }
               break;
             default:
-              unexpected_condition_str("Unexpected DeclSort for "
-                                       "TypeSort::Designated");
+              ifc_unexpected(mod,
+                             "Unexpected DeclSort for TypeSort::Designated");
+              break;
           }  /* switch */
         }
         break;
@@ -9079,6 +9088,7 @@ FIXME: what other expressions can we get here?
 */
 {
   a_constant_ptr                   cp = NULL;
+  an_ifc_module                    *mod = expr_idx.mod;
   Value_saver<a_module_entity_ptr> mep_saver(&curr_module_entity);
 
   curr_module_entity = NULL;
@@ -9433,7 +9443,8 @@ FIXME: what other expressions can we get here?
       }
       break;
     default:
-      unexpected_condition();
+      ifc_unexpected(mod, "Unexpected ExprSort for constant synthesis");
+      break;
   }  /* switch */
   goto done;
 invalid:
