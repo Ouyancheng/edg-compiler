@@ -4740,9 +4740,9 @@ deduction failed.
   a_ctws_options_set   ctws_options = CTWS_IS_OVERLOAD_CANDIDATE;
 
   db_enter(4, "function_template_call_argument_deduction");
-  check_assertion(template_sym->kind == (a_symbol_kind)sk_function_template);
-  check_assertion(routine_type->kind == (a_type_kind)tk_routine);
-  tssp = template_supplement_for_symbol(template_sym);
+  check_assertion(symbol_is(template_sym, sk_function_template) &&
+                  type_is(routine_type, tk_routine));
+  tssp = template_sym->variant.template_info;
   rtsp = routine_type->variant.routine.extra_info;
   /* The pending deduction count is incremented during the deduction
      process to detect recursion in the substitution process.  If recursion
@@ -6237,25 +6237,6 @@ next_argument:
            that particular candidate instance. */
         goto reject_function;
       }  /* if */
-    }  /* if */
-    if (concepts_enabled) {
-      /* Check that the constraints are satisfied. */
-      /* First check for runaway substitution. */
-      a_template_symbol_supplement_ptr
-              tssp = function_symbol->variant.template_info;
-      if (tssp->variant.function.pending_deductions >
-                                                 max_pending_instantiations) {
-        report_excessive_rescan_depth();
-        goto reject_function;
-      }  /* if */
-      ++(tssp->variant.function.pending_deductions);
-      if (!check_template_constraints(originator_symbol_of(function_symbol),
-                                      local_template_arg_list,
-                                      /*diagnose=*/FALSE)) {
-        --(tssp->variant.function.pending_deductions);
-        goto reject_function;
-      }  /* if */
-      --(tssp->variant.function.pending_deductions);
     }  /* if */
     routine_type = skip_typerefs(routine_type);
     rtsp = routine_type->variant.routine.extra_info;

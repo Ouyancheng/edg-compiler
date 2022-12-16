@@ -2967,9 +2967,9 @@ Otherwise it is zero.
                                           /*is_templ_templ_param_check=*/FALSE,
                                           &rout_templ_sym->decl_position);
   }  /* if */
-  if (wrapup_template_argument_deduction(*templ_arg_list, rout_templ_sym,
-                                         templ_param_list, ctws_options,
-                                         param_count)) {
+  if (wrapup_template_argument_deduction(
+                               *templ_arg_list, rout_templ_sym,
+                               templ_param_list, ctws_options, param_count)) {
     /* Substitute the template arguments in the routine type. */
     if (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH &&
         scope_stack_entry_for(depth_innermost_instantiation_scope)->
@@ -8343,8 +8343,9 @@ Return TRUE if the templates and argument lists match.  FALSE otherwise.
 
 static a_boolean template_arg_is_dependent(a_template_arg_ptr tap)
 /*
-Return TRUE if the template argument entry pointed to by tap is
-instantiation-dependent.
+Return TRUE if the template argument entry pointed to by tap is instantiation-
+dependent or if the argument has not been determined yet (e.g., for a type
+argument, when tap->variant.type is NULL).
 */
 {
   a_boolean  template_param_found = FALSE;
@@ -8352,6 +8353,7 @@ instantiation-dependent.
   switch (tap->kind) {
     case tak_type:
       template_param_found =
+       tap->variant.type == NULL ||
        is_instantiation_dependent_type_or_cli_generic_param(tap->variant.type);
       break;
     case tak_nontype:
@@ -8365,9 +8367,8 @@ instantiation-dependent.
       } else {
         /* A normal nontype parameter represented as a constant. */
         a_constant_ptr	cp = tap->variant.constant;
-        check_assertion(cp != NULL);
-        template_param_found = (cp->kind ==
-                                     (a_constant_repr_kind)ck_template_param);
+        template_param_found = cp == NULL ||
+                               constant_is(cp, ck_template_param);
         if (!template_param_found) {
           /* Check if the type depends on a template parameter. */
           template_param_found = is_instantiation_dependent_type(cp->type);
@@ -8382,17 +8383,22 @@ instantiation-dependent.
         a_template_ptr				templ_ptr;
         a_symbol_ptr				templ_sym;
         templ_ptr = tap->variant.templ.ptr;
-        /* Look at the argument template, not the original symbol (which,
-           unlike other template parameters, always points to the prototype
-          argument symbol). */
-        templ_sym = symbol_for(templ_ptr);
-        tssp = templ_sym->variant.template_info;
-        template_param_found = tssp->is_nonreal_member ||
-                          tssp->variant.class_template.template_template_param;
-        if (!template_param_found && templ_sym->is_class_member) {
-          /* Check whether the parent type depends on a template parameter. */
-          template_param_found =
-                  is_instantiation_dependent_type(sym_parent_class(templ_sym));
+        if (templ_ptr == NULL) {
+          template_param_found = TRUE;
+        } else {
+          /* Look at the argument template, not the original symbol (which,
+             unlike other template parameters, always points to the prototype
+            argument symbol). */
+          templ_sym = symbol_for(templ_ptr);
+          tssp = templ_sym->variant.template_info;
+          template_param_found = tssp->is_nonreal_member ||
+                         tssp->variant.class_template.template_template_param;
+          if (!template_param_found && templ_sym->is_class_member) {
+            /* Check whether the parent type depends on a template
+               parameter. */
+            template_param_found =
+                 is_instantiation_dependent_type(sym_parent_class(templ_sym));
+          }  /* if */
         }  /* if */
       }
       break;
@@ -16926,7 +16932,15 @@ are flags passed down to the substitution routines.
       templ_rout_type = find_substituted_type(templ_sym, tssp, templ_arg_list,
                                               ctws_options, (a_type_ptr)NULL);
     }  /* if */
-    if (templ_rout_type == NULL) {
+    if (templ_rout_type == NULL &&
+        /* Check the template constraints (if any) at this time: Before
+           performing full substitution but after deduction is complete.  This
+           "timing" was clarified by the resolution of Core issue 2369. */
+        (!concepts_enabled ||
+         (ctws_options & CTWS_IS_PARTIAL_ORDER_CHECK) ||
+         template_arg_list_is_dependent(templ_arg_list) ||
+         check_template_constraints(originator_symbol_of(templ_sym),
+                                    templ_arg_list, /*diagnose=*/FALSE))) {
       /* This is the first time this routine has been called for this
          template argument list.  Create a new type. */
       a_ctws_state            ctws_state;

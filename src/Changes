@@ -1,5 +1,23 @@
 Version 6.5
 
+12/16/22 [EDGcpfe/25848]
+Timing of template constraint checking during overload resolution
+
+When constrained templates were first specified in the draft standard, the
+template constraints on a function template were checked after deduction
+completed and the deduced arguments were substituted through the function
+type.  Until now, that is how the front end implemented things.  The
+resolution of Core issue 2369, however, changed the specification such that
+constraints should be checked before substituting deduced arguments through
+the type of a function template candidate.  That is now implemented.
+
+The standard also specifies that the arguments for nondeducible parameters
+should be matched after the template constraints are checked, but the front
+end currently performs the matching for nondependent parameters before even
+attempting deduction.  That discrepancy is expected to be addressed in the
+near future.
+
+
 12/14/22 [EDGcpfe/25093,EDGcpfe/25795]
 Type equivalence for nested template-ids and error types
 
