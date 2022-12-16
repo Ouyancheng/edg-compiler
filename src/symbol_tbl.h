@@ -4975,12 +4975,6 @@ extern a_symbol_ptr make_module_symbol(a_const_char      *primary_name,
                                        a_boolean         is_interface,
                                        a_source_position *pos);
 
-extern a_symbol_ptr check_module_symbol_redecl(
-                                              a_symbol_header_ptr   sym_hdr,
-                                              a_module_entity_ptr   mep,
-                                              a_source_position_ptr pos,
-                                              an_il_entry_kind      kind);
-
 extern a_symbol_ptr unnamed_field_symbol(void);
 
 extern a_symbol_ptr make_anonymous_parent_object_symbol(

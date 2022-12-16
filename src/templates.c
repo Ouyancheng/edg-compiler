@@ -4960,9 +4960,8 @@ be completed here.
   tssp = template_sym == NULL ? NULL
                               : template_supplement_for_symbol(template_sym);
   if (template_sym != NULL) {
-    if (!template_sym->defined &&
-        tssp->il_template_entry != NULL &&
-        tssp->il_template_entry->source_corresp.module_entity != NULL) {
+    if (!template_sym->defined && tssp->il_template_entry != NULL &&
+        has_template_definition_from_module(tssp->il_template_entry)) {
       /* A declaration but not a definition was loaded from a module file.
          Attempt to load the definition (and any specializations). */
       load_template_definition_from_module(tssp->il_template_entry);
@@ -7079,9 +7078,8 @@ cases).
        symbol. */
     template_sym = symbol_for(templ);
   }  /* if */
-  if (!template_sym->defined &&
-      tssp->il_template_entry != NULL &&
-      tssp->il_template_entry->source_corresp.module_entity != NULL) {
+  if (!template_sym->defined && tssp->il_template_entry != NULL &&
+      has_template_definition_from_module(tssp->il_template_entry)) {
     /* A declaration but not a definition was loaded from a module file.
        Attempt to load the definition (and any specializations). */
     load_template_definition_from_module(tssp->il_template_entry);
@@ -7447,9 +7445,8 @@ expression context) rather than a declaration.
   template_sym = tip->template_sym;
   tssp = template_supplement_for_symbol(template_sym);
   if (is_var_templ_instance) {
-    if (!template_sym->defined &&
-        tssp->il_template_entry != NULL &&
-        tssp->il_template_entry->source_corresp.module_entity != NULL) {
+    if (!template_sym->defined && tssp->il_template_entry != NULL &&
+        has_template_definition_from_module(tssp->il_template_entry)) {
       /* A declaration but not a definition was loaded from a module file.
          Attempt to load the definition (and any specializations). */
       load_template_definition_from_module(tssp->il_template_entry);
@@ -9367,6 +9364,36 @@ of the hash table is returned, or NULL is no entry is found.
                          (a_void_ptr)&key, create);
   return sym_in_table;
 }  /* find_instantiation */
+
+
+a_symbol_ptr find_template_instantiation(a_symbol_ptr       template_sym,
+                                         a_template_arg_ptr template_args)
+/*
+Give a pointer to a template symbol and a list of template arguments, find and
+return a symbol pointer for any existing (matching) instantiation; otherwise,
+return NULL.
+*/
+{
+  a_symbol_ptr                     result = NULL;
+  a_template_symbol_supplement_ptr template_info;
+
+  if (template_sym->kind == sk_member_function) {
+    template_info = template_sym->variant.routine.instance_ptr->template_info;
+  } else if (is_template_symbol(template_sym)) {
+    template_info = template_sym->variant.template_info;
+  } else {
+    unexpected_condition();
+  }  /* if */
+
+  a_symbol_ptr *sym_in_table = find_instantiation(template_sym,
+                                                  template_info,
+                                                  template_args,
+                                                  /*create=*/FALSE);
+  if (sym_in_table != NULL) {
+    result = *sym_in_table;
+  }  /* if */
+  return result;
+}  /* find_template_instantiation */
 
 
 static void add_instantiation(
@@ -35185,17 +35212,6 @@ static a_boolean exported_definition_is_available(
 						a_template_instance_ptr	tip);
 
 
-static inline a_boolean module_definition_pending(a_template_ptr  templ)
-/*
-Return TRUE if the given template is being loaded from a module and that module
-is known to contain a template for the definition.
-*/
-{
-  return templ != NULL && templ->source_corresp.module_entity != NULL &&
-         templ->source_corresp.module_entity->has_definition;
-}  /* module_definition_pending */
-
-
 static a_boolean should_be_instantiated(
 			a_template_instance_ptr tip,
 			ARG_UNUSED a_boolean	implicit_inclusion_okay)
@@ -35267,7 +35283,8 @@ template entities.
       template_def = cache_for_template(tssp)->tokens.first_token != NULL ||
                      exported_definition_is_available(tip) ||
                      rp->is_deleted || rp->is_defaulted ||
-                     module_definition_pending(tssp->il_template_entry);
+                     (tssp->il_template_entry != NULL &&
+                 has_template_definition_from_module(tssp->il_template_entry));
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION
       if (!template_def && !specialized && !tip->suppress_instantiation &&
           implicit_inclusion_okay && implicit_template_inclusion_mode) {
@@ -35424,7 +35441,8 @@ this overrides an "extern template" directive.
     rp = tip->instance_sym->variant.routine.ptr;
     specialized = rp->is_specialized;
     template_def = cache_for_template(tssp)->tokens.first_token != NULL ||
-                   module_definition_pending(tssp->il_template_entry);
+                (tssp->il_template_entry != NULL &&
+                 has_template_definition_from_module(tssp->il_template_entry));
     if (!template_def && !specialized && export_template_allowed) {
       /* When exported templates are being used, look for an exported
          definition of this template */

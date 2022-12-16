@@ -1019,7 +1019,7 @@ using an_ifc_decl_lookup_table = Ptr_map<an_ifc_decl_index, a_symbol_ptr>;
 			   indices to corresponding front end symbols. */
 
 
-an_ifc_decl_lookup_table
+static an_ifc_decl_lookup_table
 		*ifc_decl_lookup_table;
 			/* A hash table to map IFC declaration indices to
 			   corresponding front end symbols. */
@@ -4089,364 +4089,6 @@ definition.
   return result;
 }  /* load_routine_definition_from_ifc_module */
 
-
-static void extract_matching_template_module_entities(
-                                        a_module_entity_ptr  templ_mep,
-                                        a_module_entity_ptr  *p_mep,
-                                        a_module_entity_ptr  *p_templates,
-                                        a_module_entity_ptr  *p_end_templates,
-                                        a_module_entity_ptr  *p_partial_specs)
-/*
-*p_mep points to a possibly empty list of module entities that don't include
-templ_mep, but that share its name.  Extract from the list all the templates
-with a matching scope and set *p_templates to point to the list of extracted
-templates and *p_end_templates to the last element on that list (or NULL if
-none).  If p_partial_specs is non-NULL, also extract all the partial
-specializations and set *p_partial_specs to point to those.
-*/
-{
-  a_module_entity_ptr  other_decls = NULL, end_other_decls = NULL,
-                       partial_specs = NULL;
-
-  while (*p_mep != NULL) {
-    a_module_entity_ptr  mep = *p_mep;
-    /* Traverse the list of pending module entities, and select the ones whose
-       scope matches that of *templ_mep.  Among those, process templates and
-       partial specializations. */
-    if (mep->scope == templ_mep->scope) {
-      if (mep->variant.ifc_partition == ifc_pk_decl_template) {
-        /* A template: Move it to the other_decls list. */
-        *p_mep = mep->next;
-        mep->next = other_decls;
-        other_decls = mep;
-        if (end_other_decls == NULL) end_other_decls = mep;
-      } else if (mep->variant.ifc_partition ==
-                                          ifc_pk_decl_partial_specialization &&
-                 p_partial_specs != NULL) {
-        /* A partial specialization: Move it to the partial_specs list. */
-        *p_mep = mep->next;
-        mep->next = partial_specs;
-        partial_specs = mep;
-      } else {
-        /* Anything else: Leave it on the list of pending module entities. */
-        p_mep = &mep->next;
-      }  /* if */
-    } else {
-      /* An entity from a different scope: Leave it on the list of pending
-         module entities. */
-      p_mep = &mep->next;
-    }  /* if */
-  }  /* while */
-  *p_templates = other_decls;
-  *p_end_templates = end_other_decls;
-  if (p_partial_specs != NULL) *p_partial_specs = partial_specs;
-}  /* extract_matching_template_module_entities */
-
-
-a_boolean an_ifc_module::process_template_definition(
-                                  a_module_entity_ptr        mep,
-                                  const an_ifc_decl_template &idst,
-                                  a_boolean                  already_declared,
-                                  a_boolean                  is_func_template)
-/*
-The given module entity pointer describes a template stored in an IFC module
-file.  If already_declared is TRUE, a declaration has previously been
-processed.  However, its definition, its explicit specializations, and/or
-partial specializations may still be stored in the IFC module.  Load those
-elements into the IL (usually, to enable instantiation).  is_func_template
-is TRUE if this is called for a function template.  idstp points to the
-template's IFC description structure.
-*/
-{
-  a_boolean                 result = FALSE;
-  a_module_entity_ptr       other_decls = NULL, end_other_decls = NULL,
-                            partial_specs = NULL;
-  an_ifc_module             *ifc_mod = (an_ifc_module*)mep->module_info
-                                                          ->module_interface;
-
-  check_assertion(ifc_mod != NULL);
-  if (!is_func_template) {
-    /* There may be other declarations of this same template from other
-       modules.  Temporarily remove these because declaration processing will
-       look for a redeclaration and trigger a second nested processing of the
-       template otherwise.  Also separate out partial specializations: They
-       must be processed now since they can affect which template should be
-       instantiated. */
-    extract_matching_template_module_entities(mep, &mep->next,
-                                              &other_decls, &end_other_decls,
-                                              &partial_specs);
-  }  /* if */
-  if (get_ifc_body(get_ifc_entity(idst)) != 0 &&
-      test_bitmask<ifc_rpb_initializer>(get_ifc_properties(idst))) {
-    /* The template has a reachable definition (IFC files sometimes include
-       definitions even when they are not reachable): Load it. */
-    a_module_token_cache cache;
-    an_ifc_cache_info    cinfo;
-
-    cinfo.ignore_default_arguments = already_declared;
-    cinfo.ignore_default_template_arguments = already_declared;
-    ifc_mod->cache_decl_template(&cache, idst, cinfo);
-    mep->entity.ptr = parse_cached_template(&cache, mep->scope,
-                                            &mep->entity.kind);
-    if (mep->entity.ptr != NULL && mep->entity.kind == iek_template) {
-      a_template_ptr templ = (a_template_ptr)mep->entity.ptr;
-
-      result = TRUE;
-      if (templ->kind == (a_template_kind)templk_class) {
-        /* For a class template, check if it has any associated deduction
-           guides.  Deduction guides are associated to the template through the
-           IFC traits mechanism. */
-        an_ifc_decl_index                 decl = decl_index_of(mep);
-        Opt<an_ifc_trait_deduction_guide> opt_itdg;
-
-        find_trait(&opt_itdg, decl);
-        if (opt_itdg.has_value()) {
-          an_ifc_decl_index   guides_idx = get_ifc_trait(*opt_itdg);
-          a_module_entity_ptr guides_mep =
-                                         get_ifc_module_entity_ptr(guides_idx);
-
-          /* A single guide will have an ifc_DeclSort_Template entry directly
-             associated with it, but it doesn't record the parent scope: So set
-             it here (a guide is required to be declared in the same scope as
-             the class template).  If there are multiple guides, guides_mep
-             will be for an ifc_DeclSort_Tuple entry instead (and its treatment
-             will propagate the parent scope). */
-          guides_mep->scope = templ->source_corresp.parent_scope;
-          process_decl_at_index(guides_idx);
-        }  /* if */
-      }  /* if */
-    }  /* if */
-  }  /* if */
-  /* Compute the DeclIndex of the current template and retrieve the sequence
-     of explicit specializations and instantiations. */
-  an_ifc_decl_index    decl = decl_index_of(mep);
-  Opt<an_ifc_sequence> seq = ifc_mod->get_specialization_sequence_from_trait(
-                                                                         decl);
-  if (seq.has_value()) {
-    /* Process the sequence of explicit specializations and explicit
-       instantiations. */
-    ifc_mod->process_scope_member_sequence(*seq);
-    result = TRUE;
-  }  /* if */
-  /* Now process the partial specializations. */
-  while (partial_specs != NULL) {
-    a_module_entity_ptr ps_mep = partial_specs;
-    an_ifc_module       *itf = (an_ifc_module*)
-                                         ps_mep->module_info->module_interface;
-    partial_specs = ps_mep->next;
-    ps_mep->next = NULL;
-    ps_mep->imminent = FALSE;
-    itf->process_ifc_declaration(ps_mep, /*defer=*/FALSE, (a_type_ptr)NULL);
-    result = TRUE;
-  }  /* while */
-  return result;
-}  /* process_template_definition */
-
-
-a_boolean load_template_definition_from_ifc_module(a_template_ptr  templ)
-/*
-The given template entry represents a template that was loaded from an IFC
-module, but its definition hasn't been loaded yet.  Load the definition now.
-*/
-{
-  a_boolean            result = FALSE;
-  a_module_entity_ptr  mep = templ->source_corresp.module_entity;
-
-  check_assertion(mep != NULL);
-  if (mep->variant.ifc_partition != ifc_pk_decl_template) {
-    /* This should never happen.  If it does, the most likely culprit is that
-       curr_module_entity was not correctly saved/cleared/restored around the
-       context that created the templ entry. */
-    unexpected_condition();
-  } else {
-    Opt<an_ifc_decl_template> opt_idt;
-    an_ifc_decl_index         decl_idx = decl_index_of(mep);
-
-    construct_node(&opt_idt, decl_idx);
-    if (opt_idt.has_value()) {
-      a_source_position           saved_error_position = error_position;
-      a_module_entity_ptr         saved_mep = curr_module_entity;
-      a_curr_token_preserver      guard;
-      a_module_scope_push_kind    scope_push_status = mspk_unattempted;
-      a_module_entity_stack_state mep_state(mep);
-      curr_module_entity = mep;
-      push_module_declaration_context(mep->scope, &scope_push_status);
-
-      result = an_ifc_module::process_template_definition(
-                              templ->source_corresp.module_entity,
-                              *opt_idt, /*already_declared=*/TRUE,
-                              templ->kind == (a_template_kind)templk_function);
-      pop_module_declaration_context(scope_push_status);
-      curr_module_entity = saved_mep;
-      error_position = saved_error_position;
-    }  /* if */
-  }  /* if */
-  return result;
-}  /* load_template_definition_from_ifc_module */
-
-
-static inline a_boolean ifc_decl_is_ignorable_redecl(
-                                         a_symbol_locator      *loc,
-                                         a_module_entity_ptr   mep,
-                                         a_source_position_ptr pos,
-                                         an_il_entry_kind      expected_kind,
-                                         char                  **redecl_entity,
-                                         an_il_entry_kind      *redecl_kind)
-/*
-An entity described in a compiled module file is considered for loading into
-the IL.  loc describes the name of that entity, mep its location and early
-characterization in the compiled module file, pos the position in the
-source file that was compiled, and expected_kind the kind of IL entity that
-this appears to be.  If the entity appears to redeclare an existing IL entity,
-return TRUE and set *redecl_entity and *redecl_kind to describe the entity
-already in the IL.
-*/
-{
-  a_boolean    result = FALSE;
-  a_symbol_ptr redecl_sym;
-
-  redecl_sym = check_module_symbol_redecl(loc->symbol_header, mep, pos,
-                                          expected_kind);
-  if (redecl_sym != NULL) {
-    /* This is a redeclaration of an existing symbol. */
-    an_il_entry_kind this_kind;
-    *redecl_entity = il_entry_for_symbol(redecl_sym, &this_kind);
-    *redecl_kind = this_kind;
-    result = TRUE;
-  }  /* if */
-  return result;
-}  /* ifc_decl_is_ignorable_redecl */
-
-namespace {
-
-/*
-An RAII object to temporarily enable Microsoft features even if not enabled
-otherwise.  This allows for MS specific IFC decls to be correctly processed.
-*/
-struct a_ms_mode_parse {
-  inline a_ms_mode_parse(an_ifc_module *mod);
-  inline ~a_ms_mode_parse();
-private:
-  a_boolean
-                old_microsoft_mode;
-                        /* The previous value of "microsoft_mode". */
-  unsigned long
-                old_microsoft_version;
-                        /* The previous value of "microsoft_version". */
-  a_boolean
-                old_ms_extensions;
-                        /* The previous value of "ms_extensions". */
-  a_boolean
-                old_ms_compat;
-                        /* The previous value of "ms_compat". */
-  a_boolean
-                old_allow_in_class_specializations;
-                        /* The previous value of
-                           "allow_in_class_specializations". */
-  a_boolean
-                old_allow_in_class_instantiations;
-                        /* The previous value of
-                           "allow_in_class_instantiations". */
-};  /* a_ms_mode_parse */
-
-
-unsigned long get_microsoft_version(an_ifc_module *mod)
-/*
-Given an IFC module, determine the appropriate version level of Microsoft mode
-to emulate.
-*/
-{
-  /* FIXME: This should depend on version information in the IFC file. */
-  return 1928;
-}  /* get_microsoft_version */
-
-
-a_ms_mode_parse::a_ms_mode_parse(an_ifc_module *mod)
-    : old_microsoft_mode(microsoft_mode),
-      old_microsoft_version(microsoft_version),
-      old_ms_extensions(ms_extensions), old_ms_compat(ms_compat),
-      old_allow_in_class_specializations(allow_in_class_specializations),
-      old_allow_in_class_instantiations(allow_in_class_instantiations)
-/*
-Temporarily enter a limited Microsoft mode that's catered to the compiler used
-to produce the IFC file to process Microsoft specific features in context.
-*/
-{
-  microsoft_mode = TRUE;
-  microsoft_version = get_microsoft_version(mod);
-  ms_extensions = TRUE;
-  ms_compat = TRUE;
-  allow_in_class_specializations = TRUE;
-  allow_in_class_instantiations = TRUE;
-}  /* a_ms_mode_parse */
-
-
-a_ms_mode_parse::~a_ms_mode_parse()
-/*
-Restore to the previous compiler modes.
-*/
-{
-  allow_in_class_instantiations = old_allow_in_class_instantiations;
-  allow_in_class_specializations = old_allow_in_class_specializations;
-  ms_compat = old_ms_compat;
-  ms_extensions = old_ms_extensions;
-  microsoft_version = old_microsoft_version;
-  microsoft_mode = old_microsoft_mode;
-}  /* ~a_ms_mode_parse */
-
-}  /* namespace */
-
-static a_boolean is_from_gmf(an_ifc_basic_specifiers_bitfield specifier)
-/*
-Return TRUE if the specifier indicates the associated entity came from the
-global module fragment, FALSE otherwise.
-*/
-{
-  /* Lambda closure class members are marked as being members of the GMF
-     without actually being members of the GMF.  More generally, if something
-     is the member of a class then it's reasonable to expect that we can treat
-     it as not a member of the GMF and allow the containing class' membership
-     in the GMF to cover it, if necessary. */
-  return (test_bitmask<ifc_bsb_is_member_of_global_module>(specifier) &&
-          !test_bitmask<ifc_bsb_initialized_in_class>(specifier));
-}  /* is_from_gmf */
-
-
-static inline
-a_boolean is_unnamed_tag(a_const_char  *name)
-/*
-Return TRUE If the given string is "<unnamed-tag>".
-*/
-{
-#define UNNAMED_TAG_NAME "<unnamed-tag>"
-  return strncmp(name, UNNAMED_TAG_NAME, sizeof(UNNAMED_TAG_NAME)-1) == 0;
-#undef UNNAMED_TAG_NAME
-}  /* is_unnamed_tag */
-
-#if BUILTIN_FUNCTIONS_ENABLED
-
-static a_boolean is_builtin_function(const an_ifc_decl_function &func,
-                                     a_symbol_locator           *loc)
-/*
-Given an IFC function declaration, return TRUE if this function should be
-processed by loading a builtin; otherwise, return FALSE and load the function
-using the normal IFC modules function loading logic.
-*/
-{
-  a_boolean result = TRUE;
-
-  if (!is_null_index(get_ifc_home_scope(func))) {
-    result = FALSE;
-  } else if (loc->symbol_header == NULL) {
-    result = FALSE;
-  } else if (!loc->symbol_header->is_builtin_function) {
-    result = FALSE;
-  }  /* if */
-  return result;
-}  /* is_builtin_function */
-
-#endif /* BUILTIN_FUNCTIONS_ENABLED */
-
 namespace {
 
 enum a_non_type_kind : uint8_t {
@@ -4586,7 +4228,1238 @@ Given a type index, return TRUE if the type index represents an ellipsis.
   return result;
 }  /* type_represents_ellipsis */
 
+
+a_boolean is_redeclared_basic_entity(a_symbol            *sym,
+                                     a_module_entity_ptr mep,
+                                     an_il_entry_kind    expected_kind,
+                                     char                **redecl_entity,
+                                     an_il_entry_kind    *redecl_kind)
+/*
+For a give module entity's potentially previously declared symbol, module
+entity pointer, and expected kind, check to see if the symbol is indeed a
+redeclaration.  Return TRUE if the symbol is a redeclaration; otherwise return
+FALSE.  If found, the redeclared entity and its associated kind will be set to
+*redecl_entity and *redecl_kind respectively.
+*/
+{
+  a_boolean        result = FALSE;
+  an_il_entry_kind kind;
+  char             *entity = il_entry_for_symbol_null_okay(sym, &kind);
+
+  if (entity != NULL && kind == expected_kind) {
+    a_source_correspondence_ptr scp =
+                                     source_corresp_for_il_entry(entity, kind);
+
+    if (scp != NULL) {
+      a_scope_ptr scope = get_parent_scope_of(scp);
+
+      if (mep->scope == scope) {
+        *redecl_entity = entity;
+        *redecl_kind = kind;
+        result = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* is_redeclared_basic_entity */
+
+
+a_boolean
+find_redeclared_basic_entity_in_list(a_symbol            *sym_list,
+                                     a_module_entity_ptr mep,
+                                     an_il_entry_kind    expected_kind,
+                                     char                **redecl_entity,
+                                     an_il_entry_kind    *redecl_kind)
+/*
+For a given module entity's associated symbol list, module entity pointer, and
+expected kind, search the symbols for a redeclaration.  Return TRUE if a
+redeclaration is found; otherwise return FALSE.  If found, the redeclared
+entity and its associated kind will be set to *redecl_entity and *redecl_kind
+respectively.
+
+This function should not be used directly in modules code, instead see
+check_and_set_redeclaration.
+*/
+{
+  a_boolean result = FALSE;
+
+  for (a_symbol_ptr sym = sym_list; sym != NULL; sym = sym->next) {
+    if (is_redeclared_basic_entity(sym, mep, expected_kind, redecl_entity,
+                                   redecl_kind)) {
+      result = TRUE;
+      break;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* find_redeclared_basic_symbol_in_list */
+
+
+a_boolean find_redeclared_basic_entity(a_symbol_header     *sym_header,
+                                       a_module_entity_ptr mep,
+                                       an_il_entry_kind    expected_kind,
+                                       char                **redecl_entity,
+                                       an_il_entry_kind    *redecl_kind)
+/*
+For a given module entity's symbol header, module entity pointer, and expected
+kind, search the active and inactive symbols for a redeclaration.  Return TRUE
+if a redeclaration is found; otherwise return FALSE.  If found, the redeclared
+entity and its associated kind will be set to *redecl_entity and *redecl_kind
+respectively.
+
+This function should not be used directly in modules code, instead see
+check_and_set_redeclaration.
+*/
+{
+  a_boolean    result = FALSE;
+  a_symbol_ptr active_symbols = sym_header->symbol;
+  a_symbol_ptr inactive_symbols = sym_header->inactive_symbols;
+
+  if (find_redeclared_basic_entity_in_list(active_symbols, mep, expected_kind,
+                                           redecl_entity, redecl_kind) ||
+      find_redeclared_basic_entity_in_list(inactive_symbols, mep,
+                                           expected_kind, redecl_entity,
+                                           redecl_kind)) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* find_redeclared_basic_entity */
+
+
+a_boolean check_and_set_redeclaration(a_symbol_locator      *loc,
+                                      a_module_entity_ptr   mep,
+                                      a_source_position_ptr pos,
+                                      an_il_entry_kind      expected_kind,
+                                      char                  **redecl_entity,
+                                      an_il_entry_kind      *redecl_kind)
+/*
+Given an IFC module entity's symbol locator, module entity pointer, source
+position, and expected kind check for a redeclaration.  Return TRUE
+if a redeclaration is found; otherwise return FALSE.  If found, the redeclared
+entity and its associated kind will be set to *redecl_entity and *redecl_kind
+respectively.
+
+The caller is responsible for handling any required merging of the
+declarations.  In the case of duplicate definitions the caller is responsible
+for ignoring the latter definition for header units and erroring for named
+modules.
+
+This function should generally be avoided for more specific redeclaration
+checking functions, as it only has a primitive understanding of what a
+redeclaration is.
+*/
+{
+  a_boolean result = find_redeclared_basic_entity(loc->symbol_header, mep,
+                                                  expected_kind, redecl_entity,
+                                                  redecl_kind);
+
+  if (result) {
+    /* This is a redeclaration of an existing symbol. */
+    /* FIXME: This should also trigger if the redecl_sym's module is a named
+       module. */
+#if 0
+    if (!is_header_unit(mep->module_info)) {
+      pos_error(ec_module_entity_redeclaration, pos);
+    }  /* if */
+#endif /* 0 */
+  }  /* if */
+  return result;
+}  /* check_and_set_redeclaration */
+
+
+a_boolean has_matching_func_param(const an_ifc_decl_parameter &mod_templ_param,
+                                  a_param_type_ptr            il_param_type)
+/*
+Return TRUE if the give IFC node information representation a parameter
+declaration represents the same type as the given IL param type.
+*/
+{
+  an_ifc_type_index ifc_type_idx = get_ifc_type(mod_templ_param);
+  a_type_ptr        mod_param_type = type_for_type_index(ifc_type_idx,
+                                                         /*kind=*/NULL);
+
+  return il_identical_types(il_param_type->declared_type, mod_param_type);
+}  /* has_matching_func_param */
+
+
+a_boolean is_function_template_redecl(a_module_entity_ptr mep,
+                                      a_template_ptr      templ)
+/*
+For a give module entity's module entity pointer, and the potentially
+previously declared template IL entity, check to see if the symbol is indeed a
+redeclaration.  Return TRUE if the symbol is a redeclaration; otherwise return
+FALSE.
+*/
+{
+  a_boolean         result = TRUE;
+  an_ifc_module     *mod = get_assoc_ifc_module(mep);
+  an_ifc_decl_index decl_idx = decl_index_of(mep);
+
+  /* The module entity pointer should always refer to a template. */
+  check_assertion(decl_idx.sort == ifc_ds_decl_template);
+
+  an_ifc_decl_template decl_templ;
+  construct_node_prechecked(&decl_templ, decl_idx);
+
+  an_ifc_decl_index entity_decl_idx = get_ifc_decl(get_ifc_entity(decl_templ));
+  if (entity_decl_idx.sort == ifc_ds_decl_function) {
+    Opt<an_ifc_decl_function> opt_decl_func;
+
+    construct_node(&opt_decl_func, entity_decl_idx);
+    if (!opt_decl_func.has_value()) {
+      goto no_match;
+    }  /* if */
+
+    an_ifc_decl_function decl_func = *opt_decl_func;
+    an_ifc_chart_index   param_idx = get_ifc_chart(decl_func);
+    a_routine_ptr        routine = templ->prototype_instantiation.routine;
+    a_param_type_ptr     curr = get_routine_param_types(routine);
+    if (!is_null_index(param_idx)) {
+      switch (param_idx.sort) {
+        case ifc_cs_chart_unilevel:
+          { Opt<an_ifc_chart_unilevel> opt_params;
+
+            construct_node(&opt_params, param_idx);
+            if (opt_params.has_value()) {
+              an_ifc_chart_unilevel      params = *opt_params;
+              a_decl_parameter_traverser traverser(params);
+
+              for (an_Indexed<an_ifc_decl_parameter> idxd_param : traverser) {
+                if (curr == NULL) {
+                  /* If there are no more IL template parameters, fail. */
+                  goto no_match;
+                }  /* if */
+                if (!idxd_param.has_value()) {
+                  goto no_match;
+                }  /* if */
+
+                an_ifc_decl_parameter param = *idxd_param;
+                if (!has_matching_func_param(param, curr)) {
+                  /* If the template parameter doesn't match, fail. */
+                  goto no_match;
+                }  /* if */
+                curr = curr->next;
+              }  /* for */
+            }  /* if */
+          }
+          break;
+        case ifc_cs_chart_multilevel:
+        case ifc_cs_chart_none:
+          ifc_unexpected(mod, "only unilevel or absent function templates "
+                         "are supported for template declarations");
+          goto no_match;
+      }  /* switch */
+    }  /* if */
+    if (curr != NULL) {
+      /* If there's more IL template parameters than module template
+         parameters, fail. */
+      goto no_match;
+    }  /* if */
+  }  /* if */
+  goto done;
+no_match:
+  result = FALSE;
+done:
+  return result;
+}  /* is_function_template_redecl */
+
+
+a_boolean is_redeclared_template_entity(a_symbol            *sym,
+                                        a_module_entity_ptr mep,
+                                        char                **redecl_entity,
+                                        an_il_entry_kind    *redecl_kind)
+/*
+For a give module entity's potentially previously declared symbol, and module
+entity pointer, check to see if the symbol is indeed a redeclaration.  Return
+TRUE if the symbol is a redeclaration; otherwise return FALSE.  If found, the
+redeclared entity and its associated kind will be set to *redecl_entity and
+*redecl_kind respectively.
+
+This function should not be used directly in modules code, instead see
+check_and_set_template_redeclaration.
+*/
+{
+  a_boolean        result = FALSE;
+  an_il_entry_kind kind;
+  char             *entity = il_entry_for_symbol_null_okay(sym, &kind);
+
+  if (entity != NULL && kind == iek_template) {
+    a_source_correspondence_ptr scp =
+                                     source_corresp_for_il_entry(entity, kind);
+
+    if (scp != NULL) {
+      a_scope_ptr scope = get_parent_scope_of(scp);
+
+      if (mep->scope == scope) {
+        a_template_ptr  templ = (a_template_ptr)entity;
+        a_template_kind templ_kind = templ->kind;
+
+        switch (templ_kind) {
+          case templk_none:
+            break;
+          case templk_class:
+          case templk_member_class:
+          case templk_member_enum:
+          case templk_template_template_param:
+          case templk_concept: /* FIXME: Is this right? */
+          case templk_variable:
+          case templk_static_data_member:
+            /* Cases which can't be overloaded. */
+            result = TRUE;
+            break;
+          case templk_function:
+          case templk_member_function:
+            /* Function (potentially) overloaded case. */
+            result = is_function_template_redecl(mep, templ);
+            break;
+          default_is_unexpected();
+        }  /* switch */
+        if (result) {
+          *redecl_entity = entity;
+          *redecl_kind = kind;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* is_redeclared_template_entity */
+
+
+a_boolean
+find_redeclared_template_entity_in_list(a_symbol            *sym_list,
+                                        a_module_entity_ptr mep,
+                                        char                **redecl_entity,
+                                        an_il_entry_kind    *redecl_kind)
+/*
+For a given module entity's associated symbol list, primary template, and
+template arguments, search the symbols for a redeclaration.  Return TRUE if a
+redeclaration is found; otherwise return FALSE.  If found, the redeclared
+entity and its associated kind will be set to *redecl_entity and *redecl_kind
+respectively.
+
+This function should not be used directly in modules code, instead see
+check_and_set_template_redeclaration.
+*/
+{
+  a_boolean result = FALSE;
+
+  for (a_symbol_ptr sym = sym_list; sym != NULL; sym = sym->next) {
+    if (is_redeclared_template_entity(sym, mep, redecl_entity, redecl_kind)) {
+      result = TRUE;
+      break;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* find_redeclared_template_entity_in_list */
+
+
+a_boolean find_redeclared_template_entity(a_symbol_header     *sym_header,
+                                          a_module_entity_ptr mep,
+                                          char                **redecl_entity,
+                                          an_il_entry_kind    *redecl_kind)
+/*
+For a given module entity's symbol header, and module entity pointer, search
+the active and inactive symbols for a redeclaration.  Return TRUE if a
+redeclaration is found; otherwise return FALSE.  If found, the redeclared
+entity and its associated kind will be set to *redecl_entity and *redecl_kind
+respectively.
+
+This function should not be used directly in modules code, instead see
+check_and_set_template_redeclaration.
+*/
+{
+  a_boolean    result = FALSE;
+  a_symbol_ptr active_symbols = sym_header->symbol;
+  a_symbol_ptr inactive_symbols = sym_header->inactive_symbols;
+
+  if (find_redeclared_template_entity_in_list(active_symbols, mep,
+                                              redecl_entity, redecl_kind) ||
+      find_redeclared_template_entity_in_list(inactive_symbols, mep,
+                                              redecl_entity, redecl_kind)) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* find_redeclared_template_entity */
+
+
+a_boolean check_and_set_template_redeclaration(
+                                         a_symbol_locator      *loc,
+                                         a_module_entity_ptr   mep,
+                                         a_source_position_ptr pos,
+                                         char                  **redecl_entity,
+                                         an_il_entry_kind      *redecl_kind)
+/*
+Given an IFC module entity's symbol locator, module entity pointer, and source
+position, check for a redeclaration of a template.  Return TRUE if a
+redeclaration is found; otherwise return FALSE.  If found, the redeclared
+entity and its associated kind will be set to *redecl_entity and *redecl_kind
+respectively.
+
+The caller is responsible for handling any required merging of the
+declarations.  In the case of duplicate definitions the caller is responsible
+for ignoring the latter definition for header units and erroring for named
+modules.
+*/
+{
+  a_boolean result = find_redeclared_template_entity(loc->symbol_header, mep,
+                                                     redecl_entity,
+                                                     redecl_kind);
+
+  if (result) {
+    /* This is a redeclaration of an existing symbol. */
+    /* FIXME: This should also trigger if the redecl_sym's module is a named
+       module. */
+#if 0
+    if (!is_header_unit(mep->module_info)) {
+      pos_error(ec_module_entity_redeclaration, pos);
+    }  /* if */
+#endif /* 0 */
+  }  /* if */
+  return result;
+}  /* check_and_set_template_redeclaration */
+
+
+a_template_arg_ptr create_templ_args_for_comparison(
+                             const an_ifc_decl_specialization &decl_spec,
+                             a_template_ptr                   primary_template)
+/*
+Given the IFC node information for a template specialization and the IL primary
+template, create and return a corresponding template argument set.  If a
+problem is encountered during reconstruction, NULL is returned instead.
+*/
+{
+  a_template_arg_ptr     result = NULL;
+  an_ifc_form_spec_index form_idx = get_ifc_form(decl_spec);
+  Opt<an_ifc_form_spec>  opt_form_spec;
+
+  construct_node(&opt_form_spec, form_idx);
+  if (opt_form_spec.has_value()) {
+    an_ifc_form_spec         form_spec = *opt_form_spec;
+    an_ifc_expr_index        form_arg_idx = get_ifc_arguments(form_spec);
+    an_ifc_module            *mod = form_arg_idx.mod;
+    a_template_decl_ptr      template_decl = primary_template->template_decl;
+    a_template_parameter_ptr il_param_list = template_decl->param_list;
+
+    result = mod->template_args_for_expr_list(il_param_list, form_arg_idx);
+  }  /* if */
+  return result;
+}  /* create_templ_args_for_comparison */
+
+
+a_boolean is_redeclared_specialized_entity(a_symbol_ptr        sym,
+                                           a_template_ptr      primary_templ,
+                                           a_template_arg_ptr  templ_args,
+                                           char                **redecl_entity,
+                                           an_il_entry_kind    *redecl_kind)
+/*
+For a give module entity's potentially previously declared symbol, primary
+templates, and template arguments, check to see if the symbol is indeed a
+redeclaration.  Return TRUE if the symbol is a redeclaration; otherwise return
+FALSE.  If found, the redeclared entity and its associated kind will be set to
+*redecl_entity and *redecl_kind respectively.
+
+This function should not be used directly in modules code, instead see
+check_and_set_specialization_redeclaration.
+*/
+{
+  a_boolean        result = FALSE;
+  an_il_entry_kind templ_kind;
+  char             *templ_entity = il_entry_for_symbol_null_okay(sym,
+                                                                 &templ_kind);
+
+  /* Confirm the symbol refers to a template entity. */
+  check_assertion(templ_entity != NULL && templ_kind == iek_template);
+  /* Confirm the specialization is of the template referenced by this
+     symbol. */
+  if (primary_templ->canonical_template == (a_template_ptr)templ_entity) {
+    a_symbol_ptr existing = find_template_instantiation(sym, templ_args);
+
+    if (existing != NULL) {
+      result = TRUE;
+      *redecl_entity = il_entry_for_symbol_null_okay(existing, redecl_kind);
+      check_assertion(*redecl_entity != NULL);
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* is_redeclared_specialized_entity */
+
+
+a_boolean
+find_redeclared_specialized_entity_in_list(a_symbol_ptr        sym_list,
+                                           a_template_ptr      primary_templ,
+                                           a_template_arg_ptr  templ_args,
+                                           char                **redecl_entity,
+                                           an_il_entry_kind    *redecl_kind)
+/*
+For a given module entity's associated symbol list, primary template, and
+template arguments, search the symbols for a redeclaration.  Return TRUE if a
+redeclaration is found; otherwise return FALSE.  If found, the redeclared
+entity and its associated kind will be set to *redecl_entity and *redecl_kind
+respectively.
+
+This function should not be used directly in modules code, instead see
+check_and_set_specialization_redeclaration.
+*/
+{
+  a_boolean result = FALSE;
+
+  for (a_symbol_ptr sym = sym_list; sym != NULL; sym = sym->next) {
+    if (!is_template_symbol(sym)) {
+      continue;
+    }  /* if */
+    if (is_redeclared_specialized_entity(sym, primary_templ, templ_args,
+                                         redecl_entity, redecl_kind)) {
+      result = TRUE;
+      break;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* find_redeclared_specialized_entity_in_list */
+
+
+a_boolean find_redeclared_specialized_entity(
+                              a_symbol_header                  *sym_header,
+                              const an_ifc_decl_specialization &decl_spec,
+                              char                             **redecl_entity,
+                              an_il_entry_kind                 *redecl_kind)
+/*
+For a given module entity's symbol header, and IFC node information, search the
+active and inactive symbols for a redeclaration.  Return TRUE if a
+redeclaration is found; otherwise return FALSE.  If found, the redeclared
+entity and its associated kind will be set to *redecl_entity and *redecl_kind
+respectively.
+
+This function should not be used directly in modules code, instead see
+check_and_set_specialization_redeclaration.
+*/
+{
+  a_boolean           result = FALSE;
+  /* The template should already be processed, this is just fetching the IL
+     entity associated with the primary template. */
+  an_ifc_decl_index   templ_idx = get_ifc_primary_template(decl_spec);
+  a_module_entity_ptr templ_mep = process_decl_at_index(templ_idx);
+  a_tagged_pointer    templ_entity = templ_mep->entity;
+
+  if (!templ_mep->invalid && templ_entity.kind == iek_template) {
+    a_template_ptr     primary_templ = (a_template_ptr)templ_entity.ptr;
+    /* FIXME: It would be nice to lazy load this, while comparisons are
+       optimized by doing this up front, we're paying an unnecessary cost if
+       there are no symbols to compare against. */
+    a_template_arg_ptr templ_args = create_templ_args_for_comparison(
+                                                                decl_spec,
+                                                                primary_templ);
+
+    if (templ_args != NULL) {
+      a_symbol_ptr active_symbols = sym_header->symbol;
+      a_symbol_ptr inactive_symbols = sym_header->inactive_symbols;
+
+      /* FIXME: Due to the lack of the canonical template symbol on the module
+         entity pointer, the front end doesn't have a symbol to use to perform
+         lookup of the instantiation (i.e., use the front end's
+         find_template_instantiation function).  Thus, we must traverse the
+         symbol lists. */
+      if (find_redeclared_specialized_entity_in_list(active_symbols,
+                                                     primary_templ, templ_args,
+                                                     redecl_entity,
+                                                     redecl_kind) ||
+          find_redeclared_specialized_entity_in_list(inactive_symbols,
+                                                     primary_templ, templ_args,
+                                                     redecl_entity,
+                                                     redecl_kind)) {
+        result = TRUE;
+      }  /* if */
+      /* Free the allocated template arguments. */
+      free_template_arg_list(templ_args);
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* find_redeclared_specialized_entity */
+
+
+a_boolean check_and_set_specialization_redeclaration(
+                              a_symbol_locator                 *loc,
+                              a_module_entity_ptr              mep,
+                              const an_ifc_decl_specialization &decl_spec,
+                              a_source_position_ptr            pos,
+                              char                             **redecl_entity,
+                              an_il_entry_kind                 *redecl_kind)
+/*
+Given an IFC module entity's symbol locator, module entity pointer, IFC node
+information, and source position, check for a redeclaration of a template
+specialization.  Return TRUE if a redeclaration is found; otherwise return
+FALSE.  If found, the redeclared entity and its associated kind will be set to
+*redecl_entity and *redecl_kind respectively.
+
+The caller is responsible for handling any required merging of the
+declarations.  In the case of duplicate definitions the caller is responsible
+for ignoring the latter definition for header units and erroring for named
+modules.
+*/
+{
+  a_boolean result = find_redeclared_specialized_entity(loc->symbol_header,
+                                                        decl_spec,
+                                                        redecl_entity,
+                                                        redecl_kind);
+
+  if (result) {
+    /* This is a redeclaration of an existing symbol. */
+    /* FIXME: This should also trigger if the redecl_sym's module is a named
+       module. */
+#if 0
+    if (!is_header_unit(mep->module_info)) {
+      pos_error(ec_module_entity_redeclaration, pos);
+    }  /* if */
+#endif /* 0 */
+  }  /* if */
+  return result;
+}  /* check_and_set_specialization_redeclaration */
+
+
+a_boolean has_default_template_arguments(a_template_ptr templ)
+/*
+Given an IL template, return TRUE if the template has default template
+arguments; otherwise, return FALSE.
+*/
+{
+  a_boolean result = FALSE;
+
+  /* FIXME: Is this cached somewhere? */
+  for (; templ != NULL; templ = templ->next) {
+    a_template_decl_ptr      templ_decl = templ->template_decl;
+    a_template_parameter_ptr param = NULL;
+
+    if (templ_decl != NULL) {
+      param = templ_decl->param_list;
+    }  /* if */
+    for (; param != NULL; param = param->next) {
+      switch (param->kind) {
+        case tpk_error:
+          break;
+        case tpk_type:
+          if (param->variant.type.default_arg_type != NULL) {
+            goto found;
+          }  /* if */
+          break;
+        case tpk_nontype:
+          if (param->variant.nontype.default_arg_constant != NULL) {
+            goto found;
+          }  /* if */
+          break;
+        case tpk_template:
+          if (param->variant.templ.default_arg_template != NULL) {
+            goto found;
+          }  /* if */
+          break;
+        default_is_unexpected();
+      }  /* switch */
+    }  /* for */
+  }  /* for */
+  goto done;
+found:
+  result = TRUE;
+done:
+  return result;
+}  /* has_default_template_arguments */
+
+
+a_boolean has_default_arguments(char *entity_ptr, an_il_entry_kind kind)
+/*
+Given an entity pointer and its corresponding tag (kind), return TRUE if the
+entity has default arguments; otherwise, return FALSE.
+*/
+{
+  a_boolean result = FALSE;
+
+  switch (kind) {
+    case iek_routine:
+      { a_routine_ptr    routine = (a_routine_ptr)entity_ptr;
+        a_param_type_ptr param_ty = get_routine_param_types(routine);
+
+        for (; param_ty != NULL; param_ty = param_ty->next) {
+          if (param_ty->has_default_arg) {
+            result = TRUE;
+            break;
+          }  /* if */
+        }  /* for */
+      }
+      break;
+    case iek_template:
+      { a_template_ptr  templ = (a_template_ptr)entity_ptr;
+        a_template_kind templ_kind = templ->kind;
+
+        switch (templ_kind) {
+          case templk_function:
+          case templk_member_function:
+            { a_routine_ptr routine = templ->prototype_instantiation.routine;
+
+              result = has_default_arguments((char*)routine, iek_routine);
+            }
+            break;
+          default:
+            break;
+        }  /* switch */
+      }
+      break;
+    default:
+      break;
+  }  /* if */
+  return result;
+}  /* has_default_arguments */
+
+
+/*
+An RAII object to temporarily enable Microsoft features even if not enabled
+otherwise.  This allows for MS specific IFC decls to be correctly processed.
+*/
+struct a_ms_mode_parse {
+  inline a_ms_mode_parse(an_ifc_module *mod);
+  inline ~a_ms_mode_parse();
+private:
+  a_boolean
+                old_microsoft_mode;
+                        /* The previous value of "microsoft_mode". */
+  unsigned long
+                old_microsoft_version;
+                        /* The previous value of "microsoft_version". */
+  a_boolean
+                old_ms_extensions;
+                        /* The previous value of "ms_extensions". */
+  a_boolean
+                old_ms_compat;
+                        /* The previous value of "ms_compat". */
+  a_boolean
+                old_allow_in_class_specializations;
+                        /* The previous value of
+                           "allow_in_class_specializations". */
+  a_boolean
+                old_allow_in_class_instantiations;
+                        /* The previous value of
+                           "allow_in_class_instantiations". */
+};  /* a_ms_mode_parse */
+
+
+unsigned long get_microsoft_version(an_ifc_module *mod)
+/*
+Given an IFC module, determine the appropriate version level of Microsoft mode
+to emulate.
+*/
+{
+  /* FIXME: This should depend on version information in the IFC file. */
+  return 1928;
+}  /* get_microsoft_version */
+
+
+a_ms_mode_parse::a_ms_mode_parse(an_ifc_module *mod)
+    : old_microsoft_mode(microsoft_mode),
+      old_microsoft_version(microsoft_version),
+      old_ms_extensions(ms_extensions), old_ms_compat(ms_compat),
+      old_allow_in_class_specializations(allow_in_class_specializations),
+      old_allow_in_class_instantiations(allow_in_class_instantiations)
+/*
+Temporarily enter a limited Microsoft mode that's catered to the compiler used
+to produce the IFC file to process Microsoft specific features in context.
+*/
+{
+  microsoft_mode = TRUE;
+  microsoft_version = get_microsoft_version(mod);
+  ms_extensions = TRUE;
+  ms_compat = TRUE;
+  allow_in_class_specializations = TRUE;
+  allow_in_class_instantiations = TRUE;
+}  /* a_ms_mode_parse */
+
+
+a_ms_mode_parse::~a_ms_mode_parse()
+/*
+Restore to the previous compiler modes.
+*/
+{
+  allow_in_class_instantiations = old_allow_in_class_instantiations;
+  allow_in_class_specializations = old_allow_in_class_specializations;
+  ms_compat = old_ms_compat;
+  ms_extensions = old_ms_extensions;
+  microsoft_version = old_microsoft_version;
+  microsoft_mode = old_microsoft_mode;
+}  /* ~a_ms_mode_parse */
+
+
+a_boolean is_from_gmf(an_ifc_basic_specifiers_bitfield specifier)
+/*
+Return TRUE if the specifier indicates the associated entity came from the
+global module fragment, FALSE otherwise.
+*/
+{
+  /* Lambda closure class members are marked as being members of the GMF
+     without actually being members of the GMF.  More generally, if something
+     is the member of a class then it's reasonable to expect that we can treat
+     it as not a member of the GMF and allow the containing class' membership
+     in the GMF to cover it, if necessary. */
+  return (test_bitmask<ifc_bsb_is_member_of_global_module>(specifier) &&
+          !test_bitmask<ifc_bsb_initialized_in_class>(specifier));
+}  /* is_from_gmf */
+
+
+inline a_boolean is_unnamed_tag(a_const_char  *name)
+/*
+Return TRUE If the given string is "<unnamed-tag>".
+*/
+{
+#define UNNAMED_TAG_NAME "<unnamed-tag>"
+  return strncmp(name, UNNAMED_TAG_NAME, sizeof(UNNAMED_TAG_NAME)-1) == 0;
+#undef UNNAMED_TAG_NAME
+}  /* is_unnamed_tag */
+
+#if BUILTIN_FUNCTIONS_ENABLED
+
+a_boolean is_builtin_function(const an_ifc_decl_function &func,
+                              a_symbol_locator           *loc)
+/*
+Given an IFC function declaration, return TRUE if this function should be
+processed by loading a builtin; otherwise, return FALSE and load the function
+using the normal IFC modules function loading logic.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (!is_null_index(get_ifc_home_scope(func))) {
+    result = FALSE;
+  } else if (loc->symbol_header == NULL) {
+    result = FALSE;
+  } else if (!loc->symbol_header->is_builtin_function) {
+    result = FALSE;
+  }  /* if */
+  return result;
+}  /* is_builtin_function */
+
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
+
+using an_ifc_decl_array = Dyn_array<an_ifc_decl_index>;
+using an_ifc_template_lookup_table = Ptr_map<an_ifc_decl_index,
+                                             an_ifc_decl_array*>;
+			/* The type of a table that maps IFC template
+			   declaration indices to the associated list of
+			   specializations. */
+
+an_ifc_template_lookup_table
+		*ifc_decl_template_lookup_table;
+			/* A hash table to map IFC declaration indices to
+			   corresponding front end symbols. */
+
+
+an_ifc_decl_index to_decl_index(an_ifc_partition_kind_index index)
+/*
+Given an IFC partition kind index, return an IFC decl index.
+*/
+{
+  an_ifc_decl_sort sort = to_decl_sort(index.partition_kind);
+
+  return an_ifc_decl_index{index.mod, sort, index.value};
+}  /* to_decl_index */
+
+
+an_ifc_decl_array*
+get_or_alloc_specialization_list(an_ifc_decl_index templ_idx)
+/*
+Return a dynamic array of specializations for the given template index that are
+found in supplementary IFC files (i.e., those specializations for the template,
+but are declared by other IFC module files).
+*/
+{
+  an_ifc_decl_array *specializations =
+                                ifc_decl_template_lookup_table->get(templ_idx);
+
+  if (specializations == NULL) {
+    specializations = alloc_fe_of_type(an_ifc_decl_array);
+    construct(specializations);
+    ifc_decl_template_lookup_table->map(templ_idx, specializations);
+  }  /* if */
+  /* Unwrap the Owning ptr to provide a non-owning reference. */
+  return specializations;
+}  /* get_or_alloc_specialization_list */
+
+
+template<typename an_ifc_Node_type>
+void associate_spec_with_template(an_ifc_decl_index      node_idx,
+                                  const an_ifc_Node_type &node)
+/*
+Given an IFC declaration index and its associated node information, associate
+the specialization with its primary template for later processing.  If later
+processing is insufficient for proper reconstruction, instead this function
+will process the specialization immediately.
+
+Most of the time this function is a no-op as the IFC provided
+"trait.specialization" provides any specializations declared in the same module
+as the associated template (i.e., this function takes care of cases where the
+specialization is declared in an additional module).
+*/
+{
+  if (node.get_module()->references_any_modules) {
+    an_ifc_decl_index raw_templ_idx = get_ifc_primary_template(node);
+
+    /* If we cross a module boundary this specialization won't be in the
+       specializations, so we need to register it for later processing. */
+    if (raw_templ_idx.sort == ifc_ds_decl_reference) {
+      Opt<an_ifc_decl_reference> opt_decl_ref;
+
+      construct_node(&opt_decl_ref, raw_templ_idx);
+      if (opt_decl_ref.has_value()) {
+        an_ifc_decl_index   templ_idx = get_ifc_index(*opt_decl_ref);
+        a_module_entity_ptr templ_mep = get_ifc_module_entity_ptr(templ_idx);
+
+        /* Typically the entity will not already be set.  There are two
+           exceptions to this where the front end needs to enter the else case
+           here and "catch up" as the template IL entity has already been
+           processed.
+
+           The first case is seemingly a Microsoft extension where code can be
+           placed between two different import declarations.
+
+           The second case is with eager loading.  When eager loading is
+           enabled, if the specialization is encountered after the template, it
+           need to process it immediately. */
+        /* FIXME: Is the Microsoft extension where code can exist between
+           import declarations correctly handled here. */
+        if (templ_mep->entity.ptr == NULL) {
+          an_ifc_decl_array *decl_arr =
+                                   get_or_alloc_specialization_list(templ_idx);
+
+          decl_arr->push_back(node_idx);
+        } else {
+          (void)process_decl_at_index(node_idx);
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}  /* associate_spec_with_template */
+
+
+Opt<an_ifc_sequence> get_specialization_sequence_from_trait(
+                                                        an_ifc_decl_index decl)
+/*
+Find and return the sequence of specializations corresponding to the template
+decl, or an empty sequence if not found.
+*/
+{
+  Opt<an_ifc_sequence>             result;
+  Opt<an_ifc_trait_specialization> opt_its;
+
+  check_assertion(decl.sort == ifc_ds_decl_template);
+  find_trait(&opt_its, decl);
+  if (opt_its.has_value()) {
+    result = get_ifc_trait(*opt_its);
+  }  /* if */
+  return result;
+}  /* get_specialization_sequence_from_trait */
+
+
+/*
+A structure used to aggregate information provided by the IFC file and the
+current state of the ifc_decl_template_lookup_table for ordered processing of
+template specializations and explicit template instantiations.
+*/
+struct an_ifc_template_spec_info {
+  an_ifc_template_spec_info(an_ifc_decl_index templ_idx)
+    { this->traverse_data(get_specialization_sequence_from_trait(templ_idx),
+                          ifc_decl_template_lookup_table->get(templ_idx)); }
+  a_boolean has_specs()
+    { return specializations.length() + explicit_instantiations.length() > 0; }
+  void process_specializations();
+  void process_instantiations();
+private:
+  void traverse_data(Opt<an_ifc_sequence> spec_sequence,
+                     an_ifc_decl_array    *spec_references);
+  an_ifc_decl_array
+                specializations;
+                        /* An array if IFC declaration indexes that represent
+                           specializations of the associated template. */
+  an_ifc_decl_array
+                explicit_instantiations;
+                        /* An array if IFC declaration indexes that represent
+                           explicit instantiations of the associated
+                           template. */
+};  /* an_ifc_template_spec_info */
+
+
+a_boolean is_explicit_instantiation(an_ifc_decl_index decl_idx)
+/*
+If the given decl index refers to the declaration of an explicit
+specialization, return TRUE; otherwise, return FALSE.
+*/
+{
+  a_boolean result = FALSE;
+
+  if (decl_idx.sort == ifc_ds_decl_specialization) {
+    Opt<an_ifc_decl_specialization> opt_decl_spec;
+
+    construct_node(&opt_decl_spec, decl_idx);
+    if (opt_decl_spec.has_value()) {
+      an_ifc_decl_specialization decl_spec = *opt_decl_spec;
+
+      if (get_ifc_sort(decl_spec) == ifc_ss_instantiation) {
+        result = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* is_explicit_instantiation */
+
+
+void
+an_ifc_template_spec_info::traverse_data(Opt<an_ifc_sequence> spec_sequence,
+                                         an_ifc_decl_array    *spec_references)
+/*
+Traverse the given IFC sequence (if provided) and the given array of IFC
+declaration indexes; these are effectively independent containers each
+containing a mix of explicit instantiations and specializations.  This function
+aggregates the associated elements and splits them into dedicated lists of
+explicit instantiations and specializations.
+*/
+{
+  /* Process the specializations directly associated with the template declared
+     in the same IFC file. */
+  if (spec_sequence.has_value()) {
+    an_ifc_sequence          seq = *spec_sequence;
+    a_scope_member_traverser traverser(seq);
+
+    for (an_Indexed<an_ifc_scope_member> indexed_scope_mem : traverser) {
+      if (!indexed_scope_mem.has_value()) {
+        continue;
+      }  /* if */
+
+      an_ifc_scope_member scope_mem = *indexed_scope_mem;
+      an_ifc_decl_index   mem_decl_idx = get_ifc_index(scope_mem);
+      if (is_explicit_instantiation(mem_decl_idx)) {
+        this->explicit_instantiations.push_back(mem_decl_idx);
+      } else {
+        this->specializations.push_back(mem_decl_idx);
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  /* Process the specializations indirectly associated with the template
+     declared by a supplementary IFC file. */
+  if (spec_references != NULL) {
+    for (an_ifc_decl_index decl_idx : *spec_references) {
+      if (is_explicit_instantiation(decl_idx)) {
+        this->explicit_instantiations.push_back(decl_idx);
+      } else {
+        this->specializations.push_back(decl_idx);
+      }  /* if */
+    }  /* for */
+  }  /* if */
+}  /* traverse_data */
+
+
+void an_ifc_template_spec_info::process_specializations()
+/*
+Process the specializations associated with a given template.
+*/
+{
+  check_assertion(this->has_specs());
+  /* Process the specializations. */
+  for (an_ifc_decl_index decl_idx : this->specializations) {
+    (void)process_decl_at_index(decl_idx);
+  }  /* for */
+}  /* process_specializations */
+
+
+void an_ifc_template_spec_info::process_instantiations()
+/*
+Process the explicit instantiations associated with a given template.  This
+should be called after all specializations are setup.
+*/
+{
+  check_assertion(this->has_specs());
+  /* Process the explicit instantiations. */
+  for (an_ifc_decl_index decl_idx : this->explicit_instantiations) {
+    (void)process_decl_at_index(decl_idx);
+  }  /* for */
+}  /* process_instantiations */
+
+
+inline void update_cache_info_for_template(an_ifc_cache_info *cache_info,
+                                           a_template_ptr    templ)
+/*
+Update the given IFC cache information to set flags for suppressing details the
+given IL template already contains.
+*/
+{
+  if (has_default_template_arguments(templ)) {
+    cache_info->ignore_default_template_arguments = TRUE;
+  }  /* if */
+  if (has_default_arguments((char*)templ, iek_template)) {
+    cache_info->ignore_default_arguments = TRUE;
+  }  /* if */
+  if (is_defined((char*)templ, iek_template)) {
+    cache_info->ignore_definition = TRUE;
+  }  /* if */
+}  /* update_cache_info_for_template */
+
+
+a_boolean
+process_template_definition(const an_ifc_decl_template &decl_templ,
+                            a_module_entity_ptr        mep,
+                            an_ifc_template_spec_info  spec_info,
+                            a_boolean                  process_specializations,
+                            char                       **il_entity,
+                            an_il_entry_kind           *kind)
+/*
+Given a module entity's IFC node information, module entity pointer, and
+aggregated template specialization information, attempt to complete the
+entity's definition and specializations.  If process_specializations is TRUE,
+specializations will be processed as well; otherwise, they will be ignored.
+Return TRUE if processing succeeds without error; otherwise, return FALSE.  If
+processing success il_entity and kind will set to the new IL entity for
+definition.
+
+Notably, if there's a previous declaration il_entity and kind must be set to
+the existing template declaration; otherwise, IL entity should be NULL.
+*/
+{
+  check_assertion(*il_entity == NULL || *kind == iek_template);
+  a_boolean         result = TRUE;
+  an_ifc_cache_info cache_info;
+  an_ifc_module     *mod = get_assoc_ifc_module(mep);
+
+  if (*il_entity != NULL) {
+    check_assertion(*kind == iek_template);
+    update_cache_info_for_template(&cache_info, (a_template_ptr)*il_entity);
+  }  /* if */
+  {
+    a_module_token_cache cache;
+
+    mod->cache_decl_template(&cache, decl_templ, cache_info);
+    if (!cache.is_valid()) {
+      goto invalid;
+    }  /* if */
+    *il_entity = parse_cached_template(&cache, mep->scope, kind);
+    if (*kind != iek_template) {
+      goto invalid;
+    }  /* if */
+  }
+  if (spec_info.has_specs()) {
+    if (process_specializations) {
+      spec_info.process_specializations();
+    }  /* if */
+    spec_info.process_instantiations();
+  }  /* if */
+  goto done;
+invalid:
+  result = FALSE;
+done:
+  return result;
+}  /* process_template_definition */
+
+
+a_boolean
+process_delayed_template_definition(const an_ifc_decl_template &decl_templ,
+                                    a_module_entity_ptr        mep,
+                                    char                       **il_entity,
+                                    an_il_entry_kind           *kind)
+/*
+Given a module entity's IFC node information, and module entity pointer,
+attempt to complete the entity's definition and specializations.  Return TRUE
+if processing succeeds without error; otherwise, return FALSE.  If processing
+success il_entity and kind will set to the new IL entity for definition.
+
+Notably, if there's a previous declaration il_entity and kind must be set to
+the existing template declaration; otherwise, IL entity should be NULL with
+kind set to iek_template.
+*/
+{
+  an_ifc_template_spec_info spec_info(decl_index_of(mep));
+
+  /* Delayed template definitions always follow a forward declaration,
+     so specializations have already been handled. */
+  return process_template_definition(decl_templ, mep, spec_info,
+                                     /*process_specializations=*/FALSE,
+                                     il_entity, kind);
+}  /* process_delayed_template_definition */
+
+
+using an_ifc_template_def_map = Ptr_map<a_template_ptr, an_ifc_decl_index>;
+                        /* The type of a map that associates IFC template
+                           definitions with IL template entries. */
+
+an_ifc_template_def_map
+                *ifc_template_definitions;
+                        /* A map from canonical template IL pointers to entries
+                           of type an_ifc_decl_index that can be used to
+                           retrieve the definition of the template when
+                           needed. */
+
+
+void record_pending_ifc_template_definition(a_template_ptr    templ,
+                                            an_ifc_decl_index decl_idx)
+/*
+Record the information needed to retrieve a definition for templ if it turns
+out to be needed later on.
+*/
+{
+  check_assertion(templ != NULL);
+  if (templ->kind != templk_none) {
+    /* Ensure the canonical template IL entity is what's being mapped onto. */
+    check_assertion(templ->canonical_template != NULL);
+    templ = templ->canonical_template;
+    (void)ifc_template_definitions->map_or_replace(templ, decl_idx);
+  }  /* if */
+}  /* record_pending_ifc_template_definition */
+
 }  /* namespace */
+
+a_boolean has_template_definition_from_ifc_module(a_template_ptr  templ)
+/*
+If the given template has a definition in a currently-imported IFC module
+return TRUE.  Note that templ must refer to the canonical template.
+*/
+{
+  check_assertion(templ != NULL && templ->canonical_template == templ);
+  an_ifc_decl_index def_decl_idx = ifc_template_definitions->get(templ);
+
+  return def_decl_idx.mod != NULL;
+}  /* has_template_definition_from_ifc_module */
+
+
+a_boolean load_template_definition_from_ifc_module(a_template_ptr  templ)
+/*
+The given template entry represents a template that was loaded from an IFC
+module, but its definition hasn't been loaded yet.  Load the definition now.
+*/
+{
+  check_assertion(has_template_definition_from_ifc_module(templ));
+  a_boolean            result = FALSE;
+  an_ifc_decl_index    def_decl_idx = ifc_template_definitions->get(templ);
+
+  /* When the ifc_template_definitions were inserted, this should've been
+     validated, and not add to the map if invalid. */
+  an_ifc_decl_template template_decl;
+  construct_node_prechecked(&template_decl, def_decl_idx);
+
+  /* Reconstruct the module entity state. */
+  Value_saver<a_source_position>
+                              saved_error_position(&error_position);
+  Value_saver<a_module_entity_ptr>
+                              saved_mep(&curr_module_entity);
+  a_curr_token_preserver      guard;
+  a_module_entity_ptr         mep = get_ifc_module_entity_ptr(def_decl_idx);
+  a_module_entity_stack_state mep_state(mep);
+  a_module_scope_push_kind    scope_push_status = mspk_unattempted;
+  curr_module_entity = mep;
+  push_module_declaration_context(mep->scope, &scope_push_status);
+
+  /* Process the definition. */
+  char              *il_entity = (char*)templ;
+  an_il_entry_kind  kind = iek_template;
+  process_delayed_template_definition(template_decl, mep, &il_entity, &kind);
+
+  /* Update the module entity pointer to refer to the defining IL template. */
+  mep->entity.kind = kind;
+  mep->entity.ptr = (char*)il_entity;
+
+  /* Restore the module declaration context stack; all other cleanup is RAII
+     based. */
+  pop_module_declaration_context(scope_push_status);
+  return result;
+}  /* load_template_definition_from_ifc_module */
+
 
 /* FIXME: might be able to get rid of enumeration_type now that enums aren't
    deferred */
@@ -4611,8 +5484,8 @@ principal associated IL entity.
   a_symbol_locator         loc;
   a_partial_scope_stack_state
                            psss;
-  char                     *il_entity = NULL;
-  an_il_entry_kind         kind = iek_none;
+  char                     *&il_entity = mep->entity.ptr;
+  an_il_entry_kind         &kind = mep->entity.kind;
   a_module_scope_push_kind scope_push_status = mspk_unattempted;
   a_diagnostic_suppression diag_suppress(&this->suppressed_diagnostics,
                                          !display_module_import_diagnostics);
@@ -4629,7 +5502,7 @@ principal associated IL entity.
     db_mep(mep);
   }  /* if */
 #endif /* DEBUG */
-  if (!mep->imminent && mep->entity.ptr == NULL) {
+  if (!mep->imminent && il_entity == NULL) {
     a_source_position           saved_error_position = error_position;
     a_module_entity_ptr         saved_mep = curr_module_entity;
     a_ms_mode_parse             tmp_ms_parse(this);
@@ -4686,17 +5559,27 @@ principal associated IL entity.
               mep->scope = get_home_scope(idv);
               push_module_declaration_context(mep->scope, &scope_push_status);
             }  /* if */
-            if (ifc_decl_is_ignorable_redecl(&loc, mep, &error_position,
-                                             iek_variable, &il_entity,
-                                             &kind)) {
-              break;
-            }  /* if */
             init_decl_parse_state(&dps);
             /* Naming aside, setting this is required to allow the inline
                keyword on variable declarations. */
             dps.function_definition_allowed = TRUE;
 
             an_ifc_cache_info cache_info;
+            if (check_and_set_redeclaration(&loc, mep, &error_position,
+                                            iek_variable, &il_entity, &kind)) {
+              if (is_defined(il_entity, kind)) {
+                cache_info.ignore_definition = TRUE;
+              }  /* if */
+              check_assertion(kind == iek_variable);
+
+              /* Variable template declarations cannot be meaningfully "merged"
+                 unless the variable is declared "extern", skip any further
+                 processing when they're detected as a redeclaration. */
+              a_variable_ptr variable = (a_variable_ptr)il_entity;
+              if (variable->storage_class != sc_extern) {
+                goto done;
+              }  /* if */
+            }  /* if */
             cache_decl(&cache, decl_idx, cache_info);
 #if DEBUG
             if (db_flag_is_set("ms_ifc_token_def")) {
@@ -4979,8 +5862,8 @@ principal associated IL entity.
                   }  /* if */
                   /* Forward assign the module entity pointer's information
                      so we can self-reference. */
-                  mep->entity.ptr = il_entity = (char *)nsp;
-                  mep->entity.kind = kind = iek_namespace;
+                  il_entity = (char *)nsp;
+                  kind = iek_namespace;
                   /* Process declarations in the namespace scope (which makes
                      their symbols available but not their definitions). */
                   process_ifc_scope(get_ifc_initializer(ids),
@@ -5003,25 +5886,25 @@ principal associated IL entity.
               tag_kind = sk_union_tag;
 class_struct_union_case:
               /* A class/struct/union type. */
-              { an_ifc_reachable_properties_bitfield properties =
-                                                       get_ifc_properties(ids);
-
-                if (test_bitmask<ifc_rpb_initializer>(properties)) {
-                  /* Record the presence of a definition. */
-                  mep->has_definition = TRUE;
-                }  /* if */
-                if (defer) {
+              { if (defer) {
                   defer_symbol_creation(mep, &loc);
                 } else {
-                  a_type_ptr   class_type;
-                  a_symbol_ptr tag_sym;
+                  an_ifc_reachable_properties_bitfield properties =
+                                                       get_ifc_properties(ids);
 
                   /* Allocate the appropriate class type, but leave it as
                      incomplete.  The class will be completed during a call to
                      get_definition_of_class if it is referenced. */
-                  if (ifc_decl_is_ignorable_redecl(&loc, mep,
-                                                   &error_position, iek_type,
-                                                   &il_entity, &kind)) {
+                  if (check_and_set_redeclaration(&loc, mep, &error_position,
+                                                  iek_type, &il_entity,
+                                                  &kind)) {
+                    /* FIXME: Is this right? */
+                    if (test_bitmask<ifc_rpb_initializer>(properties)) {
+                      check_assertion(kind == iek_type);
+                      ((a_type_ptr)il_entity)->module_defined = TRUE;
+                    }  /* if */
+                    /* FIXME: Is this right? It came from changes in master
+                       while still in a WIP branch. */
                     if (il_entity == (char*)type_of_type_info) {
                       /* The type_info type is predeclared, which means it is
                          initially not associated with a module.  If its
@@ -5032,17 +5915,23 @@ class_struct_union_case:
                     }  /* if */
                     break;
                   }  /* if */
-                  class_type = alloc_type(type_kind);
+
+                  a_type_ptr   tag_type = alloc_type(type_kind);
+                  a_symbol_ptr tag_sym;
+                  if (test_bitmask<ifc_rpb_initializer>(properties)) {
+                    /* Record the presence of a definition. */
+                    tag_type->module_defined = TRUE;
+                  }  /* if */
                   if (get_ifc_basis(*opt_itf) == ifc_tbs_interface) {
-                    class_type->variant.class_struct_union.is_interface = TRUE;
-                    class_type->variant.class_struct_union.abstract = TRUE;
+                    tag_type->variant.class_struct_union.is_interface = TRUE;
+                    tag_type->variant.class_struct_union.abstract = TRUE;
                   }  /* if */
                   tag_sym = enter_local_symbol(
                                              tag_kind, &loc,
                                              mep->scope->depth_in_scope_stack,
                                              /*suppress_redecl_error=*/TRUE);
-                  tag_sym->variant.class_struct_union.type = class_type;
-                  set_source_corresp(&(class_type->source_corresp), tag_sym);
+                  tag_sym->variant.class_struct_union.type = tag_type;
+                  set_source_corresp(&(tag_type->source_corresp), tag_sym);
                   /* Set parent class or namespace pointers, if appropriate,
                      and adjust related fields (e.g., name linkage). */
                   /* FIXME: all of these values need to be checked. */
@@ -5052,18 +5941,18 @@ class_struct_union_case:
                                              mep->scope->depth_in_scope_stack,
                                              &null_source_position);
                   /* FIXME: need to call record_symbol_declaration? */
-                  add_to_types_list(class_type,
+                  add_to_types_list(tag_type,
                                     mep->scope->depth_in_scope_stack);
                   /* Mark the class as incomplete.  It can be completed later
                      if needed. */
-                  class_type->incomplete = TRUE;
+                  tag_type->incomplete = TRUE;
                   /* FIXME: idssp->alignment, idssp->pack_size, idssp->traits,
                             idssp->specifiers, all need to be set manually
                             here*/
                   /* FIXME: for now: */
-                  class_type->source_corresp.name_linkage =
+                  tag_type->source_corresp.name_linkage =
                                    (a_name_linkage_kind)nlk_cplusplus_external;
-                  il_entity = (char*)class_type;
+                  il_entity = (char*)tag_type;
                   kind = iek_type;
                 }  /* if */
               }
@@ -5108,9 +5997,8 @@ class_struct_union_case:
                   push_module_declaration_context(mep->scope,
                                                   &scope_push_status);
                 }  /* if */
-                if (ifc_decl_is_ignorable_redecl(&loc, mep, &error_position,
-                                                 iek_type, &il_entity,
-                                                 &kind)) {
+                if (check_and_set_redeclaration(&loc, mep, &error_position,
+                                                iek_type, &il_entity, &kind)) {
                   break;
                 }  /* if */
                 init_dps(&dps, get_ifc_locus(ida), get_ifc_aliasee(ida),
@@ -5154,9 +6042,9 @@ class_struct_union_case:
                 push_module_declaration_context(mep->scope,
                                                 &scope_push_status);
               }  /* if */
-              if (ifc_decl_is_ignorable_redecl(
-                                           &loc, mep, &error_position,
-                                           iek_template, &il_entity, &kind)) {
+              if (check_and_set_redeclaration(&loc, mep, &error_position,
+                                              iek_template, &il_entity,
+                                              &kind)) {
                 break;
               }  /* if */
               cache_token(&cache, tok_template, &pos);
@@ -5253,9 +6141,12 @@ class_struct_union_case:
             check_assertion(mep->scope != NULL);
             enum_scope = mep->scope;
             scope_depth = enum_scope->depth_in_scope_stack;
-            if (ifc_decl_is_ignorable_redecl(&loc, mep, &error_position,
-                                             iek_type, &il_entity, &kind)) {
-              break;
+            if (check_and_set_redeclaration(&loc, mep, &error_position,
+                                            iek_type, &il_entity, &kind)) {
+              /* FIXME: Is this right? */
+              if (is_defined(il_entity, kind)) {
+                break;
+              }  /* if */
             }  /* if */
             init_dps(&dps, locus, base, an_ifc_object_traits_bitfield{},
                      an_ifc_msvc_traits_bitfield{}, specifiers,
@@ -5409,8 +6300,8 @@ class_struct_union_case:
               }  /* if */
               enum_type = enumeration_type;
             }  /* if */
-            if (ifc_decl_is_ignorable_redecl(&loc, mep, &error_position,
-                                             iek_constant, &il_entity, &kind)){
+            if (check_and_set_redeclaration(&loc, mep, &error_position,
+                                            iek_constant, &il_entity, &kind)){
               break;
             }  /* if */
             switch_to_file_scope_region(&region_to_switch_back_to);
@@ -5484,18 +6375,11 @@ class_struct_union_case:
           if (defer) {
             defer_symbol_creation(mep, &loc);
           } else {
-            an_ifc_reachable_properties_bitfield properties =
-                                                       get_ifc_properties(idt);
-            an_ifc_basic_specifiers_bitfield     specifiers =
-                                                       get_ifc_specifiers(idt);
-            a_type_kind                          type_kind;
-            a_module_entity_ptr                  other_decls = NULL;
-            a_module_entity_ptr                  end_other_decls = NULL;
-            a_curr_token_preserver               guard;
+            an_ifc_basic_specifiers_bitfield
+                                   specifiers = get_ifc_specifiers(idt);
+            a_curr_token_preserver guard;
+            an_ifc_cache_info      cache_info;
 
-            if (test_bitmask<ifc_rpb_initializer>(properties)) {
-              mep->has_definition = TRUE;
-            }  /* if */
             if (is_from_gmf(specifiers)) {
               mep->global_module = TRUE;
             }  /* if */
@@ -5503,96 +6387,76 @@ class_struct_union_case:
               mep->scope = get_home_scope(idt);
               push_module_declaration_context(mep->scope, &scope_push_status);
             }  /* if */
-            type_kind = is_deduction_guide ?
-                               tk_unknown : type_kind_for_type_index(ifc_type);
-            if (!is_deduction_guide && type_kind != tk_routine) {
-              /* Do not call ifc_decl_is_ignorable_redecl here for function
-                 templates since they can be overloaded. */
-              if (ifc_decl_is_ignorable_redecl(&loc, mep, &error_position,
-                                               iek_template, &il_entity,
-                                               &kind)) {
-                break;
+
+            if (check_and_set_template_redeclaration(&loc, mep,
+                                                     &error_position,
+                                                     &il_entity, &kind)) {
+              a_template_ptr templ = (a_template_ptr)il_entity;
+
+              update_cache_info_for_template(&cache_info, templ);
+              /* Variable template declarations cannot be meaningfully "merged"
+                 unless the variable is declared "extern", skip any further
+                 processing when they're detected as a redeclaration. */
+              if (templ->kind == templk_variable) {
+                a_variable_ptr variable =
+                                       templ->prototype_instantiation.variable;
+
+                if (variable->storage_class != sc_extern) {
+                  goto done;
+                }  /* if */
               }  /* if */
-              /* There may be other declarations of this same template from
-                 other modules.  Temporarily remove these because declaration
-                 processing will look for a redeclaration and trigger a second
-                 nested processing of the template otherwise. */
-              extract_matching_template_module_entities(
-                              mep, &mep->next, &other_decls, &end_other_decls,
-                              (a_module_entity**)NULL);
             }  /* if */
+            /* Compute the DeclIndex of the current template and retrieve the
+               sequence of explicit specializations and instantiations. */
+            an_ifc_template_spec_info spec_info(decl_idx);
+            /* FIXME: Find a better way to handle self references; currently we
+               forward declare in almost all cases in part to handle self
+               references. */
+            an_ifc_decl_index         entity_decl =
+                                             get_ifc_decl(get_ifc_entity(idt));
+            a_boolean                 forward_declare =
+                                              (!cache_info.ignore_definition &&
+                                   (entity_decl.sort != ifc_ds_decl_variable));
+            a_boolean                 defer_definition = FALSE;
+            if (forward_declare) {
+              a_module_token_cache cache;
+              an_ifc_cache_info    local_cache_info = cache_info;
 
-            /* It's possible for a template body to refer to itself (or to
-               another entity that refers back to it) and trigger a recursive
-               attempt to recreate this entity.  This can be solved with
-               forward declarations (which most certainly had to exist in the
-               original code).  However, non-external linkage variable
-               templates cannot have both a forward declaration and a
-               definition, so we cannot put out a forward declaration always.
-               FIXME: This should be done in one pass instead: The template
-               declaration should be processed, then the body (if needed)
-               without re-parsing the declaration.  The routines in templates.c
-               might need refactoring to accommodate that.
-            */
-            an_ifc_sentence_index body = get_ifc_body(get_ifc_entity(idt));
-            a_boolean             delay_definition = FALSE;
-            a_boolean             do_forward_decl =
-                                                   (body == 0 ||
-                                                    (type_kind == tk_class ||
-                                                     type_kind == tk_struct ||
-                                                     type_kind == tk_routine));
-            if (do_forward_decl && body != 0 && sentence_is_deleted(body)) {
-              /* If this is an "= delete" definition, do not issue a "forward
-                 declaration" (i.e., without "= delete") since that would be
-                 invalid.  Such definitions will have the "Initializer"
-                 property set.  Variable templates can also have that property,
-                 but they do not need "forward declarations" either. */
-              do_forward_decl = FALSE;
-            }  /* if */
-            if (do_forward_decl) {
-              a_module_token_cache   cache;
-              an_ifc_cache_info      cinfo;
+              /* Disable definition caching, this is a forward declaration for
+                 the partial specializations that follow. */
+              local_cache_info.ignore_definition = TRUE;
 
-              cinfo.ignore_default_arguments = FALSE;
-              cinfo.ignore_default_template_arguments = FALSE;
-              cache_decl_template_declaration(&cache, idt, cinfo);
+              cache_decl_template(&cache, idt, local_cache_info);
               if (!cache.is_valid()) {
                 goto invalid;
               }  /* if */
-              mep->entity.ptr = il_entity =
-                              parse_cached_template(&cache, mep->scope, &kind);
-              mep->entity.kind = kind;
+              il_entity = parse_cached_template(&cache, mep->scope, &kind);
               if (kind != iek_template) {
                 goto invalid;
               }  /* if */
               if (is_file_or_namespace_scope(mep->scope)) {
-                /* For namespace-scope entities, delay the definition until
-                   it is actually needed.  FIXME: It would be good to also
-                   delay the definition of member templates, but that is
-                   currently more difficult to do. */
-                delay_definition = TRUE;
+                defer_definition = TRUE;
+              }  /* if */
+              if (spec_info.has_specs()) {
+                spec_info.process_specializations();
               }  /* if */
             }  /* if */
-            if (delay_definition) {
-              /* There is a definition of the template, but we delay its
-                 processing until it's really needed (i.e., the template is
-                 instantiated). */
-              check_assertion(il_entity != NULL);
+            if (defer_definition) {
+              check_assertion(il_entity != NULL && kind == iek_template);
+              record_pending_ifc_template_definition((a_template_ptr)il_entity,
+                                                     decl_idx);
             } else {
-              /* There is a definition of the template.  Record the resolution
-                 of the signature immediately so that the below processing
-                 of the definition has access to it.  If we provided a forward
-                 declaration of the entity, we will need to suppress any
-                 default arguments on the definition. */
-              if (do_forward_decl) {
-                mep->entity.ptr = il_entity;
-                mep->entity.kind = kind;
-              }  /* if */
-              process_template_definition(mep, idt, do_forward_decl,
-                                          type_kind == tk_routine);
-              if (!do_forward_decl) {
-                il_entity = mep->entity.ptr;
-                kind = mep->entity.kind;
+              /* If the definition hasn't been deferred (from a compatible
+                 forward declaration being processed), process the definition
+                 now.  If the declaration was not forward declared, be sure to
+                 process any specializations as part of definition
+                 processing. */
+              if (!process_template_definition(
+                                            idt, mep, spec_info,
+                                            /*process_specs=*/!forward_declare,
+                                            &il_entity,
+                                            &kind)) {
+                goto invalid;
               }  /* if */
             }  /* if */
           }  /* if */
@@ -5747,16 +6611,11 @@ class_struct_union_case:
           if (!init_decl_locator(*opt_idps, &loc)) {
             goto invalid;
           }  /* if */
+          /* Partial specializations should not be added to the deferred symbol
+             list as they'll be processed when the primary template is
+             processed via the associated entries in "trait.specialization". */
           if (defer) {
-            /* Specify "make_last" as TRUE, because we want partial
-               specializations to appear after their primary templates. */
-            defer_symbol_creation(mep, &loc, /*make_last=*/TRUE);
-            /* Mark the entry as "imminent" so that it will not be processed
-               when all the other deferred entries on the associated list are
-               handled.  Instead, the partial specializations will be handled
-               explicitly immediately after the primary template has been
-               processed (see process_template_definition). */
-            mep->imminent = TRUE;
+            associate_spec_with_template(decl_idx, *opt_idps);
           } else {
             an_ifc_decl_partial_specialization idps = *opt_idps;
 
@@ -5793,14 +6652,28 @@ class_struct_union_case:
           if (!init_decl_locator(*opt_ids, &loc)) {
             goto invalid;
           }  /* if */
+          /* Specializations should not be added to the deferred symbol list as
+             they'll be processed when the primary template is processed via
+             the associated entries in "trait.specialization". */
           if (defer) {
-            defer_symbol_creation(mep, &loc);
+            associate_spec_with_template(decl_idx, *opt_ids);
           } else {
             an_ifc_decl_specialization ids = *opt_ids;
             a_module_token_cache       cache;
             an_ifc_cache_info          cache_info;
 
             lazy_push_module_scope(ids, mep, &scope_push_status);
+            if (check_and_set_specialization_redeclaration(&loc, mep, ids,
+                                                           &error_position,
+                                                           &il_entity,
+                                                           &kind)) {
+              /* Specializations are fairly simple in nature, if the
+                 specialization is already declared, and already defined,
+                 there's nothing to add; skip processing. */
+              if (is_defined(il_entity, kind)) {
+                break;
+              }  /* if */
+            }  /* if */
             cache_decl_specialization(&cache, decl_idx, ids, cache_info);
             if (!cache.is_valid()) {
               goto invalid;
@@ -5836,8 +6709,6 @@ class_struct_union_case:
             /* Create a definition for the concept and scan it. */
             an_ifc_decl_concept    idc = *opt_idc;
             a_curr_token_preserver guard;
-            a_module_token_cache   cache;
-            an_ifc_cache_info      cinfo;
 
             if (is_from_gmf(get_ifc_specifiers(idc))) {
               mep->global_module = TRUE;
@@ -5847,12 +6718,16 @@ class_struct_union_case:
               mep->scope = get_home_scope(idc);
               push_module_declaration_context(mep->scope, &scope_push_status);
             }  /* if */
-            if (ifc_decl_is_ignorable_redecl(&loc, mep, &error_position,
-                                             iek_template, &il_entity,
-                                             &kind)) {
-              break;
+
+            a_module_token_cache cache;
+            an_ifc_cache_info    cache_info;
+            if (check_and_set_redeclaration(&loc, mep, &error_position,
+                                            iek_template, &il_entity, &kind)) {
+              if (is_defined(il_entity, kind)) {
+                cache_info.ignore_definition = TRUE;
+              }  /* if */
             }  /* if */
-            cache_direct_decl(&cache, idc, cinfo);
+            cache_direct_decl(&cache, idc, cache_info);
             /* Parse the definition cache. */
             if (!cache.is_valid()) {
               goto invalid;
@@ -6032,8 +6907,7 @@ class_struct_union_case:
               ielep->entity = emep->entity;
             }  /* if */
           }  /* for */
-          mep->entity.kind = kind = iek_il_entity_list_entry;
-          mep->entity.ptr = il_entity;
+          kind = iek_il_entity_list_entry;
         }
         break;
       case ifc_ds_decl_expansion:
@@ -6074,22 +6948,19 @@ unhandled:
         break;
       default_is_unexpected_str("Unexpected DeclSort");
     }  /* switch */
-    goto cleanup;
+    goto done;
 invalid:
 #if DEBUG
     ++num_module_decls_failed;
 #endif /* DEBUG */
     mep->invalid = TRUE;
-cleanup:
+done:
     if (!defer) {
       /* Handle all cases where we didn't successfully consturct an IL
          entity by marking the mep invalid. */
       if (il_entity == NULL) {
         mep->invalid = TRUE;
       }  /* if */
-      /* Record the IL entity. */
-      mep->entity.ptr = il_entity;
-      mep->entity.kind = kind;
 #if DEBUG
       if (db_flag_is_set("ms_symbols")) {
         (void)fprintf(f_debug, "Module entity defined: ");
@@ -6808,6 +7679,39 @@ diagnostics if issue_diag is TRUE.
       }  /* for */
     }  /* if */
   }  /* if */
+  /* Set a flag so that later code can optimize on whether this module makes
+     reference to any other modules. */
+  this->references_any_modules = get_num_entries(ifc_pk_decl_reference) > 0;
+#if EXPENSIVE_CHECKING
+  if (eager_load_modules && this->references_any_modules) {
+    using an_indexed_spec = an_Indexed<an_ifc_decl_specialization>;
+    using an_indexed_partial_spec =
+                                an_Indexed<an_ifc_decl_partial_specialization>;
+    /* When eager loading modules, deferred specialization processing never
+       occurs so if external modules are referenced, those specializations need
+       processed now.  Note this code is only relevant for eagerly loaded
+       modules, which is a feature which is hidden behind EXPENSIVE_CHECKING
+       (hence the surrounding preprocessor block). */
+    a_decl_specialization_traverser spec_traverser(this, /*start=*/0);
+    for (an_indexed_spec indexed_spec : spec_traverser) {
+      if (indexed_spec.has_value()) {
+        an_ifc_decl_index decl_idx = to_decl_index(indexed_spec.node_idx);
+
+        associate_spec_with_template(decl_idx, *indexed_spec);
+      }  /* if */
+    }  /* if */
+
+    a_decl_partial_specialization_traverser part_spec_traverser(this,
+                                                                /*start=*/0);
+    for (an_indexed_partial_spec indexed_spec : part_spec_traverser) {
+      if (indexed_spec.has_value()) {
+        an_ifc_decl_index decl_idx = to_decl_index(indexed_spec.node_idx);
+
+        associate_spec_with_template(decl_idx, *indexed_spec);
+      }  /* if */
+    }  /* if */
+  }  /* if */
+#endif /* EXPENSIVE_CHECKING */
 done:
   return result;
 }  /* initialize_members_from_ifc_module_file */
@@ -6910,25 +7814,6 @@ pointer to the given consumer lambda for each element in the sequence.
 
   traverse_scope_member_range(start, cardinality, consumer);
 }  /* traverse_scope_member_sequence */
-
-
-void an_ifc_module::process_scope_member_sequence(const an_ifc_sequence &seq)
-/*
-Process a sequence (seq) of IFC scope member declarations.
-*/
-{
-  /* Provide a consumer function that accepts a given scope member and
-     processes the associated IFC declaration. */
-  auto decl_consumer = [this](const an_ifc_scope_member &ism) {
-    /* Get the associated IFC module entity pointer, and then use it to process
-       this scope member via process_ifc_declaration. */
-    a_module_entity_ptr dmep = get_ifc_module_entity_ptr(get_ifc_index(ism));
-    this->process_ifc_declaration(dmep, /*defer=*/FALSE, (a_type_ptr)NULL);
-  };
-
-  /* Iterate over the sequence calling decl_consumer for each element. */
-  this->traverse_scope_member_sequence(seq, decl_consumer);
-}  /* process_scope_member_sequence */
 
 
 void an_ifc_module::process_ifc_scope(an_ifc_scope_index scope_index,
@@ -7893,7 +8778,17 @@ template_args_for_expr_list instead.
         an_ifc_expr_type  expr_type = *opt_expr_type;
         an_ifc_type_index denotation = get_ifc_denotation(expr_type);
         kind = (a_templ_arg_kind)tak_type;
-        type = type_for_type_index(denotation, /*kind=*/NULL);
+
+        a_non_type_kind arg_kind;
+        /* FIXME: This should be refactored so this detection isn't
+           necessary/possible and/or the following check should be moved to the
+           validator. */
+        type = type_for_type_index(denotation, &arg_kind);
+        if (arg_kind != ntk_none) {
+          ifc_unexpected(this, "an ExprSort::Type referenced something that "
+                               "wasn't a type");
+          type = error_type();
+        }  /* if */
       }
       break;
     case ifc_es_expr_unary_fold:
@@ -8008,6 +8903,7 @@ param_list.
   a_template_arg_ptr result = NULL;
 
   if (!is_null_index(arguments)) {
+    check_assertion(param_list != NULL);
     if (arguments.sort == ifc_es_expr_tuple) {
       Opt<an_ifc_expr_tuple> opt_iet;
       a_template_arg_ptr     *next_arg = &result;
@@ -8046,12 +8942,14 @@ param_list.
       if (!opt_iepta.has_value()) {
         goto invalid;
       }  /* if */
-      check_assertion(param_list != NULL && param_list->is_pack);
+      check_assertion(param_list->is_pack);
       result = alloc_template_arg(tak_start_of_pack_expansion);
-      result->next= template_args_for_expr_list(param_list,
-                                                get_ifc_arguments(*opt_iepta));
+
+      an_ifc_expr_index pack_args = get_ifc_arguments(*opt_iepta);
+      if (pack_args.sort != ifc_es_expr_empty) {
+        result->next= template_args_for_expr_list(param_list, pack_args);
+      }  /* if */
     } else {
-      check_assertion(param_list != NULL);
       result = template_arg_for_expr(param_list, arguments);
     }  /* if */
   }  /* if */
@@ -8062,14 +8960,14 @@ invalid:
 }  /* template_args_for_expr_list */
 
 
-a_type_ptr an_ifc_module::type_for_template_id(
+static a_template_ptr get_template_from_id_expr(
                                        const an_ifc_expr_template_id &templ_id)
 /*
-Returns the type that corresponds to the provided ExprSort::TemplateId in the
-module file.
+Given an IFC template id expression return the associated template ptr if
+valid; otherwise, return NULL.
 */
 {
-  a_type_ptr                  result = NULL;
+  a_template_ptr              result = NULL;
   an_ifc_expr_index           primary = get_ifc_primary(templ_id);
   Opt<an_ifc_expr_named_decl> opt_iend;
 
@@ -8077,41 +8975,55 @@ module file.
   if (opt_iend.has_value()) {
     an_ifc_expr_named_decl   iend = *opt_iend;
     an_ifc_source_location   locus = get_ifc_locus(templ_id);
-    an_ifc_type_index        type = get_ifc_type(iend);
-    a_template_ptr           tmpl;
     a_source_position        pos;
 
     source_position_from_locus(&pos, locus);
-    if (!is_null_index(type)) {
-      result = type_for_type_index(type, /*kind=*/NULL);
-      tmpl = NULL;
-      unexpected_condition_str("Unexpected type for ExprSort::NamedDecl");
-    } else {
-      an_ifc_decl_index   resolution = get_ifc_resolution(iend);
-      a_module_entity_ptr mep = get_ifc_module_entity_ptr(resolution);
 
-      process_ifc_declaration(mep, /*defer=*/FALSE, (a_type_ptr)NULL);
-      check_assertion(mep->entity.kind == iek_template);
-      tmpl = (a_template_ptr)mep->entity.ptr;
+    an_ifc_decl_index   resolution = get_ifc_resolution(iend);
+    a_module_entity_ptr mep = process_decl_at_index(resolution);
+    if (mep->entity.kind == iek_template) {
+      result = (a_template_ptr)mep->entity.ptr;
     }  /* if */
+  }  /* if */
+  return result;
+}  /* get_template_from_args */
 
+
+a_type_ptr an_ifc_module::type_for_template_id(
+                                       const an_ifc_expr_template_id &templ_id)
+/*
+Returns the type that corresponds to the provided ExprSort::TemplateId in the
+module file.
+*/
+{
+  a_type_ptr     result;
+  a_template_ptr templ = get_template_from_id_expr(templ_id);
+
+  if (templ != NULL) {
     an_ifc_expr_index  arguments = get_ifc_arguments(templ_id);
     a_template_arg_ptr arg_list =
-                   template_args_for_expr_list(tmpl->template_decl->param_list,
-                                               arguments);
+                  template_args_for_expr_list(templ->template_decl->param_list,
+                                              arguments);
     a_symbol_ptr       inst_sym;
-    switch (tmpl->kind) {
+
+    switch (templ->kind) {
       case templk_function:
       case templk_member_function:
-        inst_sym = find_template_function(symbol_for(tmpl), &arg_list,
-                                          /*explicit_arg_list_present=*/FALSE,
-                                          &pos);
-        result = inst_sym->variant.routine.ptr->type;
+        { an_ifc_source_location locus = get_ifc_locus(templ_id);
+          a_source_position      pos;
+
+          source_position_from_locus(&pos, locus);
+          inst_sym = find_template_function(
+                                           symbol_for(templ), &arg_list,
+                                           /*explicit_arg_list_present=*/FALSE,
+                                           &pos);
+          result = inst_sym->variant.routine.ptr->type;
+        }
         break;
       case templk_class:
       case templk_member_class:
       case templk_member_enum:
-        inst_sym = find_template_class(symbol_for(tmpl), &arg_list,
+        inst_sym = find_template_class(symbol_for(templ), &arg_list,
                                        /*any_prototype_allowed=*/FALSE,
                                        /*specific_prototype_allowed=*/NULL,
                                        /*instantiation_nonreal=*/FALSE,
@@ -8121,14 +9033,15 @@ module file.
         break;
       case templk_variable:
       case templk_static_data_member:
-        inst_sym = find_template_variable(symbol_for(tmpl), &arg_list,
+        inst_sym = find_template_variable(symbol_for(templ), &arg_list,
                                           /*prototype_allowed=*/TRUE,
                                           /*is_use=*/FALSE, /*diagnose=*/TRUE);
         result = inst_sym->variant.variable.ptr->type;
         break;
       case templk_concept:
-        check_assertion(arg_list == NULL);
-        result = tmpl->prototype_instantiation.constraint->type;
+        ifc_requirement(templ_id.get_module(), arg_list == NULL,
+                        "expected no arguments to be specified for concepts");
+        result = templ->prototype_instantiation.constraint->type;
         break;
       case templk_template_template_param:
       case templk_none:
@@ -18398,25 +19311,6 @@ If not found, return the appropriate trait to indicate "none".
 }  /* get_vendor_traits */
 
 
-Opt<an_ifc_sequence> an_ifc_module::get_specialization_sequence_from_trait(
-                                                        an_ifc_decl_index decl)
-/*
-Find and return the sequence of specializations corresponding to the template
-decl, or an empty sequence if not found.
-*/
-{
-  Opt<an_ifc_sequence>             result;
-  Opt<an_ifc_trait_specialization> opt_its;
-
-  check_assertion(decl.sort == ifc_ds_decl_template);
-  find_trait(&opt_its, decl);
-  if (opt_its.has_value()) {
-    result = get_ifc_trait(*opt_its);
-  }  /* if */
-  return result;
-}  /* get_specialization_sequence_from_trait */
-
-
 char *an_ifc_module::parse_cached_explicit_specialization(
                                    a_module_token_cache_ptr         cache,
                                    a_scope_ptr                      encl_scope,
@@ -18583,7 +19477,9 @@ Do one-time initialization of static variables defined in this file.
     static a_pch_saved_variable saved_vars[] = {
       pch_saved_var_array_elem(lazy_symbols_may_be_visible),
       pch_saved_var_array_elem(ifc_function_bodies),
+      pch_saved_var_array_elem(ifc_template_definitions),
       pch_saved_var_array_elem(ifc_decl_lookup_table),
+      pch_saved_var_array_elem(ifc_decl_template_lookup_table),
       pch_saved_var_array_terminating_elem()
     };
     register_pch_saved_variables(saved_vars);
@@ -18602,10 +19498,15 @@ for each compilation.
 #endif /* DEBUG && EXPENSIVE_CHECKING */
   ifc_function_bodies = alloc_fe_of_type(an_ifc_function_body_map);
   construct(ifc_function_bodies, /*mask_width=*/10);
+  ifc_template_definitions = alloc_fe_of_type(an_ifc_template_def_map);
+  construct(ifc_template_definitions, /*mask_width=*/10);
   ifc_bad_function_bodies = alloc_fe_of_type(an_ifc_function_failure_map);
   construct(ifc_bad_function_bodies, /*mask_width=*/10);
   ifc_decl_lookup_table = alloc_fe_of_type(an_ifc_decl_lookup_table);
   construct(ifc_decl_lookup_table, /*mask_width=*/10);
+  ifc_decl_template_lookup_table = alloc_fe_of_type(
+                                                 an_ifc_template_lookup_table);
+  construct(ifc_decl_template_lookup_table, /*mask_width=*/10);
 }  /* ifc_modules_init */
 
 /*lint -restore*/ /* FIXME: temporary */

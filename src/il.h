@@ -2994,6 +2994,8 @@ extern a_source_correspondence *source_corresp_for_il_entry(
                                                  char              *entity_ptr,
                                                  an_il_entry_kind  kind);
 
+extern a_boolean is_defined(char *entity_ptr, an_il_entry_kind kind);
+
 extern a_boolean is_zero_constant(a_constant *constant);
 
 /*
@@ -3446,6 +3448,20 @@ extern a_boolean variable_should_be_externalized_for_exported_templates(
 #if DO_IL_LOWERING || NEED_NAME_MANGLING
 extern a_boolean routine_might_exist_in_multiple_copies(a_routine_ptr rout);
 #endif /* DO_IL_LOWERING || NEED_NAME_MANGLING */
+
+
+inline a_param_type_ptr get_routine_param_types(a_routine_ptr rt)
+/*
+Give a routine type, return the list of parameter types.
+*/
+{
+  a_type_ptr                    routine_type = rt->type;
+  a_routine_type_supplement_ptr routine_type_sup =
+                                      routine_type->variant.routine.extra_info;
+
+  return routine_type_sup->param_type_list;
+}  /* get_routine_param_types */
+
 
 /*
 Given a namespace pointer, return a pointer to the actual namespace,

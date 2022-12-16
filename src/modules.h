@@ -65,9 +65,6 @@ struct a_module_entity {
   a_bit_field	global_module:1;
 			/* TRUE if this is an entity owned by the "global
 			   module". */
-  a_bit_field	has_definition:1;
-			/* TRUE if the presence of a definition ("body") has
-			   been recorded. */
   union {
 #if MICROSOFT_EXTENSIONS_ALLOWED
     an_ifc_partition_kind
@@ -271,6 +268,8 @@ extern void import_module(a_module_import_decl_ptr midp,
 extern a_boolean has_routine_definition_from_module(a_routine_ptr  rp);
 
 extern a_boolean load_routine_definition_from_module(a_routine_ptr  rp);
+
+extern a_boolean has_template_definition_from_module(a_template_ptr  templ);
 
 extern a_boolean load_template_definition_from_module(a_template_ptr  templ);
 

@@ -190,10 +190,16 @@ struct an_ifc_module : public a_module_interface {
 		curr_templ_decl_state = NULL;
 			/* The current template declaration state, NULL if
 			   there is no template declaration being processed. */
+  a_boolean
+		references_any_modules;
+			/* A flag set to TRUE when this module make reference
+			   to one or more external modules.  This is set when
+			   a module is loaded. */
   Ptr_map<a_module_ref_key, a_module_import_decl_ptr>
 		referenced_modules;
 			/* A map from a module reference to the corresponding
-			   import decl. */
+			   import decl.  Modules are lazily added to this list,
+			   it should not be assumed to be a complete set. */
   a_boolean
 		suppress_automatic_name_qualification = FALSE;
 			/* Flag to indicate ExprSort_NameDecl should not be
@@ -238,12 +244,6 @@ public:
                                 an_ifc_decl_index        decl_idx,
                                 a_routine_ptr            rp,
                                 a_func_info_block        *func_info);
-  static a_boolean process_template_definition(
-                                  a_module_entity_ptr        mep,
-                                  const an_ifc_decl_template &idst,
-                                  a_boolean                  already_declared,
-                                  a_boolean                  is_func_template);
-
 #if DEBUG
   void debug() const OVERRIDE;
   void db_module_entity(a_module_entity_ptr mep) const OVERRIDE;
@@ -261,8 +261,6 @@ public:
   template<typename a_Scope_Member_Consumer>
   inline void traverse_scope_member_sequence(const an_ifc_sequence   &seq,
                                              a_Scope_Member_Consumer consumer);
-  void process_scope_member_sequence(const an_ifc_sequence &seq);
-  void process_template_specializations(an_ifc_decl_index decl_idx) const;
   void process_ifc_scope(an_ifc_scope_index scope_index,
                          a_scope_ptr        scope);
   uint32_t get_num_entries(an_ifc_partition_kind partition) const;
@@ -557,8 +555,6 @@ public:
                   a_boolean                is_parameter_form = FALSE);
   an_ifc_chart_index get_func_params_from_trait(an_ifc_decl_index decl);
   an_ifc_msvc_traits_bitfield get_vendor_traits(an_ifc_decl_index decl);
-  Opt<an_ifc_sequence> get_specialization_sequence_from_trait(
-                                                       an_ifc_decl_index decl);
   char *parse_cached_explicit_specialization(
                                    a_module_token_cache_ptr         cache,
                                    a_scope_ptr                      encl_scope,
@@ -682,6 +678,8 @@ extern an_ifc_module* get_module(const an_ifc_module_reference &ref);
 extern a_boolean has_routine_definition_from_ifc_module(a_routine_ptr  rp);
 
 extern a_boolean load_routine_definition_from_ifc_module(a_routine_ptr  rp);
+
+extern a_boolean has_template_definition_from_ifc_module(a_template_ptr templ);
 
 extern
 a_boolean load_template_definition_from_ifc_module(a_template_ptr  templ);

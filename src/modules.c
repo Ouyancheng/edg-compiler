@@ -762,7 +762,6 @@ the specified module.
     (*p)->imminent = FALSE;
     (*p)->invalid = FALSE;
     (*p)->global_module = FALSE;
-    (*p)->has_definition = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     (*p)->variant.ifc_partition = ifc_pk_none;
 #endif /* MICROSOFT_EXTENSIONS_ALLWED */
@@ -1150,6 +1149,21 @@ definition.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   return result;
 }  /* load_routine_definition_from_module */
+
+
+a_boolean has_template_definition_from_module(ARG_UNUSED a_template_ptr  templ)
+/*
+If the given template has a definition available in an imported module, return
+TRUE.  Otherwise, return FALSE.
+*/
+{
+  a_boolean  result = FALSE;
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  result = has_template_definition_from_ifc_module(templ);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  return result;
+}  /* has_template_definition_from_module */
 
 
 a_boolean load_template_definition_from_module(

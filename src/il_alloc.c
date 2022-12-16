@@ -2321,6 +2321,7 @@ variant fields to default values.
   pte->generated_as_empty_struct = FALSE;
 #endif /* BACK_END_IS_C_GEN_BE */
   pte->has_been_defined = FALSE;
+  pte->module_defined = FALSE;
   pte->typedef_definition_has_been_put_out = FALSE;
 #if BACK_END_IS_CP_GEN_BE
   pte->has_been_declared = FALSE;

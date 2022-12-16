@@ -5653,6 +5653,40 @@ not.
 }  /* source_corresp_for_il_entry */
 
 
+a_boolean is_defined(char *entity_ptr, an_il_entry_kind kind)
+/*
+Given an IL entry pointer (entity_ptr) of a given kind (kind), return TRUE if
+the entity is defined; otherwise, return FALSE.
+*/
+{
+  a_boolean result = FALSE;
+
+  switch (kind) {
+    case iek_template:
+      { a_template_ptr tmpl = (a_template_ptr)entity_ptr;
+
+        result = tmpl->definition_template != NULL;
+      }
+      break;
+    case iek_type:
+      { a_type_ptr ty = (a_type_ptr)entity_ptr;
+
+        result = !ty->incomplete;
+      }
+      break;
+    case iek_routine:
+      { a_routine_ptr rp = (a_routine_ptr)entity_ptr;
+
+        result = rp->defined;
+      }
+      break;
+    default:
+      break;
+  }  /* switch */
+  return result;
+}  /* is_defined */
+
+
 a_boolean is_template_param_cast_constant(a_constant_ptr  con,
                                           a_constant_ptr  *p_base_con,
                                           a_boolean       *is_explicit)
@@ -10149,9 +10183,8 @@ entry.  pos is used to establish the type entry's position information.
   }  /* if */
   /* If the template originates from a module, ensure its definition is loaded
      if available. */
-  if (!class_template->defined &&
-      tssp->il_template_entry != NULL &&
-      tssp->il_template_entry->source_corresp.module_entity != NULL) {
+  if (!class_template->defined && tssp->il_template_entry != NULL &&
+      has_template_definition_from_module(tssp->il_template_entry)) {
     load_template_definition_from_module(tssp->il_template_entry);
   }  /* if */
   return type;

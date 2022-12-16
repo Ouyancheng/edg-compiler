@@ -607,6 +607,10 @@ extern void explicit_instantiation(
                               a_template_decl_options_set options,
                               a_source_position_ptr       directive_start_pos);
 
+extern a_symbol_ptr find_template_instantiation(
+                                             a_symbol_ptr       template_sym,
+                                             a_template_arg_ptr template_args);
+
 extern a_symbol_ptr find_template_class(
 			     a_symbol_ptr        class_template_sym,
                              a_template_arg_ptr  *new_list,
