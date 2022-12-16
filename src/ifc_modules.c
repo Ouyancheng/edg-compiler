@@ -1181,6 +1181,22 @@ will be lazily loaded if referenced).
 }  /* process_decl_at_index */
 
 
+static a_module_entity_ptr
+process_decl_via_reference(const an_ifc_decl_reference &ref,
+                            a_boolean         defer = FALSE)
+/*
+Process the IFC module entity declaration specified by the given declaration
+reference either by creating the appropriate IL entity, or, when defer is TRUE,
+mark the appropriate symbol header as having a deferred module entity (which
+will be lazily loaded if referenced).
+*/
+{
+  an_ifc_decl_index decl_idx = get_ifc_index(ref);
+
+  return process_decl_at_index(decl_idx, defer);
+}  /* process_decl_via_reference */
+
+
 static a_scope_ptr get_scope(an_ifc_decl_index scope_ref)
 /*
 Given a scope reference find and return the associated scope.
@@ -5512,13 +5528,14 @@ class_struct_union_case:
             goto invalid;
           }  /* if */
 
-          a_module_entity_ptr dmep;
-          dmep = get_and_process_ifc_decl_from_other_module(*opt_idr);
+          a_module_entity_ptr dmep = process_decl_via_reference(*opt_idr);
           il_entity = dmep->entity.ptr;
           kind = dmep->entity.kind;
           /* The module entity pointer sometimes already has a scope (e.g.,
              from lighter nested-name-specified processing). */
-          check_assertion(mep->scope == NULL || dmep->scope == mep->scope);
+          ifc_requirement(get_assoc_ifc_module(dmep),
+                          mep->scope == NULL || dmep->scope == mep->scope,
+                          "expected a matching scope");
           mep->scope = dmep->scope;
         }
         break;
@@ -6788,82 +6805,6 @@ Return the number of entries in a given partition.
 }  /* get_num_entries */
 
 
-a_module_entity_ptr an_ifc_module::get_ifc_decl_from_other_module(
-                                              const an_ifc_decl_reference &ref)
-/*
-Given a DeclSort::Reference to another module, get and return the unprocessed
-entity from the referenced module.
-*/
-{
-  an_ifc_decl_index result = get_ifc_index(ref);
-
-  return get_ifc_module_entity_ptr(result);
-}  /* get_ifc_decl_from_other_module */
-
-
-a_module_entity_ptr an_ifc_module::get_ifc_decl_from_other_module(
-                                                       an_ifc_decl_index index)
-/*
-Given an index for a valid DeclSort::Reference, get and return the unprocessed
-entity from the referenced module; otherwise, return NULL.
-*/
-{
-  a_module_entity_ptr        result = NULL;
-  Opt<an_ifc_decl_reference> opt_idr;
-
-  construct_node(&opt_idr, index);
-  if (opt_idr.has_value()) {
-    result = get_ifc_decl_from_other_module(*opt_idr);
-  }  /* if */
-  return result;
-}  /* get_ifc_decl_from_other_module */
-
-
-void an_ifc_module::process_ifc_decl_from_other_module(
-                                                      a_module_entity_ptr dmep)
-/*
-Given a module entity pointer for a different IFC module, fully process the
-associated entity from the referenced module.
-*/
-{
-  an_ifc_module *mod = get_assoc_ifc_module(dmep);
-
-  check_assertion(mod != this);
-  mod->process_ifc_declaration(dmep, /*defer=*/FALSE,
-                               /*enumeration_type=*/NULL);
-}  /* process_ifc_decl_from_other_module */
-
-
-a_module_entity_ptr an_ifc_module::get_and_process_ifc_decl_from_other_module(
-                                              const an_ifc_decl_reference &ref)
-/*
-Given a DeclSort::Reference to another module, get and return the
-fully-processed entity from the referenced module.
-*/
-{
-  a_module_entity_ptr dmep = get_ifc_decl_from_other_module(ref);
-
-  process_ifc_decl_from_other_module(dmep);
-  return dmep;
-}  /* get_and_process_ifc_decl_from_other_module */
-
-
-a_module_entity_ptr an_ifc_module::get_and_process_ifc_decl_from_other_module(
-                                                       an_ifc_decl_index index)
-/*
-Given an index for a DeclSort::Reference, get and return the fully-processed
-entity from the referenced module.
-*/
-{
-  a_module_entity_ptr dmep = get_ifc_decl_from_other_module(index);
-
-  if (dmep != NULL) {
-    process_ifc_decl_from_other_module(dmep);
-  }  /* if */
-  return dmep;
-}  /* get_and_process_ifc_decl_from_other_module */
-
-
 a_boolean an_ifc_module::is_home_scope_readable(an_ifc_decl_index decl_index)
 /*
 Return TRUE if the home scope of the declaration (indexed by decl_index) is
@@ -6940,14 +6881,19 @@ can currently be qualified.
       }
       break;
     case ifc_ds_decl_reference:
-      {
-        /* This declaration is an indirect reference to an imported
-           declaration.  We must consider the import declaration by querying
-           the associated foreign module. */
-        a_module_entity_ptr dmep = get_ifc_decl_from_other_module(decl_index);
-        an_ifc_module       *mod = get_assoc_ifc_module(dmep);
+      { Opt<an_ifc_decl_reference> opt_decl_ref;
 
-        result = mod->is_name_qualifiable(decl_index_of(dmep));
+        construct_node(&opt_decl_ref, decl_index);
+        if (!opt_decl_ref.has_value()) {
+          goto invalid;
+        }  /* if */
+
+        /* References are a special case where we need to recurse to a foreign
+           module. */
+        an_ifc_decl_reference decl_ref = *opt_decl_ref;
+        an_ifc_decl_index     remote_index = get_ifc_index(decl_ref);
+        an_ifc_module         *remote_mod = remote_index.mod;
+        result = remote_mod->is_name_qualifiable(remote_index);
       }
       break;
     case ifc_ds_decl_variable:
@@ -6971,6 +6917,10 @@ can currently be qualified.
   if (suppress_automatic_name_qualification) {
     result = FALSE;
   }  /* if */
+  goto done;
+invalid:
+  result = FALSE;
+done:;
   return result;
 }  /* is_name_qualifiable */
 
@@ -7522,20 +7472,24 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
 
           an_ifc_type_designated itd = *opt_itd;
           an_ifc_decl_index      decl = get_ifc_decl(itd);
-          a_module_entity_ptr    dmep;
           switch (decl.sort) {
             case ifc_ds_decl_reference:
-              dmep = mod->get_and_process_ifc_decl_from_other_module(decl);
-              result = (a_type_ptr)dmep->entity.ptr;
-              check_assertion(result != NULL && dmep->entity.kind == iek_type);
-              break;
             case ifc_ds_decl_scope:
             case ifc_ds_decl_enumeration:
               /* Find the type of the scope declaration by processing it (in
                  case it has been deferred). */
-              dmep = process_decl_at_index(decl);
-              result = (a_type_ptr)dmep->entity.ptr;
-              check_assertion(result != NULL && dmep->entity.kind == iek_type);
+              { a_module_entity_ptr dmep = process_decl_at_index(decl);
+
+                if (dmep->invalid) {
+                  goto invalid;
+                }  /* if */
+                if (dmep->entity.kind != iek_type) {
+                  ifc_unexpected(get_assoc_ifc_module(dmep),
+                                 "expected a type from TypeDesignated");
+                  goto invalid;
+                }  /* if */
+                result = (a_type_ptr)dmep->entity.ptr;
+              }
               break;
             case ifc_ds_decl_parameter:
               /* FIXME: Is this correct, or are we expected to try to resolve
@@ -8560,17 +8514,18 @@ Given a declaration, return the name associated with that declaration.
       }
       break;
     case ifc_ds_decl_reference:
-      { Opt<an_ifc_decl_reference> opt_idr;
+      { Opt<an_ifc_decl_reference> opt_decl_ref;
 
-        construct_node(&opt_idr, decl_idx);
-        if (!opt_idr.has_value()) {
+        construct_node(&opt_decl_ref, decl_idx);
+        if (!opt_decl_ref.has_value()) {
           goto invalid;
         }  /* if */
 
         /* References are a special case where we need to recurse to a foreign
            module. */
-        a_module_entity_ptr dmep = get_ifc_decl_from_other_module(*opt_idr);
-        result = name_from_decl(decl_index_of(dmep));
+        an_ifc_decl_reference decl_ref = *opt_decl_ref;
+        an_ifc_decl_index     remote_index = get_ifc_index(decl_ref);
+        result = name_from_decl(remote_index);
       }
       break;
     case ifc_ds_decl_using_declaration:

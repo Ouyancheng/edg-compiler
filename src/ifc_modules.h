@@ -266,15 +266,6 @@ public:
   void process_ifc_scope(an_ifc_scope_index scope_index,
                          a_scope_ptr        scope);
   uint32_t get_num_entries(an_ifc_partition_kind partition) const;
-  /* Module entity getters. */
-  a_module_entity_ptr get_ifc_decl_from_other_module(
-                                             const an_ifc_decl_reference &ref);
-  a_module_entity_ptr get_ifc_decl_from_other_module(an_ifc_decl_index index);
-  void process_ifc_decl_from_other_module(a_module_entity_ptr dmep);
-  a_module_entity_ptr get_and_process_ifc_decl_from_other_module(
-                                             const an_ifc_decl_reference &ref);
-  a_module_entity_ptr get_and_process_ifc_decl_from_other_module(
-                                                      an_ifc_decl_index index);
   /* IFC Scope readers. */
   a_boolean is_home_scope_readable(an_ifc_decl_index decl_index);
   a_boolean is_name_qualifiable(an_ifc_decl_index decl_index);
