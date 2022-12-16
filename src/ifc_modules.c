@@ -9561,10 +9561,19 @@ done:
 
 namespace {
 
+/*
+An enumeration returned by get_ident_res to specify how to handle a purported
+"identifier" in an IFC file.
+*/
 enum an_ifc_identifier_resolution {
-  iir_direct_cache,
-  iir_recover_via_skip,
-  iir_error
+  iir_direct_cache,     /* Identifier contains valid characters. */
+  iir_recover_via_skip, /* Skip (and warn) on something unknown. */
+  iir_cache_from_string,/* Used for things like "operator<" where it's not
+                           technically an identifier, but parsing the string
+                           into tokens will give the desired result (e.g.,
+                           tok_operator tok_lt in this case). */
+  iir_error             /* Give an error on what appears to be an invalid
+                           identifier. */
 };
 
 }  /* namespace */
@@ -9613,22 +9622,30 @@ with no known special meaning and iir_error will be returned.
   check_assertion(id_start != NULL);
   if (!identifier_is_valid(id_start)) {
     result = iir_error;
-    /* The IFC files also contain synthesized names for "unnamed" types of the
-       form "<unnamed-XXX>" (where XXX is a placeholder).
-
-       As an example, the following may be given the name "<unnamed-enum-x>".
-
-         enum { x };
-
-       This will be written before getting to this point as "__noname_enum_x_".
-       However, at the time of writing no such special handling exists for
-       "<unnamed-tag>", instead we handle it by skipping the generation of the
-       identifier token at this point.
-
-       This is checked after identifier validity as doing so prevents any
-       negative performance impact on the "happy path." */
     if (is_unnamed_tag(id_start)) {
+      /* The IFC files also contain synthesized names for "unnamed" types of
+         the form "<unnamed-XXX>" (where XXX is a placeholder).
+
+         As an example, the following may be given the name "<unnamed-enum-x>".
+
+           enum { x };
+
+         This will be written before getting to this point as
+         "__noname_enum_x_".  However, at the time of writing no such special
+         handling exists for "<unnamed-tag>", instead we handle it by skipping
+         the generation of the identifier token at this point.
+
+         This is checked after identifier validity as doing so prevents any
+         negative performance impact on the "happy path." */
       result = iir_recover_via_skip;
+    } else if (strlen(id_start) > 8 && strncmp(id_start, "operator", 8) == 0) {
+      /* Technically not an "identifier", but assume strings that start with
+         "operator" can be handled by caching the appropriate token sequence
+         from the string. */
+      result = iir_cache_from_string;
+    } else {
+      /* FIXME: Other currently un-handled "identifiers" that get here:
+         {ctor}, __$ReturnUdt, ?$numeric_limits@C, ?$numeric_limits@F. */
     }  /* if */
   }  /* if */
   return result;
@@ -9676,6 +9693,11 @@ Add a tok_identifier for name to cache.  pos is the position of the identifier.
           last_token->variant.locator = loc;
         }  /* if */
       }
+      break;
+    case iir_cache_from_string:
+      /* Tokenize the string into the cache (e.g., "operator<" would become
+         tok_operator tok_lt). */
+      cache_tokens_from_string(name, cache->as_canonical(), pos);
       break;
     default_is_unexpected();
   }  /* switch */
