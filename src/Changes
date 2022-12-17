@@ -1,5 +1,16 @@
 Version 6.5
 
+12/17/22 [EDGcpfe/20015,EDGcpfe/20271]
+C++20: Lambdas in unevaluated contexts
+
+WG21 paper P0315R4, which as adopted as part of the C++20 Standard, removed
+the previous prohibition of lambdas appearing in unevaluated contexts.  The
+front end now accepts lambda expressions in such contexts in C++20 and later
+modes.  For example:
+
+  typedef decltype([]{}) C;   // Previously an error, now okay in C++20 mode
+
+
 12/16/22 [EDGcpfe/25848]
 Timing of template constraint checking during overload resolution
 
