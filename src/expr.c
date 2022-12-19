@@ -38743,9 +38743,9 @@ Scan a C++ lambda expression, e.g., something like
                  scope_is(&scope_stack_top(), sck_template_declaration))))) {
     /* Lambdas are not permitted in various contexts that might result in them
        becoming part of a signature.  This includes:
-          - template argument lists.
+          - template argument lists,
           - function and function template parameters and return types
-            (default arguments are okay),
+            (default arguments are okay), and
           - template parameter lists (we permit default template argument
             contexts, but an error will be issued if such an argument is
             instantiated). */
@@ -38797,9 +38797,9 @@ Scan a C++ lambda expression, e.g., something like
                  scope_is(&scope_stack_top(), sck_template_declaration))))) {
     /* Lambdas are not permitted in various contexts that might result in them
        becoming part of a signature.  This includes:
-          - template argument lists.
+          - template argument lists,
           - function and function template parameters and return types
-            (default arguments are okay),
+            (default arguments are okay), and
           - template parameter lists (we permit default template argument
             contexts, but an error will be issued if such an argument is
             instantiated).
