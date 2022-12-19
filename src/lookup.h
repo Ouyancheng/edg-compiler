@@ -276,6 +276,8 @@ a_symbol_ptr f_nonreal_type_if_nested_prototype_type(a_symbol_ptr	sym);
 extern a_symbol_ptr curr_scope_id_lookup(a_symbol_locator         *locator,
                                          an_id_lookup_options_set options);
 
+extern a_symbol_ptr namespace_definition_id_lookup(a_symbol_locator  *locator);
+
 extern a_symbol_ptr normal_id_lookup(a_symbol_locator         *locator,
                                      an_id_lookup_options_set options);
 

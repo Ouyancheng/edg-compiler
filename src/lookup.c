@@ -2065,6 +2065,9 @@ typedef struct a_lookup_state {
   a_boolean	look_in_interfaces;
 			/* TRUE if the lookup should consider C++/CLI
 			   interface classes. */
+  a_boolean	inline_namespace_set_only;
+			/* TRUE if the lookup should only consider
+			   using-directives that refer to inline namespaces. */
   a_boolean	force_lookup_in_dependent_bases;
 			/* TRUE if we are doing a special second lookup pass
 			   in g++ mode and should look in dependent base
@@ -2164,6 +2167,7 @@ value.
   cleared_lookup_state.look_for_projected_symbol     = FALSE;
   cleared_lookup_state.look_in_dependent_bases       = FALSE;
   cleared_lookup_state.look_in_interfaces            = FALSE;
+  cleared_lookup_state.inline_namespace_set_only     = FALSE;
   cleared_lookup_state.force_lookup_in_dependent_bases = FALSE;
   cleared_lookup_state.add_to_active_list            = FALSE;
   cleared_lookup_state.inclass_exception_spec        = FALSE;
@@ -2514,7 +2518,8 @@ of the lookup is returned to the caller.
      any of them contain symbols that match the lookup options. */
   for (audp = ssep->using_directives_that_apply_here;
        audp != NULL; audp = audp->next_that_applies_at_depth) {
-    if (lookup_state->is_linkage_lookup && !audp->entry->inline_namespace) {
+    if ((lookup_state->inline_namespace_set_only ||
+         lookup_state->is_linkage_lookup) && !audp->entry->inline_namespace) {
       /* Ignore namespaces made visible by a using-directive unless it refers
          to an inline namespace. */
       continue;
@@ -3025,6 +3030,50 @@ routine.
   lookup_state->found_template_param = found_template_param;
   return sym;
 }  /* inactive_scope_lookup */
+
+
+a_symbol_ptr namespace_definition_id_lookup(a_symbol_locator  *locator)
+/*
+Lookup, in the current scope and the inline namespace set, the identifier
+indicated by *locator and return a pointer to the symbol found, or NULL if no
+symbol is found.  Only namespace symbols are considered in the inline namespace
+set.  If more than one namespace symbol is found, the lookup is ambiguous.
+*/
+{
+  a_symbol_ptr                  sym;
+  a_scope_stack_entry_ptr       ssep;
+
+  if (is_error_locator(*locator)) {
+    /* The locator is an error locator, so return NULL (i.e., no symbol
+       found). */
+    sym = NULL;
+  } else {
+    a_lookup_state  lookup_state;
+    a_symbol_ptr    ns_sym = NULL;
+    sym = curr_scope_id_lookup(locator, IDL_NO_OPTIONS);
+    ssep = scope_stack_entry_for(decl_scope_level);
+    /* Continue the search in the inline namespace set, but only consider
+       namespace symbols. */
+    if (sym != NULL && sym->kind == sk_namespace) {
+      /* Only a namespace symbol in the current scope can cause an
+         ambiguity. */
+      ns_sym = locator->specific_symbol;
+    }  /* if */
+    clear_lookup_state(lookup_state);
+    lookup_state.inline_namespace_set_only = TRUE;
+    lookup_state.must_be_namespace = TRUE;
+    ns_sym = do_using_directive_lookup(ssep, ns_sym, locator, &lookup_state);
+    if (ns_sym != NULL) {
+      sym = ns_sym;
+      locator->specific_symbol = ns_sym;
+      /* If the symbol is a projection symbol, reduce it to the fundamental
+         symbol.  The specific_symbol in the locator stays pointing to the
+         projection symbol. */
+      reduce_projection_symbol_to_fundamental_symbol(sym);
+    }  /* if */
+  }  /* if */
+  return sym;
+}  /* namespace_definition_id_lookup */
 
 
 static

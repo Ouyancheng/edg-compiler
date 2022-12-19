@@ -15679,16 +15679,24 @@ it's a definition and NULL otherwise).
   } else {
     /* A named namespace definition (possibly nested) or a namespace alias.
        Look up the identifier (which should be the current token) and see if it
-       is already a namespace name in the current scope. */
+       is already a namespace name. */
     if (!err) {
-      ns_sym = curr_scope_id_lookup(&locator, IDL_NO_OPTIONS);
+      /* Core issue 2061 (not implemented in MSVC) requires the identifier in a
+         namespace-definition to be searched for in the current scope as well
+         as the inline namespace set. */
+      ns_sym = !is_namespace_alias && !microsoft_bugs
+                              ? namespace_definition_id_lookup(&locator)
+                              : curr_scope_id_lookup(&locator, IDL_NO_OPTIONS);
       if (ns_sym != NULL) {
         /* A name was found in the current scope. */
         a_boolean  ns_sym_was_alias =
                        ns_sym->kind == (a_symbol_kind)sk_namespace &&
                        ns_sym->variant.namespace_info.ptr->is_namespace_alias; 
-
-        if (ms_version_is(<1400) && !is_namespace_alias && ns_sym_was_alias) {
+        check_for_ambiguity(&locator);
+        if (is_error_locator(locator)) {
+          /* Some error will already have been issued on this name. */
+        } else if (ms_version_is(<1400) && !is_namespace_alias &&
+                   ns_sym_was_alias) {
           /* In older Microsoft modes, a namespace alias name can be used to
              define a namespace extension for the aliased namespace. */
           ns_sym = (a_symbol_ptr)
