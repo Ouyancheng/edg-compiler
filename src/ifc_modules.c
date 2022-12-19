@@ -9592,8 +9592,10 @@ otherwise, return FALSE.
                          force_unicode(&curr_file_unicode_source_kind,
                                        /*new_value=*/usk_utf8);
 #endif /* UNICODE_SOURCE_SUPPORTED */
+#if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
   Value_saver<a_boolean> force_multibyte(&multibyte_chars_in_source_enabled,
                                          /*new_value=*/TRUE);
+#endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
 
   /* Loop through the characters while the identifier is still considered
      valid, up until the null character terminating the string. */

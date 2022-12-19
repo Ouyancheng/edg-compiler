@@ -1,5 +1,13 @@
 Version 6.5
 
+12/19/22 [EDGcpfe/25866]
+Front end compilation error when MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED is FALSE
+
+In configurations where MICROSOFT_EXTENSIONS_ALLOWED is TRUE and
+MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED is FALSE, the front end failed to compile
+(with a diagnostic given in ifc_modules.c).  Now fixed.
+
+
 12/17/22 [EDGcpfe/20015,EDGcpfe/20271]
 C++20: Lambdas in unevaluated contexts
 
