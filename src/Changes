@@ -1,5 +1,14 @@
 Version 6.5
 
+12/19/22 [EDGcpfe/21220]
+Spurious error on _Alignas
+
+In some cases where _Alignas followed an attribute, a spurious error had been
+given.  For example, with --gcc --c11:
+
+  const __attribute__((used)) _Alignas(4) int a = 1;
+
+
 12/19/22 [EDGcpfe/18601,EDGcpfe/19811,EDGcpfe/21859,EDGcpfe/21999,
           EDGcpfe/25532,EDGcpfe/25816]
 Core issue 2061: extension of namespace defined in inline namespace

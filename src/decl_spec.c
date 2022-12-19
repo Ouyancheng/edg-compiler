@@ -9640,7 +9640,7 @@ location are treated as though they appeared in the prefix position.
         drop_attribute = TRUE;
       } else if (is_std_attribute(*p_ap) &&
                  !treat_as_prefix &&
-                 !(c11_mode && ap->family == af_alignas)) {
+                 !(c11_mode && (*p_ap)->family == af_alignas)) {
         if (disallow_std) {
           drop_attribute = TRUE;
         } else {
