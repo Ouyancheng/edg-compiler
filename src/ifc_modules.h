@@ -559,10 +559,11 @@ public:
   an_ifc_msvc_traits_bitfield get_vendor_traits(an_ifc_decl_index decl);
   Opt<an_ifc_sequence> get_specialization_sequence_from_trait(
                                                        an_ifc_decl_index decl);
-  a_template_ptr parse_cached_explicit_specialization(
+  char *parse_cached_explicit_specialization(
                                    a_module_token_cache_ptr         cache,
                                    a_scope_ptr                      encl_scope,
-                                   const an_ifc_decl_specialization &decl);
+                                   const an_ifc_decl_specialization &decl,
+                                   an_il_entry_kind                 *kind);
   char *parse_cached_explicit_instantiation(
                                        a_module_token_cache_ptr         cache,
                                        const an_ifc_decl_specialization &decl,

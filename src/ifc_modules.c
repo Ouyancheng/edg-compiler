@@ -2633,13 +2633,50 @@ associated storage for the final token seen during parsing.
 }  /* prepare_cached_template_parse */
 
 
-static a_template_ptr parse_cached_template(
-                                           a_module_token_cache_ptr cache,
-                                           a_scope_ptr              encl_scope)
+static inline char *get_parsed_entity(a_decl_parse_state *dps,
+                                      an_il_entry_kind   *kind)
 /*
-Parse the tokens corresponding to a template declaration cache, and return the
-corresponding template.  encl_scope is the scope containing the template
-declaration.
+Given a declaration parse state, return a pointer to the corresponding entity
+and update kind with the associated entity kind.
+*/
+{
+  char *result = NULL;
+
+  if (dps->sym != NULL) {
+    result = il_entry_for_symbol_null_okay(dps->sym, kind);
+  } else {
+    *kind = iek_none;
+  }  /* if */
+  return result;
+}  /* get_parsed_entity */
+
+
+static inline char *get_parsed_template_entity(a_tmpl_decl_state  *decl_state,
+                                               an_il_entry_kind   *kind)
+/*
+Given a template declaration parse state, return a pointer to the corresponding
+entity and update kind with the associated entity kind.
+*/
+{
+  char *result = NULL;
+
+  if (decl_state->il_template_entry != NULL) {
+    result = (char*)decl_state->il_template_entry;
+    *kind = iek_template;
+  } else {
+    *kind = iek_none;
+  }  /* if */
+  return result;
+}  /* get_parsed_template_entity */
+
+
+static char *parse_cached_template(a_module_token_cache_ptr cache,
+                                   a_scope_ptr              encl_scope,
+                                   an_il_entry_kind         *kind)
+/*
+Parse the tokens corresponding to a template declaration cache.  encl_scope is
+the scope containing the template declaration.  Return a pointer to the
+corresponding template entity and update kind with the associated entity kind.
 */
 {
   a_decl_parse_state dps;
@@ -2662,17 +2699,19 @@ declaration.
                                                 /*is_generic=*/FALSE,
                                                 /*orig_dps=*/NULL);
   }
-  return decl_state.il_template_entry;
+  return get_parsed_template_entity(&decl_state, kind);
 }  /* parse_cached_template */
 
 
-static a_template_ptr parse_cached_partial_specialization(
+static char *parse_cached_partial_specialization(
                                            a_module_token_cache_ptr cache,
-                                           a_scope_ptr              encl_scope)
+                                           a_scope_ptr              encl_scope,
+                                           an_il_entry_kind         *kind)
 /*
-Parse the tokens corresponding to a partial specialization declaration cache,
-and return the corresponding partial specialization.  encl_scope is the scope
-containing the partial specialization declaration.
+Parse the tokens corresponding to a partial specialization declaration cache.
+encl_scope is the scope containing the partial specialization declaration.
+Return a pointer to the corresponding partial specialization entity and update
+kind with the associated entity kind.
 */
 {
   a_decl_parse_state dps;
@@ -2695,7 +2734,7 @@ containing the partial specialization declaration.
                                                 /*is_generic=*/FALSE,
                                                 /*orig_dps=*/NULL);
   }
-  return decl_state.il_template_entry;
+  return get_parsed_template_entity(&decl_state, kind);
 }  /* parse_cached_partial_specialization */
 
 namespace {
@@ -4141,39 +4180,40 @@ template's IFC description structure.
       test_bitmask<ifc_rpb_initializer>(get_ifc_properties(idst))) {
     /* The template has a reachable definition (IFC files sometimes include
        definitions even when they are not reachable): Load it. */
-    a_template_ptr       templ;
     a_module_token_cache cache;
     an_ifc_cache_info    cinfo;
 
     cinfo.ignore_default_arguments = already_declared;
     cinfo.ignore_default_template_arguments = already_declared;
     ifc_mod->cache_decl_template(&cache, idst, cinfo);
-    templ = parse_cached_template(&cache, mep->scope);
-    mep->entity.ptr = (char*)templ;
-    mep->entity.kind = iek_template;
-    result = TRUE;
-    if (templ != NULL && templ->kind == (a_template_kind)templk_class) {
-      /* For a class template, check if it has any associated deduction guides.
-         Deduction guides are associated to the template through the IFC traits
-         mechanism. */
-      an_ifc_module          *itf =
-                            (an_ifc_module*)mep->module_info->module_interface;
-      an_ifc_decl_index      decl = decl_index_of(mep);
-      Opt<an_ifc_trait_deduction_guide>
-                             opt_itdg;
-      find_trait(&opt_itdg, decl);
-      if (opt_itdg.has_value()) {
-        an_ifc_decl_index   guides_idx = get_ifc_trait(*opt_itdg);
-        a_module_entity_ptr guides_mep = get_ifc_module_entity_ptr(guides_idx);
-        /* A single guide will have an ifc_DeclSort_Template entry directly
-           associated with it, but it doesn't record the parent scope: So set
-           it here (a guide is required to be declared in the same scope as the
-           class template).  If there are multiple guides, guides_mep will
-           be for an ifc_DeclSort_Tuple entry instead (and its treatment will
-           propagate the parent scope). */
-        guides_mep->scope = templ->source_corresp.parent_scope;
-        itf->process_ifc_declaration(guides_mep, /*defer=*/FALSE,
-                                      (a_type*)NULL);
+    mep->entity.ptr = parse_cached_template(&cache, mep->scope,
+                                            &mep->entity.kind);
+    if (mep->entity.ptr != NULL && mep->entity.kind == iek_template) {
+      a_template_ptr templ = (a_template_ptr)mep->entity.ptr;
+
+      result = TRUE;
+      if (templ->kind == (a_template_kind)templk_class) {
+        /* For a class template, check if it has any associated deduction
+           guides.  Deduction guides are associated to the template through the
+           IFC traits mechanism. */
+        an_ifc_decl_index                 decl = decl_index_of(mep);
+        Opt<an_ifc_trait_deduction_guide> opt_itdg;
+
+        find_trait(&opt_itdg, decl);
+        if (opt_itdg.has_value()) {
+          an_ifc_decl_index   guides_idx = get_ifc_trait(*opt_itdg);
+          a_module_entity_ptr guides_mep =
+                                         get_ifc_module_entity_ptr(guides_idx);
+
+          /* A single guide will have an ifc_DeclSort_Template entry directly
+             associated with it, but it doesn't record the parent scope: So set
+             it here (a guide is required to be declared in the same scope as
+             the class template).  If there are multiple guides, guides_mep
+             will be for an ifc_DeclSort_Tuple entry instead (and its treatment
+             will propagate the parent scope). */
+          guides_mep->scope = templ->source_corresp.parent_scope;
+          process_decl_at_index(guides_idx);
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
@@ -5002,8 +5042,10 @@ class_struct_union_case:
               if (!cache.is_valid()) {
                 goto invalid;
               }  /* if */
-              il_entity = (char*)parse_cached_template(&cache, mep->scope);
-              kind = iek_template;
+              il_entity = parse_cached_template(&cache, mep->scope, &kind);
+              if (kind != iek_template) {
+                goto invalid;
+              }  /* if */
             } else {
               unexpected_condition();
             }  /* if */
@@ -5389,8 +5431,12 @@ class_struct_union_case:
               if (!cache.is_valid()) {
                 goto invalid;
               }  /* if */
-              il_entity = (char*)parse_cached_template(&cache, mep->scope);
-              kind = iek_template;
+              mep->entity.ptr = il_entity =
+                              parse_cached_template(&cache, mep->scope, &kind);
+              mep->entity.kind = kind;
+              if (kind != iek_template) {
+                goto invalid;
+              }  /* if */
               if (is_file_or_namespace_scope(mep->scope)) {
                 /* For namespace-scope entities, delay the definition until
                    it is actually needed.  FIXME: It would be good to also
@@ -5599,10 +5645,12 @@ class_struct_union_case:
               if (!cache.is_valid()) {
                 goto invalid;
               }  /* if */
-              il_entity = (char*)parse_cached_partial_specialization(
-                                                                   &cache,
-                                                                   mep->scope);
-              kind = iek_template;
+              il_entity = parse_cached_partial_specialization(&cache,
+                                                              mep->scope,
+                                                              &kind);
+              if (kind != iek_template) {
+                goto invalid;
+              }  /* if */
             }  /* if */
           }  /* if */
         }
@@ -5633,12 +5681,14 @@ class_struct_union_case:
               il_entity = parse_cached_explicit_instantiation(&cache, ids,
                                                               &kind);
             } else {
-              il_entity =
-                        (char*)parse_cached_explicit_specialization(&cache,
-                                                                    mep->scope,
-                                                                    ids);
+              il_entity = parse_cached_explicit_specialization(&cache,
+                                                               mep->scope,
+                                                               ids,
+                                                               &kind);
             }  /* if */
-            kind = iek_template;
+            if (kind != iek_template) {
+              goto invalid;
+            }  /* if */
           }  /* if */
         }
         break;
@@ -5679,8 +5729,7 @@ class_struct_union_case:
             if (!cache.is_valid()) {
               goto invalid;
             }  /* if */
-            il_entity = (char*)parse_cached_template(&cache, mep->scope);
-            kind = iek_template;
+            il_entity = parse_cached_template(&cache, mep->scope, &kind);
           }  /* if */
         }
         break;
@@ -18262,15 +18311,16 @@ decl, or an empty sequence if not found.
 }  /* get_specialization_sequence_from_trait */
 
 
-a_template_ptr an_ifc_module::parse_cached_explicit_specialization(
+char *an_ifc_module::parse_cached_explicit_specialization(
                                    a_module_token_cache_ptr         cache,
                                    a_scope_ptr                      encl_scope,
-                                   const an_ifc_decl_specialization &decl)
+                                   const an_ifc_decl_specialization &decl,
+                                   an_il_entry_kind                 *kind)
 /*
 Parse the tokens corresponding to the given explicit specialization
-declaration's (decl) cache, and return the corresponding explicit
-specialization.  encl_scope is the scope containing the explicit specialization
-declaration.
+declaration's (decl) cache.  encl_scope is the scope containing the explicit
+specialization declaration.  Return a pointer to the corresponding explicit
+specialization entity and update kind with the associated entity kind.
 */
 {
   a_decl_parse_state dps;
@@ -18294,47 +18344,8 @@ declaration.
                                                 /*is_generic=*/FALSE,
                                                 /*orig_dps=*/NULL);
   }
-  return decl_state.il_template_entry;
+  return get_parsed_entity(&dps, kind);
 }  /* parse_cached_explicit_specialization */
-
-
-static char *get_il_entity(a_symbol_ptr     sym,
-                           an_il_entry_kind *kind)
-/*
-Return the associated IL entity and update kind with the associated entity kind
-for the given symbol (sym).
-FIXME: This should likely be extracted as a general function for symbols.
-*/
-{
-  char *il_entity = NULL;
-
-  if (sym != NULL) {
-    switch (sym->kind) {
-    case sk_class_or_struct_tag:
-      {
-        il_entity = (char*)sym->variant.class_struct_union.type;
-        *kind = iek_type;
-      }
-      break;
-    case sk_routine:
-    case sk_member_function:
-      {
-        il_entity = (char*)sym->variant.routine.ptr;
-        *kind = iek_routine;
-      }
-      break;
-    case sk_variable:
-      {
-        il_entity = (char*)sym->variant.variable.ptr;
-        *kind = iek_variable;
-      }
-      break;
-    default:
-      unexpected_condition_str("Unexpected DeclSort");
-    }  /* switch */
-  }  /* if */
-  return il_entity;
-}  /* get_il_entity */
 
 
 char *an_ifc_module::parse_cached_explicit_instantiation(
@@ -18372,7 +18383,7 @@ explicitly-instantiated entity and update kind with the associated entity kind.
     if (is_header_unit(this->assoc_module_info)) options = TDO_NO_OPTIONS;
     explicit_instantiation(&dps, options, &template_kw_pos);
   }
-  return get_il_entity(dps.sym, kind);
+  return get_parsed_entity(&dps, kind);
 }  /* parse_cached_explicit_instantiation */
 
 #if CHECKING
