@@ -8388,7 +8388,7 @@ argument, when tap->variant.type is NULL).
         } else {
           /* Look at the argument template, not the original symbol (which,
              unlike other template parameters, always points to the prototype
-            argument symbol). */
+             argument symbol). */
           templ_sym = symbol_for(templ_ptr);
           tssp = templ_sym->variant.template_info;
           template_param_found = tssp->is_nonreal_member ||
@@ -16933,9 +16933,10 @@ are flags passed down to the substitution routines.
                                               ctws_options, (a_type_ptr)NULL);
     }  /* if */
     if (templ_rout_type == NULL &&
-        /* Check the template constraints (if any) at this time: Before
+        /* Check the template constraints (if any) at this time: before
            performing full substitution but after deduction is complete.  This
-           "timing" was clarified by the resolution of Core issue 2369. */
+           order of processing was clarified by the resolution of Core issue
+           2369. */
         (!concepts_enabled ||
          (ctws_options & CTWS_IS_PARTIAL_ORDER_CHECK) ||
          template_arg_list_is_dependent(templ_arg_list) ||
