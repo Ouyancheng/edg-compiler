@@ -7283,11 +7283,9 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
                                                 &error_position);
               goto invalid;
             case ifc_tbs_function:
-              check_assertion(precision == ifc_tps_default);
-              result = make_routine_type(unknown_type(), /*param1=*/NULL,
-                                         /*param2=*/NULL, /*param3=*/NULL,
-                                         /*param4=*/NULL);
-              break;
+              issue_unsupported_construct_error(mod, "TypeBasis::Function",
+                                                &error_position);
+              goto invalid;
             case ifc_tbs_empty:
               check_assertion(kind != NULL);
               /*lint -e413 likely use of null pointer*/
