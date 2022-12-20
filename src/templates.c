@@ -16936,8 +16936,11 @@ are flags passed down to the substitution routines.
         /* Check the template constraints (if any) at this time: before
            performing full substitution but after deduction is complete.  This
            order of processing was clarified by the resolution of Core issue
-           2369. */
+           2369.  MSVC (as of version 19.22) and Clang (as of version 15) do
+           not yet implement that resolution.  For the corresponding modes,
+           the constraints are checked in determine_function_viability. */
         (!concepts_enabled ||
+         ms_version_is(any_version) || clang_version_is(any_version) ||
          (ctws_options & CTWS_IS_PARTIAL_ORDER_CHECK) ||
          template_arg_list_is_dependent(templ_arg_list) ||
          check_template_constraints(originator_symbol_of(templ_sym),

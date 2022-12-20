@@ -55,7 +55,9 @@ completed and the deduced arguments were substituted through the function
 type.  Until now, that is how the front end implemented things.  The
 resolution of Core issue 2369, however, changed the specification such that
 constraints should be checked before substituting deduced arguments through
-the type of a function template candidate.  That is now implemented.
+the type of a function template candidate.  That is now implemented, except
+in Microsoft and Clang modes (since neither MSVC nor Clang appear to
+implement Core issue 2369 at this time).
 
 The standard also specifies that the arguments for nondeducible parameters
 should be matched after the template constraints are checked, but the front

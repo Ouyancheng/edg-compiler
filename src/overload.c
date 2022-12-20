@@ -6238,6 +6238,34 @@ next_argument:
         goto reject_function;
       }  /* if */
     }  /* if */
+    if (concepts_enabled &&
+        (ms_version_is(any_version) || clang_version_is(any_version))) {
+      /* Core issue 2369 clarified that constraints must be checked as soon as
+         template arguments are deduced, which means that it should happen even
+         before the deduced arguments are substituted throughout the routine
+         type.  That is normally done in substitute_template_arguments, just
+         after the template argument list is completed (e.g., with default
+         argument values) and before actual function type substitution.
+         However, MSVC (as of version 19.22) and Clang (as of version 15) do
+         not yet implement that resolution.  For the corresponding modes, we
+         check the constraints here. */
+      /* First check for runaway substitution. */
+      a_template_symbol_supplement_ptr
+              tssp = function_symbol->variant.template_info;
+      if (tssp->variant.function.pending_deductions >
+                                                 max_pending_instantiations) {
+        report_excessive_rescan_depth();
+        goto reject_function;
+      }  /* if */
+      ++(tssp->variant.function.pending_deductions);
+      if (!check_template_constraints(originator_symbol_of(function_symbol),
+                                      local_template_arg_list,
+                                      /*diagnose=*/FALSE)) {
+        --(tssp->variant.function.pending_deductions);
+        goto reject_function;
+      }  /* if */
+      --(tssp->variant.function.pending_deductions);
+    }  /* if */
     routine_type = skip_typerefs(routine_type);
     rtsp = routine_type->variant.routine.extra_info;
     if ((effects_copy_initialization ||
