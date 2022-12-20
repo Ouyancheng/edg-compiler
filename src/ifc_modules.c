@@ -4564,6 +4564,28 @@ invalid:;
   return result;
 }  /* type_kind_for_type_index */
 
+
+a_boolean type_represents_ellipsis(an_ifc_type_index type_idx)
+/*
+Given a type index, return TRUE if the type index represents an ellipsis.
+*/
+{
+  a_boolean result = FALSE;
+
+  if (type_idx.sort == ifc_ts_type_fundamental) {
+    Opt<an_ifc_type_fundamental> opt_itf;
+
+    construct_node(&opt_itf, type_idx);
+    if (opt_itf.has_value()) {
+      an_ifc_type_fundamental itf = *opt_itf;
+      an_ifc_type_basis_sort  basis = get_ifc_basis(itf);
+
+      result = basis == ifc_tbs_ellipsis;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* type_represents_ellipsis */
+
 }  /* namespace */
 
 /* FIXME: might be able to get rid of enumeration_type now that enums aren't
@@ -7333,82 +7355,53 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
               result = standard_nullptr_type();
               break;
             case ifc_tbs_ellipsis:
-              check_assertion(precision == ifc_tps_default);
-              check_assertion(kind != NULL);
-              /*lint -e413 likely use of null pointer*/
-              *kind = ntk_ellipsis;
-              result = NULL;
-              break;
+              ifc_unexpected(mod, "unexpected use of TypeBasis::Ellipsis");
+              goto invalid;
             case ifc_tbs_class:
-              check_assertion(precision == ifc_tps_default);
-              result = alloc_type((a_type_kind)tk_class);
-              break;
+              ifc_unexpected(mod, "unexpected use of TypeBasis::Class");
+              goto invalid;
             case ifc_tbs_struct:
-              check_assertion(precision == ifc_tps_default);
-              result = alloc_type((a_type_kind)tk_struct);
-              break;
+              ifc_unexpected(mod, "unexpected use of TypeBasis::Struct");
+              goto invalid;
             case ifc_tbs_union:
-              check_assertion(precision == ifc_tps_default);
-              result = alloc_type((a_type_kind)tk_union);
-              break;
+              ifc_unexpected(mod, "unexpected use of TypeBasis::Union");
+              goto invalid;
             case ifc_tbs_auto:
-              check_assertion(precision == ifc_tps_default);
-              result = make_auto_type(&null_source_position,
-                                      /*is_decltype_auto=*/FALSE);
-              break;
+              ifc_unexpected(mod, "unexpected use of TypeBasis::Auto");
+              goto invalid;
             case ifc_tbs_decltype_auto:
-              check_assertion(precision == ifc_tps_default);
-              result = make_auto_type(&null_source_position,
-                                      /*is_decltype_auto=*/TRUE);
-              break;
+              ifc_unexpected(mod, "unexpected use of TypeBasis::DecltypeAuto");
+              goto invalid;
             case ifc_tbs_namespace:
-              check_assertion(kind != NULL);
-              /*lint -e413 likely use of null pointer*/
-              *kind = ntk_namespace;
-              result = NULL;
-              break;
+              ifc_unexpected(mod, "unexpected use of TypeBasis::Namespace");
+              goto invalid;
             case ifc_tbs_interface:
-              check_assertion(precision == ifc_tps_default);
-              result = alloc_type((a_type_kind)tk_struct);
-              result->variant.class_struct_union.is_interface = TRUE;
-              break;
+              ifc_unexpected(mod, "unexpected use of TypeBasis::Interface");
+              goto invalid;
             case ifc_tbs_enum:
-              check_assertion(precision == ifc_tps_default);
-              /* FIXME: Currently unsupported. */
-              issue_unsupported_construct_error(mod, "TypeBasis::Enum",
-                                                &error_position);
+              ifc_unexpected(mod, "unexpected use of TypeBasis::Enum");
               goto invalid;
             case ifc_tbs_typename:
-              check_assertion(precision == ifc_tps_default);
-              result = unknown_type();
-              break;
+              ifc_unexpected(mod, "unexpected use of TypeBasis::Typename");
+              goto invalid;
             case ifc_tbs_segment_type:
-              /* FIXME: Currently unsupported. */
-              issue_unsupported_construct_error(mod, "TypeBasis::SegmentType",
-                                                &error_position);
+              ifc_unexpected(mod, "unexpected use of TypeBasis::SegmentType");
               goto invalid;
             case ifc_tbs_function:
-              issue_unsupported_construct_error(mod, "TypeBasis::Function",
-                                                &error_position);
+              ifc_unexpected(mod, "unexpected use of TypeBasis::Function");
               goto invalid;
             case ifc_tbs_empty:
-              check_assertion(kind != NULL);
-              /*lint -e413 likely use of null pointer*/
-              *kind = ntk_empty_pack_expansion;
-              break;
+              ifc_unexpected(mod, "unexpected use of TypeBasis::Empty");
+              goto invalid;
             case ifc_tbs_variable_template:
-              check_assertion(precision == ifc_tps_default);
-              result = type_of_unknown_templ_param_nontype;
-              break;
+              ifc_unexpected(mod,
+                             "unexpected use of TypeBasis::VariableTemplate");
+              goto invalid;
             case ifc_tbs_concept:
-              /* FIXME: Currently unsupported. */
-              issue_unsupported_construct_error(mod, "TypeBasis::Concept",
-                                                &error_position);
+              ifc_unexpected(mod, "unexpected use of TypeBasis::Concept");
               goto invalid;
             case ifc_tbs_overload:
-              /* FIXME: Currently unsupported. */
-              issue_unsupported_construct_error(mod, "TypeBasis::Overload",
-                                                &error_position);
+              ifc_unexpected(mod, "unexpected use of TypeBasis::Ooverload");
               goto invalid;
             default_is_unexpected_str("Unexpected TypeBasis kind");
           }  /* switch */
@@ -7586,18 +7579,21 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
                 an_ifc_index_type idx = get_relative_index(traverser,
                                                            indexed_iht);
                 a_non_type_kind   non_type_kind;
-                a_type_ptr        param_type = type_for_type_index(
-                                                            get_ifc_value(iht),
-                                                            &non_type_kind);
-                if (param_type == NULL) {
+                an_ifc_type_index indexed_type = get_ifc_value(iht);
+                if (type_represents_ellipsis(indexed_type)) {
                   /* This happens when an ellipsis is present as the last
                      parameter. */
-                  check_assertion(non_type_kind == ntk_ellipsis &&
-                                  idx == get_ifc_cardinality(itt) - 1);
+                  ifc_requirement(indexed_type.mod,
+                                  idx == get_ifc_cardinality(itt) - 1,
+                                  "expected ellipsis to appear at "
+                                  "end of parameter list");
                   rtsp->has_ellipsis = TRUE;
                   break;
                 }  /* if */
 
+                a_type_ptr       param_type = type_for_type_index(
+                                                            indexed_type,
+                                                            &non_type_kind);
                 a_param_type_ptr ptp = make_param_type(param_type,
                                                        &null_source_position);
                 update_param_top_level_qualifiers(ptp);
@@ -7657,14 +7653,15 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
             case ifc_ds_decl_parameter:
               /* FIXME: Is this correct, or are we expected to try to resolve
                  the type in the case of template parameters? */
-              { Opt<an_ifc_decl_parameter> opt_idp;
+              { Opt<an_ifc_decl_parameter> opt_decl_param;
 
-                construct_node(&opt_idp, decl);
-                if (!opt_idp.has_value()) {
+                construct_node(&opt_decl_param, decl);
+                if (!opt_decl_param.has_value()) {
                   goto invalid;
                 }  /* if */
 
-                result = type_for_type_index(get_ifc_type(*opt_idp),
+                an_ifc_decl_parameter decl_param = *opt_decl_param;
+                result = type_for_type_index(get_ifc_type(decl_param),
                                              /*kind=*/NULL);
               }
               break;
@@ -7878,15 +7875,17 @@ template_args_for_expr_list instead.
 
   switch (expr_idx.sort) {
     case ifc_es_expr_type:
-      { Opt<an_ifc_expr_type> opt_iet;
+      { Opt<an_ifc_expr_type> opt_expr_type;
 
-        construct_node(&opt_iet, expr_idx);
-        if (!opt_iet.has_value()) {
+        construct_node(&opt_expr_type, expr_idx);
+        if (!opt_expr_type.has_value()) {
           goto invalid;
         }  /* if */
+
+        an_ifc_expr_type  expr_type = *opt_expr_type;
+        an_ifc_type_index denotation = get_ifc_denotation(expr_type);
         kind = (a_templ_arg_kind)tak_type;
-        type = type_for_type_index(get_ifc_denotation(*opt_iet),
-                                   /*kind=*/NULL);
+        type = type_for_type_index(denotation, /*kind=*/NULL);
       }
       break;
     case ifc_es_expr_unary_fold:
