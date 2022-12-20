@@ -1,5 +1,20 @@
 Version 6.5
 
+12/20/22 [EDGcpfe/21012,EDGcpfe/20142,EDGcpfe/25683]
+Instantiation of discarded substatement in constexpr if
+
+During the instantiation of an enclosing templated entity, the front-end
+incorrectly instantiated the discarded substatement of a "constexpr if" with a
+non-dependent condition.  For example, with --c++17:
+
+  template<bool B, class R, class T> R f(T t) {
+    return [] (auto v) {
+      if constexpr (B) return T::v;  // Previously a spurious error.  Now okay.
+    } (t);
+  }
+  template void f<false>(int);
+
+
 12/19/22 [EDGcpfe/21220]
 Spurious error on _Alignas
 

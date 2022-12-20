@@ -3644,41 +3644,6 @@ statement implicitly defines a local scope.
 }  /* dependent_statement */
 
 
-static void dependent_statement_of_if(void)
-/*
-Scan the dependent statement of an if, which could be a constexpr if.
-For the constexpr case, if the dependent statement is to be considered
-discarded:
-  - In the non-template case, it is scanned with some special processing
-    (for example, not treating some references as ODR uses).
-  - In the template case, the tokens of the dependent statement are
-    discarded.
-
-In a template function, if a prototype instantiation was done, information
-saved during the prototype instantiation is used to skip over the discarded
-branch of the if, and this routine is not called for the discarded
-branch.  If nonclass prototype instantiations are not being done, then this
-routine is called to flush the tokens of the discarded branch.
-*/
-{
-  a_struct_stmt_stack_entry_ptr	sssep;
-
-  sssep = &struct_stmt_stack[depth_stmt_stack];
-  /* In a template instantiation, skip the tokens if the statement is
-     to be discarded, otherwise process it normally. */
-  if (is_real_instantiation_context() && sssep->in_discarded_statement) {
-    /* Get rid of any pragmas that would bind to this statement if it were not
-       being discarded. */
-    (void)select_curr_construct_pragmas(/*add_to_list=*/FALSE);
-    discard_curr_construct_pragmas();
-    flush_if_or_else_statement();
-    empty_statement();
-  } else {
-    dependent_statement();
-  }  /* if */
-}  /* dependent_statement_of_if */
-
-
 static void record_condition_initializations(an_il_entity_list_entry  *entry,
                                              a_statement_ptr          sp)
 /*
@@ -4078,7 +4043,8 @@ The syntax is:
   a_boolean                  is_condition_decl = FALSE;
   a_statement_kind           kind;
   a_struct_stmt_kind         ssk_kind;
-  a_boolean                  is_constexpr_if = FALSE, is_if_consteval = FALSE;
+  a_boolean                  is_constexpr_if = FALSE, is_if_consteval = FALSE,
+                             skip_discarded = FALSE;
   a_constexpr_if_ptr         cip = NULL;
   a_constexpr_if_cache_info  local_cici,
                              *cicip_to_create = NULL, *cicip_to_use = NULL;
@@ -4205,31 +4171,50 @@ The syntax is:
       release_local_constant(&folded_con);
       sssep = &struct_stmt_stack[depth_stmt_stack];
       if (is_template_dependent_context()) {
-        sssep->dependent_constexpr_if = TRUE;
+        sssep->dependent_constexpr_if = !value_known;
         /* Clear the local entry used to record the cache positions for
            dependent constexpr ifs.  A copy will be made when this is added to
            the hash table. */
         cicip_to_create = &local_cici;
         clear_constexpr_if_cache_info(cicip_to_create);
         cicip_to_create->token_cache = get_token_cache_being_scanned();
+        if (value_known) {
+          /* If we are in a (non-prototype) instantiation of an enclosing
+             templated entity, the discarded substatement is not instantiated
+             (see N4659 [stmt.if]/2). */
+          for (a_scope_depth depth = depth_innermost_instantiation_scope;
+               depth > DEPTH_OF_FILE_SCOPE; --depth) {
+            if (scope_stack[depth].kind == sck_template_instantiation &&
+                !scope_stack[depth].in_prototype_instantiation &&
+                !scope_stack[depth].in_nonreal_instantiation) {
+              skip_discarded = TRUE;
+              break;
+            }  /* if */
+          }  /* for */
+        }  /* if */
       } else {
         check_assertion_or_expect_error(value_known);
         if (is_real_instantiation_context()) {
-          /* Look for template cache information saved during function template
-             prototype instantiation.  Save information about the token cache
-             currently being scanned. */
-          cicip_to_use = check_constexpr_if_cache_hash_table(start_tsn);
-          check_assertion(cicip_to_use == NULL ||
-                          cicip_to_use->ending_handle->token_sequence_number >
-                                                   curr_token_sequence_number);
+          /* The discarded substatement is not instantiated. */
+          skip_discarded = TRUE;
         }  /* if */
-        cip->value_known = value_known;
-        cip->value = expr_is_true;
       }  /* if */
-      /* Set the discarded flag to the appropriate value for the "then"
-         statement. */
-      set_in_discarded_statement_flag(!sssep->dependent_constexpr_if &&
-                                      !expr_is_true);
+      if (skip_discarded) {
+        /* Look for template cache information saved during function template
+           prototype instantiation.  Save information about the token cache
+           currently being scanned. */
+        cicip_to_use = check_constexpr_if_cache_hash_table(start_tsn);
+        check_assertion(cicip_to_use == NULL ||
+                        cicip_to_use->ending_handle->token_sequence_number >
+                                                   curr_token_sequence_number);
+      }  /* if */
+      cip->value_known = value_known;
+      cip->value = expr_is_true;
+      /* If the condition is non-dependent, set the discarded flag to the
+         appropriate value for the "then" statement. */
+      if (!sssep->dependent_constexpr_if) {
+        set_in_discarded_statement_flag(!cip->value);
+      }  /* if */
     }  /* if */
     /* Check for and skip the closing parenthesis. */
     (void)required_token(tok_rparen, ec_exp_rparen);
@@ -4240,12 +4225,23 @@ The syntax is:
   if (curr_token == tok_semicolon && next_token() != tok_else) {
     pos_remark(ec_empty_then_statement, &error_position);
   }  /* if */
-  if (is_constexpr_if && cip->value_known && !cip->value &&
-      cicip_to_use != NULL &&
-      cicip_to_use->else_handle != NO_CACHED_TOKEN_HANDLE &&
-      skip_to_token_handle_location(cicip_to_use->token_cache,
-                                    cicip_to_use->else_handle)) {
-    /* We were able to skip directly to the "else" token of a constexpr if. */
+  if (scope_stack_top().in_discarded_statement && skip_discarded) {
+    /* For a discarded statement that should not be instantiated, we can just
+       discard the tokens.  Get rid of any pragmas that would bind to this
+       statement if it were not being discarded. */
+    (void)select_curr_construct_pragmas(/*add_to_list=*/FALSE);
+    discard_curr_construct_pragmas();
+    if (cicip_to_use != NULL &&
+        skip_to_token_handle_location(cicip_to_use->token_cache,
+                                      cicip_to_use->else_handle !=
+                                                         NO_CACHED_TOKEN_HANDLE
+                                              ? cicip_to_use->else_handle
+                                              : cicip_to_use->ending_handle)) {
+      /* We were able to skip directly to the "else" or final token of a
+         constexpr if. */
+    } else {
+      flush_if_or_else_statement();
+    }  /* if */
     empty_statement();
   } else {
     a_boolean  saved_in_consteval_context =
@@ -4267,7 +4263,7 @@ The syntax is:
                   &pos_curr_token);
       }  /* if */
     }  /* if */
-    dependent_statement_of_if();
+    dependent_statement();
     scope_stack_top().in_consteval_context = saved_in_consteval_context;
     if (is_constexpr_if && !scope_stack_top().in_discarded_statement) {
       /* The reachability of the constexpr if should be the reachability of
@@ -4307,15 +4303,24 @@ The syntax is:
     term_stmt_clause(sssep);
     sssep->in_else_of_if = TRUE;
     if (is_constexpr_if && !sssep->dependent_constexpr_if) {
-      /* Update the discarded flag, but keep the current value (of TRUE)
+      /* Update the discarded flag, but keep the current value (of FALSE)
          if the value was dependent. */
       set_in_discarded_statement_flag(cip->value);
     }  /* if */
-    if (is_constexpr_if && cip->value_known && cip->value &&
-        cicip_to_use != NULL &&
-        skip_to_token_handle_location(cicip_to_use->token_cache,
-                                      cicip_to_use->ending_handle)) {
-      /* We were able to skip directly to the final token of a constexpr if. */
+    if (scope_stack_top().in_discarded_statement && skip_discarded) {
+      /* For a discarded statement that should not be instantiated, we can just
+         discard the tokens.  Get rid of any pragmas that would bind to this
+         statement if it were not being discarded. */
+      (void)select_curr_construct_pragmas(/*add_to_list=*/FALSE);
+      discard_curr_construct_pragmas();
+      if (cicip_to_use != NULL &&
+          skip_to_token_handle_location(cicip_to_use->token_cache,
+                                        cicip_to_use->ending_handle)) {
+        /* We were able to skip directly to the final token of a constexpr
+           if. */
+      } else {
+        flush_if_or_else_statement();
+      }  /* if */
       empty_statement();
     } else {
       a_boolean  saved_in_consteval_context =
@@ -4323,7 +4328,7 @@ The syntax is:
       scope_stack_top().in_consteval_context =
                               kind == (a_statement_kind)stmk_if_not_consteval;
       start_stmt_clause(sssep);
-      dependent_statement_of_if();
+      dependent_statement();
       scope_stack_top().in_consteval_context = saved_in_consteval_context;
       if (is_constexpr_if && !scope_stack_top().in_discarded_statement) {
         /* The reachability of the constexpr if should be the reachability of
