@@ -3235,6 +3235,11 @@ This is used to save tokens for later rescanning.
     ctp->variant.ud_lit.suffix = ud_suffix_from_literal_operator_id(
                                 locator_for_curr_id.symbol_header->identifier);
     ctp->variant.ud_lit.type = ud_lit_type_for_curr_token;
+  } else if (curr_token == tok_assign) {
+    ctp->extra_info_kind = teik_curr_token_chars;
+    ctp->variant.curr_token_chars.start = start_of_curr_token;
+    ctp->variant.curr_token_chars.end = end_of_curr_token;
+    ctp->variant.curr_token_chars.len = len_of_curr_token;
   } else {
     /* No extra information needed for this token. */
     ctp->extra_info_kind = (a_token_extra_info_kind)teik_none;
@@ -4321,6 +4326,10 @@ is set to TRUE in that case, FALSE otherwise.
   } else if (ctp->extra_info_kind == teik_ifc_index) {
     ifc_index_for_curr_token = ctp->variant.ifc_index;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  } else if (ctp->extra_info_kind == teik_curr_token_chars) {
+    start_of_curr_token = ctp->variant.curr_token_chars.start;
+    end_of_curr_token = ctp->variant.curr_token_chars.end;
+    len_of_curr_token = ctp->variant.curr_token_chars.len;
   }  /* if */
   free_cached_token(ctp);
 done:
@@ -4485,6 +4494,10 @@ an equivalent change.
   } else if (ctp->extra_info_kind == teik_ifc_index) {
     ifc_index_for_curr_token = ctp->variant.ifc_index;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  } else if (ctp->extra_info_kind == teik_curr_token_chars) {
+    start_of_curr_token = ctp->variant.curr_token_chars.start;
+    end_of_curr_token = ctp->variant.curr_token_chars.end;
+    len_of_curr_token = ctp->variant.curr_token_chars.len;
   }  /* if */
   /* Check whether we have reached the end of this cache. */
   while (reusable_cache_stack->next_cached_token == NULL &&
