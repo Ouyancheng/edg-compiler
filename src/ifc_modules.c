@@ -8999,7 +8999,7 @@ module file.
   a_type_ptr     result;
   a_template_ptr templ = get_template_from_id_expr(templ_id);
 
-  if (templ != NULL) {
+  if (templ != NULL && templ->kind != templk_none) {
     an_ifc_expr_index  arguments = get_ifc_arguments(templ_id);
     a_template_arg_ptr arg_list =
                   template_args_for_expr_list(templ->template_decl->param_list,
