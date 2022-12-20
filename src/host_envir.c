@@ -1858,7 +1858,7 @@ Only write the signoff if there ARE errors, and if we are supposed to.
 
 #if DEBUG
   if (db_flag_is_set("module_report") && num_module_decls_attempted > 0) {
-    fprintf(f_debug, " %lu modules declarations processed (%lu failed).\n ",
+    fprintf(f_debug, "%lu modules declarations processed (%lu failed).\n",
             num_module_decls_attempted,
             num_module_decls_failed);
   }  /* if */
