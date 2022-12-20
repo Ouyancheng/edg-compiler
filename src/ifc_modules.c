@@ -8926,8 +8926,11 @@ param_list.
         /* Packed template arguments shouldn't be part of a tuple.  If this is
            ever encountered, the code below should be changed to recursively
            call this function and iterate over *next_arg until it's NULL. */
-        check_assertion(expr_index.sort !=
-                        ifc_es_expr_packed_template_arguments);
+        if (expr_index.sort == ifc_es_expr_packed_template_arguments) {
+          ifc_unexpected(expr_index.mod,
+                         "unexpected recursive pack template argument");
+          goto invalid;
+        }  /* if */
         *next_arg = template_arg_for_expr(param_list, expr_index);
         next_arg = &(*next_arg)->next;
         check_assertion(*next_arg == NULL);
