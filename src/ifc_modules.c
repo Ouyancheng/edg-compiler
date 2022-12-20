@@ -4459,6 +4459,111 @@ enum a_non_type_kind : uint8_t {
 a_type_ptr type_for_type_index(an_ifc_type_index type_index,
                                a_non_type_kind   *kind);
 
+a_type_kind type_kind_for_type_index(an_ifc_type_index type_idx)
+/*
+Given a type index, return the corresponding type kind.
+*/
+{
+  a_type_kind      result = tk_unknown;
+  an_ifc_type_sort sort = type_idx.sort;
+
+  switch (sort) {
+    case ifc_ts_type_fundamental:
+        { Opt<an_ifc_type_fundamental> opt_itf;
+
+          construct_node(&opt_itf, type_idx);
+          if (!opt_itf.has_value()) {
+            goto invalid;
+          }  /* if */
+
+          an_ifc_type_fundamental itf = *opt_itf;
+          an_ifc_type_basis_sort  basis = get_ifc_basis(itf);
+          switch (basis) {
+            case ifc_tbs_void:
+              result = tk_void;
+              break;
+            case ifc_tbs_bool:
+            case ifc_tbs_char:
+            case ifc_tbs_wchar_t:
+            case ifc_tbs_int:
+              result = tk_integer;
+              break;
+            case ifc_tbs_float:
+            case ifc_tbs_double:
+              result = tk_float;
+              break;
+            case ifc_tbs_nullptr:
+              result = tk_nullptr;
+              break;
+            case ifc_tbs_ellipsis:
+              ifc_unexpected(itf.get_module(),
+                             "unexpected TypeBasis::Ellipsis");
+              goto invalid;
+            case ifc_tbs_class:
+              result = tk_class;
+              break;
+            case ifc_tbs_struct:
+              result = tk_struct;
+              break;
+            case ifc_tbs_union:
+              result = tk_union;
+              break;
+            case ifc_tbs_auto:
+              ifc_unexpected(itf.get_module(),
+                             "unexpected TypeBasis::Auto");
+              goto invalid;
+            case ifc_tbs_decltype_auto:
+              ifc_unexpected(itf.get_module(),
+                             "unexpected TypeBasis::Decltype");
+              goto invalid;
+            case ifc_tbs_namespace:
+              ifc_unexpected(itf.get_module(),
+                             "unexpected TypeBasis::Namespace");
+              goto invalid;
+            case ifc_tbs_interface:
+              ifc_unexpected(itf.get_module(),
+                             "unexpected TypeBasis::Interface");
+              goto invalid;
+            case ifc_tbs_enum:
+              result = tk_enum;
+              break;
+            case ifc_tbs_typename:
+              result = tk_typeref;
+              break;
+            case ifc_tbs_segment_type:
+              ifc_unexpected(itf.get_module(),
+                             "unexpected TypeBasis::SegmentType");
+              goto invalid;
+            case ifc_tbs_function:
+            case ifc_tbs_overload:
+              result = tk_routine;
+              break;
+            case ifc_tbs_empty:
+              ifc_unexpected(itf.get_module(),
+                             "unexpected TypeBasis::Empty");
+              goto invalid;
+            case ifc_tbs_variable_template:
+              result = tk_unknown;
+              break;
+            case ifc_tbs_concept:
+              ifc_unexpected(itf.get_module(),
+                             "unexpected TypeBasis::Concept");
+              goto invalid;
+            default_is_unexpected_str("Unexpected TypeBasis kind");
+          }  /* switch */
+        }
+      break;
+    default:
+      { a_type_ptr type = type_for_type_index(type_idx, /*kind=*/NULL);
+
+        result = type->kind;
+        break;
+      }
+  }  /* switch */
+invalid:;
+  return result;
+}  /* type_kind_for_type_index */
+
 }  /* namespace */
 
 /* FIXME: might be able to get rid of enumeration_type now that enums aren't
@@ -5360,8 +5465,7 @@ class_struct_union_case:
                                                        get_ifc_properties(idt);
             an_ifc_basic_specifiers_bitfield     specifiers =
                                                        get_ifc_specifiers(idt);
-            a_non_type_kind                      nt_kind;
-            a_type_ptr                           type;
+            a_type_kind                          type_kind;
             a_module_entity_ptr                  other_decls = NULL;
             a_module_entity_ptr                  end_other_decls = NULL;
             a_curr_token_preserver               guard;
@@ -5376,10 +5480,9 @@ class_struct_union_case:
               mep->scope = get_home_scope(idt);
               push_module_declaration_context(mep->scope, &scope_push_status);
             }  /* if */
-            type = is_deduction_guide ?
-                                       NULL :
-                                       type_for_type_index(ifc_type, &nt_kind);
-            if (!is_deduction_guide && !type_is(type, tk_routine)) {
+            type_kind = is_deduction_guide ?
+                               tk_unknown : type_kind_for_type_index(ifc_type);
+            if (!is_deduction_guide && type_kind != tk_routine) {
               /* Do not call ifc_decl_is_ignorable_redecl here for function
                  templates since they can be overloaded. */
               if (ifc_decl_is_ignorable_redecl(&loc, mep, &error_position,
@@ -5411,8 +5514,10 @@ class_struct_union_case:
             an_ifc_sentence_index body = get_ifc_body(get_ifc_entity(idt));
             a_boolean             delay_definition = FALSE;
             a_boolean             do_forward_decl =
-                                (type != type_of_unknown_templ_param_nontype ||
-                                 body == 0);
+                                                   (body == 0 ||
+                                                    (type_kind == tk_class ||
+                                                     type_kind == tk_struct ||
+                                                     type_kind == tk_routine));
             if (do_forward_decl && body != 0 && sentence_is_deleted(body)) {
               /* If this is an "= delete" definition, do not issue a "forward
                  declaration" (i.e., without "= delete") since that would be
@@ -5461,7 +5566,7 @@ class_struct_union_case:
                 mep->entity.kind = kind;
               }  /* if */
               process_template_definition(mep, idt, do_forward_decl,
-                                          type_is(type, tk_routine));
+                                          type_kind == tk_routine);
               if (!do_forward_decl) {
                 il_entity = mep->entity.ptr;
                 kind = mep->entity.kind;
@@ -13931,7 +14036,6 @@ if there is no offset/the offset is not needed.
   an_ifc_parameterized_entity entity = get_ifc_entity(decl);
   an_ifc_decl_index           entity_decl = get_ifc_decl(entity);
   an_ifc_source_location      locus = get_ifc_locus(decl);
-  a_non_type_kind             kind;
   a_source_position           pos;
   uint32_t                    offset = 0;
 
@@ -13950,14 +14054,10 @@ if there is no offset/the offset is not needed.
   /* FIXME: Handle attributes. */
 
   an_ifc_type_index type_index = get_ifc_type(decl);
-  a_type_ptr        type;
-  type = is_null_index(type_index) ? (a_type_ptr)NULL
-                                   : type_for_type_index(type_index, &kind);
-  if (type != NULL && type_is(type, tk_unknown)) {
-    /* As of IFC 0.31, this should no longer be encountered (alias templates
-       are now handled by DeclSort::Alias). */
-    unexpected_condition_str("Unexpected alias template");
-  } else if (type != NULL && is_class_struct_union_type(type)) {
+  a_type_kind       type_kind = is_null_index(type_index) ?
+                             tk_unknown : type_kind_for_type_index(type_index);
+  if (type_kind == tk_class || type_kind == tk_struct ||
+      type_kind == tk_union) {
     an_ifc_name_index     name = get_ifc_name(decl);
     an_ifc_sentence_index body = get_ifc_body(entity);
 
