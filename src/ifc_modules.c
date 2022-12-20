@@ -44,9 +44,9 @@ the duration of this file.
 /*lint -save -e1714*/ /* FIXME: temporarily disable "not referenced" */
 
 static a_text_buffer_ptr
-               file_name_buffer;
-                       /* A text buffer used for processing file names from the
-                          IFC. */
+                file_name_buffer;
+                        /* A text buffer used for processing file names from
+                           the IFC. */
 
 namespace {
 
@@ -4637,6 +4637,7 @@ principal associated IL entity.
     a_module_entity_stack_state mep_state(mep);
 
 #if DEBUG
+    ++num_module_decls_attempted;
     if (db_flag_is_set("ifc_idx")) {
       (void)fprintf(f_debug, "Processing %s (%d)\n", str_for(decl_idx.sort),
                     decl_idx.value);
@@ -6075,6 +6076,9 @@ unhandled:
     }  /* switch */
     goto cleanup;
 invalid:
+#if DEBUG
+    ++num_module_decls_failed;
+#endif /* DEBUG */
     mep->invalid = TRUE;
 cleanup:
     if (!defer) {

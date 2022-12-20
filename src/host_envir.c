@@ -1856,6 +1856,13 @@ Only write the signoff if there ARE errors, and if we are supposed to.
 #if WRITE_SIGNOFF_MESSAGE && !STANDALONE_UTILITY_PROGRAM
   a_diagnostic_counter diags_total = diagnostic_counters.total;
 
+#if DEBUG
+  if (db_flag_is_set("module_report") && num_module_decls_attempted > 0) {
+    fprintf(f_debug, " %lu modules declarations processed (%lu failed).\n ",
+            num_module_decls_attempted,
+            num_module_decls_failed);
+  }  /* if */
+#endif /* DEBUG */
   if (diags_total.all_error_types() > 0) {
     a_diagnostic_counter diags_suppressed = diagnostic_counters.suppressed;
     unsigned             total_diags_reported = diags_total.all_error_types() -

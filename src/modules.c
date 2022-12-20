@@ -1352,6 +1352,10 @@ Initialize static variables related to this file that must be initialized
 for each compilation.
 */
 {
+#if DEBUG
+  num_module_decls_attempted = 0;
+  num_module_decls_failed = 0;
+#endif /* DEBUG */
   curr_module_sym = NULL;
   curr_module_entity = NULL;
   module_entity_hash_table = NULL;

@@ -154,6 +154,20 @@ struct a_module_interface {
 #endif /* DEBUG */
 };  /* a_module_interface */
 
+#if DEBUG
+
+EXTERN unsigned long
+                num_module_decls_attempted;
+                        /* The number of declarations that process_ifc_decl
+                           attempted to process. */
+
+EXTERN unsigned long
+                num_module_decls_failed;
+                        /* The number of declarations that process_ifc_decl
+                           attempted to process, but marked invalid. */
+
+#endif /* DEBUG */
+
 /* If in a module unit, the current module symbol. */
 EXTERN a_symbol_ptr    curr_module_sym;
 
