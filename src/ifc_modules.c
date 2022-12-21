@@ -5295,6 +5295,35 @@ given IL template already contains.
 }  /* update_cache_info_for_template */
 
 
+void process_template_deduction_guides(a_template_ptr    templ,
+                                       an_ifc_decl_index decl_idx)
+/*
+For the given class template which is identified by the given declaration
+index, check if it has any associated deduction guides, and process them.
+*/
+{
+  check_assertion(templ->kind == templk_class);
+  /* Deduction guides are associated to the template through the IFC traits
+     mechanism.*/
+  Opt<an_ifc_trait_deduction_guide> opt_guide_trait;
+
+  find_trait(&opt_guide_trait, decl_idx);
+  if (opt_guide_trait.has_value()) {
+    an_ifc_decl_index   guides_idx = get_ifc_trait(*opt_guide_trait);
+    a_module_entity_ptr guides_mep = get_ifc_module_entity_ptr(guides_idx);
+
+    /* A single guide will have an ifc_DeclSort_Template entry directly
+       associated with it, but it doesn't record the parent scope: So set
+       it here (a guide is required to be declared in the same scope as
+       the class template).  If there are multiple guides, guides_mep
+       will be for an ifc_DeclSort_Tuple entry instead (and its treatment
+       will propagate the parent scope). */
+    guides_mep->scope = templ->source_corresp.parent_scope;
+    process_decl_at_index(guides_idx);
+  }  /* if */
+}  /* process_template_deduction_guides */
+
+
 a_boolean
 process_template_definition(const an_ifc_decl_template &decl_templ,
                             a_module_entity_ptr        mep,
@@ -5336,6 +5365,17 @@ the existing template declaration; otherwise, IL entity should be NULL.
       goto invalid;
     }  /* if */
   }
+  /* Process any class template deduction guides. */
+  {
+    a_template_ptr templ = (a_template_ptr)*il_entity;
+
+    if (templ->kind == templk_class) {
+      an_ifc_decl_index decl_idx = decl_index_of(mep);
+
+      process_template_deduction_guides(templ, decl_idx);
+    }  /* if */
+  }
+  /* Process any specializations and explicit instantiations. */
   if (spec_info.has_specs()) {
     if (process_specializations) {
       spec_info.process_specializations();
