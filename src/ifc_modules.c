@@ -8616,8 +8616,6 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
               }
               break;
             case ifc_ds_decl_parameter:
-              /* FIXME: Is this correct, or are we expected to try to resolve
-                 the type in the case of template parameters? */
               { Opt<an_ifc_decl_parameter> opt_decl_param;
 
                 construct_node(&opt_decl_param, decl);
@@ -8626,8 +8624,21 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
                 }  /* if */
 
                 an_ifc_decl_parameter decl_param = *opt_decl_param;
-                result = type_for_type_index(get_ifc_type(decl_param),
-                                             /*kind=*/NULL);
+                an_ifc_type_index     type = get_ifc_type(decl_param);
+                if (type.sort == ifc_ts_type_fundamental) {
+                  result = alloc_type((a_type_kind)tk_template_param);
+                  result->variant.template_param.is_pack = FALSE;
+                  result->variant.template_param.is_generic_param = FALSE;
+
+                  a_template_param_type_supplement_ptr tptsp =
+                                     result->variant.template_param.extra_info;
+                  tptsp->coordinates.depth = get_ifc_level(decl_param);
+                  tptsp->coordinates.position = get_ifc_position(decl_param);
+                  set_type_size(result);
+                } else {
+                  result = type_for_type_index(get_ifc_type(decl_param),
+                                               /*kind=*/NULL);
+                }  /* if */
               }
               break;
             default:
