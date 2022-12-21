@@ -1,5 +1,23 @@
 Version 6.5
 
+12/21/22 [EDGcpfe/24973]
+Assertion failure in lower_ctor_init
+
+In some cases, an assertion failure (in lower_ctor_init) had occurred when
+initializing certain fields in C++14 mode.  For example (with --c++14):
+
+  struct B {
+    B() {}
+    int v;
+  };
+  struct D : B {};
+  struct A {
+    D d1{};
+    D d2{};
+  };
+  A a;
+
+
 12/20/22 [EDGcpfe/20142,EDGcpfe/21012,EDGcpfe/25683]
 Instantiation of discarded substatement in constexpr if
 

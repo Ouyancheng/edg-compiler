@@ -15992,6 +15992,10 @@ are inserted at *insert_location, and *insert_location is updated.
   an_implied_copy_source source_desc;
 
   dip = ctor_init->initializer;
+  if (dip == NULL && ctor_init->use_field_initializer) {
+    check_assertion(ctor_init->kind == cik_field);
+    dip = ctor_init->variant.field->initializer;
+  }  /* if */
   check_assertion(dip != NULL && ctor_init_this == NULL);
   /* Remember the "this" pointer for the ctor_init (ctor_inits can't be
      nested). */
