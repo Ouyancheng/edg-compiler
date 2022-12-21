@@ -2224,6 +2224,7 @@ typedef struct a_cached_token {
 		ifc_index;
 			/* An index into the IFC module containing additional
 			   information. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* When extra_info_kind == teik_curr_token_chars: */
     struct {
       a_const_char
@@ -2233,7 +2234,6 @@ typedef struct a_cached_token {
       sizeof_t
 		len;    /* The previous value of len_of_curr_token. */
     } curr_token_chars;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } variant;
 } a_cached_token;
 
