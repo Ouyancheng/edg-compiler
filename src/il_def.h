@@ -9147,8 +9147,6 @@ typedef struct a_type {
 			/* Used in the C- and C++-generating back ends for
 			   class/struct/union types: FALSE until the
 			   definition has been emitted, TRUE thereafter. */
-  a_bit_field	module_defined:1;
-			/* TRUE if the type is defined within a module. */
   a_bit_field	typedef_definition_has_been_put_out:1;
 			/* TRUE if this type is a typedef and its definition
 			   has been put out.  Used only within the C- and

@@ -5899,30 +5899,20 @@ class_struct_union_case:
                   if (check_and_set_redeclaration(&loc, mep, &error_position,
                                                   iek_type, &il_entity,
                                                   &kind)) {
+                    a_type_ptr type = (a_type_ptr)il_entity;
+
                     /* FIXME: Is this right? */
-                    if (test_bitmask<ifc_rpb_initializer>(properties)) {
-                      check_assertion(kind == iek_type);
-                      ((a_type_ptr)il_entity)->module_defined = TRUE;
-                    }  /* if */
-                    /* FIXME: Is this right? It came from changes in master
-                       while still in a WIP branch. */
-                    if (il_entity == (char*)type_of_type_info) {
-                      /* The type_info type is predeclared, which means it is
-                         initially not associated with a module.  If its
-                         definition is actually coming from a module, it will
-                         appear as a redeclaration and the module association
-                         should be recorded at that time. */
-                      type_of_type_info->source_corresp.module_entity = mep;
+                    if (is_incomplete_type(type) &&
+                        test_bitmask<ifc_rpb_initializer>(properties)) {
+                      /* Record the presence of a definition on an existing
+                         type. */
+                      type->source_corresp.module_entity = mep;
                     }  /* if */
                     break;
                   }  /* if */
 
                   a_type_ptr   tag_type = alloc_type(type_kind);
                   a_symbol_ptr tag_sym;
-                  if (test_bitmask<ifc_rpb_initializer>(properties)) {
-                    /* Record the presence of a definition. */
-                    tag_type->module_defined = TRUE;
-                  }  /* if */
                   if (get_ifc_basis(*opt_itf) == ifc_tbs_interface) {
                     tag_type->variant.class_struct_union.is_interface = TRUE;
                     tag_type->variant.class_struct_union.abstract = TRUE;
