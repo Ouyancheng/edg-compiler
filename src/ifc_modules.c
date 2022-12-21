@@ -4229,6 +4229,29 @@ Given a type index, return TRUE if the type index represents an ellipsis.
 }  /* type_represents_ellipsis */
 
 
+a_boolean type_represents_templ_param_ref(an_ifc_type_index type_idx)
+/*
+Given a type index, return TRUE if the type index represents a reference to a
+type template parameter.
+*/
+{
+  a_boolean result = FALSE;
+
+  if (type_idx.sort == ifc_ts_type_fundamental) {
+    Opt<an_ifc_type_fundamental> opt_itf;
+
+    construct_node(&opt_itf, type_idx);
+    if (opt_itf.has_value()) {
+      an_ifc_type_fundamental itf = *opt_itf;
+      an_ifc_type_basis_sort  basis = get_ifc_basis(itf);
+
+      result = basis == ifc_tbs_typename;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* type_represents_templ_param_ref */
+
+
 a_boolean is_redeclared_basic_entity(a_symbol            *sym,
                                      a_module_entity_ptr mep,
                                      an_il_entry_kind    expected_kind,
@@ -8186,6 +8209,7 @@ this is an index parameter, update the type supplement and instead return NULL.
   return result;
 }  /* make_param_type_from_ifc */
 
+
 a_type_ptr type_for_type_index(an_ifc_type_index type_index,
                                a_non_type_kind   *kind)
 /*
@@ -8625,7 +8649,7 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
 
                 an_ifc_decl_parameter decl_param = *opt_decl_param;
                 an_ifc_type_index     type = get_ifc_type(decl_param);
-                if (type.sort == ifc_ts_type_fundamental) {
+                if (type_represents_templ_param_ref(type)) {
                   result = alloc_type((a_type_kind)tk_template_param);
                   result->variant.template_param.is_pack = FALSE;
                   result->variant.template_param.is_generic_param = FALSE;
