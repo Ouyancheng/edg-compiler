@@ -5486,12 +5486,16 @@ module, but its definition hasn't been loaded yet.  Load the definition now.
   /* Process the definition. */
   char              *il_entity = (char*)templ;
   an_il_entry_kind  kind = iek_template;
-  process_delayed_template_definition(template_decl, mep, &il_entity, &kind);
-
+  if (process_delayed_template_definition(template_decl, mep,
+                                          &il_entity, &kind)) {
+    /* FIXME: We need to be able to better determine that the template has been
+       defined before removing from the map. */
+    /* The definition was successfully loaded, unmap the pending definition. */
+    /* ifc_template_definitions->unmap(templ); */
+  }  /* if */
   /* Update the module entity pointer to refer to the defining IL template. */
   mep->entity.kind = kind;
   mep->entity.ptr = (char*)il_entity;
-
   /* Restore the module declaration context stack; all other cleanup is RAII
      based. */
   pop_module_declaration_context(scope_push_status);
