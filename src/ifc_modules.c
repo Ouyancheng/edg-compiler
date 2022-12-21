@@ -6724,9 +6724,7 @@ class_struct_union_case:
             an_ifc_cache_info    cache_info;
             if (check_and_set_redeclaration(&loc, mep, &error_position,
                                             iek_template, &il_entity, &kind)) {
-              if (is_defined(il_entity, kind)) {
-                cache_info.ignore_definition = TRUE;
-              }  /* if */
+              goto done;
             }  /* if */
             cache_direct_decl(&cache, idc, cache_info);
             /* Parse the definition cache. */
