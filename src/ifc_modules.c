@@ -6361,18 +6361,23 @@ class_struct_union_case:
           }  /* if */
 
           an_ifc_decl_template idt = *opt_idt;
-          an_ifc_type_index    ifc_type = get_ifc_type(idt);
-          a_boolean            is_deduction_guide = FALSE;
-          if (is_null_index(ifc_type)) {
-            /* Deduction guide templates have no associated type.  They are
-               driven by the IFC "traits" system instead of by lookup (which
-               means they are never "deferred"). */
-            is_deduction_guide = TRUE;
-            check_assertion(!defer);
-          }  /* if */
-          /* FIXME: This should be a soft failure. */
-          check_assertion(!is_null_index(get_ifc_name(idt)) ||
-                          is_deduction_guide);
+#if CHECKING
+          {
+            an_ifc_type_index ifc_type = get_ifc_type(idt);
+            a_boolean         is_deduction_guide = FALSE;
+
+            if (is_null_index(ifc_type)) {
+              /* Deduction guide templates have no associated type.  They are
+                 driven by the IFC "traits" system instead of by lookup (which
+                 means they are never "deferred"). */
+              is_deduction_guide = TRUE;
+              check_assertion(!defer);
+            }  /* if */
+            /* FIXME: This should be a soft failure. */
+            check_assertion(!is_null_index(get_ifc_name(idt)) ||
+                            is_deduction_guide);
+          }
+#endif /* CHECKING */
           if (defer) {
             defer_symbol_creation(mep, &loc);
           } else {
