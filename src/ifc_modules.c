@@ -5078,6 +5078,22 @@ but are declared by other IFC module files).
 }  /* get_or_alloc_specialization_list */
 
 
+void free_specialization_list(an_ifc_decl_index templ_idx)
+/*
+Give the index of the associated template, destroy the associated
+specialization list (if any).
+*/
+{
+  an_ifc_decl_array *specializations =
+                                ifc_decl_template_lookup_table->get(templ_idx);
+
+  if (specializations != NULL) {
+    destroy(specializations);
+    ifc_decl_lookup_table->unmap(templ_idx);
+  }  /* if */
+}  /* free_specialization_list */
+
+
 template<typename an_ifc_Node_type>
 void associate_spec_with_template(an_ifc_decl_index      node_idx,
                                   const an_ifc_Node_type &node)
@@ -5158,9 +5174,7 @@ current state of the ifc_decl_template_lookup_table for ordered processing of
 template specializations and explicit template instantiations.
 */
 struct an_ifc_template_spec_info {
-  an_ifc_template_spec_info(an_ifc_decl_index templ_idx)
-    { this->traverse_data(get_specialization_sequence_from_trait(templ_idx),
-                          ifc_decl_template_lookup_table->get(templ_idx)); }
+  inline an_ifc_template_spec_info(an_ifc_decl_index templ_idx_val);
   a_boolean has_specs()
     { return specializations.length() + explicit_instantiations.length() > 0; }
   void process_specializations();
@@ -5168,6 +5182,10 @@ struct an_ifc_template_spec_info {
 private:
   void traverse_data(Opt<an_ifc_sequence> spec_sequence,
                      an_ifc_decl_array    *spec_references);
+  an_ifc_decl_index
+                templ_idx;
+                        /* The IFC index for the associated template
+                           declaration. */
   an_ifc_decl_array
                 specializations;
                         /* An array if IFC declaration indexes that represent
@@ -5180,7 +5198,24 @@ private:
 };  /* an_ifc_template_spec_info */
 
 
+an_ifc_template_spec_info::an_ifc_template_spec_info(
+                                               an_ifc_decl_index templ_idx_val)
+  : templ_idx(templ_idx_val)
+/*
+Construct a new template spec info object for template at the given IFC index.
+*/
+{
+  Opt<an_ifc_sequence> opt_spec_seq =
+                         get_specialization_sequence_from_trait(templ_idx_val);
+  an_ifc_decl_array*   spec_references =
+                            ifc_decl_template_lookup_table->get(templ_idx_val);
+
+  this->traverse_data(opt_spec_seq, spec_references);
+}  /* an_ifc_template_spec_info */
+
+
 a_boolean is_explicit_instantiation(an_ifc_decl_index decl_idx)
+
 /*
 If the given decl index refers to the declaration of an explicit
 specialization, return TRUE; otherwise, return FALSE.
@@ -5259,6 +5294,7 @@ Process the specializations associated with a given template.
   for (an_ifc_decl_index decl_idx : this->specializations) {
     (void)process_decl_at_index(decl_idx);
   }  /* for */
+  free_specialization_list(this->templ_idx);
 }  /* process_specializations */
 
 
