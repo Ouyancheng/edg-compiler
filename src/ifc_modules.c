@@ -5089,7 +5089,8 @@ specialization list (if any).
 
   if (specializations != NULL) {
     destroy(specializations);
-    ifc_decl_lookup_table->unmap(templ_idx);
+    free_fe(specializations);
+    ifc_decl_template_lookup_table->unmap(templ_idx);
   }  /* if */
 }  /* free_specialization_list */
 
