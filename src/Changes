@@ -1,5 +1,19 @@
 Version 6.5
 
+12/21/22 [EDGcpfe/25860]
+GNU C++ compatibility: signedness specifiers and 128-bit
+
+In GNU C++ mode, the front end emulates the GNU predeclared typedefs __int128_t
+and __uint128_t.  Normally, the signedness specifiers "signed" and "unsigned"
+aren't valid on typedefs, but GCC does accept them in some circumstances.  To
+improve GNU C++ compatibility, the front end therefore now allow "signed" on
+the __int128_t typedef and "unsigned" on the __uint128_t typedef, but only in
+GNU-C++-mode type-id contexts.  For example:
+
+  auto r = (signed __int128_t)42;  // Now accepted in GNU C++ modes.
+  signed __int128_t x = 42;        // Still an error (matches GCC behavior).
+
+
 12/21/22 [EDGcpfe/24973]
 Assertion failure in lower_ctor_init
 

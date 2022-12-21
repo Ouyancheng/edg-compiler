@@ -7561,7 +7561,14 @@ unchanged.
 #if INT128_EXTENSIONS_ALLOWED
         case ik_int128:
         case ik_unsigned_int128:
-          /* No holes to fill in. */
+          /* No holes to fill in.  However, GCC accepts superfluous sign
+             specifiers in C++ mode. */
+          if (gpp_mode && dps->is_type_name) {
+            if ((ikind == ik_int128 && *sign == sign_signed) ||
+                (ikind == ik_unsigned_int128 && *sign == sign_unsigned)) {
+              *sign = sign_none;
+            }  /* if */
+          }  /* if */
           break;
 #endif /* INT128_EXTENSIONS_ALLOWED */
         default:
