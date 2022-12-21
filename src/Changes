@@ -1,9 +1,9 @@
 Version 6.5
 
-12/20/22 [EDGcpfe/21012,EDGcpfe/20142,EDGcpfe/25683]
+12/20/22 [EDGcpfe/20142,EDGcpfe/21012,EDGcpfe/25683]
 Instantiation of discarded substatement in constexpr if
 
-During the instantiation of an enclosing templated entity, the front-end
+During the instantiation of an enclosing templated entity, the front end
 incorrectly instantiated the discarded substatement of a "constexpr if" with a
 non-dependent condition.  For example, with --c++17:
 
