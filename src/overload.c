@@ -6246,7 +6246,7 @@ next_argument:
          type.  That is normally done in substitute_template_arguments, just
          after the template argument list is completed (e.g., with default
          argument values) and before actual function type substitution.
-         However, MSVC (as of version 19.22) and Clang (as of version 15) do
+         However, MSVC (as of version 19.33) and Clang (as of version 15) do
          not yet implement that resolution.  For the corresponding modes, we
          check the constraints here. */
       /* First check for runaway substitution. */

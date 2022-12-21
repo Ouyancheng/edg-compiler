@@ -16963,7 +16963,7 @@ are flags passed down to the substitution routines.
         /* Check the template constraints (if any) at this time: before
            performing full substitution but after deduction is complete.  This
            order of processing was clarified by the resolution of Core issue
-           2369.  MSVC (as of version 19.22) and Clang (as of version 15) do
+           2369.  MSVC (as of version 19.33) and Clang (as of version 15) do
            not yet implement that resolution.  For the corresponding modes,
            the constraints are checked in determine_function_viability. */
         (!concepts_enabled ||
