@@ -1950,11 +1950,11 @@ static a_boolean template_param_appears_in_param_list
                                  a_boolean    deduced_only,
                                  uint32_t     param_count)
 /*
-tparam_type is a tk_template_parameter type entry used in a template
-declaration, and rout_type is a routine type.  Search each of the routine's
-parameter types to see if tparam_type appears in it.  If deduced_only is
-TRUE, nondeduced contexts are excluded from the check.  If param_count
-is non-zero, only parameters 1 through param_count are checked.
+tparam_type is a tk_template_param type entry used in a template declaration,
+and rout_type is a routine type.  Search each of the routine's parameter types
+to see if tparam_type appears in it.  If deduced_only is TRUE, nondeduced
+contexts are excluded from the check.  If param_count is non-zero, only
+parameters 1 through param_count are checked.
 */
 {
   a_boolean         found = FALSE;
