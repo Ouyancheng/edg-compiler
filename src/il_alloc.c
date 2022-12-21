@@ -5161,7 +5161,8 @@ fields, and return a pointer to it.
   tp->prototype_instantiation.type = NULL;
   tp->prototype_instantiation.routine = NULL;
   tp->prototype_instantiation.variable = NULL;
-  tp->canonical_template = NULL;
+  /* Default a template's canonical template to itself. */
+  tp->canonical_template = tp;
   tp->definition_template = NULL;
   tp->prototype_template = NULL;
 #if RECORD_TEMPLATE_STRINGS

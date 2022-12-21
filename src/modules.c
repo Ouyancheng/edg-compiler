@@ -1159,11 +1159,8 @@ TRUE.  Otherwise, return FALSE.
 {
   a_boolean  result = FALSE;
 
-  check_assertion(templ != NULL);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (templ->kind != templk_none) {
-    result = has_template_definition_from_ifc_module(templ);
-  }  /* if */
+  result = has_template_definition_from_ifc_module(templ);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   return result;
 }  /* has_template_definition_from_module */

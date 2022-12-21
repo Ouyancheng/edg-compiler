@@ -5435,13 +5435,10 @@ Record the information needed to retrieve a definition for templ if it turns
 out to be needed later on.
 */
 {
-  check_assertion(templ != NULL);
-  if (templ->kind != templk_none) {
-    /* Ensure the canonical template IL entity is what's being mapped onto. */
-    check_assertion(templ->canonical_template != NULL);
-    templ = templ->canonical_template;
-    (void)ifc_template_definitions->map_or_replace(templ, decl_idx);
-  }  /* if */
+  /* Ensure the canonical template IL entity is what's being mapped onto. */
+  check_assertion(templ != NULL && templ->canonical_template != NULL);
+  templ = templ->canonical_template;
+  (void)ifc_template_definitions->map_or_replace(templ, decl_idx);
 }  /* record_pending_ifc_template_definition */
 
 }  /* namespace */
