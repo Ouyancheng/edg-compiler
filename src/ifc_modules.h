@@ -190,8 +190,7 @@ struct an_ifc_module : public a_module_interface {
 		curr_templ_decl_state = NULL;
 			/* The current template declaration state, NULL if
 			   there is no template declaration being processed. */
-  a_boolean
-		references_any_modules;
+  a_boolean     references_any_modules = FALSE;
 			/* A flag set to TRUE when this module make reference
 			   to one or more external modules.  This is set when
 			   a module is loaded. */
