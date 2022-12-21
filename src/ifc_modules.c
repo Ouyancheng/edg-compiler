@@ -4447,6 +4447,7 @@ FALSE.
           ifc_unexpected(mod, "only unilevel or absent function templates "
                          "are supported for template declarations");
           goto no_match;
+        default_is_unexpected();
       }  /* switch */
     }  /* if */
     if (curr != NULL) {
