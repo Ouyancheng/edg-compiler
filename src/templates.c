@@ -41539,7 +41539,9 @@ a class template parameter list.
     a_template_param_list_pos
 			old_pos = coordinates_of_template_param(old_tpp)
 								    ->position;
-    if (mask != NULL && (old_pos > mask->length() || !(*mask)[old_pos - 1])) {
+    if (mask != NULL &&
+        (old_pos > static_cast<a_template_param_list_pos>(mask->length()) ||
+         !(*mask)[old_pos - 1])) {
       /* Skip over this template parameter. */
       continue;
     }  /* if */
