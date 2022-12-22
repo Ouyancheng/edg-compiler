@@ -6464,7 +6464,7 @@ do_argument_again:
                    of that macro resulted from concatenation with a
                    __VA_ARGS__ value. */
                 comma_is_from_argument = FALSE;
-              } /* if */
+              }  /* if */
             }  /* if */
             if (scanning_text_not_in_primary_source_line &&
                 within_curr_source_line(start_of_curr_token)) {

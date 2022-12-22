@@ -14,8 +14,8 @@ commas, leading to warnings about too few arguments in a macro invocation
 and incorrect macro expansions.  This is now fixed.  For example, with
 --microsoft -E:
 
-  #define X(a,b) b = a
-  #define M1(x) X
+  #define M(a,b) b = a
+  #define M1(x) M
   #define M2(args) M1 args
   #define M3(...) M2((foo))(__VA_ARGS__)
   M3(5, int i);   // Previously expanded to "= 5, int i", now "int i = 5"
