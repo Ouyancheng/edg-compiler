@@ -9028,7 +9028,9 @@ template_args_for_expr_list instead.
                                "wasn't a type");
           type = error_type();
         }  /* if */
-
+        if (is_error_type(type)) {
+          goto invalid;
+        }  /* if */
         result = alloc_template_arg(tak_type);
         result->variant.type = type;
       }
@@ -9100,7 +9102,12 @@ param_list.
                          "unexpected recursive pack template argument");
           goto invalid;
         }  /* if */
-        *next_arg = template_arg_for_expr(param_list, expr_index);
+
+        a_template_arg_ptr arg = template_arg_for_expr(param_list, expr_index);
+        if (arg == NULL) {
+          goto invalid;
+        }  /* if */
+        *next_arg = arg;
         next_arg = &(*next_arg)->next;
         check_assertion(*next_arg == NULL);
         if (!param_list->is_pack) {
@@ -9119,15 +9126,23 @@ param_list.
 
       an_ifc_expr_index pack_args = get_ifc_arguments(*opt_iepta);
       if (pack_args.sort != ifc_es_expr_empty) {
-        result->next= template_args_for_expr_list(param_list, pack_args);
+        a_template_arg_ptr sub_arg = template_args_for_expr_list(param_list,
+                                                                 pack_args);
+
+        if (sub_arg == NULL) {
+          goto invalid;
+        }  /* if */
+        result->next = sub_arg;
       }  /* if */
     } else {
       result = template_arg_for_expr(param_list, arguments);
     }  /* if */
   }  /* if */
+  goto done;
 invalid:
-  /* FIXME: We should issue some kind of diagnostic if we encounter an invalid
-     node. */
+  expect_error();
+  result = NULL;
+done:
   return result;
 }  /* template_args_for_expr_list */
 
@@ -9176,6 +9191,9 @@ module file.
     a_template_arg_ptr arg_list =
                   template_args_for_expr_list(templ->template_decl->param_list,
                                               arguments);
+    if (arg_list == NULL) {
+      goto invalid;
+    }  /* if */
     a_symbol_ptr       inst_sym;
 
     switch (templ->kind) {
@@ -9221,9 +9239,11 @@ module file.
         break;
       default_is_unexpected();
     }  /* switch */
-  } else {
-    result = error_type();
-  }  /* if */
+    goto done;
+  }
+invalid:
+  result = error_type();
+done:
   return result;
 }  /* type_for_template_id */
 
