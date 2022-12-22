@@ -423,6 +423,11 @@ typedef struct a_macro_arg {
 			   This affects how stringizing works: a stringized
 			   empty argument produces "", while a stringized
 			   omitted argument produces nothing. */
+  a_byte_boolean
+		first_token_is_lparen;
+			/* TRUE if the first token in the (raw) text of the
+			   argument is "(".  Only set in the traditional
+			   Microsoft preprocessor emulation. */
 } a_macro_arg;
 
 static a_macro_arg_ptr
@@ -2152,6 +2157,7 @@ and return a pointer to it.
   map->comma_pos = null_source_position;
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
   map->is_empty_arg = FALSE;
+  map->first_token_is_lparen = FALSE;
   db_exit();
   return map;
 }  /* alloc_macro_arg */
@@ -2239,7 +2245,9 @@ print the replacement text and expansions of macros.
         p += LE_ESCAPE_LEN;
       } else if (ch == LE_COMMA_FROM_ARGUMENT) {
         /* Marker indicating a comma from a macro argument (that will not
-           act as a macro argument delimiter when rescanned). */
+           act as a macro argument delimiter when rescanned).  (Uses the
+           same flag character as LE_COMMA_FROM_ARGUMENT, since the next
+           character makes clear which is intended.) */
         ch = '\\';
         p += LE_ESCAPE_LEN;
 #if !FULLY_RESOLVED_MACRO_POSITIONS
@@ -2264,6 +2272,13 @@ print the replacement text and expansions of macros.
         /* Marker indicating the presence of an empty variadic macro
            expansion. */
         ch = '/';
+        p += LE_ESCAPE_LEN;
+      } else if (ch == LE_LPAREN_FROM_ARGUMENT) {
+        /* Marker indicating a left parenthesis at the beginning a macro
+           argument.  (Uses the same flag character as
+           LE_COMMA_FROM_ARGUMENT, since the next character makes clear
+           which is intended.) */
+        ch = '\\';
         p += LE_ESCAPE_LEN;
       } else {
         (void)fprintf(f_debug, "**BAD LEXICAL ESCAPE**");
@@ -2341,7 +2356,10 @@ next token is a "(", and return *paren_found == TRUE if it is.  If allow_id
 is TRUE, also return *paren_found == TRUE if the next token is an identifier.
 If a "(" (or identifier) is not found, return *paren_found == FALSE and
 re-insert the identifier if necessary (delete_source_from_loc is non-NULL,
-so a hanging delete is in effect).
+so a hanging delete is in effect).  The lparen_is_from_argument global
+variable is set to FALSE before calling skip_white_space so that a caller
+can determine whether a "(" was preceded by an LE_LPAREN_FROM_ARGUMENT
+escape.
 */
 {
   a_seq_number  old_seq_number;
@@ -2361,6 +2379,7 @@ so a hanging delete is in effect).
                                      curr_ise->do_not_advance_past_end_of_file;
     curr_ise->do_not_advance_past_end_of_file = TRUE;
   }  /* if */
+  lparen_is_from_argument = FALSE;
   skip_white_space();
   if (curr_ise != NULL) {
     curr_ise->do_not_advance_past_end_of_file =
@@ -3287,11 +3306,12 @@ In such cases, charize is TRUE.
       if (p[1] == LE_END_OF_TOKEN || p[1] == LE_INERT_MACRO ||
           p[1] == LE_TEMPORARILY_INERT_MACRO ||
           p[1] == LE_COMMA_FROM_ARGUMENT ||
+          p[1] == LE_LPAREN_FROM_ARGUMENT ||
           p[1] == LE_RAW_OR_EXPANDED_ARGUMENT) {
         /* End of token marker, also indicates end of character constant or
            string literal, and start of another token soon.  The end of
-           token marker itself is not put out.  The inert-macro, comma, and
-           argument markers are handled the same way. */
+           token marker itself is not put out.  The inert-macro, comma,
+           parenthesis, and argument markers are handled the same way. */
         within_char_literal = FALSE;
         start_of_token = TRUE;
         p += LE_ESCAPE_LEN-1;
@@ -4152,6 +4172,10 @@ treatment of rt_optional_text.
       switch (rts_kind) {
         case rt_raw_argument:
           sect_len = map->raw_len;
+          if (map->first_token_is_lparen) {
+            /* Make room for an LE_PAREN_FROM_ARGUMENT escape. */
+            sect_len += LE_ESCAPE_LEN;
+          }  /* if */
           /* Don't count an LE_INERT_MACRO escape at the beginning if present,
              since it will be removed. */
           if (prev_section_is_paste &&
@@ -4201,6 +4225,10 @@ treatment of rt_optional_text.
           break;
         case rt_argument:
           sect_len = map->expanded_len;
+          if (map->first_token_is_lparen) {
+            /* Make room for an LE_PAREN_FROM_ARGUMENT escape. */
+            sect_len += LE_ESCAPE_LEN;
+          }  /* if */
           break;
         case rt_microsoft_maybe_raw_argument:
           /* The replacement text will contain both the raw and the
@@ -5480,6 +5508,8 @@ associated global variables will also have been set).
   a_boolean       concatenates_va_args = FALSE;
   a_boolean       first_token_of_arg;
   char            *comma_from_arg_marker;
+  a_boolean       invocation_lparen_from_argument = FALSE;
+  a_boolean       macro_name_involved_arg_lparen = FALSE;
 
   /* WATCH OUT: Pointers into macro_buffer or the raw_text of a macro arg
      are dangerous, since those things can be reallocated.  Such pointers
@@ -5638,6 +5668,9 @@ end_scan_for_macro_modifs:;
       for (slmp2 = slmp; slmp2 != top_microsoft_slmp && slmp2 != NULL;
            slmp2 = parent_source_line_modif(slmp2)) {
         ++macro_name_depth;
+        if (slmp2->has_lparen_from_arg) {
+          macro_name_involved_arg_lparen = TRUE;
+        }  /* if */
       }  /* for */
     }  /* if */
     invocation_slmp = slmp;
@@ -6116,6 +6149,9 @@ make_inert_macro:
       /* "(" was found, so this is a macro call.  Scan the argument values
          and save them in the parameter list blocks (in both raw and
          macro-expanded form). */
+      if (lparen_is_from_argument) {
+        invocation_lparen_from_argument = TRUE;
+      }  /* if */
       macro_depth++;
       in_macro_arg_list = TRUE;
       fetch_pp_tokens = TRUE;
@@ -6166,6 +6202,13 @@ make_inert_macro:
              are deleted as the token is scanned.  Also, white space at
              the beginning and end of the argument is ignored. */
           map = alloc_macro_arg();
+          if (microsoft_mode && !ms_std_preproc && curr_token == tok_lparen) {
+            /* In the traditional Microsoft preprocessor, it can make a
+               difference whether the "(" in a function-style macro came
+               from a macro argument or not.  Flag this case for possible
+               later processing. */
+            map->first_token_is_lparen = TRUE;
+          }  /* if */
           add_to_arg_values(map);
           arg_position = pos_curr_token;
 do_argument_again:
@@ -6392,6 +6435,22 @@ do_argument_again:
                    invocation of X. */
                 if (invocation_slmp->is_concat_with_macro_argument) {
                   comma_is_from_argument = FALSE;
+                } else if (macro_name_involved_arg_lparen) {
+                  /* Similarly, if the macro name was constructed by a
+                     sequence of invocations in which the left parenthesis
+                     of at least one function-like macro invocation was
+                     found in a macro argument, a comma will delimit macro
+                     arguments upon rescan.  For example:
+
+                       #define M1(x) X
+                       #define M2(args) M1 args
+                       #define M3(...) M2((foo))(__VA_ARGS__)
+
+                     If M3 is invoked with an argument containing a comma,
+                     X will be invoked with two arguments because the left
+                     parenthesis in the invocation of M1 is contained in
+                     M2's argument. */
+                  comma_is_from_argument = FALSE;
                 }  /* if */
               /* coverity[var_deref_op] */
               } else if (invocation_slmp->is_concat_with_va_args) {
@@ -6405,7 +6464,7 @@ do_argument_again:
                    of that macro resulted from concatenation with a
                    __VA_ARGS__ value. */
                 comma_is_from_argument = FALSE;
-              }  /* if */
+              } /* if */
             }  /* if */
             if (scanning_text_not_in_primary_source_line &&
                 within_curr_source_line(start_of_curr_token)) {
@@ -7377,6 +7436,10 @@ end_arg_expansion:;
             if (is_va_arg_substitution && prev_section_is_paste) {
               concatenates_va_args = TRUE;
             }  /* if */
+            if (map->first_token_is_lparen) {
+              *src_loc++ = LE_ESCAPE;
+              *src_loc++ = LE_LPAREN_FROM_ARGUMENT;
+            }  /* if */
             sect_len = map->raw_len;
             text_loc = map->raw_text;
             /* Remove an LE_INERT_MACRO escape at the beginning if present,
@@ -7508,6 +7571,10 @@ end_arg_expansion:;
             is_va_arg_substitution = (mdp->variadic && rts_number == n_params);
             if (is_va_arg_substitution && prev_section_is_paste) {
               concatenates_va_args = TRUE;
+            }  /* if */
+            if (map->first_token_is_lparen) {
+              *src_loc++ = LE_ESCAPE;
+              *src_loc++ = LE_LPAREN_FROM_ARGUMENT;
             }  /* if */
             sect_len = map->expanded_len;
             text_loc = map->expanded_text;
@@ -7721,6 +7788,7 @@ copy_done:
   slmp->source_position = start_pos;
   slmp->is_concat_with_macro_argument = concatenates_macro_argument;
   slmp->is_concat_with_va_args = concatenates_va_args;
+  slmp->has_lparen_from_arg = invocation_lparen_from_argument;
   if (invocation_slmp != NULL &&
       ptr_in_range(delete_source_from_loc, invocation_slmp->inserted_text,
                    invocation_slmp->end_inserted_text)) {

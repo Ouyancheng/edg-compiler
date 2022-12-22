@@ -1326,6 +1326,13 @@ escape.
 			   Microsoft feature that deletes a comma in a
 			   macro argument list that precedes an empty
 			   variadic macro expansion. */
+#define LE_LPAREN_FROM_ARGUMENT 13
+			/* Indicates that the following character, a left
+			   parenthesis, was the first character of a macro
+			   argument.  This is used in the analysis to
+			   determine whether a comma in a macro argument
+			   delimits macro arguments during rescanning of
+			   the expansion. */
 
 /*
 Modifications made to the current source line.  orig_line_modif holds
@@ -1499,6 +1506,14 @@ typedef struct a_source_line_modif {
 			   comments in macro_invocation describing the
 			   handling of comma_is_from_argument for
 			   details. */
+  a_bit_field	has_lparen_from_arg:1;
+			/* TRUE if this modification resulted from a
+			   function-like macro in which the left
+			   parenthesis was the first token of a macro
+			   argument.  This is used to assist in the
+			   determination of whether a comma appearing in a
+			   macro argument should delimit macro arguments
+			   when the expansion is rescanned. */
   char		orig_char;
 			/* The character that was in the source line at
 			   position line_loc (provided so that the original
@@ -1709,6 +1724,12 @@ EXTERN a_boolean
 		empty_variadic_macro_seen;
 			/* Set to TRUE when skip_white_space encounters an
 			   LE_EMPTY_VARIADIC_MACRO.  It is the
+			   responsibility of the caller of skip_white_space
+			   to set it to FALSE beforehand. */
+EXTERN a_boolean
+		lparen_is_from_argument;
+			/* Set to TRUE when an LE_LPAREN_FROM_ARGUMENT is
+			   seen by skip_white_space.  It is the
 			   responsibility of the caller of skip_white_space
 			   to set it to FALSE beforehand. */
 EXTERN a_source_line_modif_ptr
