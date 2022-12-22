@@ -1976,6 +1976,34 @@ parameters 1 through param_count are checked.
 }  /* template_param_appears_in_param_list */
 
 
+a_boolean has_default_template_arguments(a_template_ptr templ)
+/*
+Given an IL template, return TRUE if the template has default template
+arguments; otherwise, return FALSE.
+*/
+{
+  a_boolean                        result = FALSE;
+  a_symbol_ptr                     templ_sym =
+                                (a_symbol_ptr)templ->source_corresp.assoc_info;
+  a_template_symbol_supplement_ptr tssp =
+                                     template_supplement_for_symbol(templ_sym);
+  a_template_param_ptr             param_list =
+                                             tssp->cache.decl_info->parameters;
+
+  for (a_template_param_ptr param = param_list; param != NULL;
+       param = param->next) {
+    if (param->has_default_arg) {
+      goto found;
+    }  /* if */
+  }  /* for */
+  goto done;
+found:
+  result = TRUE;
+done:
+  return result;
+}  /* has_default_template_arguments */
+
+
 static void get_template_arg_value_from_default(
 					a_symbol_ptr		template_sym,
 					a_template_arg_ptr	tap,

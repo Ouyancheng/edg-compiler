@@ -4838,53 +4838,6 @@ modules.
 }  /* check_and_set_specialization_redeclaration */
 
 
-a_boolean has_default_template_arguments(a_template_ptr templ)
-/*
-Given an IL template, return TRUE if the template has default template
-arguments; otherwise, return FALSE.
-*/
-{
-  a_boolean result = FALSE;
-
-  /* FIXME: Is this cached somewhere? */
-  for (; templ != NULL; templ = templ->next) {
-    a_template_decl_ptr      templ_decl = templ->template_decl;
-    a_template_parameter_ptr param = NULL;
-
-    if (templ_decl != NULL) {
-      param = templ_decl->param_list;
-    }  /* if */
-    for (; param != NULL; param = param->next) {
-      switch (param->kind) {
-        case tpk_error:
-          break;
-        case tpk_type:
-          if (param->variant.type.default_arg_type != NULL) {
-            goto found;
-          }  /* if */
-          break;
-        case tpk_nontype:
-          if (param->variant.nontype.default_arg_constant != NULL) {
-            goto found;
-          }  /* if */
-          break;
-        case tpk_template:
-          if (param->variant.templ.default_arg_template != NULL) {
-            goto found;
-          }  /* if */
-          break;
-        default_is_unexpected();
-      }  /* switch */
-    }  /* for */
-  }  /* for */
-  goto done;
-found:
-  result = TRUE;
-done:
-  return result;
-}  /* has_default_template_arguments */
-
-
 a_boolean has_default_arguments(char *entity_ptr, an_il_entry_kind kind)
 /*
 Given an entity pointer and its corresponding tag (kind), return TRUE if the

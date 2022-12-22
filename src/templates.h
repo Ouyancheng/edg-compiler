@@ -905,9 +905,11 @@ extern void find_inclass_field_initializer_for_instance(
 				a_symbol_ptr	field_sym,
 				a_symbol_ptr	corresp_prototype_tag_sym);
 
-void find_inclass_sdm_initializer_for_instance(
+extern void find_inclass_sdm_initializer_for_instance(
                                       a_symbol_ptr  sdm_sym,
                                       a_symbol_ptr  corresp_prototype_tag_sym);
+
+extern a_boolean has_default_template_arguments(a_template_ptr templ);
 
 extern void find_enum_member(a_symbol_ptr		alias_sym,
                              a_type_ptr			parent_class,
