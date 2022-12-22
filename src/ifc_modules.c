@@ -8863,62 +8863,18 @@ done:;
   return result;
 }  /* type_for_type_index */
 
-}  /* namespace */
 
-a_template_arg_ptr an_ifc_module::template_arg_for_expr(
-                                           const a_template_parameter *param,
-                                           an_ifc_expr_index          expr_idx)
+a_constant_ptr create_constant_for_nttp(const a_template_parameter *param,
+                                        an_ifc_expr_index          expr_idx)
 /*
-Given an IFC expression index, construct and return a corresponding template
-argument for param.  IFC expressions that can contain more than one argument
-(e.g., ExprSort::Tuple, ExprSort::PackedTemplateArguments) should use
-template_args_for_expr_list instead.
+Create and return a constant for the given non-type template parameter from the
+given expression.
 */
 {
-  a_template_arg_ptr result = NULL;
-  a_templ_arg_kind   kind;
-  a_type_ptr         type;
-  a_constant_ptr     cp = NULL;
+  a_constant_ptr result = NULL;
 
+  check_assertion(param->kind == tpk_nontype);
   switch (expr_idx.sort) {
-    case ifc_es_expr_type:
-      { Opt<an_ifc_expr_type> opt_expr_type;
-
-        construct_node(&opt_expr_type, expr_idx);
-        if (!opt_expr_type.has_value()) {
-          goto invalid;
-        }  /* if */
-
-        an_ifc_expr_type  expr_type = *opt_expr_type;
-        an_ifc_type_index denotation = get_ifc_denotation(expr_type);
-        kind = (a_templ_arg_kind)tak_type;
-
-        a_non_type_kind arg_kind;
-        /* FIXME: This should be refactored so this detection isn't
-           necessary/possible and/or the following check should be moved to the
-           validator. */
-        type = type_for_type_index(denotation, &arg_kind);
-        if (arg_kind != ntk_none) {
-          ifc_unexpected(this, "an ExprSort::Type referenced something that "
-                               "wasn't a type");
-          type = error_type();
-        }  /* if */
-      }
-      break;
-    case ifc_es_expr_unary_fold:
-      { Opt<an_ifc_expr_unary_fold> opt_ieuf;
-
-        construct_node(&opt_ieuf, expr_idx);
-        if (!opt_ieuf.has_value()) {
-          goto invalid;
-        }  /* if */
-        /* FIXME: Currently unsupported. */
-        issue_unsupported_construct_error(this, "ExprSort::UnaryFold",
-                                          &error_position);
-        kind = (a_templ_arg_kind)tak_type;
-        type = error_type();
-        goto invalid;
-      }
     case ifc_es_expr_read:
       { Opt<an_ifc_expr_read> opt_ier;
 
@@ -8927,26 +8883,54 @@ template_args_for_expr_list instead.
           goto invalid;
         }  /* if */
 
-        an_ifc_expr_read       ier = *opt_ier;
-        a_module_token_cache   cache;
-        a_source_position      pos;
-        a_curr_token_preserver guard;
+        an_ifc_expr_read  ier = *opt_ier;
+        an_ifc_expr_index address_idx = get_ifc_address(ier);
+        result = create_constant_for_nttp(param, address_idx);
+        /* FIXME: Update the constant with the appropriate read sort
+           transformation applied (i.e., perform things like LvalueToRvalue
+           conversion on the non-type constant). */
+      }
+      break;
+    case ifc_es_expr_named_decl:
+      { Opt<an_ifc_expr_named_decl> opt_named_decl;
 
-        kind = tak_nontype;
-        /* Use the parameter type instead of the ExprSort::Read type, as the
-           latter may not match (e.g., int& parameter type, int ExprSort::Read
-           type). */
-        check_assertion(param->kind == (a_template_parameter_kind)tpk_nontype);
-        type = param->variant.nontype.constant->type;
-        source_position_from_locus(&pos, get_ifc_locus(ier));
-        cache_expr(&cache, get_ifc_address(ier), /*cinfo=*/{});
-        /* FIXME: Do we need to handle iesrp->sort here? */
-        if (cache.is_valid()) {
-          a_module_entity_rescan rescan(&cache);
-
-          cp = fs_constant((a_constant_repr_kind)ck_error);
-          scan_template_argument_constant_expression(type, cp);
+        construct_node(&opt_named_decl, expr_idx);
+        if (!opt_named_decl.has_value()) {
+          goto invalid;
         }  /* if */
+
+        an_ifc_expr_named_decl named_decl = *opt_named_decl;
+        an_ifc_decl_index      decl_idx = get_ifc_resolution(named_decl);
+        switch (decl_idx.sort) {
+          case ifc_ds_decl_parameter:
+            { Opt<an_ifc_decl_parameter> opt_decl_param;
+
+              construct_node(&opt_decl_param, decl_idx);
+              if (!opt_decl_param.has_value()) {
+                goto invalid;
+              }  /* if */
+
+              an_ifc_decl_parameter decl_param = *opt_decl_param;
+              /* FIXME: Refactor this to not duplicate code from
+                 make_nontype_template_param_symbol */
+              result = fs_constant(ck_template_param);
+              result->type = param->variant.nontype.constant->type;;
+              result->variant.template_param.variant.coordinates.depth =
+                                                     get_ifc_level(decl_param);
+              result->variant.template_param.variant.coordinates.position =
+                                                  get_ifc_position(decl_param);
+            }
+            break;
+          default:
+            /* Fallback. */
+            /* FIXME: Do we need this? */
+            { a_type_ptr    type = param->variant.nontype.constant->type;
+              an_ifc_module *mod = expr_idx.mod;
+
+              result = mod->constant_for_expr_index(expr_idx, type);
+            }
+            break;
+        }  /* switch */
       }
       break;
     case ifc_es_expr_monad:
@@ -8962,45 +8946,116 @@ template_args_for_expr_list instead.
         a_module_token_cache   cache;
         a_source_position      pos;
         a_curr_token_preserver guard;
-        kind = tak_nontype;
-        type = type_for_type_index(get_ifc_type(iem), /*kind=*/NULL);
+        a_type_ptr             type = type_for_type_index(get_ifc_type(iem),
+                                                          /*kind=*/NULL);
+        an_ifc_module          *mod = expr_idx.mod;
+
         source_position_from_locus(&pos, locus);
-        cache_operator(&cache, get_ifc_assoc(iem), locus);
+        mod->cache_operator(&cache, get_ifc_assoc(iem), locus);
         cache_token(&cache, tok_lparen, &pos);
-        cache_expr(&cache, get_ifc_argument(iem), /*cinfo=*/{});
+        mod->cache_expr(&cache, get_ifc_argument(iem), /*cinfo=*/{});
         cache_token(&cache, tok_rparen, &pos);
         if (cache.is_valid()) {
           a_module_entity_rescan rescan(&cache);
 
-          cp = fs_constant((a_constant_repr_kind)ck_error);
-          scan_template_argument_constant_expression(type, cp);
+          result = fs_constant((a_constant_repr_kind)ck_error);
+          scan_template_argument_constant_expression(type, result);
         }  /* if */
       }
       break;
+    case ifc_es_expr_literal:
+      { a_type_ptr type = param->variant.nontype.constant->type;
+        an_ifc_module *mod = expr_idx.mod;
+
+        result = mod->constant_for_expr_index(expr_idx, type);
+      }
+      break;
+    default:
+      ifc_unexpected(expr_idx.mod,
+                     "unexpected Expr for non-type template argument "
+                     "formation");
+      goto invalid;
+  }  /* switch */
+  goto done;
+invalid:
+  result = alloc_error_constant();
+done:
+  return result;
+}  /* create_constant_for_nttp */
+
+}  /* namespace */
+
+a_template_arg_ptr an_ifc_module::template_arg_for_expr(
+                                           const a_template_parameter *param,
+                                           an_ifc_expr_index          expr_idx)
+/*
+Given an IFC expression index, construct and return a corresponding template
+argument for param.  IFC expressions that can contain more than one argument
+(e.g., ExprSort::Tuple, ExprSort::PackedTemplateArguments) should use
+template_args_for_expr_list instead.
+*/
+{
+  a_template_arg_ptr result = NULL;
+
+  switch (expr_idx.sort) {
+    /* Non-type template parameters. */
+    case ifc_es_expr_read:
     case ifc_es_expr_named_decl:
     case ifc_es_expr_literal:
-      kind = tak_nontype;
-      check_assertion(param->kind == (a_template_parameter_kind)tpk_nontype);
-      type = param->variant.nontype.constant->type;
-      cp = constant_for_expr_index(expr_idx, type);
+    case ifc_es_expr_monad:
+    case ifc_es_expr_dyad:
+      result = alloc_template_arg(tak_nontype);
+      result->variant.constant = create_constant_for_nttp(param, expr_idx);
+      break;
+    case ifc_es_expr_type:
+      { Opt<an_ifc_expr_type> opt_expr_type;
+
+        construct_node(&opt_expr_type, expr_idx);
+        if (!opt_expr_type.has_value()) {
+          goto invalid;
+        }  /* if */
+
+        an_ifc_expr_type  expr_type = *opt_expr_type;
+        an_ifc_type_index denotation = get_ifc_denotation(expr_type);
+
+        a_non_type_kind arg_kind;
+        /* FIXME: This should be refactored so this detection isn't
+           necessary/possible and/or the following check should be moved to the
+           validator. */
+        a_type_ptr type = type_for_type_index(denotation, &arg_kind);
+        if (arg_kind != ntk_none) {
+          ifc_unexpected(this, "an ExprSort::Type referenced something that "
+                               "wasn't a type");
+          type = error_type();
+        }  /* if */
+
+        result = alloc_template_arg(tak_type);
+        result->variant.type = type;
+      }
+      break;
+    case ifc_es_expr_unary_fold:
+      { Opt<an_ifc_expr_unary_fold> opt_ieuf;
+
+        construct_node(&opt_ieuf, expr_idx);
+        if (!opt_ieuf.has_value()) {
+          goto invalid;
+        }  /* if */
+        /* FIXME: Currently unsupported. */
+        issue_unsupported_construct_error(this, "ExprSort::UnaryFold",
+                                          &error_position);
+        goto invalid;
+      }
       break;
     default:
       unexpected_condition_str("Unexpected expr kind for template arg");
   } /* switch */
-  result = alloc_template_arg(kind);
-  if (kind == (a_templ_arg_kind)tak_type) {
-    result->variant.type = type;
-  } else if (kind == (a_templ_arg_kind)tak_nontype) {
-    /* If no valid constant was formed, use an error constant. */
-    if (cp == NULL) {
-      cp = alloc_error_constant();
-    }  /* if */
-    result->variant.constant = cp;
-  }  /* if */
   if (param->is_pack) {
     result->is_pack_element = TRUE;
   }  /* if */
+  goto done;
 invalid:
+  result = NULL;
+done:
   return result;
 }  /* template_arg_for_expr */
 
@@ -10640,16 +10695,16 @@ FIXME: shared or unshared?
 FIXME: what other types of named declarations can we get here?
 */
 {
-  an_ifc_decl_index resolution = get_ifc_resolution(iendp);
+  an_ifc_decl_index decl_idx = get_ifc_resolution(iendp);
   a_type_ptr        type = type_for_type_index(get_ifc_type(iendp),
                                                /*kind=*/NULL);
   a_constant_ptr    cp = NULL;
 
-  switch (resolution.sort) {
+  switch (decl_idx.sort) {
     case ifc_ds_decl_enumerator:
       { Opt<an_ifc_decl_enumerator> opt_ide;
 
-        construct_node(&opt_ide, resolution);
+        construct_node(&opt_ide, decl_idx);
         if (!opt_ide.has_value()) {
           goto invalid;
         }  /* if */
@@ -10667,8 +10722,9 @@ FIXME: what other types of named declarations can we get here?
                                         &error_position);
       goto invalid;
     default:
-      ifc_unexpected(resolution.mod,
+      ifc_unexpected(decl_idx.mod,
                      "Unexpected DeclSort for ExprSort::NamedDecl");
+      goto invalid;
   }  /* switch */
   goto done;
 invalid:
