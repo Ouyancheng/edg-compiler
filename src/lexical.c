@@ -17894,9 +17894,10 @@ set *sym_hdr to point to the symbol header if the next token is an
 identifier, else to NULL.
 */
 {
-  a_token_cache 	cache;
-  a_token_kind 		ntoken;
-  a_cached_token_ptr	ctp;
+  a_token_cache      cache;
+  a_token_kind       ntoken;
+  a_cached_token_ptr ctp;
+
   db_enter(5, "next_token_full");
   if (in_preprocessing_directive && curr_token == tok_newline) {
     /* If we have reached the end of a preprocessing directive, don't attempt
@@ -17981,10 +17982,10 @@ fetches the next two tokens instead of only one.  This routine
 cannot be used when fetching raw preprocessing tokens.
 */
 {
-  a_token_cache 	cache;
-  a_token_kind		ntoken = tok_error;
-  a_cached_token_ptr	ctp;
-  a_boolean		tokens_found = FALSE;
+  a_token_cache      cache;
+  a_token_kind       ntoken = tok_error;
+  a_cached_token_ptr ctp;
+  a_boolean          tokens_found = FALSE;
 
   db_enter(3, "next_two_tokens");
   if (in_preprocessing_directive && curr_token == tok_newline) {

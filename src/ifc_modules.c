@@ -10494,7 +10494,7 @@ FIXME: what other expressions can we get here?
 
           an_ifc_expr_index heap_idx = get_ifc_value(*traversed_ihe);
           *curr_const_ptr = constant_for_expr_index(heap_idx,
-                                                       /*default_type=*/NULL);
+                                                    /*default_type=*/NULL);
           if (*curr_const_ptr == NULL) {
             goto invalid;
           }  /* if */
