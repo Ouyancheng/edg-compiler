@@ -4862,6 +4862,7 @@ invocations.
                             = FALSE;
   slmp->is_concat_with_va_args
                             = FALSE;
+  slmp->has_lparen_from_arg = FALSE;
   slmp->inserted_text       = inserted_text;
   slmp->end_inserted_text   = end_inserted_text;
   slmp->assoc_macro         = (a_symbol_ptr)NULL;

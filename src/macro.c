@@ -2246,7 +2246,7 @@ print the replacement text and expansions of macros.
       } else if (ch == LE_COMMA_FROM_ARGUMENT) {
         /* Marker indicating a comma from a macro argument (that will not
            act as a macro argument delimiter when rescanned).  (Uses the
-           same flag character as LE_COMMA_FROM_ARGUMENT, since the next
+           same flag character as LE_LPAREN_FROM_ARGUMENT, since the next
            character makes clear which is intended.) */
         ch = '\\';
         p += LE_ESCAPE_LEN;
