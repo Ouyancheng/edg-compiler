@@ -191,14 +191,15 @@ struct an_ifc_module : public a_module_interface {
 			/* The current template declaration state, NULL if
 			   there is no template declaration being processed. */
   a_boolean     references_any_modules = FALSE;
-			/* A flag set to TRUE when this module make reference
-			   to one or more external modules.  This is set when
-			   a module is loaded. */
+			/* A flag set to TRUE when this module makes reference
+			   to one or more external modules.  This is set when a
+			   module is loaded. */
   Ptr_map<a_module_ref_key, a_module_import_decl_ptr>
 		referenced_modules;
 			/* A map from a module reference to the corresponding
-			   import decl.  Modules are lazily added to this list,
-			   it should not be assumed to be a complete set. */
+			   import decl.  Since modules are lazily added to this
+			   list, it should not be assumed to be a complete
+			   set. */
   a_boolean
 		suppress_automatic_name_qualification = FALSE;
 			/* Flag to indicate ExprSort_NameDecl should not be

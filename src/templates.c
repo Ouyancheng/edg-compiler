@@ -9397,7 +9397,7 @@ of the hash table is returned, or NULL is no entry is found.
 a_symbol_ptr find_template_instantiation(a_symbol_ptr       template_sym,
                                          a_template_arg_ptr template_args)
 /*
-Give a pointer to a template symbol and a list of template arguments, find and
+Given a pointer to a template symbol and a list of template arguments, find and
 return a symbol pointer for any existing (matching) instantiation; otherwise,
 return NULL.
 */

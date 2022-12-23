@@ -2297,8 +2297,8 @@ typedef struct a_reusable_cache_entry {
 			/* Non-zero if calls to get_token that would walk off
 			   the end of this cache should instead return an end
 			   of source token.  This is used in cases where the
-			   cache -- may otherwise -- be inadvertently popped
-			   during error recovery. */
+			   cache may otherwise be inadvertently popped during
+			   error recovery. */
   a_byte_boolean
 		discard_cache_when_done;
 			/* TRUE if token_cache should be freed when the

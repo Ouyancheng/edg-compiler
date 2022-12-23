@@ -321,7 +321,7 @@ inline a_token_sequence_number enter_module_token_rescan(
                                                 a_module_token_cache_ptr cache)
 /*
 Begin a token rescan of the given module token cache.  The module token cache
-will be terminated by this function, and should not be pre-terminated.  The
+will be terminated by this function and should not be pre-terminated.  The
 token sequence number for the added terminator token (end of source) will be
 returned.  The caller is responsible for calling exit_module_token_rescan after
 the rescanned tokens have been used.
@@ -413,10 +413,10 @@ a_module_entity_rescan::a_module_entity_rescan(
                                  a_token_kind             *final_token_ptr_val)
   : valid(cache->is_valid()), final_token_ptr(final_token_ptr_val)
 /*
-Apply the appropriate initialization logic to setup the parser for parsing the
-tokens specified in the given cache.  final_token_ptr_val should be the a
-pointed to the expected token kind upon a correct parse, or NULL if no specific
-token is expected.
+Apply the appropriate initialization logic to set up the parser for parsing the
+tokens specified in the given cache.  final_token_ptr_val should be a pointer
+to the expected token kind upon a correct parse, or NULL if no specific token
+is expected.
 */
 {
   if (this->valid) {

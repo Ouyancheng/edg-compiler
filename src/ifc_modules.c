@@ -891,8 +891,8 @@ a_Sequence_traverser<an_ifc_Node_type>::a_Sequence_traverser(
     : mod(mod_val), start(start_val), cardinality(cardinality_val)
 /*
 Construct a sequence traversal object that will traverse the partition
-associated with an_ifc_Node_type in the given module from "start" through
-"start + cardinality" (exclusive).
+associated with an_ifc_Node_type in the given module from start_val through
+start_val + cardinality_val (exclusive).
 */
 {
   if (this->cardinality > 0) {
@@ -965,7 +965,7 @@ inline an_ifc_index_type
 get_relative_index(const a_Sequence_traverser<an_ifc_Node_type> &traverser,
                    const an_Indexed<an_ifc_Node_type>           &indexed_value)
 /*
-Given a traverser an a derived indexed value, return the relative index of the
+Given a traverser and a derived indexed value, return the relative index of the
 indexed value from the start of the traverser.
 */
 {
@@ -984,14 +984,14 @@ inline a_boolean
 is_first(const a_Sequence_traverser<an_ifc_Node_type> &traverser,
          const an_Indexed<an_ifc_Node_type>           &indexed_value)
 /*
-Given a traverser an a derived indexed value, return TRUE if the indexed value
+Given a traverser and a derived indexed value, return TRUE if the indexed value
 is the first value; otherwise, return FALSE.
 */
 {
   an_ifc_index_type rel_idx = get_relative_index(traverser, indexed_value);
 
   return rel_idx == 0;
-}  /* get_relative_index */
+}  /* is_first */
 
 }  /* namespace */
 
@@ -1183,7 +1183,7 @@ will be lazily loaded if referenced).
 
 static a_module_entity_ptr
 process_decl_via_reference(const an_ifc_decl_reference &ref,
-                            a_boolean         defer = FALSE)
+                           a_boolean                   defer = FALSE)
 /*
 Process the IFC module entity declaration specified by the given declaration
 reference either by creating the appropriate IL entity, or, when defer is TRUE,
@@ -1242,7 +1242,7 @@ Given a scope reference find and return the associated scope.
 static a_boolean
 		in_get_home_scope = FALSE;
 			/* Flag set while evaluating a call to get_home_scope.
-			   This is used for "eager loading" mode to avoid
+			   This is used for eager loading mode to avoid
 			   unbounded recursive loading. */
 
 #endif /* EXPENSIVE_CHECKING */
@@ -3485,8 +3485,9 @@ a_boolean cache_direct_decl(a_module_token_cache_ptr  cache,
                             const an_ifc_decl_concept &idc,
                             const an_ifc_cache_info   &cinfo)
 /*
-Add the given decl concept into the cache.  Return TRUE if caching succeeds,
-FALSE otherwise.
+Add the given decl concept into the cache.  cinfo contains information about
+the current cache context to help inform decisions about what to cache.  Return
+TRUE if caching succeeds, FALSE otherwise.
 */
 {
   an_ifc_module     *mod = idc.get_module();
@@ -3513,8 +3514,9 @@ a_boolean cache_direct_decl(a_module_token_cache_ptr     cache,
                             const an_ifc_decl_enumerator &ide,
                             const an_ifc_cache_info      &cinfo)
 /*
-Add the given decl enumerator into the cache.  Return TRUE if caching succeeds,
-FALSE otherwise.
+Add the given decl enumerator into the cache.  cinfo contains information about
+the current cache context to help inform decisions about what to cache.  Return
+TRUE if caching succeeds, FALSE otherwise.
 */
 {
   /* An enumerator declaration is part of an enumeration declaration.
@@ -3538,8 +3540,9 @@ a_boolean cache_direct_decl(a_module_token_cache_ptr    cache,
                             const an_ifc_decl_parameter &idp,
                             const an_ifc_cache_info     &cinfo)
 /*
-Add the given decl parameter into the cache.  Return TRUE if caching succeeds,
-FALSE otherwise.
+Add the given decl parameter into the cache.  cinfo contains information about
+the current cache context to help inform decisions about what to cache.  Return
+TRUE if caching succeeds, FALSE otherwise.
 */
 {
   an_ifc_module          *mod = idp.get_module();
@@ -3616,8 +3619,9 @@ a_boolean cache_direct_decl(a_module_token_cache_ptr   cache,
                             const an_ifc_decl_temploid &idt,
                             const an_ifc_cache_info    &cinfo)
 /*
-Add the given decl temploid into the cache.  Return TRUE if caching succeeds,
-FALSE otherwise.
+Add the given decl temploid into the cache.  cinfo contains information about
+the current cache context to help inform decisions about what to cache.  Return
+TRUE if caching succeeds, FALSE otherwise.
 */
 {
   an_ifc_module *mod = idt.get_module();
@@ -4258,11 +4262,11 @@ a_boolean is_redeclared_basic_entity(a_symbol            *sym,
                                      char                **redecl_entity,
                                      an_il_entry_kind    *redecl_kind)
 /*
-For a give module entity's potentially previously declared symbol, module
+For a given module entity's potentially previously declared symbol, module
 entity pointer, and expected kind, check to see if the symbol is indeed a
-redeclaration.  Return TRUE if the symbol is a redeclaration; otherwise return
-FALSE.  If found, the redeclared entity and its associated kind will be set to
-*redecl_entity and *redecl_kind respectively.
+redeclaration.  If the symbol is a redeclaration, return TRUE and set
+*redecl_entity and *redecl_kind to the redeclared entity and its associated
+kind; otherwise, return FALSE.
 */
 {
   a_boolean        result = FALSE;
@@ -4295,10 +4299,9 @@ find_redeclared_basic_entity_in_list(a_symbol            *sym_list,
                                      an_il_entry_kind    *redecl_kind)
 /*
 For a given module entity's associated symbol list, module entity pointer, and
-expected kind, search the symbols for a redeclaration.  Return TRUE if a
-redeclaration is found; otherwise return FALSE.  If found, the redeclared
-entity and its associated kind will be set to *redecl_entity and *redecl_kind
-respectively.
+expected kind, search the symbols for a redeclaration.  If a redeclaration is
+found, return TRUE and set *redecl_entity and *redecl_kind to the redeclared
+entity and its associated kind; otherwise, return FALSE.
 
 This function should not be used directly in modules code, instead see
 check_and_set_redeclaration.
@@ -4324,10 +4327,9 @@ a_boolean find_redeclared_basic_entity(a_symbol_header     *sym_header,
                                        an_il_entry_kind    *redecl_kind)
 /*
 For a given module entity's symbol header, module entity pointer, and expected
-kind, search the active and inactive symbols for a redeclaration.  Return TRUE
-if a redeclaration is found; otherwise return FALSE.  If found, the redeclared
-entity and its associated kind will be set to *redecl_entity and *redecl_kind
-respectively.
+kind, search the active and inactive symbols for a redeclaration.  If a
+redeclaration is found, return TRUE and set *redecl_entity and *redecl_kind to
+the redeclared entity and its associated kind; otherwise, return FALSE.
 
 This function should not be used directly in modules code, instead see
 check_and_set_redeclaration.
@@ -4356,10 +4358,9 @@ a_boolean check_and_set_redeclaration(a_symbol_locator      *loc,
                                       an_il_entry_kind      *redecl_kind)
 /*
 Given an IFC module entity's symbol locator, module entity pointer, source
-position, and expected kind check for a redeclaration.  Return TRUE
-if a redeclaration is found; otherwise return FALSE.  If found, the redeclared
-entity and its associated kind will be set to *redecl_entity and *redecl_kind
-respectively.
+position, and expected kind check for a redeclaration.  If a redeclaration is
+found, return TRUE and set *redecl_entity and *redecl_kind to the redeclared
+entity and its associated kind; otherwise, return FALSE.
 
 The caller is responsible for handling any required merging of the
 declarations.  In the case of duplicate definitions the caller is responsible
@@ -4392,7 +4393,7 @@ redeclaration is.
 a_boolean has_matching_func_param(const an_ifc_decl_parameter &mod_templ_param,
                                   a_param_type_ptr            il_param_type)
 /*
-Return TRUE if the give IFC node information representation a parameter
+Return TRUE if the given IFC node information representation a parameter
 declaration represents the same type as the given IL param type.
 */
 {
@@ -4407,8 +4408,8 @@ declaration represents the same type as the given IL param type.
 a_boolean is_function_template_redecl(a_module_entity_ptr mep,
                                       a_template_ptr      templ)
 /*
-For a give module entity's module entity pointer, and the potentially
-previously declared template IL entity, check to see if the symbol is indeed a
+For a given module entity's module entity pointer and the potentially
+previously-declared template IL entity, check to see if the symbol is indeed a
 redeclaration.  Return TRUE if the symbol is a redeclaration; otherwise return
 FALSE.
 */
@@ -4474,7 +4475,7 @@ FALSE.
       }  /* switch */
     }  /* if */
     if (curr != NULL) {
-      /* If there's more IL template parameters than module template
+      /* If there are more IL template parameters than module template
          parameters, fail. */
       goto no_match;
     }  /* if */
@@ -4492,11 +4493,10 @@ a_boolean is_redeclared_template_entity(a_symbol            *sym,
                                         char                **redecl_entity,
                                         an_il_entry_kind    *redecl_kind)
 /*
-For a give module entity's potentially previously declared symbol, and module
-entity pointer, check to see if the symbol is indeed a redeclaration.  Return
-TRUE if the symbol is a redeclaration; otherwise return FALSE.  If found, the
-redeclared entity and its associated kind will be set to *redecl_entity and
-*redecl_kind respectively.
+For a given module entity's potentially-previously declared symbol, and module
+entity pointer, check to see if the symbol is indeed a redeclaration.  If the
+symbol is a redeclaration, return TRUE and set *redecl_entity and *redecl_kind
+to the redeclared entity and its associated kind; otherwise, return FALSE.
 
 This function should not be used directly in modules code, instead see
 check_and_set_template_redeclaration.
@@ -4524,10 +4524,10 @@ check_and_set_template_redeclaration.
           case templk_member_class:
           case templk_member_enum:
           case templk_template_template_param:
-          case templk_concept: /* FIXME: Is this right? */
+          case templk_concept:
           case templk_variable:
           case templk_static_data_member:
-            /* Cases which can't be overloaded. */
+            /* Cases that can't be overloaded. */
             result = TRUE;
             break;
           case templk_function:
@@ -4554,11 +4554,10 @@ find_redeclared_template_entity_in_list(a_symbol            *sym_list,
                                         char                **redecl_entity,
                                         an_il_entry_kind    *redecl_kind)
 /*
-For a given module entity's associated symbol list, primary template, and
-template arguments, search the symbols for a redeclaration.  Return TRUE if a
-redeclaration is found; otherwise return FALSE.  If found, the redeclared
-entity and its associated kind will be set to *redecl_entity and *redecl_kind
-respectively.
+For a given module entity's associated symbol list and module entity pointer,
+search the symbols for a redeclaration.  If a redeclaration is found, return
+TRUE and set *redecl_entity and *redecl_kind to the redeclared entity and its
+associated kind; otherwise, return FALSE.
 
 This function should not be used directly in modules code, instead see
 check_and_set_template_redeclaration.
@@ -4581,11 +4580,10 @@ a_boolean find_redeclared_template_entity(a_symbol_header     *sym_header,
                                           char                **redecl_entity,
                                           an_il_entry_kind    *redecl_kind)
 /*
-For a given module entity's symbol header, and module entity pointer, search
-the active and inactive symbols for a redeclaration.  Return TRUE if a
-redeclaration is found; otherwise return FALSE.  If found, the redeclared
-entity and its associated kind will be set to *redecl_entity and *redecl_kind
-respectively.
+For a given module entity's symbol header and module entity pointer, search the
+active and inactive symbols for a redeclaration.  If a redeclaration is found,
+return TRUE and set *redecl_entity and *redecl_kind to the redeclared entity
+and its associated kind; otherwise, return FALSE.
 
 This function should not be used directly in modules code, instead see
 check_and_set_template_redeclaration.
@@ -4613,10 +4611,9 @@ a_boolean check_and_set_template_redeclaration(
                                          an_il_entry_kind      *redecl_kind)
 /*
 Given an IFC module entity's symbol locator, module entity pointer, and source
-position, check for a redeclaration of a template.  Return TRUE if a
-redeclaration is found; otherwise return FALSE.  If found, the redeclared
-entity and its associated kind will be set to *redecl_entity and *redecl_kind
-respectively.
+position, check for a redeclaration of a template.  If a redeclaration is
+found, return TRUE and set *redecl_entity and *redecl_kind to the redeclared
+entity and its associated kind; otherwise, return FALSE.
 
 The caller is responsible for handling any required merging of the
 declarations.  In the case of duplicate definitions the caller is responsible
@@ -4675,11 +4672,11 @@ a_boolean is_redeclared_specialized_entity(a_symbol_ptr        sym,
                                            char                **redecl_entity,
                                            an_il_entry_kind    *redecl_kind)
 /*
-For a give module entity's potentially previously declared symbol, primary
+For a given module entity's potentially previously-declared symbol, primary
 templates, and template arguments, check to see if the symbol is indeed a
-redeclaration.  Return TRUE if the symbol is a redeclaration; otherwise return
-FALSE.  If found, the redeclared entity and its associated kind will be set to
-*redecl_entity and *redecl_kind respectively.
+redeclaration.  If the symbol is a redeclaration, return TRUE and set
+*redecl_entity and *redecl_kind to the redeclared entity and its associated
+kind; otherwise, return FALSE.
 
 This function should not be used directly in modules code, instead see
 check_and_set_specialization_redeclaration.
@@ -4715,10 +4712,9 @@ find_redeclared_specialized_entity_in_list(a_symbol_ptr        sym_list,
                                            an_il_entry_kind    *redecl_kind)
 /*
 For a given module entity's associated symbol list, primary template, and
-template arguments, search the symbols for a redeclaration.  Return TRUE if a
-redeclaration is found; otherwise return FALSE.  If found, the redeclared
-entity and its associated kind will be set to *redecl_entity and *redecl_kind
-respectively.
+template arguments, search the symbols for a redeclaration.  If a redeclaration
+is found, return TRUE and set *redecl_entity and *redecl_kind to the redeclared
+entity and its associated kind; otherwise, return FALSE.
 
 This function should not be used directly in modules code, instead see
 check_and_set_specialization_redeclaration.
@@ -4746,11 +4742,10 @@ a_boolean find_redeclared_specialized_entity(
                               char                             **redecl_entity,
                               an_il_entry_kind                 *redecl_kind)
 /*
-For a given module entity's symbol header, and IFC node information, search the
-active and inactive symbols for a redeclaration.  Return TRUE if a
-redeclaration is found; otherwise return FALSE.  If found, the redeclared
-entity and its associated kind will be set to *redecl_entity and *redecl_kind
-respectively.
+For a given module entity's symbol header and IFC node information, search the
+active and inactive symbols for a redeclaration.  If a redeclaration is found,
+return TRUE and set *redecl_entity and *redecl_kind to the redeclared entity
+and its associated kind; otherwise, return FALSE.
 
 This function should not be used directly in modules code, instead see
 check_and_set_specialization_redeclaration.
@@ -4809,9 +4804,9 @@ a_boolean check_and_set_specialization_redeclaration(
 /*
 Given an IFC module entity's symbol locator, module entity pointer, IFC node
 information, and source position, check for a redeclaration of a template
-specialization.  Return TRUE if a redeclaration is found; otherwise return
-FALSE.  If found, the redeclared entity and its associated kind will be set to
-*redecl_entity and *redecl_kind respectively.
+specialization.  If a redeclaration is found, return TRUE and set
+*redecl_entity and *redecl_kind to the redeclared entity and its associated
+kind; otherwise, return FALSE.
 
 The caller is responsible for handling any required merging of the
 declarations.  In the case of duplicate definitions the caller is responsible
@@ -5056,7 +5051,6 @@ but are declared by other IFC module files).
     construct(specializations);
     ifc_decl_template_lookup_table->map(templ_idx, specializations);
   }  /* if */
-  /* Unwrap the Owning ptr to provide a non-owning reference. */
   return specializations;
 }  /* get_or_alloc_specialization_list */
 
@@ -5084,10 +5078,10 @@ void associate_spec_with_template(an_ifc_decl_index      node_idx,
 /*
 Given an IFC declaration index and its associated node information, associate
 the specialization with its primary template for later processing.  If later
-processing is insufficient for proper reconstruction, instead this function
-will process the specialization immediately.
+processing is insufficient for proper reconstruction, this function will
+instead process the specialization immediately.
 
-Most of the time this function is a no-op as the IFC provided
+Most of the time this function is a no-op as the IFC-provided
 "trait.specialization" provides any specializations declared in the same module
 as the associated template (i.e., this function takes care of cases where the
 specialization is declared in an additional module).
@@ -5114,9 +5108,9 @@ specialization is declared in an additional module).
            The first case is seemingly a Microsoft extension where code can be
            placed between two different import declarations.
 
-           The second case is with eager loading.  When eager loading is
-           enabled, if the specialization is encountered after the template, it
-           need to process it immediately. */
+           The second case is with eager loading.  When eager loading mode is
+           enabled, if the specialization is encountered after the template,
+           the specialization needs to be processed immediately. */
         /* FIXME: Is the Microsoft extension where code can exist between
            import declarations correctly handled here. */
         if (templ_mep->entity.ptr == NULL) {
@@ -5172,11 +5166,11 @@ private:
                            declaration. */
   an_ifc_decl_array
                 specializations;
-                        /* An array if IFC declaration indexes that represent
+                        /* An array of IFC declaration indexes that represent
                            specializations of the associated template. */
   an_ifc_decl_array
                 explicit_instantiations;
-                        /* An array if IFC declaration indexes that represent
+                        /* An array of IFC declaration indexes that represent
                            explicit instantiations of the associated
                            template. */
 };  /* an_ifc_template_spec_info */
@@ -5186,7 +5180,8 @@ an_ifc_template_spec_info::an_ifc_template_spec_info(
                                                an_ifc_decl_index templ_idx_val)
   : templ_idx(templ_idx_val)
 /*
-Construct a new template spec info object for template at the given IFC index.
+Construct a new template spec info object for the template at the given IFC
+index.
 */
 {
   Opt<an_ifc_sequence> opt_spec_seq =
@@ -5199,10 +5194,9 @@ Construct a new template spec info object for template at the given IFC index.
 
 
 a_boolean is_explicit_instantiation(an_ifc_decl_index decl_idx)
-
 /*
 If the given decl index refers to the declaration of an explicit
-specialization, return TRUE; otherwise, return FALSE.
+instantiation, return TRUE; otherwise, return FALSE.
 */
 {
   a_boolean result = FALSE;
@@ -5318,8 +5312,8 @@ given IL template already contains.
 void process_template_deduction_guides(a_template_ptr    templ,
                                        an_ifc_decl_index decl_idx)
 /*
-For the given class template which is identified by the given declaration
-index, check if it has any associated deduction guides, and process them.
+For the given class template that is identified by the given declaration index,
+check if it has any associated deduction guides, and process them.
 */
 {
   check_assertion(templ->kind == templk_class);
@@ -5357,11 +5351,11 @@ aggregated template specialization information, attempt to complete the
 entity's definition and specializations.  If process_specializations is TRUE,
 specializations will be processed as well; otherwise, they will be ignored.
 Return TRUE if processing succeeds without error; otherwise, return FALSE.  If
-processing success il_entity and kind will set to the new IL entity for
+processing succeeds *il_entity and *kind will be set to the new IL entity for
 definition.
 
-Notably, if there's a previous declaration il_entity and kind must be set to
-the existing template declaration; otherwise, IL entity should be NULL.
+Notably, if there's a previous declaration *il_entity and *kind must be set to
+the existing template declaration; otherwise, *il_entity should be NULL.
 */
 {
   check_assertion(*il_entity == NULL || *kind == iek_template);
@@ -5416,13 +5410,13 @@ process_delayed_template_definition(const an_ifc_decl_template &decl_templ,
                                     char                       **il_entity,
                                     an_il_entry_kind           *kind)
 /*
-Given a module entity's IFC node information, and module entity pointer,
-attempt to complete the entity's definition and specializations.  Return TRUE
-if processing succeeds without error; otherwise, return FALSE.  If processing
+Given a module entity's IFC node information and module entity pointer, attempt
+to complete the entity's definition and specializations.  Return TRUE if
+processing succeeds without error; otherwise, return FALSE.  If processing
 success il_entity and kind will set to the new IL entity for definition.
 
-Notably, if there's a previous declaration il_entity and kind must be set to
-the existing template declaration; otherwise, IL entity should be NULL with
+Notably, if there's a previous declaration *il_entity and *kind must be set to
+the existing template declaration; otherwise, *il_entity should be NULL with
 kind set to iek_template.
 */
 {
@@ -5487,7 +5481,7 @@ module, but its definition hasn't been loaded yet.  Load the definition now.
   an_ifc_decl_index    def_decl_idx = ifc_template_definitions->get(templ);
 
   /* When the ifc_template_definitions were inserted, this should've been
-     validated, and not add to the map if invalid. */
+     validated and not added to the map if invalid. */
   an_ifc_decl_template template_decl;
   construct_node_prechecked(&template_decl, def_decl_idx);
 
@@ -5634,9 +5628,9 @@ principal associated IL entity.
               }  /* if */
               check_assertion(kind == iek_variable);
 
-              /* Variable template declarations cannot be meaningfully "merged"
-                 unless the variable is declared "extern", skip any further
-                 processing when they're detected as a redeclaration. */
+              /* Skip any further processing when the variable is not declared
+                 "extern" (as variable declarations cannot otherwise be
+                 meaningfully "merged"). */
               a_variable_ptr variable = (a_variable_ptr)il_entity;
               if (variable->storage_class != sc_extern) {
                 goto done;
@@ -6451,9 +6445,9 @@ class_struct_union_case:
               a_template_ptr templ = (a_template_ptr)il_entity;
 
               update_cache_info_for_template(&cache_info, templ);
-              /* Variable template declarations cannot be meaningfully "merged"
-                 unless the variable is declared "extern", skip any further
-                 processing when they're detected as a redeclaration. */
+              /* Skip any further processing when the variable template is not
+                 declared "extern" (as variable template declarations cannot
+                 otherwise be meaningfully "merged"). */
               if (templ->kind == templk_variable) {
                 a_variable_ptr variable =
                                        templ->prototype_instantiation.variable;
@@ -6724,8 +6718,8 @@ class_struct_union_case:
                                                            &error_position,
                                                            &il_entity,
                                                            &kind)) {
-              /* Specializations are fairly simple in nature, if the
-                 specialization is already declared, and already defined,
+              /* Specializations are fairly simple in nature; if the
+                 specialization is already declared and already defined,
                  there's nothing to add; skip processing. */
               if (is_defined(il_entity, kind)) {
                 break;
@@ -7742,11 +7736,11 @@ diagnostics if issue_diag is TRUE.
     using an_indexed_spec = an_Indexed<an_ifc_decl_specialization>;
     using an_indexed_partial_spec =
                                 an_Indexed<an_ifc_decl_partial_specialization>;
-    /* When eager loading modules, deferred specialization processing never
-       occurs so if external modules are referenced, those specializations need
-       processed now.  Note this code is only relevant for eagerly loaded
-       modules, which is a feature which is hidden behind EXPENSIVE_CHECKING
-       (hence the surrounding preprocessor block). */
+    /* When eager loading mode is enabled, deferred specialization processing
+       never occurs so if external modules are referenced, those
+       specializations need to be processed now.  Note this code is only
+       relevant for eager loading mode, which is a feature that is hidden
+       behind EXPENSIVE_CHECKING (hence the surrounding preprocessor block). */
     a_decl_specialization_traverser spec_traverser(this, /*start=*/0);
     for (an_indexed_spec indexed_spec : spec_traverser) {
       if (indexed_spec.has_value()) {
@@ -8998,9 +8992,8 @@ template_args_for_expr_list instead.
         /* FIXME: Currently unsupported. */
         issue_unsupported_construct_error(this, "ExprSort::UnaryFold",
                                           &error_position);
-        goto invalid;
       }
-      break;
+      goto invalid;
     default:
       unexpected_condition_str("Unexpected expr kind for template arg");
   } /* switch */
@@ -13763,7 +13756,8 @@ void an_ifc_module::cache_chart(a_module_token_cache_ptr cache,
 /*
 Add the tokens corresponding to the given chart to cache.  The caller is
 expected to have already cached the "template" keyword if it's required.  pos
-is the position of the chart.
+is the position of the chart.  cinfo contains information about the current
+cache context to help inform decisions about what to cache.
 */
 {
   an_ifc_expr_index constraint = {};
@@ -13842,7 +13836,8 @@ void an_ifc_module::cache_chart(a_module_token_cache_ptr     cache,
 /*
 Add the tokens corresponding to the given chart to cache.  The caller is
 expected to have already cached the "template" keyword if it's required.  locus
-is the location of the chart.
+is the location of the chart.  cinfo contains information about the current
+cache context to help inform decisions about what to cache.
 */
 {
   a_source_position pos;
@@ -15094,10 +15089,10 @@ uint32_t an_ifc_module::cache_decl_template_declaration(
                                       const an_ifc_cache_info    &cinfo)
 /*
 Add the tokens corresponding to the given template declaration (decl) to cache.
-If add_semicolon is TRUE, include the terminating semicolon that would be
-expected for a declaration that isn't a definition.  Return the offset into the
-template declaration's body at which to find the definition, or zero
-if there is no offset/the offset is not needed.
+cinfo contains information about the current cache context to help inform
+decisions about what to cache.  Return the offset into the template
+declaration's body at which to find the definition, or zero if there is no
+offset/the offset is not needed.
 */
 {
   an_ifc_parameterized_entity entity = get_ifc_entity(decl);
@@ -15150,6 +15145,8 @@ void an_ifc_module::cache_decl_template(a_module_token_cache_ptr   cache,
                                         const an_ifc_cache_info    &cinfo)
 /*
 Add the tokens corresponding to the given template declaration (decl) to cache.
+cinfo contains information about the current cache context to help inform
+decisions about what to cache.
 */
 {
   an_ifc_sentence_index decl_body = get_ifc_body(get_ifc_entity(decl));
@@ -15316,7 +15313,8 @@ void an_ifc_module::cache_decl_specialization(
                                   const an_ifc_cache_info          &cinfo)
 /*
 Add the tokens corresponding to the given specialization declaration (decl
-indexed in the IFC by decl_idx) to cache.
+indexed in the IFC by decl_idx) to cache.  cinfo contains information about the
+current cache context to help inform decisions about what to cache.
 */
 {
   an_ifc_decl_index templated_decl_idx = get_ifc_decl(decl);
@@ -15890,7 +15888,8 @@ void an_ifc_module::cache_template_head(a_module_token_cache_ptr cache,
 /*
 Add the tokens corresponding to the template head described by the given
 chart_idx to the cache.  pos is the position of the associated template or
-specialization.
+specialization.  cinfo contains information about the current cache context to
+help inform decisions about what to cache.
 */
 {
   cache_token(cache, tok_template, pos);
@@ -15955,7 +15954,9 @@ void an_ifc_module::cache_decl(a_module_token_cache_ptr cache,
                                an_ifc_decl_index        decl,
                                const an_ifc_cache_info  &cinfo)
 /*
-Add the tokens corresponding to the given declaration (decl) to cache.
+Add the tokens corresponding to the given declaration (decl) to cache.  cinfo
+contains information about the current cache context to help inform decisions
+about what to cache.
 */
 {
   a_source_position pos;

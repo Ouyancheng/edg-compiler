@@ -2729,8 +2729,8 @@ Decrement the number of token scans depending on the current reusable cache.
   reusable_cache_stack->dependent_scans--;
   if (reusable_cache_stack->next_cached_token == NULL &&
       reusable_cache_stack->dependent_scans == 0) {
-     /* Don't pop this entry of the stack if it is currently being used
-        for a variadic template rescan. */
+     /* Don't pop this entry off the stack if it is currently being used for a
+        variadic template rescan. */
      pop_reusable_cache_stack();
   }  /* if */
 }  /* decrement_dependent_scans_for_reusable_cache */
@@ -4502,8 +4502,8 @@ an equivalent change.
   /* Check whether we have reached the end of this cache. */
   while (reusable_cache_stack->next_cached_token == NULL &&
          reusable_cache_stack->dependent_scans == 0) {
-     /* Don't pop this entry of the stack if it is currently being used
-        for a variadic template rescan. */
+     /* Don't pop this entry off the stack if it is currently being used for a
+        variadic template rescan. */
      pop_reusable_cache_stack();
      if (reusable_cache_stack == NULL) break;
   }  /* while */
