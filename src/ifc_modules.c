@@ -920,7 +920,7 @@ a_Sequence_traverser<an_ifc_Node_type>::a_Sequence_traverser(
              start_val)
 /*
 Construct a sequence traversal object that will traverse the partition
-associated with an_ifc_Node_type in the given module from "start" through
+associated with an_ifc_Node_type in the given module from start_val through
 the end of the partition.
 */
 {
@@ -4393,8 +4393,8 @@ redeclaration is.
 a_boolean has_matching_func_param(const an_ifc_decl_parameter &mod_templ_param,
                                   a_param_type_ptr            il_param_type)
 /*
-Return TRUE if the given IFC node information representation a parameter
-declaration represents the same type as the given IL param type.
+Return TRUE if the given IFC node information for a parameter declaration
+represents the same type as the given IL param type.
 */
 {
   an_ifc_type_index ifc_type_idx = get_ifc_type(mod_templ_param);
@@ -4493,7 +4493,7 @@ a_boolean is_redeclared_template_entity(a_symbol            *sym,
                                         char                **redecl_entity,
                                         an_il_entry_kind    *redecl_kind)
 /*
-For a given module entity's potentially-previously declared symbol, and module
+For a given module entity's potentially previously-declared symbol and module
 entity pointer, check to see if the symbol is indeed a redeclaration.  If the
 symbol is a redeclaration, return TRUE and set *redecl_entity and *redecl_kind
 to the redeclared entity and its associated kind; otherwise, return FALSE.
@@ -4673,7 +4673,7 @@ a_boolean is_redeclared_specialized_entity(a_symbol_ptr        sym,
                                            an_il_entry_kind    *redecl_kind)
 /*
 For a given module entity's potentially previously-declared symbol, primary
-templates, and template arguments, check to see if the symbol is indeed a
+template, and template arguments, check to see if the symbol is indeed a
 redeclaration.  If the symbol is a redeclaration, return TRUE and set
 *redecl_entity and *redecl_kind to the redeclared entity and its associated
 kind; otherwise, return FALSE.
@@ -5411,9 +5411,9 @@ process_delayed_template_definition(const an_ifc_decl_template &decl_templ,
                                     an_il_entry_kind           *kind)
 /*
 Given a module entity's IFC node information and module entity pointer, attempt
-to complete the entity's definition and specializations.  Return TRUE if
-processing succeeds without error; otherwise, return FALSE.  If processing
-success il_entity and kind will set to the new IL entity for definition.
+to complete the entity's definition and specializations.  If processing
+succeeds without error, return TRUE and set *il_entity and *kind to the
+redeclared entity and its associated kind; otherwise, return FALSE.
 
 Notably, if there's a previous declaration *il_entity and *kind must be set to
 the existing template declaration; otherwise, *il_entity should be NULL with
