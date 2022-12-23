@@ -25788,7 +25788,7 @@ static void put_pseudo_token_start_to_temp_text_buffer(
                                         a_token_sequence_number tsn)
 /*
 Add a starting character sequence, indicating the beginning of a pseudo token
-of the given kind at the given token sequence number to temporary the text
+of the given kind at the given token sequence number, to the temporary text
 buffer.
 */
 {
@@ -25802,7 +25802,7 @@ buffer.
 static void put_pseudo_token_start_to_temp_text_buffer(a_cached_token_ptr ctp)
 /*
 Add a starting character sequence, indicating the beginning of a pseudo token
-cached as the given cached token.
+cached as the given cached token, to the temporary text buffer.
 */
 {
   put_pseudo_token_start_to_temp_text_buffer(ctp->token,
@@ -25812,7 +25812,7 @@ cached as the given cached token.
 
 static void put_pseudo_token_end_to_temp_text_buffer()
 /*
-Add a ending character sequence, indicating the end of a pseudo token to the
+Add an ending character sequence, indicating the end of a pseudo token, to the
 temporary text buffer.
 */
 {
@@ -25846,7 +25846,7 @@ static constexpr unsigned
 static void add_cached_token_to_string(a_cached_token_ptr ctp,
                                        a_boolean          print_pseudo_tokens)
 /*
-Add the given token to the string that is being construct.  If
+Add the given token to the string that is being constructed.  If
 print_pseudo_tokens is TRUE, pseudo tokens will be printed explicitly.
 */
 {
@@ -26008,6 +26008,7 @@ end_tsn.
     } /* if */
   }  /* for */
 }  /* add_cached_tokens_to_string */
+
 
 void add_token_cache_segment_to_string(a_token_cache_ptr	cache,
 				       a_token_sequence_number	start_tsn,
@@ -26461,7 +26462,7 @@ Display a single cached token.
 a_cached_token_ptr get_cache_token(a_token_cache_ptr       cache,
                                    a_token_sequence_number seq_number)
 /*
-Return the token identified by the given sequence number in the given cache; or
+Return the token identified by the given sequence number in the given cache, or
 NULL if not found.
 */
 {
@@ -26719,6 +26720,7 @@ pointer, and ending (inclusive) with the token identified by last_tsn.
   pos_in_temp_text_buffer = saved_pos;
   temp_text_buffer[saved_pos] = '\0';
 }  /* db_token_range */
+
 
 void db_tokens(a_cached_token_ptr  first_token)
 /*
