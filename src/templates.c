@@ -24787,7 +24787,6 @@ declaration of a partial specialization declared outside of its class.
   }  /* if */
   /* Record the last token sequence number of the "declaration" (i.e.,
      non-definition) part of the declaration. */
-  last_tsn_of_decl = last_token_sequence_number_of_token;
   if (next_tok == tok_identifier &&
       class_modifiers_allowed()) {
     check_for_class_modifiers(&next_tok, tok_lbrace, /*tag_name_first=*/TRUE);
@@ -24800,6 +24799,7 @@ declaration of a partial specialization declared outside of its class.
       scan_class_modifiers(type_kind, &is_final, &is_abstract, &is_sealed);
     }  /* if */
   }  /* if */
+  last_tsn_of_decl = last_token_sequence_number_of_token;
   is_definition = (curr_token == tok_colon || curr_token == tok_lbrace);
   decl_state->defines_something = is_definition;
   /* Make sure this declaration is valid in this scope. */
@@ -24875,7 +24875,7 @@ friend_template_checks_done:
      later. */
   if (!out_of_class_partial_spec) {
     make_template_decl_cache(decl_state, last_tsn_of_decl,
-                             /*include_last_token=*/TRUE);
+                             /*include_last_token=*/FALSE);
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (sym != NULL && sym->kind == (a_symbol_kind)sk_class_template &&

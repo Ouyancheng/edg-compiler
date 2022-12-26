@@ -1,5 +1,17 @@
 Version 6.5
 
+12/25/22 [EDGcpfe/25851]
+C++-generating back end: missing "final" specifier in class template definition
+
+In configurations and emulations in which class template definitions are
+put out from the string form of the definition (i.e., not generated from
+the prototype instantiation IL), the generated code for a class template
+declared as "final" in the original source was missing the "final"
+specifier.  This is now fixed.  For example, with --microsoft:
+
+  template<typename T> class A final { };  // Previously omitted "final"
+
+
 12/21/22 [EDGcpfe/25674]
 Microsoft compatibility: commas in variadic macro arguments
 
