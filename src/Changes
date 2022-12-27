@@ -1,6 +1,6 @@
 Version 6.5
 
-12/25/22 [EDGcpfe/25851]
+12/26/22 [EDGcpfe/25851]
 C++-generating back end: missing "final" specifier in class template definition
 
 In configurations and emulations in which class template definitions are
