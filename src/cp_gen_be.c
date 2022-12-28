@@ -7565,12 +7565,6 @@ for which constant is the value.
         a_constant_ptr eff_sub_con = sub_con;
         a_boolean      local_suppress_braces = FALSE;
         a_boolean      need_close_paren = FALSE;
-        /* Stop on default initialization of trailing elements. */
-        if (sub_con->implicit_aggr_element ||
-            (sub_con->kind == (a_constant_repr_kind)ck_dynamic_init &&
-             is_default_dynamic_init(sub_con->variant.dynamic_init.ptr))) {
-          break;
-        }  /* if */
         if (!first_elem) {
           write_tok_str(", ");
         } else {
@@ -7632,6 +7626,16 @@ for which constant is the value.
           }  /* if */
           write_tok_str("...");
         }  /* if */
+        /* Skip over default-initialized elements.  They may be the trailing
+           elements of the aggregate or skipped intermediate elements before
+           a designated initializer. */
+        while (sub_con->next != NULL &&
+               (sub_con->next->implicit_aggr_element ||
+                (sub_con->next->kind == ck_dynamic_init &&
+                 is_default_dynamic_init(
+                                  sub_con->next->variant.dynamic_init.ptr)))) {
+          sub_con = sub_con->next;
+        }  /* while */
 #if CHECKING
         if (sub_con->next == NULL) {
           check_assertion_str(sub_con ==

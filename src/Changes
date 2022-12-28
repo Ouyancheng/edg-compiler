@@ -1,5 +1,22 @@
 Version 6.5
 
+12/28/22 [EDGcpfe/25882]
+C++-generating back end: omitted aggregate initializers
+
+In cases where a designated initializer results in default-initializing one
+or more elements of an aggregate preceding the designated element, the
+C++-generating back end previously terminated the initializer list at the
+first such default-initialized element.  This is now fixed.  For example,
+with --c++20:
+
+  struct S {
+    int m1;
+    int m2;
+    int m3;
+  };
+  S x = { .m1 = 1, .m3 = 3 };  // Previously only initialized m1
+
+
 12/26/22 [EDGcpfe/25851]
 C++-generating back end: missing "final" specifier in class template definition
 
