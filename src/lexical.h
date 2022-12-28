@@ -2104,7 +2104,7 @@ enum a_token_extra_info_kind : a_byte {
 
 /*
 A kind enum representing the possible indexes types represented by an instance
-of the a_lexical_ifc_index_reference.xo
+of the a_lexical_ifc_index_reference.
 */
 enum a_lexical_ifc_index_kind {
   liik_decl_index,      /* IFC DeclIndex. */
