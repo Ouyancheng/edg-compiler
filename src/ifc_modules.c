@@ -8545,24 +8545,44 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
                 an_ifc_heap_type  iht = *indexed_iht;
                 an_ifc_index_type idx = get_relative_index(traverser,
                                                            indexed_iht);
+                a_non_type_kind   non_type_kind;
                 an_ifc_type_index indexed_type = get_ifc_value(iht);
-                a_param_type_ptr  ptp = make_param_type_from_ifc(rtsp,
-                                                                 indexed_type);
-                if (ptp == NULL && rtsp->has_ellipsis) {
+                if (type_represents_ellipsis(indexed_type)) {
+                  /* This happens when an ellipsis is present as the last
+                     parameter. */
                   ifc_requirement(indexed_type.mod,
                                   idx == get_ifc_cardinality(itt) - 1,
                                   "expected ellipsis to appear at "
                                   "end of parameter list");
+                  rtsp->has_ellipsis = TRUE;
                   break;
                 }  /* if */
 
+                a_type_ptr       param_type = type_for_type_index(
+                                                            indexed_type,
+                                                            &non_type_kind);
+                a_param_type_ptr ptp = make_param_type(param_type,
+                                                       &null_source_position);
+                update_param_top_level_qualifiers(ptp);
                 ptp->param_num = idx + 1;
                 *prev = ptp;
                 prev = &ptp->next;
               }  /* for */
             } else {
               /* A single parameter. */
-              rtsp->param_type_list = make_param_type_from_ifc(rtsp, source);
+              a_non_type_kind non_type_kind;
+              a_type_ptr      param_type = type_for_type_index(source,
+                                                               &non_type_kind);
+
+              if (param_type == NULL) {
+                /* A single ellipsis parameter. */
+                check_assertion(non_type_kind == ntk_ellipsis);
+                rtsp->has_ellipsis = TRUE;
+              } else {
+                rtsp->param_type_list = make_param_type(param_type,
+                                                        &null_source_position);
+                update_param_top_level_qualifiers(rtsp->param_type_list);
+              }  /* if */
             }  /* if */
           }  /* if */
         }
