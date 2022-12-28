@@ -7413,7 +7413,7 @@ any).
         db_node_at_idx(from_lexical_index<an_ifc_expr_index>(ifc_idx));
         break;
       default_is_unexpected();
-    }  /* if */
+    }  /* switch */
   }  /* if */
 }  /* db_node_at_tsn */
 

@@ -2102,6 +2102,10 @@ enum a_token_extra_info_kind : a_byte {
 };
 
 
+/*
+A kind enum representing the possible indexes types represented by an instance
+of the a_lexical_ifc_index_reference.xo
+*/
 enum a_lexical_ifc_index_kind {
   liik_decl_index,      /* IFC DeclIndex. */
   liik_expr_index       /* IFC ExprIndex. */
@@ -3267,8 +3271,6 @@ and all entities declared in functions.
 /* Show space used in the lexical routines, for debugging purposes. */
 extern unsigned long show_lexical_space_used(void);
 
-/* Useful for quickly grabbing a particular cached token for inspection in a
-   debugger; not optimized for general usage. */
 extern a_cached_token_ptr get_cache_token(a_token_cache_ptr       cache,
                                           a_token_sequence_number seq_number);
 

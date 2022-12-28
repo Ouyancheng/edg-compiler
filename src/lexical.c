@@ -26464,13 +26464,16 @@ a_cached_token_ptr get_cache_token(a_token_cache_ptr       cache,
 /*
 Return the token identified by the given sequence number in the given cache, or
 NULL if not found.
+
+This function is useful for quickly grabbing a particular cached token for
+inspection in a debugger; not optimized for general usage.
 */
 {
   a_cached_token_ptr ctp = cache->first_token;
 
   while (ctp != NULL && ctp->token_sequence_number != seq_number) {
     ctp = ctp->next;
-  }  /* if */
+  }  /* while */
   return ctp;
 }  /* get_cache_token */
 
@@ -26563,26 +26566,29 @@ included in the string.
         ctp->token_sequence_number == end_tsn) break;
 
     /* Add the color rotation if relevant. */
-    if (db_flag_is_set("brightcolor")) {
+    if (db_color_flag_is_set()) {
       put_ch_to_temp_text_buffer('\033');
       put_ch_to_temp_text_buffer('[');
-      /* Update the current color. */
-      color_idx = (color_idx + 1) % tok_dbg_num_bright_colors;
 
-      a_const_char *color_code = tok_dbg_bright_colors[color_idx];
+      /* Update the current color. */
+      a_const_char *color_code;
+      if (db_flag_is_set("brightcolor")) {
+        color_idx = (color_idx + 1) % tok_dbg_num_bright_colors;
+        color_code = tok_dbg_bright_colors[color_idx];
+      } else if (db_flag_is_set("darkcolor")) {
+        color_idx = (color_idx + 1) % tok_dbg_num_dark_colors;
+        color_code = tok_dbg_dark_colors[color_idx];
+      } else {
+        unexpected_condition();
+      }  /* if */
       put_str_to_temp_text_buffer(color_code);
       put_ch_to_temp_text_buffer('m');
     } else if (db_flag_is_set("darkcolor")) {
       put_ch_to_temp_text_buffer('\033');
       put_ch_to_temp_text_buffer('[');
       /* Update the current color. */
-      color_idx = (color_idx + 1) % tok_dbg_num_dark_colors;
-
-      a_const_char *color_code = tok_dbg_dark_colors[color_idx];
-      put_str_to_temp_text_buffer(color_code);
       put_ch_to_temp_text_buffer('m');
     }  /* if */
-
     add_cached_token_to_string(ctp, /*print_pseudo_tokens=*/TRUE);
   }  /* for */
   if (db_color_flag_is_set()) {
