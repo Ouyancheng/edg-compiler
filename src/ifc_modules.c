@@ -960,6 +960,7 @@ sequence is not valid.
   return result;
 }  /* end */
 
+
 template<typename an_ifc_Node_type>
 inline an_ifc_index_type
 get_relative_index(const a_Sequence_traverser<an_ifc_Node_type> &traverser,
@@ -4095,6 +4096,9 @@ definition.
 
 namespace {
 
+/*
+An enum used to encode additional context when processing an IFC type.
+*/
 enum a_non_type_kind : uint8_t {
   ntk_none,
   ntk_ellipsis,
@@ -4115,96 +4119,96 @@ Given a type index, return the corresponding type kind.
 
   switch (sort) {
     case ifc_ts_type_fundamental:
-        { Opt<an_ifc_type_fundamental> opt_itf;
+      { Opt<an_ifc_type_fundamental> opt_itf;
 
-          construct_node(&opt_itf, type_idx);
-          if (!opt_itf.has_value()) {
+        construct_node(&opt_itf, type_idx);
+        if (!opt_itf.has_value()) {
+          goto invalid;
+        }  /* if */
+
+        an_ifc_type_fundamental itf = *opt_itf;
+        an_ifc_type_basis_sort  basis = get_ifc_basis(itf);
+        switch (basis) {
+          case ifc_tbs_void:
+            result = tk_void;
+            break;
+          case ifc_tbs_bool:
+          case ifc_tbs_char:
+          case ifc_tbs_wchar_t:
+          case ifc_tbs_int:
+            result = tk_integer;
+            break;
+          case ifc_tbs_float:
+          case ifc_tbs_double:
+            result = tk_float;
+            break;
+          case ifc_tbs_nullptr:
+            result = tk_nullptr;
+            break;
+          case ifc_tbs_ellipsis:
+            ifc_unexpected(itf.get_module(),
+                           "unexpected TypeBasis::Ellipsis");
             goto invalid;
-          }  /* if */
-
-          an_ifc_type_fundamental itf = *opt_itf;
-          an_ifc_type_basis_sort  basis = get_ifc_basis(itf);
-          switch (basis) {
-            case ifc_tbs_void:
-              result = tk_void;
-              break;
-            case ifc_tbs_bool:
-            case ifc_tbs_char:
-            case ifc_tbs_wchar_t:
-            case ifc_tbs_int:
-              result = tk_integer;
-              break;
-            case ifc_tbs_float:
-            case ifc_tbs_double:
-              result = tk_float;
-              break;
-            case ifc_tbs_nullptr:
-              result = tk_nullptr;
-              break;
-            case ifc_tbs_ellipsis:
-              ifc_unexpected(itf.get_module(),
-                             "unexpected TypeBasis::Ellipsis");
-              goto invalid;
-            case ifc_tbs_class:
-              result = tk_class;
-              break;
-            case ifc_tbs_struct:
-              result = tk_struct;
-              break;
-            case ifc_tbs_union:
-              result = tk_union;
-              break;
-            case ifc_tbs_auto:
-              ifc_unexpected(itf.get_module(),
-                             "unexpected TypeBasis::Auto");
-              goto invalid;
-            case ifc_tbs_decltype_auto:
-              ifc_unexpected(itf.get_module(),
-                             "unexpected TypeBasis::Decltype");
-              goto invalid;
-            case ifc_tbs_namespace:
-              ifc_unexpected(itf.get_module(),
-                             "unexpected TypeBasis::Namespace");
-              goto invalid;
-            case ifc_tbs_interface:
-              ifc_unexpected(itf.get_module(),
-                             "unexpected TypeBasis::Interface");
-              goto invalid;
-            case ifc_tbs_enum:
-              result = tk_enum;
-              break;
-            case ifc_tbs_typename:
-              result = tk_typeref;
-              break;
-            case ifc_tbs_segment_type:
-              ifc_unexpected(itf.get_module(),
-                             "unexpected TypeBasis::SegmentType");
-              goto invalid;
-            case ifc_tbs_function:
-            case ifc_tbs_overload:
-              result = tk_routine;
-              break;
-            case ifc_tbs_empty:
-              ifc_unexpected(itf.get_module(),
-                             "unexpected TypeBasis::Empty");
-              goto invalid;
-            case ifc_tbs_variable_template:
-              result = tk_unknown;
-              break;
-            case ifc_tbs_concept:
-              ifc_unexpected(itf.get_module(),
-                             "unexpected TypeBasis::Concept");
-              goto invalid;
-            default_is_unexpected_str("Unexpected TypeBasis kind");
-          }  /* switch */
-        }
+          case ifc_tbs_class:
+            result = tk_class;
+            break;
+          case ifc_tbs_struct:
+            result = tk_struct;
+            break;
+          case ifc_tbs_union:
+            result = tk_union;
+            break;
+          case ifc_tbs_auto:
+            ifc_unexpected(itf.get_module(),
+                           "unexpected TypeBasis::Auto");
+            goto invalid;
+          case ifc_tbs_decltype_auto:
+            ifc_unexpected(itf.get_module(),
+                           "unexpected TypeBasis::Decltype");
+            goto invalid;
+          case ifc_tbs_namespace:
+            ifc_unexpected(itf.get_module(),
+                           "unexpected TypeBasis::Namespace");
+            goto invalid;
+          case ifc_tbs_interface:
+            ifc_unexpected(itf.get_module(),
+                           "unexpected TypeBasis::Interface");
+            goto invalid;
+          case ifc_tbs_enum:
+            result = tk_enum;
+            break;
+          case ifc_tbs_typename:
+            result = tk_typeref;
+            break;
+          case ifc_tbs_segment_type:
+            ifc_unexpected(itf.get_module(),
+                           "unexpected TypeBasis::SegmentType");
+            goto invalid;
+          case ifc_tbs_function:
+          case ifc_tbs_overload:
+            result = tk_routine;
+            break;
+          case ifc_tbs_empty:
+            ifc_unexpected(itf.get_module(),
+                           "unexpected TypeBasis::Empty");
+            goto invalid;
+          case ifc_tbs_variable_template:
+            result = tk_unknown;
+            break;
+          case ifc_tbs_concept:
+            ifc_unexpected(itf.get_module(),
+                           "unexpected TypeBasis::Concept");
+            goto invalid;
+          default_is_unexpected_str("Unexpected TypeBasis kind");
+        }  /* switch */
+      }
       break;
     default:
       { a_type_ptr type = type_for_type_index(type_idx, /*kind=*/NULL);
 
         result = type->kind;
-        break;
       }
+      break;
   }  /* switch */
 invalid:;
   return result;
@@ -4873,7 +4877,7 @@ entity has default arguments; otherwise, return FALSE.
       break;
     default:
       break;
-  }  /* if */
+  }  /* switch */
   return result;
 }  /* has_default_arguments */
 
@@ -7748,7 +7752,7 @@ diagnostics if issue_diag is TRUE.
 
         associate_spec_with_template(decl_idx, *indexed_spec);
       }  /* if */
-    }  /* if */
+    }  /* for */
 
     a_decl_partial_specialization_traverser part_spec_traverser(this,
                                                                 /*start=*/0);
@@ -7758,7 +7762,7 @@ diagnostics if issue_diag is TRUE.
 
         associate_spec_with_template(decl_idx, *indexed_spec);
       }  /* if */
-    }  /* if */
+    }  /* for */
   }  /* if */
 #endif /* EXPENSIVE_CHECKING */
 done:
