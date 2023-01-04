@@ -10637,6 +10637,7 @@ FIXME: what other expressions can we get here?
         cp->type = type_for_type_index(get_ifc_type(ies), /*kind=*/NULL);
         cp->variant.string.length = length;
         cp->variant.string.value  = str_val;
+        cp->variant.string.literal_kind = SCLK_ORDINARY_STRING_LITERAL;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
         source_position_from_locus(&cp->end_position, get_ifc_locus(ies));
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -11015,6 +11016,7 @@ literal.
   cp->type = string_literal_type(kind, length);
   cp->variant.string.length = length;
   cp->variant.string.value  = val;
+  cp->variant.string.literal_kind = SCLK_ORDINARY_STRING_LITERAL;
   if (prev_string != NULL) {
     a_token_cache_ptr canonical_cache = cache->as_canonical();
 
