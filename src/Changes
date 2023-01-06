@@ -1,21 +1,5 @@
 Version 6.5
 
-1/6/23   [EDGcpfe/25860]
-GNU C++ compatibility: Relaxed checking for abstract class types
-
-The changes for EDGcpfe/25234 in version 6.4 introduced a regression causing
-the front end to fail to report certain invalid uses of prvalues of abstract
-class type.  For example, in GNU C++ mode with gnu_version >= 110000:
-
-  struct S { virtual void f() = 0; };
-  S g();
-  S h() {        // Previously failed to be diagnosed.  Now an error again.
-    return g();  // Ditto.
-  }
-
-That is now fixed.
-
-
 1/6/23   [EDGcpfe/15947,EDGcpfe/19055,EDGcpfe/25879]
 GNU/Clang C++ compatibility: Explicit lambda template parameters
 
