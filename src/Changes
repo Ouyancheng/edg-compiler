@@ -1,5 +1,26 @@
 Version 6.5
 
+1/5/23   [EDGcpfe/24182,EDGcpfe/25880]
+GNU C++ compatibility: Nontrivial class types in statement expressions
+
+Consider (in GNU C++ mode):
+
+  template<typename T> struct N {
+    N();
+    union { T value; };
+  };
+  struct S { S(); };
+  void g() {
+    ({ N<S> v; });  // Previously an error.  Now okay.
+  }
+
+The front end does not allow the definition of a class with nontrivial copy
+semantics to be defined in a statement expression.  The implementation of that
+constraint unintentionally also included instantiations of template classes
+while parsing a statement expression, which cause the example above to give an
+error.  That is now fixed.
+
+
 12/28/22 [EDGcpfe/25882]
 C++-generating back end: omitted aggregate initializers
 
@@ -62,27 +83,6 @@ GNU-C++-mode type-id contexts.  For example:
 
   auto r = (signed __int128_t)42;  // Now accepted in GNU C++ modes.
   signed __int128_t x = 42;        // Still an error (matches GCC behavior).
-
-
-1/5/23   [EDGcpfe/24182,EDGcpfe/25880]
-GNU C++ compatibility: Nontrivial class types in statement expressions
-
-Consider (in GNU C++ mode):
-
-  template<typename T> struct N {
-    N();
-    union { T value; };
-  };
-  struct S { S(); };
-  void g() {
-    ({ N<S> v; });  // Previously an error.  Now okay.
-  }
-
-The front end does not allow the definition of a class with nontrivial copy
-semantics to be defined in a statement expression.  The implementation of that
-constraint unintentionally also included instantiations of template classes
-while parsing a statement expression, which cause the example above to give an
-error.  That is now fixed.
 
 
 12/21/22 [EDGcpfe/24973]
