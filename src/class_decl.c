@@ -33761,8 +33761,16 @@ proper.
   dps->reuse_auto_params_descr = TRUE;
   dps->first_decl = TRUE;
   /* Check for explicit lambda template parameters (a C++20 feature). */
-  if (curr_token == tok_lt && generic_lambdas_enabled &&
-      lambda_template_param_list_enabled) {
+  if (curr_token == tok_lt && generic_lambdas_enabled) {
+    if (!lambda_template_param_list_enabled) {
+      an_error_severity  sev = es_error;
+      if (gpp_version_is(>40900) || clang_version_is(>=90000)) {
+        sev = es_warning;
+        lambda_template_param_list_enabled = TRUE;
+      }  /* if */
+      pos_diagnostic(sev, ec_explicit_lambda_template_parameters_is_cpp20,
+                     &pos_curr_token);
+    }  /* if */
     scan_lambda_template_param_list(templ_state, dps);
     if (scope_stack_top().is_generic_lambda) {
       lambda->is_generic = TRUE;
