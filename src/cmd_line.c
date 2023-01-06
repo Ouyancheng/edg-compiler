@@ -5559,8 +5559,9 @@ before this routine is called.
       float16_enabled = TRUE;
     }  /* if */
   }  /* if */
-  if (!option_kind_used[(int)optk_relaxed_abstract_checking]) {
-    /* g++ (9.2) and clang (9.0) do not yet implement P0929R2. */
+  if (!option_kind_used[(int)optk_relaxed_abstract_checking] &&
+      !gpp_version_is(>= 110000)) {
+    /* GCC does not implement P0929R2 until version 11.x. */
     relaxed_abstract_checking = FALSE;
   }  /* if */
 }  /* check_and_set_gpp_mode_options */
