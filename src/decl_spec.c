@@ -4687,10 +4687,14 @@ defined.  Detailed position information is recorded in *decl_pos_block.
 #endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     if (inside_statement_expression() && !C_mode() &&
+        !is_template_class_type(class_type) &&
         is_nonPOD_or_has_nontrivial_copy_semantics(class_type)) {
       /* Non-POD class definitions (classes with non-trivial
          copy/initialization semantics in modern C++) are not allowed
-         inside statement expressions. */
+         inside statement expressions.  However, if class_type is a template
+         class, this is not a definition in the statement expression but an
+         instantiation triggered during the parsing of the statement expression
+         (which is fine). */
       pos_error(ec_class_def_in_statement_expr, &decl_start_pos);
     }  /* if */
   }  /* if */
