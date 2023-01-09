@@ -29,7 +29,7 @@ class type.  For example, in GNU C++ mode with gnu_version >= 110000:
 That is now fixed.
 
 
-1/6/23   [EDGcpfe/15947,EDGcpfe/19055,EDGcpfe/25879]
+1/6/23   [EDGcpfe/15947,EDGcpfe/19055,EDGcpfe/23762,EDGcpfe/25879]
 GNU/Clang C++ compatibility: Explicit lambda template parameters
 
 In GNU C++14 modes (with gnu_version >= 40900) and Clang C++14 modes (with
