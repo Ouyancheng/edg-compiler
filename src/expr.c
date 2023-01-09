@@ -38756,7 +38756,7 @@ Scan a C++ lambda expression, e.g., something like
        context is evaluated (e.g., the operand of a typeid). */
     expr_stack->potentially_unevaluated_lambda_seen = TRUE;
     expr_stack->potentially_unevaluated_lambda_pos = start_pos;
-  } else if (!constexpr_lambdas_enabled &&
+  } else if (!constexpr_lambdas_enabled && !gpp_version_is(<80000) &&
              construct_not_allowed_in_cpp11_constant_expr(
                                                         ec_bad_constant_lambda,
                                                         &start_pos)) {

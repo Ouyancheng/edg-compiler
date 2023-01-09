@@ -1,5 +1,18 @@
 Version 6.5
 
+1/9/23   [EDGcpfe/22395]
+GNU C++ compatibility: Closure types and literal types
+
+C++17 introduced "constexpr lambdas", and along with that feature closure types
+that are literal types.  However, until GCC 8.0 treated closure types as
+literal types by default.  For example:
+
+  constexpr auto lm = [](int i) { return i; };
+    // Now accepted in GNU C++14 mode when gnu_version < 80000.
+
+The front end now emulates that behavior.
+
+
 1/6/23   [EDGcpfe/25884]
 GNU C++ compatibility: Relaxed checking for abstract class types
 

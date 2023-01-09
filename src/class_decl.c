@@ -31645,8 +31645,13 @@ flag is set in the class symbol supplement of the given type.
       cssp->known_not_to_be_a_literal_type = TRUE;
     } else if (is_closure_class_symbol(symbol_for(type))) {
       /* A closure class that meets the above criteria is a literal class
-         type. */
-      cssp->known_to_be_a_literal_type = TRUE;
+         type in C++20 mode.  Early versions of GCC also treated such closures
+         as literal types. */
+      if (constexpr_lambdas_enabled || gpp_version_is(<80000)) {
+        cssp->known_to_be_a_literal_type = TRUE;
+      } else {
+        cssp->known_not_to_be_a_literal_type = TRUE;
+      }  /* if */
     } else if (cssp->is_class_aggregate) {
       /* Aggregate class types are literal types if they meet the previous
          constraints. */
@@ -34479,8 +34484,6 @@ For example:
   a_boolean            bad_scope;
   a_def_arg_expr_fixup_ptr
                        saved_curr_default_args = curr_default_args;
-  a_class_symbol_supplement_ptr
-                       cssp;
 
   /* Temporarily stash away default argument fixups to keep them separate
      from any additional fixups that might be generated for the lambda
@@ -34569,13 +34572,6 @@ For example:
   }
   /* Record the capture list and complete the closure class. */
   complete_class_definition(closure_class, decl_level, &class_state);
-  cssp = class_symbol_supp(symbol_for(closure_class));
-  if (constexpr_lambdas_enabled) {
-    set_literal_type_flag(closure_class);
-  } else {
-    cssp->known_not_to_be_a_literal_type = TRUE;
-    cssp->known_to_be_a_literal_type = FALSE;
-  }  /* if */
   pop_scope();
   if (!lambda->is_generic) {
     define_lambda_conversion_functions_if_needed(lambda);
