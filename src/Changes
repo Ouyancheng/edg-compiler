@@ -20,7 +20,7 @@ That is now fixed.
 GNU/Clang C++ compatibility: Explicit lambda template parameters
 
 In GNU C++14 modes (with gnu_version >= 40900) and Clang C++14 modes (with
-gnu_version >= 90000) the front end now accepts explicit lambda template
+clang_version >= 90000) the front end now accepts explicit lambda template
 parameters, which are only standard in C++20 mode.  A warning is issued on
 the first occurrence of the feature.
 
