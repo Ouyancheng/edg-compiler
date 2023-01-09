@@ -33769,7 +33769,7 @@ proper.
   if (curr_token == tok_lt && generic_lambdas_enabled) {
     if (!lambda_template_param_list_enabled) {
       an_error_severity  sev = es_error;
-      if (gpp_version_is(>40900) || clang_version_is(>=90000)) {
+      if (gpp_version_is(>=40900) || clang_version_is(>=90000)) {
         sev = es_warning;
         lambda_template_param_list_enabled = TRUE;
       }  /* if */
