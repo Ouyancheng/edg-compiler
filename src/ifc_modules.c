@@ -10326,7 +10326,8 @@ FIXME: what other expressions can we get here?
                                         (an_integer_kind)ik_unsigned_int);
               } else {
                 if (constant_type != NULL) {
-                  if (is_pointer_type(constant_type)) {
+                  if (is_pointer_type(constant_type) ||
+                      is_nullptr_type(constant_type)) {
                     /* Pointer literal. */
                     set_unsigned_integer_constant(cp, value,
                                                   targ_size_t_int_kind);
@@ -10942,7 +10943,8 @@ cache_bool_literal, cache_string_literal, and cache_ud_literal for those).
 #endif /* FIXED_POINT_ALLOWED */
   } else if (is_character_type(lit_type)) {
     lit_kind = tok_char_constant;
-  } else if (is_integral_type(lit_type) || is_pointer_type(lit_type)) {
+  } else if (is_integral_type(lit_type) || is_pointer_type(lit_type) ||
+             is_nullptr_type(lit_type)) {
     /* When caching pointer literals, cast to the correct pointer type. */
     if (is_pointer_type(lit_type)) {
       cache_token(cache, tok_lparen, pos);
