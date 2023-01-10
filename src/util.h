@@ -436,7 +436,7 @@ new allocation.
     construct(new_start+k, move_from(old_start+k));
     destroy(old_start+k);
   }  /* for */
-  free_fe(old_start, a.n_allocated*sizeof(an_elem));
+  free_fe((void*)old_start, a.n_allocated*sizeof(an_elem));
   return an_allocation{ new_start, (a_ptrdiff)new_capacity };
 }  /* FE_allocator::realloc */
 
@@ -449,7 +449,7 @@ The caller is responsible for ensuring the allocation contains no live
 objects.
 */
 {
-  free_fe(a.start, a.n_allocated*sizeof(an_elem));
+  free_fe((void*)a.start, a.n_allocated*sizeof(an_elem));
 }  /* FE_allocator::dealloc */
 
 
@@ -618,6 +618,10 @@ struct Dyn_array: private Allocator<an_Elem> {
     { destroy(&this->elems[--this->n_elems]); }
   inline void insert(an_index i, const an_elem  &value);
   inline void insert(an_index i, an_elem  &&value);
+  template<typename an_Input_iterator>
+  inline void insert(an_index          i,
+                     an_Input_iterator begin,
+                     size_t            len);
   inline void remove(an_index i);
   inline void clear();
   void resize(a_size new_n, const an_elem  &value);
@@ -881,6 +885,39 @@ are first moved one position up.
 
 
 template<typename an_Elem, template<typename> class Allocator>
+template<typename an_Input_iterator>
+inline void Dyn_array<an_Elem, Allocator>::insert(an_index          i,
+                                                  an_Input_iterator start,
+                                                  size_t            len)
+/*
+Copy-insert len number of values copying sequentially from the given iterator
+into the given index i.  All values following i (if any) are first moved
+len positions back.
+*/
+{
+  a_size orig_count = this->n_elems;
+
+  /* Ensure adequate capacity for the bulk insert operation. */
+  this->reserve(orig_count + len);
+
+  an_elem  *arr_elems = this->elems;
+  /* Move the existing elements past the inserted sequence. */
+  for (an_index k = orig_count; k > i; --k) {
+    construct(arr_elems + k + len - 1, move_from(arr_elems + k - 1));
+    destroy(arr_elems + k - 1);
+  }  /* for */
+
+  /* Insert the sequence of elements. */
+  an_Input_iterator curr = start;
+  for (an_index k = 0; k < (an_index)len; ++k) {
+    construct(arr_elems + i + k, *curr);
+    ++curr;
+  }  /* for */
+  this->n_elems += len;
+}  /* Dyn_array::insert */
+
+
+template<typename an_Elem, template<typename> class Allocator>
 inline void Dyn_array<an_Elem, Allocator>::remove(an_index  i)
 /*
 Destroy the entry at the given index.  All subsequent values (if any) are moved
@@ -970,7 +1007,7 @@ the current capacity.
 */
 {
   a_size  old_cap = this->n_allocated;
-  
+
   if (new_cap > old_cap) {
     an_allocation  a = this->realloc(an_allocation{ this->elems, old_cap },
                                      new_cap, this->n_elems);
@@ -2254,6 +2291,306 @@ such element is found.
   return bin_search(num_elements, value, read_array_element_at);
 }  /* array_bin_search */
 
+
+template<template<typename> class Allocator>
+struct Allocated_string;
+
+namespace detail {
+
+/*
+A forward declaration of a type specialized to handle converting different
+values to strings.
+
+Each specialization should implement two functions:
+
+  static size_t size_hint_of(a_Type value);
+
+  template<typename a_Dyn_array>
+  static inline unsigned append_into(a_Dyn_array &underlying_array,
+                                     a_Type      value,
+                                     size_t      size_hint;
+
+The return type value of the second function should always be 0 (this has a
+non-void return type only as an implementation detail).
+*/
+template<typename a_Type>
+struct string_formatter;
+
+/*
+A string formatter for a_const_char* (C-string) values.
+*/
+template<>
+struct string_formatter<a_const_char*> {
+  static size_t size_hint_of(a_const_char *value)
+    { return strlen(value); }
+  template<typename a_Dyn_array>
+  static inline unsigned append_into(a_Dyn_array  &underlying_array,
+                                     a_const_char *chars,
+                                     size_t       size_hint);
+};  /* string_formatter */
+
+
+template<typename a_Dyn_array>
+unsigned
+string_formatter<a_const_char*>::append_into(a_Dyn_array  &underlying_array,
+                                             a_const_char *chars,
+                                             size_t       size_hint)
+/*
+Append the given characters into the underlying array.  size_hint is the number
+of characters to append.  0 is always returned as a dummy value per the
+string_formatter contract.
+*/
+{
+  underlying_array.insert(underlying_array.length(), chars, size_hint);
+  return 0;
+}  /* string_formatter::append_into */
+
+
+/*
+A string formatter for Allocated_string values.
+*/
+template<template<typename> class Allocator>
+struct string_formatter<Allocated_string<Allocator>> {
+  static size_t size_hint_of(Allocated_string<Allocator> str)
+    { return str.length(); }
+
+  template<typename a_Dyn_array>
+  static inline unsigned
+  append_into(a_Dyn_array                       &underlying_array,
+              const Allocated_string<Allocator> &str,
+              size_t                            size_hint);
+};  /* string_formatter */
+
+
+template<template<typename> class Allocator>
+template<typename a_Dyn_array>
+unsigned string_formatter<Allocated_string<Allocator>>::append_into(
+                          a_Dyn_array                       &underlying_array,
+                          const Allocated_string<Allocator> &str,
+                          ARG_UNUSED size_t                 size_hint)
+/*
+Convert the given Allocated_string value into its character representation, and
+append the characters into the underlying array.  size_hint is unused.  0 is
+always returned as a dummy value per the string_formatter contract.
+*/
+{
+  underlying_array.insert(underlying_array.length(), str.as_temp_characters(),
+                          str.length());
+  return 0;
+}  /* append_into */
+
+
+/*
+A string formatter (and associated recursive specializations) for unsigned long
+long, unsigned long, and unsigned values.
+*/
+template<>
+struct string_formatter<unsigned long long> {
+  constexpr static size_t size_hint_of(unsigned long long value)
+    { return 20; }
+  template<typename a_Dyn_array>
+  static inline unsigned append_into(a_Dyn_array        &underlying_array,
+                                     unsigned long long value,
+                                     size_t             size_hint);
+};  /* string_formatter */
+
+template<>
+struct string_formatter<unsigned long> : string_formatter<unsigned long long> {
+};  /* string_formatter */
+
+
+template<>
+struct string_formatter<unsigned> : string_formatter<unsigned long long> {
+};  /* string_formatter */
+
+
+template<typename a_Dyn_array>
+unsigned string_formatter<unsigned long long>::append_into(
+                                          a_Dyn_array        &underlying_array,
+                                          unsigned long long value,
+                                          size_t             size_hint)
+/*
+Convert the given unsigned integer value into its character representation, and
+append the characters representing the value into the underlying array.
+size_hint is unused.  0 is always returned as a dummy value per the
+string_formatter contract.
+*/
+{
+  constexpr size_t buff_size =
+                      string_formatter<unsigned long long>::size_hint_of(0ull);
+  char             string_buffer[buff_size] = {};
+
+  sprintf(string_buffer, "%llu", value);
+  string_formatter<a_const_char*>::append_into(underlying_array, string_buffer,
+                                               strlen(string_buffer));
+  return 0;
+}  /* append_into */
+
+
+/*
+A string formatter (and associated recursive specializations) for long long,
+long, and int values.
+*/
+template<>
+struct string_formatter<long long> {
+  constexpr static size_t size_hint_of(long long value)
+    { return 19; }
+  template<typename a_Dyn_array>
+  static inline unsigned append_into(a_Dyn_array &underlying_array,
+                                     long long   value,
+                                     size_t      size_hint);
+};  /* string_formatter */
+
+template<>
+struct string_formatter<long> : string_formatter<long long> {
+};  /* string_formatter */
+
+
+template<>
+struct string_formatter<int> : string_formatter<long long> {
+};  /* string_formatter */
+
+
+template<typename a_Dyn_array>
+unsigned string_formatter<long long>::append_into(
+                                           a_Dyn_array       &underlying_array,
+                                           long long         value,
+                                           ARG_UNUSED size_t size_hint)
+/*
+Convert the given signed integer value into its character representation, and
+append the characters representing the value into the underlying array.
+size_hint is unused.  0 is always returned as a dummy value per the
+string_formatter contract.
+*/
+{
+  constexpr size_t buff_size = string_formatter<long long>::size_hint_of(0ll);
+  char             string_buffer[buff_size] = {};
+
+  sprintf(string_buffer, "%lli", value);
+  string_formatter<a_const_char*>::append_into(underlying_array, string_buffer,
+                                               strlen(string_buffer));
+  return 0;
+}  /* append_into */
+
+
+template<typename a_Reserve_fn, typename... a_Text_convertable_type>
+void append_with_custom_reserve(a_Reserve_fn               reserve_func,
+                                a_Text_convertable_type... args)
+/*
+The "reserve_func" should be a function that takes a character count estimate
+and returns a pointer to a Dyn_array.  Said Dyn_array should be returned with a
+appropriate capacity allocated for the given estimate.  The arguments (i.e.,
+"args") provided are mapped to a
+detail::string_formatter<a_Text_convertable_type> (abbreviated "string_fmter").
+The arguments compose the character count estimate via the sum of the
+respective string_fmter::size_hint_of functions.  Once the character count
+estimate is computed, reserve_func is called with the given estimate, and then
+each argument is sequentially appended using the respective
+string_fmter::append_into functions.
+*/
+{
+  /* Gather size estimates of each pack element. */
+  size_t element_sizes [] = {
+    detail::string_formatter<a_Text_convertable_type>::size_hint_of(args)...
+  };
+  size_t total_size = 0;
+
+  /* Calculate the total size estimate off of the element sizes, and get a
+     backing Dyn_array instance (with the appropriate space reserved based on
+     the estimate). */
+  for (size_t i = 0; i < sizeof...(args); ++i) {
+    total_size += element_sizes[i];
+  }  /* for */
+  auto *backing_array = reserve_func(total_size);
+
+  /* Use a braced-init-list to provide ordered evaluation of each pack element,
+     calling the appropriate append function.  The created array's values are
+     irrelevant and discarded. */
+  size_t counter = 0;
+  ARG_UNUSED unsigned discarded[] = {
+    detail::string_formatter<a_Text_convertable_type>::append_into(
+                                                   *backing_array,
+                                                   args,
+                                                   element_sizes[counter++])...
+  };
+}  /* append_with_custom_reserve */
+
+}  /* detail */
+
+/*
+The fundamental string type, which can be instantiated with different
+allocators as necessary.
+*/
+template<template<typename> class Allocator>
+struct Allocated_string {
+  typedef Allocator<char> an_allocator;
+  typedef typename an_allocator::a_size a_size;
+
+  template<typename... a_Text_convertable_type>
+  inline Allocated_string(an_allocator a, a_Text_convertable_type... args);
+  template<typename... a_Text_convertable_type>
+  inline Allocated_string(a_Text_convertable_type... args)
+    : Allocated_string(an_allocator{}, args...)
+    { }
+
+  a_const_char *as_temp_characters() const
+    { return backing_array.begin(); }
+  a_size length() const
+    { return backing_array.length(); }
+
+  template<typename... a_Text_convertable_type>
+  inline Allocated_string<Allocator>& append(a_Text_convertable_type... args);
+private:
+  Dyn_array<char, Allocator>
+                backing_array;
+                        /* */
+};  /* Allocated_string */
+
+
+template<template<typename> class Allocator>
+template<typename... a_Text_convertable_type>
+inline Allocated_string<Allocator>::Allocated_string(
+                                               an_allocator               a,
+                                               a_Text_convertable_type... args)
+/*
+Construct a new string using the given allocator, the passed arguments are
+appended in the fashion described in detail::append_with_custom_reserve.
+*/
+{
+  /* Delay initialization of the backing array until size hints are computed so
+     that only one allocation is performed. */
+  auto reserve_func = [this, &a](a_size total_size) {
+    this->backing_array = {total_size, a};
+    return &this->backing_array;
+  };
+  detail::append_with_custom_reserve(reserve_func, args...);
+}  /* Allocated_string */
+
+
+template<template<typename> class Allocator>
+template<typename... a_Text_convertable_type>
+inline Allocated_string<Allocator>&
+Allocated_string<Allocator>::append(a_Text_convertable_type... args)
+/*
+The passed arguments are appended in the fashion described in
+detail::append_with_custom_reserve, and a reference to this Allocated_string
+is returned.
+*/
+{
+  auto reserve_func = [this](a_size total_size) {
+    this->backing_array.reserve(this->backing_array.length() + total_size);
+    return &this->backing_array;
+  };
+  detail::append_with_custom_reserve(reserve_func, args...);
+  return *this;
+}  /* Allocated_string::append */
+
+
+/*
+An alias for the "normal" usage of Allocated_string (i.e., with a dynamically
+allocating fe_alloc backed allocator).
+*/
+typedef Allocated_string<FE_allocator> a_string;
 
 /*
 The Ptr_map template
