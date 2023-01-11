@@ -15074,16 +15074,23 @@ return FALSE.
 */
 {
   a_boolean result = FALSE;
-  Opt<an_ifc_type_fundamental> opt_itf;
+  Opt<an_ifc_type_fundamental> opt_fundamental_type;
 
-  construct_node(&opt_itf, type);
-  if (opt_itf.has_value()) {
-    switch (get_ifc_basis(*opt_itf)) {
+  construct_node(&opt_fundamental_type, type);
+  if (opt_fundamental_type.has_value()) {
+    an_ifc_type_fundamental fundamental_type = *opt_fundamental_type;
+    an_ifc_type_basis_sort  basis = get_ifc_basis(fundamental_type);
+
+    switch (basis) {
       case ifc_tbs_class:
       case ifc_tbs_struct:
         result = TRUE;
         break;
       default:
+        { a_string err_msg("Unexpected ", str_for(basis));
+
+          ifc_unexpected(fundamental_type.get_module(), err_msg);
+        }
         break;
     }  /* switch */
   }  /* if */
