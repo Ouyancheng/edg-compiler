@@ -126,6 +126,22 @@ does not compile with a possibly-misinterpreted IFC import).
 }  /* ifc_requirement_impl */
 
 
+template<template<typename> class Allocator>
+static void ifc_requirement_impl(int                               line_number,
+                                 a_const_char                      *function,
+                                 an_ifc_module                     *mod,
+                                 a_boolean                         condition,
+                                 const Allocated_string<Allocator> &string)
+/*
+An overload of ifc_requirement_impl to allow use of Allocated_string for the
+string argument.
+*/
+{
+  ifc_requirement_impl(line_number, function, mod, condition,
+                       string.as_temp_characters());
+}  /* ifc_requirement_impl */
+
+
 #define ifc_requirement(mod, condition, string)                         \
   ifc_requirement_impl(__LINE__, __EDG_func__,                          \
                        mod, condition, string)
@@ -1791,7 +1807,10 @@ Return the kind of operator described by op in the context of the given module.
   switch (op) {
     case ifc_nos_unknown:
     case ifc_nos_msvc:
-      ifc_unexpected(mod, "Unsupported NiladicOperator");
+      { a_string err_msg(str_for(op), " is not a supported NiladicOperator");
+
+        ifc_unexpected(mod, err_msg);
+      }
       break;
     case ifc_nos_phantom:
     case ifc_nos_constant:
@@ -1818,7 +1837,10 @@ Return the kind of operator described by op in the context of the given module.
     case ifc_mos_unknown:
     case ifc_mos_msvc:
     case ifc_mos_msvc_confusion:
-      ifc_unexpected(mod, "Unsupported MonadicOperator");
+      { a_string err_msg(str_for(op), " is not a supported MonadicOperator");
+
+        ifc_unexpected(mod, err_msg);
+      }
       break;
     case ifc_mos_plus:
     case ifc_mos_negate:
@@ -1923,10 +1945,13 @@ Return the kind of operator described by op in the context of the given module.
 
   switch (op) {
     case ifc_dos_unknown:
+    case ifc_dos_select:
     case ifc_dos_msvc:
     case ifc_dos_msvc_saturated_arithmetic:
-    case ifc_dos_select:
-      ifc_unexpected(mod, "Unsupported DyadicOperator");
+      { a_string err_msg(str_for(op), " is not a supported DyadicOperator");
+
+        ifc_unexpected(mod, err_msg);
+      }
       break;
     case ifc_dos_plus:
     case ifc_dos_minus:
@@ -2042,7 +2067,10 @@ Return the kind of operator described by op in the context of the given module.
     case ifc_tos_msvc_confusion:
     case ifc_tos_msvc_confused_choice:
     case ifc_tos_msvc_confused_push_state:
-      ifc_unexpected(mod, "Unsupported TriadicOperator");
+      { a_string err_msg(str_for(op), " is not a supported TriadicOperator");
+
+        ifc_unexpected(mod, err_msg);
+      }
       break;
     case ifc_tos_choice:
     case ifc_tos_construct_at:
@@ -2067,7 +2095,11 @@ Return the kind of operator described by op in the context of the given module.
   switch (op) {
     case ifc_sios_unknown:
     case ifc_sios_msvc:
-      ifc_unexpected(mod, "Unsupported StorageInstructionOperator");
+      { a_string err_msg(str_for(op),
+                         " is not a supported StorageInstructionOperator");
+
+        ifc_unexpected(mod, err_msg);
+      }
       break;
     case ifc_sios_allocate_single:
     case ifc_sios_allocate_array:
@@ -2092,7 +2124,10 @@ Return the kind of operator described by op in the context of the given module.
   switch (op) {
     case ifc_vos_unknown:
     case ifc_vos_msvc:
-      ifc_unexpected(mod, "Unsupported VariadicOperator");
+      { a_string err_msg(str_for(op), " is not a supported VariadicOperator");
+
+        ifc_unexpected(mod, err_msg);
+      }
       break;
     case ifc_vos_collection:
     case ifc_vos_sequence:
@@ -4129,6 +4164,19 @@ Given a type index, return the corresponding type kind.
         an_ifc_type_fundamental itf = *opt_itf;
         an_ifc_type_basis_sort  basis = get_ifc_basis(itf);
         switch (basis) {
+          case ifc_tbs_ellipsis:
+          case ifc_tbs_auto:
+          case ifc_tbs_decltype_auto:
+          case ifc_tbs_namespace:
+          case ifc_tbs_interface:
+          case ifc_tbs_segment_type:
+          case ifc_tbs_empty:
+          case ifc_tbs_concept:
+            { a_string err_msg("Unexpected ", str_for(basis));
+
+              ifc_unexpected(itf.get_module(), err_msg);
+            }
+            goto invalid;
           case ifc_tbs_void:
             result = tk_void;
             break;
@@ -4145,10 +4193,6 @@ Given a type index, return the corresponding type kind.
           case ifc_tbs_nullptr:
             result = tk_nullptr;
             break;
-          case ifc_tbs_ellipsis:
-            ifc_unexpected(itf.get_module(),
-                           "unexpected TypeBasis::Ellipsis");
-            goto invalid;
           case ifc_tbs_class:
             result = tk_class;
             break;
@@ -4158,47 +4202,19 @@ Given a type index, return the corresponding type kind.
           case ifc_tbs_union:
             result = tk_union;
             break;
-          case ifc_tbs_auto:
-            ifc_unexpected(itf.get_module(),
-                           "unexpected TypeBasis::Auto");
-            goto invalid;
-          case ifc_tbs_decltype_auto:
-            ifc_unexpected(itf.get_module(),
-                           "unexpected TypeBasis::Decltype");
-            goto invalid;
-          case ifc_tbs_namespace:
-            ifc_unexpected(itf.get_module(),
-                           "unexpected TypeBasis::Namespace");
-            goto invalid;
-          case ifc_tbs_interface:
-            ifc_unexpected(itf.get_module(),
-                           "unexpected TypeBasis::Interface");
-            goto invalid;
           case ifc_tbs_enum:
             result = tk_enum;
             break;
           case ifc_tbs_typename:
             result = tk_typeref;
             break;
-          case ifc_tbs_segment_type:
-            ifc_unexpected(itf.get_module(),
-                           "unexpected TypeBasis::SegmentType");
-            goto invalid;
           case ifc_tbs_function:
           case ifc_tbs_overload:
             result = tk_routine;
             break;
-          case ifc_tbs_empty:
-            ifc_unexpected(itf.get_module(),
-                           "unexpected TypeBasis::Empty");
-            goto invalid;
           case ifc_tbs_variable_template:
             result = tk_unknown;
             break;
-          case ifc_tbs_concept:
-            ifc_unexpected(itf.get_module(),
-                           "unexpected TypeBasis::Concept");
-            goto invalid;
           default_is_unexpected_str("Unexpected TypeBasis kind");
         }  /* switch */
       }
@@ -6067,10 +6083,12 @@ class_struct_union_case:
                 issue_unsupported_construct_error(this,
                                                   "DeclSort::Alias namespace",
                                                   &error_position);
-                il_entity = (char *)error_type();
-                kind = iek_type;
+                goto invalid;
               } else {
-                unexpected_condition();
+                a_string err_msg("Unexpected ", str_for(basis));
+
+                ifc_unexpected(this, err_msg);
+                goto invalid;
               }  /* if */
             } else if (type.sort == ifc_ts_type_forall) {
               Opt<an_ifc_type_forall> opt_itf;
@@ -6113,7 +6131,10 @@ class_struct_union_case:
                 goto invalid;
               }  /* if */
             } else {
-              unexpected_condition();
+              a_string err_msg("Unexpected ", str_for(type.sort));
+
+              ifc_unexpected(this, err_msg);
+              goto invalid;
             }  /* if */
           }  /* if */
         }
@@ -6165,7 +6186,10 @@ class_struct_union_case:
                time the enumerators will be made available). */
             is_scoped_enum = TRUE;
           } else {
-            unexpected_condition();
+            a_string err_msg("Unexpected ", str_for(basis));
+
+            ifc_unexpected(this, err_msg);
+            goto invalid;
           }  /* if */
 
           an_ifc_text_offset enum_name = get_ifc_name(ide);
@@ -6644,7 +6668,11 @@ class_struct_union_case:
         /* These entities can only exist in a class and class definitions are
            currently handled by scanning a token representation of the
            class. */
-        unexpected_condition();
+        { a_string err_msg("Unexpected ", str_for(decl_idx.sort));
+
+          ifc_unexpected(this, err_msg);
+        }
+        goto invalid;
       case ifc_ds_decl_temploid:
         { Opt<an_ifc_decl_temploid> opt_idt;
 
@@ -8234,7 +8262,12 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
                       result = char32_t_type();
                       break;
                     default:
-                      unexpected_condition();
+                      { a_string err_msg("Unexpected ", str_for(precision),
+                                         " for ", str_for(basis));
+
+                        ifc_unexpected(mod, err_msg);
+                      }
+                      goto invalid;
                   }  /* switch */
                   break;
                 case ifc_tss_signed:
@@ -8266,8 +8299,12 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
                 case ifc_tps_long:
                 case ifc_tps_bit64:
                 case ifc_tps_bit128:
-                  unexpected_condition_str("Unexpected precision for wchar_t");
-                  break;
+                  { a_string err_msg("Unexpected ", str_for(precision),
+                                     " for ", str_for(basis));
+
+                    ifc_unexpected(mod, err_msg);
+                  }
+                  goto invalid;
                 default_is_unexpected();
               }  /* switch */
               break;
@@ -8322,53 +8359,25 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
               result = standard_nullptr_type();
               break;
             case ifc_tbs_ellipsis:
-              ifc_unexpected(mod, "unexpected use of TypeBasis::Ellipsis");
-              goto invalid;
             case ifc_tbs_class:
-              ifc_unexpected(mod, "unexpected use of TypeBasis::Class");
-              goto invalid;
             case ifc_tbs_struct:
-              ifc_unexpected(mod, "unexpected use of TypeBasis::Struct");
-              goto invalid;
             case ifc_tbs_union:
-              ifc_unexpected(mod, "unexpected use of TypeBasis::Union");
-              goto invalid;
             case ifc_tbs_auto:
-              ifc_unexpected(mod, "unexpected use of TypeBasis::Auto");
-              goto invalid;
             case ifc_tbs_decltype_auto:
-              ifc_unexpected(mod, "unexpected use of TypeBasis::DecltypeAuto");
-              goto invalid;
             case ifc_tbs_namespace:
-              ifc_unexpected(mod, "unexpected use of TypeBasis::Namespace");
-              goto invalid;
             case ifc_tbs_interface:
-              ifc_unexpected(mod, "unexpected use of TypeBasis::Interface");
-              goto invalid;
             case ifc_tbs_enum:
-              ifc_unexpected(mod, "unexpected use of TypeBasis::Enum");
-              goto invalid;
             case ifc_tbs_typename:
-              ifc_unexpected(mod, "unexpected use of TypeBasis::Typename");
-              goto invalid;
             case ifc_tbs_segment_type:
-              ifc_unexpected(mod, "unexpected use of TypeBasis::SegmentType");
-              goto invalid;
             case ifc_tbs_function:
-              ifc_unexpected(mod, "unexpected use of TypeBasis::Function");
-              goto invalid;
             case ifc_tbs_empty:
-              ifc_unexpected(mod, "unexpected use of TypeBasis::Empty");
-              goto invalid;
             case ifc_tbs_variable_template:
-              ifc_unexpected(mod,
-                             "unexpected use of TypeBasis::VariableTemplate");
-              goto invalid;
             case ifc_tbs_concept:
-              ifc_unexpected(mod, "unexpected use of TypeBasis::Concept");
-              goto invalid;
             case ifc_tbs_overload:
-              ifc_unexpected(mod, "unexpected use of TypeBasis::Ooverload");
+              { a_string err_msg("Unexpected ", str_for(basis));
+
+                ifc_unexpected(mod, err_msg);
+              }
               goto invalid;
             default_is_unexpected_str("Unexpected TypeBasis kind");
           }  /* switch */
@@ -8624,17 +8633,23 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
               }
               break;
             default:
-              ifc_unexpected(mod,
-                             "Unexpected DeclSort for TypeSort::Designated");
-              break;
+              { a_string err_msg("Unexpected ", str_for(decl.sort),
+                                 " for ", str_for(type_idx.sort));
+
+                ifc_unexpected(mod, err_msg);
+              }
+              goto invalid;
           }  /* switch */
         }
         break;
       case ifc_ts_type_tor:
         /* This type should only be encountered when processing a constructor,
            and that is directly handled with that constructor declaration.*/
-        unexpected_condition();
-        break;
+        { a_string err_msg("Unexpected ", str_for(type_idx.sort));
+
+          ifc_unexpected(mod, err_msg);
+        }
+        goto invalid;
       case ifc_ts_type_placeholder:
         { Opt<an_ifc_type_placeholder> opt_itp;
 
@@ -8652,9 +8667,12 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
                                       basis == ifc_tbs_decltype_auto);
               break;
             default:
-              result = error_type();
-              unexpected_condition_str("Unexpected TypeBasis for "
-                                       "TypeSort::Placeholder");
+              { a_string err_msg("Unexpected ", str_for(basis),
+                                 " for ", str_for(type_idx.sort));
+
+                ifc_unexpected(mod, err_msg);
+              }
+              goto invalid;
           }  /* switch */
         }
         break;
@@ -8715,10 +8733,12 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
               }
               break;
             default:
-              ifc_unexpected(mod,
-                             "Unexpected ExprSort kind for "
-                             "TypeSort::Syntactic.");
-              break;
+              { a_string err_msg("Unexpected ", str_for(expr.sort),
+                                 " for ", str_for(type_idx.sort));
+
+                ifc_unexpected(mod, err_msg);
+              }
+              goto invalid;
           }  /* switch */
         }
         break;
@@ -8922,9 +8942,11 @@ given expression.
       }
       break;
     default:
-      ifc_unexpected(expr_idx.mod,
-                     "unexpected Expr for non-type template argument "
-                     "formation");
+      { a_string err_msg(str_for(expr_idx.sort),
+                         " is not expected for non-type template argument"
+                         " formation");
+        ifc_unexpected(expr_idx.mod, err_msg);
+      }
       goto invalid;
   }  /* switch */
   goto done;
@@ -8949,15 +8971,6 @@ template_args_for_expr_list instead.
   a_template_arg_ptr result = NULL;
 
   switch (expr_idx.sort) {
-    /* Non-type template parameters. */
-    case ifc_es_expr_read:
-    case ifc_es_expr_named_decl:
-    case ifc_es_expr_literal:
-    case ifc_es_expr_monad:
-    case ifc_es_expr_dyad:
-      result = alloc_template_arg(tak_nontype);
-      result->variant.constant = create_constant_for_nttp(param, expr_idx);
-      break;
     case ifc_es_expr_type:
       { Opt<an_ifc_expr_type> opt_expr_type;
 
@@ -8975,9 +8988,11 @@ template_args_for_expr_list instead.
            validator. */
         a_type_ptr type = type_for_type_index(denotation, &arg_kind);
         if (arg_kind != ntk_none) {
-          ifc_unexpected(this, "an ExprSort::Type referenced something that "
-                               "wasn't a type");
-          type = error_type();
+          a_string err_msg(str_for(denotation.sort),
+                           " referenced something that wasn't a type");
+
+          ifc_unexpected(this, err_msg);
+          goto invalid;
         }  /* if */
         if (is_error_type(type)) {
           goto invalid;
@@ -8998,8 +9013,11 @@ template_args_for_expr_list instead.
                                           &error_position);
       }
       goto invalid;
+    /* Non-type template parameters. */
     default:
-      unexpected_condition_str("Unexpected expr kind for template arg");
+      result = alloc_template_arg(tak_nontype);
+      result->variant.constant = create_constant_for_nttp(param, expr_idx);
+      break;
   } /* switch */
   if (param->is_pack) {
     result->is_pack_element = TRUE;
@@ -9405,6 +9423,7 @@ accordingly.
           goto invalid;
         }
       case ifc_ns_text_offset:
+        /* This should be handled by the condition enclosing the switch. */
         unexpected_condition();
         break;
       default_is_unexpected();
@@ -9603,8 +9622,11 @@ Given a declaration, return the name associated with that declaration.
       }
       break;
     case ifc_ds_decl_temploid:
-      unexpected_condition_str("DeclSort::Temploid does not have a name");
-      break;
+      { a_string err_msg(str_for(decl_idx.sort), " does not have a name");
+
+        ifc_unexpected(this, err_msg);
+      }
+      goto invalid;
     case ifc_ds_decl_template:
       { Opt<an_ifc_decl_template> opt_idt;
 
@@ -10248,13 +10270,20 @@ No casting is performed.
                         "Expected byte size isn't 64 bits wide.");
           memcpy(&raw_val, &raw_value, 8);
           if (!conv_bytes_to_integer_value(value, raw_val, sizeof(raw_val))) {
-            unexpected_condition_str("Failed to get 64-bit integer");
+            a_string err_msg("Failed to get a 64-bit integer from ",
+                             str_for(lit_index.sort));
+
+            ifc_unexpected(lit_index.mod, err_msg);
+            goto invalid;
           }  /* if */
         }
         break;
       case ifc_ls_floating_point:
-        unexpected_condition();
-        break;
+        { a_string err_msg("Unexpected ", str_for(lit_index.sort));
+
+          ifc_unexpected(lit_index.mod, err_msg);
+        }
+        goto invalid;
       default_is_unexpected();
     }  /* switch */
   } else {
@@ -10645,8 +10674,12 @@ FIXME: what other expressions can we get here?
       }
       break;
     default:
-      ifc_unexpected(mod, "Unexpected ExprSort for constant synthesis");
-      break;
+      { a_string err_msg("Unexpected ", str_for(expr_idx.sort),
+                         " for constant synthesis");
+
+        ifc_unexpected(mod, err_msg);
+      }
+      goto invalid;
   }  /* switch */
   goto done;
 invalid:
@@ -10694,8 +10727,11 @@ FIXME: what other types of named declarations can we get here?
                                         &error_position);
       goto invalid;
     default:
-      ifc_unexpected(decl_idx.mod,
-                     "Unexpected DeclSort for ExprSort::NamedDecl");
+      { a_string err_msg("Unexpected ", str_for(decl_idx.sort),
+                         " for ExprSort::NamedDecl");
+
+        ifc_unexpected(decl_idx.mod, err_msg);
+      }
       goto invalid;
   }  /* switch */
   goto done;
@@ -11329,8 +11365,12 @@ Sentence containing punctuator.
   source_position_from_locus(&pos, locus);
   switch (punctuator) {
     case ifc_sps_unknown:
-      unexpected_condition();
-      break;
+    case ifc_sps_msvc:
+      { a_string err_msg("Unexpected ", str_for(punctuator));
+
+        ifc_unexpected(this, err_msg);
+      }
+      goto invalid;
     case ifc_sps_left_parenthesis:
       cache_token(cache, tok_lparen, &pos);
       break;
@@ -11360,9 +11400,6 @@ Sentence containing punctuator.
       break;
     case ifc_sps_colon_colon:
       cache_token(cache, tok_colon_colon, &pos);
-      break;
-    case ifc_sps_msvc:
-      unexpected_condition();
       break;
     case ifc_sps_msvc_zero_width_space:
       break;
@@ -11411,8 +11448,11 @@ locus is the location of the Sentence containing literal.
   source_position_from_locus(&pos, locus);
   switch (literal.sort) {
     case ifc_sls_unknown:
-      unexpected_condition();
-      break;
+      { a_string err_msg("Unexpected ", str_for(literal.sort));
+
+        ifc_unexpected(this, err_msg);
+      }
+      goto invalid;
     case ifc_sls_scalar:
       cache_expr(cache, literal.variant.scalar, /*cinfo=*/{});
       break;
@@ -11489,8 +11529,12 @@ locus is the location of the Sentence containing literal.
             }
             break;
           default:
-            unexpected_condition_str("Unexpected ExprSort for "
-                                     "SourceLiteral::MsvcBinding");
+            { a_string err_msg("Unexpected ", str_for(binding_expr.sort),
+                               " for ", str_for(literal.sort));
+
+              ifc_unexpected(this, err_msg);
+            }
+            goto invalid;
         }  /* switch */
       }
       break;
@@ -11530,8 +11574,11 @@ containing op.
   source_position_from_locus(&pos, locus);
   switch (op) {
     case ifc_sos_unknown:
-      unexpected_condition();
-      break;
+      { a_string err_msg("Unexpected ", str_for(op));
+
+        ifc_unexpected(this, err_msg);
+      }
+      goto invalid;
     case ifc_sos_equal:
       cache_token(cache, tok_assign, &pos);
       break;
@@ -11654,6 +11701,11 @@ containing op.
       break;
     default_is_unexpected_str("Unknown SourceOperator");
   }  /* switch */
+  goto done;
+invalid:
+  expect_error_str("expected errors for bad source operator cache");
+  cache->invalidate();
+done:;
 }  /* cache_source_operator */
 
 
@@ -11670,8 +11722,12 @@ Sentence containing keyword.
   source_position_from_locus(&pos, locus);
   switch (keyword) {
     case ifc_sks_unknown:
-      unexpected_condition();
-      break;
+    case ifc_sks_msvc:
+      { a_string err_msg("Unexpected ", str_for(keyword));
+
+        ifc_unexpected(this, err_msg);
+      }
+      goto invalid;
     case ifc_sks_alignas:
       cache_token(cache, tok_alignas, &pos);
       break;
@@ -11931,9 +11987,6 @@ Sentence containing keyword.
       break;
     case ifc_sks_while:
       cache_token(cache, tok_while, &pos);
-      break;
-    case ifc_sks_msvc:
-      unexpected_condition();
       break;
     case ifc_sks_msvc_asm:
       cache_token(cache, tok_microsoft_asm, &pos);
@@ -12311,11 +12364,14 @@ the location of the Sentence containing id.
 
   source_position_from_locus(&pos, locus);
   switch (id.sort) {
+    case ifc_sis_msvc:
+      { a_string err_msg("Unexpected ", str_for(id.sort));
+
+        ifc_unexpected(this, err_msg);
+      }
+      goto invalid;
     case ifc_sis_plain:
       name = get_string_at_offset(id.variant.plain);
-      break;
-    case ifc_sis_msvc:
-      unexpected_condition();
       break;
     case ifc_sis_msvc_builtin_huge_val:
       name = "__builtin_huge_val";
@@ -12345,6 +12401,11 @@ the location of the Sentence containing id.
   } else {
     cache_identifier(cache, name, &pos);
   }  /* if */
+  goto done;
+invalid:
+  expect_error_str("expected errors for bad source identifier cache");
+  cache->invalidate();
+done:;
 }  /* cache_source_identifier */
 
 
@@ -12853,6 +12914,14 @@ cache.  pos is the position of the exception specification.
   cache_token(cache, tok_noexcept, pos);
   cache_token(cache, tok_lparen, pos);
   switch (sort) {
+    case ifc_ns_none:
+    case ifc_ns_inferred:
+      /* Unreachable, but place here to have all enums covered. */
+      { a_string err_msg("Unexpected ", str_for(sort));
+
+        ifc_unexpected(this, err_msg);
+      }
+      goto invalid;
     case ifc_ns_false:
       cache_bool_literal(cache, false, pos);
       break;
@@ -12866,14 +12935,6 @@ cache.  pos is the position of the exception specification.
       /* FIXME: Currently unsupported. */
       issue_unsupported_construct_error(this, "NoexceptSort::Unenforced",
                                         &error_position);
-      goto invalid;
-    case ifc_ns_inferred:
-      /* Unreachable, but place here to have all enums covered. */
-      ifc_unexpected(this, "NoexceptSort::Inferred is not expected here");
-      goto invalid;
-    case ifc_ns_none:
-      /* Unreachable, but place here to have all enums covered. */
-      ifc_unexpected(this, "NoexceptSort::None is not expected here");
       goto invalid;
     default_is_unexpected_str("Unexpected NoexceptSpecification");
   }  /* switch */
@@ -13111,7 +13172,12 @@ this is needed.
                 cache_token(cache, tok_char32_t, &pos);
                 break;
               default:
-                unexpected_condition();
+                { a_string err_msg("Unexpected ", str_for(precision),
+                                   " for ", str_for(basis));
+
+                  ifc_unexpected(this, err_msg);
+                }
+                goto invalid;
             }  /* switch */
             break;
           case ifc_tbs_wchar_t:
@@ -13588,15 +13654,14 @@ this is needed.
 
   source_position_from_locus(&pos, locus);
   switch (type.sort) {
-    case ifc_ts_type_vendor_extension:
-      issue_unsupported_construct_error(this, "TypeSort::VendorExtension",
-                                        &error_position);
-      goto invalid;
     case ifc_ts_type_tor:
       /* This type should only be encountered when processing a constructor,
          and that is directly handled with that constructor declaration.*/
-      unexpected_condition();
-      break;
+      { a_string err_msg("Unexpected ", str_for(type.sort));
+
+        ifc_unexpected(this, err_msg);
+      }
+      goto invalid;
     case ifc_ts_type_pointer:
       { Opt<an_ifc_type_pointer> opt_itp;
 
@@ -13730,6 +13795,10 @@ this is needed.
     case ifc_ts_type_syntax_tree:
       /* All of these were completely handled by the first pass. */
       break;
+    case ifc_ts_type_vendor_extension:
+      issue_unsupported_construct_error(this, str_for(type.sort),
+                                        &error_position);
+      goto invalid;
     default_is_unexpected_str("Unexpected TypeSort");
   }  /* switch */
   goto done;
@@ -13902,37 +13971,19 @@ the location of the operator.
   source_position_from_locus(&pos, locus);
   switch (op) {
     case ifc_nos_unknown:
-      unexpected_condition();
-      break;
-    case ifc_nos_phantom:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "NiladicOperator::Phantom",
-                                        &error_position);
-      goto invalid;
-    case ifc_nos_constant:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "NiladicOperator::Constant",
-                                        &error_position);
-      goto invalid;
-    case ifc_nos_nil:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "NiladicOperator::Nil",
-                                        &error_position);
-      goto invalid;
     case ifc_nos_msvc:
-      unexpected_condition();
-      break;
-    case ifc_nos_msvc_constant_object:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this,
-                                        "NiladicOperator::MsvcConstantObject",
-                                        &error_position);
+      { a_string err_msg("Unexpected ", str_for(op));
+
+        ifc_unexpected(this, err_msg);
+      }
       goto invalid;
+    case ifc_nos_phantom:
+    case ifc_nos_constant:
+    case ifc_nos_nil:
+    case ifc_nos_msvc_constant_object:
     case ifc_nos_msvc_lambda:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this,
-                                        "NiladicOperator::MsvcLambda",
-                                        &error_position);
+      issue_unsupported_construct_error(this, str_for(op), &error_position);
       goto invalid;
     default_is_unexpected_str("Unexpected NiladicOperator");
   }  /* switch */
@@ -13957,8 +14008,13 @@ the location of the operator.
   source_position_from_locus(&pos, locus);
   switch (op) {
     case ifc_mos_unknown:
-      unexpected_condition();
-      break;
+    case ifc_mos_msvc:
+    case ifc_mos_msvc_confusion:
+      { a_string err_msg("Unexpected ", str_for(op));
+
+        ifc_unexpected(this, err_msg);
+      }
+      goto invalid;
     case ifc_mos_plus:
       cache_token(cache, tok_plus, &pos);
       break;
@@ -13990,29 +14046,12 @@ the location of the operator.
       cache_token(cache, tok_minus_minus, &pos);
       break;
     case ifc_mos_truncate:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this,
-                                        "MonadicOperator::Truncate",
-                                        &error_position);
-      goto invalid;
     case ifc_mos_ceil:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "MonadicOperator::Ceil",
-                                        &error_position);
-      goto invalid;
     case ifc_mos_floor:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "MonadicOperator::Floor",
-                                        &error_position);
-      goto invalid;
     case ifc_mos_paren:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "MonadicOperator::Paren",
-                                        &error_position);
-      goto invalid;
     case ifc_mos_brace:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "MonadicOperator::Brace",
+      issue_unsupported_construct_error(this, str_for(op),
                                         &error_position);
       goto invalid;
     case ifc_mos_alignas:
@@ -14079,9 +14118,6 @@ the location of the operator.
                                         "MonadicOperator::PseudoDtorCall",
                                         &error_position);
       goto invalid;
-    case ifc_mos_msvc:
-      unexpected_condition();
-      break;
     case ifc_mos_msvc_assume:
       cache_token(cache, tok_assume, &pos);
       break;
@@ -14232,10 +14268,6 @@ the location of the operator.
     case ifc_mos_msvc_has_user_destructor:
       cache_token(cache, tok_has_user_destructor, &pos);
       break;
-    case ifc_mos_msvc_confusion:
-      /* This is just a placeholder value separating legitimate operators
-         from operators that are anticipated to be removed in the future. */
-      unexpected_condition();
     case ifc_mos_msvc_confused_expand:
       cache_token(cache, tok_ellipsis, &pos);
       break;
@@ -14265,10 +14297,14 @@ the location of the operator.
   source_position_from_locus(&pos, locus);
   switch (op) {
     case ifc_dos_unknown:
-    case ifc_dos_msvc_saturated_arithmetic:
     case ifc_dos_select:
-      unexpected_condition();
-      break;
+    case ifc_dos_msvc:
+    case ifc_dos_msvc_saturated_arithmetic:
+      { a_string err_msg("Unexpected ", str_for(op));
+
+        ifc_unexpected(this, err_msg);
+      }
+      goto invalid;
     case ifc_dos_plus:
       cache_token(cache, tok_plus, &pos);
       break;
@@ -14377,92 +14413,6 @@ the location of the operator.
     case ifc_dos_arrow_star:
       cache_token(cache, tok_arrow_star, &pos);
       break;
-    case ifc_dos_curry:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "DyadicOperator::Curry",
-                                        &error_position);
-      goto invalid;
-    case ifc_dos_apply:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "DyadicOperator::Apply",
-                                        &error_position);
-      goto invalid;
-    case ifc_dos_index:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "DyadicOperator::Index",
-                                        &error_position);
-      goto invalid;
-    case ifc_dos_default_at:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "DyadicOperator::DefaultAt",
-                                        &error_position);
-      goto invalid;
-    case ifc_dos_new:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "DyadicOperator::New",
-                                        &error_position);
-      goto invalid;
-    case ifc_dos_new_array:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "DyadicOperator::NewArray",
-                                        &error_position);
-      goto invalid;
-    case ifc_dos_destruct:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "DyadicOperator::Destruct",
-                                        &error_position);
-      goto invalid;
-    case ifc_dos_destruct_at:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "DyadicOperator::DestructAt",
-                                        &error_position);
-      goto invalid;
-    case ifc_dos_cleanup:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "DyadicOperator::Cleanup",
-                                        &error_position);
-      goto invalid;
-    case ifc_dos_qualification:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "DyadicOperator::Qualification",
-                                        &error_position);
-      goto invalid;
-    case ifc_dos_promote:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "DyadicOperator::Promote",
-                                        &error_position);
-      goto invalid;
-    case ifc_dos_demote:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "DyadicOperator::Demote",
-                                        &error_position);
-      goto invalid;
-    case ifc_dos_coerce:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "DyadicOperator::Coerce",
-                                        &error_position);
-      goto invalid;
-    case ifc_dos_rewrite:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "DyadicOperator::Rewrite",
-                                        &error_position);
-      goto invalid;
-    case ifc_dos_bless:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "DyadicOperator::Bless",
-                                        &error_position);
-      goto invalid;
-    case ifc_dos_cast:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "DyadicOperator::Cast",
-                                        &error_position);
-      goto invalid;
-    case ifc_dos_explicit_conversion:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this,
-                                        "DyadicOperator::ExplicitConversion",
-                                        &error_position);
-      goto invalid;
     case ifc_dos_reinterpret_cast:
       cache_token(cache, tok_reinterpret_cast, &pos);
       break;
@@ -14475,84 +14425,6 @@ the location of the operator.
     case ifc_dos_dynamic_cast:
       cache_token(cache, tok_dynamic_cast, &pos);
       break;
-    case ifc_dos_narrow:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "DyadicOperator::Narrow",
-                                        &error_position);
-      goto invalid;
-    case ifc_dos_widen:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "DyadicOperator::Widen",
-                                        &error_position);
-      goto invalid;
-    case ifc_dos_pretend:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "DyadicOperator::Pretend",
-                                        &error_position);
-      goto invalid;
-    case ifc_dos_closure:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "DyadicOperator::Closure",
-                                        &error_position);
-      goto invalid;
-    case ifc_dos_zero_initialize:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "DyadicOperator::ZeroInitialize",
-                                        &error_position);
-      goto invalid;
-    case ifc_dos_clear_storage:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "DyadicOperator::ClearStorage",
-                                        &error_position);
-      goto invalid;
-    case ifc_dos_msvc:
-      unexpected_condition();
-      break;
-    case ifc_dos_msvc_try_cast:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "DyadicOperator::MsvcTryCast",
-                                        &error_position);
-      goto invalid;
-    case ifc_dos_msvc_curry:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "DyadicOperator::MsvcCurry",
-                                        &error_position);
-      goto invalid;
-    case ifc_dos_msvc_virtual_curry:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this,
-                                        "DyadicOperator::MsvcVirtualCurry",
-                                        &error_position);
-      goto invalid;
-    case ifc_dos_msvc_align:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "DyadicOperator::MsvcAlign",
-                                        &error_position);
-      goto invalid;
-    case ifc_dos_msvc_bit_span:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "DyadicOperator::MsvcBitSpan",
-                                        &error_position);
-      goto invalid;
-    case ifc_dos_msvc_bitfield_access:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this,
-                                        "DyadicOperator::MsvcBitfieldAccess",
-                                        &error_position);
-      goto invalid;
-    case ifc_dos_msvc_obscure_bitfield_access:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(
-                                   this,
-                                   "DyadicOperator::MsvcObscureBitfieldAccess",
-                                   &error_position);
-      goto invalid;
-    case ifc_dos_msvc_initialize:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this,
-                                        "DyadicOperator::MsvcInitialize",
-                                        &error_position);
-      goto invalid;
     case ifc_dos_msvc_builtin_offset_of:
       cache_token(cache, tok_builtin_offsetof, &pos);
       break;
@@ -14577,38 +14449,44 @@ the location of the operator.
     case ifc_dos_msvc_builtin_bit_cast:
       cache_token(cache, tok_builtin_bit_cast, &pos);
       break;
+    case ifc_dos_curry:
+    case ifc_dos_apply:
+    case ifc_dos_index:
+    case ifc_dos_default_at:
+    case ifc_dos_new:
+    case ifc_dos_new_array:
+    case ifc_dos_destruct:
+    case ifc_dos_destruct_at:
+    case ifc_dos_cleanup:
+    case ifc_dos_qualification:
+    case ifc_dos_promote:
+    case ifc_dos_demote:
+    case ifc_dos_coerce:
+    case ifc_dos_rewrite:
+    case ifc_dos_bless:
+    case ifc_dos_cast:
+    case ifc_dos_explicit_conversion:
+    case ifc_dos_narrow:
+    case ifc_dos_widen:
+    case ifc_dos_pretend:
+    case ifc_dos_closure:
+    case ifc_dos_zero_initialize:
+    case ifc_dos_clear_storage:
+    case ifc_dos_msvc_try_cast:
+    case ifc_dos_msvc_curry:
+    case ifc_dos_msvc_virtual_curry:
+    case ifc_dos_msvc_align:
+    case ifc_dos_msvc_bit_span:
+    case ifc_dos_msvc_bitfield_access:
+    case ifc_dos_msvc_obscure_bitfield_access:
+    case ifc_dos_msvc_initialize:
     case ifc_dos_msvc_builtin_is_layout_compatible:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(
-                               this,
-                               "DyadicOperator::MsvcBuiltinIsLayoutCompatible",
-                               &error_position);
-      goto invalid;
     case ifc_dos_msvc_builtin_is_pointer_interconvertible_base_of:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(
-                  this,
-                  "DyadicOperator::MsvcBuiltinIsPointerInterconvertibleBaseOf",
-                  &error_position);
-      goto invalid;
     case ifc_dos_msvc_builtin_is_pointer_interconvertible_with_class:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(
-               this,
-               "DyadicOperator::MsvcBuiltinIsPointerInterconvertibleWithClass",
-               &error_position);
-      goto invalid;
     case ifc_dos_msvc_builtin_is_corresponding_member:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(
-                            this,
-                            "DyadicOperator::MsvcBuiltinIsCorrespondingMember",
-                            &error_position);
-      goto invalid;
     case ifc_dos_msvc_intrinsic:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "DyadicOperator::MsvcIntrinsic",
-                                        &error_position);
+      issue_unsupported_construct_error(this, str_for(op), &error_position);
       goto invalid;
     default_is_unexpected_str("Unexpected DyadicOperator");
   }  /* switch */
@@ -14632,26 +14510,21 @@ the location of the operator.
 
   source_position_from_locus(&pos, locus);
   switch (op) {
-    case ifc_tos_unknown:
-    case ifc_tos_msvc_confusion:
-    case ifc_tos_msvc_confused_choice:
-    case ifc_tos_msvc_confused_push_state:
-      ifc_unexpected(this, "unsupported TriadicOperator");
-      goto invalid;
     case ifc_tos_choice:
       cache_token(cache, tok_quest_mark, &pos);
       break;
     case ifc_tos_construct_at:
       cache_token(cache, tok_new, &pos);
       break;
+    case ifc_tos_unknown:
     case ifc_tos_initialize:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "TriadicOperator::Initialize",
-                                        &error_position);
-      goto invalid;
     case ifc_tos_msvc:
-      unexpected_condition();
-      break;
+    case ifc_tos_msvc_confusion:
+    case ifc_tos_msvc_confused_choice:
+    case ifc_tos_msvc_confused_push_state:
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_construct_error(this, str_for(op), &error_position);
+      goto invalid;
     default_is_unexpected_str("Unexpected TriadicOperator");
   }  /* switch */
   goto done;
@@ -14678,35 +14551,19 @@ the location of the operator.
   source_position_from_locus(&pos, locus);
   switch (op) {
     case ifc_sios_unknown:
-      unexpected_condition();
-      break;
+    case ifc_sios_msvc:
+      { a_string err_msg("Unexpected ", str_for(op));
+
+        ifc_unexpected(this, err_msg);
+      }
+      goto invalid;
     case ifc_sios_allocate_single:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this,
-                                        "StorageOperator::AllocateSingle",
-                                        &error_position);
-      goto invalid;
     case ifc_sios_allocate_array:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this,
-                                        "StorageOperator::AllocateArray",
-                                        &error_position);
-      goto invalid;
     case ifc_sios_deallocate_single:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this,
-                                        "StorageOperator::DeallocateSingle",
-                                          &error_position);
-      goto invalid;
     case ifc_sios_deallocate_array:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this,
-                                        "StorageOperator::DeallocateArray",
-                                        &error_position);
+      issue_unsupported_construct_error(this, str_for(op), &error_position);
       goto invalid;
-    case ifc_sios_msvc:
-      unexpected_condition();
-      break;
     default_is_unexpected_str("Unexpected StorageOperator");
   }  /* switch */
   goto done;
@@ -14730,21 +14587,12 @@ the location of the operator.
   source_position_from_locus(&pos, locus);
   switch (op) {
     case ifc_vos_unknown:
-      unexpected_condition();
-      break;
-    case ifc_vos_collection:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "VariadicOperator::Collection",
-                                        &error_position);
-      goto invalid;
-    case ifc_vos_sequence:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "VariadicOperator::Sequence",
-                                        &error_position);
-      goto invalid;
     case ifc_vos_msvc:
-      unexpected_condition();
-      break;
+      { a_string err_msg("Unexpected ", str_for(op));
+
+        ifc_unexpected(this, err_msg);
+      }
+      goto invalid;
     case ifc_vos_msvc_has_trivial_constructor:
       cache_token(cache, tok_has_trivial_constructor, &pos);
       break;
@@ -14757,6 +14605,11 @@ the location of the operator.
     case ifc_vos_msvc_is_trivially_constructible:
       cache_token(cache, tok_is_trivially_constructible, &pos);
       break;
+    case ifc_vos_collection:
+    case ifc_vos_sequence:
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_construct_error(this, str_for(op), &error_position);
+      goto invalid;
     default_is_unexpected_str("Unexpected VariadicOperator");
   }  /* switch */
   goto done;
@@ -15214,6 +15067,30 @@ decl and locus were encoded.
 }  /* cache_simple_template_id */
 
 
+static a_boolean validate_is_class_type(an_ifc_type_index type)
+/*
+If the type is fundamental type representing a class, return TRUE; otherwise,
+return FALSE.
+*/
+{
+  a_boolean result = FALSE;
+  Opt<an_ifc_type_fundamental> opt_itf;
+
+  construct_node(&opt_itf, type);
+  if (opt_itf.has_value()) {
+    switch (get_ifc_basis(*opt_itf)) {
+      case ifc_tbs_class:
+      case ifc_tbs_struct:
+        result = TRUE;
+        break;
+      default:
+        break;
+    }  /* switch */
+  }  /* if */
+  return result;
+}  /* validate_is_class_type */
+
+
 void an_ifc_module::cache_decl_partial_specialization(
                              a_module_token_cache_ptr                 cache,
                              an_ifc_decl_index                        decl_idx,
@@ -15245,9 +15122,9 @@ Add the tokens corresponding to the given partial specialization declaration
         }  /* if */
 
         an_ifc_decl_scope ids = *opt_ids;
-#if CHECKING
-        validate_is_class_type(get_ifc_type(ids));
-#endif /* CHECKING */
+        if (!validate_is_class_type(get_ifc_type(ids))) {
+          goto invalid;
+        }  /* if */
         /* Reconstruct the templated declaration. */
         auto cache_name_fn = [this, cache, &decl, &ids](
                                               a_source_position_ptr decl_pos) {
@@ -15357,9 +15234,9 @@ current cache context to help inform decisions about what to cache.
         }  /* if */
 
         an_ifc_decl_scope ids = *opt_ids;
-#if CHECKING
-        validate_is_class_type(get_ifc_type(ids));
-#endif /* CHECKING */
+        if (!validate_is_class_type(get_ifc_type(ids))) {
+          goto invalid;
+        }  /* if */
         /* Reconstruct the templated declaration. */
         auto cache_name_fn = [this, cache, &decl, &ids](
                                               a_source_position_ptr decl_pos) {
@@ -16096,7 +15973,9 @@ about what to cache.
         source_position_from_locus(&pos, locus);
         cache_decl_access(cache, ide, /*cache_colon=*/TRUE, &pos);
         cache_basic_specifiers(cache, get_ifc_specifiers(ide), &pos);
-        switch (get_ifc_basis(itf)) {
+
+        an_ifc_type_basis_sort basis = get_ifc_basis(itf);
+        switch (basis) {
           case ifc_tbs_enum:
             cache_token(cache, tok_enum, &pos);
             break;
@@ -16107,7 +15986,11 @@ about what to cache.
             cache_token(cache, tok_enum_class, &pos);
             break;
           default:
-            unexpected_condition();
+            { a_string err_msg("Unexpected ", str_for(basis));
+
+              ifc_unexpected(this, err_msg);
+            }
+            goto invalid;
         }  /* switch */
         if (!is_null_index(alignment)) {
           cache_token(cache, tok_alignas, &pos);
@@ -16194,7 +16077,10 @@ about what to cache.
           cache_token(cache, tok_assign, &pos);
           cache_type(cache, get_ifc_subject(itf), locus);
         } else {
-          unexpected_condition();
+          a_string err_msg("Unexpected ", str_for(type.sort));
+
+          ifc_unexpected(this, err_msg);
+          goto invalid;
         }  /* if */
         cache_token(cache, tok_semicolon, &pos);
       }
@@ -16887,7 +16773,14 @@ tuple elements by '::' instead of ','.
           cache_token(cache, tok_rparen, &pos);
         };  /* cache_arg */
         source_position_from_locus(&pos, locus);
-        switch (get_operator_kind(expr.mod, assoc)) {
+
+        an_operator_kind opkind = get_operator_kind(expr.mod, assoc);
+        switch (opkind) {
+          case opkind_error:
+          case opkind_c_cast:
+          case opkind_cpp_cast:
+            ifc_unexpected(this, "Unexpected operator kind");
+            goto invalid;
           case opkind_basic:
           case opkind_func_like:
             cache_operator(cache, assoc, locus);
@@ -16911,19 +16804,16 @@ tuple elements by '::' instead of ','.
                 ltok = tok_lbrace;
                 rtok = tok_rbrace;
               } else {
-                unexpected_condition();
+                a_string err_msg("Unexpected ", str_for(assoc));
+
+                ifc_unexpected(this, err_msg);
+                goto invalid;
               }  /* if */
               cache_token(cache, ltok, &pos);
               cache_expr(cache, argument, cinfo);
               cache_token(cache, rtok, &pos);
             }
             break;
-          case opkind_c_cast:
-          case opkind_cpp_cast:
-            ifc_unexpected(this, "Unexpected operator kind");
-            FALLTHROUGH
-          case opkind_error:
-            goto invalid;
           default_is_unexpected();
         }  /* switch */
       }
@@ -16946,6 +16836,11 @@ tuple elements by '::' instead of ','.
 
         source_position_from_locus(&pos, locus);
         switch (opkind) {
+          case opkind_error:
+          case opkind_post:
+          case opkind_other:
+            ifc_unexpected(this, "Unexpected operator kind");
+            goto invalid;
           case opkind_basic:
             { an_ifc_cache_info  cache_info = cinfo;
               if (assoc != ifc_dos_assign) {
@@ -17003,12 +16898,6 @@ tuple elements by '::' instead of ','.
             cache_expr(cache, arg_1, cinfo);
             cache_token(cache, tok_rparen, &pos);
             break;
-          case opkind_post:
-          case opkind_other:
-            ifc_unexpected(this, "Unexpected operator kind");
-            FALLTHROUGH
-          case opkind_error:
-            goto invalid;
           default_is_unexpected();
         }  /* switch */
       }
@@ -17176,7 +17065,9 @@ tuple elements by '::' instead of ','.
         an_ifc_cache_info      cache_info = cinfo;
         cache_info.nested_expr = TRUE;
         source_position_from_locus(&pos, locus);
-        switch (get_ifc_op(iec)) {
+
+        an_ifc_dyadic_operator_sort op_sort = get_ifc_op(iec);
+        switch (op_sort) {
           case ifc_dos_explicit_conversion:
             cache_type(cache, get_ifc_target(iec), locus);
             cache_expr(cache, get_ifc_source(iec), cache_info);
@@ -17207,10 +17098,12 @@ common_cast:
             cache_token(cache, tok_rparen, &pos);
             break;
           default:
-            cache_type(cache, get_ifc_target(iec), locus);
-            cache_expr(cache, get_ifc_source(iec), cache_info);
-            unexpected_condition_str("Unexpected DyadicOperator "
-                                     "for ExprSort::Cast");
+            { a_string err_msg("Unexpected ", str_for(op_sort),
+                               " for ", str_for(expr.sort));
+
+              ifc_unexpected(this, err_msg);
+            }
+            break;
         }  /* switch */
       }
       break;
@@ -17857,10 +17750,15 @@ Otherwise, parameter references should only include the parameter name.
         if (convention != ifc_ccs_cdecl) {
           cache_calling_convention(cache, convention, &pos);
         }  /* if */
-        switch (get_ifc_sort(ispd)) {
+
+        an_ifc_pointer_declarator_sort declar_sort = get_ifc_sort(ispd);
+        switch (declar_sort) {
           case ifc_pds_none:
-            unexpected_condition();
-            break;
+            { a_string err_msg("Unexpected ", str_for(declar_sort));
+
+              ifc_unexpected(this, err_msg);
+            }
+            goto invalid;
           case ifc_pds_pointer:
             cache_token(cache, tok_star, &pos);
             break;
@@ -19540,29 +19438,6 @@ explicitly-instantiated entity and update kind with the associated entity kind.
   }
   return get_parsed_entity(&dps, kind);
 }  /* parse_cached_explicit_instantiation */
-
-#if CHECKING
-
-void an_ifc_module::validate_is_class_type(an_ifc_type_index type)
-/*
-Validate that the given type is a fundamental type representing a class.
-*/
-{
-  Opt<an_ifc_type_fundamental> opt_itf;
-
-  construct_node(&opt_itf, type);
-  if (opt_itf.has_value()) {
-    switch (get_ifc_basis(*opt_itf)) {
-      case ifc_tbs_class:
-      case ifc_tbs_struct:
-        break;
-      default:
-        unexpected_condition_str("Unexpected TypeSort");
-    }  /* switch */
-  }  /* if */
-}  /* validate_is_class_type */
-
-#endif /* CHECKING */
 
 #if DEBUG
 

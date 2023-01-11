@@ -564,9 +564,6 @@ public:
                                        a_module_token_cache_ptr         cache,
                                        const an_ifc_decl_specialization &decl,
                                        an_il_entry_kind                 *kind);
-#if CHECKING
-  void validate_is_class_type(an_ifc_type_index type);
-#endif /* CHECKING */
 #if DEBUG
   void db_ifc_file_header() const;
   void db_ifc_scope(an_ifc_scope_index scope);
