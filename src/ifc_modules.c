@@ -8200,7 +8200,8 @@ a_type_ptr type_for_type_index(an_ifc_type_index type_index,
                                a_non_type_kind   *kind)
 /*
 Return the type that corresponds to the specified TypeIndex.  If there is no
-corresponding type, set *kind to the appropriate non-type kind and return NULL.
+corresponding type, set *kind to the appropriate non-type kind and return an
+error type.
 */
 {
   a_type_ptr          result = NULL;
@@ -8831,6 +8832,7 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
 invalid:
   result = error_type();
 done:;
+  check_assertion(result != NULL);
   return result;
 }  /* type_for_type_index */
 
@@ -10324,19 +10326,6 @@ FIXME: what other expressions can we get here?
 
         an_ifc_expr_literal   iel = *opt_iel;
         an_ifc_type_index     type = get_ifc_type(iel);
-        a_type_ptr            constant_type;
-        if (is_null_index(type)) {
-          /* If the expression doesn't have its own type, use the default
-             type provided by the caller. */
-          constant_type = default_type;
-        } else {
-          constant_type = type_for_type_index(type, /*kind=*/NULL);
-        }  /* if */
-        if (constant_type != NULL && is_error_type(constant_type) &&
-            !is_at_least_one_error()) {
-          ifc_unexpected(this, "unexpected error type");
-          goto invalid;
-        }  /* if */
 
         an_ifc_lit_index lit_value = get_ifc_value(iel);
         switch (lit_value.sort) {
@@ -10344,42 +10333,48 @@ FIXME: what other expressions can we get here?
           case ifc_ls_integer:
             /* An integer. */
             { an_integer_value value;
+
               /* Retrieve the unsigned value of the integer. */
               unsigned_integer_for_expr_index(expr_idx, &value);
               cp = alloc_constant(ck_integer);
-              if (is_null_index(type) && constant_type == NULL) {
+              if (is_null_index(type) && default_type == NULL) {
                 /* FIXME: not sure why the type is zero in some cases. */
                 set_unsigned_integer_constant(
                                         cp,
                                         (a_host_large_unsigned)lit_value.value,
                                         (an_integer_kind)ik_unsigned_int);
               } else {
-                if (constant_type != NULL) {
-                  if (is_pointer_type(constant_type) ||
-                      is_nullptr_type(constant_type)) {
-                    /* Pointer literal. */
-                    set_unsigned_integer_constant(cp, value,
-                                                  targ_size_t_int_kind);
-                  } else {
-                    a_type_ptr stripped_type = skip_typerefs(constant_type);
-                    if (type_is(stripped_type, tk_integer)) {
-                      if (int_type_is_signed(stripped_type)) {
-                        sign_extend_integer_value(&value,
-                                   (int)(stripped_type->size * targ_char_bit));
-                        set_integer_constant(cp, value,
-                                      stripped_type->variant.integer.int_kind);
-                      } else {
-                        set_unsigned_integer_constant(cp, value,
-                                      stripped_type->variant.integer.int_kind);
-                      }  /* if */
-                    } else {
-                      ifc_unexpected(this, "expected an integer type");
-                    }  /* if */
+                a_type_ptr constant_type = default_type;
+
+                if (!is_null_index(type)) {
+                  constant_type = type_for_type_index(type, /*kind=*/NULL);
+                  if (is_error_type(constant_type)) {
+                    goto invalid;
                   }  /* if */
-                  cp->type = constant_type;
-                } else {
-                  ifc_unexpected(this, "expected the constant to have a type");
                 }  /* if */
+
+                if (is_pointer_type(constant_type) ||
+                    is_nullptr_type(constant_type)) {
+                  /* Pointer literal. */
+                  set_unsigned_integer_constant(cp, value,
+                                                targ_size_t_int_kind);
+                } else {
+                  a_type_ptr stripped_type = skip_typerefs(constant_type);
+                  if (type_is(stripped_type, tk_integer)) {
+                    if (int_type_is_signed(stripped_type)) {
+                      sign_extend_integer_value(&value,
+                                 (int)(stripped_type->size * targ_char_bit));
+                      set_integer_constant(cp, value,
+                                    stripped_type->variant.integer.int_kind);
+                    } else {
+                      set_unsigned_integer_constant(cp, value,
+                                    stripped_type->variant.integer.int_kind);
+                    }  /* if */
+                  } else {
+                    ifc_unexpected(this, "expected an integer type");
+                  }  /* if */
+                }  /* if */
+                cp->type = constant_type;
               }  /* if */
             }
             break;
@@ -10439,7 +10434,7 @@ FIXME: what other expressions can we get here?
         an_ifc_type_index              type = get_ifc_type(ieptv);
         a_type_ptr                     tp = type_for_type_index(type,
                                                                 /*kind=*/NULL);
-        if (tp == NULL) {
+        if (is_error_type(tp)) {
           goto invalid;
         }  /* if */
         complete_type_is_needed(tp);
