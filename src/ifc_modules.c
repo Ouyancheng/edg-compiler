@@ -10352,7 +10352,6 @@ FIXME: what other expressions can we get here?
                     goto invalid;
                   }  /* if */
                 }  /* if */
-
                 if (is_pointer_type(constant_type) ||
                     is_nullptr_type(constant_type)) {
                   /* Pointer literal. */
