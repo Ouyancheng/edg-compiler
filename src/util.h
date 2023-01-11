@@ -2493,7 +2493,8 @@ string_fmter::append_into functions.
   size_t element_sizes [] = {
     detail::string_formatter<a_Text_convertable_type>::size_hint_of(args)...
   };
-  size_t total_size = 0;
+  /* Start at an initial size of 1 to account for the null terminator. */
+  size_t total_size = 1;
 
   /* Calculate the total size estimate off of the element sizes, and get a
      backing Dyn_array instance (with the appropriate space reserved based on
@@ -2513,6 +2514,11 @@ string_fmter::append_into functions.
                                                    args,
                                                    element_sizes[counter++])...
   };
+  /* Ensure the underlying array is always null-terminated. */
+  if (backing_array->length() < 1 ||
+      (*backing_array)[backing_array->length() - 1] != '\0') {
+    backing_array->insert(backing_array->length(), '\0');
+  }  /* if */
 }  /* append_with_custom_reserve */
 
 }  /* detail */
@@ -2536,7 +2542,7 @@ struct Allocated_string {
   a_const_char *as_temp_characters() const
     { return backing_array.begin(); }
   a_size length() const
-    { return backing_array.length(); }
+    { return backing_array.length() - 1; }
 
   template<typename... a_Text_convertable_type>
   inline Allocated_string<Allocator>& append(a_Text_convertable_type... args);
