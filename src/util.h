@@ -891,8 +891,8 @@ inline void Dyn_array<an_Elem, Allocator>::insert(an_index          i,
                                                   size_t            len)
 /*
 Copy-insert len number of values copying sequentially from the given iterator
-into the given index i.  All values following i (if any) are first moved
-len positions back.
+into the array beginning at the given index i.  All existing values from index
+i through the end of the array are first moved len positions back.
 */
 {
   a_size orig_count = this->n_elems;
@@ -2559,7 +2559,7 @@ inline Allocated_string<Allocator>::Allocated_string(
                                                an_allocator               a,
                                                a_Text_convertable_type... args)
 /*
-Construct a new string using the given allocator, the passed arguments are
+Construct a new string using the given allocator.  The passed arguments are
 appended in the fashion described in detail::append_with_custom_reserve.
 */
 {
@@ -2594,7 +2594,7 @@ is returned.
 
 /*
 An alias for the "normal" usage of Allocated_string (i.e., with a dynamically
-allocating fe_alloc backed allocator).
+allocating fe_alloc-backed allocator).
 */
 typedef Allocated_string<FE_allocator> a_string;
 
