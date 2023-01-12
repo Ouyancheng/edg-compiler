@@ -9855,7 +9855,7 @@ If maintain_expression is TRUE, the backing expression for the returned
 constant is set as well.
 */
 {
-  a_boolean         has_error = FALSE;
+  a_boolean         has_error = FALSE, is_dependent = FALSE;
   an_expr_node_ptr  arg = expr->variant.builtin_operation.operands;
 
   /* Most built-in operations result in constants.  So we start with that
@@ -9868,11 +9868,14 @@ constant is set as well.
     if (arg->kind == (an_expr_node_kind)enk_error) {
       has_error = TRUE;
       break;
+    } else if (!is_dependent && is_template_dependent_context() &&
+               expr_is_instantiation_dependent(arg)) {
+      is_dependent = TRUE;
     }  /* if */
   }  /* for */
   if (has_error) {
     clear_constant(constant, (a_constant_repr_kind)ck_error);
-  } else if (is_template_dependent_context() && !scope_stack_top().is_rescan) {
+  } else if (is_dependent && !scope_stack_top().is_rescan) {
     /* Unsubstituted parameters may make actual folding impossible.  Produce
        a ck_template_param/tpck_expression entry instead. */
     make_template_param_expr_constant(expr, constant);
