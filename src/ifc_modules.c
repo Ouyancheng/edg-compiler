@@ -6286,33 +6286,21 @@ class_struct_union_case:
             kind = iek_type;
 
             /* Process the enumerators. */
-            an_ifc_sequence    initializer = get_ifc_initializer(ide);
-            an_ifc_cardinality cardinality = get_ifc_cardinality(initializer);
-            if (cardinality != 0) {
-              an_ifc_index               start = get_ifc_start(initializer);
-              an_ifc_cardinality_storage i;
+            an_ifc_sequence             initializer = get_ifc_initializer(ide);
+            a_decl_enumerator_traverser traverser(initializer);
+            for (an_Indexed<an_ifc_decl_enumerator> idxed_enmtr : traverser) {
+              if (!idxed_enmtr.has_value()) {
+                goto invalid;
+              }  /* if */
 
-              for (i = 0; i < cardinality; i++) {
-                /* FIXME: Use a traverser here rather than direct construction
-                   of a decl index. */
-                /* The sequence doesn't specifically contain DeclIndex values;
-                   compute one so we can invoke ourselves recursively to
-                   process the enumerators. */
-                an_ifc_decl_index   enum_idx{ide.get_module(),
-                                             ifc_ds_decl_enumerator,
-                                             start + i};
-                if (!validate_element_exists(ide.get_module(),
-                                             ifc_pk_decl_enumerator,
-                                             start + i, /*parent=*/NULL)) {
-                  continue;
-                }  /* if */
-
-                a_module_entity_ptr emep = get_ifc_module_entity_ptr(enum_idx);
-                emep->scope = enum_scope;
-                this->process_ifc_declaration(emep, /*defer=*/FALSE);
-              }  /* for */
-              integer_type_supp(enum_type)->enumerator_list_seen = TRUE;
-            }  /* if */
+              an_ifc_decl_index   enumerator_idx =
+                                           to_decl_index(idxed_enmtr.node_idx);
+              a_module_entity_ptr emep =
+                                     get_ifc_module_entity_ptr(enumerator_idx);
+              emep->scope = enum_scope;
+              this->process_ifc_declaration(emep, /*defer=*/FALSE);
+            }  /* for */
+            integer_type_supp(enum_type)->enumerator_list_seen = TRUE;
             if (is_scoped_enum) {
               pop_scope();
             }  /* if */
