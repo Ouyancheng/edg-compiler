@@ -1194,7 +1194,7 @@ will be lazily loaded if referenced).
   an_ifc_module       *mod = decl_idx.mod;
   a_module_entity_ptr dmep = get_ifc_module_entity_ptr(decl_idx);
 
-  mod->process_ifc_declaration(dmep, defer, (a_type_ptr)NULL);
+  mod->process_ifc_declaration(dmep, defer);
   return dmep;
 }  /* process_decl_at_index */
 
@@ -2934,7 +2934,7 @@ Return NULL if none is found.
                                          /*new_value=*/TRUE);
     mep = get_ifc_module_entity_ptr(decl_idx);
     if (mep->entity.ptr == NULL) {
-      mod->process_ifc_declaration(mep, /*defer=*/FALSE, (a_type_ptr)NULL);
+      mod->process_ifc_declaration(mep, /*defer=*/FALSE);
       result = ifc_decl_lookup_table->get(decl_idx);
     }  /* if */
     if (result != NULL) {
@@ -5538,20 +5538,14 @@ module, but its definition hasn't been loaded yet.  Load the definition now.
 }  /* load_template_definition_from_ifc_module */
 
 
-/* FIXME: might be able to get rid of enumeration_type now that enums aren't
-   deferred */
-void an_ifc_module::process_ifc_declaration(
-                                          a_module_entity_ptr mep,
-                                          a_boolean           defer,
-                                          a_type_ptr          enumeration_type)
+void an_ifc_module::process_ifc_declaration(a_module_entity_ptr mep,
+                                            a_boolean           defer)
 /*
 Process the IFC module entity declaration specified by mep either by creating
-the appropriate IL entity, or, when defer is TRUE, mark the appropriate
-symbol header as having a deferred module entity (which will be lazily loaded
-if referenced).  When enumeration_type is non-NULL, it represents the
-enumeration type for the enumerator being defined (and is added to the list of
-constants for that type).  If defer is FALSE, *mep is updated to record the
-principal associated IL entity.
+the appropriate IL entity, or, when defer is TRUE, mark the appropriate symbol
+header as having a deferred module entity (which will be lazily loaded if
+referenced).  If defer is FALSE, *mep is updated to record the principal
+associated IL entity.
 */
 {
   a_decl_parse_state       dps;
@@ -6299,12 +6293,6 @@ class_struct_union_case:
               an_ifc_cardinality_storage i;
 
               for (i = 0; i < cardinality; i++) {
-                /* FIXME: for now, don't defer creation of enumerators.  There
-                   are two problems: for non-scoped enums, we need to have the
-                   enum type available so the constant can be queued on the
-                   constant_list; for scoped enums, enum_qualified_id_lookup
-                   relies on looking through the constants list of the scope,
-                   but those aren't created if deferred. */
                 /* FIXME: Use a traverser here rather than direct construction
                    of a decl index. */
                 /* The sequence doesn't specifically contain DeclIndex values;
@@ -6321,8 +6309,7 @@ class_struct_union_case:
 
                 a_module_entity_ptr emep = get_ifc_module_entity_ptr(enum_idx);
                 emep->scope = enum_scope;
-                this->process_ifc_declaration(emep, /*defer=*/FALSE,
-                                              enum_type);
+                this->process_ifc_declaration(emep, /*defer=*/FALSE);
               }  /* for */
               integer_type_supp(enum_type)->enumerator_list_seen = TRUE;
             }  /* if */
@@ -6351,7 +6338,6 @@ class_struct_union_case:
             an_ifc_decl_enumerator ide = *opt_ide;
             a_symbol_ptr           enum_con_sym;
             a_constant_ptr         enum_con;
-            a_type_ptr             enum_type;
             a_memory_region_number region_to_switch_back_to;
 
             if (is_from_gmf(get_ifc_specifiers(ide))) {
@@ -6361,19 +6347,12 @@ class_struct_union_case:
               mep->scope = get_home_scope(ide);
               check_assertion(mep->scope != NULL);
             }  /* if */
-            if (mep->scope->kind == (a_scope_kind)sck_enum) {
-              /* This is an enumerator for a scoped enum. */
-              enum_type = mep->scope->variant.assoc_type;
-            } else {
-              if (enumeration_type == NULL) {
-                an_ifc_type_index  type_idx = get_ifc_type(ide);
 
-                enumeration_type = type_for_type_index(type_idx,
-                                                       /*kind=*/NULL);
-                check_assertion(enumeration_type != NULL);
-                check_assertion(is_enum_type(enumeration_type));
-              }  /* if */
-              enum_type = enumeration_type;
+            an_ifc_type_index  type_idx = get_ifc_type(ide);
+            a_type_ptr         enum_type = type_for_type_index(type_idx,
+                                                               /*kind=*/NULL);
+            if (is_error_type(enum_type)) {
+              goto invalid;
             }  /* if */
             if (check_and_set_redeclaration(&loc, mep, &error_position,
                                             iek_constant, &il_entity, &kind)){
@@ -6971,8 +6950,7 @@ class_struct_union_case:
                caller will have filled in mep->scope and that should be
                propagated to the individual associated declarations. */
             if (scope != NULL) emep->scope = scope;
-            this->process_ifc_declaration(emep, /*defer=*/FALSE,
-                                          (a_type*)NULL);
+            this->process_ifc_declaration(emep, /*defer=*/FALSE);
             if (scope == NULL) mep->scope = emep->scope;
 
             a_source_correspondence  *scp;
@@ -7925,7 +7903,7 @@ deferred until they are referenced.
     }  /* if */
 #endif /* EXPENSIVE_CHECKING */
     dmep->scope = scope;
-    this->process_ifc_declaration(dmep, defer, (a_type_ptr)NULL);
+    this->process_ifc_declaration(dmep, defer);
   };
 
   if (scope != 0) {

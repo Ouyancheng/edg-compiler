@@ -237,8 +237,7 @@ public:
                                         an_ifc_partition_kind part_kind) const;
 
   void process_ifc_declaration(a_module_entity_ptr mep,
-                               a_boolean           defer,
-                               a_type_ptr          enumeration_type);
+                               a_boolean           defer);
   void complete_definition_of_module_class(a_module_entity_ptr mep) OVERRIDE;
   a_boolean cache_function_body(a_module_token_cache_ptr cache,
                                 an_ifc_decl_index        decl_idx,
