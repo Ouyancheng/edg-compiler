@@ -3176,7 +3176,7 @@ FALSE.
     an_ifc_module *mod = node.get_module();
 
     mod->cache_variable_decl(cache, decl_idx, /*is_class_member=*/FALSE,
-                             ifc_as_none, get_ifc_specifiers(*opt_idv),
+                             get_ifc_specifiers(*opt_idv),
                              get_ifc_traits(*opt_idv),
                              get_ifc_alignment(*opt_idv),
                              get_ifc_type(*opt_idv), get_ifc_name(*opt_idv),
@@ -11204,19 +11204,16 @@ pos is the position of the preprocessor token.
 }  /* cache_pp_token */
 
 
-static void cache_access(a_module_token_cache_ptr cache,
-                         an_ifc_access_sort       access,
-                         a_boolean                cache_colon,
-                         a_source_position_ptr    pos)
+static void cache_access_specifier(a_module_token_cache_ptr cache,
+                                   an_ifc_access_sort       access,
+                                   a_source_position_ptr    pos)
 /*
-Add tokens corresponding to access (if any) to cache.  If cache_colon is TRUE,
-cache a tok_colon after the access specifier.  pos is the position of the
-access specifier.
+Add tokens corresponding to access (if any) to cache.  pos is the position of
+the access specifier.
 */
 {
   switch (access) {
     case ifc_as_none:
-      cache_colon = FALSE;
       /* Nothing to cache. */
       break;
     case ifc_as_private:
@@ -11230,29 +11227,7 @@ access specifier.
       break;
     default_is_unexpected();
   }  /* switch */
-  if (cache_colon) {
-    cache_token(cache, tok_colon, pos);
-  }  /* if */
-}  /* cache_access */
-
-
-template<typename an_ifc_Node_type>
-static void cache_decl_access(a_module_token_cache_ptr cache,
-                              const an_ifc_Node_type   &node,
-                              a_boolean                cache_colon,
-                              a_source_position_ptr    pos)
-/*
-Add tokens corresponding to the declaration's access (if any -- and if an
-access specifier is required to specify access) to cache.  If cache_colon is
-TRUE, cache a tok_colon after the access specifier.  pos is the position of the
-access specifier.
-*/
-{
-  if (is_class_scope(get_ifc_home_scope(node))) {
-    an_ifc_access_sort access = get_ifc_access(node);
-    cache_access(cache, access, cache_colon, pos);
-  }  /* if */
-}  /* cache_decl_access */
+}  /* cache_access_specifier */
 
 
 void an_ifc_module::cache_source_directive(
@@ -13023,14 +12998,12 @@ inline void an_ifc_module::cache_scope_decl(
                                    a_module_token_cache_ptr     cache,
                                    an_ifc_decl_index            decl_idx,
                                    an_ifc_type_index            type,
-                                   an_ifc_access_sort           access,
                                    a_Name_Cache_Fn              cache_name_fn,
                                    a_Scope_Cache_Fn             cache_scope_fn,
                                    const an_ifc_source_location &locus)
 /*
 Cache the tokens corresponding to the given scope decl (indexed in the IFC by
-decl_idx).  type represents the IFC type representing the introducing keyword,
-and access gives the declaration's accessibility (if it's a class member).
+decl_idx).  type represents the IFC type representing the introducing keyword.
 cache_name_fn is a lambda accepting a_source_position_ptr interpretation of
 locus that's called to cache the name of the scope.  cache_scope_fn is a lambda
 accepting a_source_position_ptr interpretation of locus that's called to cache
@@ -13046,7 +13019,6 @@ can be consistently cached via a ScopeIndex.
 
   check_assertion(type.sort == ifc_ts_type_fundamental);
   source_position_from_locus(&pos, locus);
-  cache_access(cache, access, /*cache_colon=*/TRUE, &pos);
   /* Cache the struct/class/union/namespace/__interface keyword. */
   cache_type(cache, type, locus);
   /* Cache any attributes. */
@@ -13064,7 +13036,6 @@ void an_ifc_module::cache_scope_decl(a_module_token_cache_ptr     cache,
                                      an_ifc_name_index            name,
                                      an_ifc_type_index            base,
                                      an_ifc_scope_index           scope,
-                                     an_ifc_access_sort           access,
                                      const an_ifc_source_location &locus)
 /*
 Cache the tokens corresponding to the given scope decl (indexed in the IFC by
@@ -13072,7 +13043,6 @@ decl_idx).  type represents the IFC type representing the introducing keyword.
 name represents the name of the scope decl.  base represents any associated
 base classes and as such is only valid for a class declaration.  scope
 represents the declaration's body (e.g., for a class the member-specification).
-access gives the declaration's accessibility (if it's a class member).
 Finally, locus is the location of the given scope decl.
 */
 {
@@ -13101,8 +13071,8 @@ Finally, locus is the location of the given scope decl.
       }  /* if */
     }  /* if */
   };
-  cache_scope_decl(cache, decl_idx, type, access, cache_name_fn,
-                   cache_scope_fn, locus);
+  cache_scope_decl(cache, decl_idx, type, cache_name_fn, cache_scope_fn,
+                   locus);
 }  /* cache_scope_decl */
 
 
@@ -13538,7 +13508,7 @@ this is needed.
         }  /* if */
 
         an_ifc_type_base itb = *opt_itb;
-        cache_access(cache, get_ifc_access(itb), /*cache_colon=*/FALSE, &pos);
+        cache_access_specifier(cache, get_ifc_access(itb), &pos);
         if (get_ifc_shared(itb)) {
           cache_token(cache, tok_virtual, &pos);
         }  /* if */
@@ -14632,8 +14602,6 @@ inline void an_ifc_module::cache_variable_decl(
                             a_module_token_cache_ptr         cache,
                             an_ifc_decl_index                decl_idx,
                             a_boolean                        is_data_member,
-                            an_ifc_access_sort               access,
-                            a_boolean                        cache_access_spec,
                             an_ifc_basic_specifiers_bitfield specifiers,
                             an_ifc_object_traits_bitfield    traits,
                             an_ifc_expr_index                alignment,
@@ -14644,16 +14612,14 @@ inline void an_ifc_module::cache_variable_decl(
                             const an_ifc_source_location     &locus)
 /*
 Add the tokens corresponding to the given variable declaration (indexed in the
-IFC by decl_idx) to cache.  is_data_member is TRUE if this is a non-static
-data member of a class.  access, specifiers, traits, alignment, and type are
-values from the IFC file that describe the variable declaration.
-cache_access_spec is TRUE if the access specifier caching was not handled by
-the caller.  cache_name_fn is a lambda accepting a_source_position_ptr
-interpretation of locus that's called to cache the name of the variable.  If
-width is not zero, this is a bitfield and width is its size.  cache_init_fn is
-a lambda accepting a_source_position_ptr interpretation of locus that's called
-to cache the variable initializer (if any).  locus is the source location for
-the declaration.
+IFC by decl_idx) to cache.  is_data_member is TRUE if this is a non-static data
+member of a class.  specifiers, traits, alignment, and type are values from the
+IFC file that describe the variable declaration.  cache_name_fn is a lambda
+accepting a_source_position_ptr interpretation of locus that's called to cache
+the name of the variable.  If width is not zero, this is a bitfield and width
+is its size.  cache_init_fn is a lambda accepting a_source_position_ptr
+interpretation of locus that's called to cache the variable initializer (if
+any).  locus is the source location for the declaration.
 
 FIXME: Remove this version of cache_variable_decl once names can be cached
 properly for specializations using a NameIndex, and similarly the variable's
@@ -14665,9 +14631,6 @@ initializer can be consistently cached via a ScopeIndex.
                                   is_class_scope(get_ifc_home_scope(decl_idx));
 
   source_position_from_locus(&pos, locus);
-  if (decl_in_class && cache_access_spec) {
-    cache_access(cache, access, /*cache_colon=*/TRUE, &pos);
-  }  /* if */
   /* Cache tokens for MSVC "basic specifiers" (at the time of writing this
      includes extern "C" and [[deprecated]]). */
   /* FIXME: Because we cache attributes properly now, this can result in two
@@ -14707,7 +14670,6 @@ void an_ifc_module::cache_variable_decl(
                               a_module_token_cache_ptr         cache,
                               an_ifc_decl_index                decl_idx,
                               a_boolean                        is_data_member,
-                              an_ifc_access_sort               access,
                               an_ifc_basic_specifiers_bitfield specifiers,
                               an_ifc_object_traits_bitfield    traits,
                               an_ifc_expr_index                alignment,
@@ -14719,12 +14681,12 @@ void an_ifc_module::cache_variable_decl(
                               const an_ifc_source_location     &locus)
 /*
 Add the tokens corresponding to the given variable declaration (indexed in the
-IFC by decl_idx) to cache.  is_data_member is TRUE if this is a non-static
-data member of a class.  access, specifiers, traits, alignment, and type are
-values from the IFC file that describe the variable declaration.  Both name and
-raw_name provide the name of the variable - if name is zero, raw_name must be
-non-zero.  If width is not zero, this is a bitfield and width is its size.  If
-the variable has an initializer then initializer is non-zero and refers to the
+IFC by decl_idx) to cache.  is_data_member is TRUE if this is a non-static data
+member of a class.  specifiers, traits, alignment, and type are values from the
+IFC file that describe the variable declaration.  Both name and raw_name
+provide the name of the variable - if name is zero, raw_name must be non-zero.
+If width is not zero, this is a bitfield and width is its size.  If the
+variable has an initializer then initializer is non-zero and refers to the
 initializer expression.  locus is the source location for the declaration.
 */
 {
@@ -14754,8 +14716,7 @@ initializer expression.  locus is the source location for the declaration.
       cache_token(cache, tok_semicolon, pos);
     };
 
-    cache_variable_decl(cache, decl_idx, is_data_member, access,
-                        /*cache_access_spec=*/TRUE, specifiers, traits,
+    cache_variable_decl(cache, decl_idx, is_data_member, specifiers, traits,
                         alignment, type, cache_name_fn, width,
                         cache_class_mem_init_fn, locus);
   } else {
@@ -14781,8 +14742,7 @@ initializer expression.  locus is the source location for the declaration.
       }  /* if */
     };
 
-    cache_variable_decl(cache, decl_idx, is_data_member, access,
-                        /*cache_access_spec=*/FALSE, specifiers, traits,
+    cache_variable_decl(cache, decl_idx, is_data_member, specifiers, traits,
                         alignment, type, cache_name_fn, width,
                         cache_init_fn, locus);
   }  /* if */
@@ -14795,8 +14755,6 @@ inline void an_ifc_module::cache_function_decl(
                         an_ifc_decl_index                    decl_idx,
                         a_boolean                            is_class_member,
                         a_boolean                            is_dtor,
-                        an_ifc_access_sort                   access,
-                        a_boolean                            cache_access_spec,
                         an_ifc_calling_convention_sort       calling_conv,
                         an_ifc_function_traits_bitfield      func_traits,
                         an_ifc_function_type_traits_bitfield func_type_traits,
@@ -14811,15 +14769,14 @@ inline void an_ifc_module::cache_function_decl(
 Add the tokens corresponding to the given function declaration (index in the
 IFC by decl_idx) to cache.  is_class_member is TRUE if this is a non-static
 member of a class.  is_dtor is TRUE if this is a destructor declaration.
-access, calling_conv, func_traits, func_type_traits, vendor_traits, and eh_spec
-are values from the IFC file that describe the function.  cache_access_spec is
-TRUE if the access specifier caching was not handled by the caller.
-return_type is the return type of the function (0 if there is no return type,
-e.g., the function is a constructor or destructor).  cache_name_fn is a lambda
-accepting a_source_position_ptr interpretation of locus that's called to cache
-the name of the scope.  Both params and param_types are the parameter list (0
-for both if there are no parameters).  If params is non-zero, param_types will
-be ignored as params will already contain the parameter types.  locus is the
+calling_conv, func_traits, func_type_traits, vendor_traits, and eh_spec are
+values from the IFC file that describe the function.  return_type is the return
+type of the function (0 if there is no return type, e.g., the function is a
+constructor or destructor).  cache_name_fn is a lambda accepting
+a_source_position_ptr interpretation of locus that's called to cache the name
+of the scope.  Both params and param_types are the parameter list (0 for both
+if there are no parameters).  If params is non-zero, param_types will be
+ignored as params will already contain the parameter types.  locus is the
 position of the function declaration.
 
 FIXME: Remove this version of cache_function_decl once names can be cached
@@ -14830,11 +14787,7 @@ properly for specializations using a NameIndex.
   a_boolean         decl_in_class =
                                   is_class_scope(get_ifc_home_scope(decl_idx));
 
-  decl_in_class = is_class_member || access != ifc_as_none;
   source_position_from_locus(&pos, locus);
-  if (decl_in_class && cache_access_spec) {
-    cache_access(cache, access, /*cache_colon=*/TRUE, &pos);
-  }  /* if */
   if (!is_class_member && decl_in_class) {
     /* This is a static member function. */
     cache_token(cache, tok_static, &pos);
@@ -14865,7 +14818,6 @@ void an_ifc_module::cache_function_decl(
                          an_ifc_decl_index                    decl_idx,
                          a_boolean                            is_class_member,
                          a_boolean                            is_dtor,
-                         an_ifc_access_sort                   access,
                          an_ifc_calling_convention_sort       calling_conv,
                          an_ifc_function_traits_bitfield      func_traits,
                          an_ifc_function_type_traits_bitfield func_type_traits,
@@ -14879,7 +14831,7 @@ void an_ifc_module::cache_function_decl(
 /*
 Add the tokens corresponding to the given function declaration to cache.
 is_class_member is TRUE if this is a non-static member of a class.  is_dtor is
-TRUE if this is a destructor declaration.  access, calling_conv, func_traits,
+TRUE if this is a destructor declaration.  calling_conv, func_traits,
 func_type_traits, vendor_traits, eh_spec, and name are values from the IFC file
 that describe the function.  return_type is the return type of the function (0
 if there is no return type, e.g., the function is a constructor or destructor).
@@ -14892,10 +14844,10 @@ declaration.
   auto cache_name_fn = [this, cache, name, locus](a_source_position_ptr pos) {
     cache_name(cache, name, locus);
   };
-  cache_function_decl(cache, decl_idx, is_class_member, is_dtor, access,
-                      /*cache_access_spec=*/TRUE, calling_conv, func_traits,
-                      func_type_traits, vendor_traits, return_type,
-                      cache_name_fn, params, param_types, eh_spec, locus);
+  cache_function_decl(cache, decl_idx, is_class_member, is_dtor, calling_conv,
+                      func_traits, func_type_traits, vendor_traits,
+                      return_type, cache_name_fn, params, param_types, eh_spec,
+                      locus);
 }  /* cache_function_decl */
 
 
@@ -14964,21 +14916,11 @@ offset/the offset is not needed.
 */
 {
   an_ifc_parameterized_entity entity = get_ifc_entity(decl);
-  an_ifc_decl_index           entity_decl = get_ifc_decl(entity);
   an_ifc_source_location      locus = get_ifc_locus(decl);
   a_source_position           pos;
   uint32_t                    offset = 0;
 
   source_position_from_locus(&pos, locus);
-  /* Attempt to cache the access specifier if one is specified. */
-  /* FIXME: As of IFC 0.32, decl is not always present. */
-  if (!is_null_index(entity_decl) && has_ifc_access(entity_decl)) {
-    if (validate(entity_decl) && has_ifc_home_scope(entity_decl) &&
-        is_class_scope(get_ifc_home_scope(entity_decl))) {
-      cache_access(cache, get_ifc_access(entity_decl), /*cache_colon=*/TRUE,
-                   &pos);
-    }  /* if */
-  }  /* if */
   /* Reconstruct the template-head. */
   cache_template_head(cache, get_ifc_chart(decl), &pos, cinfo);
   /* FIXME: Handle attributes. */
@@ -15153,10 +15095,8 @@ Add the tokens corresponding to the given partial specialization declaration
             cache_sentence(cache, body);
           }  /* if */
         };
-        /* Don't use the access field of the scope here - it's not relevant to
-           the declaration and is often not ifc_as_none. */
-        cache_scope_decl(cache, decl_idx, get_ifc_type(ids), ifc_as_none,
-                         cache_name_fn, cache_scope_fn, get_ifc_locus(ids));
+        cache_scope_decl(cache, decl_idx, get_ifc_type(ids), cache_name_fn,
+                         cache_scope_fn, get_ifc_locus(ids));
       }
       break;
     case ifc_ds_decl_variable:
@@ -15184,10 +15124,7 @@ Add the tokens corresponding to the given partial specialization declaration
           }  /* if */
         };
 
-        /* We've already cached the access specifier above, suppress
-           cache_variable_decl's access specifier caching. */
         cache_variable_decl(cache, decl_idx, /*is_data_member=*/FALSE,
-                            get_ifc_access(idv), /*cache_access_spec=*/FALSE,
                             get_ifc_specifiers(idv), get_ifc_traits(idv),
                             get_ifc_alignment(idv), get_ifc_type(idv),
                             cache_name_fn, an_ifc_expr_index{}, cache_init_fn,
@@ -15262,10 +15199,8 @@ current cache context to help inform decisions about what to cache.
             cache_token(cache, tok_semicolon, decl_pos);
           };
 
-          /* Don't use the access field of the scope here - it's not relevant
-             to the declaration and is often not ifc_as_none. */
-          cache_scope_decl(cache, decl_idx, get_ifc_type(ids), ifc_as_none,
-                           cache_name_fn, cache_scope_fn, get_ifc_locus(ids));
+          cache_scope_decl(cache, decl_idx, get_ifc_type(ids), cache_name_fn,
+                           cache_scope_fn, get_ifc_locus(ids));
         } else {
           auto cache_scope_fn = [this, cache, &cinfo, &ids](
                                               a_source_position_ptr decl_pos) {
@@ -15283,10 +15218,8 @@ current cache context to help inform decisions about what to cache.
             cache_token(cache, tok_semicolon, decl_pos);
           };
 
-          /* Don't use the access field of the scope here - it's not relevant
-             to the declaration and is often not ifc_as_none. */
-          cache_scope_decl(cache, decl_idx, get_ifc_type(ids), ifc_as_none,
-                           cache_name_fn, cache_scope_fn, get_ifc_locus(ids));
+          cache_scope_decl(cache, decl_idx, get_ifc_type(ids), cache_name_fn,
+                           cache_scope_fn, get_ifc_locus(ids));
         }  /* if */
       }
       break;
@@ -15326,18 +15259,14 @@ current cache context to help inform decisions about what to cache.
         /* Disable spurious GCC warning about uninitialized usage of
            opt_scope_ref). */
 BEGIN_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
-        /* We've already cached the access specifier above, suppress
-           cache_variable_decl's access specifier caching. */
         if (is_instantiation) {
           cache_variable_decl(cache, decl_idx, is_class_scope(scope_ref),
-                              get_ifc_access(idv), /*cache_access_spec=*/FALSE,
                               get_ifc_specifiers(idv), get_ifc_traits(idv),
                               get_ifc_alignment(idv), get_ifc_type(idv),
                               cache_name_fn, an_ifc_expr_index{},
                               cache_inst_init_fn, get_ifc_locus(idv));
         } else {
           cache_variable_decl(cache, decl_idx, is_class_scope(scope_ref),
-                              get_ifc_access(idv), /*cache_access_spec=*/FALSE,
                               get_ifc_specifiers(idv), get_ifc_traits(idv),
                               get_ifc_alignment(idv), get_ifc_type(idv),
                               cache_name_fn, an_ifc_expr_index{},
@@ -15380,13 +15309,11 @@ END_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
 BEGIN_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
         cache_function_decl(cache, templated_decl_idx,
                             is_class_scope(get_ifc_home_scope(idf)),
-                            /*is_dtor=*/FALSE, get_ifc_access(idf),
-                            /*cache_access_spec=*/FALSE,
-                            get_ifc_convention(itf), get_ifc_traits(idf),
-                            get_ifc_traits(itf), get_vendor_traits(decl_idx),
-                            get_ifc_target(itf), cache_name_fn, params,
-                            get_ifc_source(itf), get_ifc_eh_spec(itf),
-                            get_ifc_locus(idf));
+                            /*is_dtor=*/FALSE, get_ifc_convention(itf),
+                            get_ifc_traits(idf), get_ifc_traits(itf),
+                            get_vendor_traits(decl_idx), get_ifc_target(itf),
+                            cache_name_fn, params, get_ifc_source(itf),
+                            get_ifc_eh_spec(itf), get_ifc_locus(idf));
 END_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
         if (!cinfo.ignore_definition) {
           maybe_cache_function_def(cache, templated_decl_idx, idf);
@@ -15425,13 +15352,11 @@ END_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
         }  /* if */
 
         cache_function_decl(cache, templated_decl_idx, /*class_member=*/TRUE,
-                            /*is_dtor=*/FALSE, get_ifc_access(idm),
-                            /*cache_access_spec=*/FALSE,
-                            get_ifc_convention(itm), get_ifc_traits(idm),
-                            get_ifc_traits(itm), get_vendor_traits(decl_idx),
-                            get_ifc_target(itm), cache_name_fn, params,
-                            get_ifc_source(itm), get_ifc_eh_spec(itm),
-                            get_ifc_locus(idm));
+                            /*is_dtor=*/FALSE, get_ifc_convention(itm),
+                            get_ifc_traits(idm), get_ifc_traits(itm),
+                            get_vendor_traits(decl_idx), get_ifc_target(itm),
+                            cache_name_fn, params, get_ifc_source(itm),
+                            get_ifc_eh_spec(itm), get_ifc_locus(idm));
         if (!cinfo.ignore_definition) {
           maybe_cache_function_def(cache, templated_decl_idx, idm);
         } else {
@@ -15473,9 +15398,8 @@ END_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
         }  /* if */
 
         cache_function_decl(cache, templated_decl_idx, /*class_member=*/TRUE,
-                            /*is_dtor=*/FALSE, get_ifc_access(idc),
-                            /*cache_access_spec=*/FALSE,
-                            get_ifc_convention(itt), get_ifc_traits(idc),
+                            /*is_dtor=*/FALSE, get_ifc_convention(itt),
+                            get_ifc_traits(idc),
                             an_ifc_function_type_traits_bitfield{},
                             get_vendor_traits(decl_idx), an_ifc_type_index{},
                             cache_name_fn, params, get_ifc_source(itt),
@@ -15860,6 +15784,17 @@ about what to cache.
 {
   a_source_position pos;
 
+  if (!validate(decl)) {
+    goto invalid;
+  }  /* if */
+  if (has_ifc_access(decl)) {
+    an_ifc_access_sort access = get_ifc_access(decl);
+
+    if (has_ifc_home_scope(decl) && is_class_scope(get_ifc_home_scope(decl))) {
+      cache_access_specifier(cache, access, &null_source_position);
+      cache_token(cache, tok_colon, &null_source_position);
+    }  /* if */
+  }  /* if */
   switch (decl.sort) {
     case ifc_ds_decl_vendor_extension:
     case ifc_ds_decl_explicit_instantiation:
@@ -15891,11 +15826,11 @@ about what to cache.
         an_ifc_source_location locus = get_ifc_locus(idv);
         source_position_from_locus(&pos, locus);
         cache_variable_decl(cache, decl, /*is_data_member=*/FALSE,
-                            get_ifc_access(idv), get_ifc_specifiers(idv),
-                            get_ifc_traits(idv), get_ifc_alignment(idv),
-                            get_ifc_type(idv), get_ifc_name(idv),
-                            an_ifc_text_offset{}, an_ifc_expr_index{},
-                            get_ifc_initializer(idv), locus);
+                            get_ifc_specifiers(idv), get_ifc_traits(idv),
+                            get_ifc_alignment(idv), get_ifc_type(idv),
+                            get_ifc_name(idv), an_ifc_text_offset{},
+                            an_ifc_expr_index{}, get_ifc_initializer(idv),
+                            locus);
       }
       break;
     case ifc_ds_decl_parameter:
@@ -15921,8 +15856,7 @@ about what to cache.
         an_ifc_decl_field                idf = *opt_idf;
         an_ifc_basic_specifiers_bitfield specifiers = get_ifc_specifiers(idf);
         check_assertion(!test_bitmask<ifc_bsb_c>(specifiers));
-        cache_variable_decl(cache, decl, /*is_data_member=*/TRUE,
-                            get_ifc_access(idf), specifiers,
+        cache_variable_decl(cache, decl, /*is_data_member=*/TRUE, specifiers,
                             get_ifc_traits(idf), get_ifc_alignment(idf),
                             get_ifc_type(idf), an_ifc_name_index{},
                             get_ifc_name(idf), an_ifc_expr_index{},
@@ -15942,8 +15876,7 @@ about what to cache.
         an_ifc_expr_index                width = get_ifc_width(idbf);
         check_assertion(!test_bitmask<ifc_bsb_c>(specifiers));
         check_assertion(!is_null_index(width));
-        cache_variable_decl(cache, decl, /*is_data_member=*/TRUE,
-                            get_ifc_access(idbf), specifiers,
+        cache_variable_decl(cache, decl, /*is_data_member=*/TRUE, specifiers,
                             get_ifc_traits(idbf), an_ifc_expr_index{},
                             get_ifc_type(idbf), an_ifc_name_index{},
                             get_ifc_name(idbf), width,
@@ -15961,7 +15894,7 @@ about what to cache.
         an_ifc_decl_scope ids = *opt_ids;
         cache_scope_decl(cache, decl, get_ifc_type(ids), get_ifc_name(ids),
                          get_ifc_base(ids), get_ifc_initializer(ids),
-                         get_ifc_access(ids), get_ifc_locus(ids));
+                         get_ifc_locus(ids));
       }
       break;
     case ifc_ds_decl_enumeration:
@@ -15985,7 +15918,6 @@ about what to cache.
         an_ifc_expr_index       alignment = get_ifc_alignment(ide);
         an_ifc_type_index       base = get_ifc_base(ide);
         source_position_from_locus(&pos, locus);
-        cache_decl_access(cache, ide, /*cache_colon=*/TRUE, &pos);
         cache_basic_specifiers(cache, get_ifc_specifiers(ide), &pos);
 
         an_ifc_type_basis_sort basis = get_ifc_basis(itf);
@@ -16052,7 +15984,6 @@ about what to cache.
         an_ifc_source_location locus = get_ifc_locus(ida);
         an_ifc_type_index      type = get_ifc_type(ida);
         source_position_from_locus(&pos, locus);
-        cache_decl_access(cache, ida, /*cache_colon=*/TRUE, &pos);
         if (type.sort == ifc_ts_type_fundamental) {
           Opt<an_ifc_type_fundamental> opt_itf;
 
@@ -16178,12 +16109,11 @@ about what to cache.
           params = get_func_params_from_trait(decl);
         }  /* if */
         cache_function_decl(cache, decl, /*class_member=*/FALSE,
-                            /*is_dtor=*/FALSE, get_ifc_access(idf),
-                            get_ifc_convention(itf), get_ifc_traits(idf),
-                            get_ifc_traits(itf), get_vendor_traits(decl),
-                            get_ifc_target(itf), get_ifc_name(idf), params,
-                            get_ifc_source(itf), get_ifc_eh_spec(itf),
-                            get_ifc_locus(idf));
+                            /*is_dtor=*/FALSE, get_ifc_convention(itf),
+                            get_ifc_traits(idf), get_ifc_traits(itf),
+                            get_vendor_traits(decl), get_ifc_target(itf),
+                            get_ifc_name(idf), params, get_ifc_source(itf),
+                            get_ifc_eh_spec(itf), get_ifc_locus(idf));
         maybe_cache_function_def(cache, decl, idf);
       }
       break;
@@ -16218,11 +16148,10 @@ about what to cache.
           params = get_func_params_from_trait(decl);
         }  /* if */
         cache_function_decl(cache, decl, /*class_member=*/TRUE,
-                            /*is_dtor=*/FALSE, get_ifc_access(idm),
-                            get_ifc_convention(itm), get_ifc_traits(idm),
-                            get_ifc_traits(itm), get_vendor_traits(decl),
-                            target, name, params, source, get_ifc_eh_spec(itm),
-                            get_ifc_locus(idm));
+                            /*is_dtor=*/FALSE, get_ifc_convention(itm),
+                            get_ifc_traits(idm), get_ifc_traits(itm),
+                            get_vendor_traits(decl), target, name, params,
+                            source, get_ifc_eh_spec(itm), get_ifc_locus(idm));
         maybe_cache_function_def(cache, decl, idm);
       }
       break;
@@ -16249,8 +16178,8 @@ about what to cache.
           params = get_func_params_from_trait(decl);
         }  /* if */
         cache_function_decl(cache, decl, /*class_member=*/TRUE,
-                            /*is_dtor=*/FALSE, get_ifc_access(idc),
-                            get_ifc_convention(itt), get_ifc_traits(idc),
+                            /*is_dtor=*/FALSE, get_ifc_convention(itt),
+                            get_ifc_traits(idc),
                             an_ifc_function_type_traits_bitfield{},
                             get_vendor_traits(decl), an_ifc_type_index{},
                             get_ifc_name(idc), params, source,
@@ -16287,8 +16216,8 @@ about what to cache.
 
         an_ifc_decl_destructor idd = *opt_idd;
         cache_function_decl(cache, decl, /*class_member=*/TRUE,
-                            /*is_dtor=*/TRUE, get_ifc_access(idd),
-                            get_ifc_convention(idd), get_ifc_traits(idd),
+                            /*is_dtor=*/TRUE, get_ifc_convention(idd),
+                            get_ifc_traits(idd),
                             an_ifc_function_type_traits_bitfield{},
                             get_vendor_traits(decl), an_ifc_type_index{},
                             get_ifc_name(idd), an_ifc_chart_index{},
@@ -16313,7 +16242,6 @@ about what to cache.
         an_ifc_decl_using_declaration idud = *opt_idud;
         an_ifc_expr_index             parent = get_ifc_parent(idud);
         source_position_from_locus(&pos, get_ifc_locus(idud));
-        cache_decl_access(cache, idud, /*cache_colon=*/TRUE, &pos);
         cache_basic_specifiers(cache, get_ifc_specifiers(idud), &pos);
         cache_token(cache, tok_using, &pos);
         if (!is_null_index(parent)) {
