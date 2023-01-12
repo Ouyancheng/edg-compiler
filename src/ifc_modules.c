@@ -15784,6 +15784,8 @@ about what to cache.
 {
   a_source_position pos;
 
+  /* Pre-validate so that access specifiers can be grabbed by the visitor
+     and cached ahead of the declaration when relevant. */
   if (!validate(decl)) {
     goto invalid;
   }  /* if */
@@ -15803,26 +15805,19 @@ about what to cache.
                                         &error_position);
       goto invalid;
     case ifc_ds_decl_enumerator:
-      { Opt<an_ifc_decl_enumerator> opt_ide;
+      { an_ifc_decl_enumerator enumerator_decl;
 
-        construct_node(&opt_ide, decl);
-        if (!opt_ide.has_value()) {
-          goto invalid;
-        }  /* if */
-        if (!cache_direct_decl(cache, *opt_ide, cinfo)) {
+        construct_node_prechecked(&enumerator_decl, decl);
+        if (!cache_direct_decl(cache, enumerator_decl, cinfo)) {
           goto invalid;
         }  /* if */
       }
       break;
     case ifc_ds_decl_variable:
-      { Opt<an_ifc_decl_variable> opt_idv;
+      { an_ifc_decl_variable idv;
 
-        construct_node(&opt_idv, decl);
-        if (!opt_idv.has_value()) {
-          goto invalid;
-        }  /* if */
+        construct_node_prechecked(&idv, decl);
 
-        an_ifc_decl_variable   idv = *opt_idv;
         an_ifc_source_location locus = get_ifc_locus(idv);
         source_position_from_locus(&pos, locus);
         cache_variable_decl(cache, decl, /*is_data_member=*/FALSE,
@@ -15834,26 +15829,19 @@ about what to cache.
       }
       break;
     case ifc_ds_decl_parameter:
-      { Opt<an_ifc_decl_parameter> opt_idp;
+      { an_ifc_decl_parameter decl_parameter;
 
-        construct_node(&opt_idp, decl);
-        if (!opt_idp.has_value()) {
-          goto invalid;
-        }  /* if */
-        if (!cache_direct_decl(cache, *opt_idp, cinfo)) {
+        construct_node_prechecked(&decl_parameter, decl);
+        if (!cache_direct_decl(cache, decl_parameter, cinfo)) {
           goto invalid;
         }  /* if */
       }
       break;
     case ifc_ds_decl_field:
-      { Opt<an_ifc_decl_field> opt_idf;
+      { an_ifc_decl_field idf;
 
-        construct_node(&opt_idf, decl);
-        if (!opt_idf.has_value()) {
-          goto invalid;
-        }  /* if */
+        construct_node_prechecked(&idf, decl);
 
-        an_ifc_decl_field                idf = *opt_idf;
         an_ifc_basic_specifiers_bitfield specifiers = get_ifc_specifiers(idf);
         check_assertion(!test_bitmask<ifc_bsb_c>(specifiers));
         cache_variable_decl(cache, decl, /*is_data_member=*/TRUE, specifiers,
@@ -15864,14 +15852,10 @@ about what to cache.
       }
       break;
     case ifc_ds_decl_bitfield:
-      { Opt<an_ifc_decl_bitfield> opt_idbf;
+      { an_ifc_decl_bitfield idbf;
 
-        construct_node(&opt_idbf, decl);
-        if (!opt_idbf.has_value()) {
-          goto invalid;
-        }  /* if */
+        construct_node_prechecked(&idbf, decl);
 
-        an_ifc_decl_bitfield             idbf = *opt_idbf;
         an_ifc_basic_specifiers_bitfield specifiers = get_ifc_specifiers(idbf);
         an_ifc_expr_index                width = get_ifc_width(idbf);
         check_assertion(!test_bitmask<ifc_bsb_c>(specifiers));
@@ -15884,28 +15868,19 @@ about what to cache.
       }
       break;
     case ifc_ds_decl_scope:
-      { Opt<an_ifc_decl_scope> opt_ids;
+      { an_ifc_decl_scope ids;
 
-        construct_node(&opt_ids, decl);
-        if (!opt_ids.has_value()) {
-          goto invalid;
-        }  /* if */
-
-        an_ifc_decl_scope ids = *opt_ids;
+        construct_node_prechecked(&ids, decl);
         cache_scope_decl(cache, decl, get_ifc_type(ids), get_ifc_name(ids),
                          get_ifc_base(ids), get_ifc_initializer(ids),
                          get_ifc_locus(ids));
       }
       break;
     case ifc_ds_decl_enumeration:
-      { Opt<an_ifc_decl_enumeration> opt_ide;
+      { an_ifc_decl_enumeration ide;
 
-        construct_node(&opt_ide, decl);
-        if (!opt_ide.has_value()) {
-          goto invalid;
-        }  /* if */
+        construct_node_prechecked(&ide, decl);
 
-        an_ifc_decl_enumeration      ide = *opt_ide;
         an_ifc_type_index            type = get_ifc_type(ide);
         Opt<an_ifc_type_fundamental> opt_itf;
         construct_node(&opt_itf, type);
@@ -15973,14 +15948,10 @@ about what to cache.
       }
       break;
     case ifc_ds_decl_alias:
-      { Opt<an_ifc_decl_alias> opt_ida;
+      { an_ifc_decl_alias ida;
 
-        construct_node(&opt_ida, decl);
-        if (!opt_ida.has_value()) {
-          goto invalid;
-        }  /* if */
+        construct_node_prechecked(&ida, decl);
 
-        an_ifc_decl_alias      ida = *opt_ida;
         an_ifc_source_location locus = get_ifc_locus(ida);
         an_ifc_type_index      type = get_ifc_type(ida);
         source_position_from_locus(&pos, locus);
@@ -16036,65 +16007,49 @@ about what to cache.
                                         &error_position);
       goto invalid;
     case ifc_ds_decl_template:
-      { Opt<an_ifc_decl_template> opt_idt;
+      { an_ifc_decl_template template_decl;
 
-        construct_node(&opt_idt, decl);
-        if (!opt_idt.has_value()) {
-          goto invalid;
-        }  /* if */
+        construct_node_prechecked(&template_decl, decl);
+        cache_decl_template(cache, template_decl, cinfo);
 
-        an_ifc_decl_template idt = *opt_idt;
         Opt<an_ifc_sequence> opt_seq =
                                   get_specialization_sequence_from_trait(decl);
-        cache_decl_template(cache, idt, cinfo);
         if (opt_seq.has_value()) {
           /* Cache the associated specializations. */
-          cache_scope_member_sequence(cache, get_ifc_home_scope(idt),
-                                      *opt_seq);
+          an_ifc_decl_index home_scope = get_ifc_home_scope(template_decl);
+
+          cache_scope_member_sequence(cache, home_scope, *opt_seq);
         }  /* if */
       }
       break;
     case ifc_ds_decl_partial_specialization:
-      { Opt<an_ifc_decl_partial_specialization> opt_idps;
+      { an_ifc_decl_partial_specialization partial_spec_decl;
 
-        construct_node(&opt_idps, decl);
-        if (!opt_idps.has_value()) {
-          goto invalid;
-        }  /* if */
-        cache_decl_partial_specialization(cache, decl, *opt_idps);
+        construct_node_prechecked(&partial_spec_decl, decl);
+        cache_decl_partial_specialization(cache, decl, partial_spec_decl);
       }
       break;
     case ifc_ds_decl_specialization:
-      { Opt<an_ifc_decl_specialization> opt_ids;
+      { an_ifc_decl_specialization spec_decl;
 
-        construct_node(&opt_ids, decl);
-        if (!opt_ids.has_value()) {
-          goto invalid;
-        }  /* if */
-        cache_decl_specialization(cache, decl, *opt_ids, cinfo);
+        construct_node_prechecked(&spec_decl, decl);
+        cache_decl_specialization(cache, decl, spec_decl, cinfo);
       }
       break;
     case ifc_ds_decl_concept:
-      { Opt<an_ifc_decl_concept> opt_idc;
+      { an_ifc_decl_concept concept_decl;
 
-        construct_node(&opt_idc, decl);
-        if (!opt_idc.has_value()) {
-          goto invalid;
-        }  /* if */
-        if (!cache_direct_decl(cache, *opt_idc, cinfo)) {
+        construct_node_prechecked(&concept_decl, decl);
+        if (!cache_direct_decl(cache, concept_decl, cinfo)) {
           goto invalid;
         }  /* if */
       }
       break;
     case ifc_ds_decl_function:
-      { Opt<an_ifc_decl_function> opt_idf;
+      { an_ifc_decl_function idf;
 
-        construct_node(&opt_idf, decl);
-        if (!opt_idf.has_value()) {
-          goto invalid;
-        }  /* if */
+        construct_node_prechecked(&idf, decl);
 
-        an_ifc_decl_function      idf = *opt_idf;
         an_ifc_type_index         type = get_ifc_type(idf);
         Opt<an_ifc_type_function> opt_itf;
         construct_node(&opt_itf, type);
@@ -16118,14 +16073,10 @@ about what to cache.
       }
       break;
     case ifc_ds_decl_method:
-      { Opt<an_ifc_decl_method> opt_idm;
+      { an_ifc_decl_method idm;
 
-        construct_node(&opt_idm, decl);
-        if (!opt_idm.has_value()) {
-          goto invalid;
-        }  /* if */
+        construct_node_prechecked(&idm, decl);
 
-        an_ifc_decl_method      idm = *opt_idm;
         an_ifc_type_index       type = get_ifc_type(idm);
         Opt<an_ifc_type_method> opt_itm;
         construct_node(&opt_itm, type);
@@ -16156,16 +16107,12 @@ about what to cache.
       }
       break;
     case ifc_ds_decl_constructor:
-      { Opt<an_ifc_decl_constructor> opt_idc;
+      { an_ifc_decl_constructor idc;
 
-        construct_node(&opt_idc, decl);
-        if (!opt_idc.has_value()) {
-          goto invalid;
-        }  /* if */
+        construct_node_prechecked(&idc, decl);
 
-        an_ifc_decl_constructor idc = *opt_idc;
-        an_ifc_type_index       type = get_ifc_type(idc);
-        Opt<an_ifc_type_tor>    opt_itt;
+        an_ifc_type_index    type = get_ifc_type(idc);
+        Opt<an_ifc_type_tor> opt_itt;
         construct_node(&opt_itt, type);
         if (!opt_itt.has_value()) {
           goto invalid;
@@ -16188,16 +16135,12 @@ about what to cache.
       }
       break;
     case ifc_ds_decl_inherited_constructor:
-      { Opt<an_ifc_decl_inherited_constructor> opt_idic;
+      { an_ifc_decl_inherited_constructor idic;
 
-        construct_node(&opt_idic, decl);
-        if (!opt_idic.has_value()) {
-          goto invalid;
-        }  /* if */
+        construct_node_prechecked(&idic, decl);
 
-        an_ifc_decl_inherited_constructor idic = *opt_idic;
-        an_ifc_source_location            locus = get_ifc_locus(idic);
-        an_ifc_decl_index                 base_ctor = get_ifc_base_ctor(idic);
+        an_ifc_source_location locus = get_ifc_locus(idic);
+        an_ifc_decl_index      base_ctor = get_ifc_base_ctor(idic);
         source_position_from_locus(&pos, locus);
         cache_token(cache, tok_using, &pos);
         cache_name_from_decl(cache, base_ctor, locus);
@@ -16207,14 +16150,9 @@ about what to cache.
       }
       break;
     case ifc_ds_decl_destructor:
-      { Opt<an_ifc_decl_destructor> opt_idd;
+      { an_ifc_decl_destructor idd;
 
-        construct_node(&opt_idd, decl);
-        if (!opt_idd.has_value()) {
-          goto invalid;
-        }  /* if */
-
-        an_ifc_decl_destructor idd = *opt_idd;
+        construct_node_prechecked(&idd, decl);
         cache_function_decl(cache, decl, /*class_member=*/TRUE,
                             /*is_dtor=*/TRUE, get_ifc_convention(idd),
                             get_ifc_traits(idd),
@@ -16232,14 +16170,10 @@ about what to cache.
                                         &error_position);
       goto invalid;
     case ifc_ds_decl_using_declaration:
-      { Opt<an_ifc_decl_using_declaration> opt_idud;
+      { an_ifc_decl_using_declaration idud;
 
-        construct_node(&opt_idud, decl);
-        if (!opt_idud.has_value()) {
-          goto invalid;
-        }  /* if */
+        construct_node_prechecked(&idud, decl);
 
-        an_ifc_decl_using_declaration idud = *opt_idud;
         an_ifc_expr_index             parent = get_ifc_parent(idud);
         source_position_from_locus(&pos, get_ifc_locus(idud));
         cache_basic_specifiers(cache, get_ifc_specifiers(idud), &pos);
@@ -16268,11 +16202,10 @@ about what to cache.
               friend <ifc-entity-ref> ;
          where ifc-entity-ref is a pseudo-token that carries the IFC expression
          index. */
-      { Opt<an_ifc_decl_friend> opt_df;
-        construct_node(&opt_df, decl);
-        if (!opt_df.has_value()) goto invalid;
+      { an_ifc_decl_friend friend_decl;
 
-        an_ifc_decl_friend friend_decl = *opt_df;
+        construct_node_prechecked(&friend_decl, decl);
+
         an_ifc_expr_index  friend_id = get_ifc_entity(friend_decl);
         if (has_ifc_locus(friend_id) && validate(friend_id)) {
           source_position_from_locus(&pos, get_ifc_locus(friend_id));
@@ -16316,17 +16249,12 @@ about what to cache.
                                         &error_position);
       goto invalid;
     case ifc_ds_decl_property:
-      { Opt<an_ifc_decl_property> opt_idp;
+      { an_ifc_decl_property idp;
 
-        construct_node(&opt_idp, decl);
-        if (!opt_idp.has_value()) {
-          goto invalid;
-        }  /* if */
-
+        construct_node_prechecked(&idp, decl);
         /* FIXME: The declaration for idspp->member contains the preamble that
            must appear before the property declspec, but also the remainder
            that must appear after.  For now, just ignore the property. */
-        an_ifc_decl_property idp = *opt_idp;
 #if 0
         cache_token(cache, tok_declspec, &pos);
         cache_token(cache, tok_lparen, &pos);
