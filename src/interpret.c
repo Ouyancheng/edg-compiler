@@ -9998,8 +9998,12 @@ See do_constexpr_std_allocator_allocate for the meaning of the parameters.
 
   check_assertion(valid_placement_new_type == NULL &&
                   tap != NULL && tap->kind == (a_templ_arg_kind)tak_type);
-  if (is_variant_path(cap) &&
-      !check_variant_assign(ips, cap, &call_node->position)) {
+  if (is_runtime_data_address(cap)) {
+    info_with_pos(ec_constexpr_access_to_runtime_storage,
+                  &call_node->position, ips);
+    do_constexpr_fail(result);
+  } else if (is_variant_path(cap) &&
+             !check_variant_assign(ips, cap, &call_node->position)) {
     /* Invalid attempt to store into a non-active variant field. */
     result = FALSE;
   } else {

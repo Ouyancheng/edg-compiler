@@ -1,5 +1,27 @@
 Version 6.5
 
+1/12/23  [EDGcpfe/25911]
+Abort on invalid std::construct_at invocation
+
+The front end previously failed to check certain preconditions on the
+arguments to a constant-evaluated std::construct_at invocation, which could
+lead to aborts.  For example, in C++20 mode:
+
+  namespace std { using size_t = decltype(sizeof(42)); }
+  void *operator new(std::size_t, void *p) { return p; }
+  namespace std {
+    template<typename T, typename ...Args>
+    constexpr void construct_at(void *p, Args &&...args) {
+      new (p) T((Args&&)args...);
+    }
+  }
+  int var = (std::construct_at<int>(&var, 1), 42);
+    // Previously aborted (usually with a null pointer indirection).
+    // Now okay.
+
+That is now fixed.
+
+
 1/12/23  [EDGcpfe/25928]
 Incorrect substitution of built-in operators in constraints
 
