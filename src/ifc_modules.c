@@ -29,6 +29,7 @@ ifc_modules.c -- Microsoft-specific IFC module code
 #include "symbol_ref.h"
 #include "macro.h"
 #include "interpret.h"
+#include "folding.h"
 
 #if MICROSOFT_EXTENSIONS_ALLOWED && !STANDALONE_UTILITY_PROGRAM
 
@@ -10352,11 +10353,23 @@ FIXME: what other expressions can we get here?
                     goto invalid;
                   }  /* if */
                 }  /* if */
-                if (is_pointer_type(constant_type) ||
-                    is_nullptr_type(constant_type)) {
+                if (is_pointer_type(constant_type)) {
                   /* Pointer literal. */
                   set_unsigned_integer_constant(cp, value,
                                                 targ_size_t_int_kind);
+                } else if (is_nullptr_type(constant_type)) {
+                  /* nullptr.  Make an integer zero and convert its type to
+                     nullptr_t. */
+                  a_boolean did_not_fold;
+                  set_integer_constant(cp, (a_host_large_integer)0,
+                                       (an_integer_kind)ik_int);
+                  type_change_constant(cp, constant_type,
+                                       /*is_implicit_cast=*/TRUE,
+                                       /*maintain_expression=*/FALSE,
+                                       &did_not_fold, &error_position);
+                  if (did_not_fold) {
+                    ifc_unexpected(this, "could not fold nullptr");
+                  }  /* if */
                 } else {
                   a_type_ptr stripped_type = skip_typerefs(constant_type);
                   if (type_is(stripped_type, tk_integer)) {
