@@ -32870,18 +32870,28 @@ classes.
           } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           /* Do not insert code here. */
-          if (is_decl_qualified_name_start() &&
-              !f_same_entities(qualifier_class_type(locator_for_curr_id),
-                               class_type) &&
-              locator_for_curr_id.is_qualified_name &&
-              next_token() == tok_semicolon) {
-            /* This looks syntactically like an access adjustment declaration.
-               Be sure the semantics are correct.  Its semantics are the same
-               as a using-declaration. */
-            member_using_or_alias_declaration(&class_state,
-                                              marked_as_gnu_extension);
-            goto next_declaration;
-          }  /* if */
+          { a_boolean save = unscanned_attributes_active;
+            unscanned_attributes_active = FALSE;
+            /* Temporarily hide any unscanned attributes so they aren't
+               mistakenly scanned when parsing conversion operators with
+               type declarators, e.g.:
+                 __attribute__((__visibility__("hidden"))) operator T& ();
+               */
+            a_boolean is_decl_qualified_name = is_decl_qualified_name_start();
+            unscanned_attributes_active = save;
+            if (is_decl_qualified_name &&
+                !f_same_entities(qualifier_class_type(locator_for_curr_id),
+                                 class_type) &&
+                locator_for_curr_id.is_qualified_name &&
+                next_token() == tok_semicolon) {
+              /* This looks syntactically like an access adjustment
+                 declaration.  Be sure the semantics are correct.  Its
+                 semantics are the same as a using-declaration. */
+              member_using_or_alias_declaration(&class_state,
+                                                marked_as_gnu_extension);
+              goto next_declaration;
+            }  /* if */
+          }
           /* Check for template declaration. */
           if (is_template_instantiation && il_template_entry == NULL &&
               abbr_func_templates_enabled) {

@@ -1,5 +1,17 @@
 Version 6.5
 
+1/12/23  [EDGcpfe/25930]
+Loss of attributes on some conversion member functions in Clang emulation mode
+
+As a result of the changes for EDGcpfe/25243,EDGcpfe/25501, attributes of some
+member conversion functions were mistakenly dropped.  This issue had only
+occurred in Clang emulation mode and is now fixed.  For example (with --clang):
+
+  template <typename T> struct A {
+    __attribute__((__visibility__("hidden"))) operator T& ();
+  };
+
+
 1/9/23   [EDGcpfe/22395]
 GNU C++ compatibility: Closure types and literal types
 

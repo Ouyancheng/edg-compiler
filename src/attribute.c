@@ -2691,17 +2691,6 @@ syntactic location in which the group appears.
 }  /* scan_ms_declspec_group */
 
 
-static an_attribute_ptr
-		unscanned_attributes;
-			/* A pointer to previously scanned attributes that
-			   should be returned from the next call to
-			   scan_attributes instead. */
-
-static a_boolean
-		unscanned_attributes_active;
-			/* TRUE if a call to scan_attributes should return
-			   unscanned_attributes. */
-
 an_attribute_ptr scan_attributes(an_attribute_location  loc)
 /*
 Scan any attributes that are next (usually, this means "next in the token
