@@ -1,6 +1,7 @@
 Version 6.5
 
 1/12/23  [EDGcpfe/25928]
+Incorrect substitution of built-in operators in constraints
 
 Consider, in C++20 mode:
 
