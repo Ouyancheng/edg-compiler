@@ -1,5 +1,18 @@
 Version 6.5
 
+1/12/23  [EDGcpfe/25921]
+Abort on some uses of enable_if attribute
+
+Consider (in Clang C++ mode):
+
+  __attribute((enable_if(true, ""))) bool f(double);
+  float x = 0;
+  auto r = f(x);  // Previously aborted.  Now okay.
+
+This previously triggered an internal error in conv_glvalue_to_prvalue (in file
+exprutil.c).  That is now fixed.
+
+
 1/12/23  [EDGcpfe/25930]
 Loss of attributes on some conversion member functions in Clang emulation mode
 

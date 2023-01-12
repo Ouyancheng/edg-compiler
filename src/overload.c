@@ -5391,7 +5391,7 @@ is used in the constraint, its evaluation will fail.
 {
   a_boolean               failed = FALSE;
   an_attribute_ptr        ap;
-  an_arg_list_elem_ptr    alep;
+  an_arg_list_elem_ptr    alep, converted_alep;
   Dyn_array<a_constant*>  args(10);
 
   /* Set up an array of constant values corresponding to the arguments of the
@@ -5464,8 +5464,10 @@ is used in the constraint, its evaluation will fail.
          the original arguments (which may be needed to match against other
          candidate functions). */
       make_constant_operand(args[k], &converted_opnd);
-      prep_argument(alep, ptp, &arg_match->conversion,
+      converted_alep = alloc_arg_list_elem_for_operand(&converted_opnd);
+      prep_argument(converted_alep, ptp, &arg_match->conversion,
                     ec_incompatible_param, &converted_opnd);
+      free_init_component_list(converted_alep);
       opnd = &converted_opnd;
       if (is_constant_operand(opnd)) {
         *args[k] = opnd->variant.constant;
