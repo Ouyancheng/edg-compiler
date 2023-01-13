@@ -59,6 +59,9 @@ struct a_module_entity {
 			   instead, those entries are processed explicitly
 			   immediately after the associated primary template
 			   has been processed. */
+  a_bit_field	def_imminent:1;
+			/* This flag is set when the definition of the
+			   associated entity has started being loaded. */
   a_bit_field	invalid:1;
 			/* TRUE if the associated entity cannot be constructed
 			   from the module for any reason. */

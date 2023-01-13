@@ -3010,6 +3010,38 @@ index information to the given symbol.
                from_lexical_index<an_ifc_decl_index>(ifc_index_for_curr_token);
 
   ifc_decl_lookup_table->map(decl_idx, sym);
+
+  /* Associate the appropriate module entity with this symbol's IL entity. */
+  an_il_entry_kind    kind;
+  char                *il_entity = il_entry_for_symbol_null_okay(sym, &kind);
+  a_module_entity_ptr mep = get_ifc_module_entity_ptr(decl_idx);
+  if (il_entity != NULL) {
+    mep->entity.ptr = il_entity;
+    mep->entity.kind = kind;
+    if (sym->is_class_member) {
+      mep->scope = scope_stack[decl_scope_level].il_scope;
+#if CHECKING
+      /* FIXME: We don't know how to resolve the home scope on some
+         declarations that can end up here.  While this isn't (strictly
+         speaking) a problem, it does pose an issue for the validation logic
+         that follows. */
+      if (has_ifc_home_scope(decl_idx)) {
+        /* FIXME: When the parent scope has a mep marked invalid, the result of
+           get_home_scope is NULL.  Should this be propagated to this module
+           entity?  Should this is even be "allowed" to happen at this point
+           the program? */
+        check_assertion(mep->scope == get_home_scope(decl_idx) ||
+                        get_home_scope(decl_idx) == NULL);
+      }  /* if */
+#endif /* CHECKING */
+    } else {
+      unexpected_condition_str("the given entity should've been processed by "
+                               "process_declaration_to_il_entity instead of "
+                               "using tok_ifc_decl");
+    }  /* if */
+  } else {
+    mep->invalid = TRUE;
+  }  /* if */
 }  /* record_symbol_for_ifc_decl */
 
 
@@ -3064,40 +3096,8 @@ Return NULL if none is found.
 */
 {
   a_symbol_ptr  result = ifc_decl_lookup_table->get(decl_idx);
-  a_boolean     load_ifc_entry = FALSE; 
 
-  if (result != NULL) {
-    /* We found the symbol above. */
-  } else if (decl_idx.sort == ifc_ds_decl_template) {
-    Opt<an_ifc_decl_template>  opt_template;
-    construct_node(&opt_template, decl_idx);
-    if (opt_template.has_value()) {
-      a_scope_ptr  parent_scope = get_home_scope(*opt_template);
-      if (!scope_is(parent_scope, sck_class_struct_union)) {
-        /* Non-member templates can be individually loaded from an IFC file. */
-        load_ifc_entry = TRUE;
-      } else {
-        a_type_ptr  parent_class = parent_scope->variant.assoc_type;
-        if (parent_class->incomplete) {
-          /* Attempt to complete the class type.  This may include friend
-             declarations within the type. */
-          an_ifc_module           *mod = decl_idx.mod;
-          Value_saver<a_boolean>  suppression(&mod->suppress_friend_token,
-                                              /*new_value=*/FALSE);
-          complete_type_is_needed(parent_class);
-          result = ifc_decl_lookup_table->get(decl_idx);
-        }  /* if */
-      }  /* if */
-    }  /* if */
-  } else if (decl_idx.sort != ifc_ds_decl_method &&
-             decl_idx.sort != ifc_ds_decl_constructor &&
-             decl_idx.sort != ifc_ds_decl_destructor &&
-             decl_idx.sort != ifc_ds_decl_field &&
-             decl_idx.sort != ifc_ds_decl_bitfield &&
-             decl_idx.sort != ifc_ds_decl_property) {
-    load_ifc_entry = TRUE;
-  }  /* if */
-  if (load_ifc_entry) {
+  if (result == NULL) {
     /* Load a namespace-scope entity from the IFC file and determine its
        front-end symbol. */
     a_source_correspondence  *scp;
@@ -5708,13 +5708,8 @@ to this function.
 */
 {
   an_ifc_module            *mod = get_assoc_ifc_module(mep);
-  a_decl_parse_state       dps;
-  an_id_linkage_kind       linkage_ptr;
-  a_symbol_ptr             ext_sym;
   a_decl_pos_block         decl_pos_block;
   a_symbol_locator         loc;
-  a_partial_scope_stack_state
-                           psss;
   char                     *&il_entity = mep->entity.ptr;
   an_il_entry_kind         &kind = mep->entity.kind;
   a_module_scope_push_kind scope_push_status = mspk_unattempted;
@@ -5769,6 +5764,7 @@ to this function.
           defer_symbol_creation(mep, &loc);
         } else {
           an_ifc_decl_variable idv = *opt_idv;
+          a_decl_parse_state   dps;
           a_module_token_cache cache;
 
           if (is_from_gmf(get_ifc_specifiers(idv))) {
@@ -5865,6 +5861,10 @@ to this function.
             a_type_ptr                      old_type;
             a_routine_ptr                   rp;
             a_boolean                       is_consteval;
+            a_decl_parse_state              dps;
+            an_id_linkage_kind              linkage_ptr;
+            a_symbol_ptr                    ext_sym;
+            a_partial_scope_stack_state     psss;
 
             /* FIXME: There's a chicken-and-egg problem here when the return
                type is deduced and requires access to the class scope (e.g.,
@@ -5874,11 +5874,13 @@ to this function.
               push_module_declaration_context(mep->scope,
                                               &scope_push_status);
             }  /* if */
-            mod->init_dps(&dps, get_ifc_locus(idf), get_ifc_type(idf),
-                          an_ifc_object_traits_bitfield{},
-                          an_ifc_msvc_traits_bitfield{},
-                          get_ifc_specifiers(idf), get_ifc_access(idf),
-                          an_ifc_expr_index{}, &psss);
+            if (!mod->init_dps(&dps, get_ifc_locus(idf), get_ifc_type(idf),
+                               an_ifc_object_traits_bitfield{},
+                               an_ifc_msvc_traits_bitfield{},
+                               get_ifc_specifiers(idf), get_ifc_access(idf),
+                               an_ifc_expr_index{}, &psss)) {
+              goto invalid;
+            }  /* if */
             is_consteval = test_bitmask<ifc_ftb_immediate>(traits);
             if (is_consteval) {
               dps.dso_flags |= DSO_CONSTEVAL;
@@ -5923,16 +5925,24 @@ to this function.
         if (defer) {
           defer_symbol_creation(mep, &loc);
         } else {
-          an_ifc_decl_intrinsic idi = *opt_idi;
-          a_func_info_block     func_info;
-          a_type_ptr            old_type;
-          a_routine_ptr         rp;
+          an_ifc_decl_intrinsic       idi = *opt_idi;
+          a_func_info_block           func_info;
+          a_type_ptr                  old_type;
+          a_routine_ptr               rp;
+          a_decl_parse_state          dps;
+          an_id_linkage_kind          linkage_ptr;
+          a_symbol_ptr                ext_sym;
+          a_partial_scope_stack_state psss;
 
-          /* FIXME: lots more to do here (just copied ifc_DeclSort_Function).*/
-          mod->init_dps(&dps, get_ifc_locus(idi), get_ifc_type(idi),
-                        an_ifc_object_traits_bitfield{},
-                        an_ifc_msvc_traits_bitfield{}, get_ifc_specifiers(idi),
-                        get_ifc_access(idi), an_ifc_expr_index{}, &psss);
+          /* FIXME: lots more to do here (just copied
+             ifc_DeclSort_Function).*/
+          if (!mod->init_dps(&dps, get_ifc_locus(idi), get_ifc_type(idi),
+                             an_ifc_object_traits_bitfield{},
+                             an_ifc_msvc_traits_bitfield{},
+                             get_ifc_specifiers(idi), get_ifc_access(idi),
+                             an_ifc_expr_index{}, &psss)) {
+            goto invalid;
+          }  /* if */
           clear_func_info(&func_info);
           clear_decl_pos_block(&decl_pos_block);
           decl_routine(&loc, &dps, &func_info, SRK_DECLARATION, &linkage_ptr,
@@ -6191,6 +6201,9 @@ class_struct_union_case:
 
             an_ifc_type_basis_sort basis = get_ifc_basis(*opt_itf);
             if (basis == ifc_tbs_typename) {
+              a_decl_parse_state          dps;
+              a_partial_scope_stack_state psss;
+
               /* A type alias; declare a typedef for this case. */
               if (mep->scope == NULL) {
                 mep->scope = get_home_scope(ida);
@@ -6201,11 +6214,14 @@ class_struct_union_case:
                                               iek_type, &il_entity, &kind)) {
                 break;
               }  /* if */
-              mod->init_dps(&dps, get_ifc_locus(ida), get_ifc_aliasee(ida),
-                            an_ifc_object_traits_bitfield{},
-                            an_ifc_msvc_traits_bitfield{},
-                            get_ifc_specifiers(ida), get_ifc_access(ida),
-                            an_ifc_expr_index{}, &psss);
+              if (!mod->init_dps(&dps, get_ifc_locus(ida),
+                                 get_ifc_aliasee(ida),
+                                 an_ifc_object_traits_bitfield{},
+                                 an_ifc_msvc_traits_bitfield{},
+                                 get_ifc_specifiers(ida), get_ifc_access(ida),
+                                 an_ifc_expr_index{}, &psss)) {
+                goto invalid;
+              }  /* if */
               clear_decl_pos_block(&decl_pos_block);
               decl_typedef(&loc, &dps, (a_type_ptr)NULL, &decl_pos_block);
               restore_partial_scope_stack_if_necessary(&psss);
@@ -6330,11 +6346,13 @@ class_struct_union_case:
         if (defer) {
           defer_symbol_creation(mep, &loc);
         } else {
-          an_ifc_type_index base = get_ifc_base(ide);
-          a_type_ptr        enum_type;
-          a_scope_ptr       enum_scope;
-          a_symbol_ptr      tag_sym;
-          a_scope_depth     scope_depth;
+          an_ifc_type_index           base = get_ifc_base(ide);
+          a_type_ptr                  enum_type;
+          a_scope_ptr                 enum_scope;
+          a_symbol_ptr                tag_sym;
+          a_scope_depth               scope_depth;
+          a_decl_parse_state          dps;
+          a_partial_scope_stack_state psss;
 
           check_assertion(!is_null_index(base));
           if (mep->scope == NULL) {
@@ -6351,9 +6369,13 @@ class_struct_union_case:
               break;
             }  /* if */
           }  /* if */
-          mod->init_dps(&dps, locus, base, an_ifc_object_traits_bitfield{},
-                        an_ifc_msvc_traits_bitfield{}, specifiers,
-                        get_ifc_access(ide), get_ifc_alignment(ide), &psss);
+          if (!mod->init_dps(&dps, locus, base,
+                             an_ifc_object_traits_bitfield{},
+                             an_ifc_msvc_traits_bitfield{}, specifiers,
+                             get_ifc_access(ide), get_ifc_alignment(ide),
+                             &psss)) {
+            goto invalid;
+          }  /* if */
           clear_decl_pos_block(&decl_pos_block);
           /* Allocate an integer type and set its size based on the type
              specified by idsep->base. */
@@ -6960,6 +6982,9 @@ class_struct_union_case:
             goto unhandled;
           }  /* if */
           a_module_entity_ptr umep = process_decl_at_index(resolution);
+          if (umep->invalid) {
+            goto invalid;
+          }  /* if */
           if (scope_is(umep->scope, sck_class_struct_union)) {
             /* FIXME: Need to call create_member_using_declaration here. */
             goto unhandled;
@@ -7158,6 +7183,29 @@ done:
 }  /* process_decl_to_il_entity */
 
 
+static inline Opt<an_ifc_decl_index>
+get_home_scope_if_class(a_module_entity_ptr mep)
+/*
+Given a module entity pointer, if the entity is declared in class scope return
+the IFC DeclIndex of the enclosing class; otherwise, return an empty optional.
+*/
+{
+  Opt<an_ifc_decl_index> result;
+  an_ifc_decl_index      decl_idx = decl_index_of(mep);
+
+  if (validate(decl_idx)) {
+    if (has_ifc_home_scope(decl_idx)) {
+      an_ifc_decl_index home_scope = get_ifc_home_scope(decl_idx);
+
+      if (is_class_scope(home_scope)) {
+        result = home_scope;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* is_declared_in_class */
+
+
 void an_ifc_module::process_ifc_declaration(a_module_entity_ptr mep,
                                             a_boolean           defer)
 /*
@@ -7168,7 +7216,6 @@ immediately process *mep and attempt to form an IL entity; if no IL entity can
 be formed, *mep will marked as invalid.
 */
 {
-
   /* Ensure the module entity is being processed by the corresponding module
      interface. */
   check_assertion(mep->module_info->module_interface == this);
@@ -7180,8 +7227,31 @@ be formed, *mep will marked as invalid.
     db_mep(mep);
   }  /* if */
 #endif /* DEBUG */
+  /* If the module entity pointer hasn't already been loaded, do so now. */
+  /* FIXME: Can this just be "if !mep->imminent"? */
   if (!mep->imminent && mep->entity.ptr == NULL) {
-    process_decl_to_il_entity(mep, defer);
+    Opt<an_ifc_decl_index> opt_home_scope = get_home_scope_if_class(mep);
+
+    if (opt_home_scope.has_value()) {
+      an_ifc_decl_index   home_scope = *opt_home_scope;
+      a_module_entity_ptr parent_mep = process_decl_at_index(home_scope);
+
+      if (parent_mep->invalid) {
+        /* If the parent was not successfully processed, the child cannot
+           succeed. */
+        mep->invalid = TRUE;
+      } else {
+        complete_definition_of_module_class(parent_mep);
+        /* The requested entity should've been loaded in the process of
+           completing the module class.  If that didn't occur something has
+           gone wrong (most likely, the entity and module entity pointer were
+           not correctly associated with each other -- see cache_bound_entity
+           for more information). */
+        check_assertion(mep->imminent);
+      }  /* if */
+    } else {
+      process_decl_to_il_entity(mep, defer);
+    }  /* if */
   }  /* if */
   /* In some cases we may enter this routine without having a scope, but we
      should not exit it without having one. */
@@ -7348,6 +7418,50 @@ of the class type.
 }  /* add_ifc_friends_to_class */
 
 
+template<typename a_Cache_fn>
+static void cache_bound_entity(a_module_token_cache_ptr cache,
+                               an_ifc_decl_index        decl_idx,
+                               a_Cache_fn               cache_fn)
+/*
+This function is used to handle entities that are indirectly constructed from a
+token cache that (potentially) contains multiple entities.
+*/
+{
+  a_module_entity_ptr mep = get_ifc_module_entity_ptr(decl_idx);
+
+  /* The front end should not mark the member declaration's module
+     entity pointer as being imminent before the class definition is
+     processed. */
+  check_assertion(!mep->imminent);
+  mep->imminent = TRUE;
+  cache_fn(cache, decl_idx);
+  cache_token_with_index(cache, tok_ifc_decl, decl_idx);
+}  /* cache_bound_entity */
+
+
+static void cache_class_members(a_module_token_cache_ptr cache,
+                                an_ifc_scope_index       class_members)
+/*
+Cache the class members for the given class member scope into the given cache.
+*/
+{
+  auto cache_member = [cache](const an_ifc_scope_member  &ism) {
+    auto cache_content = [](a_module_token_cache *content_cache,
+                            an_ifc_decl_index    decl_idx) {
+      an_ifc_cache_info cinfo;
+      cinfo.ignore_definition = TRUE;
+
+      decl_idx.mod->cache_decl(content_cache, decl_idx, cinfo);
+    };
+
+    an_ifc_decl_index mem_idx = get_ifc_index(ism);
+    cache_bound_entity(cache, mem_idx, cache_content);
+  };
+
+  traverse_scope_members(class_members, cache_member);
+}  /* cache_class_members */
+
+
 void an_ifc_module::complete_definition_of_module_class(
                                                        a_module_entity_ptr mep)
 /*
@@ -7361,7 +7475,9 @@ Complete the definition of the class referred to by mep (if needed).
 
   construct_node(&opt_ids, decl_idx);
   /* FIXME: Error handling could be improved here. */
-  if (opt_ids.has_value()) {
+  /* FIXME: Clean this up so we don't do more work than necessary when
+     the definition is imminent. */
+  if (opt_ids.has_value() && !mep->def_imminent) {
     an_ifc_decl_scope  ids = *opt_ids;
     an_ifc_scope_index initializer = get_ifc_initializer(ids);
     a_type_ptr         class_type = (a_type_ptr)mep->entity.ptr;
@@ -7382,29 +7498,23 @@ Complete the definition of the class referred to by mep (if needed).
       an_ifc_source_location      locus = get_ifc_locus(ids);
       an_ifc_source_position_hint pos_hint(&cache, locus);
 
+      mep->def_imminent = TRUE;
       push_module_declaration_context(mep->scope, &scope_push_status);
-      error_position = *pos_hint.as_pos();
-      {
-        an_ifc_type_index  base = get_ifc_base(ids);
-        if (!is_null_index(base)) {
-          /* There are base classes: Cache source code for them. */
-          cache_token(&cache, tok_colon);
-          this->cache_type(&cache, base);
-        }  /* if */
-        an_ifc_scope_index  class_members = get_ifc_initializer(ids);
-        if (class_members != 0) {
-          cache_token(&cache, tok_lbrace);
-          /* Emit ordinary members: */
-          auto cache_member = [this, &cache](const an_ifc_scope_member  &ism) {
-            an_ifc_decl_index  member_idx = get_ifc_index(ism);
-            this->cache_decl(&cache, member_idx, /*cinfo=*/{});
-            cache_token_with_index(&cache, tok_ifc_decl, member_idx);
-          };
-          traverse_scope_members(class_members, cache_member);
-          cache_token(&cache, tok_rbrace);
-        }  /* if */
-        cache_token(&cache, tok_semicolon);
-      }
+
+      an_ifc_type_index base = get_ifc_base(ids);
+      if (!is_null_index(base)) {
+        /* There are base classes: Cache source code for them. */
+        cache_token(&cache, tok_colon);
+        this->cache_type(&cache, base);
+      }  /* if */
+
+      an_ifc_scope_index  class_members = get_ifc_initializer(ids);
+      if (class_members != 0) {
+        cache_token(&cache, tok_lbrace);
+        cache_class_members(&cache, class_members);
+        cache_token(&cache, tok_rbrace);
+      }  /* if */
+      cache_token(&cache, tok_semicolon);
 #if DEBUG
       if (db_flag_is_set("ms_ifc_token_def")) {
         fprintf(f_debug, "Reconstituted class definition: ");
@@ -7466,6 +7576,20 @@ Complete the definition of the class referred to by mep (if needed).
         }  /* if */
         free_template_decl_info(tdip);
         pop_module_declaration_context(scope_push_status);
+      }  /* if */
+      if (class_members != 0) {
+        /* Emit ordinary members: */
+        auto mark_invalid_members = [this](const an_ifc_scope_member  &ism) {
+          an_ifc_decl_index   mem_idx = get_ifc_index(ism);
+          a_module_entity_ptr mem_mep = get_ifc_module_entity_ptr(mem_idx);
+
+          /* Make sure if the entity failed to load its module entity pointer
+             is marked as invalid. */
+          if (mem_mep->entity.ptr == NULL) {
+            mem_mep->invalid = TRUE;
+          }  /* if */
+        };
+        traverse_scope_members(class_members, mark_invalid_members);
       }  /* if */
       error_position = saved_error_position;
     }  /* if */
@@ -8547,8 +8671,12 @@ error type.
           }  /* if */
 
           an_ifc_type_index referee = get_ifc_referee(*opt_itlr);
-          result = make_reference_type(type_for_type_index(referee,
-                                                           /*kind=*/NULL));
+          a_type_ptr        referee_il = type_for_type_index(referee,
+                                                             /*kind=*/NULL);
+          if (is_error_type(referee_il)) {
+            goto invalid;
+          }  /* if */
+          result = make_reference_type(referee_il);
         }
         break;
       case ifc_ts_type_rvalue_reference:
@@ -8673,7 +8801,11 @@ error type.
                 an_ifc_type_index indexed_type = get_ifc_value(iht);
                 a_param_type_ptr  ptp = make_param_type_from_ifc(rtsp,
                                                                  indexed_type);
-                if (ptp == NULL && rtsp->has_ellipsis) {
+                if (ptp != NULL) {
+                  if (is_error_type(ptp->type)) {
+                    goto invalid;
+                  }  /* if */
+                } else if (rtsp->has_ellipsis) {
                   ifc_requirement(indexed_type.mod,
                                   idx == get_ifc_cardinality(itt) - 1,
                                   "expected ellipsis to appear at "
@@ -8687,7 +8819,12 @@ error type.
               }  /* for */
             } else {
               /* A single parameter. */
-              rtsp->param_type_list = make_param_type_from_ifc(rtsp, source);
+              a_param_type_ptr ptp = make_param_type_from_ifc(rtsp, source);
+
+              if (ptp != NULL && is_error_type(ptp->type)) {
+                goto invalid;
+              }  /* if */
+              rtsp->param_type_list = ptp;
             }  /* if */
           }  /* if */
         }
@@ -10051,7 +10188,7 @@ invalid:
 }  /* name_from_local_decl */
 
 
-void an_ifc_module::init_dps(a_decl_parse_state               *dps,
+a_boolean an_ifc_module::init_dps(a_decl_parse_state               *dps,
                              const an_ifc_source_location     &locus,
                              an_ifc_type_index                type_index,
                              an_ifc_object_traits_bitfield    traits,
@@ -10072,6 +10209,7 @@ alignment if the alignment is explicitly specified.  Therefore callers of
 this routine need to handle the case where dps->alignment is 0.
 */
 {
+  a_boolean        result = TRUE;
   an_attribute_ptr ap = NULL;
 
   init_decl_parse_state(dps);
@@ -10080,6 +10218,9 @@ this routine need to handle the case where dps->alignment is 0.
   error_position = dps->start_pos;
   if (!is_null_index(type_index)) {
     dps->type = type_for_type_index(type_index, /*kind=*/NULL);
+    if (is_error_type(dps->type)) {
+      result = FALSE;
+    }  /* if */
   }  /* if */
   if (!is_null_bitfield(traits)) {
     if (test_bitmask<ifc_otb_constexpr>(traits)) {
@@ -10178,6 +10319,7 @@ this routine need to handle the case where dps->alignment is 0.
                                                            &err);
     check_assertion(!err);
   }  /* if */
+  return result;
 }  /* init_dps */
 
 

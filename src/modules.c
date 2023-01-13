@@ -760,6 +760,7 @@ the specified module.
     (*p)->entity.kind = iek_none;
     (*p)->file_offset = file_offset;
     (*p)->imminent = FALSE;
+    (*p)->def_imminent = FALSE;
     (*p)->invalid = FALSE;
     (*p)->global_module = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED

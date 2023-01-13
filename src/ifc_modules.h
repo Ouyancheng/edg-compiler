@@ -286,15 +286,15 @@ public:
   a_const_char *string_from_name_index(an_ifc_text_offset text_offset,
                                        a_symbol_locator  *loc);
   a_const_char *name_from_local_decl(an_ifc_decl_index decl);
-  void init_dps(a_decl_parse_state               *dps,
-                const an_ifc_source_location     &locus,
-                an_ifc_type_index                type_index,
-                an_ifc_object_traits_bitfield    traits,
-                an_ifc_msvc_traits_bitfield      msvc_traits,
-                an_ifc_basic_specifiers_bitfield specifiers,
-                an_ifc_access_sort               access,
-                an_ifc_expr_index                alignment,
-                a_partial_scope_stack_state      *psssp);
+  a_boolean init_dps(a_decl_parse_state               *dps,
+                     const an_ifc_source_location     &locus,
+                     an_ifc_type_index                type_index,
+                     an_ifc_object_traits_bitfield    traits,
+                     an_ifc_msvc_traits_bitfield      msvc_traits,
+                     an_ifc_basic_specifiers_bitfield specifiers,
+                     an_ifc_access_sort               access,
+                     an_ifc_expr_index                alignment,
+                     a_partial_scope_stack_state      *psssp);
   template<typename an_Index_type>
   a_boolean init_locator_from_name(an_Index_type                ref,
                                    const an_ifc_source_location &locus,
