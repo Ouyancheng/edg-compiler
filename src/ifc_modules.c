@@ -5038,12 +5038,6 @@ an_ifc_template_lookup_table
 			   corresponding front end symbols. */
 
 
-/*
-There's nothing fundamentally expensive about this function, it's simply
-only used in expensive checks currently.
-*/
-#if EXPENSIVE_CHECKING
-
 an_ifc_decl_index to_decl_index(an_ifc_partition_kind_index index)
 /*
 Given an IFC partition kind index, return an IFC decl index.
@@ -5054,7 +5048,6 @@ Given an IFC partition kind index, return an IFC decl index.
   return an_ifc_decl_index{index.mod, sort, index.value};
 }  /* to_decl_index */
 
-#endif /* EXPENSIVE_CHECKING */
 
 an_ifc_decl_array*
 get_or_alloc_specialization_list(an_ifc_decl_index templ_idx)
