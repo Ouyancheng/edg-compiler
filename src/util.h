@@ -2387,12 +2387,13 @@ long, unsigned long, and unsigned values.
 template<>
 struct string_formatter<unsigned long long> {
   constexpr static size_t size_hint_of(unsigned long long value)
-    { return 20; }
+    { return 21; }
   template<typename a_Dyn_array>
   static inline unsigned append_into(a_Dyn_array        &underlying_array,
                                      unsigned long long value,
                                      size_t             size_hint);
 };  /* string_formatter */
+
 
 template<>
 struct string_formatter<unsigned long> : string_formatter<unsigned long long> {
@@ -2408,7 +2409,7 @@ template<typename a_Dyn_array>
 unsigned string_formatter<unsigned long long>::append_into(
                                           a_Dyn_array        &underlying_array,
                                           unsigned long long value,
-                                          size_t             size_hint)
+                                          ARG_UNUSED size_t  size_hint)
 /*
 Convert the given unsigned integer value into its character representation, and
 append the characters representing the value into the underlying array.
@@ -2420,7 +2421,7 @@ string_formatter contract.
                       string_formatter<unsigned long long>::size_hint_of(0ull);
   char             string_buffer[buff_size] = {};
 
-  sprintf(string_buffer, "%llu", value);
+  snprintf(string_buffer, buff_size, "%llu", value);
   string_formatter<a_const_char*>::append_into(underlying_array, string_buffer,
                                                strlen(string_buffer));
   return 0;
@@ -2434,12 +2435,13 @@ long, and int values.
 template<>
 struct string_formatter<long long> {
   constexpr static size_t size_hint_of(long long value)
-    { return 19; }
+    { return 20; }
   template<typename a_Dyn_array>
   static inline unsigned append_into(a_Dyn_array &underlying_array,
                                      long long   value,
                                      size_t      size_hint);
 };  /* string_formatter */
+
 
 template<>
 struct string_formatter<long> : string_formatter<long long> {
@@ -2466,7 +2468,7 @@ string_formatter contract.
   constexpr size_t buff_size = string_formatter<long long>::size_hint_of(0ll);
   char             string_buffer[buff_size] = {};
 
-  sprintf(string_buffer, "%lli", value);
+  snprintf(string_buffer, buff_size, "%lli", value);
   string_formatter<a_const_char*>::append_into(underlying_array, string_buffer,
                                                strlen(string_buffer));
   return 0;
@@ -2478,8 +2480,8 @@ void append_with_custom_reserve(a_Reserve_fn               reserve_func,
                                 a_Text_convertable_type... args)
 /*
 The "reserve_func" should be a function that takes a character count estimate
-and returns a pointer to a Dyn_array.  Said Dyn_array should be returned with a
-appropriate capacity allocated for the given estimate.  The arguments (i.e.,
+and returns a pointer to a Dyn_array.  Said Dyn_array should be returned with
+an appropriate capacity allocated for the given estimate.  The arguments (i.e.,
 "args") provided are mapped to a
 detail::string_formatter<a_Text_convertable_type> (abbreviated "string_fmter").
 The arguments compose the character count estimate via the sum of the
@@ -2549,7 +2551,8 @@ struct Allocated_string {
 private:
   Dyn_array<char, Allocator>
                 backing_array;
-                        /* */
+                        /* The character array which is responsible for holding
+                           the actual characters composing the string. */
 };  /* Allocated_string */
 
 
