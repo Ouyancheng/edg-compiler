@@ -4371,12 +4371,13 @@ check_and_set_redeclaration.
 }  /* find_redeclared_basic_entity */
 
 
-a_boolean check_and_set_redeclaration(a_symbol_locator      *loc,
-                                      a_module_entity_ptr   mep,
-                                      a_source_position_ptr pos,
-                                      an_il_entry_kind      expected_kind,
-                                      char                  **redecl_entity,
-                                      an_il_entry_kind      *redecl_kind)
+a_boolean check_and_set_redeclaration(
+                              a_symbol_locator                 *loc,
+                              a_module_entity_ptr              mep,
+                              ARG_UNUSED a_source_position_ptr pos,
+                              an_il_entry_kind                 expected_kind,
+                              char                             **redecl_entity,
+                              an_il_entry_kind                 *redecl_kind)
 /*
 Given an IFC module entity's symbol locator, module entity pointer, source
 position, and expected kind check for a redeclaration.  If a redeclaration is
@@ -4625,11 +4626,11 @@ check_and_set_template_redeclaration.
 
 
 a_boolean check_and_set_template_redeclaration(
-                                         a_symbol_locator      *loc,
-                                         a_module_entity_ptr   mep,
-                                         a_source_position_ptr pos,
-                                         char                  **redecl_entity,
-                                         an_il_entry_kind      *redecl_kind)
+                              a_symbol_locator                 *loc,
+                              a_module_entity_ptr              mep,
+                              ARG_UNUSED a_source_position_ptr pos,
+                              char                             **redecl_entity,
+                              an_il_entry_kind                 *redecl_kind)
 /*
 Given an IFC module entity's symbol locator, module entity pointer, and source
 position, check for a redeclaration of a template.  If a redeclaration is
@@ -4819,7 +4820,7 @@ a_boolean check_and_set_specialization_redeclaration(
                               a_symbol_locator                 *loc,
                               a_module_entity_ptr              mep,
                               const an_ifc_decl_specialization &decl_spec,
-                              a_source_position_ptr            pos,
+                              ARG_UNUSED a_source_position_ptr pos,
                               char                             **redecl_entity,
                               an_il_entry_kind                 *redecl_kind)
 /*
@@ -4930,7 +4931,7 @@ private:
 };  /* a_ms_mode_parse */
 
 
-unsigned long get_microsoft_version(an_ifc_module *mod)
+unsigned long get_microsoft_version(ARG_UNUSED an_ifc_module *mod)
 /*
 Given an IFC module, determine the appropriate version level of Microsoft mode
 to emulate.
