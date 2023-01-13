@@ -53,7 +53,8 @@ Consider (in Clang C++ mode):
   auto r = f(x);  // Previously aborted.  Now okay.
 
 This previously triggered an internal error in conv_glvalue_to_prvalue (in file
-exprutil.c).  That is now fixed.
+exprutil.c).  This regression, which was introduced into version 6.4 by the
+changes for EDGcpfe/23647, is now fixed.
 
 
 1/12/23  [EDGcpfe/25930]
