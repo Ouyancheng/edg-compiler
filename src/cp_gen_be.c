@@ -5526,6 +5526,16 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
                                  &scp,
                                  (options & GN_TEMPLATE_PARAM_TYPE_QUAL) != 0);
   }  /* if */
+  if (curr_name_context->field_selection_context &&
+      octl.name_is_dependent_conversion_type_id) {
+    /* This name is a dependent conversion-type-id for which the usual
+       qualification of the operator name was suppressed.  When that
+       qualification is put out, the field-selection name context is popped
+       from the stack, but if the qualification was suppressed, we must do
+       it here before putting out the name of the type. */
+    pop_name_context();
+    octl.name_is_dependent_conversion_type_id = FALSE;
+  }  /* if */
   if (entry_kind == (an_il_entry_kind)iek_constant) {
     a_constant_ptr con = (a_constant_ptr)scp;
     if (con->kind == (a_constant_repr_kind)ck_template_param) {

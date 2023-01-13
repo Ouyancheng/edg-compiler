@@ -368,7 +368,14 @@ typedef struct an_il_to_str_output_control_block {
 			   put out as its value rather than as the backing
 			   expression whose evaluation yielded that
 			   value. */
-
+  a_byte_boolean
+	name_is_dependent_conversion_type_id;
+			/* When TRUE, the name being processed is a
+			   dependent conversion-type-id in which the usual
+			   qualification of the operator name was
+			   suppressed.  This information is used by the
+			   C++-generating back end to control qualification
+			   of the conversion-type-id. */
 } an_il_to_str_output_control_block;
 
 /*

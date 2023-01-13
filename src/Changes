@@ -1,5 +1,33 @@
 Version 6.5
 
+1/13/23  [EDGcpfe/25923]
+C++-generating back end: dependent conversion operators
+
+Consider the following example, to be compiled with --c++17
+--gnu_version=120100:
+
+  template <typename> class g;
+  template <typename c> using d = g<c>;
+  template <typename b> void f() {
+    d<b> a;
+    a.operator typename d<b>::e<>();
+  }
+
+In configurations in which template definitions are generated from the
+prototype instantiation IL, the C++-generating back end previously put out
+the call to the conversion operator on the next-to-last line using
+fully-qualified names, i.e., as:
+
+  a.g<b>::operator typename g<b>::template e<>();
+
+Although the generated code is correct, g++, beginning with version 12.1,
+reported spurious errors when compiling it.  As a result, the
+C++-generating back end now suppresses the qualification of the operator
+name (but not the target type) in such calls when
+gcc_is_generated_code_target is TRUE and gnu_target_version_number is
+120100 or larger.
+
+
 1/12/23  [EDGcpfe/25911]
 Abort on invalid std::construct_at invocation
 

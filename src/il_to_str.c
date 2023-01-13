@@ -130,6 +130,7 @@ Clear an output control block to default values.
   octl->part_of_ud_literal        = FALSE;
   octl->pending_right_paren       = FALSE;
   octl->suppress_expr_in_nontype_arg = FALSE;
+  octl->name_is_dependent_conversion_type_id = FALSE;
 }  /* clear_il_to_str_output_control_block */
 
 
@@ -5285,20 +5286,29 @@ decided by the caller.  Do the output in the way described by octl.
          error situations and is useful for debug output. */
       check_assertion(!octl->gen_compilable_code);
       octl->output_str("<null parent scope>::", octl);
-    } else if (!use_microsoft_form() ||
+    } else if ((!use_microsoft_form() &&
+                !(gcc_is_generated_code_target &&
+                  gnu_target_version_number >= 120100)) ||
                constant->variant.template_param.is_qualified_name) {
-      /* MSVC has a bug causing it not to accept a qualified name for a
-         dependent conversion function in a member access expression, so we
-         suppress the qualifier in that case.  (Pointer-to-member
-         constants, where the qualified name is required, will have the
-         is_qualified_name flag set to TRUE.) */
+      /* MSVC, as well as g++ in versions 12.1 and later, have a bug
+         causing them not to accept a qualified name for a dependent
+         conversion function in a member access expression, so we suppress
+         the qualifier in that case.  (Pointer-to-member constants, where
+         the qualified name is required, will have the is_qualified_name
+         flag set to TRUE.) */
       form_class_qualifier(parent_class_of(con),
                            /*for_ptr_to_data_member=*/FALSE, octl);
+    } else  {
+      /* Notify subsequent processing that the context is a dependent
+         conversion-type-id for which the usual qualification of the
+         operator name was suppressed. */
+      octl->name_is_dependent_conversion_type_id = TRUE;
     }  /* if */
     octl->output_str("operator ", octl);
     form_type(con->variant.template_param.variant.
                                               unknown_function.conversion_type,
               octl);
+    octl->name_is_dependent_conversion_type_id = FALSE;
   } else {
     /* Normal case (not a conversion function). */
     a_boolean saved_force_qualified_name = octl->force_qualified_name;
