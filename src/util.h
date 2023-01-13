@@ -2306,77 +2306,70 @@ Each specialization should implement two functions:
   static size_t size_hint_of(a_Type value);
 
   template<typename a_Dyn_array>
-  static inline unsigned append_into(a_Dyn_array &underlying_array,
-                                     a_Type      value,
-                                     size_t      size_hint;
-
-The return type value of the second function should always be 0 (this has a
-non-void return type only as an implementation detail).
+  static inline void append_into(a_Dyn_array &underlying_array,
+                                 a_Type      value,
+                                 size_t      size_hint;
 */
 template<typename a_Type>
-struct string_formatter;
+struct String_formatter;
 
 /*
 A string formatter for a_const_char* (C-string) values.
 */
 template<>
-struct string_formatter<a_const_char*> {
+struct String_formatter<a_const_char*> {
   static size_t size_hint_of(a_const_char *value)
     { return strlen(value); }
   template<typename a_Dyn_array>
-  static inline unsigned append_into(a_Dyn_array  &underlying_array,
-                                     a_const_char *chars,
-                                     size_t       size_hint);
-};  /* string_formatter */
+  static inline void append_into(a_Dyn_array  &underlying_array,
+                                 a_const_char *chars,
+                                 size_t       size_hint);
+};  /* String_formatter */
 
 
 template<typename a_Dyn_array>
-unsigned
-string_formatter<a_const_char*>::append_into(a_Dyn_array  &underlying_array,
+void
+String_formatter<a_const_char*>::append_into(a_Dyn_array  &underlying_array,
                                              a_const_char *chars,
                                              size_t       size_hint)
 /*
 Append the given characters into the underlying array.  size_hint is the number
-of characters to append.  0 is always returned as a dummy value per the
-string_formatter contract.
+of characters to append.
 */
 {
   underlying_array.insert(underlying_array.length(), chars, size_hint);
-  return 0;
-}  /* string_formatter::append_into */
+}  /* String_formatter::append_into */
 
 
 /*
 A string formatter for Allocated_string values.
 */
 template<template<typename> class Allocator>
-struct string_formatter<Allocated_string<Allocator>> {
+struct String_formatter<Allocated_string<Allocator>> {
   static size_t size_hint_of(Allocated_string<Allocator> str)
     { return str.length(); }
 
   template<typename a_Dyn_array>
-  static inline unsigned
+  static inline void
   append_into(a_Dyn_array                       &underlying_array,
               const Allocated_string<Allocator> &str,
               size_t                            size_hint);
-};  /* string_formatter */
+};  /* String_formatter */
 
 
 template<template<typename> class Allocator>
 template<typename a_Dyn_array>
-unsigned string_formatter<Allocated_string<Allocator>>::append_into(
+void String_formatter<Allocated_string<Allocator>>::append_into(
                           a_Dyn_array                       &underlying_array,
                           const Allocated_string<Allocator> &str,
                           ARG_UNUSED size_t                 size_hint)
 /*
 Convert the given Allocated_string value into its character representation, and
-append the characters into the underlying array.  size_hint is unused.  0 is
-always returned as a dummy value per the string_formatter contract.
+append the characters into the underlying array.  size_hint is unused.
 */
 {
   underlying_array.insert(underlying_array.length(), str.as_temp_characters(),
                           str.length());
-  return 0;
 }  /* append_into */
 
 
@@ -2385,46 +2378,44 @@ A string formatter (and associated recursive specializations) for unsigned long
 long, unsigned long, and unsigned values.
 */
 template<>
-struct string_formatter<unsigned long long> {
+struct String_formatter<unsigned long long> {
   constexpr static size_t size_hint_of(unsigned long long value)
     { return 21; }
   template<typename a_Dyn_array>
-  static inline unsigned append_into(a_Dyn_array        &underlying_array,
-                                     unsigned long long value,
-                                     size_t             size_hint);
-};  /* string_formatter */
+  static inline void append_into(a_Dyn_array        &underlying_array,
+                                 unsigned long long value,
+                                 size_t             size_hint);
+};  /* String_formatter */
 
 
 template<>
-struct string_formatter<unsigned long> : string_formatter<unsigned long long> {
-};  /* string_formatter */
+struct String_formatter<unsigned long> : String_formatter<unsigned long long> {
+};  /* String_formatter */
 
 
 template<>
-struct string_formatter<unsigned> : string_formatter<unsigned long long> {
-};  /* string_formatter */
+struct String_formatter<unsigned> : String_formatter<unsigned long long> {
+};  /* String_formatter */
 
 
 template<typename a_Dyn_array>
-unsigned string_formatter<unsigned long long>::append_into(
+void String_formatter<unsigned long long>::append_into(
                                           a_Dyn_array        &underlying_array,
                                           unsigned long long value,
                                           ARG_UNUSED size_t  size_hint)
 /*
 Convert the given unsigned integer value into its character representation, and
 append the characters representing the value into the underlying array.
-size_hint is unused.  0 is always returned as a dummy value per the
-string_formatter contract.
+size_hint is unused.
 */
 {
   constexpr size_t buff_size =
-                      string_formatter<unsigned long long>::size_hint_of(0ull);
+                      String_formatter<unsigned long long>::size_hint_of(0ull);
   char             string_buffer[buff_size] = {};
 
   snprintf(string_buffer, buff_size, "%llu", value);
-  string_formatter<a_const_char*>::append_into(underlying_array, string_buffer,
+  String_formatter<a_const_char*>::append_into(underlying_array, string_buffer,
                                                strlen(string_buffer));
-  return 0;
 }  /* append_into */
 
 
@@ -2433,57 +2424,55 @@ A string formatter (and associated recursive specializations) for long long,
 long, and int values.
 */
 template<>
-struct string_formatter<long long> {
+struct String_formatter<long long> {
   constexpr static size_t size_hint_of(long long value)
     { return 20; }
   template<typename a_Dyn_array>
-  static inline unsigned append_into(a_Dyn_array &underlying_array,
-                                     long long   value,
-                                     size_t      size_hint);
-};  /* string_formatter */
+  static inline void append_into(a_Dyn_array &underlying_array,
+                                 long long   value,
+                                 size_t      size_hint);
+};  /* String_formatter */
 
 
 template<>
-struct string_formatter<long> : string_formatter<long long> {
-};  /* string_formatter */
+struct String_formatter<long> : String_formatter<long long> {
+};  /* String_formatter */
 
 
 template<>
-struct string_formatter<int> : string_formatter<long long> {
-};  /* string_formatter */
+struct String_formatter<int> : String_formatter<long long> {
+};  /* String_formatter */
 
 
 template<typename a_Dyn_array>
-unsigned string_formatter<long long>::append_into(
+void String_formatter<long long>::append_into(
                                            a_Dyn_array       &underlying_array,
                                            long long         value,
                                            ARG_UNUSED size_t size_hint)
 /*
 Convert the given signed integer value into its character representation, and
 append the characters representing the value into the underlying array.
-size_hint is unused.  0 is always returned as a dummy value per the
-string_formatter contract.
+size_hint is unused.
 */
 {
-  constexpr size_t buff_size = string_formatter<long long>::size_hint_of(0ll);
+  constexpr size_t buff_size = String_formatter<long long>::size_hint_of(0ll);
   char             string_buffer[buff_size] = {};
 
   snprintf(string_buffer, buff_size, "%lli", value);
-  string_formatter<a_const_char*>::append_into(underlying_array, string_buffer,
+  String_formatter<a_const_char*>::append_into(underlying_array, string_buffer,
                                                strlen(string_buffer));
-  return 0;
 }  /* append_into */
 
 
-template<typename a_Reserve_fn, typename... a_Text_convertable_type>
+template<typename a_Reserve_fn, typename... a_Text_convertible_type>
 void append_with_custom_reserve(a_Reserve_fn               reserve_func,
-                                a_Text_convertable_type... args)
+                                a_Text_convertible_type... args)
 /*
 The "reserve_func" should be a function that takes a character count estimate
 and returns a pointer to a Dyn_array.  Said Dyn_array should be returned with
 an appropriate capacity allocated for the given estimate.  The arguments (i.e.,
 "args") provided are mapped to a
-detail::string_formatter<a_Text_convertable_type> (abbreviated "string_fmter").
+detail::String_formatter<a_Text_convertible_type> (abbreviated "string_fmter").
 The arguments compose the character count estimate via the sum of the
 respective string_fmter::size_hint_of functions.  Once the character count
 estimate is computed, reserve_func is called with the given estimate, and then
@@ -2493,7 +2482,7 @@ string_fmter::append_into functions.
 {
   /* Gather size estimates of each pack element. */
   size_t element_sizes [] = {
-    detail::string_formatter<a_Text_convertable_type>::size_hint_of(args)...
+    detail::String_formatter<a_Text_convertible_type>::size_hint_of(args)...
   };
   /* Start at an initial size of 1 to account for the null terminator. */
   size_t total_size = 1;
@@ -2511,10 +2500,10 @@ string_fmter::append_into functions.
      irrelevant and discarded. */
   size_t counter = 0;
   ARG_UNUSED unsigned discarded[] = {
-    detail::string_formatter<a_Text_convertable_type>::append_into(
-                                                   *backing_array,
-                                                   args,
-                                                   element_sizes[counter++])...
+    (detail::String_formatter<a_Text_convertible_type>::append_into(
+                                              *backing_array,
+                                              args,
+                                              element_sizes[counter++]), 0u)...
   };
   /* Ensure the underlying array is always null-terminated. */
   if (backing_array->length() < 1 ||
@@ -2534,10 +2523,10 @@ struct Allocated_string {
   typedef Allocator<char> an_allocator;
   typedef typename an_allocator::a_size a_size;
 
-  template<typename... a_Text_convertable_type>
-  inline Allocated_string(an_allocator a, a_Text_convertable_type... args);
-  template<typename... a_Text_convertable_type>
-  inline Allocated_string(a_Text_convertable_type... args)
+  template<typename... a_Text_convertible_type>
+  inline Allocated_string(an_allocator a, a_Text_convertible_type... args);
+  template<typename... a_Text_convertible_type>
+  inline Allocated_string(a_Text_convertible_type... args)
     : Allocated_string(an_allocator{}, args...)
     { }
 
@@ -2546,8 +2535,8 @@ struct Allocated_string {
   a_size length() const
     { return backing_array.length() - 1; }
 
-  template<typename... a_Text_convertable_type>
-  inline Allocated_string<Allocator>& append(a_Text_convertable_type... args);
+  template<typename... a_Text_convertible_type>
+  inline Allocated_string<Allocator>& append(a_Text_convertible_type... args);
 private:
   Dyn_array<char, Allocator>
                 backing_array;
@@ -2557,10 +2546,10 @@ private:
 
 
 template<template<typename> class Allocator>
-template<typename... a_Text_convertable_type>
+template<typename... a_Text_convertible_type>
 inline Allocated_string<Allocator>::Allocated_string(
                                                an_allocator               a,
-                                               a_Text_convertable_type... args)
+                                               a_Text_convertible_type... args)
 /*
 Construct a new string using the given allocator.  The passed arguments are
 appended in the fashion described in detail::append_with_custom_reserve.
@@ -2577,9 +2566,9 @@ appended in the fashion described in detail::append_with_custom_reserve.
 
 
 template<template<typename> class Allocator>
-template<typename... a_Text_convertable_type>
+template<typename... a_Text_convertible_type>
 inline Allocated_string<Allocator>&
-Allocated_string<Allocator>::append(a_Text_convertable_type... args)
+Allocated_string<Allocator>::append(a_Text_convertible_type... args)
 /*
 The passed arguments are appended in the fashion described in
 detail::append_with_custom_reserve, and a reference to this Allocated_string
