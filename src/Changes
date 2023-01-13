@@ -60,7 +60,7 @@ changes for EDGcpfe/23647, is now fixed.
 1/12/23  [EDGcpfe/25930]
 Loss of attributes on some conversion member functions in Clang emulation mode
 
-As a result of the changes for EDGcpfe/25243,EDGcpfe/25501 (in version 6.3),
+As a result of the changes for EDGcpfe/25243,EDGcpfe/25501 (in version 6.4),
 attributes of some member conversion functions were mistakenly dropped.
 This issue had only occurred in Clang emulation mode and is now fixed.  For
 example (with --clang):
