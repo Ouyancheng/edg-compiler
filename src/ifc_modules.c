@@ -5535,11 +5535,11 @@ module, but its definition hasn't been loaded yet.  Load the definition now.
 void an_ifc_module::process_ifc_declaration(a_module_entity_ptr mep,
                                             a_boolean           defer)
 /*
-Process the IFC module entity declaration specified by mep either by creating
-the appropriate IL entity, or, when defer is TRUE, mark the appropriate symbol
-header as having a deferred module entity (which will be lazily loaded if
-referenced).  If defer is FALSE, *mep is updated to record the principal
-associated IL entity.
+Process the IFC module entity declaration specified by mep.  When defer is
+TRUE, no IL entity is created; instead, the appropriate symbol header is
+updated to note the deferred entity for lazy loading.  When defer is FALSE, we
+immediately process *mep and attempt to form an IL entity; if no IL entity can
+be formed, *mep will marked as invalid.
 */
 {
   a_decl_parse_state       dps;
