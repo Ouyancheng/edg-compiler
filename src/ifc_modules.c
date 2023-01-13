@@ -7203,7 +7203,7 @@ the IFC DeclIndex of the enclosing class; otherwise, return an empty optional.
     }  /* if */
   }  /* if */
   return result;
-}  /* is_declared_in_class */
+}  /* get_home_scope_if_class */
 
 
 void an_ifc_module::process_ifc_declaration(a_module_entity_ptr mep,
@@ -15844,6 +15844,43 @@ offset/the offset is not needed.
 }  /* cache_decl_template_declaration */
 
 
+static a_boolean is_template_def_required(const an_ifc_decl_template &decl)
+/*
+Some templates require their definition be cached even when we would normally
+suppress definition caching.  If the given template declaration is one of these
+templates, return TRUE; otherwise, return FALSE.
+
+An example is in-class static constexpr variables.  While the front end
+normally does not cache definitions for class-members inline, these variables
+always require an initializer, otherwise they are not semantically correct.
+*/
+{
+  a_boolean result = FALSE;
+
+  if (is_class_scope(get_ifc_home_scope(decl))) {
+    an_ifc_decl_index entity_idx = get_ifc_decl(get_ifc_entity(decl));
+
+    if (entity_idx.sort == ifc_ds_decl_variable) {
+      Opt<an_ifc_decl_variable> opt_var_decl;
+
+      construct_node(&opt_var_decl, entity_idx);
+      if (opt_var_decl.has_value()) {
+        an_ifc_decl_variable          var_decl = *opt_var_decl;
+        an_ifc_object_traits_bitfield var_traits = get_ifc_traits(var_decl);
+
+        /* At this point it's known the template is for a in-class static
+           variable.  If this variable is constexpr, it's required that the
+           definition be in class. */
+        if (test_bitmask<ifc_otb_constexpr>(var_traits)) {
+          result = TRUE;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* is_template_def_required */
+
+
 void an_ifc_module::cache_decl_template(a_module_token_cache_ptr   cache,
                                         const an_ifc_decl_template &decl,
                                         const an_ifc_cache_info    &cinfo)
@@ -15857,8 +15894,16 @@ decisions about what to cache.
   an_ifc_cache_info     cache_info = cinfo;
   uint32_t              offset;
 
+  if (decl_body == 0) {
   /* Flag that the definition is ignored if there's no definition to cache. */
-  cache_info.ignore_definition |= decl_body == 0;
+    cache_info.ignore_definition = TRUE;
+  } else if (cache_info.ignore_definition) {
+    /* In some cases the template overrides the contextually definition
+       ignoring rules (see is_template_def_required for more information). */
+    if (is_template_def_required(decl)) {
+      cache_info.ignore_definition = FALSE;
+    }  /* if */
+  }  /* if */
   /* If we're caching a definition, the final semicolon must be cached. */
   cache_info.no_final_semicolon = !cache_info.ignore_definition;
   offset = cache_decl_template_declaration(cache, decl, cache_info);
