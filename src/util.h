@@ -2472,12 +2472,12 @@ The "reserve_func" should be a function that takes a character count estimate
 and returns a pointer to a Dyn_array.  Said Dyn_array should be returned with
 an appropriate capacity allocated for the given estimate.  The arguments (i.e.,
 "args") provided are mapped to a
-detail::String_formatter<a_Text_convertible_type> (abbreviated "string_fmter").
+detail::String_formatter<a_Text_convertible_type> (abbreviated "formatter").
 The arguments compose the character count estimate via the sum of the
-respective string_fmter::size_hint_of functions.  Once the character count
+respective formatter::size_hint_of functions.  Once the character count
 estimate is computed, reserve_func is called with the given estimate, and then
 each argument is sequentially appended using the respective
-string_fmter::append_into functions.
+formatter::append_into functions.
 */
 {
   /* Gather size estimates of each pack element. */
