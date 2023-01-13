@@ -158,7 +158,7 @@ EXTERN a_boolean
 
 EXTERN an_attribute_ptr
 		unscanned_attributes;
-			/* A pointer to previously scanned attributes that
+			/* A pointer to previously-scanned attributes that
 			   should be returned from the next call to
 			   scan_attributes instead. */
 
