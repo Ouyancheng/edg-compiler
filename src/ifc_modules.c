@@ -14984,8 +14984,8 @@ decl and locus were encoded.
 
 static a_boolean validate_is_class_type(an_ifc_type_index type)
 /*
-If the type is fundamental type representing a class, return TRUE; otherwise,
-return FALSE.
+If the type is an IFC FundamentalType representing a class, return TRUE;
+otherwise, return FALSE.
 */
 {
   a_boolean result = FALSE;
