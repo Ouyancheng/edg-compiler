@@ -4351,9 +4351,12 @@ constant is being assigned, e.g.,
     /* See if the variable has been allocated already.  If so, a pointer to
        the variable will have been stored in the constant; otherwise one
        will be created.  Use a const-qualified variable for the (possibly
-       lowered) ptr-to-mbr and string cases (but not for aggregates). */
+       lowered) ptr-to-mbr and string cases and for aggregate constants to
+       which a cast was applied (which means they are used as the initial
+       value of a temporary, which is itself likely not const). */
     a_boolean const_okay = !constant_is(constant, ck_aggregate);
-    if (is_or_was_ptr_to_member_function_type(constant->type)) {
+    if (is_or_was_ptr_to_member_function_type(constant->type) ||
+        constant->explicit_cast_applied) {
       const_okay = TRUE;
     }  /* if */
     assoc_var = assoc_var_for_constant(constant, const_okay);

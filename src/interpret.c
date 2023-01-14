@@ -20435,13 +20435,18 @@ indicates the value produced by std::is_constant_evaluated().
                                          &ips, result_storage, result_storage,
                                          result_type, result_con)) {
         do_constexpr_fail(result);
-      } else if (expr->next == NULL &&
-                 (expr_stack == NULL ||
-                  curr_expr_kind_is_one_in_which_const_exprs_are_recorded())) {
-        /* If expr is part of an expression list and followed by other
-           expressions, do not record it as the backing expression since
-           it could cause IL traversal problems later on. */
-        result_con->expr = expr;
+      } else {
+        if (expr->next == NULL &&
+            (expr_stack == NULL ||
+             curr_expr_kind_is_one_in_which_const_exprs_are_recorded())) {
+          /* If expr is part of an expression list and followed by other
+             expressions, do not record it as the backing expression since
+             it could cause IL traversal problems later on. */
+          result_con->expr = expr;
+        }  /* if */
+        if (expr->is_brace_notation_cast) {
+          result_con->explicit_cast_applied = TRUE;
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */

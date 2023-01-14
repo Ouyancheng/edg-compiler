@@ -2454,9 +2454,6 @@ return a pointer to the init_component.
   expr_stack->constant_expr_ruled_out = FALSE;
   opnd = operand_of_arg_list_elem(icp);
   scan_expr(opnd, PREC_LOWEST, options);
-  if (expr_stack->favor_constant_result) {
-    force_operand_to_constant_if_possible(opnd);
-  }  /* if */
   if (expr_stack->constant_expr_ruled_out) {
     icp->constant_expr_ruled_out = TRUE;
   }  /* if */
@@ -27313,7 +27310,7 @@ previously-scanned braced initializer.
                           conv_context,
                           /*fill_in_dtor=*/TRUE,
                           /*force_temp=*/
-                                     is_class_struct_union_type(type_cast_to),
+                                     is_aggregate_or_union_type(type_cast_to),
                           /*make_lvalue_temp=*/FALSE,
                           result, (an_init_state*)NULL,
                           (an_arg_match_summary *)NULL);
