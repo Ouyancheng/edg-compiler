@@ -5286,9 +5286,12 @@ decided by the caller.  Do the output in the way described by octl.
          error situations and is useful for debug output. */
       check_assertion(!octl->gen_compilable_code);
       octl->output_str("<null parent scope>::", octl);
-    } else if ((!use_microsoft_form() &&
-                !(gcc_is_generated_code_target &&
-                  gnu_target_version_number >= 120100)) ||
+    } else if ((!use_microsoft_form()
+#if BACK_END_IS_CP_GEN_BE
+                && !(gcc_is_generated_code_target &&
+                     gnu_target_version_number >= 120100)
+#endif /* BACK_END_IS_CP_GEN_BE */
+                                                         ) ||
                constant->variant.template_param.is_qualified_name) {
       /* MSVC, as well as g++ in versions 12.1 and later, have a bug
          causing them not to accept a qualified name for a dependent
