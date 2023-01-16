@@ -14450,11 +14450,6 @@ typedef struct an_expr_node {
     } object_lifetime;
     /* When kind == enk_typeid (C++ only): */
     struct {
-      a_type_ptr
-		type;	/* If the argument of the typeid operator is a type,
-			   the type specified; if it is an expression, the
-			   type of the expression specified.  In either case,
-			   top-level type qualifiers are removed. */
       an_expr_node_ptr
 		type_with_opt_expr;
 			/* A list with one or two expression nodes.  The first
