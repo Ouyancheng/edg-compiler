@@ -6493,9 +6493,11 @@ precedence confusion.  Do the output in the way described by octl.
         if (octl->processing_nontype_template_argument &&
             is_immediate_class_type(constant->type)) {
           /* This is a class-typed nontype template argument.  Put out the
-             class name before the braced list (but not for any
-             subaggregates). */
-          form_name(&constant->type->source_corresp, iek_type, octl);
+             class name before the braced list (but not for any subaggregates).
+             Don't put it out if we already rendered the cast type above. */
+          if (!cast_already_put_out) {
+            form_name(&constant->type->source_corresp, iek_type, octl);
+          }  /* if */
           octl->processing_nontype_template_argument = FALSE;
         }  /* if */
         octl->output_str("{", octl);
