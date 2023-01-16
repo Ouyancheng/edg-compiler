@@ -14037,8 +14037,8 @@ typedef struct an_expr_node {
 		is_cli_typeid:1;
 			/* TRUE for a typeid entry that comes from a C++/CLI
 			   typeid, of the form T::typeid.  In that case,
-			   variant.typeid_info.type gives the type T, and
-			   variant.typeid_info.expr is NULL.  Note that
+			   variant.typeid_info.type_with_opt_expr only provides
+			   the type T and no operand expression.  Note that
 			   cv-qualifiers on T are not removed (we want to keep
 			   any typedefs) so a back end should remove them
 			   before selecting the appropriate System::Type
