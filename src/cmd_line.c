@@ -3552,6 +3552,7 @@ process.
     std_attributes_enabled = TRUE;
     nodiscard_attribute_enabled = TRUE;
     enumerator_attributes_enabled = TRUE;
+    utf8_char_literals_enabled = TRUE;
   }  /* if */
 }  /* set_c_mode_flags */
 

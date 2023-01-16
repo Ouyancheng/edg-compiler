@@ -1,5 +1,15 @@
 Version 6.5
 
+1/16/23  [EDGcpfe/25889]
+C23: UTF-8 character literals
+
+As described in WG14 paper N2418, the front end now accepts UTF-8 character
+literals in C23 mode.  These literals have type unsigned char, in contrast
+to char in C++17 and char8_t in C++23.  For example, with --c23:
+
+  unsigned char c = u8'x';   // Now accepted in C23 mode
+
+
 1/13/23  [EDGcpfe/25923]
 C++-generating back end: dependent conversion operators
 

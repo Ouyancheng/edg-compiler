@@ -1510,7 +1510,8 @@ the actual number of converted characters may be less than num_chars.  */
 
   /* Determine the constant type as follows:
        Single-character constant     ('x'): int in C, char in C++
-       UTF-8 character constant    (u8'x"): char (C++17) or char8_t (C++20)
+       UTF-8 character constant    (u8'x'): char (C++17) or char8_t (C++20)
+                                            or unsigned char (C23)
        Multi-character constant     ('xy'): int
        Wide character constant      (L'x'): wchar_t
        char16_t character constant  (u'x'): char16_t
@@ -1561,16 +1562,25 @@ the actual number of converted characters may be less than num_chars.  */
       if (start_of_curr_token[1] == '8') {
         /* UTF-8 character literal. */
         utf8_literal = TRUE;
-        character_kind = char8_t_enabled ? (a_character_kind)chk_char8_t
-                                         : (a_character_kind)chk_char;
         char_size = 1;
         centity_bits = targ_char_bit;
-        centity_is_signed = char8_t_enabled ? FALSE
-                                            : targ_has_signed_chars;
         temp_ptr = start_of_curr_token + 3;
-        con_type =
-             char8_t_enabled ? eff_char8_t_type()
-                             : integer_type((an_integer_kind)ik_char);
+        if (c23_mode) {
+          /* C23 UTF-8 character literals have type unsigned char. */
+          character_kind = chk_char;
+          centity_is_signed = FALSE;
+          con_type = integer_type(ik_unsigned_char);
+        } else if (char8_t_enabled) {
+          /* C++20 UTF-8 character literals have type char8_t. */
+          character_kind = chk_char8_t;
+          centity_is_signed = FALSE;
+          con_type = eff_char8_t_type();
+        } else {
+          /* C++17 UTF-8 character literals have type char. */
+          character_kind = chk_char;
+          centity_is_signed = targ_has_signed_chars;
+          con_type = integer_type(ik_char);
+        }  /* if */
       } else {
         /* char16_t character literal. */
         character_kind = (a_character_kind)chk_char16_t;
