@@ -11836,9 +11836,11 @@ command line -D options.
      processing, these macros are defined as object-like, not
      function-like, and the argument is scanned and processed directly by
      scan_has_include. */
-  if (cpp17_mode || microsoft_mode || clang_mode || gnu_version_is(>=40902)) {
-    /* __has_include is supported by all emulated compilers and became part of
-       the C++ standard beginning with the C++17 version. */
+  if (cpp17_mode || c23_mode || microsoft_mode || clang_mode ||
+      gnu_version_is(>=40902)) {
+    /* __has_include is supported by all emulated compilers and became part
+       of the C++ standard beginning with the C++17 version and the C
+       standard beginning with C23. */
     has_include_symbol = enter_predef_macro((char *)NULL, "__has_include",
                                             /*cannot_be_redefined=*/TRUE,
                                             /*ref_suppresses_pch_file=*/FALSE);
