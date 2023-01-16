@@ -1,5 +1,14 @@
 Version 6.5
 
+1/16/23  [EDGcpfe/25894]
+C23: Binary integer literals
+
+As described in WG14 paper N2549, the front end now accepts binary integer
+literals in C23 mode.  For example, with --c23:
+
+  int i = 0b00001111;   // Now accepted in C23 mode
+
+
 1/16/23  [EDGcpfe/25889]
 C23: UTF-8 character literals
 
