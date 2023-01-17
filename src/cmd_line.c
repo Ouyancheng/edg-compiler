@@ -3552,7 +3552,9 @@ process.
     std_attributes_enabled = TRUE;
     nodiscard_attribute_enabled = TRUE;
     enumerator_attributes_enabled = TRUE;
-    utf8_char_literals_enabled = TRUE;
+    if (!option_kind_used[(int)optk_utf8_char_literals]) {
+      utf8_char_literals_enabled = TRUE;
+    }  /* if */
     binary_literals_allowed = TRUE;
     if (!option_kind_used[(int)optk_trigraphs]) {
       trigraphs_allowed = FALSE;
