@@ -78,7 +78,7 @@ C23: UTF-8 character literals
 
 As described in WG14 paper N2418, the front end by default now accepts
 UTF-8 character literals in C23 mode.  These literals have type unsigned
-char, in contrast to char in C++17 and char8_t in C++23.  This support can
+char, in contrast to char in C++17 and char8_t in C++20.  This support can
 be explicitly controlled using the --[no_]utf8_char_literals command-line
 option.  For example, with --c23:
 
