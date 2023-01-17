@@ -50,7 +50,7 @@ when emulating clang versions before 140000, as well as all versions of the
 Microsoft and GNU compilers.  For example, the following will elicit an
 error with --strict --c23:
 
-  int a\u200cb;  // Unicode ZWNJ is no longer a valid identifier character
+  int a\u200cb;  // Unicode ZWNJ is not a valid identifier character in C23
 
 
 1/16/23  [EDGcpfe/25918]
