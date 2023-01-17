@@ -3559,6 +3559,7 @@ process.
     if (!option_kind_used[(int)optk_trigraphs]) {
       trigraphs_allowed = FALSE;
     }  /* if */
+    va_opt_enabled = TRUE;
   }  /* if */
 }  /* set_c_mode_flags */
 

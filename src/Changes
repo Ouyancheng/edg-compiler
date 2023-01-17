@@ -1,5 +1,16 @@
 Version 6.5
 
+1/17/23  [EDGcpfe/25944]
+C23: __VA_OPT__
+
+As described in WG14 paper N3033, the front end now accepts the __VA_OPT__
+preprocessor operator in C23 mode.  For example, with --c23:
+
+  #define F(...) f(0 __VA_OPT__(,) __VA_ARGS__)
+  F(a, b, c)  // replaced by f(0, a, b, c)
+  F()         // replaced by f(0)
+
+
 1/17/23  [EDGcpfe/25343,EDGcpfe/25363,EDGcpfe/25365,EDGcpfe/25366,
           EDGcpfe/25585]
 Spurious errors for class template argument deduction for aggregates
