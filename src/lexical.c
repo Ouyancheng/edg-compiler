@@ -144,7 +144,8 @@ fields of the a_UCN_range entry.  There is one flag for both C11 and C++11,
 since the character tables specified in the respective Standards are
 identical.  UAX44 represents the Unicode Standard Annex #44, which was
 adopted for the C++23 Standard and as a Defect Report against previous
-C++ Standards via WG21 document P1949R7.
+C++ Standards via WG21 document P1949R7.  C23 also adopted the Unicode
+properties for identifier characters; see WG14 documents N2836 and N2939.
 */
 #define CPP03 0x1
 #define C99   0x2
@@ -11856,7 +11857,7 @@ identifier character is invalid.
   a_byte        dialect;
   a_UCN_range   *range;
 
-  if (!C_mode() && !old_id_chars) {
+  if ((!C_mode() || c23_mode) && !old_id_chars) {
     dialect = UAX44;
   } else if (cpp11_mode || c11_mode) {
     dialect = CPP11;

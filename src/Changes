@@ -1,5 +1,21 @@
 Version 6.5
 
+1/16/23  [EDGcpfe/25935]
+C23: Unicode-based identifier syntax
+
+As described in WG14 papers N2836 and N2939, in C23 mode the front end by
+default now determines which characters can be used in an identifier
+according to the specification found in Unicode Annex 31.  As mentioned in
+the description of the corresponding C++23 feature (EDGcpfe/24774), the
+previous behavior can be restored via use of the --old_id_chars
+command-line option.  The front end also uses the previous specification
+when emulating clang versions before 140000, as well as all versions of the
+Microsoft and GNU compilers.  For example, the following will elicit an
+error with --strict --c23:
+
+  int a\u200cb;  // Unicode ZWNJ is no longer a valid identifier character
+
+
 1/16/23  [EDGcpfe/25918]
 C23: __has_include
 
