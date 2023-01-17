@@ -42807,7 +42807,7 @@ up-to-date.
                 ct_tssp = template_supplement_for_symbol(ct_sym);
 
   if (ct_tssp->variant.class_template.implicit_deduction_guides_added &&
-      (!ct_sym->defined ||
+      (!prototype_template_of(ct_sym)->defined ||
        !ct_tssp->variant.class_template.interim_implicit_deduction_guides)) {
     /* Nothing to do. */
   } else {

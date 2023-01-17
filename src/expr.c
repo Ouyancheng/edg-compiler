@@ -27860,7 +27860,8 @@ freed by this routine.
   } else if (allow_parenthesized_aggregate_init && parenthesized &&
              is_aggregate_type(type_cast_to) &&
              /* Guard against empty parentheses: */
-             (scanning_source   ? curr_token != tok_rparen :
+             (scanning_source   ? cached_initializer_present() ||
+                                                     curr_token != tok_rparen :
               arg_list_supplied ? supplied_arg_list != NULL :
                                   !(rcblock != NULL &&
                                     rcblock->argument_list != NULL))) {
