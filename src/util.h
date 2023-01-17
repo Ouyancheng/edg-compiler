@@ -2590,6 +2590,21 @@ allocating fe_alloc-backed allocator).
 */
 typedef Allocated_string<FE_allocator> a_string;
 
+
+template<template<typename> class Allocator>
+void print(Allocated_string<Allocator> string,
+           FILE                        *stream,
+           a_const_char                *end = "\n")
+/*
+Print the given allocated string into the given stream.  The given end
+character sequence terminates the printed string.
+*/
+{
+  fputs(string.as_temp_characters(), stream);
+  fputs(end, stream);
+}  /* print */
+
+
 /*
 The Ptr_map template
 ====================
