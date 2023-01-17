@@ -2999,6 +2999,18 @@ to be needed later on.
 #endif /* CHECKING */
 }  /* record_pending_ifc_function_body */
 
+#if DEBUG || CHECKING
+
+template<typename an_ifc_Index_type>
+a_string index_to_str(an_ifc_Index_type idx)
+/*
+Convert the given index value into a string representation.
+*/
+{
+  return a_string(str_for(idx.sort), " (", idx.value, ")");
+}  /* index_to_str */
+
+#endif /* DEBUG || CHECKING */
 
 void record_symbol_for_ifc_decl(a_symbol_ptr  sym)
 /*
@@ -3009,6 +3021,13 @@ index information to the given symbol.
   an_ifc_decl_index decl_idx =
                from_lexical_index<an_ifc_decl_index>(ifc_index_for_curr_token);
 
+#if DEBUG
+  if (db_flag_is_set("ifc_idx")) {
+    a_string err_msg("Bound token resolved for ", index_to_str(decl_idx));
+
+    print(err_msg, f_debug);
+  }  /* if */
+#endif /* DEBUG */
   ifc_decl_lookup_table->map(decl_idx, sym);
 
   /* Associate the appropriate module entity with this symbol's IL entity. */
@@ -3146,6 +3165,14 @@ error occurs, return NULL.
 {
   a_symbol_ptr  result = NULL;
 
+#if DEBUG
+  if (db_flag_is_set("ifc_idx")) {
+    a_string err_msg("Entity ref resolution started for ",
+                     index_to_str(expr_idx));
+
+    print(err_msg, f_debug);
+  }  /* if */
+#endif /* DEBUG */
   switch (expr_idx.sort) {
     case ifc_es_expr_named_decl:
       { Opt<an_ifc_expr_named_decl> opt_named_decl;
@@ -3217,7 +3244,18 @@ error occurs, return NULL.
                                         &error_position);
       break;
   }  /* switch */
+  goto done;
 invalid:
+  result = NULL;
+done:
+#if DEBUG
+  if (db_flag_is_set("ifc_idx")) {
+    a_string err_msg("Entity ref resolution done for ",
+                     index_to_str(expr_idx));
+
+    print(err_msg, f_debug);
+  }  /* if */
+#endif /* DEBUG */
   return result;
 }  /* load_ifc_entity_ref */
 
@@ -3273,6 +3311,14 @@ coordinates.  Return the symbol for the corresponding parameter.
   Opt<an_ifc_decl_parameter>
                      opt_idp;
 
+#if DEBUG
+  if (db_flag_is_set("ifc_idx")) {
+    a_string err_msg("Template param ref search started for ",
+                     index_to_str(decl_idx));
+
+    print(err_msg, f_debug);
+  }  /* if */
+#endif /* DEBUG */
   construct_node(&opt_idp, decl_idx);
   if (opt_idp.has_value()) {
     an_ifc_decl_parameter      idp = *opt_idp;
@@ -3309,6 +3355,14 @@ coordinates.  Return the symbol for the corresponding parameter.
     } while (--sd != DEPTH_OF_FILE_SCOPE);
   }  /* if */
 done:
+#if DEBUG
+  if (db_flag_is_set("ifc_idx")) {
+    a_string err_msg("Template param ref search done for ",
+                     index_to_str(decl_idx));
+
+    print(err_msg, f_debug);
+  }  /* if */
+#endif /* DEBUG */
   return result;
 }  /* load_tok_ifc_template_param */
 
@@ -4261,6 +4315,13 @@ definition.
                                            &ifb.mod->suppressed_diagnostics,
                                            !display_module_import_diagnostics);
 
+#if DEBUG
+    if (db_flag_is_set("ifc_idx")) {
+      a_string err_msg("Function def loading started for ", index_to_str(ifb));
+
+      print(err_msg, f_debug);
+    }  /* if */
+#endif /* DEBUG */
     rp->definition_pending = TRUE;
     clear_func_info(&func_info);
     push_new_top_level_declaration();
@@ -4288,6 +4349,13 @@ definition.
       check_assertion_str(is_at_least_one_error(),
                           "expected errors for bad function body");
     }  /* if */
+#if DEBUG
+    if (db_flag_is_set("ifc_idx")) {
+      a_string err_msg("Function def loading done for ", index_to_str(ifb));
+
+      print(err_msg, f_debug);
+    }  /* if */
+#endif /* DEBUG */
   }  /* if */
   return result;
 }  /* load_routine_definition_from_ifc_module */
@@ -5657,6 +5725,14 @@ module, but its definition hasn't been loaded yet.  Load the definition now.
   a_boolean            result = FALSE;
   an_ifc_decl_index    def_decl_idx = ifc_template_definitions->get(templ);
 
+#if DEBUG
+  if (db_flag_is_set("ifc_idx")) {
+    a_string err_msg("Template def loading started for ",
+                     index_to_str(def_decl_idx));
+
+    print(err_msg, f_debug);
+  }  /* if */
+#endif /* DEBUG */
   /* When the ifc_template_definitions were inserted, this should've been
      validated and not added to the map if invalid. */
   an_ifc_decl_template template_decl;
@@ -5690,6 +5766,14 @@ module, but its definition hasn't been loaded yet.  Load the definition now.
   /* Restore the module declaration context stack; all other cleanup is RAII
      based. */
   pop_module_declaration_context(scope_push_status);
+#if DEBUG
+  if (db_flag_is_set("ifc_idx")) {
+    a_string err_msg("Template def loading done for ",
+                     index_to_str(def_decl_idx));
+
+    print(err_msg, f_debug);
+  }  /* if */
+#endif /* DEBUG */
   return result;
 }  /* load_template_definition_from_ifc_module */
 
@@ -5726,8 +5810,9 @@ to this function.
 #if DEBUG
   ++num_module_decls_attempted;
   if (db_flag_is_set("ifc_idx")) {
-    (void)fprintf(f_debug, "Processing %s (%d)\n", str_for(decl_idx.sort),
-                  decl_idx.value);
+    a_string err_msg("IL processing started for ", index_to_str(decl_idx));
+
+    print(err_msg, f_debug);
   }  /* if */
 #endif /* DEBUG */
   curr_module_entity = mep;
@@ -7174,8 +7259,9 @@ done:
   }  /* if */
 #if DEBUG
   if (db_flag_is_set("ifc_idx")) {
-    (void)fprintf(f_debug, "Done with %s (%d)\n", str_for(decl_idx.sort),
-                  decl_idx.value);
+    a_string err_msg("IL processing done for ", index_to_str(decl_idx));
+
+    print(err_msg, f_debug);
   }  /* if */
 #endif /* DEBUG */
   curr_module_entity = saved_mep;
@@ -7242,12 +7328,23 @@ be formed, *mep will marked as invalid.
         mep->invalid = TRUE;
       } else {
         complete_definition_of_module_class(parent_mep);
+#if CHECKING
         /* The requested entity should've been loaded in the process of
            completing the module class.  If that didn't occur something has
            gone wrong (most likely, the entity and module entity pointer were
            not correctly associated with each other -- see cache_bound_entity
            for more information). */
-        check_assertion(mep->imminent);
+        if (!mep->imminent) {
+          an_ifc_decl_index parent_mep_idx = decl_index_of(parent_mep);
+          an_ifc_decl_index mep_idx = decl_index_of(mep);
+          a_string          err_msg("completion of ",
+                                    index_to_str(parent_mep_idx),
+                                    " failed to resolve child ",
+                                    index_to_str(mep_idx));
+
+          unexpected_condition_str(err_msg.as_temp_characters());
+        }  /* if */
+#endif /* CHECKING */
       }  /* if */
     } else {
       process_decl_to_il_entity(mep, defer);
@@ -7451,6 +7548,13 @@ Cache the class members for the given class member scope into the given cache.
       an_ifc_cache_info cinfo;
       cinfo.ignore_definition = TRUE;
 
+#if DEBUG
+      if (db_flag_is_set("ifc_idx")) {
+        a_string err_msg("Bound token cached for ", index_to_str(decl_idx));
+
+        print(err_msg, f_debug);
+      }  /* if */
+#endif /* DEBUG */
       decl_idx.mod->cache_decl(content_cache, decl_idx, cinfo);
     };
 
@@ -7484,6 +7588,14 @@ Complete the definition of the class referred to by mep (if needed).
 
     check_assertion(mep->entity.kind == (an_il_entry_kind)iek_type &&
                     class_type != NULL);
+#if DEBUG
+    if (db_flag_is_set("ifc_idx")) {
+      a_string err_msg("Class completion started for ",
+                       index_to_str(decl_idx));
+
+      print(err_msg, f_debug);
+    }  /* if */
+#endif /* DEBUG */
     if (class_type->incomplete && initializer != 0) {
       a_template_decl_info_ptr    tdip;
       a_symbol_ptr                class_sym = symbol_for(class_type);
@@ -7593,6 +7705,13 @@ Complete the definition of the class referred to by mep (if needed).
       }  /* if */
       error_position = saved_error_position;
     }  /* if */
+#if DEBUG
+    if (db_flag_is_set("ifc_idx")) {
+      a_string err_msg("Class completion done for ", index_to_str(decl_idx));
+
+      print(err_msg, f_debug);
+    }  /* if */
+#endif /* DEBUG */
   }  /* if */
 }  /* complete_definition_of_module_class */
 
@@ -7632,19 +7751,22 @@ void db_mep(a_module_entity_ptr mep)
 Print information about the module entity pointer.
 */
 {
+  a_string summary_line = index_to_str(decl_index_of(mep));
+
   if (mep->module_info != NULL) {
-    (void)fprintf(f_debug, "[%s]: ", mep->module_info->name);
+    summary_line.append(" from ", mep->module_info->name);
   }  /* if */
+  if (mep->invalid) {
+    summary_line.append(" (Invalid)");
+  }  /* if */
+  print(summary_line, f_debug);
   if (mep->entity.kind != iek_none) {
-    if (mep->invalid) {
-      (void)fprintf(f_debug, "(Invalid)\n");
-    } else {
-      db_scp((a_source_correspondence*)mep->entity.ptr);
-    }  /* if */
-  } else {
-    if (mep->scope != NULL) {
-      db_scope(mep->scope);
-    }  /* if */
+    (void)fputs("Source location: ", f_debug);
+    db_scp((a_source_correspondence*)mep->entity.ptr);
+  }
+  if (mep->scope != NULL) {
+    (void)fputs("Scope: ", f_debug);
+    db_scope(mep->scope);
     (void)fprintf(f_debug, "\n");
   }  /* if */
 }  /* db_mep */
@@ -11410,11 +11532,26 @@ with the initializer expression referred to by init_expr.
   a_constant_ptr     cp;
   an_ifc_module      *ifc_module = init_expr.mod;
 
+#if DEBUG
+  if (db_flag_is_set("ifc_idx")) {
+    a_string err_msg("Variable init load started for ",
+                     index_to_str(init_expr));
+
+    print(err_msg, f_debug);
+  }  /* if */
+#endif /* DEBUG */
   result = alloc_dynamic_init(dik_module);
   cp = ifc_module->constant_for_expr_index(init_expr, tp);
   if (cp != NULL && !is_error_constant(cp)) {
     result->variant.constant.ptr = alloc_unshared_constant(cp);
   }  /* if */
+#if DEBUG
+  if (db_flag_is_set("ifc_idx")) {
+    a_string err_msg("Variable init load done for ", index_to_str(init_expr));
+
+    print(err_msg, f_debug);
+  }  /* if */
+#endif /* DEBUG */
   return result;
 }  /* load_variable_init_from_ifc_module */
 
