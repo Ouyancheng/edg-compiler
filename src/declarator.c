@@ -3156,9 +3156,9 @@ an error if a default argument expression is encountered.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else {
-      /* In C++ f(...) is legal, though it is not recommended since it is not
-         portable (ARM 8.3).  In C it's an extension that is supported when
-         allow_ellipsis_only_param_in_C_mode is TRUE. */
+      /* In C++ f(...) is standard.  In C it's supported (as an extension
+         or in standard C23) when allow_ellipsis_only_param_in_C_mode is
+         TRUE. */
       extra_info->has_ellipsis = TRUE;
       any_params = FALSE;
 #if ASM_FUNCTION_ALLOWED
@@ -3174,7 +3174,7 @@ an error if a default argument expression is encountered.
              an overloadable function. */
           add_end_of_parse_action(check_c_mode_ellipsis, state,
                                       /*secondary_decls=*/TRUE);
-        } else if (strict_ansi_mode) {
+        } else if (strict_ansi_mode && !c23_mode) {
           /* Issue a diagnostic on use of a nonstandard feature. */
           pos_diagnostic(strict_ansi_error_severity,
                          ec_nonstd_ellipsis_only_param, &ellipsis_pos);

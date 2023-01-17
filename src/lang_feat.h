@@ -1828,10 +1828,10 @@ This is the default value for address_of_ellipsis_allowed.
 #endif /* ifndef DEFAULT_ADDRESS_OF_ELLIPSIS_ALLOWED */
 
 /*
-Flag that is TRUE if an ellipsis alone is permitted in a function declaration
-in C mode -- something like "void f(...)".  A diagnostic is issued in strict
-ANSI C mode.  (This usage is standard in C++ mode.)  This is the default value
-for allow_ellipsis_only_param_in_C_mode.
+Flag that is TRUE if an ellipsis alone is permitted in a function
+declaration in C mode -- something like "void f(...)".  A diagnostic is
+issued in strict ANSI C modes prior to C23.  (This usage is standard in C++
+mode.)  This is the default value for allow_ellipsis_only_param_in_C_mode.
 */
 #ifndef DEFAULT_ALLOW_ELLIPSIS_ONLY_PARAM_IN_C_MODE
 #define DEFAULT_ALLOW_ELLIPSIS_ONLY_PARAM_IN_C_MODE FALSE

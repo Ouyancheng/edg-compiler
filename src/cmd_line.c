@@ -3560,6 +3560,7 @@ process.
       trigraphs_allowed = FALSE;
     }  /* if */
     va_opt_enabled = TRUE;
+    allow_ellipsis_only_param_in_C_mode = TRUE;
   }  /* if */
 }  /* set_c_mode_flags */
 
