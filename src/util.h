@@ -2575,6 +2575,11 @@ detail::append_with_custom_reserve, and a reference to this Allocated_string
 is returned.
 */
 {
+  /* Remove the null terminator. */
+  check_assertion(this->backing_array.length() > 0);
+  check_assertion(this->backing_array.back_elem() == '\0');
+  this->backing_array.pop_back();
+  /* Append the new characters. */
   auto reserve_func = [this](a_size total_size) {
     this->backing_array.reserve(this->backing_array.length() + total_size);
     return &this->backing_array;
