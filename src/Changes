@@ -59,8 +59,8 @@ C23: __has_include
 As described in WG14 paper N2799, the front end now supports the
 __has_include preprocessor operator in C23 mode.  For example, with --c23:
 
-  #if __has_include(<optionalh.h>)
-    #include <optional.h>
+  #if __has_include(<optionalh.h>)   // Now accepted in C23 mode
+    #include <optionalh.h>
   #endif
 
 
