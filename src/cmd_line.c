@@ -3554,6 +3554,9 @@ process.
     enumerator_attributes_enabled = TRUE;
     utf8_char_literals_enabled = TRUE;
     binary_literals_allowed = TRUE;
+    if (!option_kind_used[(int)optk_trigraphs]) {
+      trigraphs_allowed = FALSE;
+    }  /* if */
   }  /* if */
 }  /* set_c_mode_flags */
 
@@ -4511,9 +4514,9 @@ conflicts with the ANSI mode and set various unmentioned settings as needed.
 	long_preserving_rules = FALSE;
     }  /* if */
   }  /* if */
-  if (!option_kind_used[(int)optk_trigraphs] && !cpp17_mode) {
+  if (!option_kind_used[(int)optk_trigraphs] && !cpp17_mode && !c23_mode) {
     /* Trigraphs should be allowed if not disabled by a command-line option,
-       except in C++17 and later modes. */
+       except in C++17 and C23 (and later revisions). */
     trigraphs_allowed = TRUE;
   }  /* if */
   if (!(option_kind_used[(int)optk_extended_designators])) {
