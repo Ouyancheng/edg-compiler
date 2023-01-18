@@ -50257,6 +50257,10 @@ a constant initialization if possible.
       a_constant_ptr cp = constant_value_of_dynamic_init(dip);
       if (cp != NULL) {
         wrap_up_constant_full_expression(cp);
+        if (dip->is_explicit_cast) {
+          cp->implicit_cast = TRUE;
+          cp->explicit_cast_applied = TRUE;
+        }  /* if */
         if (dip->is_partially_initialized || cp->is_partially_initialized) {
           is->partial_initializer = TRUE;
         }  /* if */

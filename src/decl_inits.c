@@ -2758,7 +2758,7 @@ members up to end_field, but not including end_field, should be initialized.
         if (!is->check_validity_only) {
           init_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
           init_con->type = btp;
-          if (!has_initializable_subobject(btp)) {
+          if (has_initializable_subobject(btp)) {
             /* Unless it is for an empty class, an empty aggregate constant
                does not cover all the elements of the destination base type. */
             is->partial_initializer = TRUE;
@@ -2888,7 +2888,7 @@ members up to end_field, but not including end_field, should be initialized.
           } else {
             init_con->type = (atp == NULL) ? ftp : atp;
             if (!(is_immediate_class_type(ftp) &&
-                  has_initializable_subobject(ftp)) &&
+                  !has_initializable_subobject(ftp)) &&
                 !(atp != NULL && has_any_zero_bound(atp))) {
               /* Other than for empty classes and zero-length arrays, an empty
                  aggregate constant does not cover all the elements of the
