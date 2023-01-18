@@ -3561,6 +3561,9 @@ process.
     }  /* if */
     va_opt_enabled = TRUE;
     allow_ellipsis_only_param_in_C_mode = TRUE;
+    if (!option_kind_used[(int)optk_digit_separators]) {
+      digit_separators_enabled = TRUE;
+    }  /* if */
   }  /* if */
 }  /* set_c_mode_flags */
 

@@ -2700,7 +2700,7 @@ EXTERN a_boolean
 
 EXTERN a_boolean
 		digit_separators_enabled;
-			/* When TRUE, C++14 digit separators (e.g.,
+			/* When TRUE, C++14/C23 digit separators (e.g.,
 			   0x1234'5678 or 123'456'789) are permitted. */
 
 EXTERN a_boolean
