@@ -7575,6 +7575,7 @@ for which constant is the value.
         a_constant_ptr eff_sub_con = sub_con;
         a_boolean      local_suppress_braces = FALSE;
         a_boolean      need_close_paren = FALSE;
+        a_boolean      after_designator = FALSE;
         if (!first_elem) {
           write_tok_str(", ");
         } else {
@@ -7590,6 +7591,7 @@ for which constant is the value.
             eff_sub_con = eff_sub_con->next;
           }  /* if */
           sub_con = sub_con->next;
+          after_designator = TRUE;
         }  /* if */
         /* Determine the type of the entity initialized by the next
            constant. */
@@ -7607,7 +7609,7 @@ for which constant is the value.
              a prototype instantiation.) */
           sub_type = eff_sub_con->type;
         } else if (!array_case) {
-          if (bcp != NULL) {
+          if (bcp != NULL && !after_designator) {
             sub_type = bcp->type;
             bcp = next_direct_base(bcp->next);
           } else {

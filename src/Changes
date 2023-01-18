@@ -1,5 +1,24 @@
 Version 6.5
 
+1/18/23  [EDGcpfe/25959]
+C++-generating back end: designated initializers and aggregate base classes
+
+In some cases in which a designated initializer is used with an aggregate
+class that has a base class, the code generated for the value of the
+designated initializer could refer to the type of the base class instead of
+to the type of the field being initialized.  This is now fixed.  For
+example, with --c++20:
+
+  struct B
+  { };
+  struct C
+  { };
+  struct A : B {
+    C c;
+  };
+  decltype(A{ .c = C() }) a;   // Previously generated as B() instead of C()
+
+
 1/18/23  [EDGcpfe/25955]
 C23: digit separators
 
