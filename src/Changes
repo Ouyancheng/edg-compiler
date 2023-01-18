@@ -3,9 +3,9 @@ Version 6.5
 1/17/23  [EDGcpfe/25945]
 C23: ellipsis-only variadic functions
 
-As described in WG14 paper N2975, the front end now accepts function
-declarations in which the parameter list consists solely of an ellipsis.
-For example, with --strict --c23:
+As described in WG14 paper N2975, the front end now accepts in C23 mode
+function declarations in which the parameter list consists solely of an
+ellipsis.  For example, with --strict --c23:
 
   void f(...) { }   // Now accepted in C23 mode
 
