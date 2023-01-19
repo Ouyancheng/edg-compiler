@@ -7334,7 +7334,11 @@ be formed, *mep will marked as invalid.
            gone wrong (most likely, the entity and module entity pointer were
            not correctly associated with each other -- see cache_bound_entity
            for more information). */
-        if (!mep->imminent) {
+        /* FIXME: The module entity should always be imminent at this point,
+           however, because the front end does not currently map IL entities
+           for members of classes that already exist (e.g., from a global
+           module fragment), invalid status is also considered. */
+        if (!mep->imminent && !mep->invalid) {
           an_ifc_decl_index parent_mep_idx = decl_index_of(parent_mep);
           an_ifc_decl_index mep_idx = decl_index_of(mep);
           a_string          err_msg("completion of ",
@@ -7362,72 +7366,29 @@ be formed, *mep will marked as invalid.
 }  /* process_ifc_declaration */
 
 
-template<typename a_Scope_member_consumer>
-static a_boolean traverse_scope_member_range(
-                                           an_ifc_index            start,
-                                           an_ifc_cardinality      cardinality,
-                                           a_Scope_member_consumer consumer)
+template<typename a_Scope_seq_type>
+static void cache_scope_member_sequence(a_module_token_cache_ptr cache,
+                                        const a_Scope_seq_type   &seq)
 /*
-Traverse "cardinality" elements from the given scope member range from the
-starting position (start), in start's module.  Validated scope members are
-passed to the given consumer.  Upon completion of the traversal this function
-returns TRUE if all elements were passed to the consumer; otherwise, returns
-FALSE.
+Cache a sequence (seq) of IFC scope member declarations into the cache.
 */
 {
-  a_boolean                result = TRUE;
-  a_scope_member_traverser traverser(start.mod, start, cardinality);
-
-  for (an_Indexed<an_ifc_scope_member> indexed_ism : traverser) {
-    /* Allow single failures to be "ignored", continue processing. */
-    if (!indexed_ism.has_value()) {
-      result = FALSE;
-      continue;
+  a_scope_member_traverser traverser(seq);
+  for (an_Indexed<an_ifc_scope_member> indexed_scope_mem : traverser) {
+    if (!indexed_scope_mem.has_value()) {
+      goto invalid;
     }  /* if */
-    /* Handle any specific processing in the consumer. */
-    consumer(*indexed_ism);
+
+    an_ifc_scope_member scope_mem = *indexed_scope_mem;
+    an_ifc_decl_index   mem_idx = get_ifc_index(scope_mem);
+    mem_idx.mod->cache_decl(cache, mem_idx, /*cinfo=*/{});
   }  /* for */
-  return result;
-}  /* traverse_scope_member_range */
-
-
-template<typename a_Scope_member_consumer>
-static a_boolean traverse_scope_members(an_ifc_scope_index      scope,
-                                        a_Scope_member_consumer consumer)
-/*
-Traverse the scope referenced by the given scope index, passing any encountered
-scope members to the given consumer.  This function returns TRUE if the
-traversal was completed for all elements; otherwise it returns FALSE.
-*/
-{
-  a_boolean result = TRUE;
-
-  /* A scope index of 0 indicates a missing scope, in which case there
-     is nothing further to do. */
-  if (scope != 0) {
-    Opt<an_ifc_scope_descriptor> opt_isd;
-    /* Scope indices are 1-based, so subtract one. */
-    an_ifc_partition_kind_index  scope_desc_index{scope.mod, ifc_pk_scope_desc,
-                                                  scope.value - 1};
-
-    if (!validate_element_exists(scope.mod, ifc_pk_scope_desc, scope.value - 1,
-                                 /*parent=*/NULL)) {
       goto done;
-    }  /* if */
-    construct_node(&opt_isd, scope_desc_index);
-    if (!opt_isd.has_value()) {
-      result = FALSE;
-      goto done;
-    }  /* if */
-
-    an_ifc_scope_descriptor isd = *opt_isd;
-    an_ifc_index            start = get_ifc_start(isd);
-    an_ifc_cardinality      cardinality = get_ifc_cardinality(isd);
-    result = traverse_scope_member_range(start, cardinality, consumer);
-  }  /* if */
-done:
-  return result;
-}  /* traverse_scope_members */
+invalid:
+  expect_error_str("expected errors for bad scope member sequence cache");
+  cache->invalidate();
+done:;
+}  /* cache_scope_member_sequence */
 
 
 static void cache_scope(an_ifc_module            *mod,
@@ -7440,15 +7401,26 @@ braces).  Note that in the case of a class scope this does not include the base
 class specifiers list.  A null IFC scope is handled by not caching any tokens.
 */
 {
-  auto cache_scope_member = [mod, cache](const an_ifc_scope_member &ism) {
-    mod->cache_decl(cache, get_ifc_index(ism), /*cinfo=*/{});
-  };
-
   if (scope != 0) {
     cache_token(cache, tok_lbrace);
-    traverse_scope_members(scope, cache_scope_member);
+
+    Opt<an_ifc_scope_descriptor> opt_scope_seq;
+    construct_node(&opt_scope_seq, scope);
+    if (!opt_scope_seq.has_value()) {
+      /* As the invalidation step invalidates the cache, it's safe to skip the
+         tok_rbrace cache that follows. */
+      goto invalid;
+    }  /* if */
+
+    an_ifc_scope_descriptor scope_seq = *opt_scope_seq;
+    cache_scope_member_sequence(cache, scope_seq);
     cache_token(cache, tok_rbrace);
   }  /* if */
+  goto done;
+invalid:
+  expect_error_str("expected errors for bad scope cache");
+  cache->invalidate();
+done:;
 }  /* cache_scope */
 
 
@@ -7496,21 +7468,25 @@ of the class type.
   find_trait(&opt_friends, class_idx);
   if (opt_friends.has_value()) {
     /* There are friends: Record them. */
-    Opt<an_ifc_sequence>  friends = get_ifc_trait(*opt_friends);
-    if (friends.has_value()) {
-      mod->traverse_scope_member_sequence(
-        *friends,
-        [=](const an_ifc_scope_member  &ism) {
-          an_ifc_decl_index  friend_decl_idx = get_ifc_index(ism);
-          Opt<an_ifc_decl_friend> opt_df;
-          construct_node(&opt_df, friend_decl_idx);
-          if (opt_df.has_value()) {
-            an_ifc_decl_friend friend_decl = *opt_df;
-            an_ifc_expr_index  friend_id = get_ifc_entity(friend_decl);
-            add_friend_to_class(class_type, load_ifc_entity_ref(friend_id));
-          }  /* if */
-        });
-    }  /* if */
+    an_ifc_sequence          friends = get_ifc_trait(*opt_friends);
+    a_scope_member_traverser traverser(friends);
+
+    for (an_Indexed<an_ifc_scope_member> indexed_scope_mem : traverser) {
+      if (!indexed_scope_mem.has_value()) {
+        continue;
+      }  /* if */
+
+      an_ifc_scope_member     scope_mem = *indexed_scope_mem;
+      an_ifc_decl_index       friend_decl_idx = get_ifc_index(scope_mem);
+      Opt<an_ifc_decl_friend> opt_df;
+      construct_node(&opt_df, friend_decl_idx);
+      if (opt_df.has_value()) {
+        an_ifc_decl_friend friend_decl = *opt_df;
+        an_ifc_expr_index  friend_id = get_ifc_entity(friend_decl);
+
+        add_friend_to_class(class_type, load_ifc_entity_ref(friend_id));
+      }  /* if */
+    }  /* for */
   }  /* if */
 }  /* add_ifc_friends_to_class */
 
@@ -7537,33 +7513,66 @@ token cache that (potentially) contains multiple entities.
 
 
 static void cache_class_members(a_module_token_cache_ptr cache,
-                                an_ifc_scope_index       class_members)
+                                const an_ifc_scope_descriptor& class_members)
 /*
-Cache the class members for the given class member scope into the given cache.
+Cache the class members for the given class member scope descriptor into the
+given cache.
 */
 {
-  auto cache_member = [cache](const an_ifc_scope_member  &ism) {
-    auto cache_content = [](a_module_token_cache *content_cache,
-                            an_ifc_decl_index    decl_idx) {
-      an_ifc_cache_info cinfo;
-      cinfo.ignore_definition = TRUE;
+  auto cache_content = [](a_module_token_cache *content_cache,
+                          an_ifc_decl_index    decl_idx) {
+    an_ifc_cache_info cinfo;
+    cinfo.ignore_definition = TRUE;
 
 #if DEBUG
-      if (db_flag_is_set("ifc_idx")) {
-        a_string err_msg("Bound token cached for ", index_to_str(decl_idx));
+    if (db_flag_is_set("ifc_idx")) {
+      a_string err_msg("Bound token cached for ", index_to_str(decl_idx));
 
-        print(err_msg, f_debug);
-      }  /* if */
+      print(err_msg, f_debug);
+    }  /* if */
 #endif /* DEBUG */
-      decl_idx.mod->cache_decl(content_cache, decl_idx, cinfo);
-    };
-
-    an_ifc_decl_index mem_idx = get_ifc_index(ism);
-    cache_bound_entity(cache, mem_idx, cache_content);
+    decl_idx.mod->cache_decl(content_cache, decl_idx, cinfo);
   };
+  a_scope_member_traverser traverser(class_members);
+  for (an_Indexed<an_ifc_scope_member> indexed_scope_mem : traverser) {
+    if (!indexed_scope_mem.has_value()) {
+      goto invalid;
+    }  /* if */
 
-  traverse_scope_members(class_members, cache_member);
+    an_ifc_scope_member scope_mem = *indexed_scope_mem;
+    an_ifc_decl_index   mem_idx = get_ifc_index(scope_mem);
+    cache_bound_entity(cache, mem_idx, cache_content);
+  }  /* for */
+  goto done;
+invalid:
+  expect_error_str("expected errors for bad class member cache");
+  cache->invalidate();
+done:;
 }  /* cache_class_members */
+
+
+static void
+invalidate_failed_class_members(const an_ifc_scope_descriptor& class_members)
+/*
+Invalid the module entities of any class members for the given class member
+scope descriptor that failed to be mapped to an IL entity.
+*/
+{
+  a_scope_member_traverser traverser(class_members);
+
+  for (an_Indexed<an_ifc_scope_member> indexed_scope_mem : traverser) {
+    if (!indexed_scope_mem.has_value()) {
+      continue;
+    }  /* if */
+
+    an_ifc_scope_member scope_mem = *indexed_scope_mem;
+    an_ifc_decl_index   mem_idx = get_ifc_index(scope_mem);
+    a_module_entity_ptr mem_mep = get_ifc_module_entity_ptr(mem_idx);
+    if (mem_mep->entity.ptr == NULL) {
+      mem_mep->invalid = TRUE;
+    }  /* if */
+  }  /* for */
+}  /* invalidate_failed_class_members */
 
 
 void an_ifc_module::complete_definition_of_module_class(
@@ -7596,7 +7605,16 @@ Complete the definition of the class referred to by mep (if needed).
       print(err_msg, f_debug);
     }  /* if */
 #endif /* DEBUG */
-    if (class_type->incomplete && initializer != 0) {
+
+    an_ifc_scope_index           class_members_idx = get_ifc_initializer(ids);
+    Opt<an_ifc_scope_descriptor> opt_class_members;
+    if (class_members_idx != 0) {
+      construct_node(&opt_class_members, class_members_idx);
+    }  /* if */
+    if (!class_type->incomplete) {
+      /* FIXME: The module entity pointers need to be mapped onto the existing
+         IL declarations. */
+    } else if (initializer != 0) {
       a_template_decl_info_ptr    tdip;
       a_symbol_ptr                class_sym = symbol_for(class_type);
       a_scope_depth               saved_non_local_class_fixup_depth =
@@ -7613,15 +7631,15 @@ Complete the definition of the class referred to by mep (if needed).
       mep->def_imminent = TRUE;
       push_module_declaration_context(mep->scope, &scope_push_status);
 
-      an_ifc_type_index base = get_ifc_base(ids);
+      an_ifc_type_index  base = get_ifc_base(ids);
       if (!is_null_index(base)) {
         /* There are base classes: Cache source code for them. */
         cache_token(&cache, tok_colon);
         this->cache_type(&cache, base);
       }  /* if */
+      if (opt_class_members.has_value()) {
+        an_ifc_scope_descriptor class_members = *opt_class_members;
 
-      an_ifc_scope_index  class_members = get_ifc_initializer(ids);
-      if (class_members != 0) {
         cache_token(&cache, tok_lbrace);
         cache_class_members(&cache, class_members);
         cache_token(&cache, tok_rbrace);
@@ -7689,21 +7707,12 @@ Complete the definition of the class referred to by mep (if needed).
         free_template_decl_info(tdip);
         pop_module_declaration_context(scope_push_status);
       }  /* if */
-      if (class_members != 0) {
-        /* Emit ordinary members: */
-        auto mark_invalid_members = [this](const an_ifc_scope_member  &ism) {
-          an_ifc_decl_index   mem_idx = get_ifc_index(ism);
-          a_module_entity_ptr mem_mep = get_ifc_module_entity_ptr(mem_idx);
-
-          /* Make sure if the entity failed to load its module entity pointer
-             is marked as invalid. */
-          if (mem_mep->entity.ptr == NULL) {
-            mem_mep->invalid = TRUE;
-          }  /* if */
-        };
-        traverse_scope_members(class_members, mark_invalid_members);
-      }  /* if */
       error_position = saved_error_position;
+    }  /* if */
+    if (opt_class_members.has_value()) {
+      an_ifc_scope_descriptor class_members = *opt_class_members;
+
+      invalidate_failed_class_members(class_members);
     }  /* if */
 #if DEBUG
     if (db_flag_is_set("ifc_idx")) {
@@ -8242,22 +8251,6 @@ TRUE) otherwise.
 }  /* open_and_map_ifc_module_file */
 
 
-template<typename a_Scope_Member_Consumer>
-inline void an_ifc_module::traverse_scope_member_sequence(
-                                              const an_ifc_sequence   &seq,
-                                              a_Scope_Member_Consumer consumer)
-/*
-Iterate over a given scope member sequence (seq) passing an_ifc_Scope_Member
-pointer to the given consumer lambda for each element in the sequence.
-*/
-{
-  an_ifc_index       start = get_ifc_start(seq);
-  an_ifc_cardinality cardinality = get_ifc_cardinality(seq);
-
-  traverse_scope_member_range(start, cardinality, consumer);
-}  /* traverse_scope_member_sequence */
-
-
 void an_ifc_module::process_ifc_scope(an_ifc_scope_index scope_index,
                                       a_scope_ptr        scope)
 /*
@@ -8266,33 +8259,43 @@ in the IFC scope will be members of scope and their definitions will be
 deferred until they are referenced.
 */
 {
-  auto cache_scope_member = [this, scope](const an_ifc_scope_member &ism) {
-    an_ifc_decl_index   decl_idx = get_ifc_index(ism);
-    a_module_entity_ptr dmep = get_ifc_module_entity_ptr(decl_idx);
-    a_boolean           defer = TRUE;
-
-#if EXPENSIVE_CHECKING
-    /* When this flag is set, eagerly load all entities in a module.  Entities
-       are typically lazily loaded (i.e., only when needed) and eagerly loading
-       all entities in a module can be used as a debugging aid to ensure that
-       all entities load properly.
-
-       As this feature is not supported in production builds and this branch is
-       in an anticipated hot path, conditionally enable it with
-       EXPENSIVE_CHECKING as an optimization. */
-    if (eager_load_modules && !in_get_home_scope) {
-      defer = FALSE;
-    }  /* if */
-#endif /* EXPENSIVE_CHECKING */
-    dmep->scope = scope;
-    this->process_ifc_declaration(dmep, defer);
-  };
-
-  if (scope != 0) {
+  if (scope != NULL && scope_index != 0) {
     a_module_scope_push_kind scope_push_status = mspk_unattempted;
 
     push_module_declaration_context(scope, &scope_push_status);
-    traverse_scope_members(scope_index, cache_scope_member);
+
+    Opt<an_ifc_scope_descriptor> opt_scope_members;
+    construct_node(&opt_scope_members, scope_index);
+    if (opt_scope_members.has_value()) {
+      an_ifc_scope_descriptor  scope_members = *opt_scope_members;
+      a_scope_member_traverser traverser(scope_members);
+
+      for (an_Indexed<an_ifc_scope_member> indexed_scope_mem : traverser) {
+        if (!indexed_scope_mem.has_value()) {
+          continue;
+        }  /* if */
+
+        an_ifc_scope_member scope_mem = *indexed_scope_mem;
+        an_ifc_decl_index   decl_idx = get_ifc_index(scope_mem);
+        a_module_entity_ptr dmep = get_ifc_module_entity_ptr(decl_idx);
+        a_boolean           defer = TRUE;
+#if EXPENSIVE_CHECKING
+        /* When this flag is set, eagerly load all entities in a module.
+           Entities are typically lazily loaded (i.e., only when needed) and
+           eagerly loading all entities in a module can be used as a debugging
+           aid to ensure that all entities load properly.
+
+           As this feature is not supported in production builds and this
+           branch is in an anticipated hot path, conditionally enable it with
+           EXPENSIVE_CHECKING as an optimization. */
+        if (eager_load_modules && !in_get_home_scope) {
+          defer = FALSE;
+        }  /* if */
+#endif /* EXPENSIVE_CHECKING */
+        dmep->scope = scope;
+        this->process_ifc_declaration(dmep, defer);
+      }  /* for */
+    }  /* if */
     pop_module_declaration_context(scope_push_status);
   }  /* if */
 }  /* process_ifc_scope */
@@ -14177,28 +14180,6 @@ done:;
 }  /* cache_func_parameter_declaration_clause */
 
 
-void an_ifc_module::cache_scope_member_sequence(
-                                           a_module_token_cache_ptr cache,
-                                           an_ifc_decl_index        scope_decl,
-                                           const an_ifc_sequence    &seq)
-/*
-Cache a sequence (seq) of IFC scope member declarations into the cache.
-scope_decl specifies the current home scope declaration being processed prior
-to this call -- so that we can determine if caching of a given declaration in
-(seq) can be performed in the current scope or should be deferred.
-*/
-{
-  /* Provide a consumer function that accepts a given scope member and caches
-     the associated IFC declaration into the cache. */
-  auto decl_consumer = [this, cache](const an_ifc_scope_member &ismp) {
-    this->cache_decl(cache, get_ifc_index(ismp), /*cinfo=*/{});
-  };
-
-  /* Iterate over the sequence calling decl_consumer for each element. */
-  traverse_scope_member_sequence(seq, decl_consumer);
-}  /* an_ifc_module::cache_scope_member_sequence */
-
-
 static void cache_basic_specifiers(a_module_token_cache_ptr         cache,
                                    an_ifc_basic_specifiers_bitfield specifiers)
 /*
@@ -16946,9 +16927,7 @@ about what to cache.
                                   get_specialization_sequence_from_trait(decl);
         if (opt_seq.has_value()) {
           /* Cache the associated specializations. */
-          an_ifc_decl_index home_scope = get_ifc_home_scope(template_decl);
-
-          cache_scope_member_sequence(cache, home_scope, *opt_seq);
+          cache_scope_member_sequence(cache, *opt_seq);
         }  /* if */
       }
       break;
@@ -20169,11 +20148,23 @@ void an_ifc_module::db_ifc_scope(an_ifc_scope_index scope)
 Display the contents of the specified scope.
 */
 {
-  auto db_scope_member = [this](const an_ifc_scope_member &ism) {
-    this->db_ifc_declaration(get_ifc_index(ism));
-  };
+  Opt<an_ifc_scope_descriptor> opt_scope_members;
 
-  traverse_scope_members(scope, db_scope_member);
+  construct_node(&opt_scope_members, scope);
+  if (opt_scope_members.has_value()) {
+    an_ifc_scope_descriptor  scope_members = *opt_scope_members;
+    a_scope_member_traverser traverser(scope_members);
+
+    for (an_Indexed<an_ifc_scope_member> indexed_scope_mem : traverser) {
+      if (!indexed_scope_mem.has_value()) {
+        continue;
+      }  /* if */
+
+      an_ifc_scope_member scope_mem = *indexed_scope_mem;
+      an_ifc_decl_index   mem_idx = get_ifc_index(scope_mem);
+      this->db_ifc_declaration(mem_idx);
+    }  /* for */
+  }  /* if */
 }  /* db_ifc_scope */
 
 

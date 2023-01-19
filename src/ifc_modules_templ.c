@@ -48,7 +48,7 @@ Return the partition kind associated with the given index.
 }  /* get_partition_kind */
 
 
-/* FIXME: It probably shouldn't be necessary to have this specialization.  We
+/* FIXME: It probably shouldn't be necessary to have these specializations.  We
    probably need a role that represents an index into a particular
    partition. */
 template<>
@@ -61,6 +61,16 @@ Return the partition kind associated with the given index.
 }  /* get_partition_kind */
 
 
+template<>
+an_ifc_partition_kind get_partition_kind(an_ifc_scope_index idx)
+/*
+Return the partition kind associated with the given index.
+*/
+{
+  return ifc_pk_scope_desc;
+}  /* get_partition_kind */
+
+
 /* Macro used to explicitly instantiate get_partition_kind. */
 #define INST_PARTITION_KIND(idx_type) \
   template \
@@ -68,6 +78,45 @@ Return the partition kind associated with the given index.
 
 
 /* Manually defined explicit instantiations of get_partition_kind. */
+/* none */
+
+
+template<typename an_ifc_Index_type>
+an_ifc_index_type get_partition_index(an_ifc_Index_type idx)
+/*
+Return the index into the partition associated with the given index type.
+*/
+{
+  return idx.value;
+}  /* get_partition_index */
+
+
+/* FIXME: It probably shouldn't be necessary to have this specializations.  We
+   probably need a role that represents an index into a particular
+   partition. */
+template<>
+an_ifc_index_type get_partition_index(an_ifc_scope_index idx)
+/*
+Return the index into the partition associated with the given scope index.
+*/
+{
+  /* "an_ifc_scope_index" is an offset into the partition a value of 0 means
+     there is not a value.  A value (n) of 1 or higher means the information is
+     in the associated ifc_pk_scope_desc partition at n - 1. */
+  /* If this fails, the caller did not properly check that they had a
+     "non-NULL" index. */
+  check_assertion_str(idx.value > 0, "attempted read from a null scope index");
+  return idx.value - 1;
+}  /* get_partition_index */
+
+
+/* Macro used to explicitly instantiate get_partition_index. */
+#define INST_PARTITION_INDEX(idx_type) \
+  template \
+  an_ifc_index_type get_partition_index<idx_type>(idx_type idx);
+
+
+/* Manually defined explicit instantiations of get_partition_index. */
 /* none */
 
 
@@ -102,7 +151,7 @@ Convert a given IFC index type into a file offset into the partition.
   size_t                    offset = partition_metadata->offset;
   size_t                    entry_size = partition_metadata->entry_size;
 
-  return offset + (idx.value * entry_size);
+  return offset + (get_partition_index(idx) * entry_size);
 }  /* get_partition_offset */
 
 
@@ -120,6 +169,7 @@ INST_PARTITION_OFFSET(an_ifc_partition_kind_index)
    get_partition_metdata, and get_partition_offset. */
 #define INST_PARTITION_ALL(idx_type) \
   INST_PARTITION_KIND(idx_type) \
+  INST_PARTITION_INDEX(idx_type) \
   INST_PARTITION_METADATA(idx_type) \
   INST_PARTITION_OFFSET(idx_type)
 
@@ -137,7 +187,8 @@ the given index.
      2. This is a manually constructed index, and the caller didn't
         check its validity. */
   check_assertion(validate_element_exists(idx.mod, get_partition_kind(idx),
-                                          idx.value, /*trace=*/NULL));
+                                          get_partition_index(idx),
+                                          /*trace=*/NULL));
 #endif /* EXPENSIVE_CHECKING */
   an_ifc_partition_metadata *partition_metadata = get_partition_metadata(idx);
 
@@ -218,7 +269,7 @@ Return TRUE if the element at the given index has already been validated.
 
      Then a bit-and operation is used, checking if said validated bit was
      set. */
-  uint32_t index = idx.value;
+  uint32_t index = get_partition_index(idx);
   size_t   block = index / 16;
   size_t   bit_index = index % 16;
   unsigned bit_mask = 0x1 << bit_index;
@@ -249,7 +300,7 @@ validated.  This is only a valid operation if has_been_validated returns TRUE.
 
      Then a bit-and operation is used, checking if said invalid bit was
      set. */
-  uint32_t index = idx.value;
+  uint32_t index = get_partition_index(idx);
   size_t   block = index / 16;
   size_t   bit_index = index % 16;
   unsigned bit_mask = (0x1 << 16) << bit_index;
@@ -278,7 +329,7 @@ Mark the element at the given index as having been validated.
 
      Then a bit-or assignment operation is used, setting said validated bit
      while leaving the others untouched. */
-  uint32_t index = idx.value;
+  uint32_t index = get_partition_index(idx);
   size_t   block = index / 16;
   size_t   bit = index % 16;
   unsigned bit_mask = 0x1 << bit;
@@ -309,7 +360,7 @@ if has_been_validated returns TRUE.
 
      Then a bit-or assignment operation is used, setting said invalid bit
      while leaving the others untouched. */
-  uint32_t index = idx.value;
+  uint32_t index = get_partition_index(idx);
   size_t   block = index / 16;
   size_t   bit = index % 16;
   unsigned bit_mask = (0x1 << 16) << bit;
@@ -346,7 +397,8 @@ call).
        */
     if (!has_been_validated(idx)) {
       a_diag_count_snapshot   diag_cnt_snapshot;
-      an_ifc_validation_trace trace{idx.mod, idx_part_kind, idx.value, NULL};
+      an_ifc_validation_trace trace{idx.mod, idx_part_kind,
+                                    get_partition_index(idx), NULL};
       a_boolean               is_valid = validate(read_value, &trace);
 
       mark_validated(idx);
@@ -402,7 +454,7 @@ INST_CONSTRUCT_NODE(an_ifc_module_export_reference,
                     an_ifc_partition_kind_index)
 INST_CONSTRUCT_NODE(an_ifc_module_import_reference,
                     an_ifc_partition_kind_index)
-INST_CONSTRUCT_NODE(an_ifc_scope_descriptor, an_ifc_partition_kind_index)
+INST_CONSTRUCT_NODE(an_ifc_scope_descriptor, an_ifc_scope_index)
 INST_CONSTRUCT_NODE(an_ifc_scope_member, an_ifc_partition_kind_index)
 INST_CONSTRUCT_NODE(an_ifc_source_line, an_ifc_partition_kind_index)
 INST_CONSTRUCT_NODE(an_ifc_source_sentence, an_ifc_partition_kind_index)

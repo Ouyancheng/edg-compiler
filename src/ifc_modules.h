@@ -259,9 +259,6 @@ public:
   void import_referenced_modules(a_boolean impl_unit_importing_self);
   void define_ifc_macro(an_ifc_macro_index macro);
   void export_ifc_macros();
-  template<typename a_Scope_Member_Consumer>
-  inline void traverse_scope_member_sequence(const an_ifc_sequence   &seq,
-                                             a_Scope_Member_Consumer consumer);
   void process_ifc_scope(an_ifc_scope_index scope_index,
                          a_scope_ptr        scope);
   uint32_t get_num_entries(an_ifc_partition_kind partition) const;
@@ -327,9 +324,6 @@ public:
                                          an_ifc_noexcept_specification eh_spec,
                                          a_source_position             *pos);
   /* Token caching. */
-  void cache_scope_member_sequence(a_module_token_cache_ptr cache,
-                                   an_ifc_decl_index        scope_decl,
-                                   const an_ifc_sequence    &seq);
   template<typename a_Name_Cache_Fn, typename a_Scope_Cache_Fn>
   inline void cache_scope_decl(a_module_token_cache_ptr     cache,
                                an_ifc_decl_index            decl_idx,
