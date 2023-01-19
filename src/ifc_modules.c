@@ -7347,6 +7347,10 @@ immediately process *mep and attempt to form an IL entity; if no IL entity can
 be formed, *mep will marked as invalid.
 */
 {
+#if CHECKING
+  a_boolean was_imminent = mep->imminent;
+#endif /* CHECKING */
+
   /* Ensure the module entity is being processed by the corresponding module
      interface. */
   check_assertion(mep->module_info->module_interface == this);
@@ -7399,9 +7403,42 @@ be formed, *mep will marked as invalid.
       process_decl_to_il_entity(mep, defer);
     }  /* if */
   }  /* if */
-  /* In some cases we may enter this routine without having a scope, but we
-     should not exit it without having one. */
-  check_assertion(mep->invalid || mep->scope != NULL);
+
+#if CHECKING
+  a_boolean missing_il_entity = mep->entity.ptr == NULL && !defer;
+  if (!mep->invalid && (mep->scope == NULL || missing_il_entity)) {
+    an_ifc_decl_index mep_idx = decl_index_of(mep);
+
+    if (was_imminent) {
+      /* When this condition is violated, the entity was already being
+         processed but, was again requested before processing completed.  When
+         this occurs, the root cause of the cyclic dependency should be
+         determined and the front end should be updated to avoid said cyclic
+         dependency. */
+      a_string err_msg("processing of ", index_to_str(mep_idx),
+                       " resulted in a cyclic dependency");
+
+      unexpected_condition_str(err_msg.as_temp_characters());
+    } else if (mep->entity.ptr == NULL) {
+      /* When this condition is violated, the entity was not marked invalid,
+         but it also wasn't completed.  Either the IL entity was not correctly
+         set, or the entity should've been marked invalid. */
+      a_string err_msg("processing of ", index_to_str(mep_idx),
+                       " did not set the IL entity or mark the "
+                       "entity invalid");
+
+      unexpected_condition_str(err_msg.as_temp_characters());
+    } else {
+      /* When this condition is violated, the scope was not resolved for (an
+         otherwise valid) entity.  Either the scope was not correctly set, or
+         the entity should've been marked invalid. */
+      a_string err_msg("processing of ", index_to_str(mep_idx),
+                       " did not set a scope or mark the entity invalid");
+
+      unexpected_condition_str(err_msg.as_temp_characters());
+    }  /* if */
+  }  /* if */
+#endif /* CHECKING */
 #if DEBUG
   if (db_flag_is_set("ifc_decl")) {
     (void)fprintf(f_debug, "[<%lu] ", --nested_decls);
