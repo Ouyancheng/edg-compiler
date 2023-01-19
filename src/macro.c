@@ -267,9 +267,16 @@ static a_symbol_ptr
 static a_symbol_ptr
 		has_cpp_attribute_symbol;
 			/* Pointer to the symbol entry for the special
-			   macro "__has_cpp attribute", which enables
+			   macro "__has_cpp_attribute", which enables
 			   testing whether a given attribute is supported
-			   in the current emulation. */
+			   in the current C++ emulation. */
+
+static a_symbol_ptr
+		has_c_attribute_symbol;
+			/* Pointer to the symbol entry for the special
+			   macro "__has_c_attribute", which enables
+			   testing whether a given attribute is supported
+			   in the current C emulation. */
 
 static a_symbol_ptr
 		has_builtin_symbol;
@@ -5056,46 +5063,46 @@ with the type traits helper name to which helper_ptr points.
 
 /*
 The following struct associates a standard attribute-token with the value
-returned by __has_cpp_attribute for that token.
+returned by __has_cpp_attribute or __has_c_attribute when that attribute is
+supported in the current emulation.
 */
 
-typedef struct a_cpp_attribute_support {
+struct an_attribute_support {
   a_const_char
 	*token;		/* The spelling of the attribute-token. */
   a_const_char
-	*value;		/* The value of __has_cpp_attribute applied to the
-			   token. */
-} a_cpp_attribute_support;
+	*cpp_value;	/* The value of __has_cpp_attribute when the
+			   attribute is supported. */
+  a_const_char
+	*c_value;	/* The value of __has_c_attribute when the
+			   attribute is supported. */
+};
 
 /*
 The following array describes all the standard attribute-tokens with the
-value returned by __has_cpp_attribute for that token.  The entries are
-sorted by the token spelling so it can be used with bsearch.
+value returned by __has_cpp_attribute and __has_c_attribute when the
+attribute is supported in the current emulation.  The entries are sorted by
+the token spelling so the table can be used with bsearch.
 */
 
-static a_cpp_attribute_support attribute_support_list[] = {
-  { "carries_dependency",
-    "200809L" },
-  { "deprecated",
-    "201309L" },
-  { "fallthrough",
-    "201603L" },
-  { "likely",
-    "201803L" },
-  { "maybe_unused",
-    "201603L" },
-  { "no_unique_address",
-    "201803L" },
-  { "nodiscard",
-    "201907L" },
-  { "noreturn",
-    "200809L" },
-  { "unlikely",
-    "201803L" }
+static an_attribute_support attribute_support_list[] = {
+  /* attribute name          C++ value     C value
+     --------------          ---------     ------- */
+  { "carries_dependency",    "200809L",    "0"       },
+  { "deprecated",            "201309L",    "201904L" },
+  { "fallthrough",           "201603L",    "201910L" },
+  { "likely",                "201803L",    "0"       },
+  { "maybe_unused",          "201603L",    "202106L" },
+  { "no_unique_address",     "201803L",    "0"       },
+  { "nodiscard",             "201907L",    "202003L" },
+  { "noreturn",              "200809L",    "202202L" },
+  { "reproducible",          "0",          "202207L" },
+  { "unlikely",              "201803L",    "0"       },
+  { "unsequenced",           "0",          "202207L" }
 };
 
 #define NUM_CPP_ATTRIBUTES (sizeof(attribute_support_list) / \
-                            sizeof(a_cpp_attribute_support))
+                            sizeof(an_attribute_support))
 
 #if BSEARCH_QSORT_FUNCTION_IS_EXTERN_C
 extern "C" {
@@ -5110,7 +5117,7 @@ which attr_supp_ptr points.
 */
 {
   int result = strcmp((const char *)id_ptr,
-                      ((a_cpp_attribute_support *)attr_supp_ptr)->token);
+                      ((an_attribute_support *)attr_supp_ptr)->token);
   return result;
 }  /* compare_attribute_names */
 
@@ -7178,13 +7185,14 @@ end_arg_expansion:;
       } else {
         strcpy(repl_text, "0");
       }  /* if */
-    } else if (macro_symbol == has_cpp_attribute_symbol) {
-      /* The __has_cpp_attribute macro.  If the named attribute is
-         available in the current execution of the front end, the value for
-         a standard attribute is the six-digit year and month of the
-         meeting at which the attribute was added to the C++ working paper,
-         and the value 1 for a nonstandard attribute; otherwise, the value
-         is 0. */
+    } else if (macro_symbol == has_cpp_attribute_symbol ||
+               macro_symbol == has_c_attribute_symbol) {
+      /* The __has_cpp_attribute or has_c_attribute macro.  If the named
+         attribute is available in the current execution of the front end,
+         the value for a standard attribute is the six-digit year and month
+         of the meeting at which the attribute was added to the
+         corresponding working paper, and the value 1 for a nonstandard
+         attribute; otherwise, the value is 0. */
       a_const_char *attribute_name = NULL;
       a_const_char *value = "0";
       a_const_char *namespace_name = NULL;
@@ -7200,18 +7208,20 @@ end_arg_expansion:;
                                              &arg_position);;
       if (attribute_name != NULL &&
           attribute_is_supported(attribute_name, namespace_name,
-                                 af_has_cpp_attribute)) {
-        a_void_ptr attr_supp_entry;
-        attr_supp_entry = bsearch((a_bsearch_arg_type)attribute_name,
-                                  (a_bsearch_arg_type)attribute_support_list,
-                                  size_t_arg(NUM_CPP_ATTRIBUTES),
-                                  sizeof(a_cpp_attribute_support),
-                                  compare_attribute_names);
+                                 af_has_attribute)) {
+        an_attribute_support *attr_supp_entry;
+        attr_supp_entry = (an_attribute_support *)bsearch(
+                                    (a_bsearch_arg_type)attribute_name,
+                                    (a_bsearch_arg_type)attribute_support_list,
+                                    size_t_arg(NUM_CPP_ATTRIBUTES),
+                                    sizeof(an_attribute_support),
+                                    compare_attribute_names);
         if (attr_supp_entry != NULL) {
           /* This is a standard attribute; the value is the six-digit year
-             and month when the attribute was voted into the C++ working
-             paper. */
-          value = ((a_cpp_attribute_support *)attr_supp_entry)->value;
+             and month when the attribute was voted into the corresponding
+             working paper. */
+          value = C_mode() ? attr_supp_entry->c_value
+                           : attr_supp_entry->cpp_value;
         } else {
           /* Not a standard attribute, so the value is just 1. */
           value = "1";
@@ -11916,6 +11926,14 @@ command line -D options.
     has_cpp_attribute_symbol = enter_predef_macro_full(
                                              (char *)NULL,
                                              "__has_cpp_attribute",
+                                             /*cannot_be_redefined=*/TRUE,
+                                             /*ref_suppresses_pch_file=*/FALSE,
+                                             /*function_like=*/TRUE);
+  }  /* if */
+  if (c23_mode) {
+    has_c_attribute_symbol = enter_predef_macro_full(
+                                             (char *)NULL,
+                                             "__has_c_attribute",
                                              /*cannot_be_redefined=*/TRUE,
                                              /*ref_suppresses_pch_file=*/FALSE,
                                              /*function_like=*/TRUE);

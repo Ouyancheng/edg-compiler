@@ -2648,9 +2648,10 @@ enum an_attribute_family : a_byte {
   af_ms_declspec,	/* An attribute specified using the Microsoft
 			   __declspec construct. */
   af_alignas,		/* The C++11 attribute-like construct "alignas". */
-  af_has_cpp_attribute,	/* An attribute synthesized for the purposes of
-			   the __has_cpp_attribute macro (where the attribute
-			   family is not known by the context). */
+  af_has_attribute,	/* An attribute synthesized for the purposes of the
+			   __has_cpp_attribute and __has_c_attribute macro
+			   operators (where the attribute family is not
+			   known by the context). */
   af_last
 };
 

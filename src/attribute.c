@@ -1381,8 +1381,8 @@ the attribute string past the closing "]" or "}".
          "gnu" namespace attributes when they appear in attributes, but
          sometimes not when querying for them with __has_cpp_attribute.
          Err on the side of accepting them. */
-      if (!(clang_mode && ap->family == af_has_cpp_attribute) &&
-          gnu_mode && is_attr_in_gnu_namespace(ap)) {
+      if (!(clang_mode && ap->family == af_has_attribute) && gnu_mode &&
+          is_attr_in_gnu_namespace(ap)) {
         match = TRUE;
         /* *cond doesn't need to be updated. */
       }  /* if */
@@ -1521,7 +1521,7 @@ lookup.
   char buf[MAX_ATTRIBUTE_NAME_LENGTH + 1];
 
   if ((family == af_gnu ||
-       family == af_has_cpp_attribute ||
+       family == af_has_attribute ||
        (family == af_std && gnu_mode)) &&
       name[0] == '_' && name[1] == '_') {
     /* Strip leading and trailing "__" if the result would be neither empty
@@ -9752,7 +9752,7 @@ a_boolean attribute_is_supported(a_const_char        *name,
 /*
 Return TRUE if name (and namespace_name, if non-NULL) designate an
 attribute of the specified family that is enabled in the current execution
-of the front end, FALSE otherwise.  Passing af_internal or af_has_cpp_attribute
+of the front end, FALSE otherwise.  Passing af_internal or af_has_attribute
 as the value of family indicates that an attribute in any family is permitted,
 with standard attributes given preference.
 */
@@ -9783,7 +9783,7 @@ with standard attributes given preference.
       }  /* if */
       switch (family) {
         case af_internal:
-        case af_has_cpp_attribute:
+        case af_has_attribute:
           supported = (cond_matches_std_attr_mode(cond, dummy_attr) ||
                        cond_matches_gnu_attr_mode(cond, dummy_attr) ||
                        cond_matches_ms_declspec_mode(cond, dummy_attr));
