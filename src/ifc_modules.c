@@ -3122,6 +3122,42 @@ or template.
 }  /* overload_set_from_il_entity_list */
 
 
+static a_boolean has_imminent_subentity(a_module_entity_ptr mep)
+/*
+If the given module entity corresponds to an abstract module entity composed of
+several concrete module entities (such as an IFC DeclSort::Tuple), and one of
+the concrete "sub-entities" is imminent, return TRUE; otherwise, return FALSE.
+*/
+{
+  a_boolean         result = FALSE;
+  an_ifc_decl_index decl_idx = decl_index_of(mep);
+
+  if (decl_idx.sort == ifc_ds_decl_tuple) {
+    Opt<an_ifc_decl_tuple> opt_tuple_decl;
+
+    construct_node(&opt_tuple_decl, decl_idx);
+    if (opt_tuple_decl.has_value()) {
+      an_ifc_decl_tuple     tuple_decl = *opt_tuple_decl;
+      a_decl_heap_traverser traverser(tuple_decl);
+
+      for (an_Indexed<an_ifc_heap_decl> indexed_ihd : traverser) {
+        if (!indexed_ihd.has_value()) {
+          continue;
+        }  /* if */
+
+        an_ifc_decl_index   heap_value = get_ifc_value(*indexed_ihd);
+        a_module_entity_ptr emep = get_ifc_module_entity_ptr(heap_value);
+        if (emep->imminent) {
+          result = TRUE;
+          break;
+        }  /* if */
+      }  /* for */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* has_imminent_subentity */
+
+
 static a_symbol_ptr symbol_for_decl_index(an_ifc_decl_index  decl_idx)
 /*
 Return the symbol associated with the declaration corresponding to decl_idx.
@@ -3143,7 +3179,17 @@ Return NULL if none is found.
                                          /*new_value=*/TRUE);
     mep = get_ifc_module_entity_ptr(decl_idx);
     if (mep->entity.ptr == NULL) {
-      mod->process_ifc_declaration(mep, /*defer=*/FALSE);
+      /* FIXME: Some ifc_sls_msvc_binding source literals are self references
+         to the declaration being declared.  There's no IL entity to return a
+         symbol for as it's none has yet been constructed. (EDGcpfe/25972) */
+      if (mep->imminent || has_imminent_subentity(mep)) {
+        /* Trigger ifc_unexpected to call attention to the underlying problem
+           without crashing. */
+        ifc_unexpected(decl_idx.mod,
+                       "entity refers to itself as part of the declaration");
+      } else {
+        mod->process_ifc_declaration(mep, /*defer=*/FALSE);
+      }  /* if */
       result = ifc_decl_lookup_table->get(decl_idx);
     }  /* if */
     if (result != NULL) {
