@@ -5081,24 +5081,29 @@ struct an_attribute_support {
 /*
 The following array describes all the standard attribute-tokens with the
 value returned by __has_cpp_attribute and __has_c_attribute when the
-attribute is supported in the current emulation.  The entries are sorted by
-the token spelling so the table can be used with bsearch.
+attribute is supported in the current emulation.  For attributes that are
+part of the relevant language standard, the value indicates the year and
+month in which the attribute was adopted by the standard committee.
+Attributes that are standard in C++ but not in C and vice versa have the
+value "1" in the nonstandard dialect in case the attribute is supported as
+am extension in the current emulation.  The entries are sorted by the token
+spelling so the table can be used with bsearch.
 */
 
 static an_attribute_support attribute_support_list[] = {
   /* attribute name          C++ value     C value
      --------------          ---------     ------- */
-  { "carries_dependency",    "200809L",    "0"       },
+  { "carries_dependency",    "200809L",    "1"       },
   { "deprecated",            "201309L",    "201904L" },
   { "fallthrough",           "201603L",    "201910L" },
-  { "likely",                "201803L",    "0"       },
+  { "likely",                "201803L",    "1"       },
   { "maybe_unused",          "201603L",    "202106L" },
-  { "no_unique_address",     "201803L",    "0"       },
+  { "no_unique_address",     "201803L",    "1"       },
   { "nodiscard",             "201907L",    "202003L" },
   { "noreturn",              "200809L",    "202202L" },
-  { "reproducible",          "0",          "202207L" },
-  { "unlikely",              "201803L",    "0"       },
-  { "unsequenced",           "0",          "202207L" }
+  { "reproducible",          "1",          "202207L" },
+  { "unlikely",              "201803L",    "1"       },
+  { "unsequenced",           "1",          "202207L" }
 };
 
 #define NUM_CPP_ATTRIBUTES (sizeof(attribute_support_list) / \
@@ -7190,9 +7195,9 @@ end_arg_expansion:;
       /* The __has_cpp_attribute or has_c_attribute macro.  If the named
          attribute is available in the current execution of the front end,
          the value for a standard attribute is the six-digit year and month
-         of the meeting at which the attribute was added to the
-         corresponding working paper, and the value 1 for a nonstandard
-         attribute; otherwise, the value is 0. */
+         of the meeting at which the attribute was adopted by the relevant
+         standard committee, and the value 1 for a nonstandard attribute;
+         otherwise, the value is 0. */
       a_const_char *attribute_name = NULL;
       a_const_char *value = "0";
       a_const_char *namespace_name = NULL;
@@ -7217,9 +7222,12 @@ end_arg_expansion:;
                                     sizeof(an_attribute_support),
                                     compare_attribute_names);
         if (attr_supp_entry != NULL) {
-          /* This is a standard attribute; the value is the six-digit year
-             and month when the attribute was voted into the corresponding
-             working paper. */
+          /* This is a standard attribute, although not necessarily in the
+             current dialect (C or C++).  For attributes supported by the
+             current dialect's standard, the value is the six-digit year
+             and month when the attribute was adopted by the relevant
+             standard committee and 1 for attributes that are supported as
+             extensions in the current dialect. */
           value = C_mode() ? attr_supp_entry->c_value
                            : attr_supp_entry->cpp_value;
         } else {
