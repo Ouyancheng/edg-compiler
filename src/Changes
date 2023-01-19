@@ -36,7 +36,7 @@ example, with --c++20:
   decltype(A{ .c = C() }) a;   // Previously generated as B() instead of C()
 
 
-1/18/23  [EDGcpfe/25955]
+1/18/23  [EDGcpfe/19794,EDGcpfe/25955]
 C23: digit separators
 
 As described in WG14 paper N2626, the anticipated C23 Standard adopts the
