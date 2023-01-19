@@ -1377,6 +1377,16 @@ Given a scope reference find and return the associated scope.
       if (mep->entity.kind == iek_type) {
         assoc_type = (a_type_ptr)mep->entity.ptr;
         ensure_type_has_scope(assoc_type);
+      } else if (mep->entity.kind == iek_routine) {
+        a_routine_ptr rp = (a_routine_ptr)mep->entity.ptr;
+        if (rp->function_def_number == NULL_function_def_number) {
+          if (!has_routine_definition_from_ifc_module(rp)) {
+            goto invalid;
+          }  /* if */
+          if (!load_routine_definition_from_ifc_module(rp)) {
+            goto invalid;
+          }  /* if */
+        }  /* if */
       }  /* if */
       result = get_assoc_scope_of_il_entry(mep->entity.ptr,
                                            (an_il_entry_kind)mep->entity.kind);
@@ -1396,6 +1406,10 @@ Given a scope reference find and return the associated scope.
       }  /* if */
     }  /* if */
   }  /* if */
+  goto done;
+invalid:
+  result = NULL;
+done:
   return result;
 }  /* get_scope */
 
@@ -5857,6 +5871,9 @@ to this function.
           }  /* if */
           if (mep->scope == NULL) {
             mep->scope = get_home_scope(idv);
+            if (mep->scope == NULL) {
+              goto invalid;
+            }  /* if */
             push_module_declaration_context(mep->scope, &scope_push_status);
           }  /* if */
           init_decl_parse_state(&dps);
@@ -5956,6 +5973,9 @@ to this function.
                returning a lambda declared within the function). */
             if (mep->scope == NULL) {
               mep->scope = get_home_scope(idf);
+              if (mep->scope == NULL) {
+                goto invalid;
+              }  /* if */
               push_module_declaration_context(mep->scope,
                                               &scope_push_status);
             }  /* if */
@@ -6065,6 +6085,9 @@ to this function.
         }  /* if */
         if (mep->scope == NULL) {
           mep->scope = get_home_scope(ids);
+          if (mep->scope == NULL) {
+            goto invalid;
+          }  /* if */
           push_module_declaration_context(mep->scope, &scope_push_status);
         }  /* if */
         if (scope_is(mep->scope, sck_class_struct_union)) {
@@ -6292,6 +6315,9 @@ class_struct_union_case:
               /* A type alias; declare a typedef for this case. */
               if (mep->scope == NULL) {
                 mep->scope = get_home_scope(ida);
+                if (mep->scope == NULL) {
+                  goto invalid;
+                }  /* if */
                 push_module_declaration_context(mep->scope,
                                                 &scope_push_status);
               }  /* if */
@@ -6341,6 +6367,9 @@ class_struct_union_case:
             /* An alias template; declare a typedef for this case. */
             if (mep->scope == NULL) {
               mep->scope = get_home_scope(ida);
+              if (mep->scope == NULL) {
+                goto invalid;
+              }  /* if */
               push_module_declaration_context(mep->scope, &scope_push_status);
             }  /* if */
             if (check_and_set_redeclaration(&loc, mep, &error_position,
@@ -6442,9 +6471,11 @@ class_struct_union_case:
           check_assertion(!is_null_index(base));
           if (mep->scope == NULL) {
             mep->scope = get_home_scope(ide);
+            if (mep->scope == NULL) {
+              goto invalid;
+            }  /* if */
             push_module_declaration_context(mep->scope, &scope_push_status);
           }  /* if */
-          check_assertion(mep->scope != NULL);
           enum_scope = mep->scope;
           scope_depth = enum_scope->depth_in_scope_stack;
           if (check_and_set_redeclaration(&loc, mep, &error_position,
@@ -6574,7 +6605,10 @@ class_struct_union_case:
           }  /* if */
           if (mep->scope == NULL) {
             mep->scope = get_home_scope(ide);
-            check_assertion(mep->scope != NULL);
+            if (mep->scope == NULL) {
+              goto invalid;
+            }  /* if */
+            push_module_declaration_context(mep->scope, &scope_push_status);
           }  /* if */
 
           an_ifc_type_index  type_idx = get_ifc_type(ide);
@@ -6671,6 +6705,9 @@ class_struct_union_case:
           }  /* if */
           if (mep->scope == NULL) {
             mep->scope = get_home_scope(idt);
+            if (mep->scope == NULL) {
+              goto invalid;
+            }  /* if */
             push_module_declaration_context(mep->scope, &scope_push_status);
           }  /* if */
 
@@ -7000,6 +7037,9 @@ class_struct_union_case:
           /* Activate the parent scope if needed. */
           if (mep->scope == NULL) {
             mep->scope = get_home_scope(idc);
+            if (mep->scope == NULL) {
+              goto invalid;
+            }  /* if */
             push_module_declaration_context(mep->scope, &scope_push_status);
           }  /* if */
 
