@@ -1,5 +1,17 @@
 Version 6.5
 
+1/19/23  [EDGcpfe/25964]
+C++-generating back end, Microsoft compatibility: co_await keyword
+
+The C++-generating back end previously put out the keyword for the
+coroutines "await" operation using the pre-standardization spelling
+"__await" when msvc_is_generated_code_target is TRUE.  MSVC since version
+1900 has accepted the standard spelling "co_await" and recent versions no
+longer accept the old spelling.  The C++-generating back end has now been
+updated to use the older spelling only when msvc_target_version_number is
+less than 1900.
+
+
 1/18/23  [EDGcpfe/25891]
 C23: __has_c_attribute
 

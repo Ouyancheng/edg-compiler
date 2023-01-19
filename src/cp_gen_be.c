@@ -17428,7 +17428,9 @@ sizeof_cases:
       gen_expression(expr);
       break;
     case enk_await:
-      write_tok_str(msvc_is_generated_code_target ? "__await " : "co_await ");
+      write_tok_str((msvc_is_generated_code_target &&
+                     msvc_target_version_number < 1900) ? "__await "
+                                                        : "co_await ");
       gen_expression(expr->variant.await_info.operand);
       break;
     case enk_fold:
