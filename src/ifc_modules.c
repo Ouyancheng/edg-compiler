@@ -5792,6 +5792,71 @@ module, but its definition hasn't been loaded yet.  Load the definition now.
 }  /* load_template_definition_from_ifc_module */
 
 
+static a_boolean process_decl_prerequisites(an_ifc_decl_index decl_idx)
+/*
+For the given declaration, process any prerequisites.  If processing succeeds
+return TRUE; otherwise, return FALSE.
+
+As additional context, some declarations to load successfully dependencies must
+be processed before the declaration itself is loaded.  As an example, a friend
+function declaration might be requested before its corresponding class.  When
+that class is loaded, it will attempt to process the friend function so that it
+can setup the friends of the class (resulting in an unresolvable cyclic
+dependency).  To avoid that problem the friend function's type dependencies are
+resolved before attempting to resolve the function.
+*/
+{
+  a_boolean result = TRUE;
+
+  switch (decl_idx.sort) {
+    case ifc_ds_decl_enumerator:
+      { Opt<an_ifc_decl_enumerator> opt_decl_enumerator;
+
+        construct_node(&opt_decl_enumerator, decl_idx);
+        if (!opt_decl_enumerator.has_value()) {
+          goto invalid;
+        }  /* if */
+
+        an_ifc_decl_enumerator decl_enumerator = *opt_decl_enumerator;
+        an_ifc_decl_index      enumeration =
+                                           get_ifc_home_scope(decl_enumerator);
+        /* Load the enclosing enumeration, ensure it's valid. */
+        a_module_entity_ptr    enumeration_mep =
+                                            process_decl_at_index(enumeration);
+        if (enumeration_mep->invalid) {
+          goto invalid;
+        }  /* if */
+      }
+      break;
+    case ifc_ds_decl_function:
+      { Opt<an_ifc_decl_function> opt_decl_func;
+
+        construct_node(&opt_decl_func, decl_idx);
+        if (!opt_decl_func.has_value()) {
+          goto invalid;
+        }  /* if */
+
+        an_ifc_decl_function decl_func = *opt_decl_func;
+        an_ifc_type_index    type_idx = get_ifc_type(decl_func);
+        /* Load the function type, and ensure it's valid. */
+        a_type_ptr           func_type = type_for_type_index(type_idx,
+                                                             /*kind=*/NULL);
+        if (is_error_type(func_type)) {
+          goto invalid;
+        }  /* if */
+      }
+      break;
+    default:
+      break;
+  }  /* switch */
+  goto done;
+invalid:
+  result = FALSE;
+done:
+  return result;
+}  /* process_decl_prerequisites */
+
+
 static void process_decl_to_il_entity(a_module_entity_ptr mep,
                                       a_boolean           defer)
 /*
@@ -5831,6 +5896,19 @@ to this function.
 #endif /* DEBUG */
   curr_module_entity = mep;
   if (!defer) {
+    /* Some declarations require prerequisites to be fulfilled before they
+       can be processed. */
+    if (process_decl_prerequisites(decl_idx)) {
+      /* The processing of the prerequisites resulted in this declaration
+         being loaded; abandon this loading request. */
+      if (mep->imminent) {
+        goto done;
+      }  /* if */
+    } else {
+      /* The processing of the prerequisites failed, so this declaration cannot
+         possibly be valid. */
+      goto invalid;
+    }  /* if */
     mep->imminent = TRUE;
     if (mep->scope != NULL) {
       /* If this module entity has a scope, attempt to re-activate it now.  If
@@ -7696,6 +7774,11 @@ Complete the definition of the class referred to by mep (if needed).
     if (!class_type->incomplete) {
       /* FIXME: The module entity pointers need to be mapped onto the existing
          IL declarations. */
+      if (opt_class_members.has_value()) {
+        an_ifc_scope_descriptor class_members = *opt_class_members;
+
+        invalidate_failed_class_members(class_members);
+      }  /* if */
     } else if (initializer != 0) {
       a_template_decl_info_ptr    tdip;
       a_symbol_ptr                class_sym = symbol_for(class_type);
@@ -7777,6 +7860,11 @@ Complete the definition of the class referred to by mep (if needed).
                                     (a_template_ptr)NULL,
                                     (a_decl_pos_block_ptr)NULL);
         }
+        if (opt_class_members.has_value()) {
+          an_ifc_scope_descriptor class_members = *opt_class_members;
+
+          invalidate_failed_class_members(class_members);
+        }  /* if */
         add_ifc_friends_to_class(this, class_type, decl_idx);
         curr_class_fixup_header(/*for_instantiation=*/TRUE)->
                                                    pending_class_definitions--;
@@ -7790,11 +7878,6 @@ Complete the definition of the class referred to by mep (if needed).
         pop_module_declaration_context(scope_push_status);
       }  /* if */
       error_position = saved_error_position;
-    }  /* if */
-    if (opt_class_members.has_value()) {
-      an_ifc_scope_descriptor class_members = *opt_class_members;
-
-      invalidate_failed_class_members(class_members);
     }  /* if */
 #if DEBUG
     if (db_flag_is_set("ifc_idx")) {
@@ -8333,6 +8416,22 @@ TRUE) otherwise.
 }  /* open_and_map_ifc_module_file */
 
 
+static a_boolean can_be_eager_loaded(an_ifc_decl_index decl_idx)
+/*
+Given a declaration index, return TRUE if it can be eager loaded; otherwise,
+return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (in_get_home_scope) {
+    /* A get_home_scope call is being processed; avoid infinite recursion. */
+    result = FALSE;
+  } /* if */
+  return result;
+}  /* can_be_eager_loaded */
+
+
 void an_ifc_module::process_ifc_scope(an_ifc_scope_index scope_index,
                                       a_scope_ptr        scope)
 /*
@@ -8370,7 +8469,7 @@ deferred until they are referenced.
            As this feature is not supported in production builds and this
            branch is in an anticipated hot path, conditionally enable it with
            EXPENSIVE_CHECKING as an optimization. */
-        if (eager_load_modules && !in_get_home_scope) {
+        if (eager_load_modules && can_be_eager_loaded(decl_idx)) {
           defer = FALSE;
         }  /* if */
 #endif /* EXPENSIVE_CHECKING */
