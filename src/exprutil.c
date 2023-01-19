@@ -6715,11 +6715,12 @@ a_boolean consteval_failure(a_routine_ptr      rp,
 /*
 rp is a consteval function being called at the given position and folding the
 call failed (for reasons indicated by diag_list): If this is a context where
-constant-evaluation is mandatory, issue a diagnostic, set result_con to an
-error constant, and return TRUE.  Otherwise, return FALSE.  For the case of a
-call that is the argument of another call, we cannot tell at this time whether
-it is valid or not (until we know whether the enclosing call is to a consteval
-function).  In such cases, record a pending diagnostic if appropriate.
+constant-evaluation is mandatory, issue a diagnostic, set *result_con to an
+error constant (if result_con is non_NULL), and return TRUE.  Otherwise, return
+FALSE.  For the case of a call that is the argument of another call, we cannot
+tell at this time whether it is valid or not (until we know whether the
+enclosing call is to a consteval function).  In such cases, record a pending
+diagnostic if appropriate.
 */
 {
   a_boolean  result;
@@ -6756,7 +6757,9 @@ function).  In such cases, record a pending diagnostic if appropriate.
         add_more_info_list(dp, diag_list);
         end_diagnostic(dp);
       }  /* if */
-      set_error_constant(result_con);
+      if (result_con != NULL) {
+        set_error_constant(result_con);
+      }  /* if */
       result = TRUE;
     }  /* if */
   } else {

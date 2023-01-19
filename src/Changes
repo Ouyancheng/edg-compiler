@@ -1,5 +1,25 @@
 Version 6.5
 
+1/19/23  [EDGcpfe/25969]
+Missing error on consteval call failure
+
+Consider:
+
+  struct S {
+    double x;
+    template<typename T> consteval S(T) {}
+  };
+  void g() {
+    new S(S{""});
+  }
+
+This should elicit an error because the constructor call implied by S{""} does
+not produce a valid constant result despite the constructor being consteval
+(the constructor fails to initialize the member x).  The front end previously
+failed to issue that error (this failure was in part due to the enclosing
+constructor call being elided).  That is now fixed.
+
+
 1/19/23  [EDGcpfe/25964]
 C++-generating back end, Microsoft compatibility: co_await keyword
 

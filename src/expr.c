@@ -3893,6 +3893,20 @@ will be equal to init_list_ctor_arg_list->variant.braced.list.
         }  /* if */
       }  /* if */
       free_arg_match_summary_list(arg_match_list);
+      if (pending_consteval_failure.routine != NULL) {
+        /* An argument contained a call to a consteval function that did not
+           produce a constant but this enclosing "call" could potentially
+           make that okay.  Since the call ends up being elided, re-perform
+           the constant-evaluation-failure check: It might result in an actual
+           diagnostic (or substitution failure) or we may defer the decision
+           again for another enclosing call. */
+        a_routine_ptr  consteval_routine = pending_consteval_failure.routine;
+        pending_consteval_failure.routine = NULL;
+        (void)consteval_failure(consteval_routine,
+                                (a_constant_ptr)NULL,
+                                &pending_consteval_failure.diag_pos,
+                                &pending_consteval_failure.diag_list);
+      }  /* if */
     } else {
       /* Normal, not-optimized case.  The argument list will be processed in
          the normal way below. */
@@ -27392,6 +27406,8 @@ aggregate initialization, wrap *arg_list with an ick_braced component and set
   a_boolean                     aggregate_case = is_aggregate_type(dest_type);
   a_boolean                     dependent_type =
                                       could_be_dependent_class_type(dest_type);
+  a_boolean                     saved_in_call_argument =
+                                                 expr_stack->in_call_argument;
   a_class_symbol_supplement_ptr cssp = NULL;
   a_source_position             start_pos = pos_curr_token;
 
@@ -27399,6 +27415,9 @@ aggregate initialization, wrap *arg_list with an ick_braced component and set
                !dependent_type;
   if (is_class_struct_union_type(dest_type)) {
     cssp = symbol_supplement_for_class(dest_type);
+    if (cssp->constructor != NULL && !dependent_type) {
+      expr_stack->in_call_argument = TRUE;
+    }  /* if */
   }  /* if */
   if (!arg_list_supplied) {
     if (rcblock != NULL) {
@@ -27428,6 +27447,7 @@ aggregate initialization, wrap *arg_list with an ick_braced component and set
            aggregate initialization. */
         *aggr_init = TRUE;
       }  /* if */
+      expr_stack->in_call_argument = saved_in_call_argument;
     } else if (*aggr_init &&
                trivial_copy_of_braced_init_list(dest_type, *arg_list)) {
       /* The inner braced-initializer list should be treated as an argument
