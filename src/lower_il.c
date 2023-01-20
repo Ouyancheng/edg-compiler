@@ -3387,8 +3387,10 @@ to a temporary, and return a pointer to the temporary.
 #endif /* IA64_ABI */
       /* Watch out for types created by IL lowering. */
       symbol_for(base_temp_type) != NULL) {
-    if (!class_symbol_supp(symbol_for(base_temp_type))->
-                                       construction_by_bitwise_copy_allowed) {
+    a_class_symbol_supplement_ptr
+                         cssp = class_symbol_supp(symbol_for(base_temp_type));
+    if (!cssp->assignment_by_bitwise_copy_allowed &&
+        !cssp->construction_by_bitwise_copy_allowed) {
       internal_error("assign_expr_to_temp: temp of class type with cctor");
     }  /* if */
   }  /* if */
@@ -4161,16 +4163,22 @@ Do IL lowering of a pointer-to-member constant.
        has that type.  In the IA-64 ABI, this is the first field. */
     func_con = alloc_constant((a_constant_repr_kind)ck_address);
     if (routine != NULL) {
+      if (routine->is_consteval) {
+        /* The address of a consteval function shouldn't be taken; replace
+           it with a NULL pointer so there won't be any dangling references. */
+        make_zero_of_proper_type(void_star_type(), func_con);
+      } else {
 #if GNU_FUNCTION_MULTIVERSIONING
-      if (is_multiversion_representative(routine)) {
-        /* Replace a representative routine with a target-specific version
-           if one is available. */
-        routine = lowered_mv_routine(routine);
-      }  /* if */
+        if (is_multiversion_representative(routine)) {
+          /* Replace a representative routine with a target-specific version
+             if one is available. */
+          routine = lowered_mv_routine(routine);
+        }  /* if */
 #endif /* GNU_FUNCTION_MULTIVERSIONING */
-      /* For a non-virtual function, a pointer to the routine. */
-      set_routine_address_constant(routine, func_con,
-                                   /*set_address_taken_flag=*/TRUE);
+        /* For a non-virtual function, a pointer to the routine. */
+        set_routine_address_constant(routine, func_con,
+                                     /*set_address_taken_flag=*/TRUE);
+      }  /* if */
       /* Make sure the routine type is lowered.  This call is necessary when
          the type now is from a declaration of the function and later that
          will be replaced by an equivalent but separate type from the
@@ -21839,7 +21847,8 @@ Do IL lowering of the indicated scope and everything under it.
       }  /* if */
     }  /* for */
 #if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
-    if (routine->
+    if (!routine->is_consteval &&
+        routine->
 #if IA64_ABI
                  is_virtual
 #else /* !IA64_ABI */

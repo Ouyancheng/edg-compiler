@@ -8292,12 +8292,13 @@ the scope stack is no longer available.
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
 #if DO_IL_LOWERING
     if (!will_discard_function_body &&
-        !routine->is_consteval &&
         !routine->is_prototype_instantiation &&
         depth_template_declaration_scope == NO_SCOPE_DEPTH &&
         (delayed ||
          !scope_stack[depth_scope_stack].in_prototype_instantiation)) {
-      /* Do IL lowering (change the C++ IL into C IL). */
+      /* Do IL lowering (change the C++ IL into C IL).  Note that consteval
+         functions are lowered to avoid problems with embedded non-consteval
+         functions, such as non-consteval lambdas. */
       lower_function_scope(routine, scope);
 #if MAINTAIN_NEEDED_FLAGS
       lowering_done = TRUE;

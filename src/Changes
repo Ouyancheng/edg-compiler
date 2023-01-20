@@ -1,5 +1,25 @@
 Version 6.5
 
+1/20/23  [EDGcpfe/25978]
+Issues with consteval and lowering
+
+Prior to this change, consteval functions were not lowered, but that had caused
+various problems (assertion failures, IL write-read errors, inconsistent IL,
+etc.) with embedded non-consteval functions, such as non-consteval lambdas
+that required lowering.  A change has been made to lower consteval functions to
+avoid such changes.  Back ends should continue to ignore these routines (as
+indicated by ignore_routine_in_back_end).  For example, with --c++20:
+
+  auto x = [](int _x) consteval {
+    auto y = [_y=_x]() {
+      auto z = []() {return 0;};
+        return _y;
+    };
+    return y();
+  };
+  int a = x(29);
+
+
 1/19/23  [EDGcpfe/25900]
 C23: #warning
 
