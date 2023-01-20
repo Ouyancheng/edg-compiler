@@ -3169,15 +3169,16 @@ Return NULL if none is found.
   if (result == NULL) {
     /* Load a namespace-scope entity from the IFC file and determine its
        front-end symbol. */
-    a_source_correspondence  *scp;
-    a_module_entity          *mep;
-    an_ifc_module            *mod = decl_idx.mod;
+    a_source_correspondence     *scp;
+    an_ifc_module               *mod = decl_idx.mod;
     /* Disable the "friend" specifier since we are parsing the entity itself
        (in namespace scope) and not its friendship (which is handled
        elsewhere). */
-    Value_saver<a_boolean>   suppression(&mod->suppress_friend_token,
-                                         /*new_value=*/TRUE);
-    mep = get_ifc_module_entity_ptr(decl_idx);
+    a_module_entity             *mep = get_ifc_module_entity_ptr(decl_idx);
+    Value_saver<a_boolean>      suppression(&mod->suppress_friend_token,
+                                            /*new_value=*/TRUE);
+    a_module_entity_stack_state mep_state(mep);
+
     if (mep->entity.ptr == NULL) {
       /* FIXME: Some ifc_sls_msvc_binding source literals are self references
          to the declaration being declared.  There's no IL entity to return a
