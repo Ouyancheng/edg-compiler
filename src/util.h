@@ -3283,6 +3283,32 @@ Compute a hash for the given path.  The hash must be appropriate for Ptr_map.
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
+/*
+Ptr_set is a simplified wrapper around Ptr_map for representing the specific
+case of a "Set" (i.e., only a present or absent state, there's no true "mapped"
+value).
+*/
+template<typename a_Ptr, template<typename> class Allocator = FE_allocator>
+struct Ptr_set {
+  typedef Ptr_map<a_Ptr, a_boolean, Allocator> a_map_type;
+  typedef typename a_map_type::an_allocator an_allocator;
+  inline Ptr_set(unsigned int mask_width, an_allocator a = an_allocator())
+    : underlying_map(mask_width, a)
+    {}
+  inline a_boolean contains(a_Ptr key) const
+    { return this->underlying_map.get(key); }
+  inline void add(a_Ptr key)
+    { this->underlying_map.map(key, TRUE); }
+  inline void remove(a_Ptr key)
+    { this->underlying_map.unmap(key); }
+private:
+  a_map_type    underlying_map;
+                        /* The Ptr_map backing the set.  Elements considered
+                           in the set are stored in the underlying map
+                           with a paired value of "TRUE." */
+};  /* Ptr_set */
+
+
 template<typename a_Linked_list_type, typename a_Predicate>
 inline unsigned count_list_elements(a_Linked_list_type list_head,
                                     a_Predicate        predicate)
