@@ -4320,16 +4320,25 @@ done:
 
 namespace {
 
-using an_ifc_function_failure_map = Ptr_map<a_routine_ptr, a_boolean>;
-                        /* The type of a map that pairs a routine with a
-                           failure flag state to prevent reprocessing. */
+using an_ifc_function_failure_set = Ptr_set<a_routine_ptr>;
+                        /* The type of a set that contains routines that
+                           have previously failed to process. */
 
-an_ifc_function_failure_map
+an_ifc_function_failure_set
                 *ifc_bad_function_bodies;
-                        /* A map from IL routine entry pointers to boolean
-                           values.  This is conceptually a set where routines
-                           with previously processed (failed) function bodies
-                           are stored. */
+                        /* A set of IL routine entry pointers containing
+                           routines with previously processed (failed) function
+                           bodies. */
+
+using an_ifc_pending_definition_set = Ptr_set<a_tagged_pointer>;
+                        /* The type of a set that pairs an IL entity with a
+                           pending . */
+
+an_ifc_pending_definition_set
+                *ifc_pending_definitions;
+                        /* A set of IL entity pointers containing IL entities
+                           that we're already attempting to resolve a
+                           definition for. */
 
 }  /* namespace */
 
@@ -4357,7 +4366,8 @@ has_routine_definition_from_ifc_module prior to attempting to load the routine
 definition.
 */
 {
-  a_boolean  result = FALSE;
+  a_boolean        result = FALSE;
+  a_tagged_pointer routine_tp = make_tagged_ptr(rp);
 
   check_assertion(has_routine_definition_from_ifc_module(rp));
   /* Make sure that we don't attempt to process a definition that we're already
@@ -4365,7 +4375,8 @@ definition.
      failed definition processing.  This prevents repeating errors and
      mitigates the performance impact if a problematic routine is called many
      times. */
-  if (!rp->definition_pending && !ifc_bad_function_bodies->get(rp)) {
+  if (!ifc_pending_definitions->contains(routine_tp) &&
+      !ifc_bad_function_bodies->contains(rp)) {
     an_ifc_decl_index           ifb = ifc_function_bodies->get(rp);
     a_func_info_block           func_info;
     a_module_token_cache        def_cache;
@@ -4383,7 +4394,7 @@ definition.
       print(err_msg, f_debug);
     }  /* if */
 #endif /* DEBUG */
-    rp->definition_pending = TRUE;
+    ifc_pending_definitions->add(routine_tp);
     clear_func_info(&func_info);
     push_new_top_level_declaration();
     if (ifb.mod->cache_function_body(&def_cache, ifb, rp, &func_info)) {
@@ -4402,14 +4413,14 @@ definition.
       }  /* if */
     }  /* if */
     pop_scope();
-    rp->definition_pending = FALSE;
     /* If this function failed to process successfully, mark the failure so we
        don't reenter this branch. */
     if (!result) {
-      ifc_bad_function_bodies->map(rp, TRUE);
+      ifc_bad_function_bodies->add(rp);
       check_assertion_str(is_at_least_one_error(),
                           "expected errors for bad function body");
     }  /* if */
+    ifc_pending_definitions->remove(routine_tp);
 #if DEBUG
     if (db_flag_is_set("ifc_idx")) {
       a_string err_msg("Function def loading done for ", index_to_str(ifb));
@@ -5783,58 +5794,66 @@ module, but its definition hasn't been loaded yet.  Load the definition now.
 */
 {
   check_assertion(has_template_definition_from_ifc_module(templ));
-  a_boolean            result = FALSE;
-  an_ifc_decl_index    def_decl_idx = ifc_template_definitions->get(templ);
+  a_boolean         result = FALSE;
+  an_ifc_decl_index def_decl_idx = ifc_template_definitions->get(templ);
+  a_tagged_pointer  templ_tp = make_tagged_ptr(templ);
 
+  if (!ifc_pending_definitions->contains(templ_tp)) {
 #if DEBUG
-  if (db_flag_is_set("ifc_idx")) {
-    a_string err_msg("Template def loading started for ",
-                     index_to_str(def_decl_idx));
+    if (db_flag_is_set("ifc_idx")) {
+      a_string err_msg("Template def loading started for ",
+                       index_to_str(def_decl_idx));
 
-    print(err_msg, f_debug);
-  }  /* if */
+      print(err_msg, f_debug);
+    }  /* if */
 #endif /* DEBUG */
-  /* When the ifc_template_definitions were inserted, this should've been
-     validated and not added to the map if invalid. */
-  an_ifc_decl_template template_decl;
-  construct_node_prechecked(&template_decl, def_decl_idx);
+    ifc_pending_definitions->add(templ_tp);
 
-  /* Reconstruct the module entity state. */
-  Value_saver<a_source_position>
-                              saved_error_position(&error_position);
-  Value_saver<a_module_entity_ptr>
-                              saved_mep(&curr_module_entity);
-  a_curr_token_preserver      guard;
-  a_module_entity_ptr         mep = get_ifc_module_entity_ptr(def_decl_idx);
-  a_module_entity_stack_state mep_state(mep);
-  a_module_scope_push_kind    scope_push_status = mspk_unattempted;
-  curr_module_entity = mep;
-  push_module_declaration_context(mep->scope, &scope_push_status);
+    /* When the ifc_template_definitions were inserted, this should've been
+       validated and not added to the map if invalid. */
+    an_ifc_decl_template template_decl;
+    construct_node_prechecked(&template_decl, def_decl_idx);
 
-  /* Process the definition. */
-  char              *il_entity = (char*)templ;
-  an_il_entry_kind  kind = iek_template;
-  if (process_delayed_template_definition(template_decl, mep,
-                                          &il_entity, &kind)) {
-    /* FIXME: We need to be able to better determine that the template has been
-       defined before removing from the map. */
-    /* The definition was successfully loaded, unmap the pending definition. */
-    /* ifc_template_definitions->unmap(templ); */
-  }  /* if */
-  /* Update the module entity pointer to refer to the defining IL template. */
-  mep->entity.kind = kind;
-  mep->entity.ptr = (char*)il_entity;
-  /* Restore the module declaration context stack; all other cleanup is RAII
-     based. */
-  pop_module_declaration_context(scope_push_status);
+    /* Reconstruct the module entity state. */
+    Value_saver<a_source_position>
+                                saved_error_position(&error_position);
+    Value_saver<a_module_entity_ptr>
+                                saved_mep(&curr_module_entity);
+    a_curr_token_preserver      guard;
+    a_module_entity_ptr         mep = get_ifc_module_entity_ptr(def_decl_idx);
+    a_module_entity_stack_state mep_state(mep);
+    a_module_scope_push_kind    scope_push_status = mspk_unattempted;
+    curr_module_entity = mep;
+    push_module_declaration_context(mep->scope, &scope_push_status);
+
+    /* Process the definition. */
+    char              *il_entity = (char*)templ;
+    an_il_entry_kind  kind = iek_template;
+    if (process_delayed_template_definition(template_decl, mep,
+                                            &il_entity, &kind)) {
+      /* FIXME: We need to be able to better determine that the template has
+         been defined before removing from the map. */
+      /* The definition was successfully loaded, unmap the pending
+         definition. */
+      /* ifc_template_definitions->unmap(templ); */
+    }  /* if */
+    /* Update the module entity pointer to refer to the defining IL
+       template. */
+    mep->entity.kind = kind;
+    mep->entity.ptr = (char*)il_entity;
+    /* Restore the module declaration context stack; all other cleanup is RAII
+       based. */
+    pop_module_declaration_context(scope_push_status);
+    ifc_pending_definitions->remove(templ_tp);
 #if DEBUG
-  if (db_flag_is_set("ifc_idx")) {
-    a_string err_msg("Template def loading done for ",
-                     index_to_str(def_decl_idx));
+    if (db_flag_is_set("ifc_idx")) {
+      a_string err_msg("Template def loading done for ",
+                       index_to_str(def_decl_idx));
 
-    print(err_msg, f_debug);
-  }  /* if */
+      print(err_msg, f_debug);
+    }  /* if */
 #endif /* DEBUG */
+  }  /* if */
   return result;
 }  /* load_template_definition_from_ifc_module */
 
@@ -20445,8 +20464,10 @@ for each compilation.
   construct(ifc_function_bodies, /*mask_width=*/10);
   ifc_template_definitions = alloc_fe_of_type(an_ifc_template_def_map);
   construct(ifc_template_definitions, /*mask_width=*/10);
-  ifc_bad_function_bodies = alloc_fe_of_type(an_ifc_function_failure_map);
+  ifc_bad_function_bodies = alloc_fe_of_type(an_ifc_function_failure_set);
   construct(ifc_bad_function_bodies, /*mask_width=*/10);
+  ifc_pending_definitions = alloc_fe_of_type(an_ifc_pending_definition_set);
+  construct(ifc_pending_definitions, /*mask_width=*/10);
   ifc_decl_lookup_table = alloc_fe_of_type(an_ifc_decl_lookup_table);
   construct(ifc_decl_lookup_table, /*mask_width=*/10);
   ifc_decl_template_lookup_table = alloc_fe_of_type(

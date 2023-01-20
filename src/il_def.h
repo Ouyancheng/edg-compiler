@@ -11623,11 +11623,6 @@ typedef struct a_routine {
 			   constructors), the body is removed immediately after
 			   it has been processed, so defined is TRUE when
 			   memory_region == NULL_region_number. */
-  a_bit_field	definition_pending:1;
-			/* TRUE if this routine has a definition that is in the
-			   process of being scanned (e.g., the definition comes
-			   from a module file, and that definition is currently
-			   being processed). */
   a_bit_field	called:1;
 			/* TRUE if this routine is directly called.
 			   For virtual functions in C++, this indicates that

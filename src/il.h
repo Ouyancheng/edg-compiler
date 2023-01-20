@@ -26,6 +26,79 @@ il.h -- Declarations related to the intermediate language.
 /* Conditionally open the "edg" namespace. */
 BEGIN_EDG_NAMESPACE
 
+inline a_boolean operator==(a_tagged_pointer ptr1,
+                            a_tagged_pointer ptr2)
+/*
+Return TRUE if the tagged pointer represented by ptr1 is the same as the tagged
+pointer represented by ptr2.  If both tagged pointers contain NULL pointers and
+equivalent tags then the tagged pointers are considered the same.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (ptr1.kind != ptr2.kind) {
+    result = FALSE;
+  } else if (ptr1.ptr != ptr2.ptr) {
+    result = FALSE;
+  }  /* if */
+  return result;
+}  /* operator== */
+
+
+inline a_boolean operator!=(a_tagged_pointer ptr1,
+                            a_tagged_pointer ptr2)
+/*
+Return TRUE if the tagged pointer represented by ptr1 is not the same as the
+tagged pointer represented by ptr2.  If both tagged pointers contain NULL
+pointers and equivalent tags then the tagged pointers are considered the same.
+*/
+{
+  return !(ptr1 == ptr2);
+}  /* operator!= */
+
+
+inline uintptr_t hash_ptr(a_tagged_pointer ptr)
+/*
+Compute a hash for the given C-string.  The hash must be appropriate for
+Ptr_map.
+*/
+{
+  return (uintptr_t)ptr.ptr;
+}  /* hash_ptr */
+
+
+template<typename an_IL_type>
+inline a_tagged_pointer make_tagged_ptr(an_IL_type val) DELETED_FN_DEF
+
+
+template<>
+inline a_tagged_pointer make_tagged_ptr(a_routine_ptr val)
+/*
+Convert the given IL routine pointer into a tagged pointer.
+*/
+{
+  a_tagged_pointer result;
+
+  result.kind = iek_routine;
+  result.ptr = (char*)val;
+  return result;
+}  /* make_tagged_ptr */
+
+
+template<>
+inline a_tagged_pointer make_tagged_ptr(a_template_ptr val)
+/*
+Convert the given IL template pointer into a tagged pointer.
+*/
+{
+  a_tagged_pointer result;
+
+  result.kind = iek_template;
+  result.ptr = (char*)val;
+  return result;
+}  /* make_tagged_ptr */
+
+
 /* Current memory region number for IL information. */
 EXTERN a_memory_region_number
 		curr_il_region_number;
