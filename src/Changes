@@ -1,5 +1,22 @@
 Version 6.5
 
+1/23/23  [EDGcpfe/25712]
+C++-generating back end: brace-enclosed capture-init
+
+When the initializer for a lambda capture-init is enclosed in braces, the
+C++-generating back end sometimes incorrectly doubled the braces.  This is
+now fixed.  For example, with --c++14:
+
+  struct S {
+    S();
+    S(const S&);
+  };
+  void f() {
+    S s;
+    [s{s}] {};
+  }
+
+
 1/23/23  [EDGcpfe/25897]
 Temporaries initialized with aggregate constants
 
