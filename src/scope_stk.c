@@ -9727,8 +9727,8 @@ being popped.
   if ((kind == (a_scope_kind)sck_template_declaration &&
        (options & PS_IS_TEMPLATE_TEMPLATE_PARAM) == 0) ||
       kind == (a_scope_kind)sck_template_instantiation) {
-    /* Restore the pack expansion stack for a template declaration or
-       instantiation scope. */
+    /* Restore the original pack expansion stack before a template declaration
+       or instantiation scope was pushed. */
     pack_expansion_stack = ssep->pack_expansion_stack;
     if (pack_expansion_stack != NULL &&
         pack_expansion_stack->instantiation_descr != NULL) {

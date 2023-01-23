@@ -1,5 +1,16 @@
 Version 6.5
 
+1/23/23  [EDGcpfe/25011]
+Pack expansion deduction context leak
+
+Prior to this change, deduce_one_parameter when short circuiting deduction of a
+parameter pack would leak pack deduction contexts into subsequent scopes.  This
+resulted in assertion failures in end_potential_pack_expansion_context,
+update_template_param_symbol, and abandon_potential_pack_expansion_context.
+Additionally, in some cases this leak caused subsequent erroneous diagnostics
+which referenced incorrect source locations.
+
+
 1/23/23  [EDGcpfe/25712]
 C++-generating back end: brace-enclosed capture-init
 

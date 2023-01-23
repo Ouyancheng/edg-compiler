@@ -4690,10 +4690,10 @@ next_iteration:
     if (arg == NULL) break;
     advance_to_next_deduced_element(pesep);
   }  /* for */
+end_of_routine:
   if (pesep != NULL) {
     end_pack_deduction_context(pesep);
   }  /* if */
-end_of_routine:
   if (p_arg != NULL) *p_arg = arg;
   return deduction_okay;
 }  /* deduce_one_parameter */
