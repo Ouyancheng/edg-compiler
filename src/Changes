@@ -1,5 +1,29 @@
 Version 6.5
 
+1/23/23  [EDGcpfe/25897]
+Temporaries initialized with aggregate constants
+
+Consider:
+
+  constexpr int const& g(int const (&arr)[2], int i) { return arr[i]; }
+  int f(int const (&arr)[2]) { return g(arr, 0); }
+  void func(int *p_result) {
+    for (int k = 0; k < 10; ++k) {
+      using arr = int[2];
+      int x = f(arr{});    // (1)
+      *p_result += x;
+    }
+  }
+
+Line (1) passes a constant aggregate value ("arr{}") by reference-to-const to
+function f, which requires a temporary to bind the reference parameter to.
+That temporary should be stored in mutable local storage, initialized with the
+constant value arr{} (i.e., two zero elements).  Unfortunately, the front end
+performed slightly too aggressive constant-evaluation on the temporary, causing
+it to be eliminated and later re-created as a mutable static-storage temporary
+(which IL lowering turns into a static variable).  That is now fixed.
+
+
 1/20/23  [EDGcpfe/25978]
 Issues with consteval and lowering
 
