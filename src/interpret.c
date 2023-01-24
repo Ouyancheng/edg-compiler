@@ -2738,41 +2738,6 @@ initialization processing.  If there is no next such field, return NULL.
 }  /* next_alloc_field */
 
 
-static a_boolean has_dependent_layout(a_type_ptr  class_type)
-/*
-Return TRUE if the given class type has a template-dependent layout within the
-interpreter.
-*/
-{
-  a_boolean         result = FALSE;
-  a_base_class_ptr  bcp = base_classes_of(class_type);
-
-  for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
-    if (has_dependent_layout(bcp->type)) {
-      result = TRUE;
-      break;
-    }  /* if */
-  }  /* for */
-  if (!result) {
-    a_field_ptr  fp = class_type->variant.class_struct_union.field_list;
-    fp = next_alloc_field(fp);
-    for (; fp != NULL; fp = next_alloc_field(fp->next)) {
-      a_type_ptr  tp = skip_typerefs(skip_array_types(fp->type));
-      if (is_immediate_class_type(fp->type)) {
-        if (has_dependent_layout(fp->type)) {
-          result = TRUE;
-          break;
-        }  /* if */
-      } else if (is_template_dependent_type(tp)) {
-        result = TRUE;
-        break;
-      }  /* if */
-    }  /* for */
-  }  /* if */
-  return result;
-}  /* has_dependent_layout */
-
-
 static a_byte_count f_value_bytes_for_type(an_interpreter_state  *ips,
                                            a_type_ptr            tp,
                                            a_boolean             *p_result)
@@ -2849,15 +2814,15 @@ redo:
         check_assertion(ips != NULL);
 #endif /* DEBUG */
         if (tp->variant.class_struct_union.is_nonreal_class &&
-            has_dependent_layout(tp)) {
+            !tp->variant.class_struct_union.is_empty_class) {
           /* A nonreal class type.  Normally, we should not attempt to handle
              any nonreal class types, but due to a current limitation of the
              front end some class types are currently marked as nonreal even
-             though they are not really dependent.  For example, the closure
+             though they are not really dependent.  In particular, the closure
              type in:
                template<int = []{ return 1; }()>  int f();
-             The has_dependent_layout condition allows us to nonetheless
-             handle such cases. */
+             The is_empty_class condition allows us to nonetheless handle such
+             cases. */
           info_with_pos_type(ec_constexpr_type_invalid, &ips->position, tp,
                              ips);
           do_constexpr_fail(*p_result);
@@ -2895,8 +2860,7 @@ redo:
       check_assertion(ips != NULL);
 #endif /* DEBUG */
       if (result == 0) {
-        if (tp->variant.class_struct_union.is_nonreal_class &&
-            has_dependent_layout(tp)) {
+        if (tp->variant.class_struct_union.is_nonreal_class) {
           info_with_pos_type(ec_constexpr_type_invalid, &ips->position, tp,
                              ips);
           do_constexpr_fail(*p_result);
@@ -18616,7 +18580,7 @@ the value representation of the integer value.
                 info_with_pos(ec_constexpr_null_dereference, &expr->position,
                               ips);
               } else {
-                if (parent_class_of(field)->kind == (a_type_kind)tk_union) {
+                if (type_is(parent_class_of(field), tk_union)) {
                   if (!add_to_variant_path(&result_addr, field, opnd1_type)) {
                     do_constexpr_fail(result);
                     info_with_pos(ec_constexpr_too_many_nested_anonymous_types,
