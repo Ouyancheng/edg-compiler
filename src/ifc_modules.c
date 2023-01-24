@@ -5532,16 +5532,20 @@ module, but its definition hasn't been loaded yet.  Load the definition now.
 }  /* load_template_definition_from_ifc_module */
 
 
-void an_ifc_module::process_ifc_declaration(a_module_entity_ptr mep,
-                                            a_boolean           defer)
+static void process_decl_to_il_entity(a_module_entity_ptr mep,
+                                      a_boolean           defer)
 /*
 Process the IFC module entity declaration specified by mep.  When defer is
 TRUE, no IL entity is created; instead, the appropriate symbol header is
 updated to note the deferred entity for lazy loading.  When defer is FALSE, we
 immediately process *mep and attempt to form an IL entity; if no IL entity can
 be formed, *mep will marked as invalid.
+
+Only module entity pointers for IL entities not in class scope should be passed
+to this function.
 */
 {
+  an_ifc_module            *mod = get_assoc_ifc_module(mep);
   a_decl_parse_state       dps;
   an_id_linkage_kind       linkage_ptr;
   a_symbol_ptr             ext_sym;
@@ -5552,9 +5556,1457 @@ be formed, *mep will marked as invalid.
   char                     *&il_entity = mep->entity.ptr;
   an_il_entry_kind         &kind = mep->entity.kind;
   a_module_scope_push_kind scope_push_status = mspk_unattempted;
-  a_diagnostic_suppression diag_suppress(&this->suppressed_diagnostics,
+  a_diagnostic_suppression diag_suppress(&mod->suppressed_diagnostics,
                                          !display_module_import_diagnostics);
   Value_saver<a_boolean>   checking_pragma_saver(&no_checking_pragmas, TRUE);
+  a_source_position        saved_error_position = error_position;
+  a_module_entity_ptr      saved_mep = curr_module_entity;
+  a_ms_mode_parse          tmp_ms_parse(mod);
+  an_ifc_decl_index        decl_idx = decl_index_of(mep);
+  a_module_entity_stack_state
+                           mep_state(mep);
+
+#if DEBUG
+  ++num_module_decls_attempted;
+  if (db_flag_is_set("ifc_idx")) {
+    (void)fprintf(f_debug, "Processing %s (%d)\n", str_for(decl_idx.sort),
+                  decl_idx.value);
+  }  /* if */
+#endif /* DEBUG */
+  curr_module_entity = mep;
+  if (!defer) {
+    mep->imminent = TRUE;
+    if (mep->scope != NULL) {
+      /* If this module entity has a scope, attempt to re-activate it now.  If
+         it does not already have a scope, one may be created below. */
+      push_module_declaration_context(mep->scope, &scope_push_status);
+    }  /* if */
+  }  /* if */
+  switch (decl_idx.sort) {
+    case ifc_ds_decl_vendor_extension:
+    case ifc_ds_decl_explicit_instantiation:
+    case ifc_ds_decl_explicit_specialization:
+      /* FIXME: Need a proper source position for this. */
+      error_position = null_source_position;
+      issue_unsupported_construct_error(mod, str_for(decl_idx.sort),
+                                        &error_position);
+      il_entity = (char *)error_type();
+      kind = iek_type;
+      break;
+    case ifc_ds_decl_variable:
+      { Opt<an_ifc_decl_variable> opt_idv;
+
+        construct_node(&opt_idv, decl_idx);
+        if (!opt_idv.has_value()) {
+          goto invalid;
+        }  /* if */
+        if (!mod->init_decl_locator(*opt_idv, &loc)) {
+          goto invalid;
+        }  /* if */
+        if (defer) {
+          defer_symbol_creation(mep, &loc);
+        } else {
+          an_ifc_decl_variable idv = *opt_idv;
+          a_module_token_cache cache;
+
+          if (is_from_gmf(get_ifc_specifiers(idv))) {
+            mep->global_module = TRUE;
+          }  /* if */
+          if (mep->scope == NULL) {
+            mep->scope = get_home_scope(idv);
+            push_module_declaration_context(mep->scope, &scope_push_status);
+          }  /* if */
+          init_decl_parse_state(&dps);
+          /* Naming aside, setting this is required to allow the inline keyword
+             on variable declarations. */
+          dps.function_definition_allowed = TRUE;
+
+          an_ifc_cache_info cache_info;
+          if (check_and_set_redeclaration(&loc, mep, &error_position,
+                                          iek_variable, &il_entity, &kind)) {
+            if (is_defined(il_entity, kind)) {
+              cache_info.ignore_definition = TRUE;
+            }  /* if */
+            check_assertion(kind == iek_variable);
+
+            /* Skip any further processing when the variable is not declared
+               "extern" (as variable declarations cannot otherwise be
+               meaningfully "merged"). */
+            a_variable_ptr variable = (a_variable_ptr)il_entity;
+            if (variable->storage_class != sc_extern) {
+              goto done;
+            }  /* if */
+          }  /* if */
+          mod->cache_decl(&cache, decl_idx, cache_info);
+#if DEBUG
+          if (db_flag_is_set("ms_ifc_token_def")) {
+            fprintf(f_debug, "Reconstituted variable declaration:\n");
+            db_tokens(&cache);
+            fprintf(f_debug, "\n---------------------\n");
+          }  /* if */
+#endif /* DEBUG */
+          if (!cache.is_valid()) {
+            goto invalid;
+          }  /* if */
+          {
+            a_module_entity_rescan rescan(&cache);
+
+            scan_nonmember_declaration(&dps, /*a_source_range=*/NULL);
+          }
+          if (dps.sym != NULL && symbol_is(dps.sym, sk_variable)) {
+            il_entity = (char *)dps.sym->variant.variable.ptr;
+            kind = iek_variable;
+          }  /* if */
+        }  /* if */
+      }
+      break;
+    case ifc_ds_decl_function:
+      { Opt<an_ifc_decl_function> opt_idf;
+
+        construct_node(&opt_idf, decl_idx);
+        if (!opt_idf.has_value()) {
+          goto invalid;
+        }  /* if */
+        if (!mod->init_decl_locator(*opt_idf, &loc)) {
+          goto invalid;
+        }  /* if */
+        if (defer) {
+          defer_symbol_creation(mep, &loc);
+        } else {
+          /* FIXME: lots more to do here. */
+          an_ifc_decl_function idf = *opt_idf;
+
+#if BUILTIN_FUNCTIONS_ENABLED
+          if (is_builtin_function(idf, &loc)) {
+            /* This is a builtin function, trigger builtin processing. */
+            a_symbol_ptr builtin_sym;
+
+            if (builtin_needs_to_be_loaded(loc.symbol_header)) {
+              builtin_sym = load_matching_builtin_function(loc.symbol_header);
+            } else {
+              builtin_sym =
+                       file_scope_id_lookup(il_header.primary_scope, &loc,
+                                            IDL_DIRECT_NAMESPACE_MEMBERS_ONLY |
+                                            IDL_SUPPRESS_DECL_SEQ_CHECK);
+            }  /* if */
+            if (builtin_sym == NULL) {
+              goto invalid;
+            }  /* if */
+            il_entity = (char *)builtin_sym->variant.routine.ptr;
+            kind = iek_routine;
+          } else
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
+          /* Do not add code here. */
+          {
+            an_ifc_function_traits_bitfield traits = get_ifc_traits(idf);
+            a_func_info_block               func_info;
+            a_type_ptr                      old_type;
+            a_routine_ptr                   rp;
+            a_boolean                       is_consteval;
+
+            /* FIXME: There's a chicken-and-egg problem here when the return
+               type is deduced and requires access to the class scope (e.g.,
+               returning a lambda declared within the function). */
+            if (mep->scope == NULL) {
+              mep->scope = get_home_scope(idf);
+              push_module_declaration_context(mep->scope,
+                                              &scope_push_status);
+            }  /* if */
+            mod->init_dps(&dps, get_ifc_locus(idf), get_ifc_type(idf),
+                          an_ifc_object_traits_bitfield{},
+                          an_ifc_msvc_traits_bitfield{},
+                          get_ifc_specifiers(idf), get_ifc_access(idf),
+                          an_ifc_expr_index{}, &psss);
+            is_consteval = test_bitmask<ifc_ftb_immediate>(traits);
+            if (is_consteval) {
+              dps.dso_flags |= DSO_CONSTEVAL;
+            } else if (test_bitmask<ifc_ftb_constexpr>(traits)) {
+              dps.dso_flags |= DSO_CONSTEXPR;
+            } else if (test_bitmask<ifc_ftb_inline>(traits)) {
+              dps.dso_flags |= DSO_INLINE;
+            }  /* if */
+            clear_func_info(&func_info);
+            clear_decl_pos_block(&decl_pos_block);
+            decl_routine(&loc, &dps, &func_info, SRK_DECLARATION,
+                         &linkage_ptr, &old_type, &ext_sym, &decl_pos_block);
+            restore_partial_scope_stack_if_necessary(&psss);
+            rp = dps.sym->variant.routine.ptr;
+            il_entity = (char *)rp;
+            kind = iek_routine;
+            if (!mod->fill_in_routine_parameter_defaults(get_ifc_chart(idf),
+                                                         dps.type,
+                                                         is_consteval)) {
+              goto invalid;
+            }  /* if */
+            if (function_is_user_defined(idf)) {
+              /* A body is available: Record this availability in case it is
+                 needed. */
+              record_pending_ifc_function_body(rp, decl_idx);
+            }  /* if */
+          }  /* if */
+        }  /* if */
+      }
+      break;
+    case ifc_ds_decl_intrinsic:
+      /* A builtin function declaration. */
+      { Opt<an_ifc_decl_intrinsic> opt_idi;
+
+        construct_node(&opt_idi, decl_idx);
+        if (!opt_idi.has_value()) {
+          goto invalid;
+        }  /* if */
+        if (!mod->init_decl_locator(*opt_idi, &loc)) {
+          goto invalid;
+        }  /* if */
+        if (defer) {
+          defer_symbol_creation(mep, &loc);
+        } else {
+          an_ifc_decl_intrinsic idi = *opt_idi;
+          a_func_info_block     func_info;
+          a_type_ptr            old_type;
+          a_routine_ptr         rp;
+
+          /* FIXME: lots more to do here (just copied ifc_DeclSort_Function).*/
+          mod->init_dps(&dps, get_ifc_locus(idi), get_ifc_type(idi),
+                        an_ifc_object_traits_bitfield{},
+                        an_ifc_msvc_traits_bitfield{}, get_ifc_specifiers(idi),
+                        get_ifc_access(idi), an_ifc_expr_index{}, &psss);
+          clear_func_info(&func_info);
+          clear_decl_pos_block(&decl_pos_block);
+          decl_routine(&loc, &dps, &func_info, SRK_DECLARATION, &linkage_ptr,
+                       &old_type, &ext_sym, &decl_pos_block);
+          restore_partial_scope_stack_if_necessary(&psss);
+          rp = dps.sym->variant.routine.ptr;
+          mep->scope = rp->source_corresp.parent_scope;
+          il_entity = (char *)rp;
+          kind = iek_routine;
+        }  /* if */
+      }
+      break;
+    case ifc_ds_decl_scope:
+      /* A DeclSort::Scope, which indicates a namespace or a
+         class/struct/union.  Note that although these declare "scopes", the IL
+         entity that is attached to them is either a namespace or a type. */
+      { Opt<an_ifc_decl_scope> opt_ids;
+
+        construct_node(&opt_ids, decl_idx);
+        if (!opt_ids.has_value()) {
+          goto invalid;
+        }  /* if */
+        if (!mod->init_decl_locator(*opt_ids, &loc)) {
+          goto invalid;
+        }  /* if */
+
+        an_ifc_decl_scope ids = *opt_ids;
+        a_type_kind       type_kind;
+        a_symbol_kind     tag_kind;
+        /* Should be no unnamed namespaces or types. */
+        /* FIXME: This should be a soft failure. */
+        check_assertion(!is_null_index(get_ifc_name(ids)));
+        if (is_from_gmf(get_ifc_specifiers(ids))) {
+          mep->global_module = TRUE;
+        }  /* if */
+        if (mep->scope == NULL) {
+          mep->scope = get_home_scope(ids);
+          push_module_declaration_context(mep->scope, &scope_push_status);
+        }  /* if */
+        if (scope_is(mep->scope, sck_class_struct_union)) {
+          /* This is a child class.  It will have already been entered as a
+             member of the parent class.  Find that entry and skip the rest of
+             the processing. */
+          a_type_ptr   parent_class = mep->scope->variant.assoc_type;
+          a_symbol_ptr sym;
+
+          /* The parent class may contain references to this child class.
+             Clear the imminent flag to allow re-processing to occur if need be
+             (otherwise, we may fail to find the type of this entity during
+             completion of the parent class). */
+          mep->imminent = FALSE;
+          sym = look_up_name_string_in_class(loc.symbol_header->identifier,
+                                             parent_class,
+                                             IDL_TENTATIVE_TYPE_LOOKUP |
+                                                              IDL_MUST_BE_TAG);
+          mep->imminent = TRUE;
+          if (sym == NULL || !is_class_struct_union_symbol(sym)) {
+            expect_error();
+            goto invalid;
+          }  /* if */
+          il_entity = (char*)(sym->variant.class_struct_union.type);
+          kind = iek_type;
+          break;
+        }  /* if */
+
+        /* Look at the "type" to determine whether we have a namespace or
+           not. */
+        Opt<an_ifc_type_fundamental> opt_itf;
+        construct_node(&opt_itf, get_ifc_type(ids));
+        if (!opt_itf.has_value()) {
+          goto invalid;
+        }  /* if */
+        switch (get_ifc_basis(*opt_itf)) {
+          case ifc_tbs_namespace:
+            { an_ifc_scope_traits_bitfield traits = get_ifc_traits(ids);
+              a_namespace_ptr              nsp = NULL;
+              a_symbol_ptr                 ns_sym;
+
+              if (defer && !test_bitmask<ifc_stb_inline>(traits)) {
+                /* Note that inline namespaces are not deferred. */
+                defer_symbol_creation(mep, &loc);
+              } else {
+                /* FIXME: lots missing. */
+                /* FIXME: This should probably call
+                   push/pop_module_declaration_context on itself, rather than
+                   managing the namespace scopes through an alternative code
+                   path. */
+                check_assertion(!test_bitmask<ifc_stb_unnamed>(traits));
+                { Value_saver<a_boolean> lazy_load_saver(
+                                                &lazy_symbols_may_be_visible,
+                                                /*new_value=*/FALSE);
+                  if (loc.symbol_header == symbol_for_namespace_std->header &&
+                      (scope_is(&scope_stack_top(), sck_module_decl_import) ||
+                       scope_is(&scope_stack_top(), sck_file)) &&
+                      !loc.is_error) {
+                    /* Be sure to use the pre-created namespace std symbol.  It
+                       might not be entered in the symbol table yet: Hence,
+                       call enter_symbol_for_namespace_std. */
+                    ns_sym = symbol_for_namespace_std;
+                    enter_symbol_for_namespace_std(&loc);
+                  } else {
+                    ns_sym = curr_scope_id_lookup(&loc, IDL_NO_OPTIONS);
+                  }  /* if */
+                }
+                if (ns_sym != NULL) {
+                  if (ns_sym->kind == (a_symbol_kind)sk_namespace &&
+                      !ns_sym->variant.namespace_info.ptr->
+                                                          is_namespace_alias) {
+                    /* A namespace already exists; use it. */
+                    nsp = ns_sym->variant.namespace_info.ptr;
+                    (void)push_namespace_scope(
+                                         (a_scope_kind)sck_namespace_extension,
+                                         nsp);
+                  } else {
+                    /* FIXME: need to fix this. */
+                    unexpected_condition();
+                  }  /* if */
+                } else {
+                  /* No namespace in the specified scope; create one. */
+                  ns_sym = enter_symbol((a_symbol_kind)sk_namespace, &loc,
+                                        mep->scope->depth_in_scope_stack,
+                                        /*suppress_redecl_error=*/FALSE);
+                  nsp = alloc_namespace(/*is_alias=*/FALSE);
+                  set_source_corresp(&nsp->source_corresp, ns_sym);
+                  set_namespace_membership(ns_sym, &nsp->source_corresp,
+                                           (a_namespace_ptr)NULL);
+                  nsp->source_corresp.name_linkage =
+                                   (a_name_linkage_kind)nlk_cplusplus_external;
+                  if (test_bitmask<ifc_stb_inline>(traits)) {
+                    nsp->is_inline = TRUE;
+                  }  /* if */
+                  ns_sym->variant.namespace_info.ptr = nsp;
+                  add_to_namespaces_list(nsp);
+                  (void)push_namespace_scope((a_scope_kind)sck_namespace, nsp);
+                  nsp->variant.assoc_scope->variant.assoc_namespace = nsp;
+                  if (nsp->is_inline) {
+                    add_implicit_using_directive(nsp, /*is_inline=*/TRUE,
+                                                 /*namespace_pushed=*/TRUE);
+                  }  /* if */
+                }  /* if */
+                /* Forward assign the module entity pointer's information so we
+                   can self-reference. */
+                il_entity = (char *)nsp;
+                kind = iek_namespace;
+                /* Process declarations in the namespace scope (which makes
+                   their symbols available but not their definitions). */
+                mod->process_ifc_scope(get_ifc_initializer(ids),
+                                       nsp->variant.assoc_scope);
+                pop_namespace_scope();
+              }  /* if */
+            }
+            break;
+          case ifc_tbs_class:
+            type_kind = tk_class;
+            tag_kind = sk_class_or_struct_tag;
+            goto class_struct_union_case;
+          case ifc_tbs_struct:
+          case ifc_tbs_interface:
+            type_kind = tk_struct;
+            tag_kind = sk_class_or_struct_tag;
+            goto class_struct_union_case;
+          case ifc_tbs_union:
+            type_kind = tk_union;
+            tag_kind = sk_union_tag;
+class_struct_union_case:
+            /* A class/struct/union type. */
+            { if (defer) {
+                defer_symbol_creation(mep, &loc);
+              } else {
+                an_ifc_reachable_properties_bitfield properties =
+                                                       get_ifc_properties(ids);
+
+                /* Allocate the appropriate class type, but leave it as
+                   incomplete.  The class will be completed during a call to
+                   get_definition_of_class if it is referenced. */
+                if (check_and_set_redeclaration(&loc, mep, &error_position,
+                                                iek_type, &il_entity, &kind)) {
+                  a_type_ptr type = (a_type_ptr)il_entity;
+
+                  /* FIXME: Is this right? */
+                  if (is_incomplete_type(type) &&
+                      test_bitmask<ifc_rpb_initializer>(properties)) {
+                    /* Record the presence of a definition on an existing
+                       type. */
+                    type->source_corresp.module_entity = mep;
+                  }  /* if */
+                  break;
+                }  /* if */
+
+                a_type_ptr   tag_type = alloc_type(type_kind);
+                a_symbol_ptr tag_sym;
+                if (get_ifc_basis(*opt_itf) == ifc_tbs_interface) {
+                  tag_type->variant.class_struct_union.is_interface = TRUE;
+                  tag_type->variant.class_struct_union.abstract = TRUE;
+                }  /* if */
+                tag_sym = enter_local_symbol(tag_kind, &loc,
+                                             mep->scope->depth_in_scope_stack,
+                                             /*suppress_redecl_error=*/TRUE);
+                tag_sym->variant.class_struct_union.type = tag_type;
+                set_source_corresp(&(tag_type->source_corresp), tag_sym);
+                /* Set parent class or namespace pointers, if appropriate, and
+                   adjust related fields (e.g., name linkage). */
+                /* FIXME: all of these values need to be checked. */
+                update_membership_of_class(tag_sym,
+                                           /*def_or_vacuous_decl=*/FALSE,
+                                           /*is_event_interface=*/FALSE,
+                                           mep->scope->depth_in_scope_stack,
+                                           &null_source_position);
+                /* FIXME: need to call record_symbol_declaration? */
+                add_to_types_list(tag_type, mep->scope->depth_in_scope_stack);
+                /* Mark the class as incomplete.  It can be completed later if
+                   needed. */
+                tag_type->incomplete = TRUE;
+                /* FIXME: idssp->alignment, idssp->pack_size, idssp->traits,
+                          idssp->specifiers, all need to be set manually
+                          here. */
+                /* FIXME: for now: */
+                tag_type->source_corresp.name_linkage =
+                                   (a_name_linkage_kind)nlk_cplusplus_external;
+                il_entity = (char*)tag_type;
+                kind = iek_type;
+              }  /* if */
+            }
+            break;
+          default:
+            unexpected_condition();
+        }  /* switch */
+      }
+      break;
+    case ifc_ds_decl_alias:
+      { Opt<an_ifc_decl_alias> opt_ida;
+
+        construct_node(&opt_ida, decl_idx);
+        if (!opt_ida.has_value()) {
+          goto invalid;
+        }  /* if */
+        if (!mod->init_decl_locator(*opt_ida, &loc)) {
+          goto invalid;
+        }  /* if */
+        if (defer) {
+          defer_symbol_creation(mep, &loc);
+        } else {
+          an_ifc_decl_alias ida = *opt_ida;
+          an_ifc_type_index type = get_ifc_type(ida);
+
+          if (is_from_gmf(get_ifc_specifiers(ida))) {
+            mep->global_module = TRUE;
+          }  /* if */
+          if (type.sort == ifc_ts_type_fundamental) {
+            Opt<an_ifc_type_fundamental> opt_itf;
+
+            construct_node(&opt_itf, type);
+            if (!opt_itf.has_value()) {
+              goto invalid;
+            }  /* if */
+
+            an_ifc_type_basis_sort basis = get_ifc_basis(*opt_itf);
+            if (basis == ifc_tbs_typename) {
+              /* A type alias; declare a typedef for this case. */
+              if (mep->scope == NULL) {
+                mep->scope = get_home_scope(ida);
+                push_module_declaration_context(mep->scope,
+                                                &scope_push_status);
+              }  /* if */
+              if (check_and_set_redeclaration(&loc, mep, &error_position,
+                                              iek_type, &il_entity, &kind)) {
+                break;
+              }  /* if */
+              mod->init_dps(&dps, get_ifc_locus(ida), get_ifc_aliasee(ida),
+                            an_ifc_object_traits_bitfield{},
+                            an_ifc_msvc_traits_bitfield{},
+                            get_ifc_specifiers(ida), get_ifc_access(ida),
+                            an_ifc_expr_index{}, &psss);
+              clear_decl_pos_block(&decl_pos_block);
+              decl_typedef(&loc, &dps, (a_type_ptr)NULL, &decl_pos_block);
+              restore_partial_scope_stack_if_necessary(&psss);
+              il_entity = (char *)dps.sym->variant.type.ptr;
+              kind = iek_type;
+            } else if (basis == ifc_tbs_namespace) {
+              /* A namespace alias. */
+              /* FIXME: unimplemented. */
+              issue_unsupported_construct_error(mod,
+                                                "DeclSort::Alias namespace",
+                                                &error_position);
+              goto invalid;
+            } else {
+              a_string err_msg("Unexpected ", str_for(basis));
+
+              ifc_unexpected(mod, err_msg);
+              goto invalid;
+            }  /* if */
+          } else if (type.sort == ifc_ts_type_forall) {
+            Opt<an_ifc_type_forall> opt_itf;
+
+            construct_node(&opt_itf, get_ifc_aliasee(ida));
+            if (!opt_itf.has_value()) {
+              goto invalid;
+            }  /* if */
+
+            an_ifc_type_forall      itf = *opt_itf;
+            an_ifc_source_location  locus = get_ifc_locus(ida);
+            a_module_token_cache    cache;
+            a_source_position       pos;
+            a_curr_token_preserver  guard;
+            source_position_from_locus(&pos, locus);
+            /* An alias template; declare a typedef for this case. */
+            if (mep->scope == NULL) {
+              mep->scope = get_home_scope(ida);
+              push_module_declaration_context(mep->scope, &scope_push_status);
+            }  /* if */
+            if (check_and_set_redeclaration(&loc, mep, &error_position,
+                                            iek_template, &il_entity, &kind)) {
+              break;
+            }  /* if */
+            cache_token(&cache, tok_template, &pos);
+            mod->cache_chart(&cache, get_ifc_chart(itf), locus, /*cinfo=*/{});
+            cache_token(&cache, tok_using, &pos);
+            cache_identifier(&cache, get_string_at_offset(get_ifc_name(ida)),
+                             &pos);
+            cache_token(&cache, tok_assign, &pos);
+            mod->cache_type(&cache, get_ifc_subject(itf), locus);
+            cache_token(&cache, tok_semicolon, &pos);
+            if (!cache.is_valid()) {
+              goto invalid;
+            }  /* if */
+            il_entity = parse_cached_template(&cache, mep->scope, &kind);
+            if (kind != iek_template) {
+              goto invalid;
+            }  /* if */
+          } else {
+            a_string err_msg("Unexpected ", str_for(type.sort));
+
+            ifc_unexpected(mod, err_msg);
+            goto invalid;
+          }  /* if */
+        }  /* if */
+      }
+      break;
+    case ifc_ds_decl_enumeration:
+      { Opt<an_ifc_decl_enumeration> opt_ide;
+
+        construct_node(&opt_ide, decl_idx);
+        if (!opt_ide.has_value()) {
+          goto invalid;
+        }  /* if */
+
+        an_ifc_decl_enumeration          ide = *opt_ide;
+        an_ifc_source_location           locus = get_ifc_locus(ide);
+        an_ifc_type_index                type = get_ifc_type(ide);
+        an_ifc_basic_specifiers_bitfield specifiers = get_ifc_specifiers(ide);
+        /* FIXME: This does a lot of stuff even when deferred. */
+        if (!source_position_from_locus(&error_position, locus)) {
+          goto invalid;
+        }  /* if */
+        if (is_from_gmf(specifiers)) {
+          mep->global_module = TRUE;
+        }  /* if */
+
+        Opt<an_ifc_type_fundamental> opt_itf;
+        construct_node(&opt_itf, type);
+        if (!opt_itf.has_value()) {
+          goto invalid;
+        }  /* if */
+
+        /* See if this is a scoped enumeration or not. */
+        an_ifc_type_fundamental itf = *opt_itf;
+        an_ifc_type_basis_sort  basis = get_ifc_basis(itf);
+        a_boolean               is_scoped_enum = FALSE;
+        if (basis == ifc_tbs_enum) {
+          /* A classic enumeration.  Don't bother to defer in this case because
+             each of the enumerators needs to be registered in the symbol table
+             so they can be found. */
+          if (defer) {
+            defer = FALSE;
+            mep->imminent = TRUE;
+            push_module_declaration_context(mep->scope, &scope_push_status);
+          }  /* if */
+        } else if (basis == ifc_tbs_class || basis == ifc_tbs_struct) {
+          /* A scoped enumeration.  Enumerator definitions are deferred when
+             the enumeration definition is deferred (enumerators can't be
+             referred to without specifying the scoped enumeration at which
+             time the enumerators will be made available). */
+          is_scoped_enum = TRUE;
+        } else {
+          a_string err_msg("Unexpected ", str_for(basis));
+
+          ifc_unexpected(mod, err_msg);
+          goto invalid;
+        }  /* if */
+
+        an_ifc_text_offset enum_name = get_ifc_name(ide);
+        if (!mod->init_locator_from_name(enum_name, locus, &loc)) {
+          goto invalid;
+        }  /* if */
+        /* FIXME: This should be a soft failure. */
+        check_assertion(enum_name != 0);
+        if (defer) {
+          defer_symbol_creation(mep, &loc);
+        } else {
+          an_ifc_type_index base = get_ifc_base(ide);
+          a_type_ptr        enum_type;
+          a_scope_ptr       enum_scope;
+          a_symbol_ptr      tag_sym;
+          a_scope_depth     scope_depth;
+
+          check_assertion(!is_null_index(base));
+          if (mep->scope == NULL) {
+            mep->scope = get_home_scope(ide);
+            push_module_declaration_context(mep->scope, &scope_push_status);
+          }  /* if */
+          check_assertion(mep->scope != NULL);
+          enum_scope = mep->scope;
+          scope_depth = enum_scope->depth_in_scope_stack;
+          if (check_and_set_redeclaration(&loc, mep, &error_position,
+                                          iek_type, &il_entity, &kind)) {
+            /* FIXME: Is this right? */
+            if (is_defined(il_entity, kind)) {
+              break;
+            }  /* if */
+          }  /* if */
+          mod->init_dps(&dps, locus, base, an_ifc_object_traits_bitfield{},
+                        an_ifc_msvc_traits_bitfield{}, specifiers,
+                        get_ifc_access(ide), get_ifc_alignment(ide), &psss);
+          clear_decl_pos_block(&decl_pos_block);
+          /* Allocate an integer type and set its size based on the type
+             specified by idsep->base. */
+          enum_type = alloc_type((a_type_kind)tk_integer);
+          enum_type->variant.integer.int_kind = (an_integer_kind)ik_int;
+          enum_type->variant.integer.enum_type = TRUE;
+          enum_type->size = skip_typerefs(dps.type)->size;
+          enum_type->variant.integer.has_explicit_enum_base = TRUE;
+          integer_type_supp(enum_type)->base_type = dps.type;
+          if (dps.alignment == 0) {
+            /* Alignment was not specifically specified; use the alignment of
+               the base type. */
+            dps.alignment = skip_typerefs(dps.type)->alignment;
+          }  /* if */
+          enum_type->alignment = dps.alignment;
+          /* FIXME: for now: */
+          enum_type->source_corresp.name_linkage =
+                                   (a_name_linkage_kind)nlk_cplusplus_external;
+          /* FIXME: enum_type->variant.integer.is_template_enum? */
+          enum_type->source_corresp.access =
+                                  scope_stack[decl_scope_level].current_access;
+          /* Process any attributes. */
+          attach_tag_attributes(dps.prefix_attributes, enum_type, &dps,
+                                /*is_definition=*/TRUE,
+                                /*is_forward_decl=*/FALSE,
+                                /*ignore_gnu_attributes=*/TRUE);
+          /* FIXME: not sure about this and its effect on alignment: */
+          set_type_size(enum_type);
+          if (is_scoped_enum) {
+            enum_type->variant.integer.is_scoped_enum = TRUE;
+            enum_scope = push_scope((a_scope_kind)sck_enum, NO_SCOPE_NUMBER,
+                                    enum_type, (a_routine_ptr)NULL);
+            enum_type->variant.integer.enum_info.assoc_scope = enum_scope;
+          }  /* if */
+          /* Create a symbol for the enumeration. */
+          if (is_unnamed_tag(loc.symbol_header->identifier)) {
+            Value_saver<a_scope_depth>  saver(&decl_scope_level,
+                                              /*new_value=*/scope_depth);
+            tag_sym = make_unnamed_tag_symbol((a_symbol_kind)sk_enum_tag,
+                                              &loc.source_position);
+            enum_type->variant.integer.originally_unnamed = TRUE;
+          } else {
+            tag_sym = enter_local_symbol(sk_enum_tag, &loc, scope_depth,
+                                         /*suppress_redecl_error=*/FALSE);
+          } /* if */
+          tag_sym->variant.enumeration.type = enum_type;
+          set_source_corresp(&(enum_type->source_corresp), tag_sym);
+#if NEED_NAME_MANGLING
+          compute_name_collision_discriminator(tag_sym, scope_depth);
+#endif /* NEED_NAME_MANGLING */
+          add_to_types_list(enum_type, scope_depth);
+          /* Set parent membership. */
+          if (scope_is(mep->scope, sck_class_struct_union)) {
+            /* FIXME: never get here because enumerations in classes are loaded
+               via the string mechanism. */
+            set_class_membership(tag_sym, &enum_type->source_corresp,
+                                 mep->scope->variant.assoc_type);
+          } else if (scope_is(mep->scope, sck_namespace) ||
+                     scope_is(mep->scope, sck_namespace_extension)) {
+            set_namespace_membership(tag_sym, &enum_type->source_corresp,
+                                     mep->scope->variant.assoc_namespace);
+          }  /* if */
+          il_entity = (char *)enum_type;
+          kind = iek_type;
+
+          /* Process the enumerators. */
+          an_ifc_sequence             initializer = get_ifc_initializer(ide);
+          a_decl_enumerator_traverser traverser(initializer);
+          for (an_Indexed<an_ifc_decl_enumerator> idxed_enmtr : traverser) {
+            if (!idxed_enmtr.has_value()) {
+              goto invalid;
+            }  /* if */
+
+            an_ifc_decl_index   enumerator_idx =
+                                           to_decl_index(idxed_enmtr.node_idx);
+            a_module_entity_ptr emep =
+                                     get_ifc_module_entity_ptr(enumerator_idx);
+            emep->scope = enum_scope;
+            mod->process_ifc_declaration(emep, /*defer=*/FALSE);
+          }  /* for */
+          integer_type_supp(enum_type)->enumerator_list_seen = TRUE;
+          if (is_scoped_enum) {
+            pop_scope();
+          }  /* if */
+          restore_partial_scope_stack_if_necessary(&psss);
+        }  /* if */
+      }
+      break;
+    case ifc_ds_decl_enumerator:
+      { Opt<an_ifc_decl_enumerator> opt_ide;
+
+        construct_node(&opt_ide, decl_idx);
+        if (!opt_ide.has_value()) {
+          goto invalid;
+        }  /* if */
+        if (!mod->init_decl_locator(*opt_ide, &loc)) {
+          goto invalid;
+        }  /* if */
+        /* FIXME: This should be a soft failure. */
+        check_assertion(get_ifc_name(*opt_ide) != 0);
+        if (defer) {
+          defer_symbol_creation(mep, &loc);
+        } else {
+          an_ifc_decl_enumerator ide = *opt_ide;
+          a_symbol_ptr           enum_con_sym;
+          a_constant_ptr         enum_con;
+          a_memory_region_number region_to_switch_back_to;
+
+          if (is_from_gmf(get_ifc_specifiers(ide))) {
+            mep->global_module = TRUE;
+          }  /* if */
+          if (mep->scope == NULL) {
+            mep->scope = get_home_scope(ide);
+            check_assertion(mep->scope != NULL);
+          }  /* if */
+
+          an_ifc_type_index  type_idx = get_ifc_type(ide);
+          a_type_ptr         enum_type = type_for_type_index(type_idx,
+                                                             /*kind=*/NULL);
+          if (is_error_type(enum_type)) {
+            goto invalid;
+          }  /* if */
+          if (check_and_set_redeclaration(&loc, mep, &error_position,
+                                          iek_constant, &il_entity, &kind)){
+            break;
+          }  /* if */
+          switch_to_file_scope_region(&region_to_switch_back_to);
+          enum_con = mod->constant_for_expr_index(get_ifc_initializer(ide),
+                                                  enum_type);
+          switch_back_to_original_region(region_to_switch_back_to);
+          enum_con->type = enum_type;
+          enum_con->is_named_constant_definition = TRUE;
+          enum_con->source_corresp.parent_scope = mep->scope;
+          enum_con->source_corresp.name_linkage =
+                                        enum_type->source_corresp.name_linkage;
+          enum_con_sym = enter_local_symbol((a_symbol_kind)sk_constant, &loc,
+                                            mep->scope->depth_in_scope_stack,
+                                            /*suppress_redecl_error=*/FALSE);
+          set_source_corresp(&(enum_con->source_corresp), enum_con_sym);
+          enum_con_sym->variant.constant = enum_con;
+          if (!enum_type->variant.integer.is_scoped_enum &&
+              sym_is_namespace_member(symbol_for(enum_type))) {
+            /* Unscoped enumerators in a namespace are placed in the
+               namespace. */
+            /* FIXME: Note that we don't handle the class case here (because
+               that's currently handled with strings). */
+            set_namespace_membership(enum_con_sym, &enum_con->source_corresp,
+                                     sym_parent_namespace(
+                                                       symbol_for(enum_type)));
+          }  /* if */
+          /* FIXME: not currently doing anything with specifiers or access. */
+          /* Add the constant to the list of constants for the enumeration type
+             (note that the order of enumerators on the list is not necessarily
+             the order that they appear in the enumeration, rather it's the
+             order they are accessed in if definitions are deferred). */
+          if (enum_type->variant.integer.is_scoped_enum) {
+            enum_con->next = mep->scope->constants;
+            mep->scope->constants = enum_con;
+          } else {
+            enum_con->next =
+                            enum_type->variant.integer.enum_info.constant_list;
+            enum_type->variant.integer.enum_info.constant_list = enum_con;
+          }  /* if */
+          il_entity = (char *)enum_con;
+          kind = iek_constant;
+        }  /* if */
+      }
+      break;
+    case ifc_ds_decl_template:
+      { Opt<an_ifc_decl_template> opt_idt;
+
+        construct_node(&opt_idt, decl_idx);
+        if (!opt_idt.has_value()) {
+          goto invalid;
+        }  /* if */
+        if (!mod->init_decl_locator(*opt_idt, &loc)) {
+          goto invalid;
+        }  /* if */
+
+        an_ifc_decl_template idt = *opt_idt;
+#if CHECKING
+        {
+          an_ifc_type_index ifc_type = get_ifc_type(idt);
+          a_boolean         is_deduction_guide = FALSE;
+
+          if (is_null_index(ifc_type)) {
+            /* Deduction guide templates have no associated type.  They are
+               driven by the IFC "traits" system instead of by lookup (which
+               means they are never "deferred"). */
+            is_deduction_guide = TRUE;
+            check_assertion(!defer);
+          }  /* if */
+          /* FIXME: This should be a soft failure. */
+          check_assertion(!is_null_index(get_ifc_name(idt)) ||
+                          is_deduction_guide);
+        }
+#endif /* CHECKING */
+        if (defer) {
+          defer_symbol_creation(mep, &loc);
+        } else {
+          an_ifc_basic_specifiers_bitfield
+                                 specifiers = get_ifc_specifiers(idt);
+          a_curr_token_preserver guard;
+          an_ifc_cache_info      cache_info;
+
+          if (is_from_gmf(specifiers)) {
+            mep->global_module = TRUE;
+          }  /* if */
+          if (mep->scope == NULL) {
+            mep->scope = get_home_scope(idt);
+            push_module_declaration_context(mep->scope, &scope_push_status);
+          }  /* if */
+
+          if (check_and_set_template_redeclaration(&loc, mep, &error_position,
+                                                   &il_entity, &kind)) {
+            a_template_ptr templ = (a_template_ptr)il_entity;
+
+            update_cache_info_for_template(&cache_info, templ);
+            /* Skip any further processing when the variable template is not
+               declared "extern" (as variable template declarations cannot
+               otherwise be meaningfully "merged"). */
+            if (templ->kind == templk_variable) {
+              a_variable_ptr variable =
+                                       templ->prototype_instantiation.variable;
+
+              if (variable->storage_class != sc_extern) {
+                goto done;
+              }  /* if */
+            }  /* if */
+          }  /* if */
+          /* Compute the DeclIndex of the current template and retrieve the
+             sequence of explicit specializations and instantiations. */
+          an_ifc_template_spec_info spec_info(decl_idx);
+          /* FIXME: Find a better way to handle self references; currently we
+             forward declare in almost all cases in part to handle self
+             references. */
+          an_ifc_decl_index         entity_decl =
+                                             get_ifc_decl(get_ifc_entity(idt));
+          a_boolean                 forward_declare =
+                                              (!cache_info.ignore_definition &&
+                                   (entity_decl.sort != ifc_ds_decl_variable));
+          a_boolean                 defer_definition = FALSE;
+          if (forward_declare) {
+            a_module_token_cache cache;
+            an_ifc_cache_info    local_cache_info = cache_info;
+
+            /* Disable definition caching, this is a forward declaration for
+               the partial specializations that follow. */
+            local_cache_info.ignore_definition = TRUE;
+
+            mod->cache_decl_template(&cache, idt, local_cache_info);
+            if (!cache.is_valid()) {
+              goto invalid;
+            }  /* if */
+            il_entity = parse_cached_template(&cache, mep->scope, &kind);
+            if (kind != iek_template) {
+              goto invalid;
+            }  /* if */
+            if (is_file_or_namespace_scope(mep->scope)) {
+              defer_definition = TRUE;
+            }  /* if */
+            if (spec_info.has_specs()) {
+              spec_info.process_specializations();
+            }  /* if */
+          }  /* if */
+          if (defer_definition) {
+            check_assertion(il_entity != NULL && kind == iek_template);
+            record_pending_ifc_template_definition((a_template_ptr)il_entity,
+                                                   decl_idx);
+          } else {
+            /* If the definition hasn't been deferred (from a compatible
+               forward declaration being processed), process the definition
+               now.  If the declaration was not forward declared, be sure to
+               process any specializations as part of definition processing. */
+            if (!process_template_definition(
+                                            idt, mep, spec_info,
+                                            /*process_specs=*/!forward_declare,
+                                            &il_entity,
+                                            &kind)) {
+              goto invalid;
+            }  /* if */
+          }  /* if */
+        }  /* if */
+      }
+      break;
+    case ifc_ds_decl_parameter:
+      { Opt<an_ifc_decl_parameter> opt_idp;
+
+        construct_node(&opt_idp, decl_idx);
+        if (!opt_idp.has_value()) {
+          goto invalid;
+        }  /* if */
+        if (!mod->init_decl_locator(*opt_idp, &loc)) {
+          goto invalid;
+        }  /* if */
+        /* FIXME: This should be a soft failure. */
+        check_assertion(get_ifc_name(*opt_idp) != 0);
+
+        an_ifc_decl_parameter     idp = *opt_idp;
+        an_ifc_type_index         type_idx = get_ifc_type(idp);
+        a_type_ptr                param_type;
+        a_template_param_ptr      param = NULL, *next_param;
+        a_template_parameter_ptr  il_param = NULL;
+        a_boolean                 is_pack = FALSE;
+        /* FIXME: constraint_expr = expr_for_expr_index(idspp->constraint);*/
+        /* FIXME: init_expr = expr_for_expr_index(idspp->initializer); */
+        if (type_idx.sort == ifc_ts_type_expansion) {
+          /* FIXME: Currently unsupported. */
+          is_pack = TRUE;
+          issue_unsupported_construct_error(mod, "DeclSort::Parameter packs",
+                                            &error_position);
+        }  /* if */
+        /* FIXME: Currently all paths that lead here have
+           curr_templ_decl_state == NULL. */
+        switch (get_ifc_sort(idp)) {
+          case ifc_ps_object:
+            /* FIXME: Currently unsupported. */
+            issue_unsupported_construct_error(mod, "ParameterSort::Object",
+                                              &error_position);
+            param = make_nontype_template_param(get_ifc_level(idp),
+                                                get_ifc_position(idp),
+                                                /*is_unnamed=*/FALSE,
+                                                is_pack,
+                                                /*is_pack_element=*/FALSE,
+                                                /*is_non_initial=*/FALSE,
+                                                /*is_pack_expansion=*/FALSE,
+                                                &loc, error_type(),
+                                                mod->curr_templ_decl_state);
+            break;
+          case ifc_ps_type:
+            /* FIXME: Handle unnamed parameters properly */
+            param = decl_type_template_param(get_ifc_position(idp), &loc,
+                                             /*is_named=*/TRUE, is_pack,
+                                             /*constraint=*/NULL,
+                                             mod->curr_templ_decl_state,
+                                             &mod->curr_templ_decl_state->
+                                                               decl_pos_block);
+            break;
+          case ifc_ps_non_type:
+            param_type = type_for_type_index(get_ifc_type(idp), /*kind=*/NULL);
+            /* FIXME: Handle unnamed parameters properly. */
+            param = make_nontype_template_param(get_ifc_level(idp),
+                                                get_ifc_position(idp),
+                                                /*is_unnamed=*/FALSE,
+                                                is_pack,
+                                                /*is_pack_element=*/FALSE,
+                                                /*is_non_initial=*/FALSE,
+                                                /*is_pack_expansion*/FALSE,
+                                                &loc, param_type,
+                                                mod->curr_templ_decl_state);
+            break;
+          case ifc_ps_template:
+            /* FIXME: Currently unsupported. */
+            issue_unsupported_construct_error(mod, "ParameterSort::Template",
+                                              &error_position);
+            param = make_nontype_template_param(get_ifc_level(idp),
+                                                get_ifc_position(idp),
+                                                /*is_unnamed=*/FALSE,
+                                                is_pack,
+                                                /*is_pack_element=*/FALSE,
+                                                /*is_non_initial=*/FALSE,
+                                                /*is_pack_expansion=*/FALSE,
+                                                &loc, error_type(),
+                                                mod->curr_templ_decl_state);
+            break;
+          default_is_unexpected_str("Unexpected ParameterSort");
+        }  /* switch */
+        if (param != NULL) {
+          next_param = &mod->curr_templ_decl_state->decl_info->parameters;
+          /* Skip to end of parameter list. */
+          for (; *next_param != NULL; next_param = &(*next_param)->next) {}
+          *next_param = param;
+          ++mod->curr_templ_decl_state->decl_info->n_params;
+          il_param = alloc_template_parameter();
+          param->il_template_parameter = il_param;
+          param->param_symbol->is_invisible = FALSE;
+          il_entity = (char*)il_param;
+          kind = iek_template_parameter;
+        }  /* if */
+      }
+      break;
+    case ifc_ds_decl_reference:
+      { Opt<an_ifc_decl_reference> opt_idr;
+
+        construct_node(&opt_idr, decl_idx);
+        if (!opt_idr.has_value()) {
+          goto invalid;
+        }  /* if */
+
+        a_module_entity_ptr dmep = process_decl_via_reference(*opt_idr);
+        il_entity = dmep->entity.ptr;
+        kind = dmep->entity.kind;
+        /* The module entity pointer sometimes already has a scope (e.g.,
+           from lighter nested-name-specified processing). */
+        ifc_requirement(get_assoc_ifc_module(dmep),
+                        mep->scope == NULL || dmep->scope == mep->scope,
+                        "expected a matching scope");
+        mep->scope = dmep->scope;
+      }
+      break;
+    case ifc_ds_decl_method:
+    case ifc_ds_decl_constructor:
+    case ifc_ds_decl_destructor:
+    case ifc_ds_decl_field:
+    case ifc_ds_decl_bitfield:
+    case ifc_ds_decl_property:
+      /* These entities can only exist in a class and class definitions are
+         currently handled by scanning a token representation of the class. */
+      { a_string err_msg("Unexpected ", str_for(decl_idx.sort));
+
+        ifc_unexpected(mod, err_msg);
+      }
+      goto invalid;
+    case ifc_ds_decl_temploid:
+      { Opt<an_ifc_decl_temploid> opt_idt;
+
+        construct_node(&opt_idt, decl_idx);
+        if (!opt_idt.has_value()) {
+          goto invalid;
+        }  /* if */
+        /* FIXME: Need a proper source position here. */
+        error_position = null_source_position;
+        goto unhandled;
+      }
+    case ifc_ds_decl_partial_specialization:
+      { Opt<an_ifc_decl_partial_specialization> opt_idps;
+
+        construct_node(&opt_idps, decl_idx);
+        if (!opt_idps.has_value()) {
+          goto invalid;
+        }  /* if */
+        if (!mod->init_decl_locator(*opt_idps, &loc)) {
+          goto invalid;
+        }  /* if */
+        /* Partial specializations should not be added to the deferred symbol
+           list as they'll be processed when the primary template is processed
+           via the associated entries in "trait.specialization". */
+        if (defer) {
+          associate_spec_with_template(decl_idx, *opt_idps);
+        } else {
+          an_ifc_decl_partial_specialization idps = *opt_idps;
+
+          mod->lazy_push_module_scope(idps, mep, &scope_push_status);
+          /* FIXME: Is it feasible to detect ignorable redeclarations of
+             partial specializations? */
+          if (get_ifc_body(get_ifc_entity(idps)) != 0) {
+            a_module_token_cache cache;
+
+            /* There is a definition of the partial specialization.  Record the
+               resolution of the signature immediately so that the below
+               processing of the definition has access to it. */
+            mod->cache_decl_partial_specialization(&cache, decl_idx, idps);
+            if (!cache.is_valid()) {
+              goto invalid;
+            }  /* if */
+            il_entity = parse_cached_partial_specialization(&cache,
+                                                            mep->scope,
+                                                            &kind);
+            if (kind != iek_template) {
+              goto invalid;
+            }  /* if */
+          }  /* if */
+        }  /* if */
+      }
+      break;
+    case ifc_ds_decl_specialization:
+      { Opt<an_ifc_decl_specialization> opt_ids;
+
+        construct_node(&opt_ids, decl_idx);
+        if (!opt_ids.has_value()) {
+          goto invalid;
+        }  /* if */
+        if (!mod->init_decl_locator(*opt_ids, &loc)) {
+          goto invalid;
+        }  /* if */
+        /* Specializations should not be added to the deferred symbol list as
+           they'll be processed when the primary template is processed via the
+           associated entries in "trait.specialization". */
+        if (defer) {
+          associate_spec_with_template(decl_idx, *opt_ids);
+        } else {
+          an_ifc_decl_specialization ids = *opt_ids;
+          a_module_token_cache       cache;
+          an_ifc_cache_info          cache_info;
+
+          mod->lazy_push_module_scope(ids, mep, &scope_push_status);
+          if (check_and_set_specialization_redeclaration(&loc, mep, ids,
+                                                         &error_position,
+                                                         &il_entity,
+                                                         &kind)) {
+            /* Specializations are fairly simple in nature; if the
+               specialization is already declared and already defined, there's
+               nothing to add; skip processing. */
+            if (is_defined(il_entity, kind)) {
+              break;
+            }  /* if */
+          }  /* if */
+          mod->cache_decl_specialization(&cache, decl_idx, ids, cache_info);
+          if (!cache.is_valid()) {
+            goto invalid;
+          }  /* if */
+          if (get_ifc_sort(ids) == ifc_ss_instantiation) {
+            il_entity = mod->parse_cached_explicit_instantiation(&cache, ids,
+                                                                 &kind);
+          } else {
+            il_entity = mod->parse_cached_explicit_specialization(&cache,
+                                                                  mep->scope,
+                                                                  ids,
+                                                                  &kind);
+          }  /* if */
+          if (kind != iek_template) {
+            goto invalid;
+          }  /* if */
+        }  /* if */
+      }
+      break;
+    case ifc_ds_decl_concept:
+      { Opt<an_ifc_decl_concept> opt_idc;
+
+        construct_node(&opt_idc, decl_idx);
+        if (!opt_idc.has_value()) {
+          goto invalid;
+        }  /* if */
+        if (!mod->init_decl_locator(*opt_idc, &loc)) {
+          goto invalid;
+        }  /* if */
+        if (defer) {
+          defer_symbol_creation(mep, &loc);
+        } else {
+          /* Create a definition for the concept and scan it. */
+          an_ifc_decl_concept    idc = *opt_idc;
+          a_curr_token_preserver guard;
+
+          if (is_from_gmf(get_ifc_specifiers(idc))) {
+            mep->global_module = TRUE;
+          }  /* if */
+          /* Activate the parent scope if needed. */
+          if (mep->scope == NULL) {
+            mep->scope = get_home_scope(idc);
+            push_module_declaration_context(mep->scope, &scope_push_status);
+          }  /* if */
+
+          a_module_token_cache cache;
+          an_ifc_cache_info    cache_info;
+          if (check_and_set_redeclaration(&loc, mep, &error_position,
+                                          iek_template, &il_entity, &kind)) {
+            goto done;
+          }  /* if */
+          cache_direct_decl(&cache, idc, cache_info);
+          /* Parse the definition cache. */
+          if (!cache.is_valid()) {
+            goto invalid;
+          }  /* if */
+          il_entity = parse_cached_template(&cache, mep->scope, &kind);
+        }  /* if */
+      }
+      break;
+    case ifc_ds_decl_inherited_constructor:
+      { Opt<an_ifc_decl_inherited_constructor> opt_idic;
+
+        construct_node(&opt_idic, decl_idx);
+        if (!opt_idic.has_value()) {
+          goto invalid;
+        }  /* if */
+
+        an_ifc_source_location locus = get_ifc_locus(*opt_idic);
+        source_position_from_locus(&error_position, locus);
+        goto unhandled;
+      }
+    case ifc_ds_decl_output_segment:
+      { Opt<an_ifc_decl_output_segment> opt_idos;
+
+        construct_node(&opt_idos, decl_idx);
+        if (!opt_idos.has_value()) {
+          goto invalid;
+        }  /* if */
+        /* FIXME: Need a proper source position here. */
+        error_position = null_source_position;
+        goto unhandled;
+      }
+    case ifc_ds_decl_using_declaration:
+      { Opt<an_ifc_decl_using_declaration> opt_idud;
+
+        construct_node(&opt_idud, decl_idx);
+        if (!opt_idud.has_value()) {
+          goto invalid;
+        }  /* if */
+
+        an_ifc_decl_using_declaration idud = *opt_idud;
+        an_ifc_source_location        locus = get_ifc_locus(idud);
+        if (defer) {
+          if (!mod->init_locator_from_name(get_ifc_name(idud), locus, &loc)) {
+            goto invalid;
+          }  /* if */
+          defer_symbol_creation(mep, &loc);
+        } else {
+          an_ifc_decl_index resolution = get_ifc_resolution(idud);
+
+          if (!source_position_from_locus(&error_position, locus)) {
+            goto invalid;
+          }  /* if */
+          if (resolution.sort == ifc_ds_decl_tuple) {
+            /* FIXME: Overload set? */
+            goto unhandled;
+          }  /* if */
+          a_module_entity_ptr umep = process_decl_at_index(resolution);
+          if (scope_is(umep->scope, sck_class_struct_union)) {
+            /* FIXME: Need to call create_member_using_declaration here. */
+            goto unhandled;
+          } else {
+            /* Non-member using declaration.  Could be file scope or namespace
+               scope. */
+            a_symbol_ptr            null_sym_ptr = NULL, aliased_sym;
+            a_using_decl_ptr        prev_udp = NULL;
+            a_namespace_ptr         nsp = NULL;
+            a_source_correspondence *scp =
+                                    (a_source_correspondence*)umep->entity.ptr;
+            aliased_sym = (a_symbol_ptr)scp->assoc_info;
+            if (scp->parent_scope == NULL) {
+              /* Probably shouldn't happen, but happens now because of other
+                 issues. */
+              goto unhandled;
+            }  /* if */
+            if (scope_is(scp->parent_scope, sck_namespace)) {
+              nsp = scp_parent_namespace(scp);
+            }  /* if */
+            if (symbol_is(aliased_sym, sk_namespace)) {
+              /* A namespace alias. */
+              a_symbol_ptr  ns_sym;
+              if (!mod->init_locator_from_name(get_ifc_name(idud), locus,
+                                               &loc)) {
+                goto invalid;
+              }  /* if */
+              /* Check for a conflict with another declaration. */
+              ns_sym = curr_scope_id_lookup(&loc, IDL_NO_OPTIONS);
+              if (ns_sym != NULL) {
+                /* The alias name is already present in this scope.  That is
+                   okay only if it names an equivalent alias. */
+                a_boolean  mismatch = FALSE;
+                if (!symbol_is(ns_sym, sk_namespace)) {
+                  mismatch = TRUE;
+                } else {
+                  a_namespace_ptr  prev = ns_sym->variant.namespace_info.ptr;
+                  if (!prev->is_namespace_alias) {
+                    mismatch = TRUE;
+                  } else if (skip_namespace_aliases(prev) !=
+                             skip_namespace_aliases(
+                                    aliased_sym->variant.namespace_info.ptr)) {
+                    mismatch = TRUE;
+                  }  /* if */
+                }  /* if */
+                if (mismatch) {
+                  pos_sy_error(ec_already_defined, &error_position, ns_sym);
+                }  /* if */
+              }  /* if */
+              (void)make_namespace_alias(ns_sym, &loc, aliased_sym,
+                                         (a_source_sequence_entry*)NULL);
+            } else {
+            /* FIXME: This will need to be re-worked when handling the
+               ifc_DeclSort_Tuple case (i.e., multiple items). */
+              create_nonmember_using_declaration((a_symbol_ptr)scp->assoc_info,
+                                                 &null_sym_ptr,
+                                                 (a_symbol_ptr)NULL,
+                                                 nsp,
+                                                 (a_type_ptr)NULL,
+                                                 &prev_udp,
+                                                 /*is_list=*/FALSE,
+                                                 /*suppress_redecl_error=*/TRUE,
+                                                 (an_attribute_ptr)NULL,
+                                                 /*copy_attributes=*/FALSE);
+            }  /* if */
+          }  /* if */
+        }  /* if */
+      }
+      break;
+    case ifc_ds_decl_friend:
+      { Opt<an_ifc_decl_friend> opt_idf;
+
+        construct_node(&opt_idf, decl_idx);
+        if (!opt_idf.has_value()) {
+          goto invalid;
+        }  /* if */
+        /* FIXME: Need a proper source position here. */
+        error_position = null_source_position;
+        goto unhandled;
+      }
+    case ifc_ds_decl_tuple:
+      /* An overload set. */
+      { Opt<an_ifc_decl_tuple> opt_idt;
+
+        construct_node(&opt_idt, decl_idx);
+        if (!opt_idt.has_value()) {
+          goto invalid;
+        }  /* if */
+
+        /* Collect the entries of the overload set in a list of IL entries
+           (an_il_entity_list_entry_ptr). */
+        a_decl_heap_traverser  traverser(*opt_idt);
+        a_scope_ptr            scope = mep->scope;
+        for (an_Indexed<an_ifc_heap_decl> indexed_ihd : traverser) {
+          if (!indexed_ihd.has_value()) {
+            goto invalid;
+          }  /* if */
+
+          an_ifc_decl_index   heap_value = get_ifc_value(*indexed_ihd);
+          a_module_entity_ptr emep = get_ifc_module_entity_ptr(heap_value);
+          /* In at least some cases (the handling of deduction guides), the
+             caller will have filled in mep->scope and that should be
+             propagated to the individual associated declarations. */
+          if (scope != NULL) emep->scope = scope;
+          mod->process_ifc_declaration(emep, /*defer=*/FALSE);
+          if (scope == NULL) mep->scope = emep->scope;
+
+          a_source_correspondence  *scp;
+          scp = source_corresp_for_il_entry(emep->entity.ptr,
+                                            emep->entity.kind);
+          if (scp == NULL || scp->assoc_info == NULL) {
+            /* Something went wrong loading this member of the set.  Ignore it
+               in what follows. */
+          } else {
+            an_il_entity_list_entry_ptr ielep = alloc_il_entity_list_entry();
+
+            ielep->next = (an_il_entity_list_entry*)il_entity;
+            il_entity = (char*)ielep;
+            ielep->entity = emep->entity;
+          }  /* if */
+        }  /* for */
+        kind = iek_il_entity_list_entry;
+      }
+      break;
+    case ifc_ds_decl_expansion:
+      { Opt<an_ifc_decl_expansion> opt_ide;
+
+        construct_node(&opt_ide, decl_idx);
+        if (!opt_ide.has_value()) {
+          goto invalid;
+        }  /* if */
+
+        an_ifc_source_location locus = get_ifc_locus(*opt_ide);
+        source_position_from_locus(&error_position, locus);
+        goto unhandled;
+      }
+    case ifc_ds_decl_deduction_guide:
+      { Opt<an_ifc_decl_deduction_guide> opt_iddg;
+
+        construct_node(&opt_iddg, decl_idx);
+        if (!opt_iddg.has_value()) {
+          goto invalid;
+        }  /* if */
+
+        an_ifc_source_location locus = get_ifc_locus(*opt_iddg);
+        source_position_from_locus(&error_position, locus);
+        goto unhandled;
+      }
+    case ifc_ds_decl_barren:
+    case ifc_ds_decl_using_directive:
+    case ifc_ds_decl_syntax_tree:
+      { /* FIXME: Need a proper source position here. */
+        error_position = null_source_position;
+unhandled:
+        issue_unsupported_construct_error(mod, str_for(decl_idx.sort),
+                                          &error_position);
+        il_entity = (char *)error_type();
+        kind = iek_type;
+      }
+      break;
+    default_is_unexpected_str("Unexpected DeclSort");
+  }  /* switch */
+  goto done;
+invalid:
+#if DEBUG
+  ++num_module_decls_failed;
+#endif /* DEBUG */
+  mep->invalid = TRUE;
+done:
+  if (!defer) {
+    /* Handle all cases where we didn't successfully consturct an IL entity by
+       marking the mep invalid. */
+    if (il_entity == NULL) {
+      mep->invalid = TRUE;
+    }  /* if */
+#if DEBUG
+    if (db_flag_is_set("ms_symbols")) {
+      (void)fprintf(f_debug, "Module entity defined: ");
+      db_module_entity(mep);
+    }  /* if */
+#endif /* DEBUG */
+    /* If a scope was pushed, scope popping should always occur. */
+    if (scope_push_status != mspk_unattempted) {
+      pop_module_declaration_context(scope_push_status);
+    }  /* if */
+  }  /* if */
+#if DEBUG
+  if (db_flag_is_set("ifc_idx")) {
+    (void)fprintf(f_debug, "Done with %s (%d)\n", str_for(decl_idx.sort),
+                  decl_idx.value);
+  }  /* if */
+#endif /* DEBUG */
+  curr_module_entity = saved_mep;
+  error_position = saved_error_position;
+}  /* process_decl_to_il_entity */
+
+
+void an_ifc_module::process_ifc_declaration(a_module_entity_ptr mep,
+                                            a_boolean           defer)
+/*
+Process the IFC module entity declaration specified by mep.  When defer is
+TRUE, no IL entity is created; instead, the appropriate symbol header is
+updated to note the deferred entity for lazy loading.  When defer is FALSE, we
+immediately process *mep and attempt to form an IL entity; if no IL entity can
+be formed, *mep will marked as invalid.
+*/
+{
 
   /* Ensure the module entity is being processed by the corresponding module
      interface. */
@@ -5567,1461 +7019,8 @@ be formed, *mep will marked as invalid.
     db_mep(mep);
   }  /* if */
 #endif /* DEBUG */
-  if (!mep->imminent && il_entity == NULL) {
-    a_source_position           saved_error_position = error_position;
-    a_module_entity_ptr         saved_mep = curr_module_entity;
-    a_ms_mode_parse             tmp_ms_parse(this);
-    an_ifc_decl_index           decl_idx = decl_index_of(mep);
-    a_module_entity_stack_state mep_state(mep);
-
-#if DEBUG
-    ++num_module_decls_attempted;
-    if (db_flag_is_set("ifc_idx")) {
-      (void)fprintf(f_debug, "Processing %s (%d)\n", str_for(decl_idx.sort),
-                    decl_idx.value);
-    }  /* if */
-#endif /* DEBUG */
-    curr_module_entity = mep;
-    if (!defer) {
-      mep->imminent = TRUE;
-      if (mep->scope != NULL) {
-        /* If this module entity has a scope, attempt to re-activate it now.
-           If it does not already have a scope, one may be created below. */
-        push_module_declaration_context(mep->scope, &scope_push_status);
-      }  /* if */
-    }  /* if */
-    switch (decl_idx.sort) {
-      case ifc_ds_decl_vendor_extension:
-      case ifc_ds_decl_explicit_instantiation:
-      case ifc_ds_decl_explicit_specialization:
-        /* FIXME: Need a proper source position for this. */
-        error_position = null_source_position;
-        issue_unsupported_construct_error(this, str_for(decl_idx.sort),
-                                          &error_position);
-        il_entity = (char *)error_type();
-        kind = iek_type;
-        break;
-      case ifc_ds_decl_variable:
-        { Opt<an_ifc_decl_variable> opt_idv;
-
-          construct_node(&opt_idv, decl_idx);
-          if (!opt_idv.has_value()) {
-            goto invalid;
-          }  /* if */
-          if (!init_decl_locator(*opt_idv, &loc)) {
-            goto invalid;
-          }  /* if */
-          if (defer) {
-            defer_symbol_creation(mep, &loc);
-          } else {
-            an_ifc_decl_variable idv = *opt_idv;
-            a_module_token_cache cache;
-
-            if (is_from_gmf(get_ifc_specifiers(idv))) {
-              mep->global_module = TRUE;
-            }  /* if */
-            if (mep->scope == NULL) {
-              mep->scope = get_home_scope(idv);
-              push_module_declaration_context(mep->scope, &scope_push_status);
-            }  /* if */
-            init_decl_parse_state(&dps);
-            /* Naming aside, setting this is required to allow the inline
-               keyword on variable declarations. */
-            dps.function_definition_allowed = TRUE;
-
-            an_ifc_cache_info cache_info;
-            if (check_and_set_redeclaration(&loc, mep, &error_position,
-                                            iek_variable, &il_entity, &kind)) {
-              if (is_defined(il_entity, kind)) {
-                cache_info.ignore_definition = TRUE;
-              }  /* if */
-              check_assertion(kind == iek_variable);
-
-              /* Skip any further processing when the variable is not declared
-                 "extern" (as variable declarations cannot otherwise be
-                 meaningfully "merged"). */
-              a_variable_ptr variable = (a_variable_ptr)il_entity;
-              if (variable->storage_class != sc_extern) {
-                goto done;
-              }  /* if */
-            }  /* if */
-            cache_decl(&cache, decl_idx, cache_info);
-#if DEBUG
-            if (db_flag_is_set("ms_ifc_token_def")) {
-              fprintf(f_debug, "Reconstituted variable declaration:\n");
-              db_tokens(&cache);
-              fprintf(f_debug, "\n---------------------\n");
-            }  /* if */
-#endif /* DEBUG */
-            if (!cache.is_valid()) {
-              goto invalid;
-            }  /* if */
-            {
-              a_module_entity_rescan rescan(&cache);
-
-              scan_nonmember_declaration(&dps, /*a_source_range=*/NULL);
-            }
-            if (dps.sym != NULL && symbol_is(dps.sym, sk_variable)) {
-              il_entity = (char *)dps.sym->variant.variable.ptr;
-              kind = iek_variable;
-            }  /* if */
-          }  /* if */
-        }
-        break;
-      case ifc_ds_decl_function:
-        { Opt<an_ifc_decl_function> opt_idf;
-
-          construct_node(&opt_idf, decl_idx);
-          if (!opt_idf.has_value()) {
-            goto invalid;
-          }  /* if */
-          if (!init_decl_locator(*opt_idf, &loc)) {
-            goto invalid;
-          }  /* if */
-          if (defer) {
-            defer_symbol_creation(mep, &loc);
-          } else {
-            /* FIXME: lots more to do here. */
-            an_ifc_decl_function idf = *opt_idf;
-
-#if BUILTIN_FUNCTIONS_ENABLED
-            if (is_builtin_function(idf, &loc)) {
-              /* This is a builtin function, trigger builtin processing. */
-              a_symbol_ptr builtin_sym;
-
-              if (builtin_needs_to_be_loaded(loc.symbol_header)) {
-                builtin_sym =
-                             load_matching_builtin_function(loc.symbol_header);
-              } else {
-                builtin_sym =
-                       file_scope_id_lookup(il_header.primary_scope, &loc,
-                                            IDL_DIRECT_NAMESPACE_MEMBERS_ONLY |
-                                            IDL_SUPPRESS_DECL_SEQ_CHECK);
-              }  /* if */
-              if (builtin_sym == NULL) {
-                goto invalid;
-              }  /* if */
-              il_entity = (char *)builtin_sym->variant.routine.ptr;
-              kind = iek_routine;
-            } else
-#endif /* BUILTIN_FUNCTIONS_ENABLED */
-            /* Do not add code here. */
-            {
-              an_ifc_function_traits_bitfield traits = get_ifc_traits(idf);
-              a_func_info_block               func_info;
-              a_type_ptr                      old_type;
-              a_routine_ptr                   rp;
-              a_boolean                       is_consteval;
-
-              /* FIXME: There's a chicken-and-egg problem here when the return
-                 type is deduced and requires access to the class scope (e.g.,
-                 returning a lambda declared within the function). */
-              if (mep->scope == NULL) {
-                mep->scope = get_home_scope(idf);
-                push_module_declaration_context(mep->scope,
-                                                &scope_push_status);
-              }  /* if */
-              init_dps(&dps, get_ifc_locus(idf), get_ifc_type(idf),
-                       an_ifc_object_traits_bitfield{},
-                       an_ifc_msvc_traits_bitfield{},
-                       get_ifc_specifiers(idf), get_ifc_access(idf),
-                       an_ifc_expr_index{}, &psss);
-              is_consteval = test_bitmask<ifc_ftb_immediate>(traits);
-              if (is_consteval) {
-                dps.dso_flags |= DSO_CONSTEVAL;
-              } else if (test_bitmask<ifc_ftb_constexpr>(traits)) {
-                dps.dso_flags |= DSO_CONSTEXPR;
-              } else if (test_bitmask<ifc_ftb_inline>(traits)) {
-                dps.dso_flags |= DSO_INLINE;
-              }  /* if */
-              clear_func_info(&func_info);
-              clear_decl_pos_block(&decl_pos_block);
-              decl_routine(&loc, &dps, &func_info, SRK_DECLARATION,
-                           &linkage_ptr, &old_type, &ext_sym, &decl_pos_block);
-              restore_partial_scope_stack_if_necessary(&psss);
-              rp = dps.sym->variant.routine.ptr;
-              il_entity = (char *)rp;
-              kind = iek_routine;
-              if (!fill_in_routine_parameter_defaults(get_ifc_chart(idf),
-                                                      dps.type,
-                                                      is_consteval)) {
-                goto invalid;
-              }  /* if */
-              if (function_is_user_defined(idf)) {
-                /* A body is available: Record this availability in case it is
-                   needed. */
-                record_pending_ifc_function_body(rp, decl_idx);
-              }  /* if */
-            }  /* if */
-          }  /* if */
-        }
-        break;
-      case ifc_ds_decl_intrinsic:
-        /* A builtin function declaration. */
-        { Opt<an_ifc_decl_intrinsic> opt_idi;
-
-          construct_node(&opt_idi, decl_idx);
-          if (!opt_idi.has_value()) {
-            goto invalid;
-          }  /* if */
-          if (!init_decl_locator(*opt_idi, &loc)) {
-            goto invalid;
-          }  /* if */
-          if (defer) {
-            defer_symbol_creation(mep, &loc);
-          } else {
-            an_ifc_decl_intrinsic idi = *opt_idi;
-            a_func_info_block     func_info;
-            a_type_ptr            old_type;
-            a_routine_ptr         rp;
-
-            /* FIXME: lots more to do here (just copied
-               ifc_DeclSort_Function).*/
-            init_dps(&dps, get_ifc_locus(idi), get_ifc_type(idi),
-                     an_ifc_object_traits_bitfield{},
-                     an_ifc_msvc_traits_bitfield{}, get_ifc_specifiers(idi),
-                     get_ifc_access(idi), an_ifc_expr_index{}, &psss);
-            clear_func_info(&func_info);
-            clear_decl_pos_block(&decl_pos_block);
-            decl_routine(&loc, &dps, &func_info, SRK_DECLARATION, &linkage_ptr,
-                         &old_type, &ext_sym, &decl_pos_block);
-            restore_partial_scope_stack_if_necessary(&psss);
-            rp = dps.sym->variant.routine.ptr;
-            mep->scope = rp->source_corresp.parent_scope;
-            il_entity = (char *)rp;
-            kind = iek_routine;
-          }  /* if */
-        }
-        break;
-      case ifc_ds_decl_scope:
-        /* A DeclSort::Scope, which indicates a namespace or a
-           class/struct/union.  Note that although these declare "scopes",
-           the IL entity that is attached to them is either a namespace or
-           a type. */
-        { Opt<an_ifc_decl_scope> opt_ids;
-
-          construct_node(&opt_ids, decl_idx);
-          if (!opt_ids.has_value()) {
-            goto invalid;
-          }  /* if */
-          if (!init_decl_locator(*opt_ids, &loc)) {
-            goto invalid;
-          }  /* if */
-
-          an_ifc_decl_scope ids = *opt_ids;
-          a_type_kind       type_kind;
-          a_symbol_kind     tag_kind;
-          /* Should be no unnamed namespaces or types. */
-          /* FIXME: This should be a soft failure. */
-          check_assertion(!is_null_index(get_ifc_name(ids)));
-          if (is_from_gmf(get_ifc_specifiers(ids))) {
-            mep->global_module = TRUE;
-          }  /* if */
-          if (mep->scope == NULL) {
-            mep->scope = get_home_scope(ids);
-            push_module_declaration_context(mep->scope, &scope_push_status);
-          }  /* if */
-          if (scope_is(mep->scope, sck_class_struct_union)) {
-            /* This is a child class.  It will have already been entered as a
-               member of the parent class.  Find that entry and skip the rest
-               of the processing. */
-            a_type_ptr   parent_class = mep->scope->variant.assoc_type;
-            a_symbol_ptr sym;
-
-            /* The parent class may contain references to this child class.
-               Clear the imminent flag to allow re-processing to occur if need
-               be (otherwise, we may fail to find the type of this entity
-               during completion of the parent class). */
-            mep->imminent = FALSE;
-            sym = look_up_name_string_in_class(loc.symbol_header->identifier,
-                                               parent_class,
-                                               IDL_TENTATIVE_TYPE_LOOKUP |
-                                                              IDL_MUST_BE_TAG);
-            mep->imminent = TRUE;
-            if (sym == NULL || !is_class_struct_union_symbol(sym)) {
-              expect_error();
-              goto invalid;
-            }  /* if */
-            il_entity = (char*)(sym->variant.class_struct_union.type);
-            kind = iek_type;
-            break;
-          }  /* if */
-
-          /* Look at the "type" to determine whether we have a namespace or
-             not. */
-          Opt<an_ifc_type_fundamental> opt_itf;
-          construct_node(&opt_itf, get_ifc_type(ids));
-          if (!opt_itf.has_value()) {
-            goto invalid;
-          }  /* if */
-          switch (get_ifc_basis(*opt_itf)) {
-            case ifc_tbs_namespace:
-              { an_ifc_scope_traits_bitfield traits = get_ifc_traits(ids);
-                a_namespace_ptr              nsp = NULL;
-                a_symbol_ptr                 ns_sym;
-
-                if (defer && !test_bitmask<ifc_stb_inline>(traits)) {
-                  /* Note that inline namespaces are not deferred. */
-                  defer_symbol_creation(mep, &loc);
-                } else {
-                  /* FIXME: lots missing. */
-                  /* FIXME: This should probably call
-                     push/pop_module_declaration_context on itself, rather than
-                     managing the namespace scopes through an alternative code
-                     path. */
-                  check_assertion(!test_bitmask<ifc_stb_unnamed>(traits));
-                  { Value_saver<a_boolean> lazy_load_saver(
-                                                  &lazy_symbols_may_be_visible,
-                                                  /*new_value=*/FALSE);
-                    if (loc.symbol_header ==
-                                           symbol_for_namespace_std->header &&
-                        (scope_is(&scope_stack_top(),
-                                  sck_module_decl_import) ||
-                         scope_is(&scope_stack_top(), sck_file)) &&
-                        !loc.is_error) {
-                      /* Be sure to use the pre-created namespace std symbol.
-                         It might not be entered in the symbol table yet:
-                         Hence, call enter_symbol_for_namespace_std. */
-                      ns_sym = symbol_for_namespace_std;
-                      enter_symbol_for_namespace_std(&loc);
-                    } else {
-                      ns_sym = curr_scope_id_lookup(&loc, IDL_NO_OPTIONS);
-                    }  /* if */
-                  }
-                  if (ns_sym != NULL) {
-                    if (ns_sym->kind == (a_symbol_kind)sk_namespace &&
-                        !ns_sym->variant.namespace_info.ptr->
-                                                          is_namespace_alias) {
-                      /* A namespace already exists; use it. */
-                      nsp = ns_sym->variant.namespace_info.ptr;
-                      (void)push_namespace_scope(
-                                         (a_scope_kind)sck_namespace_extension,
-                                         nsp);
-                    } else {
-                      /* FIXME: need to fix this. */
-                      unexpected_condition();
-                    }  /* if */
-                  } else {
-                    /* No namespace in the specified scope; create one. */
-                    ns_sym = enter_symbol((a_symbol_kind)sk_namespace, &loc,
-                                          mep->scope->depth_in_scope_stack,
-                                          /*suppress_redecl_error=*/FALSE);
-                    nsp = alloc_namespace(/*is_alias=*/FALSE);
-                    set_source_corresp(&nsp->source_corresp, ns_sym);
-                    set_namespace_membership(ns_sym, &nsp->source_corresp,
-                                             (a_namespace_ptr)NULL);
-                    nsp->source_corresp.name_linkage =
-                                   (a_name_linkage_kind)nlk_cplusplus_external;
-                    if (test_bitmask<ifc_stb_inline>(traits)) {
-                      nsp->is_inline = TRUE;
-                    }  /* if */
-                    ns_sym->variant.namespace_info.ptr = nsp;
-                    add_to_namespaces_list(nsp);
-                    (void)push_namespace_scope((a_scope_kind)sck_namespace,
-                                               nsp);
-                    nsp->variant.assoc_scope->variant.assoc_namespace = nsp;
-                    if (nsp->is_inline) {
-                      add_implicit_using_directive(nsp, /*is_inline=*/TRUE,
-                                                   /*namespace_pushed=*/TRUE);
-                    }  /* if */
-                  }  /* if */
-                  /* Forward assign the module entity pointer's information
-                     so we can self-reference. */
-                  il_entity = (char *)nsp;
-                  kind = iek_namespace;
-                  /* Process declarations in the namespace scope (which makes
-                     their symbols available but not their definitions). */
-                  process_ifc_scope(get_ifc_initializer(ids),
-                                    nsp->variant.assoc_scope);
-                  pop_namespace_scope();
-                }  /* if */
-              }
-              break;
-            case ifc_tbs_class:
-              type_kind = tk_class;
-              tag_kind = sk_class_or_struct_tag;
-              goto class_struct_union_case;
-            case ifc_tbs_struct:
-            case ifc_tbs_interface:
-              type_kind = tk_struct;
-              tag_kind = sk_class_or_struct_tag;
-              goto class_struct_union_case;
-            case ifc_tbs_union:
-              type_kind = tk_union;
-              tag_kind = sk_union_tag;
-class_struct_union_case:
-              /* A class/struct/union type. */
-              { if (defer) {
-                  defer_symbol_creation(mep, &loc);
-                } else {
-                  an_ifc_reachable_properties_bitfield properties =
-                                                       get_ifc_properties(ids);
-
-                  /* Allocate the appropriate class type, but leave it as
-                     incomplete.  The class will be completed during a call to
-                     get_definition_of_class if it is referenced. */
-                  if (check_and_set_redeclaration(&loc, mep, &error_position,
-                                                  iek_type, &il_entity,
-                                                  &kind)) {
-                    a_type_ptr type = (a_type_ptr)il_entity;
-
-                    /* FIXME: Is this right? */
-                    if (is_incomplete_type(type) &&
-                        test_bitmask<ifc_rpb_initializer>(properties)) {
-                      /* Record the presence of a definition on an existing
-                         type. */
-                      type->source_corresp.module_entity = mep;
-                    }  /* if */
-                    break;
-                  }  /* if */
-
-                  a_type_ptr   tag_type = alloc_type(type_kind);
-                  a_symbol_ptr tag_sym;
-                  if (get_ifc_basis(*opt_itf) == ifc_tbs_interface) {
-                    tag_type->variant.class_struct_union.is_interface = TRUE;
-                    tag_type->variant.class_struct_union.abstract = TRUE;
-                  }  /* if */
-                  tag_sym = enter_local_symbol(
-                                             tag_kind, &loc,
-                                             mep->scope->depth_in_scope_stack,
-                                             /*suppress_redecl_error=*/TRUE);
-                  tag_sym->variant.class_struct_union.type = tag_type;
-                  set_source_corresp(&(tag_type->source_corresp), tag_sym);
-                  /* Set parent class or namespace pointers, if appropriate,
-                     and adjust related fields (e.g., name linkage). */
-                  /* FIXME: all of these values need to be checked. */
-                  update_membership_of_class(tag_sym,
-                                             /*def_or_vacuous_decl=*/FALSE,
-                                             /*is_event_interface=*/FALSE,
-                                             mep->scope->depth_in_scope_stack,
-                                             &null_source_position);
-                  /* FIXME: need to call record_symbol_declaration? */
-                  add_to_types_list(tag_type,
-                                    mep->scope->depth_in_scope_stack);
-                  /* Mark the class as incomplete.  It can be completed later
-                     if needed. */
-                  tag_type->incomplete = TRUE;
-                  /* FIXME: idssp->alignment, idssp->pack_size, idssp->traits,
-                            idssp->specifiers, all need to be set manually
-                            here*/
-                  /* FIXME: for now: */
-                  tag_type->source_corresp.name_linkage =
-                                   (a_name_linkage_kind)nlk_cplusplus_external;
-                  il_entity = (char*)tag_type;
-                  kind = iek_type;
-                }  /* if */
-              }
-              break;
-            default:
-              unexpected_condition();
-          }  /* switch */
-        }
-        break;
-      case ifc_ds_decl_alias:
-        { Opt<an_ifc_decl_alias> opt_ida;
-
-          construct_node(&opt_ida, decl_idx);
-          if (!opt_ida.has_value()) {
-            goto invalid;
-          }  /* if */
-          if (!init_decl_locator(*opt_ida, &loc)) {
-            goto invalid;
-          }  /* if */
-          if (defer) {
-            defer_symbol_creation(mep, &loc);
-          } else {
-            an_ifc_decl_alias ida = *opt_ida;
-            an_ifc_type_index type = get_ifc_type(ida);
-
-            if (is_from_gmf(get_ifc_specifiers(ida))) {
-              mep->global_module = TRUE;
-            }  /* if */
-            if (type.sort == ifc_ts_type_fundamental) {
-              Opt<an_ifc_type_fundamental> opt_itf;
-
-              construct_node(&opt_itf, type);
-              if (!opt_itf.has_value()) {
-                goto invalid;
-              }  /* if */
-
-              an_ifc_type_basis_sort basis = get_ifc_basis(*opt_itf);
-              if (basis == ifc_tbs_typename) {
-                /* A type alias; declare a typedef for this case. */
-                if (mep->scope == NULL) {
-                  mep->scope = get_home_scope(ida);
-                  push_module_declaration_context(mep->scope,
-                                                  &scope_push_status);
-                }  /* if */
-                if (check_and_set_redeclaration(&loc, mep, &error_position,
-                                                iek_type, &il_entity, &kind)) {
-                  break;
-                }  /* if */
-                init_dps(&dps, get_ifc_locus(ida), get_ifc_aliasee(ida),
-                         an_ifc_object_traits_bitfield{},
-                         an_ifc_msvc_traits_bitfield{},
-                         get_ifc_specifiers(ida), get_ifc_access(ida),
-                         an_ifc_expr_index{}, &psss);
-                clear_decl_pos_block(&decl_pos_block);
-                decl_typedef(&loc, &dps, (a_type_ptr)NULL, &decl_pos_block);
-                restore_partial_scope_stack_if_necessary(&psss);
-                il_entity = (char *)dps.sym->variant.type.ptr;
-                kind = iek_type;
-              } else if (basis == ifc_tbs_namespace) {
-                /* A namespace alias. */
-                /* FIXME: unimplemented. */
-                issue_unsupported_construct_error(this,
-                                                  "DeclSort::Alias namespace",
-                                                  &error_position);
-                goto invalid;
-              } else {
-                a_string err_msg("Unexpected ", str_for(basis));
-
-                ifc_unexpected(this, err_msg);
-                goto invalid;
-              }  /* if */
-            } else if (type.sort == ifc_ts_type_forall) {
-              Opt<an_ifc_type_forall> opt_itf;
-
-              construct_node(&opt_itf, get_ifc_aliasee(ida));
-              if (!opt_itf.has_value()) {
-                goto invalid;
-              }  /* if */
-
-              an_ifc_type_forall      itf = *opt_itf;
-              an_ifc_source_location  locus = get_ifc_locus(ida);
-              a_module_token_cache    cache;
-              a_source_position       pos;
-              a_curr_token_preserver  guard;
-              source_position_from_locus(&pos, locus);
-              /* An alias template; declare a typedef for this case. */
-              if (mep->scope == NULL) {
-                mep->scope = get_home_scope(ida);
-                push_module_declaration_context(mep->scope,
-                                                &scope_push_status);
-              }  /* if */
-              if (check_and_set_redeclaration(&loc, mep, &error_position,
-                                              iek_template, &il_entity,
-                                              &kind)) {
-                break;
-              }  /* if */
-              cache_token(&cache, tok_template, &pos);
-              cache_chart(&cache, get_ifc_chart(itf), locus, /*cinfo=*/{});
-              cache_token(&cache, tok_using, &pos);
-              cache_identifier(&cache, get_string_at_offset(get_ifc_name(ida)),
-                               &pos);
-              cache_token(&cache, tok_assign, &pos);
-              cache_type(&cache, get_ifc_subject(itf), locus);
-              cache_token(&cache, tok_semicolon, &pos);
-              if (!cache.is_valid()) {
-                goto invalid;
-              }  /* if */
-              il_entity = parse_cached_template(&cache, mep->scope, &kind);
-              if (kind != iek_template) {
-                goto invalid;
-              }  /* if */
-            } else {
-              a_string err_msg("Unexpected ", str_for(type.sort));
-
-              ifc_unexpected(this, err_msg);
-              goto invalid;
-            }  /* if */
-          }  /* if */
-        }
-        break;
-      case ifc_ds_decl_enumeration:
-        { Opt<an_ifc_decl_enumeration> opt_ide;
-
-          construct_node(&opt_ide, decl_idx);
-          if (!opt_ide.has_value()) {
-            goto invalid;
-          }  /* if */
-
-          an_ifc_decl_enumeration          ide = *opt_ide;
-          an_ifc_source_location           locus = get_ifc_locus(ide);
-          an_ifc_type_index                type = get_ifc_type(ide);
-          an_ifc_basic_specifiers_bitfield specifiers =
-                                                       get_ifc_specifiers(ide);
-          /* FIXME: This does a lot of stuff even when deferred. */
-          if (!source_position_from_locus(&error_position, locus)) {
-            goto invalid;
-          }  /* if */
-          if (is_from_gmf(specifiers)) {
-            mep->global_module = TRUE;
-          }  /* if */
-
-          Opt<an_ifc_type_fundamental> opt_itf;
-          construct_node(&opt_itf, type);
-          if (!opt_itf.has_value()) {
-            goto invalid;
-          }  /* if */
-
-          /* See if this is a scoped enumeration or not. */
-          an_ifc_type_fundamental itf = *opt_itf;
-          an_ifc_type_basis_sort  basis = get_ifc_basis(itf);
-          a_boolean               is_scoped_enum = FALSE;
-          if (basis == ifc_tbs_enum) {
-            /* A classic enumeration.  Don't bother to defer in this case
-               because each of the enumerators needs to be registered in the
-               symbol table so they can be found. */
-            if (defer) {
-              defer = FALSE;
-              mep->imminent = TRUE;
-              push_module_declaration_context(mep->scope, &scope_push_status);
-            }  /* if */
-          } else if (basis == ifc_tbs_class || basis == ifc_tbs_struct) {
-            /* A scoped enumeration.  Enumerator definitions are deferred when
-               the enumeration definition is deferred (enumerators can't be
-               referred to without specifying the scoped enumeration at which
-               time the enumerators will be made available). */
-            is_scoped_enum = TRUE;
-          } else {
-            a_string err_msg("Unexpected ", str_for(basis));
-
-            ifc_unexpected(this, err_msg);
-            goto invalid;
-          }  /* if */
-
-          an_ifc_text_offset enum_name = get_ifc_name(ide);
-          if (!init_locator_from_name(enum_name, locus, &loc)) {
-            goto invalid;
-          }  /* if */
-          /* FIXME: This should be a soft failure. */
-          check_assertion(enum_name != 0);
-          if (defer) {
-            defer_symbol_creation(mep, &loc);
-          } else {
-            an_ifc_type_index base = get_ifc_base(ide);
-            a_type_ptr        enum_type;
-            a_scope_ptr       enum_scope;
-            a_symbol_ptr      tag_sym;
-            a_scope_depth     scope_depth;
-
-            check_assertion(!is_null_index(base));
-            if (mep->scope == NULL) {
-              mep->scope = get_home_scope(ide);
-              push_module_declaration_context(mep->scope, &scope_push_status);
-            }  /* if */
-            check_assertion(mep->scope != NULL);
-            enum_scope = mep->scope;
-            scope_depth = enum_scope->depth_in_scope_stack;
-            if (check_and_set_redeclaration(&loc, mep, &error_position,
-                                            iek_type, &il_entity, &kind)) {
-              /* FIXME: Is this right? */
-              if (is_defined(il_entity, kind)) {
-                break;
-              }  /* if */
-            }  /* if */
-            init_dps(&dps, locus, base, an_ifc_object_traits_bitfield{},
-                     an_ifc_msvc_traits_bitfield{}, specifiers,
-                     get_ifc_access(ide), get_ifc_alignment(ide), &psss);
-            clear_decl_pos_block(&decl_pos_block);
-            /* Allocate an integer type and set its size based on the type
-               specified by idsep->base. */
-            enum_type = alloc_type((a_type_kind)tk_integer);
-            enum_type->variant.integer.int_kind = (an_integer_kind)ik_int;
-            enum_type->variant.integer.enum_type = TRUE;
-            enum_type->size = skip_typerefs(dps.type)->size;
-            enum_type->variant.integer.has_explicit_enum_base = TRUE;
-            integer_type_supp(enum_type)->base_type = dps.type;
-            if (dps.alignment == 0) {
-              /* Alignment was not specifically specified; use the alignment
-                 of the base type. */
-              dps.alignment = skip_typerefs(dps.type)->alignment;
-            }  /* if */
-            enum_type->alignment = dps.alignment;
-            /* FIXME: for now: */
-            enum_type->source_corresp.name_linkage =
-                                   (a_name_linkage_kind)nlk_cplusplus_external;
-            /* FIXME: enum_type->variant.integer.is_template_enum? */
-            enum_type->source_corresp.access =
-                                  scope_stack[decl_scope_level].current_access;
-            /* Process any attributes. */
-            attach_tag_attributes(dps.prefix_attributes, enum_type, &dps,
-                                  /*is_definition=*/TRUE,
-                                  /*is_forward_decl=*/FALSE,
-                                  /*ignore_gnu_attributes=*/TRUE);
-            /* FIXME: not sure about this and its effect on alignment: */
-            set_type_size(enum_type);
-            if (is_scoped_enum) {
-              enum_type->variant.integer.is_scoped_enum = TRUE;
-              enum_scope = push_scope((a_scope_kind)sck_enum, NO_SCOPE_NUMBER,
-                                      enum_type, (a_routine_ptr)NULL);
-              enum_type->variant.integer.enum_info.assoc_scope = enum_scope;
-            }  /* if */
-            /* Create a symbol for the enumeration. */
-            if (is_unnamed_tag(loc.symbol_header->identifier)) {
-              Value_saver<a_scope_depth>  saver(&decl_scope_level,
-                                                /*new_value=*/scope_depth);
-              tag_sym = make_unnamed_tag_symbol((a_symbol_kind)sk_enum_tag,
-                                                &loc.source_position);
-              enum_type->variant.integer.originally_unnamed = TRUE;
-            } else {
-              tag_sym = enter_local_symbol(sk_enum_tag, &loc, scope_depth,
-                                           /*suppress_redecl_error=*/FALSE);
-            } /* if */
-            tag_sym->variant.enumeration.type = enum_type;
-            set_source_corresp(&(enum_type->source_corresp), tag_sym);
-#if NEED_NAME_MANGLING
-            compute_name_collision_discriminator(tag_sym, scope_depth);
-#endif /* NEED_NAME_MANGLING */
-            add_to_types_list(enum_type, scope_depth);
-            /* Set parent membership. */
-            if (scope_is(mep->scope, sck_class_struct_union)) {
-              /* FIXME: never get here because enumerations in classes are
-                 loaded via the string mechanism. */
-              set_class_membership(tag_sym, &enum_type->source_corresp,
-                                   mep->scope->variant.assoc_type);
-            } else if (scope_is(mep->scope, sck_namespace) ||
-                       scope_is(mep->scope, sck_namespace_extension)) {
-              set_namespace_membership(tag_sym, &enum_type->source_corresp,
-                                       mep->scope->variant.assoc_namespace);
-            }  /* if */
-            il_entity = (char *)enum_type;
-            kind = iek_type;
-
-            /* Process the enumerators. */
-            an_ifc_sequence             initializer = get_ifc_initializer(ide);
-            a_decl_enumerator_traverser traverser(initializer);
-            for (an_Indexed<an_ifc_decl_enumerator> idxed_enmtr : traverser) {
-              if (!idxed_enmtr.has_value()) {
-                goto invalid;
-              }  /* if */
-
-              an_ifc_decl_index   enumerator_idx =
-                                           to_decl_index(idxed_enmtr.node_idx);
-              a_module_entity_ptr emep =
-                                     get_ifc_module_entity_ptr(enumerator_idx);
-              emep->scope = enum_scope;
-              this->process_ifc_declaration(emep, /*defer=*/FALSE);
-            }  /* for */
-            integer_type_supp(enum_type)->enumerator_list_seen = TRUE;
-            if (is_scoped_enum) {
-              pop_scope();
-            }  /* if */
-            restore_partial_scope_stack_if_necessary(&psss);
-          }  /* if */
-        }
-        break;
-      case ifc_ds_decl_enumerator:
-        { Opt<an_ifc_decl_enumerator> opt_ide;
-
-          construct_node(&opt_ide, decl_idx);
-          if (!opt_ide.has_value()) {
-            goto invalid;
-          }  /* if */
-          if (!init_decl_locator(*opt_ide, &loc)) {
-            goto invalid;
-          }  /* if */
-          /* FIXME: This should be a soft failure. */
-          check_assertion(get_ifc_name(*opt_ide) != 0);
-          if (defer) {
-            defer_symbol_creation(mep, &loc);
-          } else {
-            an_ifc_decl_enumerator ide = *opt_ide;
-            a_symbol_ptr           enum_con_sym;
-            a_constant_ptr         enum_con;
-            a_memory_region_number region_to_switch_back_to;
-
-            if (is_from_gmf(get_ifc_specifiers(ide))) {
-              mep->global_module = TRUE;
-            }  /* if */
-            if (mep->scope == NULL) {
-              mep->scope = get_home_scope(ide);
-              check_assertion(mep->scope != NULL);
-            }  /* if */
-
-            an_ifc_type_index  type_idx = get_ifc_type(ide);
-            a_type_ptr         enum_type = type_for_type_index(type_idx,
-                                                               /*kind=*/NULL);
-            if (is_error_type(enum_type)) {
-              goto invalid;
-            }  /* if */
-            if (check_and_set_redeclaration(&loc, mep, &error_position,
-                                            iek_constant, &il_entity, &kind)){
-              break;
-            }  /* if */
-            switch_to_file_scope_region(&region_to_switch_back_to);
-            enum_con = constant_for_expr_index(get_ifc_initializer(ide),
-                                               enum_type);
-            switch_back_to_original_region(region_to_switch_back_to);
-            enum_con->type = enum_type;
-            enum_con->is_named_constant_definition = TRUE;
-            enum_con->source_corresp.parent_scope = mep->scope;
-            enum_con->source_corresp.name_linkage =
-                                        enum_type->source_corresp.name_linkage;
-            enum_con_sym = enter_local_symbol((a_symbol_kind)sk_constant, &loc,
-                                              mep->scope->depth_in_scope_stack,
-                                              /*suppress_redecl_error=*/FALSE);
-            set_source_corresp(&(enum_con->source_corresp), enum_con_sym);
-            enum_con_sym->variant.constant = enum_con;
-            if (!enum_type->variant.integer.is_scoped_enum &&
-                sym_is_namespace_member(symbol_for(enum_type))) {
-              /* Unscoped enumerators in a namespace are placed in the
-                 namespace. */
-              /* FIXME: Note that we don't handle the class case here (because
-                 that's currently handled with strings). */
-              set_namespace_membership(enum_con_sym, &enum_con->source_corresp,
-                                       sym_parent_namespace(
-                                                      symbol_for(enum_type)));
-            }  /* if */
-            /* FIXME: not currently doing anything with specifiers or
-               access. */
-            /* Add the constant to the list of constants for the enumeration
-               type (note that the order of enumerators on the list is not
-               necessarily the order that they appear in the enumeration,
-               rather it's the order they are accessed in if definitions are
-               deferred). */
-            if (enum_type->variant.integer.is_scoped_enum) {
-              enum_con->next = mep->scope->constants;
-              mep->scope->constants = enum_con;
-            } else {
-              enum_con->next =
-                            enum_type->variant.integer.enum_info.constant_list;
-              enum_type->variant.integer.enum_info.constant_list = enum_con;
-            }  /* if */
-            il_entity = (char *)enum_con;
-            kind = iek_constant;
-          }  /* if */
-        }
-        break;
-      case ifc_ds_decl_template:
-        { Opt<an_ifc_decl_template> opt_idt;
-
-          construct_node(&opt_idt, decl_idx);
-          if (!opt_idt.has_value()) {
-            goto invalid;
-          }  /* if */
-          if (!init_decl_locator(*opt_idt, &loc)) {
-            goto invalid;
-          }  /* if */
-
-          an_ifc_decl_template idt = *opt_idt;
-#if CHECKING
-          {
-            an_ifc_type_index ifc_type = get_ifc_type(idt);
-            a_boolean         is_deduction_guide = FALSE;
-
-            if (is_null_index(ifc_type)) {
-              /* Deduction guide templates have no associated type.  They are
-                 driven by the IFC "traits" system instead of by lookup (which
-                 means they are never "deferred"). */
-              is_deduction_guide = TRUE;
-              check_assertion(!defer);
-            }  /* if */
-            /* FIXME: This should be a soft failure. */
-            check_assertion(!is_null_index(get_ifc_name(idt)) ||
-                            is_deduction_guide);
-          }
-#endif /* CHECKING */
-          if (defer) {
-            defer_symbol_creation(mep, &loc);
-          } else {
-            an_ifc_basic_specifiers_bitfield
-                                   specifiers = get_ifc_specifiers(idt);
-            a_curr_token_preserver guard;
-            an_ifc_cache_info      cache_info;
-
-            if (is_from_gmf(specifiers)) {
-              mep->global_module = TRUE;
-            }  /* if */
-            if (mep->scope == NULL) {
-              mep->scope = get_home_scope(idt);
-              push_module_declaration_context(mep->scope, &scope_push_status);
-            }  /* if */
-
-            if (check_and_set_template_redeclaration(&loc, mep,
-                                                     &error_position,
-                                                     &il_entity, &kind)) {
-              a_template_ptr templ = (a_template_ptr)il_entity;
-
-              update_cache_info_for_template(&cache_info, templ);
-              /* Skip any further processing when the variable template is not
-                 declared "extern" (as variable template declarations cannot
-                 otherwise be meaningfully "merged"). */
-              if (templ->kind == templk_variable) {
-                a_variable_ptr variable =
-                                       templ->prototype_instantiation.variable;
-
-                if (variable->storage_class != sc_extern) {
-                  goto done;
-                }  /* if */
-              }  /* if */
-            }  /* if */
-            /* Compute the DeclIndex of the current template and retrieve the
-               sequence of explicit specializations and instantiations. */
-            an_ifc_template_spec_info spec_info(decl_idx);
-            /* FIXME: Find a better way to handle self references; currently we
-               forward declare in almost all cases in part to handle self
-               references. */
-            an_ifc_decl_index         entity_decl =
-                                             get_ifc_decl(get_ifc_entity(idt));
-            a_boolean                 forward_declare =
-                                              (!cache_info.ignore_definition &&
-                                   (entity_decl.sort != ifc_ds_decl_variable));
-            a_boolean                 defer_definition = FALSE;
-            if (forward_declare) {
-              a_module_token_cache cache;
-              an_ifc_cache_info    local_cache_info = cache_info;
-
-              /* Disable definition caching, this is a forward declaration for
-                 the partial specializations that follow. */
-              local_cache_info.ignore_definition = TRUE;
-
-              cache_decl_template(&cache, idt, local_cache_info);
-              if (!cache.is_valid()) {
-                goto invalid;
-              }  /* if */
-              il_entity = parse_cached_template(&cache, mep->scope, &kind);
-              if (kind != iek_template) {
-                goto invalid;
-              }  /* if */
-              if (is_file_or_namespace_scope(mep->scope)) {
-                defer_definition = TRUE;
-              }  /* if */
-              if (spec_info.has_specs()) {
-                spec_info.process_specializations();
-              }  /* if */
-            }  /* if */
-            if (defer_definition) {
-              check_assertion(il_entity != NULL && kind == iek_template);
-              record_pending_ifc_template_definition((a_template_ptr)il_entity,
-                                                     decl_idx);
-            } else {
-              /* If the definition hasn't been deferred (from a compatible
-                 forward declaration being processed), process the definition
-                 now.  If the declaration was not forward declared, be sure to
-                 process any specializations as part of definition
-                 processing. */
-              if (!process_template_definition(
-                                            idt, mep, spec_info,
-                                            /*process_specs=*/!forward_declare,
-                                            &il_entity,
-                                            &kind)) {
-                goto invalid;
-              }  /* if */
-            }  /* if */
-          }  /* if */
-        }
-        break;
-      case ifc_ds_decl_parameter:
-        { Opt<an_ifc_decl_parameter> opt_idp;
-
-          construct_node(&opt_idp, decl_idx);
-          if (!opt_idp.has_value()) {
-            goto invalid;
-          }  /* if */
-          if (!init_decl_locator(*opt_idp, &loc)) {
-            goto invalid;
-          }  /* if */
-          /* FIXME: This should be a soft failure. */
-          check_assertion(get_ifc_name(*opt_idp) != 0);
-
-          an_ifc_decl_parameter     idp = *opt_idp;
-          an_ifc_type_index         type_idx = get_ifc_type(idp);
-          a_type_ptr                param_type;
-          a_template_param_ptr      param = NULL, *next_param;
-          a_template_parameter_ptr  il_param = NULL;
-          a_boolean                 is_pack = FALSE;
-          /* FIXME: constraint_expr = expr_for_expr_index(idspp->constraint);*/
-          /* FIXME: init_expr = expr_for_expr_index(idspp->initializer); */
-          if (type_idx.sort == ifc_ts_type_expansion) {
-            /* FIXME: Currently unsupported. */
-            is_pack = TRUE;
-            issue_unsupported_construct_error(this,
-                                              "DeclSort::Parameter packs",
-                                              &error_position);
-          }  /* if */
-          /* FIXME: Currently all paths that lead here have
-             curr_templ_decl_state == NULL. */
-          switch (get_ifc_sort(idp)) {
-            case ifc_ps_object:
-              /* FIXME: Currently unsupported. */
-              issue_unsupported_construct_error(this, "ParameterSort::Object",
-                                                &error_position);
-              param = make_nontype_template_param(get_ifc_level(idp),
-                                                  get_ifc_position(idp),
-                                                  /*is_unnamed=*/FALSE,
-                                                  is_pack,
-                                                  /*is_pack_element=*/FALSE,
-                                                  /*is_non_initial=*/FALSE,
-                                                  /*is_pack_expansion=*/FALSE,
-                                                  &loc, error_type(),
-                                                  curr_templ_decl_state);
-              break;
-            case ifc_ps_type:
-              /* FIXME: Handle unnamed parameters properly */
-              param = decl_type_template_param(get_ifc_position(idp), &loc,
-                                               /*is_named=*/TRUE, is_pack,
-                                               /*constraint=*/NULL,
-                                               curr_templ_decl_state,
-                                               &curr_templ_decl_state->
-                                                               decl_pos_block);
-              break;
-            case ifc_ps_non_type:
-              param_type = type_for_type_index(get_ifc_type(idp),
-                                               /*kind=*/NULL);
-              /* FIXME: Handle unnamed parameters properly. */
-              param = make_nontype_template_param(get_ifc_level(idp),
-                                                  get_ifc_position(idp),
-                                                  /*is_unnamed=*/FALSE,
-                                                  is_pack,
-                                                  /*is_pack_element=*/FALSE,
-                                                  /*is_non_initial=*/FALSE,
-                                                  /*is_pack_expansion*/FALSE,
-                                                  &loc, param_type,
-                                                  curr_templ_decl_state);
-              break;
-            case ifc_ps_template:
-              /* FIXME: Currently unsupported. */
-              issue_unsupported_construct_error(this,
-                                                "ParameterSort::Template",
-                                                &error_position);
-              param = make_nontype_template_param(get_ifc_level(idp),
-                                                  get_ifc_position(idp),
-                                                  /*is_unnamed=*/FALSE,
-                                                  is_pack,
-                                                  /*is_pack_element=*/FALSE,
-                                                  /*is_non_initial=*/FALSE,
-                                                  /*is_pack_expansion=*/FALSE,
-                                                  &loc, error_type(),
-                                                  curr_templ_decl_state);
-              break;
-            default_is_unexpected_str("Unexpected ParameterSort");
-          }  /* switch */
-          if (param != NULL) {
-            next_param = &curr_templ_decl_state->decl_info->parameters;
-            /* Skip to end of parameter list. */
-            for (; *next_param != NULL; next_param = &(*next_param)->next) {}
-            *next_param = param;
-            ++curr_templ_decl_state->decl_info->n_params;
-            il_param = alloc_template_parameter();
-            param->il_template_parameter = il_param;
-            param->param_symbol->is_invisible = FALSE;
-            il_entity = (char*)il_param;
-            kind = iek_template_parameter;
-          }  /* if */
-        }
-        break;
-      case ifc_ds_decl_reference:
-        { Opt<an_ifc_decl_reference> opt_idr;
-
-          construct_node(&opt_idr, decl_idx);
-          if (!opt_idr.has_value()) {
-            goto invalid;
-          }  /* if */
-
-          a_module_entity_ptr dmep = process_decl_via_reference(*opt_idr);
-          il_entity = dmep->entity.ptr;
-          kind = dmep->entity.kind;
-          /* The module entity pointer sometimes already has a scope (e.g.,
-             from lighter nested-name-specified processing). */
-          ifc_requirement(get_assoc_ifc_module(dmep),
-                          mep->scope == NULL || dmep->scope == mep->scope,
-                          "expected a matching scope");
-          mep->scope = dmep->scope;
-        }
-        break;
-      case ifc_ds_decl_method:
-      case ifc_ds_decl_constructor:
-      case ifc_ds_decl_destructor:
-      case ifc_ds_decl_field:
-      case ifc_ds_decl_bitfield:
-      case ifc_ds_decl_property:
-        /* These entities can only exist in a class and class definitions are
-           currently handled by scanning a token representation of the
-           class. */
-        { a_string err_msg("Unexpected ", str_for(decl_idx.sort));
-
-          ifc_unexpected(this, err_msg);
-        }
-        goto invalid;
-      case ifc_ds_decl_temploid:
-        { Opt<an_ifc_decl_temploid> opt_idt;
-
-          construct_node(&opt_idt, decl_idx);
-          if (!opt_idt.has_value()) {
-            goto invalid;
-          }  /* if */
-          /* FIXME: Need a proper source position here. */
-          error_position = null_source_position;
-          goto unhandled;
-        }
-      case ifc_ds_decl_partial_specialization:
-        { Opt<an_ifc_decl_partial_specialization> opt_idps;
-
-          construct_node(&opt_idps, decl_idx);
-          if (!opt_idps.has_value()) {
-            goto invalid;
-          }  /* if */
-          if (!init_decl_locator(*opt_idps, &loc)) {
-            goto invalid;
-          }  /* if */
-          /* Partial specializations should not be added to the deferred symbol
-             list as they'll be processed when the primary template is
-             processed via the associated entries in "trait.specialization". */
-          if (defer) {
-            associate_spec_with_template(decl_idx, *opt_idps);
-          } else {
-            an_ifc_decl_partial_specialization idps = *opt_idps;
-
-            lazy_push_module_scope(idps, mep, &scope_push_status);
-            /* FIXME: Is it feasible to detect ignorable redeclarations of
-               partial specializations? */
-            if (get_ifc_body(get_ifc_entity(idps)) != 0) {
-              a_module_token_cache cache;
-
-              /* There is a definition of the partial specialization.  Record
-                 the resolution of the signature immediately so that the below
-                 processing of the definition has access to it. */
-              cache_decl_partial_specialization(&cache, decl_idx, idps);
-              if (!cache.is_valid()) {
-                goto invalid;
-              }  /* if */
-              il_entity = parse_cached_partial_specialization(&cache,
-                                                              mep->scope,
-                                                              &kind);
-              if (kind != iek_template) {
-                goto invalid;
-              }  /* if */
-            }  /* if */
-          }  /* if */
-        }
-        break;
-      case ifc_ds_decl_specialization:
-        { Opt<an_ifc_decl_specialization> opt_ids;
-
-          construct_node(&opt_ids, decl_idx);
-          if (!opt_ids.has_value()) {
-            goto invalid;
-          }  /* if */
-          if (!init_decl_locator(*opt_ids, &loc)) {
-            goto invalid;
-          }  /* if */
-          /* Specializations should not be added to the deferred symbol list as
-             they'll be processed when the primary template is processed via
-             the associated entries in "trait.specialization". */
-          if (defer) {
-            associate_spec_with_template(decl_idx, *opt_ids);
-          } else {
-            an_ifc_decl_specialization ids = *opt_ids;
-            a_module_token_cache       cache;
-            an_ifc_cache_info          cache_info;
-
-            lazy_push_module_scope(ids, mep, &scope_push_status);
-            if (check_and_set_specialization_redeclaration(&loc, mep, ids,
-                                                           &error_position,
-                                                           &il_entity,
-                                                           &kind)) {
-              /* Specializations are fairly simple in nature; if the
-                 specialization is already declared and already defined,
-                 there's nothing to add; skip processing. */
-              if (is_defined(il_entity, kind)) {
-                break;
-              }  /* if */
-            }  /* if */
-            cache_decl_specialization(&cache, decl_idx, ids, cache_info);
-            if (!cache.is_valid()) {
-              goto invalid;
-            }  /* if */
-            if (get_ifc_sort(ids) == ifc_ss_instantiation) {
-              il_entity = parse_cached_explicit_instantiation(&cache, ids,
-                                                              &kind);
-            } else {
-              il_entity = parse_cached_explicit_specialization(&cache,
-                                                               mep->scope,
-                                                               ids,
-                                                               &kind);
-            }  /* if */
-            if (kind != iek_template) {
-              goto invalid;
-            }  /* if */
-          }  /* if */
-        }
-        break;
-      case ifc_ds_decl_concept:
-        { Opt<an_ifc_decl_concept> opt_idc;
-
-          construct_node(&opt_idc, decl_idx);
-          if (!opt_idc.has_value()) {
-            goto invalid;
-          }  /* if */
-          if (!init_decl_locator(*opt_idc, &loc)) {
-            goto invalid;
-          }  /* if */
-          if (defer) {
-            defer_symbol_creation(mep, &loc);
-          } else {
-            /* Create a definition for the concept and scan it. */
-            an_ifc_decl_concept    idc = *opt_idc;
-            a_curr_token_preserver guard;
-
-            if (is_from_gmf(get_ifc_specifiers(idc))) {
-              mep->global_module = TRUE;
-            }  /* if */
-            /* Activate the parent scope if needed. */
-            if (mep->scope == NULL) {
-              mep->scope = get_home_scope(idc);
-              push_module_declaration_context(mep->scope, &scope_push_status);
-            }  /* if */
-
-            a_module_token_cache cache;
-            an_ifc_cache_info    cache_info;
-            if (check_and_set_redeclaration(&loc, mep, &error_position,
-                                            iek_template, &il_entity, &kind)) {
-              goto done;
-            }  /* if */
-            cache_direct_decl(&cache, idc, cache_info);
-            /* Parse the definition cache. */
-            if (!cache.is_valid()) {
-              goto invalid;
-            }  /* if */
-            il_entity = parse_cached_template(&cache, mep->scope, &kind);
-          }  /* if */
-        }
-        break;
-      case ifc_ds_decl_inherited_constructor:
-        { Opt<an_ifc_decl_inherited_constructor> opt_idic;
-
-          construct_node(&opt_idic, decl_idx);
-          if (!opt_idic.has_value()) {
-            goto invalid;
-          }  /* if */
-
-          an_ifc_source_location locus = get_ifc_locus(*opt_idic);
-          source_position_from_locus(&error_position, locus);
-          goto unhandled;
-        }
-      case ifc_ds_decl_output_segment:
-        { Opt<an_ifc_decl_output_segment> opt_idos;
-
-          construct_node(&opt_idos, decl_idx);
-          if (!opt_idos.has_value()) {
-            goto invalid;
-          }  /* if */
-          /* FIXME: Need a proper source position here. */
-          error_position = null_source_position;
-          goto unhandled;
-        }
-      case ifc_ds_decl_using_declaration:
-        { Opt<an_ifc_decl_using_declaration> opt_idud;
-
-          construct_node(&opt_idud, decl_idx);
-          if (!opt_idud.has_value()) {
-            goto invalid;
-          }  /* if */
-
-          an_ifc_decl_using_declaration idud = *opt_idud;
-          an_ifc_source_location        locus = get_ifc_locus(idud);
-          if (defer) {
-            if (!init_locator_from_name(get_ifc_name(idud), locus, &loc)) {
-              goto invalid;
-            }  /* if */
-            defer_symbol_creation(mep, &loc);
-          } else {
-            an_ifc_decl_index resolution = get_ifc_resolution(idud);
-
-            if (!source_position_from_locus(&error_position, locus)) {
-              goto invalid;
-            }  /* if */
-            if (resolution.sort == ifc_ds_decl_tuple) {
-              /* FIXME: Overload set? */
-              goto unhandled;
-            }  /* if */
-            a_module_entity_ptr umep = process_decl_at_index(resolution);
-            if (scope_is(umep->scope, sck_class_struct_union)) {
-              /* FIXME: Need to call create_member_using_declaration here. */
-              goto unhandled;
-            } else {
-              /* Non-member using declaration.  Could be file scope or
-                 namespace scope. */
-              a_symbol_ptr            null_sym_ptr = NULL, aliased_sym;
-              a_using_decl_ptr        prev_udp = NULL;
-              a_namespace_ptr         nsp = NULL;
-              a_source_correspondence *scp =
-                                   (a_source_correspondence*)umep->entity.ptr;
-              aliased_sym = (a_symbol_ptr)scp->assoc_info;
-              if (scp->parent_scope == NULL) {
-                /* Probably shouldn't happen, but happens now because of other
-                   issues. */
-                goto unhandled;
-              }  /* if */
-              if (scope_is(scp->parent_scope, sck_namespace)) {
-                nsp = scp_parent_namespace(scp);
-              }  /* if */
-              if (symbol_is(aliased_sym, sk_namespace)) {
-                /* A namespace alias. */
-                a_symbol_ptr  ns_sym;
-                if (!init_locator_from_name(get_ifc_name(idud), locus, &loc)) {
-                  goto invalid;
-                }  /* if */
-                /* Check for a conflict with another declaration. */
-                ns_sym = curr_scope_id_lookup(&loc, IDL_NO_OPTIONS);
-                if (ns_sym != NULL) {
-                  /* The alias name is already present in this scope.  That
-                     is okay only if it names an equivalent alias. */
-                  a_boolean  mismatch = FALSE;
-                  if (!symbol_is(ns_sym, sk_namespace)) {
-                    mismatch = TRUE;
-                  } else {
-                    a_namespace_ptr  prev = ns_sym->variant.namespace_info.ptr;
-                    if (!prev->is_namespace_alias) {
-                      mismatch = TRUE;
-                    } else if (skip_namespace_aliases(prev) !=
-                                 skip_namespace_aliases(
-                                    aliased_sym->variant.namespace_info.ptr)) {
-                      mismatch = TRUE;
-                    }  /* if */
-                  }  /* if */
-                  if (mismatch) {
-                    pos_sy_error(ec_already_defined, &error_position, ns_sym);
-                  }  /* if */
-                }  /* if */
-                (void)make_namespace_alias(ns_sym, &loc, aliased_sym,
-                                           (a_source_sequence_entry*)NULL);
-              } else {
-              /* FIXME: This will need to be re-worked when handling the
-                 ifc_DeclSort_Tuple case (i.e., multiple items). */
-                create_nonmember_using_declaration(
-                                               (a_symbol_ptr)scp->assoc_info,
-                                               &null_sym_ptr,
-                                               (a_symbol_ptr)NULL,
-                                               nsp,
-                                               (a_type_ptr)NULL,
-                                               &prev_udp,
-                                               /*is_list=*/FALSE,
-                                               /*suppress_redecl_error=*/TRUE,
-                                               (an_attribute_ptr)NULL,
-                                               /*copy_attributes=*/FALSE);
-              }  /* if */
-            }  /* if */
-          }  /* if */
-        }
-        break;
-      case ifc_ds_decl_friend:
-        { Opt<an_ifc_decl_friend> opt_idf;
-
-          construct_node(&opt_idf, decl_idx);
-          if (!opt_idf.has_value()) {
-            goto invalid;
-          }  /* if */
-          /* FIXME: Need a proper source position here. */
-          error_position = null_source_position;
-          goto unhandled;
-        }
-      case ifc_ds_decl_tuple:
-        /* An overload set. */
-        { Opt<an_ifc_decl_tuple> opt_idt;
-
-          construct_node(&opt_idt, decl_idx);
-          if (!opt_idt.has_value()) {
-            goto invalid;
-          }  /* if */
-
-          /* Collect the entries of the overload set in a list of IL entries
-             (an_il_entity_list_entry_ptr). */
-          a_decl_heap_traverser  traverser(*opt_idt);
-          a_scope_ptr            scope = mep->scope;
-          for (an_Indexed<an_ifc_heap_decl> indexed_ihd : traverser) {
-            if (!indexed_ihd.has_value()) {
-              goto invalid;
-            }  /* if */
-
-            an_ifc_decl_index   heap_value = get_ifc_value(*indexed_ihd);
-            a_module_entity_ptr emep = get_ifc_module_entity_ptr(heap_value);
-            /* In at least some cases (the handling of deduction guides), the
-               caller will have filled in mep->scope and that should be
-               propagated to the individual associated declarations. */
-            if (scope != NULL) emep->scope = scope;
-            this->process_ifc_declaration(emep, /*defer=*/FALSE);
-            if (scope == NULL) mep->scope = emep->scope;
-
-            a_source_correspondence  *scp;
-            scp = source_corresp_for_il_entry(emep->entity.ptr,
-                                              emep->entity.kind);
-            if (scp == NULL || scp->assoc_info == NULL) {
-              /* Something went wrong loading this member of the set.  Ignore
-                 it in what follows. */
-            } else {
-              an_il_entity_list_entry_ptr
-                                     ielep = alloc_il_entity_list_entry();
-              ielep->next = (an_il_entity_list_entry*)il_entity;
-              il_entity = (char*)ielep;
-              ielep->entity = emep->entity;
-            }  /* if */
-          }  /* for */
-          kind = iek_il_entity_list_entry;
-        }
-        break;
-      case ifc_ds_decl_expansion:
-        { Opt<an_ifc_decl_expansion> opt_ide;
-
-          construct_node(&opt_ide, decl_idx);
-          if (!opt_ide.has_value()) {
-            goto invalid;
-          }  /* if */
-
-          an_ifc_source_location locus = get_ifc_locus(*opt_ide);
-          source_position_from_locus(&error_position, locus);
-          goto unhandled;
-        }
-      case ifc_ds_decl_deduction_guide:
-        { Opt<an_ifc_decl_deduction_guide> opt_iddg;
-
-          construct_node(&opt_iddg, decl_idx);
-          if (!opt_iddg.has_value()) {
-            goto invalid;
-          }  /* if */
-
-          an_ifc_source_location locus = get_ifc_locus(*opt_iddg);
-          source_position_from_locus(&error_position, locus);
-          goto unhandled;
-        }
-      case ifc_ds_decl_barren:
-      case ifc_ds_decl_using_directive:
-      case ifc_ds_decl_syntax_tree:
-        { /* FIXME: Need a proper source position here. */
-          error_position = null_source_position;
-unhandled:
-          issue_unsupported_construct_error(this, str_for(decl_idx.sort),
-                                            &error_position);
-          il_entity = (char *)error_type();
-          kind = iek_type;
-        }
-        break;
-      default_is_unexpected_str("Unexpected DeclSort");
-    }  /* switch */
-    goto done;
-invalid:
-#if DEBUG
-    ++num_module_decls_failed;
-#endif /* DEBUG */
-    mep->invalid = TRUE;
-done:
-    if (!defer) {
-      /* Handle all cases where we didn't successfully consturct an IL
-         entity by marking the mep invalid. */
-      if (il_entity == NULL) {
-        mep->invalid = TRUE;
-      }  /* if */
-#if DEBUG
-      if (db_flag_is_set("ms_symbols")) {
-        (void)fprintf(f_debug, "Module entity defined: ");
-        db_module_entity(mep);
-      }  /* if */
-#endif /* DEBUG */
-      /* If a scope was pushed, scope popping should always occur. */
-      if (scope_push_status != mspk_unattempted) {
-        pop_module_declaration_context(scope_push_status);
-      }  /* if */
-    }  /* if */
-#if DEBUG
-    if (db_flag_is_set("ifc_idx")) {
-      (void)fprintf(f_debug, "Done with %s (%d)\n", str_for(decl_idx.sort),
-                    decl_idx.value);
-    }  /* if */
-#endif /* DEBUG */
-    curr_module_entity = saved_mep;
-    error_position = saved_error_position;
+  if (!mep->imminent && mep->entity.ptr == NULL) {
+    process_decl_to_il_entity(mep, defer);
   }  /* if */
   /* In some cases we may enter this routine without having a scope, but we
      should not exit it without having one. */
