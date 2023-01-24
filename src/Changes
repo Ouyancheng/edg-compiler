@@ -1,5 +1,14 @@
 Version 6.5
 
+1/24/23  [EDGcpfe/25981]
+Constant-evaluation abort on use of dependent class type
+
+In somewhat complex (usually invalid) situations, the front end could abort
+with an invalid memory access (e.g., a null pointer indirection) because the
+constant-evaluation interpreter attempted to evaluate an object whose class
+type (possibly a closure class) is dependent.  That is now fixed.
+
+
 1/24/23  [EDGcpfe/17783,EDGcpfe/21995,EDGcpfe/25971]
 Incorrect pack expansion for nested template argument lists
 
