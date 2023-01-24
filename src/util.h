@@ -3285,7 +3285,7 @@ Compute a hash for the given path.  The hash must be appropriate for Ptr_map.
 
 /*
 Ptr_set is a simplified wrapper around Ptr_map for representing the specific
-case of a "Set" (i.e., only a present or absent state, there's no true "mapped"
+case of a "set" (i.e., only a present or absent state, there's no true "mapped"
 value).
 */
 template<typename a_Ptr, template<typename> class Allocator = FE_allocator>
