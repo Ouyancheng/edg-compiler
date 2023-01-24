@@ -137,9 +137,10 @@ C23: __has_c_attribute
 As described in WG14 paper N2553, the front end now supports in C23 mode
 the macro operator __has_c_attribute.  Given the name of an attribute, the
 value of the operator is 0 if the attribute is not supported in the current
-emulation mode and the six-digit year and month when the attribute was
-accepted by the C Standard Committee if it is supported.  For example, with
---c23:
+emulation mode.  If a supported attribute is part of the C23 Standard, the
+(long int) value is the six-digit year and month when the attribute was
+accepted by the C Standard Committee; otherwise, the value is 1.  For
+example, with --c23:
 
   #if __has_c_attribute(noreturn) >= 202202L
   [[noreturn]] void f();
