@@ -656,7 +656,7 @@ scope.
 #if MICROSOFT_EXTENSIONS_ALLOWED
         case mk_ifc:
           ((an_ifc_module*)mep->module_info->module_interface)->
-                                 process_ifc_declaration(mep, /*defer=*/FALSE);
+                                                  process_ifc_declaration(mep);
           break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         case mk_edg:

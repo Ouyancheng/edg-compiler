@@ -3214,7 +3214,6 @@ This is used to save tokens for later rescanning.
     copy_constant(&const_for_curr_token, ctp->variant.constant);
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (curr_token == tok_pending_ifc_var_init ||
-             curr_token == tok_pending_ifc_func_body ||
              curr_token == tok_pending_ifc_expr ||
              curr_token == tok_ifc_entity_ref ||
              curr_token == tok_ifc_template_param ||
@@ -18102,31 +18101,6 @@ so efficiency is not a prime concern.
   db_exit();
 }  /* unget_token */
 
-#if MICROSOFT_EXTENSIONS_ALLOWED
-
-a_boolean pending_ifc_func_body_next(a_symbol_ptr  rout_sym)
-/*
-A declaration for the given (member) function has just been parsed and the
-current token is the final semicolon.  If we're caching tokens and the next
-token is a "pending IFC function body" pseudo-token return TRUE and associate
-the given routine with that pending function body.
-*/
-{
-  a_boolean           result = FALSE;
-  a_cached_token_ptr  ctp = next_cached_token();
-
-  if (ctp != NULL && ctp->token == tok_pending_ifc_func_body) {
-    a_lexical_ifc_index_reference index = ctp->variant.ifc_index;
-    an_ifc_decl_index             decl_idx =
-                                  from_lexical_index<an_ifc_decl_index>(index);
-
-    record_pending_ifc_function_body(rout_sym->variant.routine.ptr, decl_idx);
-    result = TRUE;
-  }  /* if */
-  return result;
-}  /* pending_ifc_func_body_next */
-
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static a_symbol_ptr dtor_matches_base_class(a_type_ptr tp)
 /*

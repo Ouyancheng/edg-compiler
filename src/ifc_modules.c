@@ -1325,13 +1325,10 @@ scope associated with it, it will continue to not have an associated scope.
 
 
 static
-a_module_entity_ptr process_decl_at_index(an_ifc_decl_index decl_idx,
-                                          a_boolean         defer = FALSE)
+a_module_entity_ptr process_decl_at_index(an_ifc_decl_index decl_idx)
 /*
 Process the IFC module entity declaration specified at the given declaration
-index either by creating the appropriate IL entity, or, when defer is TRUE,
-mark the appropriate symbol header as having a deferred module entity (which
-will be lazily loaded if referenced).
+index either by creating the appropriate IL entity.
 */
 {
   /* Get the associated IFC module entity pointer, and then use it to
@@ -1339,24 +1336,21 @@ will be lazily loaded if referenced).
   an_ifc_module       *mod = decl_idx.mod;
   a_module_entity_ptr dmep = get_ifc_module_entity_ptr(decl_idx);
 
-  mod->process_ifc_declaration(dmep, defer);
+  mod->process_ifc_declaration(dmep);
   return dmep;
 }  /* process_decl_at_index */
 
 
 static a_module_entity_ptr
-process_decl_via_reference(const an_ifc_decl_reference &ref,
-                           a_boolean                   defer = FALSE)
+process_decl_via_reference(const an_ifc_decl_reference &ref)
 /*
 Process the IFC module entity declaration specified by the given declaration
-reference either by creating the appropriate IL entity, or, when defer is TRUE,
-mark the appropriate symbol header as having a deferred module entity (which
-will be lazily loaded if referenced).
+reference either by creating the appropriate IL entity.
 */
 {
   an_ifc_decl_index decl_idx = get_ifc_index(ref);
 
-  return process_decl_at_index(decl_idx, defer);
+  return process_decl_at_index(decl_idx);
 }  /* process_decl_via_reference */
 
 
@@ -2931,6 +2925,19 @@ kind with the associated entity kind.
   return get_parsed_template_entity(&decl_state, kind);
 }  /* parse_cached_partial_specialization */
 
+#if DEBUG || CHECKING
+
+template<typename an_ifc_Index_type>
+a_string index_to_str(an_ifc_Index_type idx)
+/*
+Convert the given index value into a string representation.
+*/
+{
+  return a_string(str_for(idx.sort), " (", idx.value, ")");
+}  /* index_to_str */
+
+#endif /* DEBUG || CHECKING */
+
 namespace {
 
 using an_ifc_function_body_map = Ptr_map<a_routine_ptr, an_ifc_decl_index>;
@@ -2999,8 +3006,8 @@ otherwise, return FALSE.
 }  /* function_is_defined */
 
 
-void record_pending_ifc_function_body(a_routine_ptr     rp,
-                                      an_ifc_decl_index decl_idx)
+static void record_pending_ifc_function_body(a_routine_ptr     rp,
+                                             an_ifc_decl_index decl_idx)
 /*
 Record the information needed to retrieve a definition for rp if it turns out
 to be needed later on.
@@ -3013,18 +3020,57 @@ to be needed later on.
 #endif /* CHECKING */
 }  /* record_pending_ifc_function_body */
 
-#if DEBUG || CHECKING
 
-template<typename an_ifc_Index_type>
-a_string index_to_str(an_ifc_Index_type idx)
+template<typename an_ifc_Node_type>
+static void try_map_routine_definition(const an_ifc_Node_type &decl_node,
+                                       a_module_entity_ptr    mep)
 /*
-Convert the given index value into a string representation.
+Given a declaration node representing a function, and its corresponding module
+entity pointer, map the associated IL entity to its pending definition (if a
+definition is present).
 */
 {
-  return a_string(str_for(idx.sort), " (", idx.value, ")");
-}  /* index_to_str */
+  if (function_is_user_defined(decl_node)) {
+    an_ifc_decl_index decl_idx = decl_index_of(mep);
+    a_routine_ptr     rp = (a_routine_ptr)mep->entity.ptr;
 
-#endif /* DEBUG || CHECKING */
+    /* The kind should be a routine, otherwise this mep should've been
+       marked invalid. */
+    check_assertion(mep->entity.kind == iek_routine);
+    record_pending_ifc_function_body(rp, decl_idx);
+  }  /* if */
+}  /* try_map_routine_definition */
+
+
+static void map_pending_definitions(a_module_entity_ptr mep)
+/*
+Given a module entity pointer for a declared module entity, map any pending
+definition information for later use should a definition be required.
+*/
+{
+  check_assertion(!mep->invalid && mep->entity.ptr != NULL);
+  an_ifc_decl_index decl_idx = decl_index_of(mep);
+
+  switch (decl_idx.sort) {
+    case ifc_ds_decl_function:
+      { an_ifc_decl_function func_decl;
+
+        construct_node_prechecked(&func_decl, decl_idx);
+        try_map_routine_definition(func_decl, mep);
+      }
+      break;
+    case ifc_ds_decl_method:
+      { an_ifc_decl_method method_decl;
+
+        construct_node_prechecked(&method_decl, decl_idx);
+        try_map_routine_definition(method_decl, mep);
+      }
+      break;
+    default:
+      break;
+  }  /* switch */
+}  /* map_pending_definitions */
+
 
 void record_symbol_for_ifc_decl(a_symbol_ptr  sym)
 /*
@@ -3074,6 +3120,9 @@ index information to the given symbol.
     }  /* if */
   } else {
     mep->invalid = TRUE;
+  }  /* if */
+  if (!mep->invalid) {
+    map_pending_definitions(mep);
   }  /* if */
 }  /* record_symbol_for_ifc_decl */
 
@@ -3189,7 +3238,7 @@ Return NULL if none is found.
         ifc_unexpected(decl_idx.mod,
                        "entity refers to itself as part of the declaration");
       } else {
-        mod->process_ifc_declaration(mep, /*defer=*/FALSE);
+        mod->process_ifc_declaration(mep);
       }  /* if */
       result = ifc_decl_lookup_table->get(decl_idx);
     }  /* if */
@@ -5923,6 +5972,29 @@ done:
 }  /* process_decl_prerequisites */
 
 
+static inline Opt<an_ifc_decl_index>
+get_home_scope_if_class(a_module_entity_ptr mep)
+/*
+Given a module entity pointer, if the entity is declared in class scope return
+the IFC DeclIndex of the enclosing class; otherwise, return an empty optional.
+*/
+{
+  Opt<an_ifc_decl_index> result;
+  an_ifc_decl_index      decl_idx = decl_index_of(mep);
+
+  if (validate(decl_idx)) {
+    if (has_ifc_home_scope(decl_idx)) {
+      an_ifc_decl_index home_scope = get_ifc_home_scope(decl_idx);
+
+      if (is_class_scope(home_scope)) {
+        result = home_scope;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* get_home_scope_if_class */
+
+
 static void process_decl_to_il_entity(a_module_entity_ptr mep,
                                       a_boolean           defer)
 /*
@@ -5936,6 +6008,7 @@ Only module entity pointers for IL entities not in class scope should be passed
 to this function.
 */
 {
+  check_assertion(!get_home_scope_if_class(mep).has_value());
   an_ifc_module            *mod = get_assoc_ifc_module(mep);
   a_decl_pos_block         decl_pos_block;
   a_symbol_locator         loc;
@@ -6150,11 +6223,6 @@ to this function.
                                                          dps.type,
                                                          is_consteval)) {
               goto invalid;
-            }  /* if */
-            if (function_is_user_defined(idf)) {
-              /* A body is available: Record this availability in case it is
-                 needed. */
-              record_pending_ifc_function_body(rp, decl_idx);
             }  /* if */
           }  /* if */
         }  /* if */
@@ -6719,7 +6787,7 @@ class_struct_union_case:
             a_module_entity_ptr emep =
                                      get_ifc_module_entity_ptr(enumerator_idx);
             emep->scope = enum_scope;
-            mod->process_ifc_declaration(emep, /*defer=*/FALSE);
+            mod->process_ifc_declaration(emep);
           }  /* for */
           integer_type_supp(enum_type)->enumerator_list_seen = TRUE;
           if (is_scoped_enum) {
@@ -7364,7 +7432,7 @@ class_struct_union_case:
              caller will have filled in mep->scope and that should be
              propagated to the individual associated declarations. */
           if (scope != NULL) emep->scope = scope;
-          mod->process_ifc_declaration(emep, /*defer=*/FALSE);
+          mod->process_ifc_declaration(emep);
           if (scope == NULL) mep->scope = emep->scope;
 
           a_source_correspondence  *scp;
@@ -7457,52 +7525,39 @@ done:
   error_position = saved_error_position;
 }  /* process_decl_to_il_entity */
 
+#if DEBUG
 
-static inline Opt<an_ifc_decl_index>
-get_home_scope_if_class(a_module_entity_ptr mep)
+static unsigned long
+                decl_nesting_level;
+                        /* */
+#endif /* DEBUG */
+
+void an_ifc_module::process_ifc_declaration(a_module_entity_ptr mep)
 /*
-Given a module entity pointer, if the entity is declared in class scope return
-the IFC DeclIndex of the enclosing class; otherwise, return an empty optional.
+Attempt to form an IL entity for the IFC module entity declaration specified by
+mep; if no IL entity can be formed, *mep will marked as invalid.
 */
 {
-  Opt<an_ifc_decl_index> result;
-  an_ifc_decl_index      decl_idx = decl_index_of(mep);
-
-  if (validate(decl_idx)) {
-    if (has_ifc_home_scope(decl_idx)) {
-      an_ifc_decl_index home_scope = get_ifc_home_scope(decl_idx);
-
-      if (is_class_scope(home_scope)) {
-        result = home_scope;
-      }  /* if */
-    }  /* if */
-  }  /* if */
-  return result;
-}  /* get_home_scope_if_class */
-
-
-void an_ifc_module::process_ifc_declaration(a_module_entity_ptr mep,
-                                            a_boolean           defer)
-/*
-Process the IFC module entity declaration specified by mep.  When defer is
-TRUE, no IL entity is created; instead, the appropriate symbol header is
-updated to note the deferred entity for lazy loading.  When defer is FALSE, we
-immediately process *mep and attempt to form an IL entity; if no IL entity can
-be formed, *mep will marked as invalid.
-*/
-{
-#if CHECKING
-  a_boolean was_imminent = mep->imminent;
-#endif /* CHECKING */
-
   /* Ensure the module entity is being processed by the corresponding module
      interface. */
   check_assertion(mep->module_info->module_interface == this);
+#if CHECKING
+  if (!mep->invalid && mep->imminent && mep->entity.ptr == NULL) {
+    /* When this condition is violated, the entity was already being
+       processed but, was again requested before processing completed.  When
+       this occurs, the root cause of the cyclic dependency should be
+       determined and the front end should be updated to avoid said cyclic
+       dependency. */
+    an_ifc_decl_index mep_idx = decl_index_of(mep);
+    a_string          err_msg("processing of ", index_to_str(mep_idx),
+                              " resulted in a cyclic dependency");
+
+    unexpected_condition_str(err_msg.as_temp_characters());
+  }  /* if */
+#endif /* CHECKING */
 #if DEBUG
-  static unsigned long nested_decls = 0;
   if (db_flag_is_set("ifc_decl")) {
-    (void)fprintf(f_debug, "[>%lu]%s ", nested_decls++,
-                                        defer ? " (deferred)" : "");
+    (void)fprintf(f_debug, "[>%lu] ", ++decl_nesting_level);
     db_mep(mep);
   }  /* if */
 #endif /* DEBUG */
@@ -7544,48 +7599,28 @@ be formed, *mep will marked as invalid.
 #endif /* CHECKING */
       }  /* if */
     } else {
-      process_decl_to_il_entity(mep, defer);
+      process_decl_to_il_entity(mep, /*defer=*/FALSE);
     }  /* if */
   }  /* if */
-
 #if CHECKING
-  a_boolean missing_il_entity = mep->entity.ptr == NULL && !defer;
-  if (!mep->invalid && (mep->scope == NULL || missing_il_entity)) {
+  if (!mep->invalid && mep->entity.ptr == NULL) {
     an_ifc_decl_index mep_idx = decl_index_of(mep);
+    /* When this condition is violated, the entity was not marked invalid,
+       but it also wasn't completed.  Either the IL entity was not correctly
+       set, or the entity should've been marked invalid. */
+    a_string          err_msg("processing of ", index_to_str(mep_idx),
+                              " did not set the IL entity or mark the"
+                              " entity invalid");
 
-    if (was_imminent) {
-      /* When this condition is violated, the entity was already being
-         processed but, was again requested before processing completed.  When
-         this occurs, the root cause of the cyclic dependency should be
-         determined and the front end should be updated to avoid said cyclic
-         dependency. */
-      a_string err_msg("processing of ", index_to_str(mep_idx),
-                       " resulted in a cyclic dependency");
-
-      unexpected_condition_str(err_msg.as_temp_characters());
-    } else if (mep->entity.ptr == NULL) {
-      /* When this condition is violated, the entity was not marked invalid,
-         but it also wasn't completed.  Either the IL entity was not correctly
-         set, or the entity should've been marked invalid. */
-      a_string err_msg("processing of ", index_to_str(mep_idx),
-                       " did not set the IL entity or mark the "
-                       "entity invalid");
-
-      unexpected_condition_str(err_msg.as_temp_characters());
-    } else {
-      /* When this condition is violated, the scope was not resolved for (an
-         otherwise valid) entity.  Either the scope was not correctly set, or
-         the entity should've been marked invalid. */
-      a_string err_msg("processing of ", index_to_str(mep_idx),
-                       " did not set a scope or mark the entity invalid");
-
-      unexpected_condition_str(err_msg.as_temp_characters());
-    }  /* if */
+    unexpected_condition_str(err_msg.as_temp_characters());
   }  /* if */
 #endif /* CHECKING */
+  if (!mep->invalid) {
+    map_pending_definitions(mep);
+  }  /* if */
 #if DEBUG
   if (db_flag_is_set("ifc_decl")) {
-    (void)fprintf(f_debug, "[<%lu] ", --nested_decls);
+    (void)fprintf(f_debug, "[<%lu] ", --decl_nesting_level);
     db_mep(mep);
   }  /* if */
 #endif /* DEBUG */
@@ -8498,6 +8533,45 @@ return FALSE.
 }  /* can_be_eager_loaded */
 
 
+static void defer_ifc_declaration(a_module_entity_ptr mep)
+/*
+Setup deferred processing for the IFC module entity declaration specified by
+mep by updating the appropriate symbol header.
+
+Only module entity pointers for IL entities not in class scope should be passed
+to this function.
+*/
+{
+#if DEBUG
+  if (db_flag_is_set("ifc_decl")) {
+    (void)fprintf(f_debug, "[>%lu] (deferred) ", ++decl_nesting_level);
+    db_mep(mep);
+  }  /* if */
+#endif /* DEBUG */
+  /* FIXME: Extract deferral logic from process_decl_to_il_entity. */
+  process_decl_to_il_entity(mep, /*defer=*/TRUE);
+#if CHECKING
+  if (!mep->invalid && mep->scope == NULL) {
+    an_ifc_decl_index mep_idx = decl_index_of(mep);
+    /* When this condition is violated, the scope was not resolved for (an
+       otherwise valid) entity.  Either the scope was not correctly set, or
+       the entity should've been marked invalid. */
+    a_string          err_msg("processing of ", index_to_str(mep_idx),
+                              " did not set a scope or mark the entity"
+                              " invalid");
+
+    unexpected_condition_str(err_msg.as_temp_characters());
+  }  /* if */
+#endif /* CHECKING */
+#if DEBUG
+  if (db_flag_is_set("ifc_decl")) {
+    (void)fprintf(f_debug, "[<%lu] ", --decl_nesting_level);
+    db_mep(mep);
+  }  /* if */
+#endif /* DEBUG */
+}  /* defer_ifc_declaration */
+
+
 void an_ifc_module::process_ifc_scope(an_ifc_scope_index scope_index,
                                       a_scope_ptr        scope)
 /*
@@ -8525,7 +8599,8 @@ deferred until they are referenced.
         an_ifc_scope_member scope_mem = *indexed_scope_mem;
         an_ifc_decl_index   decl_idx = get_ifc_index(scope_mem);
         a_module_entity_ptr dmep = get_ifc_module_entity_ptr(decl_idx);
-        a_boolean           defer = TRUE;
+
+        dmep->scope = scope;
 #if EXPENSIVE_CHECKING
         /* When this flag is set, eagerly load all entities in a module.
            Entities are typically lazily loaded (i.e., only when needed) and
@@ -8536,11 +8611,13 @@ deferred until they are referenced.
            branch is in an anticipated hot path, conditionally enable it with
            EXPENSIVE_CHECKING as an optimization. */
         if (eager_load_modules && can_be_eager_loaded(decl_idx)) {
-          defer = FALSE;
-        }  /* if */
+          this->process_ifc_declaration(dmep);
+        } else
 #endif /* EXPENSIVE_CHECKING */
-        dmep->scope = scope;
-        this->process_ifc_declaration(dmep, defer);
+        /* Do not add code here. */
+        {
+          defer_ifc_declaration(dmep);
+        }  /* if */
       }  /* for */
     }  /* if */
     pop_module_declaration_context(scope_push_status);
@@ -13756,26 +13833,18 @@ static void cache_func_body(a_module_token_cache_ptr cache,
 Cache the function-body for the given function-like declaration (identified by
 decl_idx).
 
-If the IFC provides a user-defined definition for said function, instead of a
-proper function-body being cached, a token indicating the presence of a
-lazy-loadable definition will instead be cached.  cinfo contains information
-about the current cache context to help inform decisions about what to cache.
+If the IFC provides a user-defined definition for said function, no definition
+will be cached, instead one will be associated via map_pending_definitions.
+cinfo contains information about the current cache context to help inform
+decisions about what to cache.
 */
 {
   check_assertion(function_is_defined(decl));
   an_ifc_function_traits_bitfield traits = get_ifc_traits(decl);
 
   if (function_is_user_defined(decl)) {
-    cache_token(cache, tok_semicolon);
-    /* A body is likely available: Record this availability using a
-       pseudo-token that will be translated when the declaration is
-       parsed. */
-    cache_token_with_index(cache, tok_pending_ifc_func_body, decl_idx);
-    /* FIXME: We cache a new semicolon here to avoid complicating
-       full_specialization logic (which does not provide an easy way to
-       suppress the semicolon check), it might be better to rework this logic
-       to "insert" the tok_pending_ifc_func_body before the existing
-       semicolon. */
+    /* As noted above, the function definition will be mapped into an IL map of
+       lazy-loadable definitions; there's nothing to cache. */
     if (!cinfo.no_final_semicolon) {
       cache_token(cache, tok_semicolon);
     }  /* if */
@@ -20457,9 +20526,12 @@ Initialize static variables related to this file that must be initialized
 for each compilation.
 */
 {
-#if DEBUG && EXPENSIVE_CHECKING
+#if DEBUG
+#if EXPENSIVE_CHECKING
   debug_partition = NULL;
-#endif /* DEBUG && EXPENSIVE_CHECKING */
+#endif /* EXPENSIVE_CHECKING */
+  decl_nesting_level = 0;
+#endif /* DEBUG */
   ifc_function_bodies = alloc_fe_of_type(an_ifc_function_body_map);
   construct(ifc_function_bodies, /*mask_width=*/10);
   ifc_template_definitions = alloc_fe_of_type(an_ifc_template_def_map);

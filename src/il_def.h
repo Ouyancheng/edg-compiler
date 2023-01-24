@@ -1000,11 +1000,6 @@ enum a_token_kind : unsigned short {
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   tok_decltype_construct,   /* Used to represent a decltype(expr) construct
                                that has been coalesced. */
-  tok_pending_ifc_func_body,
-                            /* Generated when reading an IFC file to indicate
-                               that the declaration for a function also has
-                               an associated function body (elsewhere in the
-                               IFC file). */
   tok_pending_ifc_var_init,
                             /* Generated when reading an IFC file to indicate
                                that the declaration for a variable has an
@@ -1482,9 +1477,8 @@ EXTERN a_const_char
 #if MICROSOFT_EXTENSIONS_ALLOWED
    "cli typeid",
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-   "decltype construct", "pending IFC body", "pending IFC var init",
-   "pending IFC expression", "IFC entity ref", "IFC templ param", "IFC decl",
-   "unimplemented",
+   "decltype construct", "pending IFC var init", "pending IFC expression",
+   "IFC entity ref", "IFC templ param", "IFC decl", "unimplemented",
    "[", "]", "(", ")", ".", "->", "++", "--", "&", "*", "+", "-",
    "~", "!", "/", "%", "<<", ">>", "<", ">", "<=", ">=", "==", "!=", "<=>",
    "^", "|", "&&", "||", "?", ":", "=", "*=", "/=", "%=",

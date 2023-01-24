@@ -238,8 +238,7 @@ public:
   const an_ifc_partition_metadata &get_partition_metadata(
                                         an_ifc_partition_kind part_kind) const;
 
-  void process_ifc_declaration(a_module_entity_ptr mep,
-                               a_boolean           defer);
+  void process_ifc_declaration(a_module_entity_ptr mep);
   void complete_definition_of_module_class(a_module_entity_ptr mep) OVERRIDE;
   a_boolean cache_function_body(a_module_token_cache_ptr cache,
                                 an_ifc_decl_index        decl_idx,
@@ -603,9 +602,6 @@ a_boolean load_template_definition_from_ifc_module(a_template_ptr  templ);
 extern a_dynamic_init_ptr load_variable_init_from_ifc_module(
                                                 a_type_ptr        tp,
                                                 an_ifc_expr_index init_expr);
-
-extern void record_pending_ifc_function_body(a_routine_ptr     rp,
-                                             an_ifc_decl_index decl_idx);
 
 extern void record_symbol_for_ifc_decl(a_symbol_ptr  sym);
 
