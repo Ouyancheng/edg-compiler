@@ -10960,9 +10960,11 @@ Pop the current entry off of the pack expansion stack.
   if (pesep->template_arg_list != NULL) {
     free_template_arg_list(pesep->template_arg_list);
   }  /* if */
-  /* Restore the previous values of the parameters packs used by this
-     expansion. */
-  restore_enclosing_pack_values(pesep->enclosing_packs_reset);
+  if (pesep->expansion_descr != NULL) {
+    /* Restore the previous values of the parameters packs used by this
+       expansion. */
+    restore_enclosing_pack_values(pesep->enclosing_packs_reset);
+  }  /* if */
   /* Add the old entry to the list of available stack entries. */
   pesep->next = avail_pack_expansion_stack_entries;
   avail_pack_expansion_stack_entries = pesep;
