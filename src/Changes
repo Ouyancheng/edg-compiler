@@ -41,7 +41,7 @@ now fixed.  For example, with --c++14:
   };
   void f() {
     S s;
-    [s{s}] {};
+    [s{s}] {};   // Previously generated as [s{{s}}]
   }
 
 
