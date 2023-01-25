@@ -10961,7 +10961,7 @@ Pop the current entry off of the pack expansion stack.
     free_template_arg_list(pesep->template_arg_list);
   }  /* if */
   if (pesep->expansion_descr != NULL) {
-    /* Restore the previous values of the parameters packs used by this
+    /* Restore the previous values of the parameter packs used by this
        expansion. */
     restore_enclosing_pack_values(pesep->enclosing_packs_reset);
   }  /* if */
