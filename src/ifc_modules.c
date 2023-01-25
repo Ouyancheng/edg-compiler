@@ -3044,8 +3044,9 @@ definition is present).
 
 static void map_pending_definitions(a_module_entity_ptr mep)
 /*
-Given a module entity pointer for a declared module entity, map any pending
-definition information for later use should a definition be required.
+Given a module entity pointer for a valid module entity with an existing IL
+declaration, map any pending definition information for later use should a
+definition be required.
 */
 {
   check_assertion(!mep->invalid && mep->entity.ptr != NULL);
@@ -5907,7 +5908,30 @@ module, but its definition hasn't been loaded yet.  Load the definition now.
 }  /* load_template_definition_from_ifc_module */
 
 
-static a_boolean process_decl_prerequisites(an_ifc_decl_index decl_idx)
+static inline Opt<an_ifc_decl_index>
+get_home_scope_if_class(an_ifc_decl_index decl_idx)
+/*
+Given a the IFC declaration index for an entity, if the entity is declared in
+class scope return the IFC DeclIndex of the enclosing class; otherwise, return
+an empty optional.
+*/
+{
+  Opt<an_ifc_decl_index> result;
+
+  if (validate(decl_idx)) {
+    if (has_ifc_home_scope(decl_idx)) {
+      an_ifc_decl_index home_scope = get_ifc_home_scope(decl_idx);
+
+      if (is_class_scope(home_scope)) {
+        result = home_scope;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* get_home_scope_if_class */
+
+
+static a_boolean process_decl_prerequisites(a_module_entity_ptr mep)
 /*
 For the given declaration, process any prerequisites.  If processing succeeds
 return TRUE; otherwise, return FALSE.
@@ -5921,8 +5945,53 @@ dependency).  To avoid that problem the friend function's type dependencies are
 resolved before attempting to resolve the function.
 */
 {
-  a_boolean result = TRUE;
+  a_boolean              result = TRUE;
+  an_ifc_decl_index      decl_idx = decl_index_of(mep);
+  Opt<an_ifc_decl_index> opt_home_scope = get_home_scope_if_class(decl_idx);
 
+  /* Members of classes are processed via their enclosing class.  Thus, their
+     prerequisite is that it be processed. */
+  if (opt_home_scope.has_value()) {
+    an_ifc_decl_index   home_scope = *opt_home_scope;
+    a_module_entity_ptr parent_mep = process_decl_at_index(home_scope);
+
+    if (parent_mep->invalid) {
+      /* If the parent was not successfully processed, the child cannot
+         succeed. */
+      goto invalid;
+    } else {
+      an_ifc_module *parent_mod = get_assoc_ifc_module(parent_mep);
+
+      parent_mod->complete_definition_of_module_class(parent_mep);
+#if CHECKING
+      /* The requested entity should've been loaded in the process of
+         completing the module class.  If that didn't occur something has
+         gone wrong (most likely, the entity and module entity pointer were
+         not correctly associated with each other -- see cache_bound_entity
+         for more information). */
+      /* FIXME: The module entity should always be imminent at this point,
+         however, because the front end does not currently map IL entities
+         for members of classes that already exist (e.g., from a global
+         module fragment), invalid status is also considered. */
+      if (!mep->imminent && !mep->invalid) {
+        an_ifc_decl_index parent_mep_idx = decl_index_of(parent_mep);
+        an_ifc_decl_index mep_idx = decl_index_of(mep);
+        a_string          err_msg("completion of ",
+                                  index_to_str(parent_mep_idx),
+                                  " failed to resolve child ",
+                                  index_to_str(mep_idx));
+
+        unexpected_condition_str(err_msg.as_temp_characters());
+      }  /* if */
+#endif /* CHECKING */
+      if (mep->invalid) {
+        goto invalid;
+      } else {
+        goto done;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  /* Handle prerequisites based on the node type. */
   switch (decl_idx.sort) {
     case ifc_ds_decl_enumerator:
       { Opt<an_ifc_decl_enumerator> opt_decl_enumerator;
@@ -5972,29 +6041,6 @@ done:
 }  /* process_decl_prerequisites */
 
 
-static inline Opt<an_ifc_decl_index>
-get_home_scope_if_class(a_module_entity_ptr mep)
-/*
-Given a module entity pointer, if the entity is declared in class scope return
-the IFC DeclIndex of the enclosing class; otherwise, return an empty optional.
-*/
-{
-  Opt<an_ifc_decl_index> result;
-  an_ifc_decl_index      decl_idx = decl_index_of(mep);
-
-  if (validate(decl_idx)) {
-    if (has_ifc_home_scope(decl_idx)) {
-      an_ifc_decl_index home_scope = get_ifc_home_scope(decl_idx);
-
-      if (is_class_scope(home_scope)) {
-        result = home_scope;
-      }  /* if */
-    }  /* if */
-  }  /* if */
-  return result;
-}  /* get_home_scope_if_class */
-
-
 static void process_decl_to_il_entity(a_module_entity_ptr mep,
                                       a_boolean           defer)
 /*
@@ -6008,7 +6054,7 @@ Only module entity pointers for IL entities not in class scope should be passed
 to this function.
 */
 {
-  check_assertion(!get_home_scope_if_class(mep).has_value());
+  check_assertion(!get_home_scope_if_class(decl_index_of(mep)).has_value());
   an_ifc_module            *mod = get_assoc_ifc_module(mep);
   a_decl_pos_block         decl_pos_block;
   a_symbol_locator         loc;
@@ -6022,8 +6068,6 @@ to this function.
   a_module_entity_ptr      saved_mep = curr_module_entity;
   a_ms_mode_parse          tmp_ms_parse(mod);
   an_ifc_decl_index        decl_idx = decl_index_of(mep);
-  a_module_entity_stack_state
-                           mep_state(mep);
 
 #if DEBUG
   ++num_module_decls_attempted;
@@ -6035,19 +6079,6 @@ to this function.
 #endif /* DEBUG */
   curr_module_entity = mep;
   if (!defer) {
-    /* Some declarations require prerequisites to be fulfilled before they
-       can be processed. */
-    if (process_decl_prerequisites(decl_idx)) {
-      /* The processing of the prerequisites resulted in this declaration
-         being loaded; abandon this loading request. */
-      if (mep->imminent) {
-        goto done;
-      }  /* if */
-    } else {
-      /* The processing of the prerequisites failed, so this declaration cannot
-         possibly be valid. */
-      goto invalid;
-    }  /* if */
     mep->imminent = TRUE;
     if (mep->scope != NULL) {
       /* If this module entity has a scope, attempt to re-activate it now.  If
@@ -7536,8 +7567,18 @@ void an_ifc_module::process_ifc_declaration(a_module_entity_ptr mep)
 /*
 Attempt to form an IL entity for the IFC module entity declaration specified by
 mep; if no IL entity can be formed, *mep will marked as invalid.
+
+This function performs three primary actions in sequence.  First, any
+prerequisites for the processing of a module entity pointer will be handled
+(via process_decl_prerequisites).  Second, assuming processing of the
+prerequisite didn't result in the creation of an IL entity, one will be created
+(via process_decl_to_il_entity).  Third and finally, if the declaration has a
+definition that can be lazily loaded, information to support lazy loading will
+be mapped to the IL entity.
 */
 {
+  a_module_entity_stack_state mep_state(mep);
+
   /* Ensure the module entity is being processed by the corresponding module
      interface. */
   check_assertion(mep->module_info->module_interface == this);
@@ -7564,44 +7605,23 @@ mep; if no IL entity can be formed, *mep will marked as invalid.
   /* If the module entity pointer hasn't already been loaded, do so now. */
   /* FIXME: Can this just be "if !mep->imminent"? */
   if (!mep->imminent && mep->entity.ptr == NULL) {
-    Opt<an_ifc_decl_index> opt_home_scope = get_home_scope_if_class(mep);
-
-    if (opt_home_scope.has_value()) {
-      an_ifc_decl_index   home_scope = *opt_home_scope;
-      a_module_entity_ptr parent_mep = process_decl_at_index(home_scope);
-
-      if (parent_mep->invalid) {
-        /* If the parent was not successfully processed, the child cannot
-           succeed. */
-        mep->invalid = TRUE;
-      } else {
-        complete_definition_of_module_class(parent_mep);
-#if CHECKING
-        /* The requested entity should've been loaded in the process of
-           completing the module class.  If that didn't occur something has
-           gone wrong (most likely, the entity and module entity pointer were
-           not correctly associated with each other -- see cache_bound_entity
-           for more information). */
-        /* FIXME: The module entity should always be imminent at this point,
-           however, because the front end does not currently map IL entities
-           for members of classes that already exist (e.g., from a global
-           module fragment), invalid status is also considered. */
-        if (!mep->imminent && !mep->invalid) {
-          an_ifc_decl_index parent_mep_idx = decl_index_of(parent_mep);
-          an_ifc_decl_index mep_idx = decl_index_of(mep);
-          a_string          err_msg("completion of ",
-                                    index_to_str(parent_mep_idx),
-                                    " failed to resolve child ",
-                                    index_to_str(mep_idx));
-
-          unexpected_condition_str(err_msg.as_temp_characters());
-        }  /* if */
-#endif /* CHECKING */
-      }  /* if */
-    } else {
-      process_decl_to_il_entity(mep, /*defer=*/FALSE);
+    /* Process any prerequisites for this declaration. */
+    if (!process_decl_prerequisites(mep)) {
+      /* One or more prerequisites failed, this module entity can't be
+         valid. */
+      goto decl_invalid;
     }  /* if */
+    if (mep->imminent) {
+      /* The processing of the prerequisites resulted in this declaration being
+         loaded. */
+      goto decl_loaded;
+    }  /* if */
+    process_decl_to_il_entity(mep, /*defer=*/FALSE);
   }  /* if */
+  goto decl_loaded;
+decl_invalid:
+  mep->invalid = TRUE;
+decl_loaded:
 #if CHECKING
   if (!mep->invalid && mep->entity.ptr == NULL) {
     an_ifc_decl_index mep_idx = decl_index_of(mep);
