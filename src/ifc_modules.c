@@ -2950,6 +2950,17 @@ an_ifc_function_body_map
                            type an_ifc_decl_index that can be used to retrieve
                            the definition of a function body when needed. */
 
+using an_ifc_template_def_map = Ptr_map<a_template_ptr, an_ifc_decl_index>;
+                        /* The type of a map that associates IFC template
+                           definitions with IL template entries. */
+
+an_ifc_template_def_map
+                *ifc_template_definitions;
+                        /* A map from canonical template IL pointers to entries
+                           of type an_ifc_decl_index that can be used to
+                           retrieve the definition of the template when
+                           needed. */
+
 }  /* namespace */
 
 
@@ -3042,6 +3053,20 @@ definition is present).
 }  /* try_map_routine_definition */
 
 
+static void record_pending_ifc_template_definition(a_template_ptr    templ,
+                                                   an_ifc_decl_index decl_idx)
+/*
+Record the information needed to retrieve a definition for templ if it turns
+out to be needed later on.
+*/
+{
+  /* Ensure the canonical template IL entity is what's being mapped onto. */
+  check_assertion(templ != NULL && templ->canonical_template != NULL);
+  templ = templ->canonical_template;
+  (void)ifc_template_definitions->map_or_replace(templ, decl_idx);
+}  /* record_pending_ifc_template_definition */
+
+
 static void map_pending_definitions(a_module_entity_ptr mep)
 /*
 Given a module entity pointer for a valid module entity with an existing IL
@@ -3065,6 +3090,20 @@ definition be required.
 
         construct_node_prechecked(&method_decl, decl_idx);
         try_map_routine_definition(method_decl, mep);
+      }
+      break;
+    case ifc_ds_decl_template:
+      { an_ifc_decl_template templ_decl;
+
+        construct_node_prechecked(&templ_decl, decl_idx);
+        if (!is_defined(mep->entity.ptr, mep->entity.kind)) {
+          a_template_ptr templ = (a_template_ptr)mep->entity.ptr;
+
+          /* The kind should be a template, otherwise this mep should've been
+             marked invalid. */
+          check_assertion(mep->entity.kind == iek_template);
+          record_pending_ifc_template_definition(templ, decl_idx);
+        }  /* if */
       }
       break;
     default:
@@ -5796,32 +5835,6 @@ kind set to iek_template.
                                      il_entity, kind);
 }  /* process_delayed_template_definition */
 
-
-using an_ifc_template_def_map = Ptr_map<a_template_ptr, an_ifc_decl_index>;
-                        /* The type of a map that associates IFC template
-                           definitions with IL template entries. */
-
-an_ifc_template_def_map
-                *ifc_template_definitions;
-                        /* A map from canonical template IL pointers to entries
-                           of type an_ifc_decl_index that can be used to
-                           retrieve the definition of the template when
-                           needed. */
-
-
-void record_pending_ifc_template_definition(a_template_ptr    templ,
-                                            an_ifc_decl_index decl_idx)
-/*
-Record the information needed to retrieve a definition for templ if it turns
-out to be needed later on.
-*/
-{
-  /* Ensure the canonical template IL entity is what's being mapped onto. */
-  check_assertion(templ != NULL && templ->canonical_template != NULL);
-  templ = templ->canonical_template;
-  (void)ifc_template_definitions->map_or_replace(templ, decl_idx);
-}  /* record_pending_ifc_template_definition */
-
 }  /* namespace */
 
 a_boolean has_template_definition_from_ifc_module(a_template_ptr  templ)
@@ -7833,10 +7846,14 @@ done:;
 
 
 static void
-invalidate_failed_class_members(const an_ifc_scope_descriptor& class_members)
+invalidate_failed_class_members(
+                         const an_ifc_scope_descriptor          &class_members,
+                         ARG_UNUSED const a_diag_count_snapshot &diag_counts)
 /*
 Invalid the module entities of any class members for the given class member
-scope descriptor that failed to be mapped to an IL entity.
+scope descriptor that failed to be mapped to an IL entity.  diag_counts is a
+diagnostic count snapshot of diagnostics that were emitted during class
+parsing; this is used to diagnose unprocessed tok_ifc_decl tokens.
 */
 {
   a_scope_member_traverser traverser(class_members);
@@ -7850,6 +7867,24 @@ scope descriptor that failed to be mapped to an IL entity.
     an_ifc_decl_index   mem_idx = get_ifc_index(scope_mem);
     a_module_entity_ptr mem_mep = get_ifc_module_entity_ptr(mem_idx);
     if (mem_mep->entity.ptr == NULL) {
+#if CHECKING
+      { /* When this condition is violated, no IL entity was recorded for this
+           member and no error was emitted during class processing.  This can
+           have two underlying causes:
+
+           A) The enclosing class did not exist in the IL, and the
+              corresponding tok_ifc_decl token for this member was silently
+              discarded.
+           B) The enclosing class already existed in the IL, and the module
+              entity for this member was not mapped to the corresponding IL
+              entity.
+         */
+        a_string err_msg("processing of class member ", index_to_str(mem_idx),
+                         " did not result in an IL entity or an error");
+
+        expect_error_since(diag_counts, err_msg.as_temp_characters());
+      }
+#endif /* CHECKING */
       mem_mep->invalid = TRUE;
     }  /* if */
   }  /* for */
@@ -7896,9 +7931,19 @@ Complete the definition of the class referred to by mep (if needed).
       /* FIXME: The module entity pointers need to be mapped onto the existing
          IL declarations. */
       if (opt_class_members.has_value()) {
+        a_diag_count_snapshot   diag_count_snapshot;
         an_ifc_scope_descriptor class_members = *opt_class_members;
+        a_string                err_msg("Class member mapping was required",
+                                        " for ", index_to_str(decl_idx),
+                                        " but is unimplemented");
 
-        invalidate_failed_class_members(class_members);
+        /* Emit an error unconditionally for this case until this is
+           implemented.  This both makes sure that no invalid TU compiles
+           successfully, and that the checks performed by
+           invalidate_failed_class_members do not fail/cause the compiler to
+           abort. */
+        ifc_unexpected(decl_idx.mod, err_msg.as_temp_characters());
+        invalidate_failed_class_members(class_members, diag_count_snapshot);
       }  /* if */
     } else if (initializer != 0) {
       a_template_decl_info_ptr    tdip;
@@ -7967,6 +8012,7 @@ Complete the definition of the class referred to by mep (if needed).
         curr_class_fixup_header(/*for_instantiation=*/TRUE)->
                                                    pending_class_definitions++;
         {
+          a_diag_count_snapshot  diag_snapshot;
           a_module_entity_rescan rescan(&cache);
 
           (void)scan_class_definition(
@@ -7980,12 +8026,12 @@ Complete the definition of the class referred to by mep (if needed).
                                     /*is_template_specialization=*/FALSE,
                                     (a_template_ptr)NULL,
                                     (a_decl_pos_block_ptr)NULL);
-        }
-        if (opt_class_members.has_value()) {
-          an_ifc_scope_descriptor class_members = *opt_class_members;
+          if (opt_class_members.has_value()) {
+            an_ifc_scope_descriptor class_members = *opt_class_members;
 
-          invalidate_failed_class_members(class_members);
-        }  /* if */
+            invalidate_failed_class_members(class_members, diag_snapshot);
+          }  /* if */
+        }
         add_ifc_friends_to_class(this, class_type, decl_idx);
         curr_class_fixup_header(/*for_instantiation=*/TRUE)->
                                                    pending_class_definitions--;
