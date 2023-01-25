@@ -1,5 +1,26 @@
 Version 6.5
 
+1/25/23  [EDGcpfe/25672]
+Microsoft compatibility: incorrect concatenation of macro arguments
+
+When emulating the traditional Microsoft preprocessor, the front end
+previously ignored white space occurring in nested macro expansions within
+macro arguments and consequently concatenated tokens that MSVC keeps
+separate.  For instance, in the following example (with --microsoft
+--c++11) the space appearing between the macro invocations in the expansion
+of M3 should have prevented the concatenation of the expansions of M1("A")
+and M1("B") in the expansion of M4 but failed to do so:
+
+  #define M1(x)         L##x
+  #define M2(x)
+  #define M3  M2("X") M1("B")
+  #define M4(a)  a
+  auto x = M4(M1("A")M3);  // Previously expanded to L"A"L"B", with the second
+                           // L being an invalid user-defined literal suffix
+
+This is now fixed.
+
+
 1/24/23  [EDGcpfe/25981]
 Constant-evaluation abort on use of dependent class type
 

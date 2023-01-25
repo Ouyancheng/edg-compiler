@@ -6631,6 +6631,11 @@ do_argument_again:
           /* Ignore initial white space. */
           any_white_space_skipped = FALSE;  /* Should be FALSE already. */
           need_end_of_token_marker = FALSE;
+          if (microsoft_mode && !ms_std_preproc) {
+            /* An embedded space in nested macro expansions will delimit
+               tokens. */
+            preserve_white_space_kind = TRUE;
+          }  /* if */
           paren_count = 0;
 #if FULLY_RESOLVED_MACRO_POSITIONS
           /* Reinitialize the tracker for the scan through the raw text.  This
@@ -6726,6 +6731,7 @@ scan_expanded_tokens:
             } else {
               need_end_of_token_marker = TRUE;
             }  /* if */
+            kind_of_white_space_skipped = 0;
             (void)arg_get_token(&any_white_space_skipped);
             if (empty_variadic_macro_seen &&
                 map->expanded_text[map->expanded_len - 1] == ',') {
@@ -6740,8 +6746,8 @@ scan_expanded_tokens:
                 map->expanded_len -= LE_ESCAPE_LEN;
               }  /* if */
             }  /* if */
-            if (ms_compat && !ms_std_preproc &&
-                token_ends_macro_expansion && !any_white_space_skipped) {
+            if (ms_compat && !ms_std_preproc && token_ends_macro_expansion &&
+                !(kind_of_white_space_skipped & WHITE_SPACE_OTHER)) {
               /* Suppress the token separator to allow concatenation of the
                  final token of a macro expansion with the following
                  token. */
@@ -6758,9 +6764,11 @@ scan_expanded_tokens:
             }  /* if */
             curr_char_loc= map->raw_text +
                            map->offset_in_raw_text_of_primary_source_line_text;
+            kind_of_white_space_skipped = 0;
             (void)arg_get_token(&any_white_space_skipped);
             goto scan_expanded_tokens;
           }  /* if */
+          preserve_white_space_kind = FALSE;
           /* Place terminating LE_END_OF_INSERTION lexical escape. */
           ensure_arg_expanded_text_space(LE_ESCAPE_LEN, map);
           map->expanded_text[map->expanded_len]   = LE_ESCAPE;
