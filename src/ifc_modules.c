@@ -16332,10 +16332,10 @@ offset/the offset is not needed.
     cache_name(cache, name);
   } else {
     /* Function or variable template. */
-    /* FIXME: Cache the entity corresponding to decl->entity.decl instead.
-       Currently this may be missing information, so use the soon-to-be-removed
-       entity.head instead. */
-    cache_sentence(cache, get_ifc_head(entity));
+    an_ifc_cache_info decl_cinfo = cinfo;
+
+    decl_cinfo.no_access_specifier = TRUE;
+    cache_decl(cache, get_ifc_decl(entity), decl_cinfo);
   }  /* if */
   if (!cinfo.no_final_semicolon) {
     cache_token(cache, tok_semicolon);
@@ -17304,13 +17304,6 @@ about what to cache.
 
         construct_node_prechecked(&template_decl, decl);
         cache_decl_template(cache, template_decl, cinfo);
-
-        Opt<an_ifc_sequence> opt_seq =
-                                  get_specialization_sequence_from_trait(decl);
-        if (opt_seq.has_value()) {
-          /* Cache the associated specializations. */
-          cache_scope_member_sequence(cache, *opt_seq);
-        }  /* if */
       }
       break;
     case ifc_ds_decl_partial_specialization:
