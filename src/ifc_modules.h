@@ -411,9 +411,6 @@ public:
   void cache_operator(a_module_token_cache_ptr      cache,
                       an_ifc_variadic_operator_sort op,
                       const an_ifc_source_location  &locus);
-  void cache_exception_spec(a_module_token_cache_ptr              cache,
-                            const an_ifc_noexcept_specification &eh_spec,
-                            a_source_position_ptr               pos);
   uint32_t cache_sentence(
                          a_module_token_cache_ptr cache,
                          an_ifc_sentence_index    sentence,
@@ -491,37 +488,6 @@ public:
                            an_ifc_expr_index                width,
                            an_ifc_expr_index                initializer,
                            const an_ifc_source_location     &locus);
-  template<typename a_Name_Cache_Fn>
-  inline void cache_function_decl(
-                        a_module_token_cache_ptr             cache,
-                        an_ifc_decl_index                    decl_idx,
-                        a_boolean                            is_class_member,
-                        a_boolean                            is_dtor,
-                        an_ifc_calling_convention_sort       calling_conv,
-                        an_ifc_function_traits_bitfield      func_traits,
-                        an_ifc_function_type_traits_bitfield func_type_traits,
-                        an_ifc_msvc_traits_bitfield          vendor_traits,
-                        an_ifc_type_index                    return_type,
-                        a_Name_Cache_Fn                      cache_name_fn,
-                        an_ifc_chart_index                   params,
-                        an_ifc_type_index                    param_types,
-                        const an_ifc_noexcept_specification  &eh_spec,
-                        const an_ifc_source_location         &locus);
-  void cache_function_decl(
-                         a_module_token_cache_ptr             cache,
-                         an_ifc_decl_index                    decl_idx,
-                         a_boolean                            is_class_member,
-                         a_boolean                            is_dtor,
-                         an_ifc_calling_convention_sort       calling_conv,
-                         an_ifc_function_traits_bitfield      func_traits,
-                         an_ifc_function_type_traits_bitfield func_type_traits,
-                         an_ifc_msvc_traits_bitfield          vendor_traits,
-                         an_ifc_type_index                    return_type,
-                         an_ifc_name_index                    name,
-                         an_ifc_chart_index                   params,
-                         an_ifc_type_index                    param_types,
-                         const an_ifc_noexcept_specification  &eh_spec,
-                         const an_ifc_source_location         &locus);
   void cache_name(a_module_token_cache_ptr     cache,
                   an_ifc_name_index            name,
                   const an_ifc_source_location &locus);

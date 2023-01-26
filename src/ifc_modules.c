@@ -2788,6 +2788,28 @@ an_ifc_function_body_map
 
 }  /* namespace */
 
+
+template<typename an_ifc_Node_type>
+static a_boolean function_has_generated_definition(
+                                                  const an_ifc_Node_type &node)
+/*
+Return TRUE if the given function-like IFC declaration node has a definition
+that's compiler generated (i.e., "= default" or "= delete;"); otherwise, return
+FALSE.
+*/
+{
+  a_boolean                       result = FALSE;
+  an_ifc_function_traits_bitfield traits = get_ifc_traits(node);
+
+  if (test_bitmask<ifc_ftb_defaulted>(traits)) {
+    result = TRUE;
+  } else if (test_bitmask<ifc_ftb_deleted>(traits)) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* function_has_generated_definition */
+
+
 template<typename an_ifc_Node_type>
 static a_boolean function_is_user_defined(const an_ifc_Node_type &node)
 /*
@@ -2802,11 +2824,22 @@ that is not "= default" or "= delete"; otherwise, return FALSE.
      constexpr and the definition must be exported (marked by the presence of a
      reachable initializer property). */
   return (test_bitmask<ifc_rpb_initializer>(properties) &&
-          !(test_bitmask<ifc_ftb_defaulted>(traits) ||
-            test_bitmask<ifc_ftb_deleted>(traits)) &&
+          !function_has_generated_definition(node) &&
           (test_bitmask<ifc_ftb_constexpr>(traits) ||
            test_bitmask<ifc_ftb_immediate>(traits)));
 }  /* function_is_user_defined */
+
+
+template<typename an_ifc_Node_type>
+static a_boolean function_is_defined(const an_ifc_Node_type &node)
+/*
+Return TRUE if the given function-like IFC declaration node has a definition;
+otherwise, return FALSE.
+*/
+{
+  return (function_has_generated_definition(node) ||
+          function_is_user_defined(node));
+}  /* function_is_defined */
 
 
 void record_pending_ifc_function_body(a_routine_ptr     rp,
@@ -12630,203 +12663,150 @@ position to use for the traits.
 }  /* cache_object_traits */
 
 
-static void cache_vendor_traits(a_module_token_cache_ptr    cache,
-                                an_ifc_msvc_traits_bitfield traits,
-                                a_boolean                   trailing,
-                                a_source_position_ptr       pos)
+template<typename an_ifc_Node_type>
+static void cache_func_type_cv_qualifiers(a_module_token_cache_ptr     cache,
+                                          const an_ifc_Node_type       &node,
+                                          const an_ifc_source_location &locus)
 /*
-Add tokens according to the provided vendor traits to cache.  If trailing is
-TRUE, cache the traits that follow a declaration.  Otherwise, cache the traits
-that precede a declaration.  pos is the position to use for the traits.
+Cache the cv-qualifiers for the given function-like IFC type.  locus is the
+location of the cv-qualifiers.
 */
 {
-  auto cache_declspec_fn = [&](a_const_char *str) {
-    cache_token(cache, tok_declspec, pos);
-    cache_token(cache, tok_lparen, pos);
-    cache_identifier(cache, str, pos);
-    cache_token(cache, tok_rparen, pos);
-  };  /* cache_declspec_fn */
+  an_ifc_function_type_traits_bitfield traits = get_ifc_traits(node);
+  a_source_position                    pos;
 
-  if (trailing) {
-    /* Nothing currently to do here. */
-  } else {
-    if (test_bitmask<ifc_mtb_force_inline>(traits)) {
-      cache_token(cache, tok_forceinline, pos);
-    }  /* if */
-    if (test_bitmask<ifc_mtb_naked>(traits)) {
-      cache_declspec_fn("naked");
-    }  /* if */
-    if (test_bitmask<ifc_mtb_no_alias>(traits)) {
-      cache_declspec_fn("noalias");
-    }  /* if */
-    if (test_bitmask<ifc_mtb_no_inline>(traits)) {
-      cache_declspec_fn("noinline");
-    }  /* if */
-    if (test_bitmask<ifc_mtb_restrict>(traits)) {
-      cache_declspec_fn("restrict");
-    }  /* if */
-    if (test_bitmask<ifc_mtb_safe_buffers>(traits)) {
-      cache_declspec_fn("safebuffers");
-    }  /* if */
-    if (test_bitmask<ifc_mtb_dll_export>(traits)) {
-      cache_declspec_fn("dllexport");
-    }  /* if */
-    if (test_bitmask<ifc_mtb_dll_import>(traits)) {
-      cache_declspec_fn("dllimport");
-    }  /* if */
-    if (test_bitmask<ifc_mtb_novtable>(traits)) {
-      cache_declspec_fn("novtable");
-    }  /* if */
-    if (test_bitmask<ifc_mtb_process>(traits)) {
-      cache_declspec_fn("process");
-    }  /* if */
-    if (test_bitmask<ifc_mtb_select_any>(traits)) {
-      cache_declspec_fn("selectany");
-    }  /* if */
-  }  /* if */
-  if (test_bitmask<ifc_mtb_code_segment>(traits)) {
-    /* FIXME: Currently unsupported. */
-    issue_unsupported_construct_error(traits.mod, "MsvcTraits::CodeSegment",
-                                      &error_position);
-  }  /* if */
-  if (test_bitmask<ifc_mtb_intrinsic_type>(traits)) {
-    /* FIXME: Currently unsupported. */
-    issue_unsupported_construct_error(traits.mod, "MsvcTraits::IntrinsicType",
-                                      &error_position);
-  }  /* if */
-  if (test_bitmask<ifc_mtb_empty_bases>(traits)) {
-    /* FIXME: Currently unsupported. */
-    issue_unsupported_construct_error(traits.mod, "MsvcTraits::EmptyBases",
-                                      &error_position);
-  }  /* if */
-  if (test_bitmask<ifc_mtb_allocate>(traits)) {
-    /* FIXME: Currently unsupported. */
-    issue_unsupported_construct_error(traits.mod, "MsvcTraits::Allocate",
-                                      &error_position);
-  }  /* if */
-  if (test_bitmask<ifc_mtb_comdat>(traits)) {
-    /* FIXME: Currently unsupported. */
-    issue_unsupported_construct_error(traits.mod, "MsvcTraits::Comdat",
-                                      &error_position);
-  }  /* if */
-  if (test_bitmask<ifc_mtb_uuid>(traits)) {
-    /* FIXME: Currently unsupported. */
-    issue_unsupported_construct_error(traits.mod, "MsvcTraits::Uuid",
-                                      &error_position);
-  }  /* if */
-}  /* cache_vendor_traits */
-
-
-static void cache_func_traits(an_ifc_module                   *mod,
-                              a_module_token_cache_ptr        cache,
-                              an_ifc_function_traits_bitfield traits,
-                              an_ifc_msvc_traits_bitfield     vendor_traits,
-                              a_boolean                       trailing,
-                              a_source_position_ptr           pos)
-/*
-Add the tokens corresponding to the given module's function and vendor traits
-to cache.  If trailing is TRUE then cache the traits that follow a function
-declaration.  Otherwise, cache the traits that precede a function declaration.
-pos is the position to use for the traits.
-*/
-{
-  cache_vendor_traits(cache, vendor_traits, trailing, pos);
-  if (trailing) {
-    if (test_bitmask<ifc_ftb_pure_virtual>(traits)) {
-      a_constant_ptr cp = alloc_cached_constant();
-      cache_token(cache, tok_assign, pos);
-      make_zero_of_proper_type(integer_type((an_integer_kind)ik_int), cp);
-      cache_literal(mod, cache, cp, pos);
-    }  /* if */
-    if (test_bitmask<ifc_ftb_defaulted>(traits)) {
-      cache_token(cache, tok_assign, pos);
-      cache_token(cache, tok_default, pos);
-    }  /* if */
-    if (test_bitmask<ifc_ftb_deleted>(traits)) {
-      cache_token(cache, tok_assign, pos);
-      cache_token(cache, tok_delete, pos);
-    }  /* if */
-  } else {
-    if (test_bitmask<ifc_ftb_virtual>(traits)) {
-      cache_token(cache, tok_virtual, pos);
-    }  /* if */
-    if (test_bitmask<ifc_ftb_explicit>(traits)) {
-      cache_token(cache, tok_explicit, pos);
-    }  /* if */
-    if (test_bitmask<ifc_ftb_no_return>(traits)) {
-      cache_token(cache, tok_noreturn, pos);
-    }  /* if */
-    if (test_bitmask<ifc_ftb_immediate>(traits)) {
-      cache_token(cache, tok_consteval, pos);
-    } else if (test_bitmask<ifc_ftb_constexpr>(traits)) {
-      cache_token(cache, tok_constexpr, pos);
-    }  /* if */
-    /* ifc_FunctionTraits_Inline is intentionally ignored as no IFC function
-       should be treated as inline. */
-  }  /* if */
-  if (test_bitmask<ifc_ftb_hidden_friend>(traits)) {
-    /* FIXME: Currently unsupported. */
-    issue_unsupported_construct_error(traits.mod,
-                                      "FunctionTraits::HiddenFriend",
-                                      &error_position);
-  }  /* if */
-  if (test_bitmask<ifc_ftb_constrained>(traits)) {
-    /* FIXME: Currently unsupported. */
-    issue_unsupported_construct_error(traits.mod,
-                                      "FunctionTraits::Constrained",
-                                      &error_position);
-  }  /* if */
-}  /* cache_func_traits */
-
-
-static void cache_func_type_traits(a_module_token_cache_ptr             cache,
-                                   an_ifc_function_type_traits_bitfield traits,
-                                   a_source_position_ptr                pos)
-/*
-Add the tokens corresponding to the given function type traits to cache.  pos
-is the position of the traits.
-*/
-{
+  source_position_from_locus(&pos, locus);
   if (test_bitmask<ifc_fttb_const>(traits)) {
-    cache_token(cache, tok_const, pos);
+    cache_token(cache, tok_const, &pos);
   }  /* if */
   if (test_bitmask<ifc_fttb_volatile>(traits)) {
-    cache_token(cache, tok_volatile, pos);
+    cache_token(cache, tok_volatile, &pos);
   }  /* if */
+}  /* cache_func_cv_qualifiers */
+
+
+template<typename an_ifc_Node_type>
+static void cache_func_type_ref_qualifier(a_module_token_cache_ptr     cache,
+                                          const an_ifc_Node_type       &type,
+                                          const an_ifc_source_location &locus)
+/*
+Cache the ref-qualifier for the given function-like IFC type.  locus is the
+location of the ref-qualifier.
+*/
+{
+  an_ifc_function_type_traits_bitfield traits = get_ifc_traits(type);
+  a_source_position                    pos;
+
+  source_position_from_locus(&pos, locus);
   if (test_bitmask<ifc_fttb_lvalue>(traits)) {
-    cache_token(cache, tok_ampersand, pos);
+    cache_token(cache, tok_ampersand, &pos);
   } else if (test_bitmask<ifc_fttb_rvalue>(traits)) {
-    cache_token(cache, tok_and_and, pos);
+    cache_token(cache, tok_and_and, &pos);
   }  /* if */
-}  /* cache_func_type_traits */
+}  /* cache_func_ref_qualifier */
+
+
+static void cache_noexcept_specifier(
+                                  a_module_token_cache_ptr            cache,
+                                  const an_ifc_noexcept_specification &eh_spec,
+                                  const an_ifc_source_location        &locus)
+/*
+Cache the noexcept-specifier for the given noexcept specification.  locus is
+the location of the noexcept-specifier.
+*/
+{
+  an_ifc_noexcept_sort sort = get_ifc_sort(eh_spec);
+
+  if (sort != ifc_ns_none && sort != ifc_ns_inferred) {
+    a_source_position pos;
+
+    source_position_from_locus(&pos, locus);
+    cache_token(cache, tok_noexcept, &pos);
+    cache_token(cache, tok_lparen, &pos);
+    switch (sort) {
+      case ifc_ns_none:
+      case ifc_ns_inferred:
+        /* Unreachable, but place here to have all enums covered. */
+        { a_string err_msg("Unexpected ", str_for(sort));
+
+          ifc_unexpected(eh_spec.get_module(), err_msg);
+        }
+        goto invalid;
+      case ifc_ns_false:
+        cache_bool_literal(cache, false, &pos);
+        break;
+      case ifc_ns_true:
+        cache_bool_literal(cache, true, &pos);
+        break;
+      case ifc_ns_expression:
+        { an_ifc_sentence_index word_idx = get_ifc_words(eh_spec);
+
+          word_idx.mod->cache_sentence(cache, word_idx);
+        }
+        break;
+      case ifc_ns_unenforced:
+        /* FIXME: Currently unsupported. */
+        issue_unsupported_construct_error(eh_spec.get_module(),
+                                          "NoexceptSort::Unenforced",
+                                          &error_position);
+        goto invalid;
+      default_is_unexpected_str("Unexpected NoexceptSpecification");
+    }  /* switch */
+    cache_token(cache, tok_rparen, &pos);
+  }  /* if */
+  goto done;
+invalid:
+  expect_error_str("expected errors for bad noexcept-specifier cache");
+  cache->invalidate();
+done:;
+}  /* cache_noexcept_specifier */
+
+
+template<typename an_ifc_Node_type>
+static void cache_func_type_noexcept_specifier(
+                                           a_module_token_cache_ptr     cache,
+                                           const an_ifc_Node_type       &type,
+                                           const an_ifc_source_location &locus)
+/*
+Cache the noexcept-specifier for the given function-like type.  locus is the
+location of the noexcept-specifier.
+*/
+{
+  an_ifc_noexcept_specification eh_spec = get_ifc_eh_spec(type);
+
+  cache_noexcept_specifier(cache, eh_spec, locus);
+}  /* cache_func_type_noexcept_specifier */
 
 
 static void cache_calling_convention(a_module_token_cache_ptr       cache,
                                      an_ifc_calling_convention_sort convention,
-                                     a_source_position_ptr          pos)
+                                     const an_ifc_source_location   &locus)
 /*
-Add the tokens corresponding to the given calling convention to cache.  pos is
-the position of the calling convention.
+Cache a token representing the calling convention for the given calling
+convention sort value.  locus is the location of the calling convention token.
 */
 {
+  a_source_position pos;
+
+  source_position_from_locus(&pos, locus);
   switch (convention) {
     case ifc_ccs_cdecl:
-      cache_token(cache, tok_cdecl, pos);
+      cache_token(cache, tok_cdecl, &pos);
       break;
     case ifc_ccs_fast:
-      cache_token(cache, tok_fastcall, pos);
+      cache_token(cache, tok_fastcall, &pos);
       break;
     case ifc_ccs_std:
-      cache_token(cache, tok_stdcall, pos);
+      cache_token(cache, tok_stdcall, &pos);
       break;
     case ifc_ccs_this:
-      cache_token(cache, tok_thiscall, pos);
+      cache_token(cache, tok_thiscall, &pos);
       break;
     case ifc_ccs_clr:
-      cache_token(cache, tok_clrcall, pos);
+      cache_token(cache, tok_clrcall, &pos);
       break;
     case ifc_ccs_vector:
-      cache_token(cache, tok_vectorcall, pos);
+      cache_token(cache, tok_vectorcall, &pos);
       break;
     case ifc_ccs_eabi:
       pos_st_diagnostic(es_discretionary_error,
@@ -12838,54 +12818,632 @@ the position of the calling convention.
 }  /* cache_calling_convention */
 
 
-void an_ifc_module::cache_exception_spec(
-                                  a_module_token_cache_ptr            cache,
-                                  const an_ifc_noexcept_specification &eh_spec,
-                                  a_source_position_ptr               pos)
+template<typename an_ifc_Node_type>
+static void cache_func_type_calling_convention(
+                                           a_module_token_cache_ptr     cache,
+                                           const an_ifc_Node_type       &type,
+                                           const an_ifc_source_location &locus)
 /*
-Add the tokens corresponding to the given exception specification (eh_spec) to
-cache.  pos is the position of the exception specification.
+Cache a token representing the calling convention for the given function-like
+type.  locus is the location of the calling convention token.
 */
 {
-  an_ifc_noexcept_sort sort = get_ifc_sort(eh_spec);
+  an_ifc_calling_convention_sort convention = get_ifc_convention(type);
 
-  if (sort == ifc_ns_none || sort == ifc_ns_inferred) {
-    goto done;
+  cache_calling_convention(cache, convention, locus);
+}  /* cache_func_calling_convention */
+
+
+template<typename an_ifc_Node_type>
+static void cache_func_type_return_type(a_module_token_cache_ptr     cache,
+                                        const an_ifc_Node_type       &type,
+                                        const an_ifc_source_location &locus)
+/*
+Cache the return type declarator for the given function-like type.  locus
+is the location of the declarator.
+*/
+{
+  an_ifc_type_index return_type = get_ifc_target(type);
+
+  return_type.mod->cache_type(cache, return_type, locus);
+}  /* cache_func_calling_convention */
+
+
+template<typename an_ifc_Node_type>
+static void cache_func_type_parameter_declaration_clause(
+                                           a_module_token_cache_ptr     cache,
+                                           const an_ifc_Node_type       &type,
+                                           const an_ifc_source_location &locus)
+/*
+Cache the parameter-declaration-clause for the given function-like type.  locus
+is the location of the parameter-declaration-clause.
+*/
+{
+  an_ifc_type_index source_params = get_ifc_source(type);
+
+  if (!is_null_index(source_params)) {
+    source_params.mod->cache_type(cache, source_params, locus);
   }  /* if */
-  cache_token(cache, tok_noexcept, pos);
-  cache_token(cache, tok_lparen, pos);
-  switch (sort) {
-    case ifc_ns_none:
-    case ifc_ns_inferred:
-      /* Unreachable, but place here to have all enums covered. */
-      { a_string err_msg("Unexpected ", str_for(sort));
+}  /* cache_func_type_parameter_declaration_clause */
 
-        ifc_unexpected(this, err_msg);
+
+template<typename an_ifc_Node_type>
+static void cache_func_cv_qualifiers(a_module_token_cache_ptr cache,
+                                     const an_ifc_Node_type   &decl)
+/*
+Cache the cv-qualifiers for the given function-like declaration.
+*/
+{
+  an_ifc_type_index      func_type_idx = get_ifc_type(decl);
+  an_ifc_source_location locus = get_ifc_locus(decl);
+
+  switch (func_type_idx.sort) {
+    case ifc_ts_type_function:
+      { Opt<an_ifc_type_function> opt_func_type;
+
+        construct_node(&opt_func_type, func_type_idx);
+        if (!opt_func_type.has_value()) {
+          goto invalid;
+        }  /* if */
+
+        an_ifc_type_function func_type = *opt_func_type;
+        cache_func_type_cv_qualifiers(cache, func_type, locus);
       }
-      goto invalid;
-    case ifc_ns_false:
-      cache_bool_literal(cache, false, pos);
       break;
-    case ifc_ns_true:
-      cache_bool_literal(cache, true, pos);
+    case ifc_ts_type_method:
+      { Opt<an_ifc_type_method> opt_func_type;
+
+        construct_node(&opt_func_type, func_type_idx);
+        if (!opt_func_type.has_value()) {
+          goto invalid;
+        }  /* if */
+
+        an_ifc_type_method func_type = *opt_func_type;
+        cache_func_type_cv_qualifiers(cache, func_type, locus);
+      }
       break;
-    case ifc_ns_expression:
-      cache_sentence(cache, get_ifc_words(eh_spec));
+    case ifc_ts_type_tor:
+      /* Constructor/Destructor types do not have cv qualifiers. */
       break;
-    case ifc_ns_unenforced:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "NoexceptSort::Unenforced",
-                                        &error_position);
-      goto invalid;
-    default_is_unexpected_str("Unexpected NoexceptSpecification");
-  }  /* switch */
-  cache_token(cache, tok_rparen, pos);
+    default:
+      { a_string err_msg("Unexpected ", str_for(func_type_idx.sort));
+
+        ifc_unexpected(func_type_idx.mod, err_msg);
+      }
+      break;
+  }  /* if */
   goto done;
 invalid:
-  expect_error_str("expected errors for bad exception specifier cache");
+  expect_error_str("expected errors for bad cv-qualifiers cache");
   cache->invalidate();
 done:;
-}  /* cache_exception_spec */
+}  /* cache_func_cv_qualifiers */
+
+
+template<typename an_ifc_Node_type>
+static void cache_func_ref_qualifier(a_module_token_cache_ptr cache,
+                                     const an_ifc_Node_type   &decl)
+/*
+Cache the ref-qualifier for the given function-like declaration.
+*/
+{
+  an_ifc_type_index      func_type_idx = get_ifc_type(decl);
+  an_ifc_source_location locus = get_ifc_locus(decl);
+
+  switch (func_type_idx.sort) {
+    case ifc_ts_type_function:
+      { Opt<an_ifc_type_function> opt_func_type;
+
+        construct_node(&opt_func_type, func_type_idx);
+        if (!opt_func_type.has_value()) {
+          goto invalid;
+        }  /* if */
+
+        an_ifc_type_function func_type = *opt_func_type;
+        cache_func_type_ref_qualifier(cache, func_type, locus);
+      }
+      break;
+    case ifc_ts_type_method:
+      { Opt<an_ifc_type_method> opt_func_type;
+
+        construct_node(&opt_func_type, func_type_idx);
+        if (!opt_func_type.has_value()) {
+          goto invalid;
+        }  /* if */
+
+        an_ifc_type_method func_type = *opt_func_type;
+        cache_func_type_ref_qualifier(cache, func_type, locus);
+      }
+      break;
+    case ifc_ts_type_tor:
+      /* Constructor/Destructor types do not have cv qualifiers. */
+      break;
+    default:
+      { a_string err_msg("Unexpected ", str_for(func_type_idx.sort));
+
+        ifc_unexpected(func_type_idx.mod, err_msg);
+      }
+      break;
+  }  /* if */
+  goto done;
+invalid:
+  expect_error_str("expected errors for bad ref-qualifier cache");
+  cache->invalidate();
+done:;
+}  /* cache_func_ref_qualifier */
+
+
+template<typename an_ifc_Node_type>
+static void cache_func_noexcept_specifier(a_module_token_cache_ptr cache,
+                                          const an_ifc_Node_type   &decl)
+/*
+Cache the noexcept-specifier for the given function-like declaration.
+*/
+{
+  an_ifc_type_index      func_type_idx = get_ifc_type(decl);
+  an_ifc_source_location locus = get_ifc_locus(decl);
+
+  switch (func_type_idx.sort) {
+    case ifc_ts_type_function:
+      { Opt<an_ifc_type_function> opt_func_type;
+
+        construct_node(&opt_func_type, func_type_idx);
+        if (!opt_func_type.has_value()) {
+          goto invalid;
+        }  /* if */
+
+        an_ifc_type_function func_type = *opt_func_type;
+        cache_func_type_noexcept_specifier(cache, func_type, locus);
+      }
+      break;
+    case ifc_ts_type_method:
+      { Opt<an_ifc_type_method> opt_func_type;
+
+        construct_node(&opt_func_type, func_type_idx);
+        if (!opt_func_type.has_value()) {
+          goto invalid;
+        }  /* if */
+
+        an_ifc_type_method func_type = *opt_func_type;
+        cache_func_type_noexcept_specifier(cache, func_type, locus);
+      }
+      break;
+    case ifc_ts_type_tor:
+      { Opt<an_ifc_type_tor> opt_func_type;
+
+        construct_node(&opt_func_type, func_type_idx);
+        if (!opt_func_type.has_value()) {
+          goto invalid;
+        }  /* if */
+
+        an_ifc_type_tor func_type = *opt_func_type;
+        cache_func_type_noexcept_specifier(cache, func_type, locus);
+      }
+      break;
+    default:
+      { a_string err_msg("Unexpected ", str_for(func_type_idx.sort));
+
+        ifc_unexpected(func_type_idx.mod, err_msg);
+      }
+      break;
+  }  /* if */
+  goto done;
+invalid:
+  expect_error_str("expected errors for bad noexcept-specifier cache");
+  cache->invalidate();
+done:;
+}  /* cache_func_noexcept_specifier */
+
+
+template<>
+void cache_func_noexcept_specifier(a_module_token_cache_ptr     cache,
+                                   const an_ifc_decl_destructor &decl)
+/*
+Cache the noexcept-specifier for the given destructor.
+*/
+{
+  an_ifc_noexcept_specification eh_spec = get_ifc_eh_spec(decl);
+  an_ifc_source_location        locus = get_ifc_locus(decl);
+
+  cache_noexcept_specifier(cache, eh_spec, locus);
+}  /* cache_func_noexcept_specifier */
+
+
+static void cache_func_vendor_decl_specifier_seq(
+                                             a_module_token_cache_ptr cache,
+                                             an_ifc_decl_index        decl_idx,
+                                             a_source_position_ptr    pos)
+/*
+Cache the vendor specific portion of the decl-specifier-seq for the
+function-like declaration at the given declaration index.  pos is the source
+position of the decl-specifier-seq.
+*/
+{
+  an_ifc_module               *mod = decl_idx.mod;
+  an_ifc_msvc_traits_bitfield msvc_traits = mod->get_vendor_traits(decl_idx);
+
+  if (test_bitmask<ifc_mtb_force_inline>(msvc_traits)) {
+    cache_token(cache, tok_forceinline, pos);
+  }  /* if */
+
+  auto cache_declspec_fn = [&](a_const_char *str) {
+    cache_token(cache, tok_declspec, pos);
+    cache_token(cache, tok_lparen, pos);
+    cache_identifier(cache, str, pos);
+    cache_token(cache, tok_rparen, pos);
+  };  /* cache_declspec_fn */
+  if (test_bitmask<ifc_mtb_naked>(msvc_traits)) {
+    cache_declspec_fn("naked");
+  }  /* if */
+  if (test_bitmask<ifc_mtb_no_alias>(msvc_traits)) {
+    cache_declspec_fn("noalias");
+  }  /* if */
+  if (test_bitmask<ifc_mtb_no_inline>(msvc_traits)) {
+    cache_declspec_fn("noinline");
+  }  /* if */
+  if (test_bitmask<ifc_mtb_restrict>(msvc_traits)) {
+    cache_declspec_fn("restrict");
+  }  /* if */
+  if (test_bitmask<ifc_mtb_safe_buffers>(msvc_traits)) {
+    cache_declspec_fn("safebuffers");
+  }  /* if */
+  if (test_bitmask<ifc_mtb_dll_export>(msvc_traits)) {
+    cache_declspec_fn("dllexport");
+  }  /* if */
+  if (test_bitmask<ifc_mtb_dll_import>(msvc_traits)) {
+    cache_declspec_fn("dllimport");
+  }  /* if */
+  if (test_bitmask<ifc_mtb_novtable>(msvc_traits)) {
+    cache_declspec_fn("novtable");
+  }  /* if */
+  if (test_bitmask<ifc_mtb_process>(msvc_traits)) {
+    cache_declspec_fn("process");
+  }  /* if */
+  if (test_bitmask<ifc_mtb_select_any>(msvc_traits)) {
+    cache_declspec_fn("selectany");
+  }  /* if */
+}  /* cache_func_vendor_decl_specifier_seq */
+
+
+template<typename an_ifc_Node_type>
+static void cache_func_decl_specifier_seq(a_module_token_cache_ptr cache,
+                                          const an_ifc_Node_type   &decl)
+/*
+Cache the non-vendor specific part of the decl-specifier-seq for the given
+function-like declaration.
+*/
+{
+  an_ifc_function_traits_bitfield func_traits = get_ifc_traits(decl);
+  an_ifc_source_location          locus = get_ifc_locus(decl);
+  a_source_position               pos;
+
+  source_position_from_locus(&pos, locus);
+  if (test_bitmask<ifc_ftb_virtual>(func_traits)) {
+    cache_token(cache, tok_virtual, &pos);
+  }  /* if */
+  if (test_bitmask<ifc_ftb_explicit>(func_traits)) {
+    cache_token(cache, tok_explicit, &pos);
+  }  /* if */
+  if (test_bitmask<ifc_ftb_no_return>(func_traits)) {
+    cache_token(cache, tok_noreturn, &pos);
+  }  /* if */
+  if (test_bitmask<ifc_ftb_immediate>(func_traits)) {
+    cache_token(cache, tok_consteval, &pos);
+  } else if (test_bitmask<ifc_ftb_constexpr>(func_traits)) {
+    cache_token(cache, tok_constexpr, &pos);
+  }  /* if */
+}  /* cache_func_decl_specifier_seq */
+
+
+template<typename an_ifc_Node_type>
+static void cache_func_virt_specifier_seq(a_module_token_cache_ptr cache,
+                                          const an_ifc_Node_type   &decl)
+
+/*
+Cache the virt-specifier-seq for the given function-like declaration.
+*/
+{
+  an_ifc_function_traits_bitfield traits = get_ifc_traits(decl);
+  an_ifc_source_location          locus = get_ifc_locus(decl);
+  a_source_position               pos;
+
+  source_position_from_locus(&pos, locus);
+  if (test_bitmask<ifc_ftb_pure_virtual>(traits)) {
+    a_constant_ptr cp = alloc_cached_constant();
+
+    cache_token(cache, tok_assign, &pos);
+    make_zero_of_proper_type(integer_type((an_integer_kind)ik_int), cp);
+    cache_literal(decl.get_module(), cache, cp, &pos);
+  }  /* if */
+}  /* cache_func_virt_specifier_seq */
+
+
+template<typename an_ifc_Node_type>
+static void cache_func_body(a_module_token_cache_ptr cache,
+                            an_ifc_decl_index        decl_idx,
+                            const an_ifc_Node_type   &decl)
+
+/*
+Cache the function-body for the given function-like declaration (identified by
+decl_idx).
+
+If the IFC provides a user defined definition for said function, instead of a
+proper function-body being cached, a token indicating the presence of a
+lazy-loadable definition will instead be cached.
+*/
+{
+  check_assertion(function_is_defined(decl));
+  an_ifc_function_traits_bitfield traits = get_ifc_traits(decl);
+
+  if (function_is_user_defined(decl)) {
+    cache_token(cache, tok_semicolon, &null_source_position);
+    /* A body is likely available: Record this availability using a
+       pseudo-token that will be translated when the declaration is
+       parsed. */
+    cache_token_with_index(cache, tok_pending_ifc_func_body, decl_idx,
+                           &null_source_position);
+    /* FIXME: We cache a new semicolon here to avoid complicating
+       full_specialization logic (which does not provide an easy way to
+       suppress the semicolon check), it might be better to rework this logic
+       to "insert" the tok_pending_ifc_func_body before the existing
+       semicolon. */
+    cache_token(cache, tok_semicolon, &null_source_position);
+  } else {
+    an_ifc_source_location locus = get_ifc_locus(decl);
+    a_source_position      pos;
+
+    source_position_from_locus(&pos, locus);
+    if (test_bitmask<ifc_ftb_defaulted>(traits)) {
+      cache_token(cache, tok_assign, &pos);
+      cache_token(cache, tok_default, &pos);
+      cache_token(cache, tok_semicolon, &pos);
+    } else if (test_bitmask<ifc_ftb_deleted>(traits)) {
+      cache_token(cache, tok_assign, &pos);
+      cache_token(cache, tok_delete, &pos);
+      cache_token(cache, tok_semicolon, &pos);
+    } else {
+      /* If this condition was violated, we're not correctly handling a case of
+         the function-body grammar. */
+      unexpected_condition();
+    }  /* if */
+  }  /* if */
+}  /* cache_func_body */
+
+
+template<typename an_ifc_Node_type>
+static void cache_func_body_or_end_decl(a_module_token_cache_ptr cache,
+                                        an_ifc_decl_index        decl_idx,
+                                        const an_ifc_Node_type   &decl,
+                                        const an_ifc_cache_info  &cinfo)
+/*
+Cache the function-body for the given function-like declaration (identified by
+decl_idx) if its definition is specified (and not explicitly excluded by the
+cinfo token caching context); otherwise, cache a semicolon to terminate the
+declaration.
+*/
+{
+  if (!cinfo.ignore_definition && function_is_defined(decl)) {
+    cache_func_body(cache, decl_idx, decl);
+  } else {
+    an_ifc_source_location locus = get_ifc_locus(decl);
+    a_source_position      pos;
+
+    source_position_from_locus(&pos, locus);
+    cache_token(cache, tok_semicolon, &pos);
+  }  /* if */
+}  /* cache_func_body_or_end_decl */
+
+
+template<typename an_ifc_Node_type>
+static void cache_func_parameters_and_qualifiers(
+                                                a_module_token_cache_ptr cache,
+                                                const an_ifc_Node_type   &decl)
+/*
+Cache the parameters-and-qualifiers for the given function-like declaration.
+*/
+{
+  an_ifc_source_location locus = get_ifc_locus(decl);
+  a_source_position      pos;
+
+  source_position_from_locus(&pos, locus);
+  cache_token(cache, tok_lparen, &pos);
+  cache_func_parameter_declaration_clause(cache, decl);
+  cache_token(cache, tok_rparen, &pos);
+  cache_func_cv_qualifiers(cache, decl);
+  cache_func_ref_qualifier(cache, decl);
+  cache_func_noexcept_specifier(cache, decl);
+}  /* cache_func_parameters_and_qualifiers */
+
+
+template<typename an_ifc_Node_type>
+static void cache_func_calling_convention(a_module_token_cache_ptr cache,
+                                          const an_ifc_Node_type   &decl)
+/*
+Cache a token representing the calling convention for the given function-like
+declaration.
+*/
+{
+  an_ifc_type_index      func_type_idx = get_ifc_type(decl);
+  an_ifc_source_location locus = get_ifc_locus(decl);
+
+  switch (func_type_idx.sort) {
+    case ifc_ts_type_function:
+      { Opt<an_ifc_type_function> opt_func_type;
+
+        construct_node(&opt_func_type, func_type_idx);
+        if (!opt_func_type.has_value()) {
+          goto invalid;
+        }  /* if */
+
+        an_ifc_type_function func_type = *opt_func_type;
+        cache_func_type_calling_convention(cache, func_type, locus);
+      }
+      break;
+    case ifc_ts_type_method:
+      { Opt<an_ifc_type_method> opt_func_type;
+
+        construct_node(&opt_func_type, func_type_idx);
+        if (!opt_func_type.has_value()) {
+          goto invalid;
+        }  /* if */
+
+        an_ifc_type_method func_type = *opt_func_type;
+        cache_func_type_calling_convention(cache, func_type, locus);
+      }
+      break;
+    case ifc_ts_type_tor:
+      { Opt<an_ifc_type_tor> opt_func_type;
+
+        construct_node(&opt_func_type, func_type_idx);
+        if (!opt_func_type.has_value()) {
+          goto invalid;
+        }  /* if */
+
+        an_ifc_type_tor func_type = *opt_func_type;
+        cache_func_type_calling_convention(cache, func_type, locus);
+      }
+      break;
+    default:
+      { a_string err_msg("Unexpected ", str_for(func_type_idx.sort));
+
+        ifc_unexpected(func_type_idx.mod, err_msg);
+      }
+      break;
+  }  /* if */
+  goto done;
+invalid:
+  expect_error_str("expected errors for bad calling convention cache");
+  cache->invalidate();
+done:;
+}  /* cache_func_calling_convention */
+
+
+template<>
+void cache_func_calling_convention(a_module_token_cache_ptr     cache,
+                                   const an_ifc_decl_destructor &decl)
+/*
+Cache a token representing the calling convention for the given destructor.
+*/
+{
+  an_ifc_calling_convention_sort convention = get_ifc_convention(decl);
+  an_ifc_source_location         locus = get_ifc_locus(decl);
+
+  cache_calling_convention(cache, convention, locus);
+}  /* cache_func_calling_convention */
+
+
+template<typename an_ifc_Node_type>
+static void cache_func_return_type(a_module_token_cache_ptr cache,
+                                   const an_ifc_Node_type   &decl)
+/*
+Cache the return type declarator for the given function-like declaration.
+*/
+{
+  an_ifc_type_index      func_type_idx = get_ifc_type(decl);
+  an_ifc_source_location locus = get_ifc_locus(decl);
+
+  switch (func_type_idx.sort) {
+    case ifc_ts_type_function:
+      { Opt<an_ifc_type_function> opt_func_type;
+
+        construct_node(&opt_func_type, func_type_idx);
+        if (!opt_func_type.has_value()) {
+          goto invalid;
+        }  /* if */
+
+        an_ifc_type_function func_type = *opt_func_type;
+        cache_func_type_return_type(cache, func_type, locus);
+      }
+      break;
+    case ifc_ts_type_method:
+      { Opt<an_ifc_type_method> opt_func_type;
+
+        construct_node(&opt_func_type, func_type_idx);
+        if (!opt_func_type.has_value()) {
+          goto invalid;
+        }  /* if */
+
+        an_ifc_type_method func_type = *opt_func_type;
+        cache_func_type_return_type(cache, func_type, locus);
+      }
+      break;
+    default:
+      { a_string err_msg("Unexpected ", str_for(func_type_idx.sort));
+
+        ifc_unexpected(func_type_idx.mod, err_msg);
+      }
+      break;
+  }  /* if */
+  goto done;
+invalid:
+  expect_error_str("expected errors for bad return type declarator cache");
+  cache->invalidate();
+done:;
+}  /* cache_func_return_type */
+
+
+template<typename an_ifc_Node_type>
+static void cache_func_parameter_declaration_clause(
+                                   a_module_token_cache_ptr cache,
+                                   const an_ifc_Node_type   &decl)
+/*
+Cache the parameter-declaration-clause for the given function-like declaration.
+*/
+{
+  an_ifc_type_index      func_type_idx = get_ifc_type(decl);
+  an_ifc_source_location locus = get_ifc_locus(decl);
+
+  switch (func_type_idx.sort) {
+    case ifc_ts_type_function:
+      { Opt<an_ifc_type_function> opt_func_type;
+
+        construct_node(&opt_func_type, func_type_idx);
+        if (!opt_func_type.has_value()) {
+          goto invalid;
+        }  /* if */
+
+        an_ifc_type_function func_type = *opt_func_type;
+        cache_func_type_parameter_declaration_clause(cache, func_type, locus);
+      }
+      break;
+    case ifc_ts_type_method:
+      { Opt<an_ifc_type_method> opt_func_type;
+
+        construct_node(&opt_func_type, func_type_idx);
+        if (!opt_func_type.has_value()) {
+          goto invalid;
+        }  /* if */
+
+        an_ifc_type_method func_type = *opt_func_type;
+        cache_func_type_parameter_declaration_clause(cache, func_type, locus);
+      }
+      break;
+    case ifc_ts_type_tor:
+      { Opt<an_ifc_type_tor> opt_func_type;
+
+        construct_node(&opt_func_type, func_type_idx);
+        if (!opt_func_type.has_value()) {
+          goto invalid;
+        }  /* if */
+
+        an_ifc_type_tor func_type = *opt_func_type;
+        cache_func_type_parameter_declaration_clause(cache, func_type, locus);
+      }
+      break;
+    default:
+      { a_string err_msg("Unexpected ", str_for(func_type_idx.sort));
+
+        ifc_unexpected(func_type_idx.mod, err_msg);
+      }
+      break;
+  }  /* if */
+  goto done;
+invalid:
+  expect_error_str("expected errors for bad parameter-declaration-clause"
+                   " cache");
+  cache->invalidate();
+done:;
+}  /* cache_func_parameter_declaration_clause */
 
 
 void an_ifc_module::cache_scope_member_sequence(
@@ -13359,7 +13917,7 @@ this is needed.
           an_ifc_type_method itm = *opt_itm;
           cache_type(cache, get_ifc_target(itm), locus);
           cache_token(cache, tok_lparen, &pos);
-          cache_calling_convention(cache, get_ifc_convention(itm), &pos);
+          cache_calling_convention(cache, get_ifc_convention(itm), locus);
           cache_type(cache, get_ifc_scope(itm), locus);
           cache_token(cache, tok_colon_colon, &pos);
         } else {
@@ -13407,7 +13965,7 @@ this is needed.
         an_ifc_type_function itf = *opt_itf;
         cache_type(cache, get_ifc_target(itf), locus);
         cache_token(cache, tok_lparen, &pos);
-        cache_calling_convention(cache, get_ifc_convention(itf), &pos);
+        cache_calling_convention(cache, get_ifc_convention(itf), locus);
       }
       break;
     case ifc_ts_type_method:
@@ -13634,8 +14192,9 @@ this is needed.
             cache_type(cache, source, locus);
           }  /* if */
           cache_token(cache, tok_rparen, &pos);
-          cache_exception_spec(cache, get_ifc_eh_spec(itm), &pos);
-          cache_func_type_traits(cache, get_ifc_traits(itm), &pos);
+          cache_func_type_noexcept_specifier(cache, itm, locus);
+          cache_func_type_cv_qualifiers(cache, itm, locus);
+          cache_func_type_ref_qualifier(cache, itm, locus);
         }  /* if */
       }
       break;
@@ -13675,8 +14234,9 @@ this is needed.
           cache_type(cache, source, locus);
         }  /* if */
         cache_token(cache, tok_rparen, &pos);
-        cache_func_type_traits(cache, get_ifc_traits(itf), &pos);
-        cache_exception_spec(cache, get_ifc_eh_spec(itf), &pos);
+        cache_func_type_cv_qualifiers(cache, itf, locus);
+        cache_func_type_ref_qualifier(cache, itf, locus);
+        cache_func_type_noexcept_specifier(cache, itf, locus);
       }
       break;
     case ifc_ts_type_array:
@@ -14708,110 +15268,8 @@ initializer expression.  locus is the source location for the declaration.
 }  /* cache_variable_decl */
 
 
-template<typename a_Name_Cache_Fn>
-inline void an_ifc_module::cache_function_decl(
-                        a_module_token_cache_ptr             cache,
-                        an_ifc_decl_index                    decl_idx,
-                        a_boolean                            is_class_member,
-                        a_boolean                            is_dtor,
-                        an_ifc_calling_convention_sort       calling_conv,
-                        an_ifc_function_traits_bitfield      func_traits,
-                        an_ifc_function_type_traits_bitfield func_type_traits,
-                        an_ifc_msvc_traits_bitfield          vendor_traits,
-                        an_ifc_type_index                    return_type,
-                        a_Name_Cache_Fn                      cache_name_fn,
-                        an_ifc_chart_index                   params,
-                        an_ifc_type_index                    param_types,
-                        const an_ifc_noexcept_specification  &eh_spec,
-                        const an_ifc_source_location         &locus)
-/*
-Add the tokens corresponding to the given function declaration (index in the
-IFC by decl_idx) to cache.  is_class_member is TRUE if this is a non-static
-member of a class.  is_dtor is TRUE if this is a destructor declaration.
-calling_conv, func_traits, func_type_traits, vendor_traits, and eh_spec are
-values from the IFC file that describe the function.  return_type is the return
-type of the function (0 if there is no return type, e.g., the function is a
-constructor or destructor).  cache_name_fn is a lambda accepting
-a_source_position_ptr interpretation of locus that's called to cache the name
-of the scope.  Both params and param_types are the parameter list (0 for both
-if there are no parameters).  If params is non-zero, param_types will be
-ignored as params will already contain the parameter types.  locus is the
-position of the function declaration.
-
-FIXME: Remove this version of cache_function_decl once names can be cached
-properly for specializations using a NameIndex.
-*/
-{
-  a_source_position pos;
-  a_boolean         decl_in_class =
-                                  is_class_scope(get_ifc_home_scope(decl_idx));
-
-  source_position_from_locus(&pos, locus);
-  if (!is_class_member && decl_in_class) {
-    /* This is a static member function. */
-    cache_token(cache, tok_static, &pos);
-  }  /* if */
-  cache_func_traits(this, cache, func_traits, vendor_traits,
-                    /*trailing=*/FALSE, &pos);
-  if (!is_null_index(return_type)) {
-    cache_type(cache, return_type, locus);
-  }  /* if */
-  cache_calling_convention(cache, calling_conv, &pos);
-  if (is_dtor) {
-    cache_token(cache, tok_compl, &pos);
-  }  /* if */
-  cache_name_fn(&pos);
-  cache_token(cache, tok_lparen, &pos);
-  cache_function_parameters(cache, params, param_types, locus);
-  cache_token(cache, tok_rparen, &pos);
-  cache_func_type_traits(cache, func_type_traits, &pos);
-  cache_exception_spec(cache, eh_spec, &pos);
-  cache_func_traits(this, cache, func_traits, vendor_traits, /*trailing=*/TRUE,
-                    &pos);
-  cache_token(cache, tok_semicolon, &pos);
-}  /* cache_function_decl */
-
-
-void an_ifc_module::cache_function_decl(
-                         a_module_token_cache_ptr             cache,
-                         an_ifc_decl_index                    decl_idx,
-                         a_boolean                            is_class_member,
-                         a_boolean                            is_dtor,
-                         an_ifc_calling_convention_sort       calling_conv,
-                         an_ifc_function_traits_bitfield      func_traits,
-                         an_ifc_function_type_traits_bitfield func_type_traits,
-                         an_ifc_msvc_traits_bitfield          vendor_traits,
-                         an_ifc_type_index                    return_type,
-                         an_ifc_name_index                    name,
-                         an_ifc_chart_index                   params,
-                         an_ifc_type_index                    param_types,
-                         const an_ifc_noexcept_specification  &eh_spec,
-                         const an_ifc_source_location         &locus)
-/*
-Add the tokens corresponding to the given function declaration to cache.
-is_class_member is TRUE if this is a non-static member of a class.  is_dtor is
-TRUE if this is a destructor declaration.  calling_conv, func_traits,
-func_type_traits, vendor_traits, eh_spec, and name are values from the IFC file
-that describe the function.  return_type is the return type of the function (0
-if there is no return type, e.g., the function is a constructor or destructor).
-Both params and param_types are the parameter list (0 for both if there are no
-parameters).  If params is non-zero, param_types will be ignored as params will
-already contain the parameter types.  locus is the position of the function
-declaration.
-*/
-{
-  auto cache_name_fn = [this, cache, name, locus](a_source_position_ptr pos) {
-    cache_name(cache, name, locus);
-  };
-  cache_function_decl(cache, decl_idx, is_class_member, is_dtor, calling_conv,
-                      func_traits, func_type_traits, vendor_traits,
-                      return_type, cache_name_fn, params, param_types, eh_spec,
-                      locus);
-}  /* cache_function_decl */
-
-
 template<typename an_ifc_Node_type>
-static void maybe_cache_function_def(a_module_token_cache_ptr cache,
+static void maybe_cache_func_def(a_module_token_cache_ptr cache,
                                      an_ifc_decl_index        decl_idx,
                                      const an_ifc_Node_type   &decl)
 /*
@@ -14821,19 +15279,8 @@ presence of a lazy-loadable definition.
 */
 {
   if (function_is_user_defined(decl)) {
-    /* A body is likely available: Record this availability using a
-       pseudo-token that will be translated when the declaration is
-       parsed. */
-    cache_token_with_index(cache, tok_pending_ifc_func_body, decl_idx,
-                           &null_source_position);
-    /* FIXME: We cache a new semicolon here to avoid complicating
-       full_specialization logic (which does not provide an easy way to
-       suppress the semicolon check), it might be better to rework this logic
-       to "insert" the tok_pending_ifc_func_body before the existing
-       semicolon. */
-    cache_token(cache, tok_semicolon, &null_source_position);
   }  /* if */
-}  /* maybe_cache_function_def */
+}  /* maybe_cache_func_def */
 
 
 uint32_t an_ifc_module::try_cache_class_attributes_from_body(
@@ -15243,42 +15690,18 @@ END_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
           goto invalid;
         }  /* if */
 
-        an_ifc_decl_function idf = *opt_idf;
-        /* Reconstruct the templated declaration. */
-        auto cache_name_fn = [this, cache, &decl, &idf](
-                                              a_source_position_ptr decl_pos) {
-          cache_simple_template_id(this, cache, decl, get_ifc_locus(idf));
-        };
-
-        Opt<an_ifc_type_function> opt_itf;
-        construct_node(&opt_itf, get_ifc_type(idf));
-        if (!opt_itf.has_value()) {
-          goto invalid;
-        }  /* if */
-
-        an_ifc_type_function itf = *opt_itf;
-        an_ifc_chart_index   params = get_ifc_chart(idf);
-        an_ifc_type_index    source = get_ifc_source(itf);
-        if (is_null_index(params) && !is_null_index(source)) {
-          params = get_func_params_from_trait(decl_idx);
-        }  /* if */
-
-        /* Disable spurious GCC warning about uninitialized usage of
-           opt_scope_ref. */
-BEGIN_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
-        cache_function_decl(cache, templated_decl_idx,
-                            is_class_scope(get_ifc_home_scope(idf)),
-                            /*is_dtor=*/FALSE, get_ifc_convention(itf),
-                            get_ifc_traits(idf), get_ifc_traits(itf),
-                            get_vendor_traits(decl_idx), get_ifc_target(itf),
-                            cache_name_fn, params, get_ifc_source(itf),
-                            get_ifc_eh_spec(itf), get_ifc_locus(idf));
-END_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
-        if (!cinfo.ignore_definition) {
-          maybe_cache_function_def(cache, templated_decl_idx, idf);
-        } else {
-          cache_token(cache, tok_semicolon, &null_source_position);
-        }  /* if */
+        an_ifc_decl_function   idf = *opt_idf;
+        an_ifc_source_location locus = get_ifc_locus(idf);
+        source_position_from_locus(&pos, locus);
+        this->cache_attrs(cache, templated_decl_idx);
+        cache_func_vendor_decl_specifier_seq(cache, templated_decl_idx,
+                                                 &pos);
+        cache_func_decl_specifier_seq(cache, idf);
+        cache_func_return_type(cache, idf);
+        cache_func_calling_convention(cache, idf);
+        cache_simple_template_id(this, cache, decl, locus);
+        cache_func_parameters_and_qualifiers(cache, idf);
+        cache_func_body_or_end_decl(cache, templated_decl_idx, idf, cinfo);
       }
       break;
     case ifc_ds_decl_method:
@@ -15290,37 +15713,23 @@ END_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
           goto invalid;
         }  /* if */
 
-        an_ifc_decl_method idm = *opt_idm;
-        /* Reconstruct the templated declaration. */
-        auto cache_name_fn = [this, cache, &decl, &idm](
-                                              a_source_position_ptr decl_pos) {
-           cache_simple_template_id(this, cache, decl, get_ifc_locus(idm));
-        };
+        an_ifc_decl_method     idm = *opt_idm;
+        an_ifc_source_location locus = get_ifc_locus(idm);
+        source_position_from_locus(&pos, locus);
+        this->cache_attrs(cache, templated_decl_idx);
+        cache_func_vendor_decl_specifier_seq(cache, templated_decl_idx,
+                                                 &pos);
+        cache_func_decl_specifier_seq(cache, idm);
 
-        Opt<an_ifc_type_method> opt_itm;
-        construct_node(&opt_itm, get_ifc_type(idm));
-        if (!opt_itm.has_value()) {
-          goto invalid;
+        an_ifc_name_index name_idx = get_ifc_name(idm);
+        if (name_idx.sort != ifc_ns_name_conversion) {
+          cache_func_return_type(cache, idm);
         }  /* if */
-
-        an_ifc_type_method itm = *opt_itm;
-        an_ifc_chart_index params = get_ifc_chart(idm);
-        an_ifc_type_index  source = get_ifc_source(itm);
-        if (is_null_index(params) && !is_null_index(source)) {
-          params = get_func_params_from_trait(decl_idx);
-        }  /* if */
-
-        cache_function_decl(cache, templated_decl_idx, /*class_member=*/TRUE,
-                            /*is_dtor=*/FALSE, get_ifc_convention(itm),
-                            get_ifc_traits(idm), get_ifc_traits(itm),
-                            get_vendor_traits(decl_idx), get_ifc_target(itm),
-                            cache_name_fn, params, get_ifc_source(itm),
-                            get_ifc_eh_spec(itm), get_ifc_locus(idm));
-        if (!cinfo.ignore_definition) {
-          maybe_cache_function_def(cache, templated_decl_idx, idm);
-        } else {
-          cache_token(cache, tok_semicolon, &null_source_position);
-        }  /* if */
+        cache_func_calling_convention(cache, idm);
+        cache_simple_template_id(this, cache, decl, locus);
+        cache_func_parameters_and_qualifiers(cache, idm);
+        cache_func_virt_specifier_seq(cache, idm);
+        cache_func_body_or_end_decl(cache, templated_decl_idx, idm, cinfo);
       }
       break;
     case ifc_ds_decl_constructor:
@@ -15333,41 +15742,20 @@ END_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
         }  /* if */
 
         an_ifc_decl_constructor idc = *opt_idc;
-        /* Reconstruct the templated declaration. */
-        auto cache_name_fn = [cache, &decl, &idc](
-                                              a_source_position_ptr decl_pos) {
-          /* Constructor specializations are special cases that don't include
-             the template argument list.  Call the lower level cache_name
-             instead of cache_simple_template_id. */
-          EDG_PREFIX::cache_name(cache, get_ifc_name(decl),
-                                 get_ifc_locus(idc));
-        };
-
-        Opt<an_ifc_type_tor> opt_itt;
-        construct_node(&opt_itt, get_ifc_type(idc));
-        if (!opt_itt.has_value()) {
-          goto invalid;
-        }  /* if */
-
-        an_ifc_type_tor    itt = *opt_itt;
-        an_ifc_chart_index params = get_ifc_chart(idc);
-        an_ifc_type_index  source = get_ifc_source(itt);
-        if (is_null_index(params) && !is_null_index(source)) {
-          params = get_func_params_from_trait(decl_idx);
-        }  /* if */
-
-        cache_function_decl(cache, templated_decl_idx, /*class_member=*/TRUE,
-                            /*is_dtor=*/FALSE, get_ifc_convention(itt),
-                            get_ifc_traits(idc),
-                            an_ifc_function_type_traits_bitfield{},
-                            get_vendor_traits(decl_idx), an_ifc_type_index{},
-                            cache_name_fn, params, get_ifc_source(itt),
-                            get_ifc_eh_spec(itt), get_ifc_locus(idc));
-        if (!cinfo.ignore_definition) {
-          maybe_cache_function_def(cache, templated_decl_idx, idc);
-        } else {
-          cache_token(cache, tok_semicolon, &null_source_position);
-        }  /* if */
+        an_ifc_source_location  locus = get_ifc_locus(idc);
+        source_position_from_locus(&pos, locus);
+        this->cache_attrs(cache, templated_decl_idx);
+        cache_func_vendor_decl_specifier_seq(cache, templated_decl_idx, &pos);
+        cache_func_decl_specifier_seq(cache, idc);
+        cache_func_calling_convention(cache, idc);
+        /* Constructor specializations are special cases that don't include
+           the template argument list.  Call the lower level cache_name
+           instead of cache_simple_template_id. */
+        EDG_PREFIX::cache_name(cache, get_ifc_name(decl),
+                               get_ifc_locus(idc));
+        cache_func_parameters_and_qualifiers(cache, idc);
+        cache_func_virt_specifier_seq(cache, idc);
+        cache_func_body_or_end_decl(cache, templated_decl_idx, idc, cinfo);
       }
       break;
     default:
@@ -15684,54 +16072,6 @@ help inform decisions about what to cache.
 }  /* cache_template_head */
 
 
-void an_ifc_module::cache_function_parameters(
-                                      a_module_token_cache_ptr     cache,
-                                      an_ifc_chart_index           params,
-                                      an_ifc_type_index            param_types,
-                                      const an_ifc_source_location &locus)
-/*
-Add the tokens corresponding to the function parameters described by params and
-param_types to the cache.  locus is the IFC source location for the parameter
-list (individual parameters will have their own locus associated with them).
-*/
-{
-  if (!is_null_index(params)) {
-    /* The parameters have detailed information associated with them, use
-       that. */
-    ifc_requirement(this, params.sort == ifc_cs_chart_unilevel,
-                    "Function parameter charts should only be unilevel");
-    Opt<an_ifc_chart_unilevel> opt_icu;
-    construct_node(&opt_icu, params);
-    if (!opt_icu.has_value()) {
-      goto invalid;
-    }  /* if */
-
-    a_decl_parameter_traverser traverser(*opt_icu);
-    a_source_position          pos;
-    source_position_from_locus(&pos, locus);
-    for (an_Indexed<an_ifc_decl_parameter> indexed_idp : traverser) {
-      if (!indexed_idp.has_value()) {
-        goto invalid;
-      }  /* if */
-      if (!is_first(traverser, indexed_idp)) {
-        cache_token(cache, tok_comma, &pos);
-      }  /* if */
-      if (!cache_direct_decl(cache, *indexed_idp, /*cinfo=*/{})) {
-        goto invalid;
-      }  /* if */
-    }  /* for */
-  } else if (!is_null_index(param_types)) {
-    /* The only information we have on the parameters is their types. */
-    cache_type(cache, param_types, locus);
-  }  /* if */
-  goto done;
-invalid:
-  expect_error_str("expected errors for bad function param cache");
-  cache->invalidate();
-done:;
-}  /* cache_function_parameters */
-
-
 void an_ifc_module::cache_decl(a_module_token_cache_ptr cache,
                                an_ifc_decl_index        decl,
                                const an_ifc_cache_info  &cinfo)
@@ -16009,26 +16349,19 @@ about what to cache.
 
         construct_node_prechecked(&idf, decl);
 
-        an_ifc_type_index         type = get_ifc_type(idf);
-        Opt<an_ifc_type_function> opt_itf;
-        construct_node(&opt_itf, type);
-        if (!opt_itf.has_value()) {
-          goto invalid;
+        an_ifc_source_location locus = get_ifc_locus(idf);
+        source_position_from_locus(&pos, locus);
+        this->cache_attrs(cache, decl);
+        cache_func_vendor_decl_specifier_seq(cache, decl, &pos);
+        if (is_class_scope(get_ifc_home_scope(decl))) {
+          cache_token(cache, tok_static, &pos);
         }  /* if */
-
-        an_ifc_type_function itf = *opt_itf;
-        an_ifc_chart_index   params = get_ifc_chart(idf);
-        an_ifc_type_index    source = get_ifc_source(itf);
-        if (is_null_index(params) && !is_null_index(source)) {
-          params = get_func_params_from_trait(decl);
-        }  /* if */
-        cache_function_decl(cache, decl, /*class_member=*/FALSE,
-                            /*is_dtor=*/FALSE, get_ifc_convention(itf),
-                            get_ifc_traits(idf), get_ifc_traits(itf),
-                            get_vendor_traits(decl), get_ifc_target(itf),
-                            get_ifc_name(idf), params, get_ifc_source(itf),
-                            get_ifc_eh_spec(itf), get_ifc_locus(idf));
-        maybe_cache_function_def(cache, decl, idf);
+        cache_func_decl_specifier_seq(cache, idf);
+        cache_func_return_type(cache, idf);
+        cache_func_calling_convention(cache, idf);
+        cache_name(cache, get_ifc_name(idf), locus);
+        cache_func_parameters_and_qualifiers(cache, idf);
+        cache_func_body_or_end_decl(cache, decl, idf, cinfo);
       }
       break;
     case ifc_ds_decl_method:
@@ -16036,33 +16369,21 @@ about what to cache.
 
         construct_node_prechecked(&idm, decl);
 
-        an_ifc_type_index       type = get_ifc_type(idm);
-        Opt<an_ifc_type_method> opt_itm;
-        construct_node(&opt_itm, type);
-        if (!opt_itm.has_value()) {
-          goto invalid;
-        }  /* if */
+        an_ifc_source_location locus = get_ifc_locus(idm);
+        source_position_from_locus(&pos, locus);
+        this->cache_attrs(cache, decl);
+        cache_func_vendor_decl_specifier_seq(cache, decl, &pos);
+        cache_func_decl_specifier_seq(cache, idm);
 
-        an_ifc_type_method itm = *opt_itm;
-        an_ifc_name_index  name = get_ifc_name(idm);
-        an_ifc_type_index  target = {};
-        an_ifc_chart_index params = get_ifc_chart(idm);
-        an_ifc_type_index  source = get_ifc_source(itm);
-        if (name.sort == ifc_ns_name_conversion) {
-          /* This is a conversion function, so the return type should not be
-             cached. */
-        } else {
-          target = get_ifc_target(itm);
+        an_ifc_name_index name_idx = get_ifc_name(idm);
+        if (name_idx.sort != ifc_ns_name_conversion) {
+          cache_func_return_type(cache, idm);
         }  /* if */
-        if (is_null_index(params) && !is_null_index(source)) {
-          params = get_func_params_from_trait(decl);
-        }  /* if */
-        cache_function_decl(cache, decl, /*class_member=*/TRUE,
-                            /*is_dtor=*/FALSE, get_ifc_convention(itm),
-                            get_ifc_traits(idm), get_ifc_traits(itm),
-                            get_vendor_traits(decl), target, name, params,
-                            source, get_ifc_eh_spec(itm), get_ifc_locus(idm));
-        maybe_cache_function_def(cache, decl, idm);
+        cache_func_calling_convention(cache, idm);
+        cache_name(cache, name_idx, locus);
+        cache_func_parameters_and_qualifiers(cache, idm);
+        cache_func_virt_specifier_seq(cache, idm);
+        cache_func_body_or_end_decl(cache, decl, idm, cinfo);
       }
       break;
     case ifc_ds_decl_constructor:
@@ -16070,27 +16391,16 @@ about what to cache.
 
         construct_node_prechecked(&idc, decl);
 
-        an_ifc_type_index    type = get_ifc_type(idc);
-        Opt<an_ifc_type_tor> opt_itt;
-        construct_node(&opt_itt, type);
-        if (!opt_itt.has_value()) {
-          goto invalid;
-        }  /* if */
-
-        an_ifc_type_tor    itt = *opt_itt;
-        an_ifc_chart_index params = get_ifc_chart(idc);
-        an_ifc_type_index  source = get_ifc_source(itt);
-        if (is_null_index(params) && !is_null_index(source)) {
-          params = get_func_params_from_trait(decl);
-        }  /* if */
-        cache_function_decl(cache, decl, /*class_member=*/TRUE,
-                            /*is_dtor=*/FALSE, get_ifc_convention(itt),
-                            get_ifc_traits(idc),
-                            an_ifc_function_type_traits_bitfield{},
-                            get_vendor_traits(decl), an_ifc_type_index{},
-                            get_ifc_name(idc), params, source,
-                            get_ifc_eh_spec(itt), get_ifc_locus(idc));
-        maybe_cache_function_def(cache, decl, idc);
+        an_ifc_source_location locus = get_ifc_locus(idc);
+        source_position_from_locus(&pos, locus);
+        this->cache_attrs(cache, decl);
+        cache_func_vendor_decl_specifier_seq(cache, decl, &pos);
+        cache_func_decl_specifier_seq(cache, idc);
+        cache_func_calling_convention(cache, idc);
+        cache_name(cache, get_ifc_name(idc), locus);
+        cache_func_parameters_and_qualifiers(cache, idc);
+        cache_func_virt_specifier_seq(cache, idc);
+        cache_func_body_or_end_decl(cache, decl, idc, cinfo);
       }
       break;
     case ifc_ds_decl_inherited_constructor:
@@ -16112,15 +16422,19 @@ about what to cache.
       { an_ifc_decl_destructor idd;
 
         construct_node_prechecked(&idd, decl);
-        cache_function_decl(cache, decl, /*class_member=*/TRUE,
-                            /*is_dtor=*/TRUE, get_ifc_convention(idd),
-                            get_ifc_traits(idd),
-                            an_ifc_function_type_traits_bitfield{},
-                            get_vendor_traits(decl), an_ifc_type_index{},
-                            get_ifc_name(idd), an_ifc_chart_index{},
-                            an_ifc_type_index{}, get_ifc_eh_spec(idd),
-                            get_ifc_locus(idd));
-        maybe_cache_function_def(cache, decl, idd);
+        an_ifc_source_location locus = get_ifc_locus(idd);
+        source_position_from_locus(&pos, locus);
+        this->cache_attrs(cache, decl);
+        cache_func_vendor_decl_specifier_seq(cache, decl, &pos);
+        cache_func_decl_specifier_seq(cache, idd);
+        cache_func_calling_convention(cache, idd);
+        cache_token(cache, tok_compl, &pos);
+        cache_name(cache, get_ifc_name(idd), locus);
+        cache_token(cache, tok_lparen, &pos);
+        cache_token(cache, tok_rparen, &pos);
+        cache_func_noexcept_specifier(cache, idd);
+        cache_func_virt_specifier_seq(cache, idd);
+        cache_func_body_or_end_decl(cache, decl, idd, cinfo);
       }
       break;
     case ifc_ds_decl_reference:
@@ -17536,9 +17850,10 @@ Otherwise, parameter references should only include the parameter name.
         an_ifc_expr_index              name = get_ifc_name(isd);
         an_ifc_syntax_index            trailing_target =
                                                   get_ifc_trailing_target(isd);
-        source_position_from_locus(&pos, get_ifc_locus(isd));
+        an_ifc_source_location         locus = get_ifc_locus(isd);
+        source_position_from_locus(&pos, locus);
         if (convention != ifc_ccs_cdecl) {
-          cache_calling_convention(cache, convention, &pos);
+          cache_calling_convention(cache, convention, locus);
         }  /* if */
         if (!is_null_index(pointer)) {
           cache_syntax(cache, pointer, cinfo);
@@ -17574,10 +17889,11 @@ Otherwise, parameter references should only include the parameter name.
         an_ifc_syntax_pointer_declarator ispd = *opt_ispd;
         an_ifc_calling_convention_sort   convention = get_ifc_convention(ispd);
         an_ifc_syntax_index              next = get_ifc_next(ispd);
-        source_position_from_locus(&pos, get_ifc_locus(ispd));
+        an_ifc_source_location           locus = get_ifc_locus(ispd);
+        source_position_from_locus(&pos, locus);
         cache_qualifiers(cache, get_ifc_qualifiers(ispd), &pos);
         if (convention != ifc_ccs_cdecl) {
-          cache_calling_convention(cache, convention, &pos);
+          cache_calling_convention(cache, convention, locus);
         }  /* if */
 
         an_ifc_pointer_declarator_sort declar_sort = get_ifc_sort(ispd);
