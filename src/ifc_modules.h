@@ -126,8 +126,12 @@ IFC entities.
 */
 struct an_ifc_cache_info : public detail::an_ifc_cache_info_zero_bits {
   an_ifc_cache_info() :
-    an_ifc_cache_info_zero_bits{}
+    an_ifc_cache_info_zero_bits{}, lexical_scope{}
   {}
+  an_ifc_decl_index
+                lexical_scope;
+                        /* The declaration index of the scope that this entity
+                           will be cached into. */
 };  /* an_ifc_cache_info */
 
 struct a_str_control_block;

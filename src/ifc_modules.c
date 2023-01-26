@@ -7806,17 +7806,19 @@ token cache that (potentially) contains multiple entities.
 }  /* cache_bound_entity */
 
 
-static void cache_class_members(a_module_token_cache_ptr cache,
-                                const an_ifc_scope_descriptor& class_members)
+static void cache_class_members(a_module_token_cache_ptr      cache,
+                                an_ifc_decl_index             class_idx,
+                                const an_ifc_scope_descriptor &class_members)
 /*
 Cache the class members for the given class member scope descriptor into the
 given cache.
 */
 {
-  auto cache_content = [](a_module_token_cache *content_cache,
+  auto cache_content = [class_idx](a_module_token_cache *content_cache,
                           an_ifc_decl_index    decl_idx) {
     an_ifc_cache_info cinfo;
     cinfo.ignore_definition = TRUE;
+    cinfo.lexical_scope = class_idx;
 
 #if DEBUG
     if (db_flag_is_set("ifc_idx")) {
@@ -7972,7 +7974,7 @@ Complete the definition of the class referred to by mep (if needed).
         an_ifc_scope_descriptor class_members = *opt_class_members;
 
         cache_token(&cache, tok_lbrace);
-        cache_class_members(&cache, class_members);
+        cache_class_members(&cache, decl_idx, class_members);
         cache_token(&cache, tok_rbrace);
       }  /* if */
       cache_token(&cache, tok_semicolon);
@@ -13870,6 +13872,56 @@ function-like declaration.
 
 
 template<typename an_ifc_Node_type>
+static void cache_func_declarator_qualifier(a_module_token_cache_ptr cache,
+                                            const an_ifc_Node_type   &decl,
+                                            const an_ifc_cache_info  &cinfo)
+/*
+Cache the qualified-id portion of declarator-id's id-expression (if any).
+*/
+{
+  an_ifc_decl_index home_scope = get_ifc_home_scope(decl);
+
+  if (is_class_scope(home_scope) && home_scope != cinfo.lexical_scope) {
+    /* FIXME: Add a tok_ifc_entity_decl_ref for the special case where we don't
+       have an expression but want to form a direct reference to a
+       declaration. */
+    /* cache_token_with_index(cache, tok_ifc_entity_decl_ref, home_scope); */
+    home_scope.mod->cache_name_from_decl(cache, home_scope);
+    cache_token(cache, tok_colon_colon);
+  }  /* if */
+}  /* cache_func_declarator_qualifier */
+
+
+template<typename an_ifc_Node_type>
+static void cache_func_declarator_id(a_module_token_cache_ptr cache,
+                                     const an_ifc_Node_type   &decl,
+                                     const an_ifc_cache_info  &cinfo)
+/*
+*/
+{
+  cache_func_declarator_qualifier(cache, decl, cinfo);
+
+  an_ifc_name_index name_idx = get_ifc_name(decl);
+  cache_name(cache, name_idx);
+}  /* cache_func_declarator_id */
+
+
+template<typename an_ifc_Node_type>
+static void cache_func_declarator_id(a_module_token_cache_ptr     cache,
+                                     const an_ifc_decl_destructor &decl,
+                                     const an_ifc_cache_info      &cinfo)
+/*
+*/
+{
+  cache_func_declarator_qualifier(cache, decl, cinfo);
+  cache_token(cache, tok_compl);
+
+  an_ifc_name_index name_idx = get_ifc_name(decl);
+  cache_name(cache, name_idx);
+}  /* cache_func_declarator_id */
+
+
+template<typename an_ifc_Node_type>
 static void cache_func_virt_specifier_seq(a_module_token_cache_ptr cache,
                                           const an_ifc_Node_type   &decl)
 
@@ -16332,10 +16384,20 @@ offset/the offset is not needed.
     cache_name(cache, name);
   } else {
     /* Function or variable template. */
-    an_ifc_cache_info decl_cinfo = cinfo;
+    an_ifc_decl_index entity_idx = get_ifc_decl(entity);
+    if (entity_idx.sort == ifc_ds_decl_variable) {
+      /* FIXME: Cache the entity corresponding to decl->entity.decl instead (as
+         was done for functions below).  Variables template declarations are
+         still a mess, but we can avoid updating them for now. */
+      cache_sentence(cache, get_ifc_head(entity));
+    } else {
+      an_ifc_cache_info decl_cinfo = cinfo;
 
-    decl_cinfo.no_access_specifier = TRUE;
-    cache_decl(cache, get_ifc_decl(entity), decl_cinfo);
+      decl_cinfo.no_access_specifier = TRUE;
+      decl_cinfo.no_final_semicolon = TRUE;
+      decl_cinfo.ignore_definition = TRUE;
+      cache_decl(cache, entity_idx, decl_cinfo);
+    }  /* if */
   }  /* if */
   if (!cinfo.no_final_semicolon) {
     cache_token(cache, tok_semicolon);
@@ -16443,7 +16505,7 @@ Add the tokens for a simple-template-id via the associated decl to the cache.
 locus is the location of the simple-template-id.
 */
 {
-  EDG_PREFIX::cache_name(cache, get_ifc_name(decl));
+  cache_name(cache, get_ifc_name(decl));
   cache_template_argument_list(cache, get_ifc_form(decl));
 }  /* cache_simple_template_id */
 
@@ -16569,6 +16631,36 @@ invalid:
   cache->invalidate();
 done:;
 }  /* cache_decl_partial_specialization */
+
+
+template<typename an_ifc_Node_type>
+static void cache_specialized_func_declarator_id(
+                          a_module_token_cache_ptr         cache,
+                          const an_ifc_decl_specialization &specialization,
+                          const an_ifc_Node_type           &specialized_entity,
+                          const an_ifc_cache_info          &cinfo)
+/*
+*/
+{
+  cache_func_declarator_qualifier(cache, specialization, cinfo);
+  cache_simple_template_id(cache, specialization);
+}  /* cache_func_declarator_id */
+
+
+template<>
+void cache_specialized_func_declarator_id(
+                          a_module_token_cache_ptr         cache,
+                          const an_ifc_decl_specialization &specialization,
+                          const an_ifc_decl_constructor    &specialized_entity,
+                          const an_ifc_cache_info          &cinfo)
+/*
+*/
+{
+  /* Constructors specialization syntax is identical to the non-specialized
+     constructor syntax (i.e., constructors cannot have a template argument
+     list), so cache the declarator for the specialized entity. */
+  cache_func_declarator_id(cache, specialized_entity, cinfo);
+}  /* cache_func_declarator_id */
 
 
 void an_ifc_module::cache_decl_specialization(
@@ -16715,7 +16807,7 @@ END_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
         cache_func_decl_specifier_seq(cache, idf);
         cache_func_return_type(cache, idf);
         cache_func_calling_convention(cache, idf);
-        cache_simple_template_id(cache, decl);
+        cache_specialized_func_declarator_id(cache, decl, idf, cinfo);
         cache_func_parameters_and_qualifiers(cache, templated_decl_idx, idf,
                                              cinfo);
         cache_func_body_or_end_decl(cache, templated_decl_idx, idf, cinfo);
@@ -16740,7 +16832,7 @@ END_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
           cache_func_return_type(cache, idm);
         }  /* if */
         cache_func_calling_convention(cache, idm);
-        cache_simple_template_id(cache, decl);
+        cache_specialized_func_declarator_id(cache, decl, idm, cinfo);
         cache_func_parameters_and_qualifiers(cache, templated_decl_idx, idm,
                                              cinfo);
         cache_func_virt_specifier_seq(cache, idm);
@@ -16761,10 +16853,7 @@ END_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
         cache_func_vendor_decl_specifier_seq(cache, templated_decl_idx);
         cache_func_decl_specifier_seq(cache, idc);
         cache_func_calling_convention(cache, idc);
-        /* Constructor specializations are special cases that don't include
-           the template argument list.  Call the lower level cache_name
-           instead of cache_simple_template_id. */
-        EDG_PREFIX::cache_name(cache, get_ifc_name(decl));
+        cache_specialized_func_declarator_id(cache, decl, idc, cinfo);
         cache_func_parameters_and_qualifiers(cache, templated_decl_idx, idc,
                                              cinfo);
         cache_func_virt_specifier_seq(cache, idc);
@@ -17341,7 +17430,7 @@ about what to cache.
         cache_func_decl_specifier_seq(cache, idf);
         cache_func_return_type(cache, idf);
         cache_func_calling_convention(cache, idf);
-        cache_name(cache, get_ifc_name(idf));
+        cache_func_declarator_id(cache, idf, cinfo);
         cache_func_parameters_and_qualifiers(cache, decl, idf, cinfo);
         cache_func_body_or_end_decl(cache, decl, idf, cinfo);
       }
@@ -17359,7 +17448,7 @@ about what to cache.
           cache_func_return_type(cache, idm);
         }  /* if */
         cache_func_calling_convention(cache, idm);
-        cache_name(cache, name_idx);
+        cache_func_declarator_id(cache, idm, cinfo);
         cache_func_parameters_and_qualifiers(cache, decl, idm, cinfo);
         cache_func_virt_specifier_seq(cache, idm);
         cache_func_body_or_end_decl(cache, decl, idm, cinfo);
@@ -17373,7 +17462,7 @@ about what to cache.
         cache_func_vendor_decl_specifier_seq(cache, decl);
         cache_func_decl_specifier_seq(cache, idc);
         cache_func_calling_convention(cache, idc);
-        cache_name(cache, get_ifc_name(idc));
+        cache_func_declarator_id(cache, idc, cinfo);
         cache_func_parameters_and_qualifiers(cache, decl, idc, cinfo);
         cache_func_virt_specifier_seq(cache, idc);
         cache_func_body_or_end_decl(cache, decl, idc, cinfo);
@@ -17400,8 +17489,7 @@ about what to cache.
         cache_func_vendor_decl_specifier_seq(cache, decl);
         cache_func_decl_specifier_seq(cache, idd);
         cache_func_calling_convention(cache, idd);
-        cache_token(cache, tok_compl);
-        cache_name(cache, get_ifc_name(idd));
+        cache_func_declarator_id(cache, idd, cinfo);
         cache_token(cache, tok_lparen);
         cache_token(cache, tok_rparen);
         cache_func_noexcept_specifier(cache, idd);
