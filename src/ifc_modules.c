@@ -162,10 +162,18 @@ Return TRUE if processing succeeded, otherwise return FALSE.
   a_boolean                   result = TRUE;
   Opt<an_ifc_source_line>     opt_isl;
   an_ifc_module               *mod = locus.get_module();
-  an_ifc_partition_kind_index line_idx{mod, ifc_pk_src_line,
-                                       get_ifc_line(locus)};
+  an_ifc_line_index           line_number = get_ifc_line(locus);
+  an_ifc_partition_kind_index src_line_idx{mod, ifc_pk_src_line, line_number};
 
-  construct_node(&opt_isl, line_idx);
+  /* FIXME: This should be addressed in the validator. */
+  if (!validate_element_exists(mod, ifc_pk_src_line, line_number,
+                               /*trace=*/NULL)) {
+    a_string err_msg("bad source line index ", (an_ifc_index_type)line_number);
+
+    ifc_unexpected(mod, err_msg.as_temp_characters());
+    goto done;
+  }  /* if */
+  construct_node(&opt_isl, src_line_idx);
   if (opt_isl.has_value()) {
     an_ifc_source_line isl = *opt_isl;
     an_ifc_name_index  file = get_ifc_file(isl);
@@ -208,25 +216,168 @@ Return TRUE if processing succeeded, otherwise return FALSE.
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
     }  /* if */
   }  /* if */
+done:
   return result;
 }  /* source_position_from_locus */
 
+namespace {
 
-static void cache_token(a_module_token_cache_ptr cache,
-                        a_token_kind             tok,
-                        a_source_position_ptr    pos)
 /*
-This function proxies calls to the common cache_token function when
-using an IFC token cache pointer.
+An RAII type representing a source position hint formed from an IFC locus.
+This type ensures that the token cache does not hold onto a position hint
+beyond the lifetime of the hint.
+*/
+struct an_ifc_source_position_hint {
+  inline an_ifc_source_position_hint(a_module_token_cache_ptr     cache,
+                                     const an_ifc_source_location &locus);
+  template<typename an_ifc_Index_type>
+  inline an_ifc_source_position_hint(a_module_token_cache_ptr cache,
+                                     an_ifc_Index_type        idx);
+  inline ~an_ifc_source_position_hint();
+  a_source_position_ptr as_pos()
+    { return &this->pos; }
+private:
+  a_module_token_cache_ptr
+                cache_ptr;
+                        /* A pointer to the cache that's being provided with
+                           this hint. */
+  a_source_position
+                pos;    /* The storage for the source position. */
+  a_boolean     hint_given;
+                        /* TRUE if the stored source position was ever
+                           actually given to the cache as a hint. */
+};  /* an_ifc_source_poisiton_hint */
+
+
+an_ifc_source_position_hint::an_ifc_source_position_hint(
+                                           a_module_token_cache_ptr     cache,
+                                           const an_ifc_source_location &locus)
+/*
+Create a position hint for the given cache from the given locus.  The position
+hint will last until it's consumed during token caching, or until the lifetime
+of this object expires (whichever is sooner).
+*/
+: cache_ptr(cache), pos{}, hint_given(TRUE)
+{
+  source_position_from_locus(&this->pos, locus);
+  this->cache_ptr->set_position_hint(&this->pos);
+}  /* an_ifc_source_position_hint::an_ifc_source_position_hint */
+
+
+template<typename an_ifc_Index_type>
+an_ifc_source_position_hint::an_ifc_source_position_hint(
+                                                a_module_token_cache_ptr cache,
+                                                an_ifc_Index_type        idx)
+/*
+Create a position hint for the given cache from the given index.  If the index
+has no associated locus, the null_source_position will instead be used.  The
+position hint will last until it's consumed during token caching, or until the
+lifetime of this object expires (whichever is sooner).
+*/
+: cache_ptr(cache), pos{null_source_position}, hint_given(TRUE)
+{
+  if (!is_null_index(idx) && validate(idx) && has_ifc_locus(idx)) {
+    an_ifc_source_location locus = get_ifc_locus(idx);
+
+    source_position_from_locus(&this->pos, locus);
+    if (cmp_source_positions(this->pos, null_source_position) != 0) {
+      this->cache_ptr->set_position_hint(&this->pos);
+    } else {
+      /* The IFC gave us a null source location locus value, emit a remark. */
+      a_diagnostic_ptr            diag = pos_st_start_diagnostic(
+                                           es_remark,
+                                           ec_ifc_null_source_position_ignored,
+                                           &pos,
+                                           idx.mod->assoc_module_info->name);
+      an_ifc_partition_kind       kind = to_partition_kind(idx.sort);
+      an_ifc_partition_kind_index part_kind_idx = {idx.mod, kind, idx.value};
+      an_ifc_partition_metadata   *part_meta =
+                                         get_partition_metadata(part_kind_idx);
+      size_t                      part_start = part_meta->offset;
+      size_t                      abs_offset =
+                                           get_partition_offset(part_kind_idx);
+      size_t                      rel_offset = abs_offset - part_start;
+
+      /* FIXME: Migrate to allowing diagnostics with size_t. */
+      st_num3_add_diag_info(diag, ec_ifc_null_source_position_ignored_info,
+                            get_partition_name_from_kind(kind), idx.value,
+                            (uint32_t)abs_offset, (uint32_t)rel_offset);
+      end_diagnostic(diag);
+      hint_given = FALSE;
+    }  /* if */
+  } else {
+    hint_given = FALSE;
+  }  /* if */
+}  /* an_ifc_source_position_hint::an_ifc_source_position_hint */
+
+
+an_ifc_source_position_hint::~an_ifc_source_position_hint()
+/*
+Cleanup the module token cache's source position hint if it's still set to
+the source position managed by this object.
 */
 {
+  if (hint_given && this->cache_ptr->get_position_hint() == &this->pos) {
+    this->cache_ptr->set_position_hint(NULL);
+  }  /* if */
+}  /* an_ifc_source_position_hint::an_ifc_source_position_hint */
+
+}  /* namespace */
+
+static inline void cache_token(a_module_token_cache_ptr cache,
+                               a_token_kind             tok,
+                               a_source_position_ptr    pos = NULL)
+/*
+This function proxies calls to the common cache_token function when using a
+module token cache.
+
+If position is passed it will be used as the source position; otherwise the
+position will be inferred (see infer_next_source_position for details about the
+rules of position inference).
+*/
+{
+  pos = infer_next_source_position(cache, pos);
   cache_token(cache->as_canonical(), tok, pos);
 }  /* cache_token */
 
 
+static void cache_resolved_type_token(a_module_token_cache_ptr cache,
+                                      a_type_ptr               type,
+                                      a_source_position_ptr    pos = NULL)
+/*
+This function proxies calls to the common cache_resolved_type_token function
+when using a module token cache.
+
+If position is passed it will be used as the source position; otherwise the
+position will be inferred (see infer_next_source_position for details about the
+rules of position inference).
+*/
+{
+  pos = infer_next_source_position(cache, pos);
+  cache_resolved_type_token(cache->as_canonical(), type, pos);
+}  /* cache_resolved_type_token */
+
+
+static void cache_tokens_from_string(a_const_char             *str,
+                                     a_module_token_cache_ptr cache,
+                                     a_source_position_ptr    pos = NULL)
+/*
+This function proxies calls to the common cache_tokens_from_string function
+when using a module token cache.
+
+If position is passed it will be used as the source position; otherwise the
+position will be inferred (see infer_next_source_position for details about the
+rules of position inference).
+*/
+{
+  pos = infer_next_source_position(cache, pos);
+  cache_tokens_from_string(str, cache->as_canonical(), pos);
+}  /* cache_tokens_from_string */
+
+
 static void cache_identifier(a_module_token_cache_ptr cache,
                              a_const_char             *name,
-                             a_source_position_ptr    pos);
+                             a_source_position_ptr    pos = NULL);
 
 /*
 The routines and data structures below are used to support host-independent
@@ -1298,17 +1449,15 @@ Return the associated scope for the given declaration index.
 
 
 static void cache_name(a_module_token_cache_ptr     cache,
-                       an_ifc_name_index            name_ref,
-                       const an_ifc_source_location &locus)
+                       an_ifc_name_index            name_ref)
 /*
-Add the tokens corresponding to the given name to cache.  locus is the location
-of the name.
+Add the tokens corresponding to the given name to cache.
 */
 {
   /* Disable spurious GCC warning about uninitialized usage of opt_name_ref
      (when this function is called by cache_simple_template_id). */
 BEGIN_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
-  name_ref.mod->cache_name(cache, name_ref, locus);
+  name_ref.mod->cache_name(cache, name_ref);
 END_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
 }  /* cache_name */
 
@@ -3023,26 +3172,22 @@ error occurs, return NULL.
         /* Obtain the primary template and resolve it to a front end symbol. */
         an_ifc_expr_template_id  template_id = *opt_template_id;
         an_ifc_expr_index        primary = get_ifc_primary(template_id);
-        a_source_position        pos;
         an_ifc_module            *mod = primary.mod;
         templ_sym = load_ifc_entity_ref(primary);
         if (templ_sym == NULL) goto invalid;
 
         /* Construct a token cache with the template arguments. */
-        a_module_token_cache arg_cache;
-        a_template_arg_ptr   t_args = NULL;
-        an_ifc_expr_index    args = get_ifc_arguments(template_id);
-        a_boolean            err = FALSE;
-        long                 first_defaulted_arg = -1;
+        a_module_token_cache        arg_cache;
+        an_ifc_source_location      locus = get_ifc_locus(template_id);
+        an_ifc_source_position_hint pos_hint(&arg_cache, locus);
+        a_template_arg_ptr          t_args = NULL;
+        an_ifc_expr_index           args = get_ifc_arguments(template_id);
+        a_boolean                   err = FALSE;
+        long                        first_defaulted_arg = -1;
         if (!is_null_index(args)) {
           mod->cache_expr(&arg_cache, args, /*cinfo=*/{});
         }  /* if */
-        if (has_ifc_locus(template_id)) {
-          mod->source_position_from_locus(&pos, get_ifc_locus(template_id));
-        } else {
-          pos = null_source_position;
-        }  /* if */
-        cache_token(&arg_cache, tok_gt, &pos);
+        cache_token(&arg_cache, tok_gt);
         if (!arg_cache.is_valid()) {
           goto invalid;
         }  /* if */
@@ -3066,7 +3211,7 @@ error occurs, return NULL.
         } else if (symbol_is(templ_sym, sk_function_template)) {
           result = find_template_function(templ_sym, &t_args,
                                           /*explicit_arg_list_present=*/TRUE,
-                                          &pos);
+                                          pos_hint.as_pos());
         } else {
           /* FIXME: Handle other template kinds. */
           goto invalid;
@@ -3176,14 +3321,12 @@ done:
 template<typename an_ifc_Index_type>
 static void cache_token_with_index(a_module_token_cache_ptr cache,
                                    a_token_kind             tok_to_cache,
-                                   an_ifc_Index_type        idx,
-                                   a_source_position_ptr    pos)
+                                   an_ifc_Index_type        idx)
 /*
-Add tok_to_cache to cache and associate it with index.  pos is the position of
-the initializer.
+Add tok_to_cache to cache and associate it with index.
 */
 {
-  cache_token(cache, tok_to_cache, pos);
+  cache_token(cache, tok_to_cache);
 
   a_cached_token_ptr last_token = cache->get_last_token();
   last_token->extra_info_kind = teik_ifc_index;
@@ -3206,16 +3349,17 @@ FALSE.
 
   construct_node(&opt_idv, decl_idx);
   if (opt_idv.has_value()) {
-    an_ifc_module *mod = node.get_module();
+    an_ifc_module               *mod = node.get_module();
+    an_ifc_decl_variable        idv = *opt_idv;
+    an_ifc_source_location      locus = get_ifc_locus(idv);
+    an_ifc_source_position_hint pos_hint(cache, locus);
 
     mod->cache_variable_decl(cache, decl_idx, /*is_class_member=*/FALSE,
-                             get_ifc_specifiers(*opt_idv),
-                             get_ifc_traits(*opt_idv),
-                             get_ifc_alignment(*opt_idv),
-                             get_ifc_type(*opt_idv), get_ifc_name(*opt_idv),
-                             an_ifc_text_offset{}, an_ifc_expr_index{},
-                             /*get_ifc_initializer(node)*/
-                             an_ifc_expr_index{}, get_ifc_locus(*opt_idv));
+                             get_ifc_specifiers(idv), get_ifc_traits(idv),
+                             get_ifc_alignment(idv), get_ifc_type(idv),
+                             get_ifc_name(idv), an_ifc_text_offset{},
+                             an_ifc_expr_index{}, /*get_ifc_initializer(node)*/
+                             an_ifc_expr_index{});
     result = TRUE;
   }  /* if */
   return result;
@@ -3236,7 +3380,7 @@ therefore the caller takes responsibility for generating braces in that case
 braces for a compound statement).
 */
 {
-  a_source_position pos;
+  an_ifc_source_position_hint pos_hint(cache, stmt_idx);
 
   switch (stmt_idx.sort) {
     case ifc_ss_stmt_vendor_extension:
@@ -3250,8 +3394,7 @@ braces for a compound statement).
         if (!opt_ise.has_value()) {
           goto invalid;
         }  /* if */
-        source_position_from_locus(&pos, get_ifc_locus(*opt_ise));
-        cache_token(cache, tok_semicolon, &pos);
+        cache_token(cache, tok_semicolon);
       }
       break;
     case ifc_ss_stmt_if:
@@ -3266,9 +3409,8 @@ braces for a compound statement).
         an_ifc_stmt_index alternative = get_ifc_alternative(isi);
         an_ifc_stmt_index initialization = get_ifc_initialization(isi);
 
-        source_position_from_locus(&pos, get_ifc_locus(isi));
-        cache_token(cache, tok_if, &pos);
-        cache_token(cache, tok_lparen, &pos);
+        cache_token(cache, tok_if);
+        cache_token(cache, tok_lparen);
         if (!is_null_index(initialization)) {
           /* FIXME: An IFC bug has these statements wrapped with an extraneous
              StmtSort::Block.  Suppress the braces for the block.  Note that
@@ -3285,12 +3427,12 @@ braces for a compound statement).
           cache_info.func_body = TRUE;
           cache_statement(cache, get_ifc_condition(isi), cache_info);
         }
-        cache_token(cache, tok_rparen, &pos);
+        cache_token(cache, tok_rparen);
         /* FIXME: These also have the intervening StmtSort::Block issue, but
            they do not cause parsing issues - leave them be. */
         cache_statement(cache, get_ifc_consequence(isi), cinfo);
         if (!is_null_index(alternative)) {
-          cache_token(cache, tok_else, &pos);
+          cache_token(cache, tok_else);
           cache_statement(cache, alternative, cinfo);
         }  /* if */
       }
@@ -3302,16 +3444,15 @@ braces for a compound statement).
         if (!opt_isf.has_value()) {
           goto invalid;
         }  /* if */
-        source_position_from_locus(&pos, get_ifc_locus(*opt_isf));
-        cache_token(cache, tok_for, &pos);
-        cache_token(cache, tok_lparen, &pos);
+        cache_token(cache, tok_for);
+        cache_token(cache, tok_lparen);
         cache_statement(cache, get_ifc_initialization(*opt_isf), cinfo);
         cache_statement(cache, get_ifc_condition(*opt_isf), cinfo);
         { an_ifc_cache_info cache_info = cinfo;
           cache_info.no_final_semicolon = TRUE;
           cache_statement(cache, get_ifc_continuation(*opt_isf), cache_info);
         }
-        cache_token(cache, tok_rparen, &pos);
+        cache_token(cache, tok_rparen);
         cache_statement(cache, get_ifc_body(*opt_isf), cinfo);
       }
       break;
@@ -3330,9 +3471,8 @@ braces for a compound statement).
         if (!opt_isc.has_value()) {
           goto invalid;
         }  /* if */
-        source_position_from_locus(&pos, get_ifc_locus(*opt_isc));
         cache_expr(cache, get_ifc_expr(*opt_isc), cinfo);
-        cache_token(cache, tok_colon, &pos);
+        cache_token(cache, tok_colon);
       }
       break;
     case ifc_ss_stmt_while:
@@ -3342,14 +3482,13 @@ braces for a compound statement).
         if (!opt_isw.has_value()) {
           goto invalid;
         }  /* if */
-        source_position_from_locus(&pos, get_ifc_locus(*opt_isw));
-        cache_token(cache, tok_while, &pos);
-        cache_token(cache, tok_lparen, &pos);
+        cache_token(cache, tok_while);
+        cache_token(cache, tok_lparen);
         { an_ifc_cache_info cache_info = cinfo;
           cache_info.no_final_semicolon = TRUE;
           cache_statement(cache, get_ifc_condition(*opt_isw), cache_info);
         }
-        cache_token(cache, tok_rparen, &pos);
+        cache_token(cache, tok_rparen);
         cache_statement(cache, get_ifc_body(*opt_isw), cinfo);
       }
       break;
@@ -3363,7 +3502,7 @@ braces for a compound statement).
 
         a_stmt_heap_traverser traverser(*opt_isb);
         if (!cinfo.func_body) {
-          cache_token(cache, tok_lbrace, &null_source_position);
+          cache_token(cache, tok_lbrace);
         }  /* if */
         { an_ifc_cache_info cache_info = cinfo;
           cache_info.func_body = FALSE;
@@ -3380,7 +3519,7 @@ braces for a compound statement).
           }  /* for */
         }
         if (!cinfo.func_body) {
-          cache_token(cache, tok_rbrace, &null_source_position);
+          cache_token(cache, tok_rbrace);
         }  /* if */
       }
       break;
@@ -3391,9 +3530,8 @@ braces for a compound statement).
         if (!opt_isb.has_value()) {
           goto invalid;
         }  /* if */
-        source_position_from_locus(&pos, get_ifc_locus(*opt_isb));
-        cache_token(cache, tok_break, &pos);
-        cache_token(cache, tok_semicolon, &pos);
+        cache_token(cache, tok_break);
+        cache_token(cache, tok_semicolon);
       }
       break;
     case ifc_ss_stmt_switch:
@@ -3403,11 +3541,10 @@ braces for a compound statement).
         if (!opt_iss.has_value()) {
           goto invalid;
         }  /* if */
-        source_position_from_locus(&pos, get_ifc_locus(*opt_iss));
-        cache_token(cache, tok_switch, &pos);
-        cache_token(cache, tok_lparen, &pos);
+        cache_token(cache, tok_switch);
+        cache_token(cache, tok_lparen);
         cache_expr(cache, get_ifc_condition(*opt_iss), cinfo);
-        cache_token(cache, tok_rparen, &pos);
+        cache_token(cache, tok_rparen);
         cache_statement(cache, get_ifc_body(*opt_iss), cinfo);
       }
       break;
@@ -3418,17 +3555,16 @@ braces for a compound statement).
         if (!opt_isdw.has_value()) {
           goto invalid;
         }  /* if */
-        source_position_from_locus(&pos, get_ifc_locus(*opt_isdw));
-        cache_token(cache, tok_do, &pos);
+        cache_token(cache, tok_do);
         cache_statement(cache, get_ifc_body(*opt_isdw), cinfo);
-        cache_token(cache, tok_while, &pos);
-        cache_token(cache, tok_lparen, &pos);
-        cache_token(cache, tok_rparen, &pos);
+        cache_token(cache, tok_while);
+        cache_token(cache, tok_lparen);
+        cache_token(cache, tok_rparen);
         { an_ifc_cache_info cache_info = cinfo;
           cache_info.no_final_semicolon = TRUE;
           cache_statement(cache, get_ifc_condition(*opt_isdw), cache_info);
         }
-        cache_token(cache, tok_semicolon, &pos);
+        cache_token(cache, tok_semicolon);
       }
       break;
     case ifc_ss_stmt_decl:
@@ -3450,9 +3586,8 @@ braces for a compound statement).
         if (!opt_isd.has_value()) {
           goto invalid;
         }  /* if */
-        source_position_from_locus(&pos, get_ifc_locus(*opt_isd));
-        cache_token(cache, tok_default, &pos);
-        cache_token(cache, tok_colon, &pos);
+        cache_token(cache, tok_default);
+        cache_token(cache, tok_colon);
       }
       break;
     case ifc_ss_stmt_continue:
@@ -3462,9 +3597,8 @@ braces for a compound statement).
         if (!opt_isc.has_value()) {
           goto invalid;
         }  /* if */
-        source_position_from_locus(&pos, get_ifc_locus(*opt_isc));
-        cache_token(cache, tok_continue, &pos);
-        cache_token(cache, tok_semicolon, &pos);
+        cache_token(cache, tok_continue);
+        cache_token(cache, tok_semicolon);
       }
       break;
     case ifc_ss_stmt_expression:
@@ -3476,7 +3610,7 @@ braces for a compound statement).
         }  /* if */
         cache_expr(cache, get_ifc_expr(*opt_ise), cinfo);
         if (!cinfo.no_final_semicolon) {
-          cache_token(cache, tok_semicolon, &null_source_position);
+          cache_token(cache, tok_semicolon);
         }  /* if */
       }
       break;
@@ -3493,12 +3627,11 @@ braces for a compound statement).
         }  /* if */
 
         an_ifc_expr_index expr = get_ifc_expr(*opt_isr);
-        source_position_from_locus(&pos, get_ifc_locus(*opt_isr));
-        cache_token(cache, tok_return, &pos);
+        cache_token(cache, tok_return);
         if (!is_null_index(expr)) {
           cache_expr(cache, expr, cinfo);
         }  /* if */
-        cache_token(cache, tok_semicolon, &null_source_position);
+        cache_token(cache, tok_semicolon);
       }
       break;
     case ifc_ss_stmt_tuple:
@@ -3560,17 +3693,17 @@ the current cache context to help inform decisions about what to cache.  Return
 TRUE if caching succeeds, FALSE otherwise.
 */
 {
-  an_ifc_module     *mod = idc.get_module();
-  a_source_position pos;
+  an_ifc_module               *mod = idc.get_module();
+  an_ifc_source_location      locus = get_ifc_locus(idc);
+  an_ifc_source_position_hint pos_hint(cache, locus);
 
-  source_position_from_locus(&pos, get_ifc_locus(idc));
   /* Generate the template parameter list. */
-  cache_token(cache, tok_template, &pos);
-  mod->cache_chart(cache, get_ifc_chart(idc), get_ifc_locus(idc), cinfo);
+  cache_token(cache, tok_template);
+  mod->cache_chart(cache, get_ifc_chart(idc), cinfo);
   /* Generate "concept <concept-name>". */
   mod->cache_sentence(cache, get_ifc_head(idc));
   if (cinfo.ignore_definition) {
-    cache_token(cache, tok_semicolon, &pos);
+    cache_token(cache, tok_semicolon);
   } else {
     /* Generate "= <constraint-expression> ;". */
     mod->cache_sentence(cache, get_ifc_body(idc));
@@ -3592,13 +3725,13 @@ TRUE if caching succeeds, FALSE otherwise.
   /* An enumerator declaration is part of an enumeration declaration.
      The type, access, and specifiers should all be handled by the parent
      declaration. */
-  a_source_position pos;
-  an_ifc_expr_index initializer = get_ifc_initializer(ide);
+  an_ifc_source_location      locus = get_ifc_locus(ide);
+  an_ifc_source_position_hint pos_hint(cache, locus);
+  an_ifc_expr_index           initializer = get_ifc_initializer(ide);
 
-  source_position_from_locus(&pos, get_ifc_locus(ide));
-  cache_identifier(cache, get_string_at_offset(get_ifc_name(ide)), &pos);
+  cache_identifier(cache, get_string_at_offset(get_ifc_name(ide)));
   if (!is_null_index(initializer)) {
-    cache_token(cache, tok_assign, &pos);
+    cache_token(cache, tok_assign);
     ide.get_module()->cache_expr(cache, initializer, /*cinfo=*/{});
   }  /* if */
   return TRUE;
@@ -3615,23 +3748,22 @@ the current cache context to help inform decisions about what to cache.  Return
 TRUE if caching succeeds, FALSE otherwise.
 */
 {
-  an_ifc_module          *mod = idp.get_module();
-  an_ifc_source_location locus = get_ifc_locus(idp);
-  an_ifc_type_index      type = get_ifc_type(idp);
-  an_ifc_text_offset     name = get_ifc_name(idp);
-  an_ifc_expr_index      initializer = get_ifc_initializer(idp);
-  an_ifc_parameter_sort  param_sort = get_ifc_sort(idp);
-  a_source_position      pos;
-  a_boolean              need_second_pass = FALSE;
-  a_boolean              defer_initializer_expr = FALSE;
+  an_ifc_module               *mod = idp.get_module();
+  an_ifc_source_location      locus = get_ifc_locus(idp);
+  an_ifc_source_position_hint pos_hint(cache, locus);
+  an_ifc_type_index           type = get_ifc_type(idp);
+  an_ifc_text_offset          name = get_ifc_name(idp);
+  an_ifc_expr_index           initializer = get_ifc_initializer(idp);
+  an_ifc_parameter_sort       param_sort = get_ifc_sort(idp);
+  a_boolean                   need_second_pass = FALSE;
+  a_boolean                   defer_initializer_expr = FALSE;
 
-  source_position_from_locus(&pos, locus);
   switch (param_sort) {
     case ifc_ps_type:
       { a_boolean is_pack = type.sort == ifc_ts_type_expansion;
 
         mod->cache_type_param_introducer(cache, get_ifc_constraint(idp),
-                                         is_pack, &pos);
+                                         is_pack);
       }
       break;
     case ifc_ps_object:
@@ -3643,39 +3775,39 @@ TRUE if caching succeeds, FALSE otherwise.
       defer_initializer_expr = TRUE;
       FALLTHROUGH
     case ifc_ps_non_type:
-      mod->cache_type_first_part(cache, type, locus);
+      mod->cache_type_first_part(cache, type);
       need_second_pass = TRUE;
       break;
     case ifc_ps_template:
       if (is_null_index(type)) {
         /* FIXME: Confirm this is actually what is implied by a NULL
            type. */
-        cache_token(cache, tok_template, &pos);
-        cache_token(cache, tok_lt, &pos);
-        cache_token(cache, tok_typename, &pos);
-        cache_token(cache, tok_ellipsis, &pos);
-        cache_token(cache, tok_gt, &pos);
-        cache_token(cache, tok_typename, &pos);
+        cache_token(cache, tok_template);
+        cache_token(cache, tok_lt);
+        cache_token(cache, tok_typename);
+        cache_token(cache, tok_ellipsis);
+        cache_token(cache, tok_gt);
+        cache_token(cache, tok_typename);
       } else {
-        mod->cache_type(cache, type, locus);
+        mod->cache_type(cache, type);
       }  /* if */
       break;
     default_is_unexpected_str("Unexpected ParameterSort");
   }  /* switch */
   if (name != 0) {
-    cache_identifier(cache, get_string_at_offset(name), &pos);
+    cache_identifier(cache, get_string_at_offset(name));
   }  /* if */
   if (need_second_pass) {
-    mod->cache_type_second_part(cache, type, locus);
+    mod->cache_type_second_part(cache, type);
   }  /* if */
 
   a_boolean is_template_param = param_sort != ifc_ps_object;
   if (!is_null_index(initializer) &&
       ((!cinfo.ignore_default_arguments && !is_template_param) ||
        (!cinfo.ignore_default_template_arguments && is_template_param))) {
-    cache_token(cache, tok_assign, &pos);
+    cache_token(cache, tok_assign);
     if (defer_initializer_expr) {
-      cache_token_with_index(cache, tok_pending_ifc_expr, initializer, &pos);
+      cache_token_with_index(cache, tok_pending_ifc_expr, initializer);
     } else {
       mod->cache_expr(cache, initializer, /*cinfo=*/{});
     }  /* if */
@@ -4046,20 +4178,20 @@ instead.
     an_ifc_stmt_index body = get_ifc_body(itfd);
     /* Cache the mem-initializers if needed. */
     if (!is_null_index(initializers)) {
-      cache_token(cache, tok_colon, &null_source_position);
+      cache_token(cache, tok_colon);
       cache_expr(cache, initializers, /*cinfo=*/{});
     }  /* if */
     /* Cache the function body.  It appears that a single return statement is
        represented directly rather than as a block containing the return
        statement.  We therefore generate the braces here and inhibit them at
        the next statement level by passing the cso_func_body flag. */
-    cache_token(cache, tok_lbrace, &null_source_position);
+    cache_token(cache, tok_lbrace);
     if (!is_null_index(body)) {
       an_ifc_cache_info cache_info;
       cache_info.func_body = TRUE;
       cache_statement(cache, body, cache_info);
     }  /* if */
-    cache_token(cache, tok_rbrace, &null_source_position);
+    cache_token(cache, tok_rbrace);
 #if DEBUG
     if (db_flag_is_set("ms_ifc_token_def")) {
       fprintf(f_debug, "Function body cache:\n");
@@ -6106,12 +6238,11 @@ class_struct_union_case:
               goto invalid;
             }  /* if */
 
-            an_ifc_type_forall      itf = *opt_itf;
-            an_ifc_source_location  locus = get_ifc_locus(ida);
-            a_module_token_cache    cache;
-            a_source_position       pos;
-            a_curr_token_preserver  guard;
-            source_position_from_locus(&pos, locus);
+            an_ifc_type_forall          itf = *opt_itf;
+            a_module_token_cache        cache;
+            an_ifc_source_location      locus = get_ifc_locus(ida);
+            an_ifc_source_position_hint pos_hint(&cache, locus);
+            a_curr_token_preserver      guard;
             /* An alias template; declare a typedef for this case. */
             if (mep->scope == NULL) {
               mep->scope = get_home_scope(ida);
@@ -6121,14 +6252,13 @@ class_struct_union_case:
                                             iek_template, &il_entity, &kind)) {
               break;
             }  /* if */
-            cache_token(&cache, tok_template, &pos);
-            mod->cache_chart(&cache, get_ifc_chart(itf), locus, /*cinfo=*/{});
-            cache_token(&cache, tok_using, &pos);
-            cache_identifier(&cache, get_string_at_offset(get_ifc_name(ida)),
-                             &pos);
-            cache_token(&cache, tok_assign, &pos);
-            mod->cache_type(&cache, get_ifc_subject(itf), locus);
-            cache_token(&cache, tok_semicolon, &pos);
+            cache_token(&cache, tok_template);
+            mod->cache_chart(&cache, get_ifc_chart(itf), /*cinfo=*/{});
+            cache_token(&cache, tok_using);
+            cache_identifier(&cache, get_string_at_offset(get_ifc_name(ida)));
+            cache_token(&cache, tok_assign);
+            mod->cache_type(&cache, get_ifc_subject(itf));
+            cache_token(&cache, tok_semicolon);
             if (!cache.is_valid()) {
               goto invalid;
             }  /* if */
@@ -7139,16 +7269,14 @@ done:
 }  /* traverse_scope_members */
 
 
-static void cache_scope(an_ifc_module                *mod,
-                        a_module_token_cache_ptr     cache,
-                        an_ifc_scope_index           scope,
-                        const an_ifc_source_location &locus)
+static void cache_scope(an_ifc_module            *mod,
+                        a_module_token_cache_ptr cache,
+                        an_ifc_scope_index       scope)
 /*
 For the given IFC scope (i.e., a class or namespace definition), cache tokens
 corresponding to the brace-enclosed declarations of the scope (including the
 braces).  Note that in the case of a class scope this does not include the base
-class specifiers list.  locus is the location of the scope.  A null IFC scope
-is handled by not caching any tokens.
+class specifiers list.  A null IFC scope is handled by not caching any tokens.
 */
 {
   auto cache_scope_member = [mod, cache](const an_ifc_scope_member &ism) {
@@ -7156,12 +7284,9 @@ is handled by not caching any tokens.
   };
 
   if (scope != 0) {
-    a_source_position pos;
-
-    mod->source_position_from_locus(&pos, locus);
-    cache_token(cache, tok_lbrace, &pos);
+    cache_token(cache, tok_lbrace);
     traverse_scope_members(scope, cache_scope_member);
-    cache_token(cache, tok_rbrace, &pos);
+    cache_token(cache, tok_rbrace);
   }  /* if */
 }  /* cache_scope */
 
@@ -7258,34 +7383,33 @@ Complete the definition of the class referred to by mep (if needed).
       a_module_scope_push_kind    scope_push_status = mspk_unattempted;
       a_curr_token_preserver      guard;
       a_ms_mode_parse             tmp_ms_parse(this);
-      an_ifc_source_location      locus;
       a_module_entity_stack_state mep_state(mep);
       a_module_token_cache        cache;
+      an_ifc_source_location      locus = get_ifc_locus(ids);
+      an_ifc_source_position_hint pos_hint(&cache, locus);
 
       push_module_declaration_context(mep->scope, &scope_push_status);
-      locus = get_ifc_locus(ids);
-      source_position_from_locus(&error_position, locus);
+      error_position = *pos_hint.as_pos();
       {
         an_ifc_type_index  base = get_ifc_base(ids);
         if (!is_null_index(base)) {
           /* There are base classes: Cache source code for them. */
-          cache_token(&cache, tok_colon, &error_position);
-          this->cache_type(&cache, base, locus);
+          cache_token(&cache, tok_colon);
+          this->cache_type(&cache, base);
         }  /* if */
         an_ifc_scope_index  class_members = get_ifc_initializer(ids);
         if (class_members != 0) {
-          cache_token(&cache, tok_lbrace, &error_position);
+          cache_token(&cache, tok_lbrace);
           /* Emit ordinary members: */
           auto cache_member = [this, &cache](const an_ifc_scope_member  &ism) {
             an_ifc_decl_index  member_idx = get_ifc_index(ism);
             this->cache_decl(&cache, member_idx, /*cinfo=*/{});
-            cache_token_with_index(&cache, tok_ifc_decl, member_idx,
-                                   &error_position);
+            cache_token_with_index(&cache, tok_ifc_decl, member_idx);
           };
           traverse_scope_members(class_members, cache_member);
-          cache_token(&cache, tok_rbrace, &error_position);
+          cache_token(&cache, tok_rbrace);
         }  /* if */
-        cache_token(&cache, tok_semicolon, &error_position);
+        cache_token(&cache, tok_semicolon);
       }
 #if DEBUG
       if (db_flag_is_set("ms_ifc_token_def")) {
@@ -8911,20 +9035,20 @@ given expression.
           goto invalid;
         }  /* if */
 
-        an_ifc_expr_monad      iem = *opt_iem;
-        an_ifc_source_location locus = get_ifc_locus(iem);
-        a_module_token_cache   cache;
-        a_source_position      pos;
-        a_curr_token_preserver guard;
-        a_type_ptr             type = type_for_type_index(get_ifc_type(iem),
-                                                          /*kind=*/NULL);
-        an_ifc_module          *mod = expr_idx.mod;
+        an_ifc_expr_monad           iem = *opt_iem;
+        an_ifc_source_location      locus = get_ifc_locus(iem);
+        a_module_token_cache        cache;
+        an_ifc_source_position_hint pos_hint(&cache, locus);
+        a_curr_token_preserver      guard;
+        a_type_ptr                  type =
+                                         type_for_type_index(get_ifc_type(iem),
+                                                             /*kind=*/NULL);
+        an_ifc_module               *mod = expr_idx.mod;
 
-        source_position_from_locus(&pos, locus);
-        mod->cache_operator(&cache, get_ifc_assoc(iem), locus);
-        cache_token(&cache, tok_lparen, &pos);
+        mod->cache_operator(&cache, get_ifc_assoc(iem));
+        cache_token(&cache, tok_lparen);
         mod->cache_expr(&cache, get_ifc_argument(iem), /*cinfo=*/{});
-        cache_token(&cache, tok_rparen, &pos);
+        cache_token(&cache, tok_rparen);
         if (cache.is_valid()) {
           a_module_entity_rescan rescan(&cache);
 
@@ -8934,7 +9058,7 @@ given expression.
       }
       break;
     case ifc_es_expr_literal:
-      { a_type_ptr type = param->variant.nontype.constant->type;
+      { a_type_ptr    type = param->variant.nontype.constant->type;
         an_ifc_module *mod = expr_idx.mod;
 
         result = mod->constant_for_expr_index(expr_idx, type);
@@ -10912,9 +11036,14 @@ static void cache_identifier(a_module_token_cache_ptr cache,
                              a_const_char             *name,
                              a_source_position_ptr    pos)
 /*
-Add a tok_identifier for name to cache.  pos is the position of the identifier.
+Add a tok_identifier for name to cache.
+
+If position is passed it will be used as the source position; otherwise the
+position will be inferred (see infer_next_source_position for details about the
+rules of position inference).
 */
 {
+  pos = infer_next_source_position(cache, pos);
   /* FIXME: Eventually the IFC should mature to a point this can be handled in
      the validator during format reading, rather than during token caching and
      (hopefully) without corrections being required.  Until that time, handle
@@ -10963,17 +11092,22 @@ Add a tok_identifier for name to cache.  pos is the position of the identifier.
 static void cache_literal(an_ifc_module            *mod,
                           a_module_token_cache_ptr cache,
                           a_constant_ptr           lit_const,
-                          a_source_position_ptr    pos)
+                          a_source_position_ptr    pos = NULL)
 /*
 Add a tok_literal for lit_const (a literal constant formed from information in
-the given module) to cache.  pos is the position of the literal.  Do not use
-this for boolean literals, string literals, or user-defined literals (see
-cache_bool_literal, cache_string_literal, and cache_ud_literal for those).
+the given module) to cache.  Do not use this for boolean literals, string
+literals, or user-defined literals (see cache_bool_literal,
+cache_string_literal, and cache_ud_literal for those).
+
+If position is passed it will be used as the source position; otherwise the
+position will be inferred (see infer_next_source_position for details about the
+rules of position inference).
 */
 {
   a_type_ptr   lit_type = lit_const->type;
   a_token_kind lit_kind;
 
+  pos = infer_next_source_position(cache, pos);
   if (is_floating_type(lit_type)) {
     lit_kind = tok_float_constant;
 #if FIXED_POINT_ALLOWED
@@ -10987,7 +11121,7 @@ cache_bool_literal, cache_string_literal, and cache_ud_literal for those).
     /* When caching pointer literals, cast to the correct pointer type. */
     if (is_pointer_type(lit_type)) {
       cache_token(cache, tok_lparen, pos);
-      cache_resolved_type_token(cache->as_canonical(), lit_type, pos);
+      cache_resolved_type_token(cache, lit_type, pos);
       cache_token(cache, tok_rparen, pos);
     }  /* if */
     lit_kind = tok_int_constant;
@@ -11008,11 +11142,16 @@ cache_bool_literal, cache_string_literal, and cache_ud_literal for those).
 
 static void cache_bool_literal(a_module_token_cache_ptr cache,
                                a_boolean                value,
-                               a_source_position_ptr    pos)
+                               a_source_position_ptr    pos = NULL)
 /*
 Cache a "true" or "false" token, depending on value.
+
+If position is passed it will be used as the source position; otherwise the
+position will be inferred (see infer_next_source_position for details about the
+rules of position inference).
 */
 {
+  pos = infer_next_source_position(cache, pos);
   cache_token(cache, value ? tok_true : tok_false, pos);
 
   a_cached_token_ptr last_token = cache->get_last_token();
@@ -11025,12 +11164,10 @@ Cache a "true" or "false" token, depending on value.
 static void cache_string_literal(a_module_token_cache_ptr cache,
                                  a_character_kind         kind,
                                  a_const_char             *str,
-                                 a_targ_size_t            length,
-                                 a_source_position_ptr    pos)
+                                 a_targ_size_t            length)
 /*
 Add a tok_string_literal for str with the given length to cache.  kind is the
-type of string literal (e.g., UTF-8, wchar, etc).  pos is the position of the
-literal.
+type of string literal (e.g., UTF-8, wchar, etc).
 */
 {
   a_constant_ptr     cp;
@@ -11044,7 +11181,7 @@ literal.
       prev_string = last_token;
     }  /* if */
   }
-  cache_token(cache, tok_string_literal, pos);
+  cache_token(cache, tok_string_literal);
   {
     a_cached_token_ptr last_token = cache->get_last_token();
 
@@ -11073,11 +11210,14 @@ static void cache_ud_literal(a_module_token_cache_ptr cache,
                              a_const_char             *str,
                              a_targ_size_t            length,
                              a_const_char             *suffix,
-                             a_source_position_ptr    pos)
+                             a_source_position_ptr    pos = NULL)
 /*
 Add a tok_ud_literal for str with the given length and suffix to cache.  kind
-is the type of string literal (e.g., UTF-8, wchar, etc).  pos is the position
-of the literal.
+is the type of string literal (e.g., UTF-8, wchar, etc).
+
+If position is passed it will be used as the source position; otherwise the
+position will be inferred (see infer_next_source_position for details about the
+rules of position inference).
 */
 {
   a_constant_ptr     cp;
@@ -11085,6 +11225,7 @@ of the literal.
   a_targ_size_t      suffix_len = (a_targ_size_t)(strlen(suffix) + 1);
   a_cached_token_ptr ctp;
 
+  pos = infer_next_source_position(cache, pos);
   cache_token(cache, tok_ud_literal, pos);
   ctp = cache->get_last_token();
   ctp->extra_info_kind = (a_token_extra_info_kind)teik_ud_lit;
@@ -11110,14 +11251,12 @@ of the literal.
 
 
 static void cache_aggr_constant(a_module_token_cache_ptr cache,
-                                a_constant_ptr           cp,
-                                a_source_position_ptr    pos)
+                                a_constant_ptr           cp)
 /*
-Add a tok_aggr_constant token with the provided constant to cache.  pos is the
-position of the constant.
+Add a tok_aggr_constant token with the provided constant to cache.
 */
 {
-  cache_token(cache, tok_aggr_constant, pos);
+  cache_token(cache, tok_aggr_constant);
 
   a_cached_token_ptr last_token = cache->get_last_token();
   last_token->extra_info_kind = (a_token_extra_info_kind)teik_constant;
@@ -11149,14 +11288,19 @@ with the initializer expression referred to by init_expr.
 
 static void cache_pragma(a_module_token_cache_ptr cache,
                          a_pragma_kind            kind,
-                         a_source_position_ptr    pos)
+                         a_source_position_ptr    pos = NULL)
 /*
-Add the pragma given by kind to cache.  pos is the position of the pragma.
+Add the pragma given by kind to cache.
+
+If position is passed it will be used as the source position; otherwise the
+position will be inferred (see infer_next_source_position for details about the
+rules of position inference).
 */
 {
   a_pending_pragma_ptr          ppp, *next_pragma;
   a_pragma_kind_description_ptr pkdp;
 
+  pos = infer_next_source_position(cache, pos);
   pkdp = pragma_description_for_pragma_kind[(int)kind];
   ppp = alloc_pending_pragma(pkdp);
   ppp->id_position = *pos;
@@ -11183,15 +11327,14 @@ Add the pragma given by kind to cache.  pos is the position of the pragma.
 
 static void cache_pp_token(a_module_token_cache_ptr cache,
                            a_const_char             *text,
-                           a_targ_size_t            len,
-                           a_source_position_ptr    pos)
+                           a_targ_size_t            len)
 /*
 Add the preprocessor token contained in text with the given length to cache.
 pos is the position of the preprocessor token.
 */
 {
   check_assertion(text != NULL);
-  cache_token(cache, tok_identifier, pos);
+  cache_token(cache, tok_identifier);
 
   a_cached_token_ptr last_token = cache->get_last_token();
   last_token->extra_info_kind =(a_token_extra_info_kind)teik_pp_token;
@@ -11201,11 +11344,9 @@ pos is the position of the preprocessor token.
 
 
 static void cache_access_specifier(a_module_token_cache_ptr cache,
-                                   an_ifc_access_sort       access,
-                                   a_source_position_ptr    pos)
+                                   an_ifc_access_sort       access)
 /*
-Add tokens corresponding to access (if any) to cache.  pos is the position of
-the access specifier.
+Add tokens corresponding to access (if any) to cache.
 */
 {
   switch (access) {
@@ -11213,13 +11354,13 @@ the access specifier.
       /* Nothing to cache. */
       break;
     case ifc_as_private:
-      cache_token(cache, tok_private, pos);
+      cache_token(cache, tok_private);
       break;
     case ifc_as_protected:
-      cache_token(cache, tok_protected, pos);
+      cache_token(cache, tok_protected);
       break;
     case ifc_as_public:
-      cache_token(cache, tok_public, pos);
+      cache_token(cache, tok_public);
       break;
     default_is_unexpected();
   }  /* switch */
@@ -11228,52 +11369,47 @@ the access specifier.
 
 void an_ifc_module::cache_source_directive(
                                        a_module_token_cache_ptr      cache,
-                                       an_ifc_source_directive_sort  directive,
-                                       const an_ifc_source_location  &locus)
+                                       an_ifc_source_directive_sort  directive)
 /*
-Add tokens corresponding to directive to cache.  locus is the location of the
-Sentence containing directive.
+Add tokens corresponding to directive to cache.
 */
 {
-  a_source_position pos;
-
-  source_position_from_locus(&pos, locus);
   switch (directive) {
     case ifc_sds_msvc:
       break;
     case ifc_sds_msvc_pragma_comment:
-      cache_pragma(cache, pk_comment, &pos);
+      cache_pragma(cache, pk_comment);
       break;
     case ifc_sds_msvc_pragma_conform:
-      cache_pragma(cache, pk_conform, &pos);
+      cache_pragma(cache, pk_conform);
       break;
     case ifc_sds_msvc_pragma_ident:
 #if IDENT_DIRECTIVE_AND_PRAGMA
-      cache_pragma(cache, pk_ident_pragma, &pos);
+      cache_pragma(cache, pk_ident_pragma);
 #endif /* IDENT_DIRECTIVE_AND_PRAGMA */
       break;
     case ifc_sds_msvc_pragma_include_alias:
-      cache_pragma(cache, pk_include_alias, &pos);
+      cache_pragma(cache, pk_include_alias);
       break;
     case ifc_sds_msvc_pragma_pack:
-      cache_pragma(cache, pk_pack, &pos);
+      cache_pragma(cache, pk_pack);
       break;
     case ifc_sds_msvc_pragma_pop_macro:
-      cache_pragma(cache, pk_pop_macro, &pos);
+      cache_pragma(cache, pk_pop_macro);
       break;
     case ifc_sds_msvc_pragma_push_macro:
-      cache_pragma(cache, pk_push_macro, &pos);
+      cache_pragma(cache, pk_push_macro);
       break;
     case ifc_sds_msvc_pragma_setlocale:
 #if NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
-      cache_pragma(cache, pk_setlocale, &pos);
+      cache_pragma(cache, pk_setlocale);
 #endif /* NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
       break;
     case ifc_sds_msvc_pragma_start_map_region:
-      cache_pragma(cache, pk_start_map_region, &pos);
+      cache_pragma(cache, pk_start_map_region);
       break;
     case ifc_sds_msvc_pragma_stop_map_region:
-      cache_pragma(cache, pk_stop_map_region, &pos);
+      cache_pragma(cache, pk_stop_map_region);
       break;
     case ifc_sds_msvc_pragma_push:
     case ifc_sds_msvc_pragma_pop:
@@ -11331,16 +11467,11 @@ Sentence containing directive.
 
 void an_ifc_module::cache_source_punctuator(
                                       a_module_token_cache_ptr      cache,
-                                      an_ifc_source_punctuator_sort punctuator,
-                                      const an_ifc_source_location  &locus)
+                                      an_ifc_source_punctuator_sort punctuator)
 /*
-Add tokens corresponding to punctuator to cache.  locus is the location of the
-Sentence containing punctuator.
+Add tokens corresponding to punctuator to cache.
 */
 {
-  a_source_position pos;
-
-  source_position_from_locus(&pos, locus);
   switch (punctuator) {
     case ifc_sps_unknown:
     case ifc_sps_msvc:
@@ -11350,34 +11481,34 @@ Sentence containing punctuator.
       }
       goto invalid;
     case ifc_sps_left_parenthesis:
-      cache_token(cache, tok_lparen, &pos);
+      cache_token(cache, tok_lparen);
       break;
     case ifc_sps_right_parenthesis:
-      cache_token(cache, tok_rparen, &pos);
+      cache_token(cache, tok_rparen);
       break;
     case ifc_sps_left_bracket:
-      cache_token(cache, tok_lbracket, &pos);
+      cache_token(cache, tok_lbracket);
       break;
     case ifc_sps_right_bracket:
-      cache_token(cache, tok_rbracket, &pos);
+      cache_token(cache, tok_rbracket);
       break;
     case ifc_sps_left_brace:
-      cache_token(cache, tok_lbrace, &pos);
+      cache_token(cache, tok_lbrace);
       break;
     case ifc_sps_right_brace:
-      cache_token(cache, tok_rbrace, &pos);
+      cache_token(cache, tok_rbrace);
       break;
     case ifc_sps_colon:
-      cache_token(cache, tok_colon, &pos);
+      cache_token(cache, tok_colon);
       break;
     case ifc_sps_question:
-      cache_token(cache, tok_quest_mark, &pos);
+      cache_token(cache, tok_quest_mark);
       break;
     case ifc_sps_semicolon:
-      cache_token(cache, tok_semicolon, &pos);
+      cache_token(cache, tok_semicolon);
       break;
     case ifc_sps_colon_colon:
-      cache_token(cache, tok_colon_colon, &pos);
+      cache_token(cache, tok_colon_colon);
       break;
     case ifc_sps_msvc_zero_width_space:
       break;
@@ -11386,7 +11517,7 @@ Sentence containing punctuator.
     case ifc_sps_msvc_full_stop:
       break;
     case ifc_sps_msvc_nested_template_start:
-      cache_token(cache, tok_template, &pos);
+      cache_token(cache, tok_template);
       break;
     case ifc_sps_msvc_default_argument_start:
       /* FIXME: Currently unsupported. */
@@ -11413,17 +11544,12 @@ done:;
 
 void an_ifc_module::cache_source_literal(
                                  a_module_token_cache_ptr             cache,
-                                 const an_ifc_source_literal_category &literal,
-                                 const an_ifc_source_location         &locus)
+                                 const an_ifc_source_literal_category &literal)
 /*
 Add tokens corresponding to literal to cache.  index is the index into the IFC
 file for the additional information needed, depending on the kind of literal.
-locus is the location of the Sentence containing literal.
 */
 {
-  a_source_position pos;
-
-  source_position_from_locus(&pos, locus);
   switch (literal.sort) {
     case ifc_sls_unknown:
       { a_string err_msg("Unexpected ", str_for(literal.sort));
@@ -11435,10 +11561,10 @@ locus is the location of the Sentence containing literal.
       cache_expr(cache, literal.variant.scalar, /*cinfo=*/{});
       break;
     case ifc_sls_string:
-      cache_string(cache, literal.variant.string, locus);
+      cache_string(cache, literal.variant.string);
       break;
     case ifc_sls_defined_string:
-      cache_string(cache, literal.variant.defined_string, locus);
+      cache_string(cache, literal.variant.defined_string);
       break;
     case ifc_sls_msvc:
       break;
@@ -11460,7 +11586,7 @@ locus is the location of the Sentence containing literal.
                                                                          == 0);
           tok = tok_pretty_function_name;
         }  /* if */
-        cache_token(cache, tok, &pos);
+        cache_token(cache, tok);
       }
       break;
     case ifc_sls_msvc_string_prefix_macro:
@@ -11481,17 +11607,15 @@ locus is the location of the Sentence containing literal.
                                                                          == 0);
           tok = tok_microsoft_uprefix;
         }  /* if */
-        cache_token(cache, tok, &pos);
+        cache_token(cache, tok);
       }
       break;
     case ifc_sls_msvc_binding:
       { an_ifc_expr_index binding_expr = literal.variant.msvc_binding;
 
-        source_position_from_locus(&pos, locus);
         switch(binding_expr.sort) {
           case ifc_es_expr_named_decl:
-            cache_token_with_index(cache, tok_ifc_entity_ref, binding_expr,
-                                   &pos);
+            cache_token_with_index(cache, tok_ifc_entity_ref, binding_expr);
             break;
           case ifc_es_expr_unresolved_id:
             { Opt<an_ifc_expr_unresolved_id> opt_ieud;
@@ -11502,8 +11626,7 @@ locus is the location of the Sentence containing literal.
               }  /* if */
               cache_identifier(cache,
                                string_from_name_index(get_ifc_name(*opt_ieud),
-                                                      /*loc=*/NULL),
-                               &pos);
+                                                      /*loc=*/NULL));
             }
             break;
           default:
@@ -11517,7 +11640,7 @@ locus is the location of the Sentence containing literal.
       }
       break;
     case ifc_sls_msvc_resolved_type:
-      cache_type(cache, literal.variant.msvc_resolved_type, locus);
+      cache_type(cache, literal.variant.msvc_resolved_type);
       break;
     case ifc_sls_msvc_defined_constant:
       /* FIXME: Is this correct? */
@@ -11525,9 +11648,9 @@ locus is the location of the Sentence containing literal.
       break;
     case ifc_sls_msvc_cast_target_type:
       /* FIXME: Is this correct? */
-      cache_token(cache, tok_lparen, &pos);
-      cache_type(cache, literal.variant.msvc_cast_target_type, locus);
-      cache_token(cache, tok_rparen, &pos);
+      cache_token(cache, tok_lparen);
+      cache_type(cache, literal.variant.msvc_cast_target_type);
+      cache_token(cache, tok_rparen);
       break;
     default_is_unexpected_str("Unknown SourceLiteral");
   }  /* switch */
@@ -11540,16 +11663,11 @@ done:;
 
 
 void an_ifc_module::cache_source_operator(a_module_token_cache_ptr     cache,
-                                          an_ifc_source_operator_sort  op,
-                                          const an_ifc_source_location &locus)
+                                          an_ifc_source_operator_sort  op)
 /*
-Add tokens corresponding to op to cache.  locus is the location of the Sentence
-containing op.
+Add tokens corresponding to op to cache.
 */
 {
-  a_source_position pos;
-
-  source_position_from_locus(&pos, locus);
   switch (op) {
     case ifc_sos_unknown:
       { a_string err_msg("Unexpected ", str_for(op));
@@ -11558,124 +11676,124 @@ containing op.
       }
       goto invalid;
     case ifc_sos_equal:
-      cache_token(cache, tok_assign, &pos);
+      cache_token(cache, tok_assign);
       break;
     case ifc_sos_comma:
-      cache_token(cache, tok_comma, &pos);
+      cache_token(cache, tok_comma);
       break;
     case ifc_sos_exclaim:
-      cache_token(cache, tok_not, &pos);
+      cache_token(cache, tok_not);
       break;
     case ifc_sos_plus:
-      cache_token(cache, tok_plus, &pos);
+      cache_token(cache, tok_plus);
       break;
     case ifc_sos_dash:
-      cache_token(cache, tok_minus, &pos);
+      cache_token(cache, tok_minus);
       break;
     case ifc_sos_star:
-      cache_token(cache, tok_star, &pos);
+      cache_token(cache, tok_star);
       break;
     case ifc_sos_slash:
-      cache_token(cache, tok_divide, &pos);
+      cache_token(cache, tok_divide);
       break;
     case ifc_sos_percent:
-      cache_token(cache, tok_remainder, &pos);
+      cache_token(cache, tok_remainder);
       break;
     case ifc_sos_left_chevron:
-      cache_token(cache, tok_shift_left, &pos);
+      cache_token(cache, tok_shift_left);
       break;
     case ifc_sos_right_chevron:
-      cache_token(cache, tok_shift_right, &pos);
+      cache_token(cache, tok_shift_right);
       break;
     case ifc_sos_tilde:
-      cache_token(cache, tok_compl, &pos);
+      cache_token(cache, tok_compl);
       break;
     case ifc_sos_caret:
-      cache_token(cache, tok_excl_or, &pos);
+      cache_token(cache, tok_excl_or);
       break;
     case ifc_sos_bar:
-      cache_token(cache, tok_or, &pos);
+      cache_token(cache, tok_or);
       break;
     case ifc_sos_ampersand:
-      cache_token(cache, tok_ampersand, &pos);
+      cache_token(cache, tok_ampersand);
       break;
     case ifc_sos_plus_plus:
-      cache_token(cache, tok_plus_plus, &pos);
+      cache_token(cache, tok_plus_plus);
       break;
     case ifc_sos_dash_dash:
-      cache_token(cache, tok_minus_minus, &pos);
+      cache_token(cache, tok_minus_minus);
       break;
     case ifc_sos_less:
-      cache_token(cache, tok_lt, &pos);
+      cache_token(cache, tok_lt);
       break;
     case ifc_sos_less_equal:
-      cache_token(cache, tok_le, &pos);
+      cache_token(cache, tok_le);
       break;
     case ifc_sos_greater:
-      cache_token(cache, tok_gt, &pos);
+      cache_token(cache, tok_gt);
       break;
     case ifc_sos_greater_equal:
-      cache_token(cache, tok_ge, &pos);
+      cache_token(cache, tok_ge);
       break;
     case ifc_sos_equal_equal:
-      cache_token(cache, tok_eq, &pos);
+      cache_token(cache, tok_eq);
       break;
     case ifc_sos_exclaim_equal:
-      cache_token(cache, tok_ne, &pos);
+      cache_token(cache, tok_ne);
       break;
     case ifc_sos_diamond:
-      cache_token(cache, tok_spaceship, &pos);
+      cache_token(cache, tok_spaceship);
       break;
     case ifc_sos_plus_equal:
-      cache_token(cache, tok_plus_assign, &pos);
+      cache_token(cache, tok_plus_assign);
       break;
     case ifc_sos_dash_equal:
-      cache_token(cache, tok_minus_assign, &pos);
+      cache_token(cache, tok_minus_assign);
       break;
     case ifc_sos_star_equal:
-      cache_token(cache, tok_times_assign, &pos);
+      cache_token(cache, tok_times_assign);
       break;
     case ifc_sos_slash_equal:
-      cache_token(cache, tok_divide_assign, &pos);
+      cache_token(cache, tok_divide_assign);
       break;
     case ifc_sos_percent_equal:
-      cache_token(cache, tok_remainder_assign, &pos);
+      cache_token(cache, tok_remainder_assign);
       break;
     case ifc_sos_ampersand_equal:
-      cache_token(cache, tok_and_assign, &pos);
+      cache_token(cache, tok_and_assign);
       break;
     case ifc_sos_bar_equal:
-      cache_token(cache, tok_or_assign, &pos);
+      cache_token(cache, tok_or_assign);
       break;
     case ifc_sos_caret_equal:
-      cache_token(cache, tok_excl_or_assign, &pos);
+      cache_token(cache, tok_excl_or_assign);
       break;
     case ifc_sos_left_chevron_equal:
-      cache_token(cache, tok_shift_left_assign, &pos);
+      cache_token(cache, tok_shift_left_assign);
       break;
     case ifc_sos_right_chevron_equal:
-      cache_token(cache, tok_shift_right_assign, &pos);
+      cache_token(cache, tok_shift_right_assign);
       break;
     case ifc_sos_ampersand_ampersand:
-      cache_token(cache, tok_and_and, &pos);
+      cache_token(cache, tok_and_and);
       break;
     case ifc_sos_bar_bar:
-      cache_token(cache, tok_or_or, &pos);
+      cache_token(cache, tok_or_or);
       break;
     case ifc_sos_ellipsis:
-      cache_token(cache, tok_ellipsis, &pos);
+      cache_token(cache, tok_ellipsis);
       break;
     case ifc_sos_dot:
-      cache_token(cache, tok_period, &pos);
+      cache_token(cache, tok_period);
       break;
     case ifc_sos_arrow:
-      cache_token(cache, tok_arrow, &pos);
+      cache_token(cache, tok_arrow);
       break;
     case ifc_sos_dot_star:
-      cache_token(cache, tok_period_star, &pos);
+      cache_token(cache, tok_period_star);
       break;
     case ifc_sos_arrow_star:
-      cache_token(cache, tok_arrow_star, &pos);
+      cache_token(cache, tok_arrow_star);
       break;
     default_is_unexpected_str("Unknown SourceOperator");
   }  /* switch */
@@ -11687,17 +11805,12 @@ done:;
 }  /* cache_source_operator */
 
 
-void an_ifc_module::cache_source_keyword(a_module_token_cache_ptr     cache,
-                                         an_ifc_source_keyword_sort   keyword,
-                                         const an_ifc_source_location &locus)
+void an_ifc_module::cache_source_keyword(a_module_token_cache_ptr   cache,
+                                         an_ifc_source_keyword_sort keyword)
 /*
-Add tokens corresponding to keyword to cache.  locus is the location of the
-Sentence containing keyword.
+Add tokens corresponding to keyword to cache.
 */
 {
-  a_source_position pos;
-
-  source_position_from_locus(&pos, locus);
   switch (keyword) {
     case ifc_sks_unknown:
     case ifc_sks_msvc:
@@ -11707,115 +11820,115 @@ Sentence containing keyword.
       }
       goto invalid;
     case ifc_sks_alignas:
-      cache_token(cache, tok_alignas, &pos);
+      cache_token(cache, tok_alignas);
       break;
     case ifc_sks_alignof:
-      cache_token(cache, tok_alignof, &pos);
+      cache_token(cache, tok_alignof);
       break;
     case ifc_sks_asm:
-      cache_token(cache, tok_asm, &pos);
+      cache_token(cache, tok_asm);
       break;
     case ifc_sks_auto:
-      cache_token(cache, tok_auto, &pos);
+      cache_token(cache, tok_auto);
       break;
     case ifc_sks_bool:
-      cache_token(cache, tok_bool, &pos);
+      cache_token(cache, tok_bool);
       break;
     case ifc_sks_break:
-      cache_token(cache, tok_break, &pos);
+      cache_token(cache, tok_break);
       break;
     case ifc_sks_case:
-      cache_token(cache, tok_case, &pos);
+      cache_token(cache, tok_case);
       break;
     case ifc_sks_catch:
-      cache_token(cache, tok_catch, &pos);
+      cache_token(cache, tok_catch);
       break;
     case ifc_sks_char:
-      cache_token(cache, tok_char, &pos);
+      cache_token(cache, tok_char);
       break;
     case ifc_sks_char8_t:
-      cache_token(cache, tok_char8_t, &pos);
+      cache_token(cache, tok_char8_t);
       break;
     case ifc_sks_char16_t:
-      cache_token(cache, tok_char16_t, &pos);
+      cache_token(cache, tok_char16_t);
       break;
     case ifc_sks_char32_t:
-      cache_token(cache, tok_char32_t, &pos);
+      cache_token(cache, tok_char32_t);
       break;
     case ifc_sks_class:
-      cache_token(cache, tok_class, &pos);
+      cache_token(cache, tok_class);
       break;
     case ifc_sks_concept:
-      cache_token(cache, tok_concept, &pos);
+      cache_token(cache, tok_concept);
       break;
     case ifc_sks_const:
-      cache_token(cache, tok_const, &pos);
+      cache_token(cache, tok_const);
       break;
     case ifc_sks_consteval:
-      cache_token(cache, tok_consteval, &pos);
+      cache_token(cache, tok_consteval);
       break;
     case ifc_sks_constexpr:
-      cache_token(cache, tok_constexpr, &pos);
+      cache_token(cache, tok_constexpr);
       break;
     case ifc_sks_constinit:
-      cache_token(cache, tok_constinit, &pos);
+      cache_token(cache, tok_constinit);
       break;
     case ifc_sks_const_cast:
-      cache_token(cache, tok_const_cast, &pos);
+      cache_token(cache, tok_const_cast);
       break;
     case ifc_sks_continue:
-      cache_token(cache, tok_continue, &pos);
+      cache_token(cache, tok_continue);
       break;
     case ifc_sks_co_await:
-      cache_token(cache, tok_coroutine_await, &pos);
+      cache_token(cache, tok_coroutine_await);
       break;
     case ifc_sks_co_return:
-      cache_token(cache, tok_coroutine_return, &pos);
+      cache_token(cache, tok_coroutine_return);
       break;
     case ifc_sks_co_yield:
-      cache_token(cache, tok_coroutine_yield, &pos);
+      cache_token(cache, tok_coroutine_yield);
       break;
     case ifc_sks_decltype:
-      cache_token(cache, tok_decltype, &pos);
+      cache_token(cache, tok_decltype);
       break;
     case ifc_sks_default:
-      cache_token(cache, tok_default, &pos);
+      cache_token(cache, tok_default);
       break;
     case ifc_sks_delete:
-      cache_token(cache, tok_delete, &pos);
+      cache_token(cache, tok_delete);
       break;
     case ifc_sks_do:
-      cache_token(cache, tok_do, &pos);
+      cache_token(cache, tok_do);
       break;
     case ifc_sks_double:
-      cache_token(cache, tok_double, &pos);
+      cache_token(cache, tok_double);
       break;
     case ifc_sks_dynamic_cast:
-      cache_token(cache, tok_dynamic_cast, &pos);
+      cache_token(cache, tok_dynamic_cast);
       break;
     case ifc_sks_else:
-      cache_token(cache, tok_else, &pos);
+      cache_token(cache, tok_else);
       break;
     case ifc_sks_enum:
-      cache_token(cache, tok_enum, &pos);
+      cache_token(cache, tok_enum);
       break;
     case ifc_sks_explicit:
-      cache_token(cache, tok_explicit, &pos);
+      cache_token(cache, tok_explicit);
       break;
     case ifc_sks_export:
-      cache_token(cache, tok_export, &pos);
+      cache_token(cache, tok_export);
       break;
     case ifc_sks_extern:
-      cache_token(cache, tok_extern, &pos);
+      cache_token(cache, tok_extern);
       break;
     case ifc_sks_false:
-      cache_bool_literal(cache, FALSE, &pos);
+      cache_bool_literal(cache, FALSE);
       break;
     case ifc_sks_float:
-      cache_token(cache, tok_float, &pos);
+      cache_token(cache, tok_float);
       break;
     case ifc_sks_for:
-      cache_token(cache, tok_for, &pos);
+      cache_token(cache, tok_for);
       break;
     case ifc_sks_friend:
       if (this->suppress_friend_token) {
@@ -11823,44 +11936,44 @@ Sentence containing keyword.
            traits and the keyword will presumably already have been emitted
            when the trait is processed as part of the class definition). */
       } else {
-        cache_token(cache, tok_friend, &pos);
+        cache_token(cache, tok_friend);
       }  /* if */
       break;
     case ifc_sks_generic:
-      cache_token(cache, tok_c11_generic, &pos);
+      cache_token(cache, tok_c11_generic);
       break;
     case ifc_sks_goto:
-      cache_token(cache, tok_goto, &pos);
+      cache_token(cache, tok_goto);
       break;
     case ifc_sks_if:
-      cache_token(cache, tok_if, &pos);
+      cache_token(cache, tok_if);
       break;
     case ifc_sks_inline:
-      cache_token(cache, tok_inline, &pos);
+      cache_token(cache, tok_inline);
       break;
     case ifc_sks_int:
-      cache_token(cache, tok_int, &pos);
+      cache_token(cache, tok_int);
       break;
     case ifc_sks_long:
-      cache_token(cache, tok_long, &pos);
+      cache_token(cache, tok_long);
       break;
     case ifc_sks_mutable:
-      cache_token(cache, tok_mutable, &pos);
+      cache_token(cache, tok_mutable);
       break;
     case ifc_sks_namespace:
-      cache_token(cache, tok_namespace, &pos);
+      cache_token(cache, tok_namespace);
       break;
     case ifc_sks_new:
-      cache_token(cache, tok_new, &pos);
+      cache_token(cache, tok_new);
       break;
     case ifc_sks_noexcept:
-      cache_token(cache, tok_noexcept, &pos);
+      cache_token(cache, tok_noexcept);
       break;
     case ifc_sks_nullptr:
-      cache_token(cache, tok_nullptr, &pos);
+      cache_token(cache, tok_nullptr);
       break;
     case ifc_sks_operator:
-      cache_token(cache, tok_operator, &pos);
+      cache_token(cache, tok_operator);
       break;
     case ifc_sks_pragma:
       /* FIXME: Currently unsupported. */
@@ -11868,124 +11981,124 @@ Sentence containing keyword.
                                         &error_position);
       goto invalid;
     case ifc_sks_private:
-      cache_token(cache, tok_private, &pos);
+      cache_token(cache, tok_private);
       break;
     case ifc_sks_protected:
-      cache_token(cache, tok_protected, &pos);
+      cache_token(cache, tok_protected);
       break;
     case ifc_sks_public:
-      cache_token(cache, tok_public, &pos);
+      cache_token(cache, tok_public);
       break;
     case ifc_sks_register:
-      cache_token(cache, tok_register, &pos);
+      cache_token(cache, tok_register);
       break;
     case ifc_sks_reinterpret_cast:
-      cache_token(cache, tok_reinterpret_cast, &pos);
+      cache_token(cache, tok_reinterpret_cast);
       break;
     case ifc_sks_requires:
-      cache_token(cache, tok_requires, &pos);
+      cache_token(cache, tok_requires);
       break;
     case ifc_sks_restrict:
-      cache_token(cache, tok_restrict, &pos);
+      cache_token(cache, tok_restrict);
       break;
     case ifc_sks_return:
-      cache_token(cache, tok_return, &pos);
+      cache_token(cache, tok_return);
       break;
     case ifc_sks_short:
-      cache_token(cache, tok_short, &pos);
+      cache_token(cache, tok_short);
       break;
     case ifc_sks_signed:
-      cache_token(cache, tok_signed, &pos);
+      cache_token(cache, tok_signed);
       break;
     case ifc_sks_sizeof:
-      cache_token(cache, tok_sizeof, &pos);
+      cache_token(cache, tok_sizeof);
       break;
     case ifc_sks_static:
-      cache_token(cache, tok_static, &pos);
+      cache_token(cache, tok_static);
       break;
     case ifc_sks_static_assert:
-      cache_token(cache, tok_static_assert, &pos);
+      cache_token(cache, tok_static_assert);
       break;
     case ifc_sks_static_cast:
-      cache_token(cache, tok_static_cast, &pos);
+      cache_token(cache, tok_static_cast);
       break;
     case ifc_sks_struct:
-      cache_token(cache, tok_struct, &pos);
+      cache_token(cache, tok_struct);
       break;
     case ifc_sks_switch:
-      cache_token(cache, tok_switch, &pos);
+      cache_token(cache, tok_switch);
       break;
     case ifc_sks_template:
-      cache_token(cache, tok_template, &pos);
+      cache_token(cache, tok_template);
       break;
     case ifc_sks_this:
-      cache_token(cache, tok_this, &pos);
+      cache_token(cache, tok_this);
       break;
     case ifc_sks_thread_local:
-      cache_token(cache, tok_thread_local, &pos);
+      cache_token(cache, tok_thread_local);
       break;
     case ifc_sks_throw:
-      cache_token(cache, tok_throw, &pos);
+      cache_token(cache, tok_throw);
       break;
     case ifc_sks_true:
-      cache_bool_literal(cache, TRUE, &pos);
+      cache_bool_literal(cache, TRUE);
       break;
     case ifc_sks_try:
-      cache_token(cache, tok_try, &pos);
+      cache_token(cache, tok_try);
       break;
     case ifc_sks_typedef:
-      cache_token(cache, tok_typedef, &pos);
+      cache_token(cache, tok_typedef);
       break;
     case ifc_sks_typeid:
-      cache_token(cache, tok_typeid, &pos);
+      cache_token(cache, tok_typeid);
       break;
     case ifc_sks_typename:
-      cache_token(cache, tok_typename, &pos);
+      cache_token(cache, tok_typename);
       break;
     case ifc_sks_union:
-      cache_token(cache, tok_union, &pos);
+      cache_token(cache, tok_union);
       break;
     case ifc_sks_unsigned:
-      cache_token(cache, tok_unsigned, &pos);
+      cache_token(cache, tok_unsigned);
       break;
     case ifc_sks_using:
-      cache_token(cache, tok_using, &pos);
+      cache_token(cache, tok_using);
       break;
     case ifc_sks_virtual:
-      cache_token(cache, tok_virtual, &pos);
+      cache_token(cache, tok_virtual);
       break;
     case ifc_sks_void:
-      cache_token(cache, tok_void, &pos);
+      cache_token(cache, tok_void);
       break;
     case ifc_sks_volatile:
-      cache_token(cache, tok_volatile, &pos);
+      cache_token(cache, tok_volatile);
       break;
     case ifc_sks_wchar_t:
-      cache_token(cache, tok_wchar_t, &pos);
+      cache_token(cache, tok_wchar_t);
       break;
     case ifc_sks_while:
-      cache_token(cache, tok_while, &pos);
+      cache_token(cache, tok_while);
       break;
     case ifc_sks_msvc_asm:
-      cache_token(cache, tok_microsoft_asm, &pos);
+      cache_token(cache, tok_microsoft_asm);
       break;
     case ifc_sks_msvc_assume:
-      cache_token(cache, tok_assume, &pos);
+      cache_token(cache, tok_assume);
       break;
     case ifc_sks_msvc_alignof:
-      cache_token(cache, tok_alignof, &pos);
+      cache_token(cache, tok_alignof);
       break;
     case ifc_sks_msvc_based:
-      cache_token(cache, tok_based, &pos);
+      cache_token(cache, tok_based);
       break;
     case ifc_sks_msvc_cdecl:
-      cache_token(cache, tok_cdecl, &pos);
+      cache_token(cache, tok_cdecl);
       break;
     case ifc_sks_msvc_clrcall:
-      cache_token(cache, tok_clrcall, &pos);
+      cache_token(cache, tok_clrcall);
       break;
     case ifc_sks_msvc_declspec:
-      cache_token(cache, tok_declspec, &pos);
+      cache_token(cache, tok_declspec);
       break;
     case ifc_sks_msvc_eabi:
       /* FIXME: Currently unsupported. */
@@ -11993,19 +12106,19 @@ Sentence containing keyword.
                                         &error_position);
       goto invalid;
     case ifc_sks_msvc_event:
-      cache_token(cache, tok_event, &pos);
+      cache_token(cache, tok_event);
       break;
     case ifc_sks_msvc_seh_except:
-      cache_token(cache, tok_except, &pos);
+      cache_token(cache, tok_except);
       break;
     case ifc_sks_msvc_fastcall:
-      cache_token(cache, tok_fastcall, &pos);
+      cache_token(cache, tok_fastcall);
       break;
     case ifc_sks_msvc_seh_finally:
-      cache_token(cache, tok_finally, &pos);
+      cache_token(cache, tok_finally);
       break;
     case ifc_sks_msvc_forceinline:
-      cache_token(cache, tok_forceinline, &pos);
+      cache_token(cache, tok_forceinline);
       break;
     case ifc_sks_msvc_hook:
       /* FIXME: Currently unsupported. */
@@ -12013,36 +12126,36 @@ Sentence containing keyword.
                                         &error_position);
       goto invalid;
     case ifc_sks_msvc_identifier:
-      cache_token(cache, tok_microsoft_identifier, &pos);
+      cache_token(cache, tok_microsoft_identifier);
       break;
     case ifc_sks_msvc_if_exists:
-      cache_token(cache, tok_if_exists, &pos);
+      cache_token(cache, tok_if_exists);
       break;
     case ifc_sks_msvc_if_not_exists:
-      cache_token(cache, tok_if_not_exists, &pos);
+      cache_token(cache, tok_if_not_exists);
       break;
     case ifc_sks_msvc_int8:
-      cache_token(cache, tok_int8, &pos);
+      cache_token(cache, tok_int8);
       break;
     case ifc_sks_msvc_int16:
-      cache_token(cache, tok_int16, &pos);
+      cache_token(cache, tok_int16);
       break;
     case ifc_sks_msvc_int32:
-      cache_token(cache, tok_int32, &pos);
+      cache_token(cache, tok_int32);
       break;
     case ifc_sks_msvc_int64:
-      cache_token(cache, tok_int64, &pos);
+      cache_token(cache, tok_int64);
       break;
     case ifc_sks_msvc_int128:
 #if INT128_EXTENSIONS_ALLOWED
-      cache_token(cache, tok_int128, &pos);
+      cache_token(cache, tok_int128);
 #endif /* INT128_EXTENSIONS_ALLOWED */
       break;
     case ifc_sks_msvc_interface:
-      cache_token(cache, tok_interface, &pos);
+      cache_token(cache, tok_interface);
       break;
     case ifc_sks_msvc_leave:
-      cache_token(cache, tok_leave, &pos);
+      cache_token(cache, tok_leave);
       break;
     case ifc_sks_msvc_multiple_inheritance:
       /* FIXME: Currently unsupported. */
@@ -12052,7 +12165,7 @@ Sentence containing keyword.
                                       &error_position);
       goto invalid;
     case ifc_sks_msvc_nullptr:
-      cache_token(cache, tok_nullptr, &pos);
+      cache_token(cache, tok_nullptr);
       break;
     case ifc_sks_msvc_novtordisp:
       /* FIXME: Currently unsupported. */
@@ -12065,13 +12178,13 @@ Sentence containing keyword.
                                         &error_position);
       goto invalid;
     case ifc_sks_msvc_ptr32:
-      cache_token(cache, tok_microsoft_ptr32, &pos);
+      cache_token(cache, tok_microsoft_ptr32);
       break;
     case ifc_sks_msvc_ptr64:
-      cache_token(cache, tok_microsoft_ptr64, &pos);
+      cache_token(cache, tok_microsoft_ptr64);
       break;
     case ifc_sks_msvc_restrict:
-      cache_token(cache, tok_restrict, &pos);
+      cache_token(cache, tok_restrict);
       break;
     case ifc_sks_msvc_single_inheritance:
       /* FIXME: Currently unsupported. */
@@ -12080,28 +12193,28 @@ Sentence containing keyword.
                                         &error_position);
       goto invalid;
     case ifc_sks_msvc_sptr:
-      cache_token(cache, tok_microsoft_sptr, &pos);
+      cache_token(cache, tok_microsoft_sptr);
       break;
     case ifc_sks_msvc_stdcall:
-      cache_token(cache, tok_stdcall, &pos);
+      cache_token(cache, tok_stdcall);
       break;
     case ifc_sks_msvc_super:
-      cache_token(cache, tok_super, &pos);
+      cache_token(cache, tok_super);
       break;
     case ifc_sks_msvc_thiscall:
-      cache_token(cache, tok_thiscall, &pos);
+      cache_token(cache, tok_thiscall);
       break;
     case ifc_sks_msvc_seh_try:
-      cache_token(cache, tok_microsoft_try, &pos);
+      cache_token(cache, tok_microsoft_try);
       break;
     case ifc_sks_msvc_uptr:
-      cache_token(cache, tok_microsoft_uptr, &pos);
+      cache_token(cache, tok_microsoft_uptr);
       break;
     case ifc_sks_msvc_uuidof:
-      cache_token(cache, tok_uuidof, &pos);
+      cache_token(cache, tok_uuidof);
       break;
     case ifc_sks_msvc_unaligned:
-      cache_token(cache, tok_unaligned, &pos);
+      cache_token(cache, tok_unaligned);
       break;
     case ifc_sks_msvc_unhook:
       /* FIXME: Currently unsupported. */
@@ -12109,7 +12222,7 @@ Sentence containing keyword.
                                         &error_position);
       goto invalid;
     case ifc_sks_msvc_vectorcall:
-      cache_token(cache, tok_vectorcall, &pos);
+      cache_token(cache, tok_vectorcall);
       break;
     case ifc_sks_msvc_virtual_inheritance:
       /* FIXME: Currently unsupported. */
@@ -12119,28 +12232,28 @@ Sentence containing keyword.
                                        &error_position);
       goto invalid;
     case ifc_sks_msvc_w64:
-      cache_token(cache, tok_microsoft_w64, &pos);
+      cache_token(cache, tok_microsoft_w64);
       break;
     case ifc_sks_msvc_is_class:
-      cache_token(cache, tok_is_class, &pos);
+      cache_token(cache, tok_is_class);
       break;
     case ifc_sks_msvc_is_union:
-      cache_token(cache, tok_is_union, &pos);
+      cache_token(cache, tok_is_union);
       break;
     case ifc_sks_msvc_is_enum:
-      cache_token(cache, tok_is_enum, &pos);
+      cache_token(cache, tok_is_enum);
       break;
     case ifc_sks_msvc_is_polymorphic:
-      cache_token(cache, tok_is_polymorphic, &pos);
+      cache_token(cache, tok_is_polymorphic);
       break;
     case ifc_sks_msvc_is_empty:
-      cache_token(cache, tok_is_empty, &pos);
+      cache_token(cache, tok_is_empty);
       break;
     case ifc_sks_msvc_has_trivial_constructor:
-      cache_token(cache, tok_has_trivial_constructor, &pos);
+      cache_token(cache, tok_has_trivial_constructor);
       break;
     case ifc_sks_msvc_is_trivially_constructible:
-      cache_token(cache, tok_is_trivially_constructible, &pos);
+      cache_token(cache, tok_is_trivially_constructible);
       break;
     case ifc_sks_msvc_is_trivially_copy_constructible:
       /* FIXME: Currently unsupported. */
@@ -12150,16 +12263,16 @@ Sentence containing keyword.
                              &error_position);
       goto invalid;
     case ifc_sks_msvc_is_trivially_copy_assignable:
-      cache_token(cache, tok_is_trivially_copy_assignable, &pos);
+      cache_token(cache, tok_is_trivially_copy_assignable);
       break;
     case ifc_sks_msvc_is_trivially_destructible:
-      cache_token(cache, tok_is_trivially_destructible, &pos);
+      cache_token(cache, tok_is_trivially_destructible);
       break;
     case ifc_sks_msvc_has_virtual_destructor:
-      cache_token(cache, tok_has_virtual_destructor, &pos);
+      cache_token(cache, tok_has_virtual_destructor);
       break;
     case ifc_sks_msvc_is_nothrow_constructible:
-      cache_token(cache, tok_is_nothrow_constructible, &pos);
+      cache_token(cache, tok_is_nothrow_constructible);
       break;
     case ifc_sks_msvc_is_nothrow_copy_constructible:
       /* FIXME: Currently unsupported. */
@@ -12176,28 +12289,28 @@ Sentence containing keyword.
                                   &error_position);
       goto invalid;
     case ifc_sks_msvc_is_pod:
-      cache_token(cache, tok_is_pod, &pos);
+      cache_token(cache, tok_is_pod);
       break;
     case ifc_sks_msvc_is_abstract:
-      cache_token(cache, tok_is_abstract, &pos);
+      cache_token(cache, tok_is_abstract);
       break;
     case ifc_sks_msvc_is_base_of:
-      cache_token(cache, tok_is_base_of, &pos);
+      cache_token(cache, tok_is_base_of);
       break;
     case ifc_sks_msvc_is_convertibleto:
-      cache_token(cache, tok_is_convertible_to, &pos);
+      cache_token(cache, tok_is_convertible_to);
       break;
     case ifc_sks_msvc_is_trivial:
-      cache_token(cache, tok_is_trivial, &pos);
+      cache_token(cache, tok_is_trivial);
       break;
     case ifc_sks_msvc_is_trivially_copyable:
-      cache_token(cache, tok_is_trivially_copyable, &pos);
+      cache_token(cache, tok_is_trivially_copyable);
       break;
     case ifc_sks_msvc_is_standard_layout:
-      cache_token(cache, tok_is_standard_layout, &pos);
+      cache_token(cache, tok_is_standard_layout);
       break;
     case ifc_sks_msvc_is_literal_type:
-      cache_token(cache, tok_is_literal_type, &pos);
+      cache_token(cache, tok_is_literal_type);
       break;
     case ifc_sks_msvc_is_trivially_move_constructible:
       /* FIXME: Currently unsupported. */
@@ -12207,7 +12320,7 @@ Sentence containing keyword.
                              &error_position);
       goto invalid;
     case ifc_sks_msvc_has_trivial_move_assign:
-      cache_token(cache, tok_has_trivial_move_assign, &pos);
+      cache_token(cache, tok_has_trivial_move_assign);
       break;
     case ifc_sks_msvc_is_trivially_move_assignable:
       /* FIXME: Currently unsupported. */
@@ -12224,98 +12337,98 @@ Sentence containing keyword.
                                   &error_position);
       goto invalid;
     case ifc_sks_msvc_is_constructible:
-      cache_token(cache, tok_is_constructible, &pos);
+      cache_token(cache, tok_is_constructible);
       break;
     case ifc_sks_msvc_underlying_type:
-      cache_token(cache, tok_underlying_type, &pos);
+      cache_token(cache, tok_underlying_type);
       break;
     case ifc_sks_msvc_is_trivially_assignable:
-      cache_token(cache, tok_is_trivially_assignable, &pos);
+      cache_token(cache, tok_is_trivially_assignable);
       break;
     case ifc_sks_msvc_is_nothrow_assignable:
-      cache_token(cache, tok_is_nothrow_assignable, &pos);
+      cache_token(cache, tok_is_nothrow_assignable);
       break;
     case ifc_sks_msvc_is_destructible:
-      cache_token(cache, tok_is_destructible, &pos);
+      cache_token(cache, tok_is_destructible);
       break;
     case ifc_sks_msvc_is_nothrow_destructible:
-      cache_token(cache, tok_is_nothrow_destructible, &pos);
+      cache_token(cache, tok_is_nothrow_destructible);
       break;
     case ifc_sks_msvc_is_assignable:
-      cache_token(cache, tok_is_assignable, &pos);
+      cache_token(cache, tok_is_assignable);
       break;
     case ifc_sks_msvc_is_assignable_no_check:
-      cache_token(cache, tok_is_assignable_no_precondition_check, &pos);
+      cache_token(cache, tok_is_assignable_no_precondition_check);
       break;
     case ifc_sks_msvc_has_unique_object_representations:
-      cache_token(cache, tok_has_unique_object_representations, &pos);
+      cache_token(cache, tok_has_unique_object_representations);
       break;
     case ifc_sks_msvc_is_aggregate:
-      cache_token(cache, tok_is_aggregate, &pos);
+      cache_token(cache, tok_is_aggregate);
       break;
     case ifc_sks_msvc_builtin_address_of:
-      cache_token(cache, tok_builtin_addressof, &pos);
+      cache_token(cache, tok_builtin_addressof);
       break;
     case ifc_sks_msvc_builtin_offset_of:
-      cache_token(cache, tok_builtin_offsetof, &pos);
+      cache_token(cache, tok_builtin_offsetof);
       break;
     case ifc_sks_msvc_builtin_bit_cast:
-      cache_token(cache, tok_builtin_bit_cast, &pos);
+      cache_token(cache, tok_builtin_bit_cast);
       break;
     case ifc_sks_msvc_builtin_is_layout_compatible:
-      cache_token(cache, tok_is_layout_compatible, &pos);
+      cache_token(cache, tok_is_layout_compatible);
       break;
     case ifc_sks_msvc_builtin_is_pointer_interconvertible_base_of:
-      cache_token(cache, tok_is_pointer_interconvertible_base_of, &pos);
+      cache_token(cache, tok_is_pointer_interconvertible_base_of);
       break;
     case ifc_sks_msvc_builtin_is_pointer_interconvertible_with_class:
-      cache_token(cache, tok_is_pointer_interconvertible_with_class, &pos);
+      cache_token(cache, tok_is_pointer_interconvertible_with_class);
       break;
     case ifc_sks_msvc_builtin_is_corresponding_member:
-      cache_token(cache, tok_is_corresponding_member, &pos);
+      cache_token(cache, tok_is_corresponding_member);
       break;
     case ifc_sks_msvc_is_ref_class:
-      cache_token(cache, tok_is_ref_class, &pos);
+      cache_token(cache, tok_is_ref_class);
       break;
     case ifc_sks_msvc_is_value_class:
-      cache_token(cache, tok_is_value_class, &pos);
+      cache_token(cache, tok_is_value_class);
       break;
     case ifc_sks_msvc_is_simple_value_class:
-      cache_token(cache, tok_is_simple_value_class, &pos);
+      cache_token(cache, tok_is_simple_value_class);
       break;
     case ifc_sks_msvc_is_interface_class:
-      cache_token(cache, tok_is_interface_class, &pos);
+      cache_token(cache, tok_is_interface_class);
       break;
     case ifc_sks_msvc_is_delegate:
-      cache_token(cache, tok_is_delegate, &pos);
+      cache_token(cache, tok_is_delegate);
       break;
     case ifc_sks_msvc_is_final:
-      cache_token(cache, tok_is_final, &pos);
+      cache_token(cache, tok_is_final);
       break;
     case ifc_sks_msvc_is_sealed:
-      cache_token(cache, tok_is_sealed, &pos);
+      cache_token(cache, tok_is_sealed);
       break;
     case ifc_sks_msvc_has_finalizer:
-      cache_token(cache, tok_has_finalizer, &pos);
+      cache_token(cache, tok_has_finalizer);
       break;
     case ifc_sks_msvc_has_copy:
-      cache_token(cache, tok_has_copy, &pos);
+      cache_token(cache, tok_has_copy);
       break;
     case ifc_sks_msvc_has_assign:
-      cache_token(cache, tok_has_assign, &pos);
+      cache_token(cache, tok_has_assign);
       break;
     case ifc_sks_msvc_has_user_destructor:
-      cache_token(cache, tok_has_user_destructor, &pos);
+      cache_token(cache, tok_has_user_destructor);
       break;
     case ifc_sks_msvc_pack_cardinality:
-      cache_token(cache, tok_sizeof, &pos);
-      cache_token(cache, tok_ellipsis, &pos);
+      cache_token(cache, tok_sizeof);
+      cache_token(cache, tok_ellipsis);
       break;
     case ifc_sks_msvc_confused_sizeof:
-      cache_token(cache, tok_sizeof, &pos);
+      cache_token(cache, tok_sizeof);
       break;
     case ifc_sks_msvc_confused_alignas:
-      cache_token(cache, tok_alignas, &pos);
+      cache_token(cache, tok_alignas);
       break;
     default_is_unexpected_str("Unknown SourceKeyword");
   }  /* switch */
@@ -12328,19 +12441,15 @@ done:;
 
 
 void an_ifc_module::cache_source_identifier(
-                                a_module_token_cache_ptr                cache,
-                                const an_ifc_source_identifier_category &id,
-                                const an_ifc_source_location            &locus)
+                                 a_module_token_cache_ptr                cache,
+                                 const an_ifc_source_identifier_category &id)
 /*
 Add tokens corresponding to id to cache.  index is the index into the IFC file
-for the additional information needed, depending on the kind of id.  locus is
-the location of the Sentence containing id.
+for the additional information needed, depending on the kind of id.
 */
 {
-  a_const_char      *name = NULL;
-  a_source_position pos;
+  a_const_char *name = NULL;
 
-  source_position_from_locus(&pos, locus);
   switch (id.sort) {
     case ifc_sis_msvc:
       { a_string err_msg("Unexpected ", str_for(id.sort));
@@ -12375,9 +12484,9 @@ the location of the Sentence containing id.
   /* Microsoft treats "default" as an identifier rather than a keyword.  That
      is also the case in the token sequences recorded in IFC files. */
   if (strcmp(name, "default") == 0) {
-    cache_token(cache, tok_default, &pos);
+    cache_token(cache, tok_default);
   } else {
-    cache_identifier(cache, name, &pos);
+    cache_identifier(cache, name);
   }  /* if */
   goto done;
 invalid:
@@ -12388,17 +12497,14 @@ done:;
 
 
 void an_ifc_module::cache_string(a_module_token_cache_ptr     cache,
-                                 an_ifc_string_index          string,
-                                 const an_ifc_source_location &locus)
+                                 an_ifc_string_index          string)
 /*
 Add a string literal (with the appropriate character kind) corresponding to
-string to cache.  locus is the location of the string.
+string to cache.
 */
 {
-  a_source_position pos;
   a_character_kind  kind;
 
-  source_position_from_locus(&pos, locus);
   switch (string.sort) {
     case ifc_ss_ordinary:
       kind = (a_character_kind)chk_char;
@@ -12429,11 +12535,10 @@ string to cache.  locus is the location of the string.
     an_ifc_text_offset suffix = get_ifc_suffix(ics);
 
     if (suffix == 0) {
-      cache_string_literal(cache, kind, get_string_at_offset(start),
-                           length, &pos);
+      cache_string_literal(cache, kind, get_string_at_offset(start), length);
     } else {
       cache_ud_literal(cache, kind, get_string_at_offset(start), length,
-                       get_string_at_offset(suffix), &pos);
+                       get_string_at_offset(suffix));
     }  /* if */
   }  /* if */
 }  /* cache_string */
@@ -12447,35 +12552,30 @@ static void cache_word(an_ifc_module            *mod,
 Add the token(s) corresponding to word to cache.
 */
 {
-  an_ifc_source_location locus = get_ifc_locus(word);
-  an_ifc_word_category   category = get_ifc_category(word);
+  an_ifc_source_location      locus = get_ifc_locus(word);
+  an_ifc_source_position_hint pos_hint(cache, locus);
+  an_ifc_word_category        category = get_ifc_category(word);
 
   switch (category.sort) {
     case ifc_ws_unknown:
       break;
     case ifc_ws_source_directive:
-      mod->cache_source_directive(cache, category.variant.source_directive,
-                                  locus);
+      mod->cache_source_directive(cache, category.variant.source_directive);
       break;
     case ifc_ws_source_punctuator:
-      mod->cache_source_punctuator(cache, category.variant.source_punctuator,
-                                   locus);
+      mod->cache_source_punctuator(cache, category.variant.source_punctuator);
       break;
     case ifc_ws_source_literal:
-      mod->cache_source_literal(cache, category.variant.source_literal,
-                                locus);
+      mod->cache_source_literal(cache, category.variant.source_literal);
       break;
     case ifc_ws_source_operator:
-      mod->cache_source_operator(cache, category.variant.source_operator,
-                                 locus);
+      mod->cache_source_operator(cache, category.variant.source_operator);
       break;
     case ifc_ws_source_keyword:
-      mod->cache_source_keyword(cache, category.variant.source_keyword,
-                                locus);
+      mod->cache_source_keyword(cache, category.variant.source_keyword);
       break;
     case ifc_ws_source_identifier:
-      mod->cache_source_identifier(cache, category.variant.source_identifier,
-                                   locus);
+      mod->cache_source_identifier(cache, category.variant.source_identifier);
       break;
     default_is_unexpected_str("Unknown WordSort");
   }  /* switch */
@@ -12645,75 +12745,64 @@ done:
 
 
 static void cache_object_traits(a_module_token_cache_ptr      cache,
-                                an_ifc_object_traits_bitfield traits,
-                                a_source_position_ptr         pos)
+                                an_ifc_object_traits_bitfield traits)
 /*
-Add the tokens corresponding to the given object traits to cache.  pos is the
-position to use for the traits.
+Add the tokens corresponding to the given object traits to cache.
 */
 {
   if (test_bitmask<ifc_otb_mutable>(traits)) {
-    cache_token(cache, tok_mutable, pos);
+    cache_token(cache, tok_mutable);
   }  /* if */
   if (test_bitmask<ifc_otb_inline>(traits)) {
-    cache_token(cache, tok_inline, pos);
+    cache_token(cache, tok_inline);
   }  /* if */
   if (test_bitmask<ifc_otb_constexpr>(traits)) {
-    cache_token(cache, tok_constexpr, pos);
+    cache_token(cache, tok_constexpr);
   }  /* if */
   if (test_bitmask<ifc_otb_thread_local>(traits)) {
-    cache_token(cache, tok_thread_local, pos);
+    cache_token(cache, tok_thread_local);
   }  /* if */
 }  /* cache_object_traits */
 
 
 template<typename an_ifc_Node_type>
 static void cache_func_type_cv_qualifiers(a_module_token_cache_ptr     cache,
-                                          const an_ifc_Node_type       &node,
-                                          const an_ifc_source_location &locus)
+                                          const an_ifc_Node_type       &node)
 /*
-Cache the cv-qualifiers for the given function-like IFC type.  locus is the
-location of the cv-qualifiers.
+Cache the cv-qualifiers for the given function-like IFC type.
 */
 {
   an_ifc_function_type_traits_bitfield traits = get_ifc_traits(node);
-  a_source_position                    pos;
 
-  source_position_from_locus(&pos, locus);
   if (test_bitmask<ifc_fttb_const>(traits)) {
-    cache_token(cache, tok_const, &pos);
+    cache_token(cache, tok_const);
   }  /* if */
   if (test_bitmask<ifc_fttb_volatile>(traits)) {
-    cache_token(cache, tok_volatile, &pos);
+    cache_token(cache, tok_volatile);
   }  /* if */
 }  /* cache_func_cv_qualifiers */
 
 
 template<typename an_ifc_Node_type>
 static void cache_func_type_ref_qualifier(a_module_token_cache_ptr     cache,
-                                          const an_ifc_Node_type       &type,
-                                          const an_ifc_source_location &locus)
+                                          const an_ifc_Node_type       &type)
 /*
-Cache the ref-qualifier for the given function-like IFC type.  locus is the
-location of the ref-qualifier.
+Cache the ref-qualifier for the given function-like IFC type.
 */
 {
   an_ifc_function_type_traits_bitfield traits = get_ifc_traits(type);
-  a_source_position                    pos;
 
-  source_position_from_locus(&pos, locus);
   if (test_bitmask<ifc_fttb_lvalue>(traits)) {
-    cache_token(cache, tok_ampersand, &pos);
+    cache_token(cache, tok_ampersand);
   } else if (test_bitmask<ifc_fttb_rvalue>(traits)) {
-    cache_token(cache, tok_and_and, &pos);
+    cache_token(cache, tok_and_and);
   }  /* if */
 }  /* cache_func_ref_qualifier */
 
 
 static void cache_noexcept_specifier(
                                   a_module_token_cache_ptr            cache,
-                                  const an_ifc_noexcept_specification &eh_spec,
-                                  const an_ifc_source_location        &locus)
+                                  const an_ifc_noexcept_specification &eh_spec)
 /*
 Cache the noexcept-specifier for the given noexcept specification.  locus is
 the location of the noexcept-specifier.
@@ -12722,11 +12811,8 @@ the location of the noexcept-specifier.
   an_ifc_noexcept_sort sort = get_ifc_sort(eh_spec);
 
   if (sort != ifc_ns_none && sort != ifc_ns_inferred) {
-    a_source_position pos;
-
-    source_position_from_locus(&pos, locus);
-    cache_token(cache, tok_noexcept, &pos);
-    cache_token(cache, tok_lparen, &pos);
+    cache_token(cache, tok_noexcept);
+    cache_token(cache, tok_lparen);
     switch (sort) {
       case ifc_ns_none:
       case ifc_ns_inferred:
@@ -12737,10 +12823,10 @@ the location of the noexcept-specifier.
         }
         goto invalid;
       case ifc_ns_false:
-        cache_bool_literal(cache, false, &pos);
+        cache_bool_literal(cache, false);
         break;
       case ifc_ns_true:
-        cache_bool_literal(cache, true, &pos);
+        cache_bool_literal(cache, true);
         break;
       case ifc_ns_expression:
         { an_ifc_sentence_index word_idx = get_ifc_words(eh_spec);
@@ -12756,7 +12842,7 @@ the location of the noexcept-specifier.
         goto invalid;
       default_is_unexpected_str("Unexpected NoexceptSpecification");
     }  /* switch */
-    cache_token(cache, tok_rparen, &pos);
+    cache_token(cache, tok_rparen);
   }  /* if */
   goto done;
 invalid:
@@ -12769,48 +12855,42 @@ done:;
 template<typename an_ifc_Node_type>
 static void cache_func_type_noexcept_specifier(
                                            a_module_token_cache_ptr     cache,
-                                           const an_ifc_Node_type       &type,
-                                           const an_ifc_source_location &locus)
+                                           const an_ifc_Node_type       &type)
 /*
-Cache the noexcept-specifier for the given function-like type.  locus is the
-location of the noexcept-specifier.
+Cache the noexcept-specifier for the given function-like type.
 */
 {
   an_ifc_noexcept_specification eh_spec = get_ifc_eh_spec(type);
 
-  cache_noexcept_specifier(cache, eh_spec, locus);
+  cache_noexcept_specifier(cache, eh_spec);
 }  /* cache_func_type_noexcept_specifier */
 
 
 static void cache_calling_convention(a_module_token_cache_ptr       cache,
-                                     an_ifc_calling_convention_sort convention,
-                                     const an_ifc_source_location   &locus)
+                                     an_ifc_calling_convention_sort convention)
 /*
 Cache a token representing the calling convention for the given calling
-convention sort value.  locus is the location of the calling convention token.
+convention sort value.
 */
 {
-  a_source_position pos;
-
-  source_position_from_locus(&pos, locus);
   switch (convention) {
     case ifc_ccs_cdecl:
-      cache_token(cache, tok_cdecl, &pos);
+      cache_token(cache, tok_cdecl);
       break;
     case ifc_ccs_fast:
-      cache_token(cache, tok_fastcall, &pos);
+      cache_token(cache, tok_fastcall);
       break;
     case ifc_ccs_std:
-      cache_token(cache, tok_stdcall, &pos);
+      cache_token(cache, tok_stdcall);
       break;
     case ifc_ccs_this:
-      cache_token(cache, tok_thiscall, &pos);
+      cache_token(cache, tok_thiscall);
       break;
     case ifc_ccs_clr:
-      cache_token(cache, tok_clrcall, &pos);
+      cache_token(cache, tok_clrcall);
       break;
     case ifc_ccs_vector:
-      cache_token(cache, tok_vectorcall, &pos);
+      cache_token(cache, tok_vectorcall);
       break;
     case ifc_ccs_eabi:
       pos_st_diagnostic(es_discretionary_error,
@@ -12825,48 +12905,43 @@ convention sort value.  locus is the location of the calling convention token.
 template<typename an_ifc_Node_type>
 static void cache_func_type_calling_convention(
                                            a_module_token_cache_ptr     cache,
-                                           const an_ifc_Node_type       &type,
-                                           const an_ifc_source_location &locus)
+                                           const an_ifc_Node_type       &type)
 /*
 Cache a token representing the calling convention for the given function-like
-type.  locus is the location of the calling convention token.
+type.
 */
 {
   an_ifc_calling_convention_sort convention = get_ifc_convention(type);
 
-  cache_calling_convention(cache, convention, locus);
+  cache_calling_convention(cache, convention);
 }  /* cache_func_calling_convention */
 
 
 template<typename an_ifc_Node_type>
 static void cache_func_type_return_type(a_module_token_cache_ptr     cache,
-                                        const an_ifc_Node_type       &type,
-                                        const an_ifc_source_location &locus)
+                                        const an_ifc_Node_type       &type)
 /*
-Cache the return type declarator for the given function-like type.  locus
-is the location of the declarator.
+Cache the return type declarator for the given function-like type.
 */
 {
   an_ifc_type_index return_type = get_ifc_target(type);
 
-  return_type.mod->cache_type(cache, return_type, locus);
+  return_type.mod->cache_type(cache, return_type);
 }  /* cache_func_calling_convention */
 
 
 template<typename an_ifc_Node_type>
 static void cache_func_type_parameter_declaration_clause(
                                            a_module_token_cache_ptr     cache,
-                                           const an_ifc_Node_type       &type,
-                                           const an_ifc_source_location &locus)
+                                           const an_ifc_Node_type       &type)
 /*
-Cache the parameter-declaration-clause for the given function-like type.  locus
-is the location of the parameter-declaration-clause.
+Cache the parameter-declaration-clause for the given function-like type.
 */
 {
   an_ifc_type_index source_params = get_ifc_source(type);
 
   if (!is_null_index(source_params)) {
-    source_params.mod->cache_type(cache, source_params, locus);
+    source_params.mod->cache_type(cache, source_params);
   }  /* if */
 }  /* cache_func_type_parameter_declaration_clause */
 
@@ -12878,8 +12953,7 @@ static void cache_func_cv_qualifiers(a_module_token_cache_ptr cache,
 Cache the cv-qualifiers for the given function-like declaration.
 */
 {
-  an_ifc_type_index      func_type_idx = get_ifc_type(decl);
-  an_ifc_source_location locus = get_ifc_locus(decl);
+  an_ifc_type_index func_type_idx = get_ifc_type(decl);
 
   switch (func_type_idx.sort) {
     case ifc_ts_type_function:
@@ -12891,7 +12965,7 @@ Cache the cv-qualifiers for the given function-like declaration.
         }  /* if */
 
         an_ifc_type_function func_type = *opt_func_type;
-        cache_func_type_cv_qualifiers(cache, func_type, locus);
+        cache_func_type_cv_qualifiers(cache, func_type);
       }
       break;
     case ifc_ts_type_method:
@@ -12903,7 +12977,7 @@ Cache the cv-qualifiers for the given function-like declaration.
         }  /* if */
 
         an_ifc_type_method func_type = *opt_func_type;
-        cache_func_type_cv_qualifiers(cache, func_type, locus);
+        cache_func_type_cv_qualifiers(cache, func_type);
       }
       break;
     case ifc_ts_type_tor:
@@ -12931,8 +13005,7 @@ static void cache_func_ref_qualifier(a_module_token_cache_ptr cache,
 Cache the ref-qualifier for the given function-like declaration.
 */
 {
-  an_ifc_type_index      func_type_idx = get_ifc_type(decl);
-  an_ifc_source_location locus = get_ifc_locus(decl);
+  an_ifc_type_index func_type_idx = get_ifc_type(decl);
 
   switch (func_type_idx.sort) {
     case ifc_ts_type_function:
@@ -12944,7 +13017,7 @@ Cache the ref-qualifier for the given function-like declaration.
         }  /* if */
 
         an_ifc_type_function func_type = *opt_func_type;
-        cache_func_type_ref_qualifier(cache, func_type, locus);
+        cache_func_type_ref_qualifier(cache, func_type);
       }
       break;
     case ifc_ts_type_method:
@@ -12956,7 +13029,7 @@ Cache the ref-qualifier for the given function-like declaration.
         }  /* if */
 
         an_ifc_type_method func_type = *opt_func_type;
-        cache_func_type_ref_qualifier(cache, func_type, locus);
+        cache_func_type_ref_qualifier(cache, func_type);
       }
       break;
     case ifc_ts_type_tor:
@@ -12984,8 +13057,7 @@ static void cache_func_noexcept_specifier(a_module_token_cache_ptr cache,
 Cache the noexcept-specifier for the given function-like declaration.
 */
 {
-  an_ifc_type_index      func_type_idx = get_ifc_type(decl);
-  an_ifc_source_location locus = get_ifc_locus(decl);
+  an_ifc_type_index func_type_idx = get_ifc_type(decl);
 
   switch (func_type_idx.sort) {
     case ifc_ts_type_function:
@@ -12997,7 +13069,7 @@ Cache the noexcept-specifier for the given function-like declaration.
         }  /* if */
 
         an_ifc_type_function func_type = *opt_func_type;
-        cache_func_type_noexcept_specifier(cache, func_type, locus);
+        cache_func_type_noexcept_specifier(cache, func_type);
       }
       break;
     case ifc_ts_type_method:
@@ -13009,7 +13081,7 @@ Cache the noexcept-specifier for the given function-like declaration.
         }  /* if */
 
         an_ifc_type_method func_type = *opt_func_type;
-        cache_func_type_noexcept_specifier(cache, func_type, locus);
+        cache_func_type_noexcept_specifier(cache, func_type);
       }
       break;
     case ifc_ts_type_tor:
@@ -13021,7 +13093,7 @@ Cache the noexcept-specifier for the given function-like declaration.
         }  /* if */
 
         an_ifc_type_tor func_type = *opt_func_type;
-        cache_func_type_noexcept_specifier(cache, func_type, locus);
+        cache_func_type_noexcept_specifier(cache, func_type);
       }
       break;
     default:
@@ -13047,34 +13119,31 @@ Cache the noexcept-specifier for the given destructor.
 */
 {
   an_ifc_noexcept_specification eh_spec = get_ifc_eh_spec(decl);
-  an_ifc_source_location        locus = get_ifc_locus(decl);
 
-  cache_noexcept_specifier(cache, eh_spec, locus);
+  cache_noexcept_specifier(cache, eh_spec);
 }  /* cache_func_noexcept_specifier */
 
 
 static void cache_func_vendor_decl_specifier_seq(
                                              a_module_token_cache_ptr cache,
-                                             an_ifc_decl_index        decl_idx,
-                                             a_source_position_ptr    pos)
+                                             an_ifc_decl_index        decl_idx)
 /*
 Cache the vendor specific portion of the decl-specifier-seq for the
-function-like declaration at the given declaration index.  pos is the source
-position of the decl-specifier-seq.
+function-like declaration at the given declaration index.
 */
 {
   an_ifc_module               *mod = decl_idx.mod;
   an_ifc_msvc_traits_bitfield msvc_traits = mod->get_vendor_traits(decl_idx);
 
   if (test_bitmask<ifc_mtb_force_inline>(msvc_traits)) {
-    cache_token(cache, tok_forceinline, pos);
+    cache_token(cache, tok_forceinline);
   }  /* if */
 
-  auto cache_declspec_fn = [&](a_const_char *str) {
-    cache_token(cache, tok_declspec, pos);
-    cache_token(cache, tok_lparen, pos);
-    cache_identifier(cache, str, pos);
-    cache_token(cache, tok_rparen, pos);
+  auto cache_declspec_fn = [&cache](a_const_char *str) {
+    cache_token(cache, tok_declspec);
+    cache_token(cache, tok_lparen);
+    cache_identifier(cache, str);
+    cache_token(cache, tok_rparen);
   };  /* cache_declspec_fn */
   if (test_bitmask<ifc_mtb_naked>(msvc_traits)) {
     cache_declspec_fn("naked");
@@ -13118,23 +13187,20 @@ function-like declaration.
 */
 {
   an_ifc_function_traits_bitfield func_traits = get_ifc_traits(decl);
-  an_ifc_source_location          locus = get_ifc_locus(decl);
-  a_source_position               pos;
 
-  source_position_from_locus(&pos, locus);
   if (test_bitmask<ifc_ftb_virtual>(func_traits)) {
-    cache_token(cache, tok_virtual, &pos);
+    cache_token(cache, tok_virtual);
   }  /* if */
   if (test_bitmask<ifc_ftb_explicit>(func_traits)) {
-    cache_token(cache, tok_explicit, &pos);
+    cache_token(cache, tok_explicit);
   }  /* if */
   if (test_bitmask<ifc_ftb_no_return>(func_traits)) {
-    cache_token(cache, tok_noreturn, &pos);
+    cache_token(cache, tok_noreturn);
   }  /* if */
   if (test_bitmask<ifc_ftb_immediate>(func_traits)) {
-    cache_token(cache, tok_consteval, &pos);
+    cache_token(cache, tok_consteval);
   } else if (test_bitmask<ifc_ftb_constexpr>(func_traits)) {
-    cache_token(cache, tok_constexpr, &pos);
+    cache_token(cache, tok_constexpr);
   }  /* if */
 }  /* cache_func_decl_specifier_seq */
 
@@ -13148,16 +13214,13 @@ Cache the virt-specifier-seq for the given function-like declaration.
 */
 {
   an_ifc_function_traits_bitfield traits = get_ifc_traits(decl);
-  an_ifc_source_location          locus = get_ifc_locus(decl);
-  a_source_position               pos;
 
-  source_position_from_locus(&pos, locus);
   if (test_bitmask<ifc_ftb_pure_virtual>(traits)) {
     a_constant_ptr cp = alloc_cached_constant();
 
-    cache_token(cache, tok_assign, &pos);
+    cache_token(cache, tok_assign);
     make_zero_of_proper_type(integer_type((an_integer_kind)ik_int), cp);
-    cache_literal(decl.get_module(), cache, cp, &pos);
+    cache_literal(decl.get_module(), cache, cp);
   }  /* if */
 }  /* cache_func_virt_specifier_seq */
 
@@ -13165,7 +13228,8 @@ Cache the virt-specifier-seq for the given function-like declaration.
 template<typename an_ifc_Node_type>
 static void cache_func_body(a_module_token_cache_ptr cache,
                             an_ifc_decl_index        decl_idx,
-                            const an_ifc_Node_type   &decl)
+                            const an_ifc_Node_type   &decl,
+                            const an_ifc_cache_info  &cinfo)
 
 /*
 Cache the function-body for the given function-like declaration (identified by
@@ -13173,38 +13237,40 @@ decl_idx).
 
 If the IFC provides a user defined definition for said function, instead of a
 proper function-body being cached, a token indicating the presence of a
-lazy-loadable definition will instead be cached.
+lazy-loadable definition will instead be cached.  cinfo contains information
+about the current cache context to help inform decisions about what to cache.
 */
 {
   check_assertion(function_is_defined(decl));
   an_ifc_function_traits_bitfield traits = get_ifc_traits(decl);
 
   if (function_is_user_defined(decl)) {
-    cache_token(cache, tok_semicolon, &null_source_position);
+    cache_token(cache, tok_semicolon);
     /* A body is likely available: Record this availability using a
        pseudo-token that will be translated when the declaration is
        parsed. */
-    cache_token_with_index(cache, tok_pending_ifc_func_body, decl_idx,
-                           &null_source_position);
+    cache_token_with_index(cache, tok_pending_ifc_func_body, decl_idx);
     /* FIXME: We cache a new semicolon here to avoid complicating
        full_specialization logic (which does not provide an easy way to
        suppress the semicolon check), it might be better to rework this logic
        to "insert" the tok_pending_ifc_func_body before the existing
        semicolon. */
-    cache_token(cache, tok_semicolon, &null_source_position);
+    if (!cinfo.no_final_semicolon) {
+      cache_token(cache, tok_semicolon);
+    }  /* if */
   } else {
-    an_ifc_source_location locus = get_ifc_locus(decl);
-    a_source_position      pos;
-
-    source_position_from_locus(&pos, locus);
     if (test_bitmask<ifc_ftb_defaulted>(traits)) {
-      cache_token(cache, tok_assign, &pos);
-      cache_token(cache, tok_default, &pos);
-      cache_token(cache, tok_semicolon, &pos);
+      cache_token(cache, tok_assign);
+      cache_token(cache, tok_default);
+      if (!cinfo.no_final_semicolon) {
+        cache_token(cache, tok_semicolon);
+      }  /* if */
     } else if (test_bitmask<ifc_ftb_deleted>(traits)) {
-      cache_token(cache, tok_assign, &pos);
-      cache_token(cache, tok_delete, &pos);
-      cache_token(cache, tok_semicolon, &pos);
+      cache_token(cache, tok_assign);
+      cache_token(cache, tok_delete);
+      if (!cinfo.no_final_semicolon) {
+        cache_token(cache, tok_semicolon);
+      }  /* if */
     } else {
       /* If this condition was violated, we're not correctly handling a case of
          the function-body grammar. */
@@ -13221,19 +13287,15 @@ static void cache_func_body_or_end_decl(a_module_token_cache_ptr cache,
                                         const an_ifc_cache_info  &cinfo)
 /*
 Cache the function-body for the given function-like declaration (identified by
-decl_idx) if its definition is specified (and not explicitly excluded by the
-cinfo token caching context); otherwise, cache a semicolon to terminate the
-declaration.
+decl_idx) if its definition is specified; otherwise, cache a semicolon to
+terminate the declaration.  cinfo contains information about the current cache
+context to help inform decisions about what to cache.
 */
 {
   if (!cinfo.ignore_definition && function_is_defined(decl)) {
-    cache_func_body(cache, decl_idx, decl);
-  } else {
-    an_ifc_source_location locus = get_ifc_locus(decl);
-    a_source_position      pos;
-
-    source_position_from_locus(&pos, locus);
-    cache_token(cache, tok_semicolon, &pos);
+    cache_func_body(cache, decl_idx, decl, cinfo);
+  } else if (!cinfo.no_final_semicolon) {
+    cache_token(cache, tok_semicolon);
   }  /* if */
 }  /* cache_func_body_or_end_decl */
 
@@ -13250,13 +13312,9 @@ Cache the parameters-and-qualifiers for the given function-like declaration
 context to help inform decisions about what to cache.
 */
 {
-  an_ifc_source_location locus = get_ifc_locus(decl);
-  a_source_position      pos;
-
-  source_position_from_locus(&pos, locus);
-  cache_token(cache, tok_lparen, &pos);
+  cache_token(cache, tok_lparen);
   cache_func_parameter_declaration_clause(cache, decl_idx, decl, cinfo);
-  cache_token(cache, tok_rparen, &pos);
+  cache_token(cache, tok_rparen);
   cache_func_cv_qualifiers(cache, decl);
   cache_func_ref_qualifier(cache, decl);
   cache_func_noexcept_specifier(cache, decl);
@@ -13271,8 +13329,7 @@ Cache a token representing the calling convention for the given function-like
 declaration.
 */
 {
-  an_ifc_type_index      func_type_idx = get_ifc_type(decl);
-  an_ifc_source_location locus = get_ifc_locus(decl);
+  an_ifc_type_index func_type_idx = get_ifc_type(decl);
 
   switch (func_type_idx.sort) {
     case ifc_ts_type_function:
@@ -13284,7 +13341,7 @@ declaration.
         }  /* if */
 
         an_ifc_type_function func_type = *opt_func_type;
-        cache_func_type_calling_convention(cache, func_type, locus);
+        cache_func_type_calling_convention(cache, func_type);
       }
       break;
     case ifc_ts_type_method:
@@ -13296,7 +13353,7 @@ declaration.
         }  /* if */
 
         an_ifc_type_method func_type = *opt_func_type;
-        cache_func_type_calling_convention(cache, func_type, locus);
+        cache_func_type_calling_convention(cache, func_type);
       }
       break;
     case ifc_ts_type_tor:
@@ -13308,7 +13365,7 @@ declaration.
         }  /* if */
 
         an_ifc_type_tor func_type = *opt_func_type;
-        cache_func_type_calling_convention(cache, func_type, locus);
+        cache_func_type_calling_convention(cache, func_type);
       }
       break;
     default:
@@ -13334,9 +13391,8 @@ Cache a token representing the calling convention for the given destructor.
 */
 {
   an_ifc_calling_convention_sort convention = get_ifc_convention(decl);
-  an_ifc_source_location         locus = get_ifc_locus(decl);
 
-  cache_calling_convention(cache, convention, locus);
+  cache_calling_convention(cache, convention);
 }  /* cache_func_calling_convention */
 
 
@@ -13347,8 +13403,7 @@ static void cache_func_return_type(a_module_token_cache_ptr cache,
 Cache the return type declarator for the given function-like declaration.
 */
 {
-  an_ifc_type_index      func_type_idx = get_ifc_type(decl);
-  an_ifc_source_location locus = get_ifc_locus(decl);
+  an_ifc_type_index func_type_idx = get_ifc_type(decl);
 
   switch (func_type_idx.sort) {
     case ifc_ts_type_function:
@@ -13360,7 +13415,7 @@ Cache the return type declarator for the given function-like declaration.
         }  /* if */
 
         an_ifc_type_function func_type = *opt_func_type;
-        cache_func_type_return_type(cache, func_type, locus);
+        cache_func_type_return_type(cache, func_type);
       }
       break;
     case ifc_ts_type_method:
@@ -13372,7 +13427,7 @@ Cache the return type declarator for the given function-like declaration.
         }  /* if */
 
         an_ifc_type_method func_type = *opt_func_type;
-        cache_func_type_return_type(cache, func_type, locus);
+        cache_func_type_return_type(cache, func_type);
       }
       break;
     default:
@@ -13814,12 +13869,11 @@ context to help inform decisions about what to cache
 */
 {
   an_ifc_func_param_context param_context(decl_idx, decl);
-  an_ifc_source_location    locus = get_ifc_locus(decl);
   a_boolean                 first = TRUE;
 
   for (an_ifc_index_type i = 0; i < param_context.get_num_params(); ++i) {
     if (!first) {
-      cache_token(cache, tok_comma, &null_source_position);
+      cache_token(cache, tok_comma);
     }  /* if */
 
     an_ifc_type_index arg_type = param_context.get_param_type(i);
@@ -13828,16 +13882,15 @@ context to help inform decisions about what to cache
     if (is_null_index(arg_type)) {
       goto invalid;
     }  /* if */
-    arg_type.mod->cache_type(cache, arg_type, locus);
+    arg_type.mod->cache_type(cache, arg_type);
     /* Cache the default argument if we're not ignoring default arguments in
        this context, and a default argument is found. */
     if (!cinfo.ignore_default_arguments) {
       an_ifc_expr_index arg_expr = param_context.get_default_arg_expr(i);
 
       if (!is_null_index(arg_expr)) {
-        cache_token(cache, tok_assign, &null_source_position);
-        cache_token_with_index(cache, tok_pending_ifc_expr, arg_expr,
-                               &null_source_position);
+        cache_token(cache, tok_assign);
+        cache_token_with_index(cache, tok_pending_ifc_expr, arg_expr);
       }  /* if */
     }  /* if */
     first = FALSE;
@@ -13874,43 +13927,40 @@ to this call -- so that we can determine if caching of a given declaration in
 
 
 static void cache_basic_specifiers(a_module_token_cache_ptr         cache,
-                                   an_ifc_basic_specifiers_bitfield specifiers,
-                                   a_source_position_ptr            pos)
+                                   an_ifc_basic_specifiers_bitfield specifiers)
 /*
 Add tokens corresponding to specifiers to cache.  pos is the position of the
 specifier(s).
 */
 {
   if (test_bitmask<ifc_bsb_c>(specifiers)) {
-    cache_token(cache, tok_extern, pos);
-    cache_string_literal(cache, chk_char, "C", 2, pos);
+    cache_token(cache, tok_extern);
+    cache_string_literal(cache, chk_char, "C", 2);
   }  /* if */
   if (test_bitmask<ifc_bsb_deprecated>(specifiers)) {
-    cache_token(cache, tok_lbracket, pos);
-    cache_token(cache, tok_lbracket, pos);
-    cache_identifier(cache, "deprecated", pos);
-    cache_token(cache, tok_rbracket, pos);
-    cache_token(cache, tok_rbracket, pos);
+    cache_token(cache, tok_lbracket);
+    cache_token(cache, tok_lbracket);
+    cache_identifier(cache, "deprecated");
+    cache_token(cache, tok_rbracket);
+    cache_token(cache, tok_rbracket);
   }  /* if */
 }  /* cache_basic_specifiers */
 
 
 static void cache_qualifiers(a_module_token_cache_ptr  cache,
-                             an_ifc_qualifier_bitfield qualifiers,
-                             a_source_position_ptr     pos)
+                             an_ifc_qualifier_bitfield qualifiers)
 /*
-Add tokens corresponding to qualifiers to cache.  pos is the position of the
-qualifier(s).
+Add tokens corresponding to qualifiers to cache.
 */
 {
   if (test_bitmask<ifc_qb_const>(qualifiers)) {
-    cache_token(cache, tok_const, pos);
+    cache_token(cache, tok_const);
   }  /* if */
   if (test_bitmask<ifc_qb_volatile>(qualifiers)) {
-    cache_token(cache, tok_volatile, pos);
+    cache_token(cache, tok_volatile);
   }  /* if */
   if (test_bitmask<ifc_qb_restrict>(qualifiers)) {
-    cache_token(cache, tok_restrict, pos);
+    cache_token(cache, tok_restrict);
   }  /* if */
 }  /* cache_qualifiers */
 
@@ -13921,64 +13971,55 @@ inline void an_ifc_module::cache_scope_decl(
                                    an_ifc_decl_index            decl_idx,
                                    an_ifc_type_index            type,
                                    a_Name_Cache_Fn              cache_name_fn,
-                                   a_Scope_Cache_Fn             cache_scope_fn,
-                                   const an_ifc_source_location &locus)
+                                   a_Scope_Cache_Fn             cache_scope_fn)
 /*
 Cache the tokens corresponding to the given scope decl (indexed in the IFC by
 decl_idx).  type represents the IFC type representing the introducing keyword.
-cache_name_fn is a lambda accepting a_source_position_ptr interpretation of
-locus that's called to cache the name of the scope.  cache_scope_fn is a lambda
-accepting a_source_position_ptr interpretation of locus that's called to cache
-the scope's body (e.g., for a class the member-specification).  Finally, locus
-is the location of the given scope decl.
+cache_name_fn is a lambda that's called to cache the name of the scope.
+cache_scope_fn is a lambda that's called to cache the scope's body (e.g., for a
+class the member-specification).
 
 FIXME: Remove this version of cache_scope_decl once names can be cached
 properly for specializations using a NameIndex, and similarly the scope's body
 can be consistently cached via a ScopeIndex.
 */
 {
-  a_source_position pos;
-
   check_assertion(type.sort == ifc_ts_type_fundamental);
-  source_position_from_locus(&pos, locus);
   /* Cache the struct/class/union/namespace/__interface keyword. */
-  cache_type(cache, type, locus);
+  cache_type(cache, type);
   /* Cache any attributes. */
   cache_attrs(cache, decl_idx);
   /* Cache the name. */
-  cache_name_fn(&pos);
+  cache_name_fn();
   /* Cache the scope's body. e.g., for a class the member-specification. */
-  cache_scope_fn(&pos);
+  cache_scope_fn();
 }  /* cache_scope_decl */
 
 
-void an_ifc_module::cache_scope_decl(a_module_token_cache_ptr     cache,
-                                     an_ifc_decl_index            decl_idx,
-                                     an_ifc_type_index            type,
-                                     an_ifc_name_index            name,
-                                     an_ifc_type_index            base,
-                                     an_ifc_scope_index           scope,
-                                     const an_ifc_source_location &locus)
+void an_ifc_module::cache_scope_decl(a_module_token_cache_ptr cache,
+                                     an_ifc_decl_index        decl_idx,
+                                     an_ifc_type_index        type,
+                                     an_ifc_name_index        name,
+                                     an_ifc_type_index        base,
+                                     an_ifc_scope_index       scope)
 /*
 Cache the tokens corresponding to the given scope decl (indexed in the IFC by
 decl_idx).  type represents the IFC type representing the introducing keyword.
 name represents the name of the scope decl.  base represents any associated
 base classes and as such is only valid for a class declaration.  scope
 represents the declaration's body (e.g., for a class the member-specification).
-Finally, locus is the location of the given scope decl.
 */
 {
-  auto cache_name_fn = [this, cache, name, locus](a_source_position_ptr pos) {
-    cache_name(cache, name, locus);
+  auto cache_name_fn = [this, cache, name]() {
+    cache_name(cache, name);
   };
-  auto cache_scope_fn = [this, cache, base, type, scope, locus](
-                                                   a_source_position_ptr pos) {
+  auto cache_scope_fn = [this, cache, base, type, scope]() {
     /* If there are bases specified, cache the bases. */
     if (!is_null_index(base)) {
-      cache_token(cache, tok_colon, pos);
-      cache_type(cache, base, locus);
+      cache_token(cache, tok_colon);
+      cache_type(cache, base);
     }  /* if */
-    cache_scope(this, cache, scope, locus);
+    cache_scope(this, cache, scope);
 
     /* Read the fundamental type so that we can determine if we're caching a
        namespace. */
@@ -13989,24 +14030,21 @@ Finally, locus is the location of the given scope decl.
 
       /* If we aren't caching a namespace, add a semicolon. */
       if (get_ifc_basis(itf) != ifc_tbs_namespace) {
-        cache_token(cache, tok_semicolon, pos);
+        cache_token(cache, tok_semicolon);
       }  /* if */
     }  /* if */
   };
-  cache_scope_decl(cache, decl_idx, type, cache_name_fn, cache_scope_fn,
-                   locus);
+  cache_scope_decl(cache, decl_idx, type, cache_name_fn, cache_scope_fn);
 }  /* cache_scope_decl */
 
 
-void an_ifc_module::cache_type_first_part(a_module_token_cache_ptr     cache,
-                                          an_ifc_type_index            type,
-                                          const an_ifc_source_location &locus)
+void an_ifc_module::cache_type_first_part(a_module_token_cache_ptr cache,
+                                          an_ifc_type_index        type)
 /*
 Add the tokens to cache corresponding to the portion of the given type that
-precedes an identifier.  locus is the source location of the entity referring
-to the type.  This routine will often need to be called in concert with
-cache_type_second_part, which will cache tokens corresponding to the portion
-of type that follows an identifier.  For example:
+precedes an identifier.  This routine will often need to be called in concert
+with cache_type_second_part, which will cache tokens corresponding to the
+portion of type that follows an identifier.  For example:
 
    ~v~ This routine caches this portion of the type
    int arr[3];
@@ -14016,9 +14054,6 @@ See form_type_first_part and form_type_second_part for more details as to why
 this is needed.
 */
 {
-  a_source_position pos;
-
-  source_position_from_locus(&pos, locus);
   switch (type.sort) {
     case ifc_ts_type_vendor_extension:
       issue_unsupported_construct_error(this, "TypeSort::VendorExtension",
@@ -14040,35 +14075,35 @@ this is needed.
           case ifc_tss_plain:
             break;
           case ifc_tss_signed:
-            cache_token(cache, tok_signed, &pos);
+            cache_token(cache, tok_signed);
             break;
           case ifc_tss_unsigned:
-            cache_token(cache, tok_unsigned, &pos);
+            cache_token(cache, tok_unsigned);
             break;
           default_is_unexpected_str("Unexpected TypeSign");
         }  /* if */
         switch (basis) {
           case ifc_tbs_void:
             check_assertion(precision == ifc_tps_default);
-            cache_token(cache, tok_void, &pos);
+            cache_token(cache, tok_void);
             break;
           case ifc_tbs_bool:
             check_assertion(precision == ifc_tps_default);
-            cache_token(cache, tok_bool, &pos);
+            cache_token(cache, tok_bool);
             break;
           case ifc_tbs_char:
             switch (precision) {
               case ifc_tps_default:
-                cache_token(cache, tok_char, &pos);
+                cache_token(cache, tok_char);
                 break;
               case ifc_tps_bit8:
-                cache_token(cache, tok_char8_t, &pos);
+                cache_token(cache, tok_char8_t);
                 break;
               case ifc_tps_bit16:
-                cache_token(cache, tok_char16_t, &pos);
+                cache_token(cache, tok_char16_t);
                 break;
               case ifc_tps_bit32:
-                cache_token(cache, tok_char32_t, &pos);
+                cache_token(cache, tok_char32_t);
                 break;
               default:
                 { a_string err_msg("Unexpected ", str_for(precision),
@@ -14080,34 +14115,34 @@ this is needed.
             }  /* switch */
             break;
           case ifc_tbs_wchar_t:
-            cache_token(cache, tok_wchar_t, &pos);
+            cache_token(cache, tok_wchar_t);
             break;
           case ifc_tbs_int:
             switch (precision) {
               case ifc_tps_default:
-                cache_token(cache, tok_int, &pos);
+                cache_token(cache, tok_int);
                 break;
               case ifc_tps_short:
-                cache_token(cache, tok_short, &pos);
+                cache_token(cache, tok_short);
                 break;
               case ifc_tps_long:
-                cache_token(cache, tok_long, &pos);
+                cache_token(cache, tok_long);
                 break;
               case ifc_tps_bit8:
-                cache_token(cache, tok_int8, &pos);
+                cache_token(cache, tok_int8);
                 break;
               case ifc_tps_bit16:
-                cache_token(cache, tok_int16, &pos);
+                cache_token(cache, tok_int16);
                 break;
               case ifc_tps_bit32:
-                cache_token(cache, tok_int32, &pos);
+                cache_token(cache, tok_int32);
                 break;
               case ifc_tps_bit64:
-                cache_token(cache, tok_int64, &pos);
+                cache_token(cache, tok_int64);
                 break;
               case ifc_tps_bit128:
 #if INT128_EXTENSIONS_ALLOWED
-                cache_token(cache, tok_int128, &pos);
+                cache_token(cache, tok_int128);
 #endif /* INT128_EXTENSIONS_ALLOWED */
                 break;
               default_is_unexpected();
@@ -14115,24 +14150,23 @@ this is needed.
             break;
           case ifc_tbs_float:
             check_assertion(precision == ifc_tps_default);
-            cache_token(cache, tok_float, &pos);
+            cache_token(cache, tok_float);
             break;
           case ifc_tbs_double:
             if (precision == ifc_tps_long) {
-              cache_token(cache, tok_long, &pos);
+              cache_token(cache, tok_long);
             } else {
               check_assertion(precision == ifc_tps_default);
             }  /* if */
-            cache_token(cache, tok_double, &pos);
+            cache_token(cache, tok_double);
             break;
           case ifc_tbs_nullptr:
             check_assertion(precision == ifc_tps_default);
-            cache_resolved_type_token(cache->as_canonical(),
-                                      standard_nullptr_type(), &pos);
+            cache_resolved_type_token(cache, standard_nullptr_type());
             break;
           case ifc_tbs_ellipsis:
             check_assertion(precision == ifc_tps_default);
-            cache_token(cache, tok_ellipsis, &pos);
+            cache_token(cache, tok_ellipsis);
             break;
           case ifc_tbs_segment_type:
             /* FIXME: Currently unsupported. */
@@ -14141,31 +14175,31 @@ this is needed.
             goto invalid;
           case ifc_tbs_class:
             check_assertion(precision == ifc_tps_default);
-            cache_token(cache, tok_class, &pos);
+            cache_token(cache, tok_class);
             break;
           case ifc_tbs_struct:
             check_assertion(precision == ifc_tps_default);
-            cache_token(cache, tok_struct, &pos);
+            cache_token(cache, tok_struct);
             break;
           case ifc_tbs_union:
             check_assertion(precision == ifc_tps_default);
-            cache_token(cache, tok_union, &pos);
+            cache_token(cache, tok_union);
             break;
           case ifc_tbs_enum:
             check_assertion(precision == ifc_tps_default);
-            cache_token(cache, tok_enum, &pos);
+            cache_token(cache, tok_enum);
             break;
           case ifc_tbs_typename:
             check_assertion(precision == ifc_tps_default);
-            cache_token(cache, tok_typename, &pos);
+            cache_token(cache, tok_typename);
             break;
           case ifc_tbs_namespace:
             check_assertion(precision == ifc_tps_default);
-            cache_token(cache, tok_namespace, &pos);
+            cache_token(cache, tok_namespace);
             break;
           case ifc_tbs_interface:
             check_assertion(precision == ifc_tps_default);
-            cache_token(cache, tok_interface, &pos);
+            cache_token(cache, tok_interface);
             break;
           case ifc_tbs_function:
             /* FIXME: Currently unsupported. */
@@ -14182,14 +14216,14 @@ this is needed.
             goto invalid;
           case ifc_tbs_auto:
             check_assertion(precision == ifc_tps_default);
-            cache_token(cache, tok_auto_type, &pos);
+            cache_token(cache, tok_auto_type);
             break;
           case ifc_tbs_decltype_auto:
             check_assertion(precision == ifc_tps_default);
-            cache_token(cache, tok_decltype, &pos);
-            cache_token(cache, tok_lparen, &pos);
-            cache_token(cache, tok_auto_type, &pos);
-            cache_token(cache, tok_rparen, &pos);
+            cache_token(cache, tok_decltype);
+            cache_token(cache, tok_lparen);
+            cache_token(cache, tok_auto_type);
+            cache_token(cache, tok_rparen);
             break;
           case ifc_tbs_concept:
             /* FIXME: Currently unsupported. */
@@ -14235,15 +14269,15 @@ this is needed.
           is_closure_type = test_bitmask<ifc_stb_closure_type>(traits);
         }  /* if */
         if (is_closure_type) {
-          cache_token(cache, tok_auto, &pos);
+          cache_token(cache, tok_auto);
         } else if (is_name_qualifiable(decl)) {
-          cache_qualified_name_from_decl(cache, decl, locus);
+          cache_qualified_name_from_decl(cache, decl);
         } else if (decl.sort == ifc_ds_decl_parameter) {
           /* Represent the reference to a template parameter with a special
              token because the name recorded for a parameter may not be the
              one that the parameter was declared with in the current
              context. */
-          cache_token_with_index(cache, tok_ifc_template_param, decl, &pos);
+          cache_token_with_index(cache, tok_ifc_template_param, decl);
         } else {
           /* We are contextually forbidden from qualifying this name or the
              declaration type otherwise is considered to never appear
@@ -14251,7 +14285,7 @@ this is needed.
 
              This can happen when building an unqualified-id within a dependent
              context. */
-          cache_name_from_decl(cache, decl, locus);
+          cache_name_from_decl(cache, decl);
         }  /* if */
       }
       break;
@@ -14279,8 +14313,8 @@ this is needed.
         }  /* if */
 
         an_ifc_type_expansion ite = *opt_ite;
-        cache_type_first_part(cache, get_ifc_pack(ite), locus);
-        cache_token(cache, tok_ellipsis, &pos);
+        cache_type_first_part(cache, get_ifc_pack(ite));
+        cache_token(cache, tok_ellipsis);
       }
       break;
     case ifc_ts_type_pointer:
@@ -14293,11 +14327,11 @@ this is needed.
 
         an_ifc_type_pointer itp = *opt_itp;
         an_ifc_type_index   pointee = get_ifc_pointee(itp);
-        cache_type_first_part(cache, pointee, locus);
+        cache_type_first_part(cache, pointee);
         if (pointee.sort != ifc_ts_type_pointer_to_member) {
           /* The tok_star will already have been cached if the pointee is a
              pointer-to-member. */
-          cache_token(cache, tok_star, &pos);
+          cache_token(cache, tok_star);
         }  /* if */
       }
       break;
@@ -14320,17 +14354,17 @@ this is needed.
           }  /* if */
 
           an_ifc_type_method itm = *opt_itm;
-          cache_type(cache, get_ifc_target(itm), locus);
-          cache_token(cache, tok_lparen, &pos);
-          cache_calling_convention(cache, get_ifc_convention(itm), locus);
-          cache_type(cache, get_ifc_scope(itm), locus);
-          cache_token(cache, tok_colon_colon, &pos);
+          cache_type(cache, get_ifc_target(itm));
+          cache_token(cache, tok_lparen);
+          cache_calling_convention(cache, get_ifc_convention(itm));
+          cache_type(cache, get_ifc_scope(itm));
+          cache_token(cache, tok_colon_colon);
         } else {
-          cache_type(cache, get_ifc_scope(itptm), locus);
-          cache_token(cache, tok_colon_colon, &pos);
-          cache_type(cache, member, locus);
+          cache_type(cache, get_ifc_scope(itptm));
+          cache_token(cache, tok_colon_colon);
+          cache_type(cache, member);
         }  /* if */
-        cache_token(cache, tok_star, &pos);
+        cache_token(cache, tok_star);
       }
       break;
     case ifc_ts_type_lvalue_reference:
@@ -14342,8 +14376,8 @@ this is needed.
         }  /* if */
 
         an_ifc_type_lvalue_reference itlr = *opt_itlr;
-        cache_type_first_part(cache, get_ifc_referee(itlr), locus);
-        cache_token(cache, tok_ampersand, &pos);
+        cache_type_first_part(cache, get_ifc_referee(itlr));
+        cache_token(cache, tok_ampersand);
       }
       break;
     case ifc_ts_type_rvalue_reference:
@@ -14355,8 +14389,8 @@ this is needed.
         }  /* if */
 
         an_ifc_type_rvalue_reference itrr = *opt_itrr;
-        cache_type_first_part(cache, get_ifc_referee(itrr), locus);
-        cache_token(cache, tok_and_and, &pos);
+        cache_type_first_part(cache, get_ifc_referee(itrr));
+        cache_token(cache, tok_and_and);
       }
       break;
     case ifc_ts_type_function:
@@ -14368,9 +14402,9 @@ this is needed.
         }  /* if */
 
         an_ifc_type_function itf = *opt_itf;
-        cache_type(cache, get_ifc_target(itf), locus);
-        cache_token(cache, tok_lparen, &pos);
-        cache_calling_convention(cache, get_ifc_convention(itf), locus);
+        cache_type(cache, get_ifc_target(itf));
+        cache_token(cache, tok_lparen);
+        cache_calling_convention(cache, get_ifc_convention(itf));
       }
       break;
     case ifc_ts_type_method:
@@ -14385,7 +14419,7 @@ this is needed.
         if (!opt_ita.has_value()) {
           goto invalid;
         }  /* if */
-        cache_type_first_part(cache, get_ifc_element(*opt_ita), locus);
+        cache_type_first_part(cache, get_ifc_element(*opt_ita));
       }
       break;
     case ifc_ts_type_typename:
@@ -14395,7 +14429,7 @@ this is needed.
         if (!opt_itt.has_value()) {
           goto invalid;
         }  /* if */
-        cache_token(cache, tok_typename, &pos);
+        cache_token(cache, tok_typename);
         cache_expr(cache, get_ifc_path(*opt_itt), /*cinfo=*/{});
       }
       break;
@@ -14409,15 +14443,15 @@ this is needed.
 
         an_ifc_type_qualified     itq = *opt_itq;
         an_ifc_qualifier_bitfield qualifiers = get_ifc_qualifiers(itq);
-        cache_type_first_part(cache, get_ifc_unqualified(itq), locus);
+        cache_type_first_part(cache, get_ifc_unqualified(itq));
         if (test_bitmask<ifc_qb_const>(qualifiers)) {
-          cache_token(cache, tok_const, &pos);
+          cache_token(cache, tok_const);
         }  /* if */
         if (test_bitmask<ifc_qb_volatile>(qualifiers)) {
-          cache_token(cache, tok_volatile, &pos);
+          cache_token(cache, tok_volatile);
         }  /* if */
         if (test_bitmask<ifc_qb_restrict>(qualifiers)) {
-          cache_token(cache, tok_restrict, &pos);
+          cache_token(cache, tok_restrict);
         }  /* if */
       }
       break;
@@ -14430,13 +14464,13 @@ this is needed.
         }  /* if */
 
         an_ifc_type_base itb = *opt_itb;
-        cache_access_specifier(cache, get_ifc_access(itb), &pos);
+        cache_access_specifier(cache, get_ifc_access(itb));
         if (get_ifc_shared(itb)) {
-          cache_token(cache, tok_virtual, &pos);
+          cache_token(cache, tok_virtual);
         }  /* if */
-        cache_type(cache, get_ifc_type(itb), locus);
+        cache_type(cache, get_ifc_type(itb));
         if (get_ifc_pack_expanded(itb)) {
-          cache_token(cache, tok_ellipsis, &pos);
+          cache_token(cache, tok_ellipsis);
         }  /* if */
       }
       break;
@@ -14462,13 +14496,13 @@ this is needed.
         an_ifc_type_placeholder itp = *opt_itp;
         an_ifc_type_basis_sort  basis = get_ifc_basis(itp);
         if (basis == ifc_tbs_auto) {
-          cache_token(cache, tok_auto, &pos);
+          cache_token(cache, tok_auto);
         } else {
           check_assertion(basis == ifc_tbs_decltype_auto);
-          cache_token(cache, tok_decltype, &pos);
-          cache_token(cache, tok_lparen, &pos);
-          cache_token(cache, tok_auto, &pos);
-          cache_token(cache, tok_rparen, &pos);
+          cache_token(cache, tok_decltype);
+          cache_token(cache, tok_lparen);
+          cache_token(cache, tok_auto);
+          cache_token(cache, tok_rparen);
         }  /* if */
       }
       break;
@@ -14487,9 +14521,9 @@ this is needed.
             goto invalid;
           }  /* if */
           if (!first) {
-            cache_token(cache, tok_comma, &pos);
+            cache_token(cache, tok_comma);
           }  /* if */
-          cache_type(cache, get_ifc_value(*indexed_iht), locus);
+          cache_type(cache, get_ifc_value(*indexed_iht));
           first = FALSE;
         }  /* for */
       }
@@ -14501,9 +14535,8 @@ this is needed.
         if (!opt_itfa.has_value()) {
           goto invalid;
         }  /* if */
-        cache_template_head(cache, get_ifc_chart(*opt_itfa), &pos,
-                            /*cinfo=*/{});
-        cache_type(cache, get_ifc_subject(*opt_itfa), locus);
+        cache_template_head(cache, get_ifc_chart(*opt_itfa), /*cinfo=*/{});
+        cache_type(cache, get_ifc_subject(*opt_itfa));
       }
       break;
     case ifc_ts_type_unaligned:
@@ -14532,14 +14565,12 @@ done:;
 
 
 void an_ifc_module::cache_type_second_part(a_module_token_cache_ptr     cache,
-                                           an_ifc_type_index            type,
-                                           const an_ifc_source_location &locus)
+                                           an_ifc_type_index            type)
 /*
 Add the tokens to cache corresponding to the portion of the given type that
-follows an identifier.  locus is the source location of the entity referring
-to the type.  This routine will often need to be called in concert with
-cache_type_first_part, which will cache tokens corresponding to the portion
-of type that precedes an identifier.  For example:
+follows an identifier.  This routine will often need to be called in concert
+with cache_type_first_part, which will cache tokens corresponding to the
+portion of type that precedes an identifier.  For example:
 
           ~v~ This routine caches this portion of the type
    int arr[3];
@@ -14549,9 +14580,6 @@ See form_type_first_part and form_type_second_part for more details as to why
 this is needed.
 */
 {
-  a_source_position pos;
-
-  source_position_from_locus(&pos, locus);
   switch (type.sort) {
     case ifc_ts_type_tor:
       /* This type should only be encountered when processing a constructor,
@@ -14568,7 +14596,7 @@ this is needed.
         if (!opt_itp.has_value()) {
           goto invalid;
         }  /* if */
-        cache_type_second_part(cache, get_ifc_pointee(*opt_itp), locus);
+        cache_type_second_part(cache, get_ifc_pointee(*opt_itp));
       }
       break;
     case ifc_ts_type_pointer_to_member:
@@ -14591,15 +14619,15 @@ this is needed.
 
           an_ifc_type_method itm = *opt_itm;
           an_ifc_type_index  source = get_ifc_source(itm);
-          cache_token(cache, tok_rparen, &pos);
-          cache_token(cache, tok_lparen, &pos);
+          cache_token(cache, tok_rparen);
+          cache_token(cache, tok_lparen);
           if (!is_null_index(source)) {
-            cache_type(cache, source, locus);
+            cache_type(cache, source);
           }  /* if */
-          cache_token(cache, tok_rparen, &pos);
-          cache_func_type_noexcept_specifier(cache, itm, locus);
-          cache_func_type_cv_qualifiers(cache, itm, locus);
-          cache_func_type_ref_qualifier(cache, itm, locus);
+          cache_token(cache, tok_rparen);
+          cache_func_type_noexcept_specifier(cache, itm);
+          cache_func_type_cv_qualifiers(cache, itm);
+          cache_func_type_ref_qualifier(cache, itm);
         }  /* if */
       }
       break;
@@ -14610,7 +14638,7 @@ this is needed.
         if (!opt_itlr.has_value()) {
           goto invalid;
         }  /* if */
-        cache_type_second_part(cache, get_ifc_referee(*opt_itlr), locus);
+        cache_type_second_part(cache, get_ifc_referee(*opt_itlr));
       }
       break;
     case ifc_ts_type_rvalue_reference:
@@ -14620,7 +14648,7 @@ this is needed.
         if (!opt_itrr.has_value()) {
           goto invalid;
         }  /* if */
-        cache_type_second_part(cache, get_ifc_referee(*opt_itrr), locus);
+        cache_type_second_part(cache, get_ifc_referee(*opt_itrr));
       }
       break;
     case ifc_ts_type_function:
@@ -14633,15 +14661,15 @@ this is needed.
 
         an_ifc_type_function itf = *opt_itf;
         an_ifc_type_index    source = get_ifc_source(itf);
-        cache_token(cache, tok_rparen, &pos);
-        cache_token(cache, tok_lparen, &pos);
+        cache_token(cache, tok_rparen);
+        cache_token(cache, tok_lparen);
         if (!is_null_index(source)) {
-          cache_type(cache, source, locus);
+          cache_type(cache, source);
         }  /* if */
-        cache_token(cache, tok_rparen, &pos);
-        cache_func_type_cv_qualifiers(cache, itf, locus);
-        cache_func_type_ref_qualifier(cache, itf, locus);
-        cache_func_type_noexcept_specifier(cache, itf, locus);
+        cache_token(cache, tok_rparen);
+        cache_func_type_cv_qualifiers(cache, itf);
+        cache_func_type_ref_qualifier(cache, itf);
+        cache_func_type_noexcept_specifier(cache, itf);
       }
       break;
     case ifc_ts_type_array:
@@ -14654,12 +14682,12 @@ this is needed.
 
         an_ifc_type_array ita = *opt_ita;
         an_ifc_expr_index extent = get_ifc_extent(ita);
-        cache_token(cache, tok_lbracket, &pos);
+        cache_token(cache, tok_lbracket);
         if (!is_null_index(extent)) {
           cache_expr(cache, extent, /*cinfo=*/{});
         }  /* if */
-        cache_token(cache, tok_rbracket, &pos);
-        cache_type_second_part(cache, get_ifc_element(ita), locus);
+        cache_token(cache, tok_rbracket);
+        cache_type_second_part(cache, get_ifc_element(ita));
       }
       break;
     case ifc_ts_type_qualified:
@@ -14669,7 +14697,7 @@ this is needed.
         if (!opt_itq.has_value()) {
           goto invalid;
         }  /* if */
-        cache_type_second_part(cache, get_ifc_unqualified(*opt_itq), locus);
+        cache_type_second_part(cache, get_ifc_unqualified(*opt_itq));
       }
       break;
     case ifc_ts_type_expansion:
@@ -14679,7 +14707,7 @@ this is needed.
         if (!opt_ite.has_value()) {
           goto invalid;
         }  /* if */
-        cache_type_second_part(cache, get_ifc_pack(*opt_ite), locus);
+        cache_type_second_part(cache, get_ifc_pack(*opt_ite));
       }
       break;
     case ifc_ts_type_fundamental:
@@ -14711,36 +14739,33 @@ done:;
 
 
 void an_ifc_module::cache_type(a_module_token_cache_ptr     cache,
-                               an_ifc_type_index            type,
-                               const an_ifc_source_location &locus)
+                               an_ifc_type_index            type)
 /*
-Add the tokens to cache corresponding to the given type.  locus is the source
-location of the entity referring to the type.  This routine should only be
-called when there is no identifier portion involved and therefore both the
-preceding and following portions of the type can be immediately cached.  If
+Add the tokens to cache corresponding to the given type.  This routine should
+only be called when there is no identifier portion involved and therefore both
+the preceding and following portions of the type can be immediately cached.  If
 there is an identifier portion involved, cache_type_first_part and
 cache_type_second_part should be used instead.
 */
 {
-  cache_type_first_part(cache, type, locus);
-  cache_type_second_part(cache, type, locus);
+  cache_type_first_part(cache, type);
+  cache_type_second_part(cache, type);
 }  /* cache_type */
 
 
 void an_ifc_module::cache_chart(a_module_token_cache_ptr cache,
                                 an_ifc_chart_index       chart,
-                                a_source_position_ptr    pos,
                                 const an_ifc_cache_info  &cinfo)
 /*
 Add the tokens corresponding to the given chart to cache.  The caller is
-expected to have already cached the "template" keyword if it's required.  pos
-is the position of the chart.  cinfo contains information about the current
-cache context to help inform decisions about what to cache.
+expected to have already cached the "template" keyword if it's required.  cinfo
+contains information about the current cache context to help inform decisions
+about what to cache.
 */
 {
   an_ifc_expr_index constraint = {};
 
-  cache_token(cache, tok_lt, pos);
+  cache_token(cache, tok_lt);
   switch (chart.sort) {
     case ifc_cs_chart_none:
       /* No arguments to the template (i.e., specialization). */
@@ -14761,7 +14786,7 @@ cache context to help inform decisions about what to cache.
             goto invalid;
           }  /* if */
           if (!first) {
-            cache_token(cache, tok_comma, pos);
+            cache_token(cache, tok_comma);
           }  /* if */
           if (!cache_direct_decl(cache, *indexed_idp, cinfo)) {
             goto invalid;
@@ -14782,7 +14807,7 @@ cache context to help inform decisions about what to cache.
         a_boolean                 first = TRUE;
         for (an_Indexed<an_ifc_decl_temploid> indexed_idt : traverser) {
           if (!first) {
-            cache_token(cache, tok_comma, pos);
+            cache_token(cache, tok_comma);
           }  /* if */
           /* FIXME: Is this correct? */
           if (!cache_direct_decl(cache, *indexed_idt, cinfo)) {
@@ -14794,7 +14819,7 @@ cache context to help inform decisions about what to cache.
       break;
     default_is_unexpected_str("Unexpected ChartSort");
   }  /* switch */
-  cache_token(cache, tok_gt, pos);
+  cache_token(cache, tok_gt);
   if (!is_null_index(constraint)) {
     /* The template parameter list is followed by a requires-clause. */
     cache_expr(cache, constraint, cinfo);
@@ -14807,50 +14832,30 @@ done:;
 }  /* cache_chart */
 
 
-void an_ifc_module::cache_chart(a_module_token_cache_ptr     cache,
-                                an_ifc_chart_index           chart,
-                                const an_ifc_source_location &locus,
-                                const an_ifc_cache_info      &cinfo)
-/*
-Add the tokens corresponding to the given chart to cache.  The caller is
-expected to have already cached the "template" keyword if it's required.  locus
-is the location of the chart.  cinfo contains information about the current
-cache context to help inform decisions about what to cache.
-*/
-{
-  a_source_position pos;
-
-  source_position_from_locus(&pos, locus);
-  cache_chart(cache, chart, &pos, cinfo);
-}  /* cache_chart */
-
-
 void an_ifc_module::cache_operator(a_module_token_cache_ptr     cache,
-                                   an_ifc_operator_category     op,
-                                   const an_ifc_source_location &locus)
+                                   an_ifc_operator_category     op)
 /*
-Add the tokens corresponding to the given Operator to cache.  locus is the
-location of the operator.
+Add the tokens corresponding to the given Operator to cache.
 */
 {
   switch (op.sort) {
     case ifc_os_dyadic_operator:
-      cache_operator(cache, op.variant.dyadic_operator, locus);
+      cache_operator(cache, op.variant.dyadic_operator);
       break;
     case ifc_os_monadic_operator:
-      cache_operator(cache, op.variant.monadic_operator, locus);
+      cache_operator(cache, op.variant.monadic_operator);
       break;
     case ifc_os_niladic_operator:
-      cache_operator(cache, op.variant.niladic_operator, locus);
+      cache_operator(cache, op.variant.niladic_operator);
       break;
     case ifc_os_storage_instruction_operator:
-      cache_operator(cache, op.variant.storage_instruction_operator, locus);
+      cache_operator(cache, op.variant.storage_instruction_operator);
       break;
     case ifc_os_triadic_operator:
-      cache_operator(cache, op.variant.triadic_operator, locus);
+      cache_operator(cache, op.variant.triadic_operator);
       break;
     case ifc_os_variadic_operator:
-      cache_operator(cache, op.variant.variadic_operator, locus);
+      cache_operator(cache, op.variant.variadic_operator);
       break;
     default_is_unexpected_str("Unexpected OperatorSort");
   }  /* switch */
@@ -14860,16 +14865,11 @@ location of the operator.
 /*lint -e2707*/ /* Remove when the routine returns to its caller. */
 /* Remove ARG_UNUSED as well. */
 void an_ifc_module::cache_operator(ARG_UNUSED a_module_token_cache_ptr cache,
-                                   an_ifc_niladic_operator_sort        op,
-                                   const an_ifc_source_location        &locus)
+                                   an_ifc_niladic_operator_sort        op)
 /*
-Add the tokens corresponding to the given Niladic Operator to cache.  locus is
-the location of the operator.
+Add the tokens corresponding to the given Niladic Operator to cache.
 */
 {
-  a_source_position pos;
-
-  source_position_from_locus(&pos, locus);
   switch (op) {
     case ifc_nos_unknown:
     case ifc_nos_msvc:
@@ -14897,16 +14897,11 @@ done:;
 
 
 void an_ifc_module::cache_operator(a_module_token_cache_ptr     cache,
-                                   an_ifc_monadic_operator_sort op,
-                                   const an_ifc_source_location &locus)
+                                   an_ifc_monadic_operator_sort op)
 /*
-Add the tokens corresponding to the given Monadic Operator to cache.  locus is
-the location of the operator.
+Add the tokens corresponding to the given Monadic Operator to cache.
 */
 {
-  a_source_position pos;
-
-  source_position_from_locus(&pos, locus);
   switch (op) {
     case ifc_mos_unknown:
     case ifc_mos_msvc:
@@ -14917,34 +14912,34 @@ the location of the operator.
       }
       goto invalid;
     case ifc_mos_plus:
-      cache_token(cache, tok_plus, &pos);
+      cache_token(cache, tok_plus);
       break;
     case ifc_mos_negate:
-      cache_token(cache, tok_minus, &pos);
+      cache_token(cache, tok_minus);
       break;
     case ifc_mos_deref:
-      cache_token(cache, tok_star, &pos);
+      cache_token(cache, tok_star);
       break;
     case ifc_mos_address:
-      cache_token(cache, tok_ampersand, &pos);
+      cache_token(cache, tok_ampersand);
       break;
     case ifc_mos_complement:
-      cache_token(cache, tok_compl, &pos);
+      cache_token(cache, tok_compl);
       break;
     case ifc_mos_not:
-      cache_token(cache, tok_not, &pos);
+      cache_token(cache, tok_not);
       break;
     case ifc_mos_pre_increment:
-      cache_token(cache, tok_plus_plus, &pos);
+      cache_token(cache, tok_plus_plus);
       break;
     case ifc_mos_pre_decrement:
-      cache_token(cache, tok_minus_minus, &pos);
+      cache_token(cache, tok_minus_minus);
       break;
     case ifc_mos_post_increment:
-      cache_token(cache, tok_plus_plus, &pos);
+      cache_token(cache, tok_plus_plus);
       break;
     case ifc_mos_post_decrement:
-      cache_token(cache, tok_minus_minus, &pos);
+      cache_token(cache, tok_minus_minus);
       break;
     case ifc_mos_truncate:
     case ifc_mos_ceil:
@@ -14956,52 +14951,52 @@ the location of the operator.
                                         &error_position);
       goto invalid;
     case ifc_mos_alignas:
-      cache_token(cache, tok_alignas, &pos);
+      cache_token(cache, tok_alignas);
       break;
     case ifc_mos_alignof:
-      cache_token(cache, tok_alignof, &pos);
+      cache_token(cache, tok_alignof);
       break;
     case ifc_mos_sizeof:
-      cache_token(cache, tok_sizeof, &pos);
+      cache_token(cache, tok_sizeof);
       break;
     case ifc_mos_cardinality:
-      cache_token(cache, tok_sizeof, &pos);
-      cache_token(cache, tok_ellipsis, &pos);
+      cache_token(cache, tok_sizeof);
+      cache_token(cache, tok_ellipsis);
       break;
     case ifc_mos_typeid:
-      cache_token(cache, tok_typeid, &pos);
+      cache_token(cache, tok_typeid);
       break;
     case ifc_mos_noexcept:
-      cache_token(cache, tok_noexcept, &pos);
+      cache_token(cache, tok_noexcept);
       break;
     case ifc_mos_requires:
-      cache_token(cache, tok_requires, &pos);
+      cache_token(cache, tok_requires);
       break;
     case ifc_mos_co_return:
-      cache_token(cache, tok_coroutine_return, &pos);
+      cache_token(cache, tok_coroutine_return);
       break;
     case ifc_mos_await:
-      cache_token(cache, tok_coroutine_await, &pos);
+      cache_token(cache, tok_coroutine_await);
       break;
     case ifc_mos_yield:
-      cache_token(cache, tok_coroutine_yield, &pos);
+      cache_token(cache, tok_coroutine_yield);
       break;
     case ifc_mos_throw:
-      cache_token(cache, tok_throw, &pos);
+      cache_token(cache, tok_throw);
       break;
     case ifc_mos_new:
-      cache_token(cache, tok_new, &pos);
+      cache_token(cache, tok_new);
       break;
     case ifc_mos_delete:
-      cache_token(cache, tok_delete, &pos);
+      cache_token(cache, tok_delete);
       break;
     case ifc_mos_delete_array:
-      cache_token(cache, tok_delete, &pos);
-      cache_token(cache, tok_lbracket, &pos);
-      cache_token(cache, tok_rbracket, &pos);
+      cache_token(cache, tok_delete);
+      cache_token(cache, tok_lbracket);
+      cache_token(cache, tok_rbracket);
       break;
     case ifc_mos_expand:
-      cache_token(cache, tok_ellipsis, &pos);
+      cache_token(cache, tok_ellipsis);
       break;
     case ifc_mos_read:
       /* FIXME: Currently unsupported. */
@@ -15020,31 +15015,31 @@ the location of the operator.
                                         &error_position);
       goto invalid;
     case ifc_mos_msvc_assume:
-      cache_token(cache, tok_assume, &pos);
+      cache_token(cache, tok_assume);
       break;
     case ifc_mos_msvc_alignof:
-      cache_token(cache, tok_alignof, &pos);
+      cache_token(cache, tok_alignof);
       break;
     case ifc_mos_msvc_uuidof:
-      cache_token(cache, tok_uuidof, &pos);
+      cache_token(cache, tok_uuidof);
       break;
     case ifc_mos_msvc_is_class:
-      cache_token(cache, tok_is_class, &pos);
+      cache_token(cache, tok_is_class);
       break;
     case ifc_mos_msvc_is_union:
-      cache_token(cache, tok_is_union, &pos);
+      cache_token(cache, tok_is_union);
       break;
     case ifc_mos_msvc_is_enum:
-      cache_token(cache, tok_is_enum, &pos);
+      cache_token(cache, tok_is_enum);
       break;
     case ifc_mos_msvc_is_polymorphic:
-      cache_token(cache, tok_is_polymorphic, &pos);
+      cache_token(cache, tok_is_polymorphic);
       break;
     case ifc_mos_msvc_is_empty:
-      cache_token(cache, tok_is_empty, &pos);
+      cache_token(cache, tok_is_empty);
       break;
     case ifc_mos_lookup_globally:
-      cache_token(cache, tok_colon_colon, &pos);
+      cache_token(cache, tok_colon_colon);
       break;
     case ifc_mos_msvc_is_trivially_copy_constructible:
       /* FIXME: Currently unsupported. */
@@ -15054,13 +15049,13 @@ the location of the operator.
                            &error_position);
       goto invalid;
     case ifc_mos_msvc_is_trivially_copy_assignable:
-      cache_token(cache, tok_is_trivially_copy_assignable, &pos);
+      cache_token(cache, tok_is_trivially_copy_assignable);
       break;
     case ifc_mos_msvc_is_trivially_destructible:
-      cache_token(cache, tok_is_trivially_destructible, &pos);
+      cache_token(cache, tok_is_trivially_destructible);
       break;
     case ifc_mos_msvc_has_virtual_destructor:
-      cache_token(cache, tok_has_virtual_destructor, &pos);
+      cache_token(cache, tok_has_virtual_destructor);
       break;
     case ifc_mos_msvc_is_nothrow_copy_constructible:
       /* FIXME: Currently unsupported. */
@@ -15077,22 +15072,22 @@ the location of the operator.
                                 &error_position);
       goto invalid;
     case ifc_mos_msvc_is_pod:
-      cache_token(cache, tok_is_pod, &pos);
+      cache_token(cache, tok_is_pod);
       break;
     case ifc_mos_msvc_is_abstract:
-      cache_token(cache, tok_is_abstract, &pos);
+      cache_token(cache, tok_is_abstract);
       break;
     case ifc_mos_msvc_is_trivial:
-      cache_token(cache, tok_is_trivial, &pos);
+      cache_token(cache, tok_is_trivial);
       break;
     case ifc_mos_msvc_is_trivially_copyable:
-      cache_token(cache, tok_is_trivially_copyable, &pos);
+      cache_token(cache, tok_is_trivially_copyable);
       break;
     case ifc_mos_msvc_is_standard_layout:
-      cache_token(cache, tok_is_standard_layout, &pos);
+      cache_token(cache, tok_is_standard_layout);
       break;
     case ifc_mos_msvc_is_literal_type:
-      cache_token(cache, tok_is_literal_type, &pos);
+      cache_token(cache, tok_is_literal_type);
       break;
     case ifc_mos_msvc_is_trivially_move_constructible:
       /* FIXME: Currently unsupported. */
@@ -15102,7 +15097,7 @@ the location of the operator.
                            &error_position);
       goto invalid;
     case ifc_mos_msvc_has_trivial_move_assign:
-      cache_token(cache, tok_has_trivial_move_assign, &pos);
+      cache_token(cache, tok_has_trivial_move_assign);
       break;
     case ifc_mos_msvc_is_trivially_move_assignable:
       /* FIXME: Currently unsupported. */
@@ -15119,61 +15114,61 @@ the location of the operator.
                                 &error_position);
       goto invalid;
     case ifc_mos_msvc_underlying_type:
-      cache_token(cache, tok_underlying_type, &pos);
+      cache_token(cache, tok_underlying_type);
       break;
     case ifc_mos_msvc_is_destructible:
-      cache_token(cache, tok_is_destructible, &pos);
+      cache_token(cache, tok_is_destructible);
       break;
     case ifc_mos_msvc_is_nothrow_destructible:
-      cache_token(cache, tok_is_nothrow_destructible, &pos);
+      cache_token(cache, tok_is_nothrow_destructible);
       break;
     case ifc_mos_msvc_has_unique_object_representations:
-      cache_token(cache, tok_has_unique_object_representations, &pos);
+      cache_token(cache, tok_has_unique_object_representations);
       break;
     case ifc_mos_msvc_is_aggregate:
-      cache_token(cache, tok_is_aggregate, &pos);
+      cache_token(cache, tok_is_aggregate);
       break;
     case ifc_mos_msvc_builtin_address_of:
-      cache_token(cache, tok_builtin_addressof, &pos);
+      cache_token(cache, tok_builtin_addressof);
       break;
     case ifc_mos_msvc_is_ref_class:
-      cache_token(cache, tok_is_ref_class, &pos);
+      cache_token(cache, tok_is_ref_class);
       break;
     case ifc_mos_msvc_is_value_class:
-      cache_token(cache, tok_is_value_class, &pos);
+      cache_token(cache, tok_is_value_class);
       break;
     case ifc_mos_msvc_is_simple_value_class:
-      cache_token(cache, tok_is_simple_value_class, &pos);
+      cache_token(cache, tok_is_simple_value_class);
       break;
     case ifc_mos_msvc_is_interface_class:
-      cache_token(cache, tok_is_interface_class, &pos);
+      cache_token(cache, tok_is_interface_class);
       break;
     case ifc_mos_msvc_is_delegate:
-      cache_token(cache, tok_is_delegate, &pos);
+      cache_token(cache, tok_is_delegate);
       break;
     case ifc_mos_msvc_is_final:
-      cache_token(cache, tok_is_final, &pos);
+      cache_token(cache, tok_is_final);
       break;
     case ifc_mos_msvc_is_sealed:
-      cache_token(cache, tok_is_sealed, &pos);
+      cache_token(cache, tok_is_sealed);
       break;
     case ifc_mos_msvc_has_finalizer:
-      cache_token(cache, tok_has_finalizer, &pos);
+      cache_token(cache, tok_has_finalizer);
       break;
     case ifc_mos_msvc_has_copy:
-      cache_token(cache, tok_has_copy, &pos);
+      cache_token(cache, tok_has_copy);
       break;
     case ifc_mos_msvc_has_assign:
-      cache_token(cache, tok_has_assign, &pos);
+      cache_token(cache, tok_has_assign);
       break;
     case ifc_mos_msvc_has_user_destructor:
-      cache_token(cache, tok_has_user_destructor, &pos);
+      cache_token(cache, tok_has_user_destructor);
       break;
     case ifc_mos_msvc_confused_expand:
-      cache_token(cache, tok_ellipsis, &pos);
+      cache_token(cache, tok_ellipsis);
       break;
     case ifc_mos_msvc_confused_dependent_sizeof:
-      cache_token(cache, tok_sizeof, &pos);
+      cache_token(cache, tok_sizeof);
       break;
     default_is_unexpected_str("Unexpected MonadicOperator");
   }  /* switch */
@@ -15186,16 +15181,11 @@ done:;
 
 
 void an_ifc_module::cache_operator(a_module_token_cache_ptr     cache,
-                                   an_ifc_dyadic_operator_sort  op,
-                                   const an_ifc_source_location &locus)
+                                   an_ifc_dyadic_operator_sort  op)
 /*
-Add the tokens corresponding to the given Dyadic Operator to cache.  locus is
-the location of the operator.
+Add the tokens corresponding to the given Dyadic Operator to cache.
 */
 {
-  a_source_position pos;
-
-  source_position_from_locus(&pos, locus);
   switch (op) {
     case ifc_dos_unknown:
     case ifc_dos_select:
@@ -15207,148 +15197,148 @@ the location of the operator.
       }
       goto invalid;
     case ifc_dos_plus:
-      cache_token(cache, tok_plus, &pos);
+      cache_token(cache, tok_plus);
       break;
     case ifc_dos_minus:
-      cache_token(cache, tok_minus, &pos);
+      cache_token(cache, tok_minus);
       break;
     case ifc_dos_mult:
-      cache_token(cache, tok_star, &pos);
+      cache_token(cache, tok_star);
       break;
     case ifc_dos_slash:
-      cache_token(cache, tok_divide, &pos);
+      cache_token(cache, tok_divide);
       break;
     case ifc_dos_modulo:
-      cache_token(cache, tok_remainder, &pos);
+      cache_token(cache, tok_remainder);
       break;
     case ifc_dos_remainder:
-      cache_token(cache, tok_remainder, &pos);
+      cache_token(cache, tok_remainder);
       break;
     case ifc_dos_bitand:
-      cache_token(cache, tok_ampersand, &pos);
+      cache_token(cache, tok_ampersand);
       break;
     case ifc_dos_bitor:
-      cache_token(cache, tok_or, &pos);
+      cache_token(cache, tok_or);
       break;
     case ifc_dos_bitxor:
-      cache_token(cache, tok_excl_or, &pos);
+      cache_token(cache, tok_excl_or);
       break;
     case ifc_dos_lshift:
-      cache_token(cache, tok_shift_left, &pos);
+      cache_token(cache, tok_shift_left);
       break;
     case ifc_dos_rshift:
-      cache_token(cache, tok_shift_right, &pos);
+      cache_token(cache, tok_shift_right);
       break;
     case ifc_dos_equal:
-      cache_token(cache, tok_eq, &pos);
+      cache_token(cache, tok_eq);
       break;
     case ifc_dos_not_equal:
-      cache_token(cache, tok_ne, &pos);
+      cache_token(cache, tok_ne);
       break;
     case ifc_dos_less:
-      cache_token(cache, tok_lt, &pos);
+      cache_token(cache, tok_lt);
       break;
     case ifc_dos_less_equal:
-      cache_token(cache, tok_le, &pos);
+      cache_token(cache, tok_le);
       break;
     case ifc_dos_greater:
-      cache_token(cache, tok_gt, &pos);
+      cache_token(cache, tok_gt);
       break;
     case ifc_dos_greater_equal:
-      cache_token(cache, tok_ge, &pos);
+      cache_token(cache, tok_ge);
       break;
     case ifc_dos_compare:
-      cache_token(cache, tok_spaceship, &pos);
+      cache_token(cache, tok_spaceship);
       break;
     case ifc_dos_logic_and:
-      cache_token(cache, tok_and_and, &pos);
+      cache_token(cache, tok_and_and);
       break;
     case ifc_dos_logic_or:
-      cache_token(cache, tok_or_or, &pos);
+      cache_token(cache, tok_or_or);
       break;
     case ifc_dos_assign:
-      cache_token(cache, tok_assign, &pos);
+      cache_token(cache, tok_assign);
       break;
     case ifc_dos_plus_assign:
-      cache_token(cache, tok_plus_assign, &pos);
+      cache_token(cache, tok_plus_assign);
       break;
     case ifc_dos_minus_assign:
-      cache_token(cache, tok_minus_assign, &pos);
+      cache_token(cache, tok_minus_assign);
       break;
     case ifc_dos_mult_assign:
-      cache_token(cache, tok_times_assign, &pos);
+      cache_token(cache, tok_times_assign);
       break;
     case ifc_dos_slash_assign:
-      cache_token(cache, tok_divide_assign, &pos);
+      cache_token(cache, tok_divide_assign);
       break;
     case ifc_dos_modulo_assign:
-      cache_token(cache, tok_remainder_assign, &pos);
+      cache_token(cache, tok_remainder_assign);
       break;
     case ifc_dos_bitand_assign:
-      cache_token(cache, tok_and_assign, &pos);
+      cache_token(cache, tok_and_assign);
       break;
     case ifc_dos_bitor_assign:
-      cache_token(cache, tok_or_assign, &pos);
+      cache_token(cache, tok_or_assign);
       break;
     case ifc_dos_bitxor_assign:
-      cache_token(cache, tok_excl_or_assign, &pos);
+      cache_token(cache, tok_excl_or_assign);
       break;
     case ifc_dos_lshift_assign:
-      cache_token(cache, tok_shift_left_assign, &pos);
+      cache_token(cache, tok_shift_left_assign);
       break;
     case ifc_dos_rshift_assign:
-      cache_token(cache, tok_shift_right_assign, &pos);
+      cache_token(cache, tok_shift_right_assign);
       break;
     case ifc_dos_comma:
-      cache_token(cache, tok_comma, &pos);
+      cache_token(cache, tok_comma);
       break;
     case ifc_dos_dot:
-      cache_token(cache, tok_period, &pos);
+      cache_token(cache, tok_period);
       break;
     case ifc_dos_arrow:
-      cache_token(cache, tok_arrow, &pos);
+      cache_token(cache, tok_arrow);
       break;
     case ifc_dos_dot_star:
-      cache_token(cache, tok_period_star, &pos);
+      cache_token(cache, tok_period_star);
       break;
     case ifc_dos_arrow_star:
-      cache_token(cache, tok_arrow_star, &pos);
+      cache_token(cache, tok_arrow_star);
       break;
     case ifc_dos_reinterpret_cast:
-      cache_token(cache, tok_reinterpret_cast, &pos);
+      cache_token(cache, tok_reinterpret_cast);
       break;
     case ifc_dos_static_cast:
-      cache_token(cache, tok_static_cast, &pos);
+      cache_token(cache, tok_static_cast);
       break;
     case ifc_dos_const_cast:
-      cache_token(cache, tok_const_cast, &pos);
+      cache_token(cache, tok_const_cast);
       break;
     case ifc_dos_dynamic_cast:
-      cache_token(cache, tok_dynamic_cast, &pos);
+      cache_token(cache, tok_dynamic_cast);
       break;
     case ifc_dos_msvc_builtin_offset_of:
-      cache_token(cache, tok_builtin_offsetof, &pos);
+      cache_token(cache, tok_builtin_offsetof);
       break;
     case ifc_dos_msvc_is_base_of:
-      cache_token(cache, tok_is_base_of, &pos);
+      cache_token(cache, tok_is_base_of);
       break;
     case ifc_dos_msvc_is_convertible_to:
-      cache_token(cache, tok_is_convertible_to, &pos);
+      cache_token(cache, tok_is_convertible_to);
       break;
     case ifc_dos_msvc_is_trivially_assignable:
-      cache_token(cache, tok_is_trivially_assignable, &pos);
+      cache_token(cache, tok_is_trivially_assignable);
       break;
     case ifc_dos_msvc_is_nothrow_assignable:
-      cache_token(cache, tok_is_nothrow_assignable, &pos);
+      cache_token(cache, tok_is_nothrow_assignable);
       break;
     case ifc_dos_msvc_is_assignable:
-      cache_token(cache, tok_is_assignable, &pos);
+      cache_token(cache, tok_is_assignable);
       break;
     case ifc_dos_msvc_is_assignable_nocheck:
-      cache_token(cache, tok_is_assignable_no_precondition_check, &pos);
+      cache_token(cache, tok_is_assignable_no_precondition_check);
       break;
     case ifc_dos_msvc_builtin_bit_cast:
-      cache_token(cache, tok_builtin_bit_cast, &pos);
+      cache_token(cache, tok_builtin_bit_cast);
       break;
     case ifc_dos_curry:
     case ifc_dos_apply:
@@ -15400,22 +15390,17 @@ done:;
 
 
 void an_ifc_module::cache_operator(a_module_token_cache_ptr     cache,
-                                   an_ifc_triadic_operator_sort op,
-                                   const an_ifc_source_location &locus)
+                                   an_ifc_triadic_operator_sort op)
 /*
-Add the tokens corresponding to the given Triadic Operator to cache.  locus is
-the location of the operator.
+Add the tokens corresponding to the given Triadic Operator to cache.
 */
 {
-  a_source_position pos;
-
-  source_position_from_locus(&pos, locus);
   switch (op) {
     case ifc_tos_choice:
-      cache_token(cache, tok_quest_mark, &pos);
+      cache_token(cache, tok_quest_mark);
       break;
     case ifc_tos_construct_at:
-      cache_token(cache, tok_new, &pos);
+      cache_token(cache, tok_new);
       break;
     case ifc_tos_unknown:
     case ifc_tos_initialize:
@@ -15439,17 +15424,12 @@ done:;
 /*lint -e2707*/ /* Remove when the routine returns to its caller. */
 /* Remove ARG_UNUSED as well. */
 void an_ifc_module::cache_operator(
-                               ARG_UNUSED a_module_token_cache_ptr      cache,
-                               an_ifc_storage_instruction_operator_sort op,
-                               const an_ifc_source_location             &locus)
+                                ARG_UNUSED a_module_token_cache_ptr      cache,
+                                an_ifc_storage_instruction_operator_sort op)
 /*
-Add the tokens corresponding to the given Storage Operator to cache.  locus is
-the location of the operator.
+Add the tokens corresponding to the given Storage Operator to cache.
 */
 {
-  a_source_position pos;
-
-  source_position_from_locus(&pos, locus);
   switch (op) {
     case ifc_sios_unknown:
     case ifc_sios_msvc:
@@ -15476,16 +15456,11 @@ done:;
 
 
 void an_ifc_module::cache_operator(a_module_token_cache_ptr      cache,
-                                   an_ifc_variadic_operator_sort op,
-                                   const an_ifc_source_location  &locus)
+                                   an_ifc_variadic_operator_sort op)
 /*
-Add the tokens corresponding to the given Variadic Operator to cache.  locus is
-the location of the operator.
+Add the tokens corresponding to the given Variadic Operator to cache.
 */
 {
-  a_source_position pos;
-
-  source_position_from_locus(&pos, locus);
   switch (op) {
     case ifc_vos_unknown:
     case ifc_vos_msvc:
@@ -15495,16 +15470,16 @@ the location of the operator.
       }
       goto invalid;
     case ifc_vos_msvc_has_trivial_constructor:
-      cache_token(cache, tok_has_trivial_constructor, &pos);
+      cache_token(cache, tok_has_trivial_constructor);
       break;
     case ifc_vos_msvc_is_constructible:
-      cache_token(cache, tok_is_constructible, &pos);
+      cache_token(cache, tok_is_constructible);
       break;
     case ifc_vos_msvc_is_nothrow_constructible:
-      cache_token(cache, tok_is_nothrow_constructible, &pos);
+      cache_token(cache, tok_is_nothrow_constructible);
       break;
     case ifc_vos_msvc_is_trivially_constructible:
-      cache_token(cache, tok_is_trivially_constructible, &pos);
+      cache_token(cache, tok_is_trivially_constructible);
       break;
     case ifc_vos_collection:
     case ifc_vos_sequence:
@@ -15532,61 +15507,55 @@ inline void an_ifc_module::cache_variable_decl(
                             an_ifc_type_index                type,
                             a_Name_Cache_Fn                  cache_name_fn,
                             an_ifc_expr_index                width,
-                            an_Init_Cache_Fn                 cache_init_fn,
-                            const an_ifc_source_location     &locus)
+                            an_Init_Cache_Fn                 cache_init_fn)
 /*
 Add the tokens corresponding to the given variable declaration (indexed in the
 IFC by decl_idx) to cache.  is_data_member is TRUE if this is a non-static data
 member of a class.  specifiers, traits, alignment, and type are values from the
 IFC file that describe the variable declaration.  cache_name_fn is a lambda
-accepting a_source_position_ptr interpretation of locus that's called to cache
-the name of the variable.  If width is not zero, this is a bitfield and width
-is its size.  cache_init_fn is a lambda accepting a_source_position_ptr
-interpretation of locus that's called to cache the variable initializer (if
-any).  locus is the source location for the declaration.
+that's called to cache the name of the variable.  If width is not zero, this is
+a bitfield and width is its size.  cache_init_fn is a lambda that's called to
+cache the variable initializer (if any).
 
 FIXME: Remove this version of cache_variable_decl once names can be cached
 properly for specializations using a NameIndex, and similarly the variable's
 initializer can be consistently cached via a ScopeIndex.
 */
 {
-  a_source_position pos;
-  a_boolean         decl_in_class =
-                                  is_class_scope(get_ifc_home_scope(decl_idx));
+  a_boolean decl_in_class = is_class_scope(get_ifc_home_scope(decl_idx));
 
-  source_position_from_locus(&pos, locus);
   /* Cache tokens for MSVC "basic specifiers" (at the time of writing this
      includes extern "C" and [[deprecated]]). */
-  /* FIXME: Because we cache attributes properly now, this can result in two
-     deprecated attributes. */
-  cache_basic_specifiers(cache, specifiers, &pos);
   /* Cache any associated attributes. */
   cache_attrs(cache, decl_idx);
+  /* FIXME: Because we cache attributes properly now, this can result in two
+     deprecated attributes. */
+  cache_basic_specifiers(cache, specifiers);
   if (!is_data_member && decl_in_class) {
     /* This is a static data member. */
-    cache_token(cache, tok_static, &pos);
+    cache_token(cache, tok_static);
   }  /* if */
   /* Cache the alignment if specified. */
   if (!is_null_index(alignment)) {
-    cache_token(cache, tok_alignas, &pos);
-    cache_token(cache, tok_lparen, &pos);
+    cache_token(cache, tok_alignas);
+    cache_token(cache, tok_lparen);
     cache_expr(cache, alignment, /*cinfo=*/{});
-    cache_token(cache, tok_rparen, &pos);
+    cache_token(cache, tok_rparen);
   }  /* if */
   /* Cache the "object traits", roughly an MSVC subset of the
      decl-specifier-seq. */
-  cache_object_traits(cache, traits, &pos);
+  cache_object_traits(cache, traits);
   /* Cache the name surrounded by the respective type qualifiers. */
-  cache_type_first_part(cache, type, locus);
-  cache_name_fn(&pos);
-  cache_type_second_part(cache, type, locus);
+  cache_type_first_part(cache, type);
+  cache_name_fn();
+  cache_type_second_part(cache, type);
   /* Cache the variable with if any. */
   if (!is_null_index(width)) {
-    cache_token(cache, tok_colon, &pos);
+    cache_token(cache, tok_colon);
     cache_expr(cache, width, /*cinfo=*/{});
   }  /* if */
   /* Cache the initializer (if any). */
-  cache_init_fn(&pos);
+  cache_init_fn();
 }  /* cache_variable_decl */
 
 
@@ -15601,8 +15570,7 @@ void an_ifc_module::cache_variable_decl(
                               an_ifc_name_index                name,
                               an_ifc_text_offset               raw_name,
                               an_ifc_expr_index                width,
-                              an_ifc_expr_index                initializer,
-                              const an_ifc_source_location     &locus)
+                              an_ifc_expr_index                initializer)
 /*
 Add the tokens corresponding to the given variable declaration (indexed in the
 IFC by decl_idx) to cache.  is_data_member is TRUE if this is a non-static data
@@ -15611,22 +15579,20 @@ IFC file that describe the variable declaration.  Both name and raw_name
 provide the name of the variable - if name is zero, raw_name must be non-zero.
 If width is not zero, this is a bitfield and width is its size.  If the
 variable has an initializer then initializer is non-zero and refers to the
-initializer expression.  locus is the source location for the declaration.
+initializer expression.
 */
 {
-  auto cache_name_fn = [this, cache, name, raw_name, locus](
-                                                   a_source_position_ptr pos) {
+  auto cache_name_fn = [this, cache, name, raw_name]() {
     if (is_null_index(name)) {
       check_assertion(raw_name != 0);
-      cache_identifier(cache, get_string_at_offset(raw_name), pos);
+      cache_identifier(cache, get_string_at_offset(raw_name));
     } else {
-      cache_name(cache, name, locus);
+      cache_name(cache, name);
     }  /* if */
   };
 
   if (is_class_scope(get_ifc_home_scope(decl_idx))) {
-    auto cache_class_mem_init_fn =
-                              [cache, initializer](a_source_position_ptr pos) {
+    auto cache_class_mem_init_fn = [cache, initializer]() {
       if (!is_null_index(initializer)) {
         /* This is an initializer for a member variable of a class.  This is
            already stored in the object file associated with the module TU, and
@@ -15634,41 +15600,39 @@ initializer expression.  locus is the source location for the declaration.
            a constant expression.  These initializers may include recursive
            self-references.  Cache a special pseudo-token to indicate that such
            an initializer exists, along with its constant value. */
-        cache_token_with_index(cache, tok_pending_ifc_var_init, initializer,
-                               pos);
+        cache_token_with_index(cache, tok_pending_ifc_var_init, initializer);
       }  /* if */
-      cache_token(cache, tok_semicolon, pos);
+      cache_token(cache, tok_semicolon);
     };
 
     cache_variable_decl(cache, decl_idx, is_data_member, specifiers, traits,
                         alignment, type, cache_name_fn, width,
-                        cache_class_mem_init_fn, locus);
+                        cache_class_mem_init_fn);
   } else {
-    auto cache_init_fn =
-                        [this, cache, initializer](a_source_position_ptr pos) {
+    auto cache_init_fn = [this, cache, initializer]() {
       if (!is_null_index(initializer)) {
         /* An initializer where the type is ExprSort::Tokens will have the
            braces included as part of the token stream. */
         a_boolean cache_braces = initializer.sort != ifc_es_expr_tokens;
         if (cache_braces) {
-          cache_token(cache, tok_lbrace, pos);
+          cache_token(cache, tok_lbrace);
         }  /* if */
         cache_expr(cache, initializer, /*cinfo=*/{});
         if (cache_braces) {
-          cache_token(cache, tok_rbrace, pos);
+          cache_token(cache, tok_rbrace);
         }  /* if */
       }  /* if */
       if (cache->get_last_token()->token != tok_semicolon) {
         /* Add a terminating semicolon, unless one was already added (which can
            happen when the initializer cached by cache_expr above is of kind
            ifc_ExprSort_Tokens). */
-        cache_token(cache, tok_semicolon, pos);
+        cache_token(cache, tok_semicolon);
       }  /* if */
     };
 
     cache_variable_decl(cache, decl_idx, is_data_member, specifiers, traits,
                         alignment, type, cache_name_fn, width,
-                        cache_init_fn, locus);
+                        cache_init_fn);
   }  /* if */
 }  /* cache_variable_decl */
 
@@ -15728,12 +15692,11 @@ offset/the offset is not needed.
 {
   an_ifc_parameterized_entity entity = get_ifc_entity(decl);
   an_ifc_source_location      locus = get_ifc_locus(decl);
-  a_source_position           pos;
+  an_ifc_source_position_hint pos_hint(cache, locus);
   uint32_t                    offset = 0;
 
-  source_position_from_locus(&pos, locus);
   /* Reconstruct the template-head. */
-  cache_template_head(cache, get_ifc_chart(decl), &pos, cinfo);
+  cache_template_head(cache, get_ifc_chart(decl), cinfo);
   /* FIXME: Handle attributes. */
 
   an_ifc_type_index type_index = get_ifc_type(decl);
@@ -15744,9 +15707,9 @@ offset/the offset is not needed.
     an_ifc_name_index     name = get_ifc_name(decl);
     an_ifc_sentence_index body = get_ifc_body(entity);
 
-    cache_type(cache, type_index, locus);
+    cache_type(cache, type_index);
     offset = try_cache_class_attributes_from_body(cache, body);
-    cache_name(cache, name, locus);
+    cache_name(cache, name);
   } else {
     /* Function or variable template. */
     /* FIXME: Cache the entity corresponding to decl->entity.decl instead.
@@ -15755,7 +15718,7 @@ offset/the offset is not needed.
     cache_sentence(cache, get_ifc_head(entity));
   }  /* if */
   if (!cinfo.no_final_semicolon) {
-    cache_token(cache, tok_semicolon, &pos);
+    cache_token(cache, tok_semicolon);
   }  /* if */
   return offset;
 }  /* cache_decl_template_declaration */
@@ -15785,45 +15748,38 @@ decisions about what to cache.
 }  /* cache_decl_template */
 
 
-static void cache_template_argument_list(an_ifc_module                *mod,
-                                         a_module_token_cache_ptr     cache,
-                                         an_ifc_form_spec_index       form_idx,
-                                         const an_ifc_source_location &locus)
+static void cache_template_argument_list(a_module_token_cache_ptr cache,
+                                         an_ifc_form_spec_index   form_idx)
 /*
 Add the tokens for the portion of a simple-template-id following the
 template-name (i.e., '<' template-argument-listopt '>') via the associated form
-spec (form_idx) to the cache.  locus is the location of the simple-template-id.
-mod is the module where the form_idx and locus were encoded.
+spec (form_idx) to the cache.
 */
 {
-  a_source_position pos;
-
-  mod->source_position_from_locus(&pos, locus);
-  cache_token(cache, tok_lt, &pos);
+  cache_token(cache, tok_lt);
 
   /* Load the argument list from the specialization form. */
   Opt<an_ifc_form_spec> opt_ifs;
   construct_node(&opt_ifs, form_idx);
   if (opt_ifs.has_value()) {
-    mod->cache_expr(cache, get_ifc_arguments(*opt_ifs), /*cinfo=*/{});
+    an_ifc_expr_index arg_expr_idx = get_ifc_arguments(*opt_ifs);
+
+    arg_expr_idx.mod->cache_expr(cache, arg_expr_idx, /*cinfo=*/{});
   }  /* if */
-  cache_token(cache, tok_gt, &pos);
+  cache_token(cache, tok_gt);
 }  /* cache_template_argument_list */
 
 
 template<typename an_ifc_Node_type>
-static void cache_simple_template_id(an_ifc_module                *mod,
-                                     a_module_token_cache_ptr     cache,
-                                     const an_ifc_Node_type       &decl,
-                                     const an_ifc_source_location &locus)
+static void cache_simple_template_id(a_module_token_cache_ptr cache,
+                                     const an_ifc_Node_type   &decl)
 /*
 Add the tokens for a simple-template-id via the associated decl to the cache.
-locus is the location of the simple-template-id.  mod is the module where the
-decl and locus were encoded.
+locus is the location of the simple-template-id.
 */
 {
-  EDG_PREFIX::cache_name(cache, get_ifc_name(decl), locus);
-  cache_template_argument_list(mod, cache, get_ifc_form(decl), locus);
+  EDG_PREFIX::cache_name(cache, get_ifc_name(decl));
+  cache_template_argument_list(cache, get_ifc_form(decl));
 }  /* cache_simple_template_id */
 
 
@@ -15867,17 +15823,19 @@ Add the tokens corresponding to the given partial specialization declaration
 (decl indexed in the IFC by decl_idx) to cache.
 */
 {
-  an_ifc_decl_index templated_decl_idx = get_ifc_decl(get_ifc_entity(decl));
-  a_source_position pos;
+  an_ifc_decl_index           templated_decl_idx =
+                                            get_ifc_decl(get_ifc_entity(decl));
+  an_ifc_source_location      locus = get_ifc_locus(decl);
+  an_ifc_source_position_hint pos_hint(cache, locus);
 
-  source_position_from_locus(&pos, get_ifc_locus(decl));
   /* Reconstruct the template-head. */
-  cache_template_head(cache, get_ifc_chart(decl), &pos, /*cinfo=*/{});
+  cache_template_head(cache, get_ifc_chart(decl), /*cinfo=*/{});
   /* Reconstruct the declaration. */
   /* FIXME: Eventually this entire block should be replaceable by a cache_decl
      call (due to problems in the IFC -- namely the templated decl having a
      mangled NameSort Identifier name instead of a NameSort Specialization --
      this is not yet possible). */
+  an_ifc_source_position_hint ent_pos_hint(cache, templated_decl_idx);
   switch (templated_decl_idx.sort) {
     case ifc_ds_decl_scope:
       { /* We're reconstructing a class. */
@@ -15893,12 +15851,10 @@ Add the tokens corresponding to the given partial specialization declaration
           goto invalid;
         }  /* if */
         /* Reconstruct the templated declaration. */
-        auto cache_name_fn = [this, cache, &decl, &ids](
-                                              a_source_position_ptr decl_pos) {
-          cache_simple_template_id(this, cache, decl, get_ifc_locus(ids));
+        auto cache_name_fn = [cache, &decl]() {
+          cache_simple_template_id(cache, decl);
         };
-        auto cache_scope_fn = [this, cache, &decl](
-                                              a_source_position_ptr decl_pos) {
+        auto cache_scope_fn = [this, cache, &decl]() {
           an_ifc_sentence_index body = get_ifc_body(get_ifc_entity(decl));
 
           if (body != 0) {
@@ -15907,7 +15863,7 @@ Add the tokens corresponding to the given partial specialization declaration
           }  /* if */
         };
         cache_scope_decl(cache, decl_idx, get_ifc_type(ids), cache_name_fn,
-                         cache_scope_fn, get_ifc_locus(ids));
+                         cache_scope_fn);
       }
       break;
     case ifc_ds_decl_variable:
@@ -15921,12 +15877,10 @@ Add the tokens corresponding to the given partial specialization declaration
 
         /* Reconstruct the templated declaration. */
         an_ifc_decl_variable idv = *opt_idv;
-        auto cache_name_fn = [this, cache, &decl, &idv](
-                                              a_source_position_ptr decl_pos) {
-          cache_simple_template_id(this, cache, decl, get_ifc_locus(idv));
+        auto cache_name_fn = [cache, &decl]() {
+          cache_simple_template_id(cache, decl);
         };
-        auto cache_init_fn = [this, cache, &decl](
-                                              a_source_position_ptr decl_pos) {
+        auto cache_init_fn = [this, cache, &decl]() {
           an_ifc_sentence_index body = get_ifc_body(get_ifc_entity(decl));
 
           if (body != 0) {
@@ -15938,8 +15892,7 @@ Add the tokens corresponding to the given partial specialization declaration
         cache_variable_decl(cache, decl_idx, /*is_data_member=*/FALSE,
                             get_ifc_specifiers(idv), get_ifc_traits(idv),
                             get_ifc_alignment(idv), get_ifc_type(idv),
-                            cache_name_fn, an_ifc_expr_index{}, cache_init_fn,
-                            get_ifc_locus(idv));
+                            cache_name_fn, an_ifc_expr_index{}, cache_init_fn);
       }
       break;
     default:
@@ -15964,20 +15917,20 @@ indexed in the IFC by decl_idx) to cache.  cinfo contains information about the
 current cache context to help inform decisions about what to cache.
 */
 {
-  an_ifc_decl_index templated_decl_idx = get_ifc_decl(decl);
-  a_boolean         is_instantiation =
+  an_ifc_decl_index           templated_decl_idx = get_ifc_decl(decl);
+  a_boolean                   is_instantiation =
                                     get_ifc_sort(decl) == ifc_ss_instantiation;
-  a_source_position pos;
+  an_ifc_source_location      locus = get_ifc_locus(decl);
+  an_ifc_source_position_hint pos_hint(cache, locus);
 
-  source_position_from_locus(&pos, get_ifc_locus(decl));
   if (is_instantiation) {
     /* If an explicit instantiation appeared in a module definition, that
        instantiation need not be done in client code (other than for inlining
        or constant-evaluation purposes). */
-    cache_token(cache, tok_template, &pos);
+    cache_token(cache, tok_template);
   } else {
     /* Reconstruct the template-head. */
-    cache_template_head(cache, an_ifc_chart_index{}, &pos, cinfo);
+    cache_template_head(cache, an_ifc_chart_index{}, cinfo);
   }  /* if */
   /* Reconstruct the declaration. */
   /* FIXME: Eventually this entire block should be replaceable by a
@@ -15985,6 +15938,7 @@ current cache context to help inform decisions about what to cache.
      having a mangled NameSort Identifier name instead of a NameSort
      Specialization -- this is not yet possible). */
   /* Read the partition for the templated declaration. */
+  an_ifc_source_position_hint ent_pos_hint(cache, templated_decl_idx);
   switch (templated_decl_idx.sort) {
     case ifc_ds_decl_scope:
       { /* We're reconstructing a class. */
@@ -16000,37 +15954,34 @@ current cache context to help inform decisions about what to cache.
           goto invalid;
         }  /* if */
         /* Reconstruct the templated declaration. */
-        auto cache_name_fn = [this, cache, &decl, &ids](
-                                              a_source_position_ptr decl_pos) {
-          cache_simple_template_id(this, cache, decl, get_ifc_locus(ids));
+        auto cache_name_fn = [cache, &decl]() {
+          cache_simple_template_id(cache, decl);
         };
 
         if (is_instantiation) {
-          auto cache_scope_fn = [cache](a_source_position_ptr decl_pos) {
-            cache_token(cache, tok_semicolon, decl_pos);
+          auto cache_scope_fn = [cache]() {
+            cache_token(cache, tok_semicolon);
           };
 
           cache_scope_decl(cache, decl_idx, get_ifc_type(ids), cache_name_fn,
-                           cache_scope_fn, get_ifc_locus(ids));
+                           cache_scope_fn);
         } else {
-          auto cache_scope_fn = [this, cache, &cinfo, &ids](
-                                              a_source_position_ptr decl_pos) {
+          auto cache_scope_fn = [this, cache, &cinfo, &ids]() {
             if (!cinfo.ignore_definition) {
-              an_ifc_type_index      base = get_ifc_base(ids);
-              an_ifc_source_location locus = get_ifc_locus(ids);
+              an_ifc_type_index base = get_ifc_base(ids);
 
               /* If there are bases specified, cache the bases. */
               if (!is_null_index(base)) {
-                cache_token(cache, tok_colon, decl_pos);
-                cache_type(cache, base, locus);
+                cache_token(cache, tok_colon);
+                cache_type(cache, base);
               }  /* if */
-              cache_scope(this, cache, get_ifc_initializer(ids), locus);
+              cache_scope(this, cache, get_ifc_initializer(ids));
             }  /* if */
-            cache_token(cache, tok_semicolon, decl_pos);
+            cache_token(cache, tok_semicolon);
           };
 
           cache_scope_decl(cache, decl_idx, get_ifc_type(ids), cache_name_fn,
-                           cache_scope_fn, get_ifc_locus(ids));
+                           cache_scope_fn);
         }  /* if */
       }
       break;
@@ -16045,25 +15996,23 @@ current cache context to help inform decisions about what to cache.
 
         an_ifc_decl_variable idv = *opt_idv;
         /* Reconstruct the templated declaration. */
-        auto cache_name_fn = [this, cache, &decl, &idv](
-                                              a_source_position_ptr decl_pos) {
-          cache_simple_template_id(this, cache, decl, get_ifc_locus(idv));
+        auto cache_name_fn = [cache, &decl]() {
+          cache_simple_template_id(cache, decl);
         };
-        auto cache_spec_init_fn = [this, cache, &cinfo, &idv](
-                                              a_source_position_ptr decl_pos) {
+        auto cache_spec_init_fn = [this, cache, &cinfo, &idv]() {
           if (!cinfo.ignore_definition) {
             an_ifc_expr_index initializer = get_ifc_initializer(idv);
 
             if (!is_null_index(initializer)) {
-              cache_token(cache, tok_lparen, decl_pos);
+              cache_token(cache, tok_lparen);
               cache_expr(cache, initializer, cinfo);
-              cache_token(cache, tok_rparen, decl_pos);
+              cache_token(cache, tok_rparen);
             }  /* if */
           }  /* if */
-          cache_token(cache, tok_semicolon, decl_pos);
+          cache_token(cache, tok_semicolon);
         };
-        auto cache_inst_init_fn = [cache](a_source_position_ptr decl_pos) {
-          cache_token(cache, tok_semicolon, decl_pos);
+        auto cache_inst_init_fn = [cache]() {
+          cache_token(cache, tok_semicolon);
         };
 
         an_ifc_decl_index scope_ref = get_ifc_home_scope(idv);
@@ -16075,13 +16024,13 @@ BEGIN_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
                               get_ifc_specifiers(idv), get_ifc_traits(idv),
                               get_ifc_alignment(idv), get_ifc_type(idv),
                               cache_name_fn, an_ifc_expr_index{},
-                              cache_inst_init_fn, get_ifc_locus(idv));
+                              cache_inst_init_fn);
         } else {
           cache_variable_decl(cache, decl_idx, is_class_scope(scope_ref),
                               get_ifc_specifiers(idv), get_ifc_traits(idv),
                               get_ifc_alignment(idv), get_ifc_type(idv),
                               cache_name_fn, an_ifc_expr_index{},
-                              cache_spec_init_fn, get_ifc_locus(idv));
+                              cache_spec_init_fn);
         }  /* if */
 END_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
       }
@@ -16095,16 +16044,13 @@ END_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
           goto invalid;
         }  /* if */
 
-        an_ifc_decl_function   idf = *opt_idf;
-        an_ifc_source_location locus = get_ifc_locus(idf);
-        source_position_from_locus(&pos, locus);
+        an_ifc_decl_function idf = *opt_idf;
         this->cache_attrs(cache, templated_decl_idx);
-        cache_func_vendor_decl_specifier_seq(cache, templated_decl_idx,
-                                                 &pos);
+        cache_func_vendor_decl_specifier_seq(cache, templated_decl_idx);
         cache_func_decl_specifier_seq(cache, idf);
         cache_func_return_type(cache, idf);
         cache_func_calling_convention(cache, idf);
-        cache_simple_template_id(this, cache, decl, locus);
+        cache_simple_template_id(cache, decl);
         cache_func_parameters_and_qualifiers(cache, templated_decl_idx, idf,
                                              cinfo);
         cache_func_body_or_end_decl(cache, templated_decl_idx, idf, cinfo);
@@ -16119,12 +16065,9 @@ END_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
           goto invalid;
         }  /* if */
 
-        an_ifc_decl_method     idm = *opt_idm;
-        an_ifc_source_location locus = get_ifc_locus(idm);
-        source_position_from_locus(&pos, locus);
+        an_ifc_decl_method idm = *opt_idm;
         this->cache_attrs(cache, templated_decl_idx);
-        cache_func_vendor_decl_specifier_seq(cache, templated_decl_idx,
-                                                 &pos);
+        cache_func_vendor_decl_specifier_seq(cache, templated_decl_idx);
         cache_func_decl_specifier_seq(cache, idm);
 
         an_ifc_name_index name_idx = get_ifc_name(idm);
@@ -16132,7 +16075,7 @@ END_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
           cache_func_return_type(cache, idm);
         }  /* if */
         cache_func_calling_convention(cache, idm);
-        cache_simple_template_id(this, cache, decl, locus);
+        cache_simple_template_id(cache, decl);
         cache_func_parameters_and_qualifiers(cache, templated_decl_idx, idm,
                                              cinfo);
         cache_func_virt_specifier_seq(cache, idm);
@@ -16149,17 +16092,14 @@ END_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
         }  /* if */
 
         an_ifc_decl_constructor idc = *opt_idc;
-        an_ifc_source_location  locus = get_ifc_locus(idc);
-        source_position_from_locus(&pos, locus);
         this->cache_attrs(cache, templated_decl_idx);
-        cache_func_vendor_decl_specifier_seq(cache, templated_decl_idx, &pos);
+        cache_func_vendor_decl_specifier_seq(cache, templated_decl_idx);
         cache_func_decl_specifier_seq(cache, idc);
         cache_func_calling_convention(cache, idc);
         /* Constructor specializations are special cases that don't include
            the template argument list.  Call the lower level cache_name
            instead of cache_simple_template_id. */
-        EDG_PREFIX::cache_name(cache, get_ifc_name(decl),
-                               get_ifc_locus(idc));
+        EDG_PREFIX::cache_name(cache, get_ifc_name(decl));
         cache_func_parameters_and_qualifiers(cache, templated_decl_idx, idc,
                                              cinfo);
         cache_func_virt_specifier_seq(cache, idc);
@@ -16180,8 +16120,7 @@ done:;
 void an_ifc_module::cache_type_param_introducer(
                                            a_module_token_cache_ptr cache,
                                            an_ifc_expr_index        constraint,
-                                           a_boolean                is_pack,
-                                           a_source_position        *pos)
+                                           a_boolean                is_pack)
 /*
 cache is the token cache to update.  constraint is zero for unconstrained
 parameters or refers to a concept-id expression otherwise.  In the former case,
@@ -16193,32 +16132,31 @@ parameter pack, FALSE otherwise.
   if (is_null_index(constraint)) {
     /* An unconstrained type parameter is introduced by the "typename"
        keyword (or "class", but we'll use "typename"). */
-    cache_token(cache, tok_typename, pos);
+    cache_token(cache, tok_typename);
   } else {
     cache_expr(cache, constraint, /*cinfo=*/{});
   }  /* if */
   if (is_pack) {
-    cache_token(cache, tok_ellipsis, pos);
+    cache_token(cache, tok_ellipsis);
   }  /* if */
 }  /* cache_type_param_introducer */
 
 
 template<typename a_Cache_fn>
 static inline void cache_attr_fn(a_module_token_cache_ptr cache,
-                                 a_Cache_fn               cache_fn,
-                                 a_source_position_ptr    pos)
+                                 a_Cache_fn               cache_fn)
 /*
 Helper function for cache_attr to avoid code duplication for the brackets.
 Add tokens for the leading and trailing attribute brackets to cache and
 call the provided cache_fn to cache the actual attribute, in the appropriate
-places.  pos is the position to use for the brackets.
+places.
 */
 {
-  cache_token(cache, tok_lbracket, pos);
-  cache_token(cache, tok_lbracket, pos);
+  cache_token(cache, tok_lbracket);
+  cache_token(cache, tok_lbracket);
   cache_fn();
-  cache_token(cache, tok_rbracket, pos);
-  cache_token(cache, tok_rbracket, pos);
+  cache_token(cache, tok_rbracket);
+  cache_token(cache, tok_rbracket);
 }  /* cache_attr_fn */
 
 
@@ -16231,14 +16169,10 @@ cache_brackets is TRUE, include the attribute brackets.  Otherwise, the caller
 is responsible for ensuring that the brackets are cached appropriately.
 */
 {
-  a_source_position pos;
-
   switch (attr.sort) {
     case ifc_as_attr_nothing:
       if (cache_brackets) {
-        /* FIXME: Is there a way to get a position for this? */
-        pos = null_source_position;
-        cache_attr_fn(cache, [](){}, &pos);
+        cache_attr_fn(cache, [](){});
       }  /* if */
       break;
     case ifc_as_attr_basic:
@@ -16249,14 +16183,15 @@ is responsible for ensuring that the brackets are cached appropriately.
           goto invalid;
         }  /* if */
 
-        an_ifc_attr_basic    iab = *opt_iab;
-        an_ifc_nestable_word word = get_ifc_word(iab);
-        source_position_from_locus(&pos, get_ifc_locus(word));
+        an_ifc_attr_basic           iab = *opt_iab;
+        an_ifc_nestable_word        word = get_ifc_word(iab);
+        an_ifc_source_location      locus = get_ifc_locus(word);
+        an_ifc_source_position_hint pos_hint(cache, locus);
         auto cache_fn = [cache, &word, this]() {
           cache_word(cache, word);
         };
         if (cache_brackets) {
-          cache_attr_fn(cache, cache_fn, &pos);
+          cache_attr_fn(cache, cache_fn);
         } else {
           cache_fn();
         }  /* if */
@@ -16270,17 +16205,18 @@ is responsible for ensuring that the brackets are cached appropriately.
           goto invalid;
         }  /* if */
 
-        an_ifc_attr_scoped   ias = *opt_ias;
-        an_ifc_nestable_word scope = get_ifc_scope(ias);
-        an_ifc_nestable_word member = get_ifc_member(ias);
-        source_position_from_locus(&pos, get_ifc_locus(scope));
-        auto cache_fn = [cache, &scope, &member, &pos, this]() {
+        an_ifc_attr_scoped          ias = *opt_ias;
+        an_ifc_nestable_word        scope = get_ifc_scope(ias);
+        an_ifc_nestable_word        member = get_ifc_member(ias);
+        an_ifc_source_location      locus = get_ifc_locus(scope);
+        an_ifc_source_position_hint pos_hint(cache, locus);
+        auto cache_fn = [cache, &scope, &member, this]() {
           cache_word(cache, scope);
-          cache_token(cache, tok_colon_colon, &pos);
+          cache_token(cache, tok_colon_colon);
           cache_word(cache, member);
         };
         if (cache_brackets) {
-          cache_attr_fn(cache, cache_fn, &pos);
+          cache_attr_fn(cache, cache_fn);
         } else {
           cache_fn();
         }  /* if */
@@ -16294,17 +16230,18 @@ is responsible for ensuring that the brackets are cached appropriately.
           goto invalid;
         }  /* if */
 
-        an_ifc_attr_labeled  ial = *opt_ial;
-        an_ifc_nestable_word label = get_ifc_label(ial);
-        an_ifc_attr_index    attribute = get_ifc_attribute(ial);
-        source_position_from_locus(&pos, get_ifc_locus(label));
-        auto cache_fn = [cache, &label, attribute, &pos, this]() {
+        an_ifc_attr_labeled         ial = *opt_ial;
+        an_ifc_nestable_word        label = get_ifc_label(ial);
+        an_ifc_attr_index           attribute = get_ifc_attribute(ial);
+        an_ifc_source_location      locus = get_ifc_locus(label);
+        an_ifc_source_position_hint pos_hint(cache, locus);
+        auto cache_fn = [cache, &label, attribute, this]() {
           cache_word(cache, label);
-          cache_token(cache, tok_colon, &pos);
+          cache_token(cache, tok_colon);
           cache_attr(cache, attribute, /*cache_brackets=*/FALSE);
         };
         if (cache_brackets) {
-          cache_attr_fn(cache, cache_fn, &pos);
+          cache_attr_fn(cache, cache_fn);
         } else {
           cache_fn();
         }  /* if */
@@ -16319,16 +16256,14 @@ is responsible for ensuring that the brackets are cached appropriately.
         }  /* if */
 
         an_ifc_attr_called iac = *opt_iac;
-        /* FIXME: Find a way to get a proper position for this. */
-        pos = null_source_position;
-        auto cache_fn = [cache, &iac, &pos, this]() {
+        auto cache_fn = [cache, &iac, this]() {
           cache_attr(cache, get_ifc_function(iac), /*cache_brackets=*/FALSE);
-          cache_token(cache, tok_lparen, &pos);
+          cache_token(cache, tok_lparen);
           cache_attr(cache, get_ifc_arguments(iac), /*cache_brackets=*/FALSE);
-          cache_token(cache, tok_rparen, &pos);
+          cache_token(cache, tok_rparen);
         };
         if (cache_brackets) {
-          cache_attr_fn(cache, cache_fn, &pos);
+          cache_attr_fn(cache, cache_fn);
         } else {
           cache_fn();
         }  /* if */
@@ -16343,14 +16278,12 @@ is responsible for ensuring that the brackets are cached appropriately.
         }  /* if */
 
         an_ifc_attr_expanded iae = *opt_iae;
-        /* FIXME: Find a way to get a proper position for this. */
-        pos = null_source_position;
-        auto cache_fn = [cache, &iae, &pos, this]() {
+        auto cache_fn = [cache, &iae, this]() {
           cache_attr(cache, get_ifc_operand(iae), /*cache_brackets=*/FALSE);
-          cache_token(cache, tok_ellipsis, &pos);
+          cache_token(cache, tok_ellipsis);
         };
         if (cache_brackets) {
-          cache_attr_fn(cache, cache_fn, &pos);
+          cache_attr_fn(cache, cache_fn);
         } else {
           cache_fn();
         }  /* if */
@@ -16364,18 +16297,19 @@ is responsible for ensuring that the brackets are cached appropriately.
           goto invalid;
         }  /* if */
 
-        an_ifc_attr_factored iaf = *opt_iaf;
-        an_ifc_nestable_word factor = get_ifc_factor(iaf);
-        an_ifc_attr_index    terms = get_ifc_terms(iaf);
-        source_position_from_locus(&pos, get_ifc_locus(factor));
-        auto cache_fn = [this, cache, &factor, &terms, &pos]() {
-          cache_token(cache, tok_using, &pos);
+        an_ifc_attr_factored        iaf = *opt_iaf;
+        an_ifc_nestable_word        factor = get_ifc_factor(iaf);
+        an_ifc_attr_index           terms = get_ifc_terms(iaf);
+        an_ifc_source_location      locus = get_ifc_locus(factor);
+        an_ifc_source_position_hint pos_hint(cache, locus);
+        auto cache_fn = [this, cache, &factor, &terms]() {
+          cache_token(cache, tok_using);
           cache_word(cache, factor);
-          cache_token(cache, tok_colon, &pos);
+          cache_token(cache, tok_colon);
           cache_attr(cache, terms, /*cache_brackets=*/FALSE);
         };
         if (cache_brackets) {
-          cache_attr_fn(cache, cache_fn, &pos);
+          cache_attr_fn(cache, cache_fn);
         } else {
           cache_fn();
         }  /* if */
@@ -16390,13 +16324,11 @@ is responsible for ensuring that the brackets are cached appropriately.
         }  /* if */
 
         an_ifc_attr_elaborated iae = *opt_iae;
-        /* FIXME: Find a way to get a proper position for this. */
-        pos = null_source_position;
         auto cache_fn = [cache, &iae, this]() {
           cache_expr(cache, get_ifc_expression(iae), /*cinfo=*/{});
         };
         if (cache_brackets) {
-          cache_attr_fn(cache, cache_fn, &pos);
+          cache_attr_fn(cache, cache_fn);
         } else {
           cache_fn();
         }  /* if */
@@ -16461,7 +16393,6 @@ decl_idx to the cache.
 
 void an_ifc_module::cache_template_head(a_module_token_cache_ptr cache,
                                         an_ifc_chart_index       chart_idx,
-                                        a_source_position_ptr    pos,
                                         const an_ifc_cache_info  &cinfo)
 /*
 Add the tokens corresponding to the template head described by the given
@@ -16470,12 +16401,12 @@ specialization.  cinfo contains information about the current cache context to
 help inform decisions about what to cache.
 */
 {
-  cache_token(cache, tok_template, pos);
+  cache_token(cache, tok_template);
   if (is_null_index(chart_idx)) {
-    cache_token(cache, tok_lt, pos);
-    cache_token(cache, tok_gt, pos);
+    cache_token(cache, tok_lt);
+    cache_token(cache, tok_gt);
   } else {
-    cache_chart(cache, chart_idx, pos, cinfo);
+    cache_chart(cache, chart_idx, cinfo);
   }  /* if */
 }  /* cache_template_head */
 
@@ -16489,19 +16420,21 @@ contains information about the current cache context to help inform decisions
 about what to cache.
 */
 {
-  a_source_position pos;
+  an_ifc_source_position_hint pos_hint(cache, decl);
 
   /* Pre-validate so that access specifiers can be grabbed by the visitor
      and cached ahead of the declaration when relevant. */
   if (!validate(decl)) {
     goto invalid;
   }  /* if */
-  if (has_ifc_access(decl)) {
+  /* Cache the access specifier if in class scope and access information is
+     provided. */
+  if (!cinfo.no_access_specifier && has_ifc_access(decl)) {
     an_ifc_access_sort access = get_ifc_access(decl);
 
     if (has_ifc_home_scope(decl) && is_class_scope(get_ifc_home_scope(decl))) {
-      cache_access_specifier(cache, access, &null_source_position);
-      cache_token(cache, tok_colon, &null_source_position);
+      cache_access_specifier(cache, access);
+      cache_token(cache, tok_colon);
     }  /* if */
   }  /* if */
   switch (decl.sort) {
@@ -16524,15 +16457,11 @@ about what to cache.
       { an_ifc_decl_variable idv;
 
         construct_node_prechecked(&idv, decl);
-
-        an_ifc_source_location locus = get_ifc_locus(idv);
-        source_position_from_locus(&pos, locus);
         cache_variable_decl(cache, decl, /*is_data_member=*/FALSE,
                             get_ifc_specifiers(idv), get_ifc_traits(idv),
                             get_ifc_alignment(idv), get_ifc_type(idv),
                             get_ifc_name(idv), an_ifc_text_offset{},
-                            an_ifc_expr_index{}, get_ifc_initializer(idv),
-                            locus);
+                            an_ifc_expr_index{}, get_ifc_initializer(idv));
       }
       break;
     case ifc_ds_decl_parameter:
@@ -16555,7 +16484,7 @@ about what to cache.
                             get_ifc_traits(idf), get_ifc_alignment(idf),
                             get_ifc_type(idf), an_ifc_name_index{},
                             get_ifc_name(idf), an_ifc_expr_index{},
-                            get_ifc_initializer(idf), get_ifc_locus(idf));
+                            get_ifc_initializer(idf));
       }
       break;
     case ifc_ds_decl_bitfield:
@@ -16571,7 +16500,7 @@ about what to cache.
                             get_ifc_traits(idbf), an_ifc_expr_index{},
                             get_ifc_type(idbf), an_ifc_name_index{},
                             get_ifc_name(idbf), width,
-                            get_ifc_initializer(idbf), get_ifc_locus(idbf));
+                            get_ifc_initializer(idbf));
       }
       break;
     case ifc_ds_decl_scope:
@@ -16579,8 +16508,7 @@ about what to cache.
 
         construct_node_prechecked(&ids, decl);
         cache_scope_decl(cache, decl, get_ifc_type(ids), get_ifc_name(ids),
-                         get_ifc_base(ids), get_ifc_initializer(ids),
-                         get_ifc_locus(ids));
+                         get_ifc_base(ids), get_ifc_initializer(ids));
       }
       break;
     case ifc_ds_decl_enumeration:
@@ -16596,22 +16524,20 @@ about what to cache.
         }  /* if */
 
         an_ifc_type_fundamental itf = *opt_itf;
-        an_ifc_source_location  locus = get_ifc_locus(ide);
         an_ifc_expr_index       alignment = get_ifc_alignment(ide);
         an_ifc_type_index       base = get_ifc_base(ide);
-        source_position_from_locus(&pos, locus);
-        cache_basic_specifiers(cache, get_ifc_specifiers(ide), &pos);
+        cache_basic_specifiers(cache, get_ifc_specifiers(ide));
 
         an_ifc_type_basis_sort basis = get_ifc_basis(itf);
         switch (basis) {
           case ifc_tbs_enum:
-            cache_token(cache, tok_enum, &pos);
+            cache_token(cache, tok_enum);
             break;
           case ifc_tbs_struct:
-            cache_token(cache, tok_enum_struct, &pos);
+            cache_token(cache, tok_enum_struct);
             break;
           case ifc_tbs_class:
-            cache_token(cache, tok_enum_class, &pos);
+            cache_token(cache, tok_enum_class);
             break;
           default:
             { a_string err_msg("Unexpected ", str_for(basis));
@@ -16621,15 +16547,15 @@ about what to cache.
             goto invalid;
         }  /* switch */
         if (!is_null_index(alignment)) {
-          cache_token(cache, tok_alignas, &pos);
-          cache_token(cache, tok_lparen, &pos);
+          cache_token(cache, tok_alignas);
+          cache_token(cache, tok_lparen);
           cache_expr(cache, alignment, cinfo);
-          cache_token(cache, tok_rparen, &pos);
+          cache_token(cache, tok_rparen);
         }  /* if */
-        cache_identifier(cache, get_string_at_offset(get_ifc_name(ide)), &pos);
+        cache_identifier(cache, get_string_at_offset(get_ifc_name(ide)));
         if (!is_null_index(base)) {
-          cache_token(cache, tok_colon, &pos);
-          cache_type(cache, base, locus);
+          cache_token(cache, tok_colon);
+          cache_type(cache, base);
         }  /* if */
 
         an_ifc_sequence    initializer = get_ifc_initializer(ide);
@@ -16637,21 +16563,21 @@ about what to cache.
         if (cardinality != 0) {
           a_decl_enumerator_traverser traverser(initializer);
 
-          cache_token(cache, tok_lbrace, &pos);
+          cache_token(cache, tok_lbrace);
           for (an_Indexed<an_ifc_decl_enumerator> indexed_iden : traverser) {
             if (!indexed_iden.has_value()) {
               goto invalid;
             }  /* if */
             if (!is_first(traverser, indexed_iden)) {
-              cache_token(cache, tok_comma, &pos);
+              cache_token(cache, tok_comma);
             }  /* if */
             if (!cache_direct_decl(cache, *indexed_iden, cinfo)) {
               goto invalid;
             }  /* if */
           }  /* for */
-          cache_token(cache, tok_rbrace, &pos);
+          cache_token(cache, tok_rbrace);
         }  /* if */
-        cache_token(cache, tok_semicolon, &pos);
+        cache_token(cache, tok_semicolon);
       }
       break;
     case ifc_ds_decl_alias:
@@ -16659,9 +16585,7 @@ about what to cache.
 
         construct_node_prechecked(&ida, decl);
 
-        an_ifc_source_location locus = get_ifc_locus(ida);
-        an_ifc_type_index      type = get_ifc_type(ida);
-        source_position_from_locus(&pos, locus);
+        an_ifc_type_index type = get_ifc_type(ida);
         if (type.sort == ifc_ts_type_fundamental) {
           Opt<an_ifc_type_fundamental> opt_itf;
 
@@ -16673,15 +16597,14 @@ about what to cache.
           an_ifc_type_fundamental itf = *opt_itf;
           an_ifc_type_basis_sort  basis = get_ifc_basis(itf);
           if (basis == ifc_tbs_typename) {
-            cache_token(cache, tok_using, &pos);
+            cache_token(cache, tok_using);
           } else {
             check_assertion(basis == ifc_tbs_namespace);
-            cache_token(cache, tok_namespace, &pos);
+            cache_token(cache, tok_namespace);
           }  /* if */
-          cache_identifier(cache, get_string_at_offset(get_ifc_name(ida)),
-                           &pos);
-          cache_token(cache, tok_assign, &pos);
-          cache_type(cache, get_ifc_aliasee(ida), locus);
+          cache_identifier(cache, get_string_at_offset(get_ifc_name(ida)));
+          cache_token(cache, tok_assign);
+          cache_type(cache, get_ifc_aliasee(ida));
         } else if (type.sort == ifc_ts_type_forall) {
           Opt<an_ifc_type_forall> opt_itf;
 
@@ -16692,20 +16615,19 @@ about what to cache.
 
           an_ifc_type_forall itf = *opt_itf;
           check_assertion(get_ifc_aliasee(ida).sort == ifc_ts_type_forall);
-          cache_token(cache, tok_template, &pos);
-          cache_chart(cache, get_ifc_chart(itf), locus, cinfo);
-          cache_token(cache, tok_using, &pos);
-          cache_identifier(cache, get_string_at_offset(get_ifc_name(ida)),
-                           &pos);
-          cache_token(cache, tok_assign, &pos);
-          cache_type(cache, get_ifc_subject(itf), locus);
+          cache_token(cache, tok_template);
+          cache_chart(cache, get_ifc_chart(itf), cinfo);
+          cache_token(cache, tok_using);
+          cache_identifier(cache, get_string_at_offset(get_ifc_name(ida)));
+          cache_token(cache, tok_assign);
+          cache_type(cache, get_ifc_subject(itf));
         } else {
           a_string err_msg("Unexpected ", str_for(type.sort));
 
           ifc_unexpected(this, err_msg);
           goto invalid;
         }  /* if */
-        cache_token(cache, tok_semicolon, &pos);
+        cache_token(cache, tok_semicolon);
       }
       break;
     case ifc_ds_decl_temploid:
@@ -16756,18 +16678,15 @@ about what to cache.
       { an_ifc_decl_function idf;
 
         construct_node_prechecked(&idf, decl);
-
-        an_ifc_source_location locus = get_ifc_locus(idf);
-        source_position_from_locus(&pos, locus);
         this->cache_attrs(cache, decl);
-        cache_func_vendor_decl_specifier_seq(cache, decl, &pos);
+        cache_func_vendor_decl_specifier_seq(cache, decl);
         if (is_class_scope(get_ifc_home_scope(decl))) {
-          cache_token(cache, tok_static, &pos);
+          cache_token(cache, tok_static);
         }  /* if */
         cache_func_decl_specifier_seq(cache, idf);
         cache_func_return_type(cache, idf);
         cache_func_calling_convention(cache, idf);
-        cache_name(cache, get_ifc_name(idf), locus);
+        cache_name(cache, get_ifc_name(idf));
         cache_func_parameters_and_qualifiers(cache, decl, idf, cinfo);
         cache_func_body_or_end_decl(cache, decl, idf, cinfo);
       }
@@ -16776,11 +16695,8 @@ about what to cache.
       { an_ifc_decl_method idm;
 
         construct_node_prechecked(&idm, decl);
-
-        an_ifc_source_location locus = get_ifc_locus(idm);
-        source_position_from_locus(&pos, locus);
         this->cache_attrs(cache, decl);
-        cache_func_vendor_decl_specifier_seq(cache, decl, &pos);
+        cache_func_vendor_decl_specifier_seq(cache, decl);
         cache_func_decl_specifier_seq(cache, idm);
 
         an_ifc_name_index name_idx = get_ifc_name(idm);
@@ -16788,7 +16704,7 @@ about what to cache.
           cache_func_return_type(cache, idm);
         }  /* if */
         cache_func_calling_convention(cache, idm);
-        cache_name(cache, name_idx, locus);
+        cache_name(cache, name_idx);
         cache_func_parameters_and_qualifiers(cache, decl, idm, cinfo);
         cache_func_virt_specifier_seq(cache, idm);
         cache_func_body_or_end_decl(cache, decl, idm, cinfo);
@@ -16798,14 +16714,11 @@ about what to cache.
       { an_ifc_decl_constructor idc;
 
         construct_node_prechecked(&idc, decl);
-
-        an_ifc_source_location locus = get_ifc_locus(idc);
-        source_position_from_locus(&pos, locus);
         this->cache_attrs(cache, decl);
-        cache_func_vendor_decl_specifier_seq(cache, decl, &pos);
+        cache_func_vendor_decl_specifier_seq(cache, decl);
         cache_func_decl_specifier_seq(cache, idc);
         cache_func_calling_convention(cache, idc);
-        cache_name(cache, get_ifc_name(idc), locus);
+        cache_name(cache, get_ifc_name(idc));
         cache_func_parameters_and_qualifiers(cache, decl, idc, cinfo);
         cache_func_virt_specifier_seq(cache, idc);
         cache_func_body_or_end_decl(cache, decl, idc, cinfo);
@@ -16816,30 +16729,26 @@ about what to cache.
 
         construct_node_prechecked(&idic, decl);
 
-        an_ifc_source_location locus = get_ifc_locus(idic);
-        an_ifc_decl_index      base_ctor = get_ifc_base_ctor(idic);
-        source_position_from_locus(&pos, locus);
-        cache_token(cache, tok_using, &pos);
-        cache_name_from_decl(cache, base_ctor, locus);
-        cache_token(cache, tok_colon_colon, &pos);
-        cache_name_from_decl(cache, base_ctor, locus);
-        cache_token(cache, tok_semicolon, &pos);
+        an_ifc_decl_index base_ctor = get_ifc_base_ctor(idic);
+        cache_token(cache, tok_using);
+        cache_name_from_decl(cache, base_ctor);
+        cache_token(cache, tok_colon_colon);
+        cache_name_from_decl(cache, base_ctor);
+        cache_token(cache, tok_semicolon);
       }
       break;
     case ifc_ds_decl_destructor:
       { an_ifc_decl_destructor idd;
 
         construct_node_prechecked(&idd, decl);
-        an_ifc_source_location locus = get_ifc_locus(idd);
-        source_position_from_locus(&pos, locus);
         this->cache_attrs(cache, decl);
-        cache_func_vendor_decl_specifier_seq(cache, decl, &pos);
+        cache_func_vendor_decl_specifier_seq(cache, decl);
         cache_func_decl_specifier_seq(cache, idd);
         cache_func_calling_convention(cache, idd);
-        cache_token(cache, tok_compl, &pos);
-        cache_name(cache, get_ifc_name(idd), locus);
-        cache_token(cache, tok_lparen, &pos);
-        cache_token(cache, tok_rparen, &pos);
+        cache_token(cache, tok_compl);
+        cache_name(cache, get_ifc_name(idd));
+        cache_token(cache, tok_lparen);
+        cache_token(cache, tok_rparen);
         cache_func_noexcept_specifier(cache, idd);
         cache_func_virt_specifier_seq(cache, idd);
         cache_func_body_or_end_decl(cache, decl, idd, cinfo);
@@ -16855,17 +16764,15 @@ about what to cache.
 
         construct_node_prechecked(&idud, decl);
 
-        an_ifc_expr_index             parent = get_ifc_parent(idud);
-        source_position_from_locus(&pos, get_ifc_locus(idud));
-        cache_basic_specifiers(cache, get_ifc_specifiers(idud), &pos);
-        cache_token(cache, tok_using, &pos);
+        an_ifc_expr_index parent = get_ifc_parent(idud);
+        cache_basic_specifiers(cache, get_ifc_specifiers(idud));
+        cache_token(cache, tok_using);
         if (!is_null_index(parent)) {
           cache_expr(cache, parent, /*cinfo=*/{});
-          cache_token(cache, tok_colon_colon, &pos);
+          cache_token(cache, tok_colon_colon);
         }  /* if */
-        cache_identifier(cache, get_string_at_offset(get_ifc_name(idud)),
-                         &pos);
-        cache_token(cache, tok_semicolon, &pos);
+        cache_identifier(cache, get_string_at_offset(get_ifc_name(idud)));
+        cache_token(cache, tok_semicolon);
       }
       break;
     case ifc_ds_decl_using_directive:
@@ -16887,16 +16794,11 @@ about what to cache.
 
         construct_node_prechecked(&friend_decl, decl);
 
-        an_ifc_expr_index  friend_id = get_ifc_entity(friend_decl);
-        if (has_ifc_locus(friend_id) && validate(friend_id)) {
-          source_position_from_locus(&pos, get_ifc_locus(friend_id));
-        } else {
-          pos = error_position;
-        }  /* if */
-        cache_token(cache, tok_friend, &pos);
-        cache_token_with_index(cache, tok_ifc_entity_ref, friend_id,
-                               &null_source_position);
-        cache_token(cache, tok_semicolon, &null_source_position);
+        an_ifc_expr_index           friend_id = get_ifc_entity(friend_decl);
+        an_ifc_source_position_hint friend_pos(cache, friend_id);
+        cache_token(cache, tok_friend);
+        cache_token_with_index(cache, tok_ifc_entity_ref, friend_id);
+        cache_token(cache, tok_semicolon);
       }
       break;
     case ifc_ds_decl_expansion:
@@ -17037,21 +16939,20 @@ invalid:;
 
 static void cache_args_with_parens(a_module_token_cache_ptr cache,
                                    an_ifc_expr_index        args,
-                                   a_source_position        *pos,
                                    const an_ifc_cache_info  &cinfo)
 /*
 Record tokens for the IFC expression described by args in the given cache and
 enclose them with parentheses.  If args is an IFC ExpressionList, be sure to
-avoid double parentheses.  pos is the associated source position, and cinfo
-contains the context associated with the expression being cached.
+avoid double parentheses.  cinfo contains the context associated with the
+expression being cached.
 */
 {
   if (args.sort != ifc_es_expr_expression_list) {
-    cache_token(cache, tok_lparen, pos);
+    cache_token(cache, tok_lparen);
   }  /* if */
   args.mod->cache_expr(cache, args, cinfo);
   if (args.sort != ifc_es_expr_expression_list) {
-    cache_token(cache, tok_rparen, pos);
+    cache_token(cache, tok_rparen);
   }  /* if */
 }  /* cache_args_with_parens */
 
@@ -17066,7 +16967,7 @@ about what to cache.  For example, if cinfo.qualified_name is TRUE, separate
 tuple elements by '::' instead of ','.
 */
 {
-  a_source_position pos;
+  an_ifc_source_position_hint pos_hint(cache, expr);
 
   switch (expr.sort) {
     case ifc_es_expr_vendor_extension:
@@ -17092,13 +16993,12 @@ tuple elements by '::' instead of ','.
         if (type.sort == ifc_ts_type_designated) {
           /* FIXME: This can show up as a literal type in some cases, but isn't
              really a literal in the sense that there's a constant to cache. */
-          cache_type(cache, type, get_ifc_locus(iel));
+          cache_type(cache, type);
         } else {
           a_constant_ptr cp = constant_for_expr_index(expr,
                                                       /*default_type=*/NULL);
 
-          source_position_from_locus(&pos, get_ifc_locus(iel));
-          cache_literal(this, cache, cp, &pos);
+          cache_literal(this, cache, cp);
         }  /* if */
       }
       break;
@@ -17114,8 +17014,9 @@ tuple elements by '::' instead of ','.
         if (!opt_iet.has_value()) {
           goto invalid;
         }  /* if */
-        cache_type(cache, get_ifc_denotation(*opt_iet),
-                   get_ifc_locus(*opt_iet));
+
+        an_ifc_expr_type iet = *opt_iet;
+        cache_type(cache, get_ifc_denotation(iet));
       }
       break;
     case ifc_es_expr_named_decl:
@@ -17128,13 +17029,11 @@ tuple elements by '::' instead of ','.
 
         an_ifc_expr_named_decl iend = *opt_iend;
         an_ifc_decl_index      resolution = get_ifc_resolution(iend);
-        an_ifc_source_location locus = get_ifc_locus(iend);
-        source_position_from_locus(&pos, locus);
         if (!validate(resolution)) {
           goto invalid;
         }  /* if */
         if (is_name_qualifiable(resolution)) {
-          cache_qualified_name_from_decl(cache, resolution, locus);
+          cache_qualified_name_from_decl(cache, resolution);
         } else {
           /* We are contextually forbidden from qualifying this name or the
              declaration type otherwise is considered to never appear
@@ -17142,7 +17041,7 @@ tuple elements by '::' instead of ','.
 
              This can happen when building an unqualified-id within a dependent
              context. */
-          cache_name_from_decl(cache, resolution, locus);
+          cache_name_from_decl(cache, resolution);
         }  /* if */
       }
       break;
@@ -17155,9 +17054,7 @@ tuple elements by '::' instead of ','.
         }  /* if */
 
         an_ifc_expr_unresolved_id ieui = *opt_ieui;
-        an_ifc_source_location    locus = get_ifc_locus(ieui);
-        source_position_from_locus(&pos, locus);
-        cache_name(cache, get_ifc_name(ieui), locus);
+        cache_name(cache, get_ifc_name(ieui));
       }
       break;
     case ifc_es_expr_template_id:
@@ -17170,13 +17067,12 @@ tuple elements by '::' instead of ','.
 
         an_ifc_expr_template_id ieti = *opt_ieti;
         an_ifc_expr_index       arguments = get_ifc_arguments(ieti);
-        source_position_from_locus(&pos, get_ifc_locus(ieti));
         cache_expr(cache, get_ifc_primary(ieti), cinfo);
-        cache_token(cache, tok_lt, &pos);
+        cache_token(cache, tok_lt);
         if (!is_null_index(arguments)) {
           cache_expr(cache, arguments, cinfo);
         }  /* if */
-        cache_token(cache, tok_gt, &pos);
+        cache_token(cache, tok_gt);
       }
       break;
     case ifc_es_expr_unqualified_id:
@@ -17188,12 +17084,10 @@ tuple elements by '::' instead of ','.
         }  /* if */
 
         an_ifc_expr_unqualified_id ieui = *opt_ieui;
-        an_ifc_source_location     locus = get_ifc_locus(ieui);
         an_ifc_expr_index          resolution = get_ifc_resolution(ieui);
         an_ifc_name_index          name = get_ifc_name(ieui);
-        source_position_from_locus(&pos, locus);
         if (get_ifc_line(get_ifc_template_keyword(ieui)) != 0) {
-          cache_token(cache, tok_template, &pos);
+          cache_token(cache, tok_template);
         }  /* if */
         /* It's possible to have this with no name/resolution at all.  For
            example, if a construct of the form "::foo::bar" has been encoded,
@@ -17205,7 +17099,7 @@ tuple elements by '::' instead of ','.
              an "unqualified" identifier. */
           cache_expr(cache, resolution, cinfo);
         } else if (!is_null_index(name)) {
-          cache_name(cache, name, locus);
+          cache_name(cache, name);
         }  /* if */
       }
       break;
@@ -17217,7 +17111,7 @@ tuple elements by '::' instead of ','.
           goto invalid;
         }  /* if */
         /* FIXME: Do we need to handle the "type" field here? */
-        cache_name(cache, get_ifc_name(*opt_iesi), get_ifc_locus(*opt_iesi));
+        cache_name(cache, get_ifc_name(*opt_iesi));
       }
       break;
     case ifc_es_expr_pointer:
@@ -17227,8 +17121,7 @@ tuple elements by '::' instead of ','.
         if (!opt_iep.has_value()) {
           goto invalid;
         }  /* if */
-        source_position_from_locus(&pos, get_ifc_locus(*opt_iep));
-        cache_token(cache, tok_star, &pos);
+        cache_token(cache, tok_star);
       }
       break;
     case ifc_es_expr_qualified_name:
@@ -17242,10 +17135,9 @@ tuple elements by '::' instead of ','.
         an_ifc_expr_qualified_name ieqn = *opt_ieqn;
         an_ifc_cache_info          cache_info = cinfo;
         cache_info.qualified_name = TRUE;
-        source_position_from_locus(&pos, get_ifc_locus(ieqn));
         /* FIXME: Do we need to handle the "type" field here? */
         if (get_ifc_line(get_ifc_typename_keyword(ieqn)) != 0) {
-          cache_token(cache, tok_typename, &pos);
+          cache_token(cache, tok_typename);
         }  /* if */
         cache_expr(cache, get_ifc_elements(ieqn), cache_info);
       }
@@ -17265,7 +17157,7 @@ tuple elements by '::' instead of ','.
         an_ifc_expr_path iep = *opt_iep;
         if (!suppress_automatic_name_qualification) {
           cache_expr(cache, get_ifc_scope(iep), cinfo);
-          cache_token(cache, tok_colon_colon, &null_source_position);
+          cache_token(cache, tok_colon_colon);
           update_name_qualification_suppression(iep);
         }  /* if */
         cache_expr(cache, get_ifc_member(iep), cinfo);
@@ -17282,14 +17174,13 @@ tuple elements by '::' instead of ','.
         an_ifc_read_conversion_sort
                           read_sort = get_ifc_sort(ier);
         an_ifc_cache_info cache_info = cinfo;
-        source_position_from_locus(&pos, get_ifc_locus(ier));
         switch (read_sort) {
           case ifc_rcs_indirection:
-            cache_token(cache, tok_star, &pos);
+            cache_token(cache, tok_star);
             cache_info.nested_expr = TRUE;
             break;
           case ifc_rcs_dereference:
-            cache_token(cache, tok_ampersand, &pos);
+            cache_token(cache, tok_ampersand);
             cache_info.nested_expr = TRUE;
             break;
           case ifc_rcs_identity:
@@ -17313,17 +17204,15 @@ tuple elements by '::' instead of ','.
 
         an_ifc_expr_monad            iem = *opt_iem;
         an_ifc_expr_index            argument = get_ifc_argument(iem);
-        an_ifc_source_location       locus = get_ifc_locus(iem);
         an_ifc_monadic_operator_sort assoc = get_ifc_assoc(iem);
         auto                         cache_arg =
-                                        [this, cache, cinfo, &argument, &pos] {
-          cache_token(cache, tok_lparen, &pos);
+                                              [this, cache, cinfo, &argument] {
+          cache_token(cache, tok_lparen);
           if (!is_null_index(argument)) {
             cache_expr(cache, argument, cinfo);
           } /* if */
-          cache_token(cache, tok_rparen, &pos);
+          cache_token(cache, tok_rparen);
         };  /* cache_arg */
-        source_position_from_locus(&pos, locus);
 
         an_operator_kind opkind = get_operator_kind(expr.mod, assoc);
         switch (opkind) {
@@ -17334,7 +17223,7 @@ tuple elements by '::' instead of ','.
             goto invalid;
           case opkind_basic:
           case opkind_func_like:
-            cache_operator(cache, assoc, locus);
+            cache_operator(cache, assoc);
             if (assoc == ifc_mos_lookup_globally) {
               /* Do not produce parentheses after a "::". */
               cache_expr(cache, argument, cinfo);
@@ -17344,7 +17233,7 @@ tuple elements by '::' instead of ','.
             break;
           case opkind_post:
             cache_arg();
-            cache_operator(cache, assoc, locus);
+            cache_operator(cache, assoc);
             break;
           case opkind_other:
             { a_token_kind ltok, rtok;
@@ -17360,9 +17249,9 @@ tuple elements by '::' instead of ','.
                 ifc_unexpected(this, err_msg);
                 goto invalid;
               }  /* if */
-              cache_token(cache, ltok, &pos);
+              cache_token(cache, ltok);
               cache_expr(cache, argument, cinfo);
-              cache_token(cache, rtok, &pos);
+              cache_token(cache, rtok);
             }
             break;
           default_is_unexpected();
@@ -17378,14 +17267,11 @@ tuple elements by '::' instead of ','.
         }  /* if */
 
         an_ifc_expr_dyad            ied = *opt_ied;
-        an_ifc_source_location      locus = get_ifc_locus(ied);
         an_ifc_dyadic_operator_sort assoc = get_ifc_assoc(ied);
         an_operator_kind            opkind =
                                     get_operator_kind(ied.get_module(), assoc);
         an_ifc_expr_index           arg_0 = get_ifc_argument_0(ied);
         an_ifc_expr_index           arg_1 = get_ifc_argument_1(ied);
-
-        source_position_from_locus(&pos, locus);
         switch (opkind) {
           case opkind_error:
           case opkind_post:
@@ -17401,17 +17287,17 @@ tuple elements by '::' instead of ','.
                 cache_info.nested_expr = TRUE;
               }  /* if */
               if (cache_info.nested_expr) {
-                cache_token(cache, tok_lparen, &pos);
+                cache_token(cache, tok_lparen);
               }  /* if */
               if (!cache_info.skip_assign || assoc != ifc_dos_assign) {
                 an_ifc_cache_info lhs_cache_info = cache_info;
                 lhs_cache_info.possible_temporary_decl = TRUE;
                 cache_expr(cache, arg_0, lhs_cache_info);
-                cache_operator(cache, assoc, locus);
+                cache_operator(cache, assoc);
               }  /* if */
               cache_expr(cache, arg_1, cache_info);
               if (cache_info.nested_expr) {
-                cache_token(cache, tok_rparen, &pos);
+                cache_token(cache, tok_rparen);
               }  /* if */
             }
             break;
@@ -17422,32 +17308,32 @@ tuple elements by '::' instead of ','.
                  EDG IL.  So just cache the second argument. */
               cache_expr(cache, arg_1, cinfo);
             } else {
-              cache_operator(cache, assoc, locus);
-              cache_token(cache, tok_lparen, &pos);
+              cache_operator(cache, assoc);
+              cache_token(cache, tok_lparen);
               cache_expr(cache, arg_0, cinfo);
-              cache_token(cache, tok_comma, &pos);
+              cache_token(cache, tok_comma);
               cache_expr(cache, arg_1, cinfo);
-              cache_token(cache, tok_rparen, &pos);
+              cache_token(cache, tok_rparen);
             }  /* if */
             break;
           case opkind_cpp_cast:
-            cache_operator(cache, assoc, locus);
+            cache_operator(cache, assoc);
             FALLTHROUGH
           case opkind_c_cast:
             if (opkind == opkind_c_cast) {
-              cache_token(cache, tok_lparen, &pos);
+              cache_token(cache, tok_lparen);
             } else {
-              cache_token(cache, tok_lt, &pos);
+              cache_token(cache, tok_lt);
             }  /* if */
             cache_expr(cache, arg_0, cinfo);
             if (opkind == opkind_c_cast) {
-              cache_token(cache, tok_rparen, &pos);
+              cache_token(cache, tok_rparen);
             } else {
-              cache_token(cache, tok_gt, &pos);
+              cache_token(cache, tok_gt);
             }  /* if */
-            cache_token(cache, tok_lparen, &pos);
+            cache_token(cache, tok_lparen);
             cache_expr(cache, arg_1, cinfo);
-            cache_token(cache, tok_rparen, &pos);
+            cache_token(cache, tok_rparen);
             break;
           default_is_unexpected();
         }  /* switch */
@@ -17462,28 +17348,26 @@ tuple elements by '::' instead of ','.
         }  /* if */
 
         an_ifc_expr_triad            iet = *opt_iet;
-        an_ifc_source_location       locus = get_ifc_locus(iet);
         an_ifc_triadic_operator_sort assoc = get_ifc_assoc(iet);
         an_ifc_expr_index            arg_0 = get_ifc_argument_0(iet);
         an_ifc_expr_index            arg_1 = get_ifc_argument_1(iet);
         an_ifc_expr_index            arg_2 = get_ifc_argument_2(iet);
-        source_position_from_locus(&pos, locus);
         switch (assoc) {
           case ifc_tos_choice:
             cache_expr(cache, arg_0, cinfo);
-            cache_operator(cache, assoc, locus);
+            cache_operator(cache, assoc);
             cache_expr(cache, arg_1, cinfo);
-            cache_token(cache, tok_colon, &pos);
+            cache_token(cache, tok_colon);
             cache_expr(cache, arg_2, cinfo);
             break;
           case ifc_tos_construct_at:
-            cache_operator(cache, assoc, locus);
-            cache_token(cache, tok_lparen, &pos);
+            cache_operator(cache, assoc);
+            cache_token(cache, tok_lparen);
             cache_expr(cache, arg_0, cinfo);
-            cache_token(cache, tok_rparen, &pos);
+            cache_token(cache, tok_rparen);
             cache_expr(cache, arg_1, cinfo);
             if (!is_null_index(arg_2)) {
-              cache_args_with_parens(cache, arg_2, &pos, cinfo);
+              cache_args_with_parens(cache, arg_2, cinfo);
             }  /* if */
             break;
           default:
@@ -17500,8 +17384,7 @@ tuple elements by '::' instead of ','.
         if (!opt_ies.has_value()) {
           goto invalid;
         }  /* if */
-        cache_string(cache, get_ifc_string_index(*opt_ies),
-                     get_ifc_locus(*opt_ies));
+        cache_string(cache, get_ifc_string_index(*opt_ies));
       }
       break;
     case ifc_es_expr_temporary:
@@ -17512,14 +17395,11 @@ tuple elements by '::' instead of ','.
           goto invalid;
         }  /* if */
 
-        an_ifc_expr_temporary  iet = *opt_iet;
-        an_ifc_source_location locus = get_ifc_locus(iet);
-        source_position_from_locus(&pos, locus);
+        an_ifc_expr_temporary       iet = *opt_iet;
         if (cinfo.possible_temporary_decl) {
-          cache_type(cache, get_ifc_type(iet), locus);
+          cache_type(cache, get_ifc_type(iet));
         }  /* if */
-        cache_identifier(cache, make_ifc_temporary_unique_id(get_ifc_id(iet)),
-                         &pos);
+        cache_identifier(cache, make_ifc_temporary_unique_id(get_ifc_id(iet)));
       }
       break;
     case ifc_es_expr_call:
@@ -17530,19 +17410,16 @@ tuple elements by '::' instead of ','.
           goto invalid;
         }  /* if */
 
-        an_ifc_expr_call       iec = *opt_iec;
-        an_ifc_source_location locus = get_ifc_locus(iec);
-        an_ifc_expr_index      arguments = get_ifc_arguments(iec);
-        source_position_from_locus(&pos, locus);
+        an_ifc_expr_call  iec = *opt_iec;
+        an_ifc_expr_index arguments = get_ifc_arguments(iec);
         cache_expr(cache, get_ifc_operation(iec), cinfo);
         if (is_null_index(arguments)) {
           /* Sometimes (but not always) an empty argument list appears to be
              represented using a null "arguments" field. */
-          source_position_from_locus(&pos, locus);
-          cache_token(cache, tok_lparen, &pos);
-          cache_token(cache, tok_rparen, &pos);
+          cache_token(cache, tok_lparen);
+          cache_token(cache, tok_rparen);
         } else {
-          cache_args_with_parens(cache, arguments, &pos, cinfo);
+          cache_args_with_parens(cache, arguments, cinfo);
         }  /* if */
       }
       break;
@@ -17559,11 +17436,10 @@ tuple elements by '::' instead of ','.
         an_ifc_type_index              base = get_ifc_base(iemi);
         if (!is_null_index(member)) {
           /* A nonstatic member initialization. */
-          source_position_from_locus(&pos, get_ifc_locus(iemi));
-          cache_identifier(cache, name_from_decl(member), &pos);
+          cache_identifier(cache, name_from_decl(member));
         } else if (!is_null_index(base)) {
           /* A base subobject initialization. */
-          cache_type(cache, base, get_ifc_locus(iemi));
+          cache_type(cache, base);
         } else {
           /* A delegating constructor. */
           issue_unsupported_construct_error(this,
@@ -17571,12 +17447,12 @@ tuple elements by '::' instead of ','.
                                             &error_position);
           goto invalid;
         }  /* if */
-        cache_token(cache, tok_lparen, &null_source_position);
+        cache_token(cache, tok_lparen);
         { an_ifc_cache_info cache_info = cinfo;
           cache_info.skip_assign = TRUE;
           cache_expr(cache, get_ifc_initializer(iemi), cache_info);
         }
-        cache_token(cache, tok_rparen, &null_source_position);
+        cache_token(cache, tok_rparen);
       }
       break;
     case ifc_es_expr_member_access:
@@ -17588,9 +17464,7 @@ tuple elements by '::' instead of ','.
         }  /* if */
 
         an_ifc_expr_member_access iema = *opt_iema;
-        source_position_from_locus(&pos, get_ifc_locus(iema));
-        cache_identifier(cache, get_string_at_offset(get_ifc_name(iema)),
-                         &pos);
+        cache_identifier(cache, get_string_at_offset(get_ifc_name(iema)));
       }
       break;
     case ifc_es_expr_inheritance_path:
@@ -17611,42 +17485,40 @@ tuple elements by '::' instead of ','.
           goto invalid;
         }  /* if */
 
-        an_ifc_expr_cast       iec = *opt_iec;
-        an_ifc_source_location locus = get_ifc_locus(iec);
-        an_ifc_cache_info      cache_info = cinfo;
+        an_ifc_expr_cast  iec = *opt_iec;
+        an_ifc_cache_info cache_info = cinfo;
         cache_info.nested_expr = TRUE;
-        source_position_from_locus(&pos, locus);
 
         an_ifc_dyadic_operator_sort op_sort = get_ifc_op(iec);
         switch (op_sort) {
           case ifc_dos_explicit_conversion:
-            cache_type(cache, get_ifc_target(iec), locus);
+            cache_type(cache, get_ifc_target(iec));
             cache_expr(cache, get_ifc_source(iec), cache_info);
             break;
           case ifc_dos_pretend:
-            cache_token(cache, tok_lparen, &pos);
-            cache_type(cache, get_ifc_target(iec), locus);
-            cache_token(cache, tok_rparen, &pos);
+            cache_token(cache, tok_lparen);
+            cache_type(cache, get_ifc_target(iec));
+            cache_token(cache, tok_rparen);
             cache_expr(cache, get_ifc_source(iec), cache_info);
             break;
           case ifc_dos_reinterpret_cast:
-            cache_token(cache, tok_reinterpret_cast, &pos);
+            cache_token(cache, tok_reinterpret_cast);
             goto common_cast;
           case ifc_dos_static_cast:
-            cache_token(cache, tok_static_cast, &pos);
+            cache_token(cache, tok_static_cast);
             goto common_cast;
           case ifc_dos_const_cast:
-            cache_token(cache, tok_const_cast, &pos);
+            cache_token(cache, tok_const_cast);
             goto common_cast;
           case ifc_dos_dynamic_cast:
-            cache_token(cache, tok_dynamic_cast, &pos);
+            cache_token(cache, tok_dynamic_cast);
 common_cast:
-            cache_token(cache, tok_lt, &pos);
-            cache_type(cache, get_ifc_target(iec), locus);
-            cache_token(cache, tok_gt, &pos);
-            cache_token(cache, tok_lparen, &pos);
+            cache_token(cache, tok_lt);
+            cache_type(cache, get_ifc_target(iec));
+            cache_token(cache, tok_gt);
+            cache_token(cache, tok_lparen);
             cache_expr(cache, get_ifc_source(iec), cinfo);
-            cache_token(cache, tok_rparen, &pos);
+            cache_token(cache, tok_rparen);
             break;
           default:
             { a_string err_msg("Unexpected ", str_for(op_sort),
@@ -17675,19 +17547,21 @@ common_cast:
         an_ifc_delimiter_sort       delimiter = get_ifc_delimiter(eel);
         an_ifc_expr_index           contents = get_ifc_contents(eel);
         if (delimiter != ifc_ds_unknown) {
-          source_position_from_locus(&pos, get_ifc_left(eel));
+          an_ifc_source_location      locus = get_ifc_left(eel);
+          an_ifc_source_position_hint tok_pos_hint(cache, locus);
+
           cache_token(cache,
-                      delimiter == ifc_ds_brace ? tok_lbrace : tok_lparen,
-                      &pos);
+                      delimiter == ifc_ds_brace ? tok_lbrace : tok_lparen);
         }  /* if */
         if (!is_null_index(contents)) {
           cache_expr(cache, contents, cinfo);
         }  /* if */
         if (delimiter != ifc_ds_unknown) {
-          source_position_from_locus(&pos, get_ifc_right(eel));
+          an_ifc_source_location      locus = get_ifc_right(eel);
+          an_ifc_source_position_hint tok_pos_hint(cache, locus);
+
           cache_token(cache,
-                      delimiter == ifc_ds_brace ? tok_rbrace : tok_rparen,
-                      &pos);
+                      delimiter == ifc_ds_brace ? tok_rbrace : tok_rparen);
         }  /* if */
       }
       break;
@@ -17700,12 +17574,10 @@ common_cast:
         }  /* if */
 
         an_ifc_expr_sizeof_type iest = *opt_iest;
-        an_ifc_source_location  locus = get_ifc_locus(iest);
-        source_position_from_locus(&pos, locus);
-        cache_token(cache, tok_sizeof, &pos);
-        cache_token(cache, tok_lparen, &pos);
-        cache_type(cache, get_ifc_operand(iest), locus);
-        cache_token(cache, tok_rparen, &pos);
+        cache_token(cache, tok_sizeof);
+        cache_token(cache, tok_lparen);
+        cache_type(cache, get_ifc_operand(iest));
+        cache_token(cache, tok_rparen);
       }
       break;
     case ifc_es_expr_alignof:
@@ -17763,8 +17635,7 @@ common_cast:
 
         an_ifc_expr_requires ier = *opt_ier;
         an_ifc_syntax_index  parameters = get_ifc_parameters(ier);
-        source_position_from_locus(&pos, get_ifc_locus(ier));
-        cache_token(cache, tok_requires, &pos);
+        cache_token(cache, tok_requires);
         if (!is_null_index(parameters)) {
           cache_syntax(cache, parameters, cinfo);
         }  /* if */
@@ -17802,10 +17673,9 @@ common_cast:
         an_ifc_expr_product_type_value ieptv = *opt_ieptv;
         a_type_ptr                     tp;
         a_constant_ptr                 cp;
-        source_position_from_locus(&pos, get_ifc_locus(ieptv));
         tp = type_for_type_index(get_ifc_type(ieptv), /*kind=*/NULL);
         cp = constant_for_expr_index(expr, tp);
-        cache_aggr_constant(cache, cp, &pos);
+        cache_aggr_constant(cache, cp);
       }
       break;
     case ifc_es_expr_sum_type_value:
@@ -17858,9 +17728,7 @@ common_cast:
         }  /* if */
 
         an_ifc_expr_tuple      iet = *opt_iet;
-        an_ifc_source_location locus = get_ifc_locus(iet);
         an_expr_heap_traverser traverser(iet);
-        source_position_from_locus(&pos, locus);
         Value_saver<a_boolean> suppression(
                                        &suppress_automatic_name_qualification);
 
@@ -17877,7 +17745,7 @@ common_cast:
           if (!is_first(traverser, indexed_ihe)) {
             a_token_kind sep = cinfo.qualified_name ? tok_colon_colon
                                                     : tok_comma;
-            cache_token(cache, sep, &pos);
+            cache_token(cache, sep);
           }  /* if */
           cache_expr(cache, get_ifc_value(*indexed_ihe), cinfo);
         }  /* for */
@@ -17902,19 +17770,16 @@ common_cast:
         }  /* if */
 
         an_ifc_expr_template_reference ietr = *opt_ietr;
-        an_ifc_source_location         locus = get_ifc_locus(ietr);
         an_ifc_expr_index              arguments = get_ifc_arguments(ietr);
-        source_position_from_locus(&pos, locus);
-        cache_type(cache, get_ifc_scope(ietr), locus);
-        cache_token(cache, tok_colon_colon, &pos);
+        cache_type(cache, get_ifc_scope(ietr));
+        cache_token(cache, tok_colon_colon);
         cache_identifier(cache,
                          string_from_name_index(get_ifc_member_name(ietr),
-                                                /*loc=*/NULL),
-                         &pos);
+                                                /*loc=*/NULL));
         if (!is_null_index(arguments)) {
-          cache_token(cache, tok_lt, &pos);
+          cache_token(cache, tok_lt);
           cache_expr(cache, arguments, cinfo);
-          cache_token(cache, tok_gt, &pos);
+          cache_token(cache, tok_gt);
         }  /* if */
       }
       break;
@@ -17981,7 +17846,7 @@ references should include decl specifiers, type, and any default expression.
 Otherwise, parameter references should only include the parameter name.
 */
 {
-  a_source_position pos;
+  an_ifc_source_position_hint pos_hint(cache, syntax);
 
   switch (syntax.sort) {
     case ifc_ss_syntax_vendor_extension:
@@ -18001,7 +17866,7 @@ Otherwise, parameter references should only include the parameter name.
         an_ifc_expr_index                   expr = get_ifc_expr(issts);
         if (!is_null_index(type)) {
           check_assertion(is_null_index(expr));
-          cache_type(cache, type, get_ifc_locus(issts));
+          cache_type(cache, type);
         } else {
           check_assertion(!is_null_index(expr));
           cache_expr(cache, expr, cinfo);
@@ -18017,11 +17882,10 @@ Otherwise, parameter references should only include the parameter name.
         }  /* if */
 
         an_ifc_syntax_decltype_specifier isds = *opt_isds;
-        source_position_from_locus(&pos, get_ifc_decltype_keyword(isds));
-        cache_token(cache, tok_decltype, &pos);
-        cache_token(cache, tok_lparen, &pos);
+        cache_token(cache, tok_decltype);
+        cache_token(cache, tok_lparen);
         cache_expr(cache, get_ifc_expr(isds), cinfo);
-        cache_token(cache, tok_rparen, &pos);
+        cache_token(cache, tok_rparen);
       }
       break;
     case ifc_ss_syntax_placeholder_type_specifier:
@@ -18034,16 +17898,15 @@ Otherwise, parameter references should only include the parameter name.
 
         an_ifc_syntax_placeholder_type_specifier ispt = *opt_ispt;
         an_ifc_type_basis_sort                   basis = get_ifc_basis(ispt);
-        source_position_from_locus(&pos, get_ifc_locus(ispt));
         /* FIXME: Handle the constraint field. */
         if (basis == ifc_tbs_auto) {
-          cache_token(cache, tok_auto, &pos);
+          cache_token(cache, tok_auto);
         } else {
           check_assertion(basis == ifc_tbs_decltype_auto);
-          cache_token(cache, tok_decltype, &pos);
-          cache_token(cache, tok_lparen, &pos);
-          cache_token(cache, tok_auto, &pos);
-          cache_token(cache, tok_rparen, &pos);
+          cache_token(cache, tok_decltype);
+          cache_token(cache, tok_lparen);
+          cache_token(cache, tok_auto);
+          cache_token(cache, tok_rparen);
         }  /* if */
       }
       break;
@@ -18056,23 +17919,21 @@ Otherwise, parameter references should only include the parameter name.
         }  /* if */
 
         an_ifc_syntax_type_specifier_seq istss = *opt_istss;
-        an_ifc_source_location           locus = get_ifc_locus(istss);
         an_ifc_type_index                type = get_ifc_type(istss);
         an_ifc_syntax_index              type_name = get_ifc_type_name(istss);
         Value_saver<a_boolean>           suppression(
                                         &suppress_automatic_name_qualification,
                                         /*new_value=*/TRUE);
 
-        source_position_from_locus(&pos, locus);
         /* We have explicit qualifiers - don't do automatic name qualification
            (flag set above). */
-        cache_qualifiers(cache, get_ifc_qualifiers(istss), &pos);
+        cache_qualifiers(cache, get_ifc_qualifiers(istss));
         if (is_null_index(type)) {
           check_assertion(!is_null_index(type_name));
           cache_syntax(cache, type_name, cinfo);
         } else {
           check_assertion(is_null_index(type_name));
-          cache_type(cache, type, locus);
+          cache_type(cache, type);
         }  /* if */
       }
       break;
@@ -18085,13 +17946,11 @@ Otherwise, parameter references should only include the parameter name.
         }  /* if */
 
         an_ifc_syntax_decl_specifier_seq isdss = *opt_isdss;
-        an_ifc_source_location           locus = get_ifc_locus(isdss);
         an_ifc_sentence_index            declspec = get_ifc_declspec(isdss);
         an_ifc_syntax_index              explicit_kw =
                                                     get_ifc_explicit_kw(isdss);
         an_ifc_type_index                type = get_ifc_type(isdss);
         an_ifc_syntax_index              type_name = get_ifc_type_name(isdss);
-        source_position_from_locus(&pos, locus);
         /* FIXME: Handle storage_class field. */
         if (declspec != 0) {
           cache_sentence(cache, declspec);
@@ -18099,13 +17958,13 @@ Otherwise, parameter references should only include the parameter name.
         if (!is_null_index(explicit_kw)) {
           cache_syntax(cache, explicit_kw, cinfo);
         }  /* if */
-        cache_qualifiers(cache, get_ifc_qualifiers(isdss), &pos);
+        cache_qualifiers(cache, get_ifc_qualifiers(isdss));
         if (is_null_index(type)) {
           check_assertion(!is_null_index(type_name));
           cache_syntax(cache, type_name, cinfo);
         } else {
           check_assertion(is_null_index(type_name));
-          cache_type(cache, type, locus);
+          cache_type(cache, type);
         }  /* if */
       }
       break;
@@ -18118,12 +17977,11 @@ Otherwise, parameter references should only include the parameter name.
         }  /* if */
 
         an_ifc_syntax_virtual_specifier_seq isvss = *opt_isvss;
-        source_position_from_locus(&pos, get_ifc_locus(isvss));
         if (get_ifc_line(get_ifc_override_kw(isvss)) != 0) {
-          cache_token(cache, tok_override, &pos);
+          cache_token(cache, tok_override);
         }  /* if */
         if (get_ifc_line(get_ifc_final_kw(isvss)) != 0) {
-          cache_token(cache, tok_final, &pos);
+          cache_token(cache, tok_final);
         }  /* if */
       }
       break;
@@ -18136,11 +17994,10 @@ Otherwise, parameter references should only include the parameter name.
         }  /* if */
 
         an_ifc_syntax_noexcept_specification sns = *opt_sns;
-        source_position_from_locus(&pos, get_ifc_locus(sns));
-        cache_token(cache, tok_noexcept, &pos);
-        cache_token(cache, tok_lparen, &pos);
+        cache_token(cache, tok_noexcept);
+        cache_token(cache, tok_lparen);
         cache_syntax(cache, get_ifc_expr(sns), cinfo);
-        cache_token(cache, tok_rparen, &pos);
+        cache_token(cache, tok_rparen);
       }
       break;
     case ifc_ss_syntax_explicit_specifier:
@@ -18153,12 +18010,11 @@ Otherwise, parameter references should only include the parameter name.
 
         an_ifc_syntax_explicit_specifier ises = *opt_ises;
         an_ifc_expr_index                condition = get_ifc_condition(ises);
-        source_position_from_locus(&pos, get_ifc_locus(ises));
-        cache_token(cache, tok_explicit, &pos);
+        cache_token(cache, tok_explicit);
         if (!is_null_index(condition)) {
-          cache_token(cache, tok_lparen, &pos);
+          cache_token(cache, tok_lparen);
           cache_expr(cache, condition, cinfo);
-          cache_token(cache, tok_rparen, &pos);
+          cache_token(cache, tok_rparen);
         }  /* if */
       }
       break;
@@ -18233,8 +18089,7 @@ Otherwise, parameter references should only include the parameter name.
         if (!opt_istrt.has_value()) {
           goto invalid;
         }  /* if */
-        source_position_from_locus(&pos, get_ifc_arrow(*opt_istrt));
-        cache_token(cache, tok_arrow, &pos);
+        cache_token(cache, tok_arrow);
         cache_syntax(cache, get_ifc_target(*opt_istrt), cinfo);
       }
       break;
@@ -18258,21 +18113,19 @@ Otherwise, parameter references should only include the parameter name.
         an_ifc_expr_index              name = get_ifc_name(isd);
         an_ifc_syntax_index            trailing_target =
                                                   get_ifc_trailing_target(isd);
-        an_ifc_source_location         locus = get_ifc_locus(isd);
-        source_position_from_locus(&pos, locus);
         if (convention != ifc_ccs_cdecl) {
-          cache_calling_convention(cache, convention, locus);
+          cache_calling_convention(cache, convention);
         }  /* if */
         if (!is_null_index(pointer)) {
           cache_syntax(cache, pointer, cinfo);
         } else if (!is_null_index(parenthesized)) {
-          cache_token(cache, tok_lparen, &pos);
+          cache_token(cache, tok_lparen);
           cache_syntax(cache, parenthesized, cinfo);
-          cache_token(cache, tok_rparen, &pos);
+          cache_token(cache, tok_rparen);
         } else if (!is_null_index(array_or_function)) {
           cache_syntax(cache, array_or_function, cinfo);
         }  /* if */
-        cache_qualifiers(cache, get_ifc_qualifiers(isd), &pos);
+        cache_qualifiers(cache, get_ifc_qualifiers(isd));
         if (!is_null_index(virtual_specifiers)) {
           cache_syntax(cache, virtual_specifiers, cinfo);
         }  /* if */
@@ -18297,11 +18150,9 @@ Otherwise, parameter references should only include the parameter name.
         an_ifc_syntax_pointer_declarator ispd = *opt_ispd;
         an_ifc_calling_convention_sort   convention = get_ifc_convention(ispd);
         an_ifc_syntax_index              next = get_ifc_next(ispd);
-        an_ifc_source_location           locus = get_ifc_locus(ispd);
-        source_position_from_locus(&pos, locus);
-        cache_qualifiers(cache, get_ifc_qualifiers(ispd), &pos);
+        cache_qualifiers(cache, get_ifc_qualifiers(ispd));
         if (convention != ifc_ccs_cdecl) {
-          cache_calling_convention(cache, convention, locus);
+          cache_calling_convention(cache, convention);
         }  /* if */
 
         an_ifc_pointer_declarator_sort declar_sort = get_ifc_sort(ispd);
@@ -18313,21 +18164,21 @@ Otherwise, parameter references should only include the parameter name.
             }
             goto invalid;
           case ifc_pds_pointer:
-            cache_token(cache, tok_star, &pos);
+            cache_token(cache, tok_star);
             break;
           case ifc_pds_lvalue_reference:
-            cache_token(cache, tok_ampersand, &pos);
+            cache_token(cache, tok_ampersand);
             break;
           case ifc_pds_rvalue_reference:
-            cache_token(cache, tok_and_and, &pos);
+            cache_token(cache, tok_and_and);
             break;
           case ifc_pds_pointer_to_member:
             { an_ifc_syntax_index whole = get_ifc_whole(ispd);
 
               check_assertion(!is_null_index(whole));
               cache_syntax(cache, whole, cinfo);
-              cache_token(cache, tok_colon_colon, &pos);
-              cache_token(cache, tok_star, &pos);
+              cache_token(cache, tok_colon_colon);
+              cache_token(cache, tok_star);
             }
             break;
           default_is_unexpected_str("Unexpected PointerDeclaratorSort");
@@ -18347,13 +18198,21 @@ Otherwise, parameter references should only include the parameter name.
 
         an_ifc_syntax_array_declarator isad = *opt_isad;
         an_ifc_expr_index              bound = get_ifc_bound(isad);
-        source_position_from_locus(&pos, get_ifc_left_bracket(isad));
-        cache_token(cache, tok_lbracket, &pos);
+        {
+          an_ifc_source_location      locus = get_ifc_left_bracket(isad);
+          an_ifc_source_position_hint tok_pos_hint(cache, locus);
+
+          cache_token(cache, tok_lbracket);
+        }
         if (!is_null_index(bound)) {
           cache_expr(cache, bound, cinfo);
         }  /* if */
-        source_position_from_locus(&pos, get_ifc_right_bracket(isad));
-        cache_token(cache, tok_rbracket, &pos);
+        {
+          an_ifc_source_location      locus = get_ifc_right_bracket(isad);
+          an_ifc_source_position_hint tok_pos_hint(cache, locus);
+
+          cache_token(cache, tok_rbracket);
+        }
       }
       break;
     case ifc_ss_syntax_function_declarator:
@@ -18368,13 +18227,21 @@ Otherwise, parameter references should only include the parameter name.
         an_ifc_syntax_index               parameters =
                                                       get_ifc_parameters(isfd);
         an_ifc_syntax_index               eh_spec = get_ifc_eh_spec(isfd);
-        source_position_from_locus(&pos, get_ifc_left_paren(isfd));
-        cache_token(cache, tok_lparen, &pos);
+        {
+          an_ifc_source_location      locus = get_ifc_left_paren(isfd);
+          an_ifc_source_position_hint tok_pos_hint(cache, locus);
+
+          cache_token(cache, tok_lparen);
+        }
         if (!is_null_index(parameters)) {
           cache_syntax(cache, parameters, cinfo);
         }  /* if */
-        source_position_from_locus(&pos, get_ifc_right_paren(isfd));
-        cache_token(cache, tok_rparen, &pos);
+        {
+          an_ifc_source_location      locus = get_ifc_right_paren(isfd);
+          an_ifc_source_position_hint tok_pos_hint(cache, locus);
+
+          cache_token(cache, tok_rparen);
+        }
         if (!is_null_index(eh_spec)) {
           cache_syntax(cache, eh_spec, cinfo);
         }  /* if */
@@ -18409,13 +18276,12 @@ Otherwise, parameter references should only include the parameter name.
                                                  get_ifc_decl_specifiers(ispd);
         an_ifc_expr_index                  default_expr =
                                                     get_ifc_default_expr(ispd);
-        source_position_from_locus(&pos, get_ifc_locus(ispd));
         if (!cinfo.requires_body && !is_null_index(decl_specifiers)) {
           cache_syntax(cache, decl_specifiers, cinfo);
         }  /* if */
         cache_syntax(cache, get_ifc_declarator(ispd), cinfo);
         if (!cinfo.requires_body && !is_null_index(default_expr)) {
-          cache_token(cache, tok_eq, &pos);
+          cache_token(cache, tok_eq);
           cache_expr(cache, default_expr, cinfo);
         }  /* if */
       }
@@ -18434,13 +18300,14 @@ Otherwise, parameter references should only include the parameter name.
         cache_syntax(cache, get_ifc_declarator(isid), cinfo);
         /* FIXME: Handle the constraint field. */
         if (!is_null_index(initializer)) {
-          /* FIXME: Find a way to get a proper source position for this. */
-          cache_token(cache, tok_eq, &null_source_position);
+          cache_token(cache, tok_eq);
           cache_expr(cache, initializer, cinfo);
         }  /* if */
         if (get_ifc_line(comma) != 0) {
-          source_position_from_locus(&pos, comma);
-          cache_token(cache, tok_comma, &pos);
+          an_ifc_source_location      locus = get_ifc_comma(isid);
+          an_ifc_source_position_hint tok_pos_hint(cache, locus);
+
+          cache_token(cache, tok_comma);
         }  /* if */
       }
       break;
@@ -18464,8 +18331,12 @@ Otherwise, parameter references should only include the parameter name.
           cache_syntax(cache, decl_specifiers, cinfo);
         }  /* if */
         cache_syntax(cache, get_ifc_declarators(issd), cinfo);
-        source_position_from_locus(&pos, get_ifc_semicolon(issd));
-        cache_token(cache, tok_semicolon, &pos);
+        {
+          an_ifc_source_location      locus = get_ifc_semicolon(issd);
+          an_ifc_source_position_hint tok_pos_hint(cache, locus);
+
+          cache_token(cache, tok_semicolon);
+        }
       }
       break;
     case ifc_ss_syntax_exception_declaration:
@@ -18491,16 +18362,15 @@ Otherwise, parameter references should only include the parameter name.
         an_ifc_syntax_static_assert_declaration issad = *opt_issad;
         an_ifc_expr_index                       message =
                                                         get_ifc_message(issad);
-        source_position_from_locus(&pos, get_ifc_locus(issad));
-        cache_token(cache, tok_static_assert, &pos);
-        cache_token(cache, tok_lparen, &pos);
+        cache_token(cache, tok_static_assert);
+        cache_token(cache, tok_lparen);
         cache_expr(cache, get_ifc_condition(issad), cinfo);
         if (!is_null_index(message)) {
-          cache_token(cache, tok_comma, &pos);
+          cache_token(cache, tok_comma);
           cache_expr(cache, message, cinfo);
         }  /* if */
-        cache_token(cache, tok_rparen, &pos);
-        cache_token(cache, tok_semicolon, &pos);
+        cache_token(cache, tok_rparen);
+        cache_token(cache, tok_semicolon);
       }
       break;
     case ifc_ss_syntax_alias_declaration:
@@ -18669,8 +18539,7 @@ Otherwise, parameter references should only include the parameter name.
         }  /* if */
 
         an_ifc_syntax_template_declaration istd = *opt_istd;
-        source_position_from_locus(&pos, get_ifc_locus(istd));
-        cache_token(cache, tok_template, &pos);
+        cache_token(cache, tok_template);
         cache_syntax(cache, get_ifc_parameters(istd), cinfo);
         cache_syntax(cache, get_ifc_subject(istd), cinfo);
       }
@@ -18684,8 +18553,7 @@ Otherwise, parameter references should only include the parameter name.
         }  /* if */
 
         an_ifc_syntax_requires_clause isrc = *opt_isrc;
-        source_position_from_locus(&pos, get_ifc_locus(isrc));
-        cache_token(cache, tok_requires, &pos);
+        cache_token(cache, tok_requires);
         cache_expr(cache, get_ifc_condition(isrc), cinfo);
       }
       break;
@@ -18698,9 +18566,8 @@ Otherwise, parameter references should only include the parameter name.
         }  /* if */
 
         an_ifc_syntax_simple_requirement issr = *opt_issr;
-        source_position_from_locus(&pos, get_ifc_locus(issr));
         cache_expr(cache, get_ifc_condition(issr), cinfo);
-        cache_token(cache, tok_semicolon, &pos);
+        cache_token(cache, tok_semicolon);
       }
       break;
     case ifc_ss_syntax_type_requirement:
@@ -18712,10 +18579,9 @@ Otherwise, parameter references should only include the parameter name.
         }  /* if */
 
         an_ifc_syntax_type_requirement istr = *opt_istr;
-        source_position_from_locus(&pos, get_ifc_locus(istr));
-        cache_token(cache, tok_typename, &pos);
+        cache_token(cache, tok_typename);
         cache_expr(cache, get_ifc_type(istr), cinfo);
-        cache_token(cache, tok_semicolon, &pos);
+        cache_token(cache, tok_semicolon);
       }
       break;
     case ifc_ss_syntax_compound_requirement:
@@ -18729,18 +18595,22 @@ Otherwise, parameter references should only include the parameter name.
         an_ifc_syntax_compound_requirement iscr = *opt_iscr;
         an_ifc_source_location             noexcept_loc =
                                                     get_ifc_noexcept_loc(iscr);
-        source_position_from_locus(&pos, get_ifc_locus(iscr));
-        cache_token(cache, tok_lbrace, &pos);
+        cache_token(cache, tok_lbrace);
         cache_expr(cache, get_ifc_condition(iscr), cinfo);
-        source_position_from_locus(&pos, get_ifc_right_curly(iscr));
-        cache_token(cache, tok_rbrace, &pos);
-        if (get_ifc_line(noexcept_loc) != 0) {
-          source_position_from_locus(&pos, noexcept_loc);
-          cache_token(cache, tok_noexcept, &pos);
+        {
+          an_ifc_source_location      locus = get_ifc_right_curly(iscr);
+          an_ifc_source_position_hint tok_pos_hint(cache, locus);
+
+          cache_token(cache, tok_rbrace);
         }  /* if */
-        cache_token(cache, tok_arrow, &pos);
+        if (get_ifc_line(noexcept_loc) != 0) {
+          an_ifc_source_position_hint tok_pos_hint(cache, noexcept_loc);
+
+          cache_token(cache, tok_noexcept);
+        }  /* if */
+        cache_token(cache, tok_arrow);
         cache_expr(cache, get_ifc_constraint(iscr), cinfo);
-        cache_token(cache, tok_semicolon, &pos);
+        cache_token(cache, tok_semicolon);
       }
       break;
     case ifc_ss_syntax_nested_requirement:
@@ -18759,11 +18629,14 @@ Otherwise, parameter references should only include the parameter name.
         an_ifc_syntax_requirement_body isrb = *opt_isrb;
         an_ifc_cache_info              cache_info = cinfo;
         cache_info.requires_body = TRUE;
-        source_position_from_locus(&pos, get_ifc_locus(isrb));
-        cache_token(cache, tok_lbrace, &pos);
+        cache_token(cache, tok_lbrace);
         cache_syntax(cache, get_ifc_requirements(isrb), cache_info);
-        source_position_from_locus(&pos, get_ifc_right_curly(isrb));
-        cache_token(cache, tok_rbrace, &pos);
+        {
+          an_ifc_source_location      locus = get_ifc_right_curly(isrb);
+          an_ifc_source_position_hint tok_pos_hint(cache, locus);
+
+          cache_token(cache, tok_rbrace);
+        }
       }
       break;
     case ifc_ss_syntax_type_template_parameter:
@@ -18777,16 +18650,14 @@ Otherwise, parameter references should only include the parameter name.
         an_ifc_syntax_type_template_parameter isttp = *opt_isttp;
         an_ifc_syntax_index                   argument =
                                                        get_ifc_argument(isttp);
-        source_position_from_locus(&pos, get_ifc_locus(isttp));
-        cache_token(cache, tok_typename, &pos);
+        cache_token(cache, tok_typename);
         if (get_ifc_line(get_ifc_ellipsis(isttp)) != 0) {
-          cache_token(cache, tok_ellipsis, &pos);
+          cache_token(cache, tok_ellipsis);
         }  /* if */
-        cache_identifier(cache, get_string_at_offset(get_ifc_name(isttp)),
-                         &pos);
+        cache_identifier(cache, get_string_at_offset(get_ifc_name(isttp)));
         /* FIXME: Handle constraint field. */
         if (!is_null_index(argument)) {
-          cache_token(cache, tok_eq, &pos);
+          cache_token(cache, tok_eq);
           cache_syntax(cache, argument, cinfo);
         }  /* if */
       }
@@ -18802,21 +18673,27 @@ Otherwise, parameter references should only include the parameter name.
         an_ifc_syntax_template_template_parameter isttp = *opt_isttp;
         an_ifc_syntax_index                       argument =
                                                        get_ifc_argument(isttp);
-        source_position_from_locus(&pos, get_ifc_locus(isttp));
-        cache_token(cache, tok_template, &pos);
+        cache_token(cache, tok_template);
         cache_syntax(cache, get_ifc_parameters(isttp), cinfo);
-        cache_token(cache, tok_gt, &pos);
-        if (get_ifc_line(get_ifc_ellipsis(isttp)) != 0) {
-          cache_token(cache, tok_ellipsis, &pos);
+        cache_token(cache, tok_gt);
+
+        an_ifc_source_location ellipsis = get_ifc_ellipsis(isttp);
+        if (get_ifc_line(ellipsis) != 0) {
+          an_ifc_source_position_hint tok_pos_hint(cache, ellipsis);
+
+          cache_token(cache, tok_ellipsis);
         }  /* if */
-        cache_identifier(cache, get_string_at_offset(get_ifc_name(isttp)),
-                         &pos);
+        cache_identifier(cache, get_string_at_offset(get_ifc_name(isttp)));
         if (!is_null_index(argument)) {
-          cache_token(cache, tok_eq, &pos);
+          cache_token(cache, tok_eq);
           cache_syntax(cache, argument, cinfo);
         }  /* if */
-        if (get_ifc_line(get_ifc_comma(isttp)) != 0) {
-          cache_token(cache, tok_comma, &pos);
+
+        an_ifc_source_location comma = get_ifc_comma(isttp);
+        if (get_ifc_line(comma) != 0) {
+          an_ifc_source_position_hint tok_pos_hint(cache, comma);
+
+          cache_token(cache, tok_comma);
         }  /* if */
       }
       break;
@@ -18829,17 +18706,20 @@ Otherwise, parameter references should only include the parameter name.
         }  /* if */
 
         an_ifc_syntax_type_template_argument istta = *opt_istta;
-        an_ifc_source_location               ellipsis =
-                                                       get_ifc_ellipsis(istta);
-        an_ifc_source_location               comma = get_ifc_comma(istta);
         cache_syntax(cache, get_ifc_argument(istta), cinfo);
+
+        an_ifc_source_location ellipsis = get_ifc_ellipsis(istta);
         if (get_ifc_line(ellipsis) != 0) {
-          source_position_from_locus(&pos, ellipsis);
-          cache_token(cache, tok_ellipsis, &pos);
+          an_ifc_source_position_hint tok_pos_hint(cache, ellipsis);
+
+          cache_token(cache, tok_ellipsis);
         }  /* if */
+
+        an_ifc_source_location comma = get_ifc_comma(istta);
         if (get_ifc_line(comma) != 0) {
-          source_position_from_locus(&pos, comma);
-          cache_token(cache, tok_comma, &pos);
+          an_ifc_source_position_hint tok_pos_hint(cache, comma);
+
+          cache_token(cache, tok_comma);
         }  /* if */
       }
       break;
@@ -18852,17 +18732,20 @@ Otherwise, parameter references should only include the parameter name.
         }  /* if */
 
         an_ifc_syntax_non_type_template_argument isntta = *opt_isntta;
-        an_ifc_source_location                   ellipsis =
-                                                      get_ifc_ellipsis(isntta);
-        an_ifc_source_location                   comma = get_ifc_comma(isntta);
         cache_expr(cache, get_ifc_argument(isntta), cinfo);
+
+        an_ifc_source_location ellipsis = get_ifc_ellipsis(isntta);
         if (get_ifc_line(ellipsis) != 0) {
-          source_position_from_locus(&pos, ellipsis);
-          cache_token(cache, tok_ellipsis, &pos);
+          an_ifc_source_position_hint tok_pos_hint(cache, ellipsis);
+
+          cache_token(cache, tok_ellipsis);
         }  /* if */
+
+        an_ifc_source_location comma = get_ifc_comma(isntta);
         if (get_ifc_line(comma) != 0) {
-          source_position_from_locus(&pos, comma);
-          cache_token(cache, tok_comma, &pos);
+          an_ifc_source_position_hint tok_pos_hint(cache, comma);
+
+          cache_token(cache, tok_comma);
         }  /* if */
       }
       break;
@@ -18875,12 +18758,20 @@ Otherwise, parameter references should only include the parameter name.
         }  /* if */
 
         an_ifc_syntax_template_parameter_list istpl = *opt_istpl;
-        source_position_from_locus(&pos, get_ifc_left_angle(istpl));
-        cache_token(cache, tok_lt, &pos);
+        {
+          an_ifc_source_location      locus = get_ifc_left_angle(istpl);
+          an_ifc_source_position_hint tok_pos_hint(cache, locus);
+
+          cache_token(cache, tok_lt);
+        }
         cache_syntax(cache, get_ifc_parameters(istpl), cinfo);
         /* FIXME: Handle the "clause" field. */
-        source_position_from_locus(&pos, get_ifc_right_angle(istpl));
-        cache_token(cache, tok_gt, &pos);
+        {
+          an_ifc_source_location      locus = get_ifc_right_angle(istpl);
+          an_ifc_source_position_hint tok_pos_hint(cache, locus);
+
+          cache_token(cache, tok_gt);
+        }
       }
       break;
     case ifc_ss_syntax_template_argument_list:
@@ -18892,12 +18783,20 @@ Otherwise, parameter references should only include the parameter name.
         }  /* if */
 
         an_ifc_syntax_template_argument_list istal = *opt_istal;
-        source_position_from_locus(&pos, get_ifc_left_angle(istal));
-        cache_token(cache, tok_lt, &pos);
+        {
+          an_ifc_source_location      locus = get_ifc_left_angle(istal);
+          an_ifc_source_position_hint tok_pos_hint(cache, locus);
+
+          cache_token(cache, tok_lt);
+        }
         cache_syntax(cache, get_ifc_arguments(istal), cinfo);
         /* FIXME: Handle the "clause" field. */
-        source_position_from_locus(&pos, get_ifc_right_angle(istal));
-        cache_token(cache, tok_gt, &pos);
+        {
+          an_ifc_source_location      locus = get_ifc_right_angle(istal);
+          an_ifc_source_position_hint tok_pos_hint(cache, locus);
+
+          cache_token(cache, tok_gt);
+        }
       }
       break;
     case ifc_ss_syntax_template_id:
@@ -18910,9 +18809,11 @@ Otherwise, parameter references should only include the parameter name.
 
         an_ifc_syntax_template_id isti = *opt_isti;
         an_ifc_syntax_index       name = get_ifc_name(isti);
-        source_position_from_locus(&pos, get_ifc_locus(isti));
-        if (get_ifc_line(get_ifc_template_kw(isti)) != 0) {
-          cache_token(cache, tok_template, &pos);
+        an_ifc_source_location    template_kw = get_ifc_template_kw(isti);
+        if (get_ifc_line(template_kw) != 0) {
+          an_ifc_source_position_hint tok_pos_hint(cache, template_kw);
+
+          cache_token(cache, tok_template);
         }  /* if */
         if (!is_null_index(name)) {
           cache_syntax(cache, name, cinfo);
@@ -19136,23 +19037,18 @@ done:;
 }  /* cache_syntax */
 
 
-void an_ifc_module::cache_name(a_module_token_cache_ptr     cache,
-                               an_ifc_name_index            name,
-                               const an_ifc_source_location &locus)
+void an_ifc_module::cache_name(a_module_token_cache_ptr cache,
+                               an_ifc_name_index        name)
 /*
-Add the tokens corresponding to the given name to cache.  locus is the location
-of the name.
+Add the tokens corresponding to the given name to cache.
 */
 {
-  a_source_position pos;
-
-  source_position_from_locus(&pos, locus);
   switch (name.sort) {
     case ifc_ns_text_offset:
       { an_ifc_text_offset ident = {name.mod, name.value};
 
         /* NameSort::Identifiers just refer to the string table. */
-        cache_identifier(cache, get_string_at_offset(ident), &pos);
+        cache_identifier(cache, get_string_at_offset(ident));
       }
       break;
     case ifc_ns_name_source_file:
@@ -19165,7 +19061,7 @@ of the name.
 
         an_ifc_name_source_file insf = *opt_insf;
         an_ifc_text_offset      path = get_ifc_path(insf);
-        cache_identifier(cache, get_string_at_offset(path), &pos);
+        cache_identifier(cache, get_string_at_offset(path));
       }
       break;
     case ifc_ns_name_template:
@@ -19175,8 +19071,8 @@ of the name.
         if (!opt_int.has_value()) {
           goto invalid;
         }  /* if */
-        cache_token(cache, tok_template, &pos);
-        cache_name(cache, get_ifc_name(*opt_int), locus);
+        cache_token(cache, tok_template);
+        cache_name(cache, get_ifc_name(*opt_int));
       }
       break;
     case ifc_ns_name_specialization:
@@ -19189,13 +19085,13 @@ of the name.
 
         an_ifc_name_specialization ins = *opt_ins;
         an_ifc_expr_index          args = get_ifc_arguments(ins);
-        cache_token(cache, tok_template, &pos);
-        cache_name(cache, get_ifc_primary(ins), locus);
-        cache_token(cache, tok_lt, &pos);
+        cache_token(cache, tok_template);
+        cache_name(cache, get_ifc_primary(ins));
+        cache_token(cache, tok_lt);
         if (!is_null_index(args)) {
           cache_expr(cache, args, /*cinfo=*/{});
         }  /* if */
-        cache_token(cache, tok_gt, &pos);
+        cache_token(cache, tok_gt);
       }
       break;
     case ifc_ns_name_operator:
@@ -19214,9 +19110,9 @@ of the name.
           ifc_unexpected(this, "Unexpected operator kind");
           goto invalid;
         }  /* if */
-        cache_token(cache, tok_operator, &pos);
+        cache_token(cache, tok_operator);
         cache_tokens_from_string(get_string_at_offset(encoded),
-                                 cache->as_canonical(), &pos);
+                                 cache);
       }
       break;
     case ifc_ns_name_conversion:
@@ -19226,8 +19122,8 @@ of the name.
         if (!opt_inc.has_value()) {
           goto invalid;
         }  /* if */
-        cache_token(cache, tok_operator, &pos);
-        cache_type(cache, get_ifc_target(*opt_inc), locus);
+        cache_token(cache, tok_operator);
+        cache_type(cache, get_ifc_target(*opt_inc));
       }
       break;
     case ifc_ns_name_literal:
@@ -19240,8 +19136,8 @@ of the name.
 
         an_ifc_name_literal inl = *opt_inl;
         an_ifc_text_offset  encoded = get_ifc_encoded(inl);
-        cache_token(cache, tok_operator, &pos);
-        cache_identifier(cache, get_string_at_offset(encoded), &pos);
+        cache_token(cache, tok_operator);
+        cache_identifier(cache, get_string_at_offset(encoded));
       }
       break;
     case ifc_ns_name_guide:
@@ -19288,31 +19184,29 @@ TRUE if the scope and its parents should be cached, FALSE otherwise.
 
 void an_ifc_module::cache_scope_as_nested_name_specifier(
                                                 a_module_token_cache_ptr cache,
-                                                a_scope_ptr              scope,
-                                                a_source_position_ptr    pos)
+                                                a_scope_ptr              scope)
 /*
-Add the tokens to cache representing a nested-name-specifier for scope.  pos is
-the position of the qualified-id this nested-name-specifier is part of.
+Add the tokens to cache representing a nested-name-specifier for scope.
 */
 {
   if (should_cache_nested_name_specifier_for_scope(scope)) {
     if (scope_is(scope, sck_file) || scope_is(scope->parent, sck_file)) {
-      cache_token(cache, tok_colon_colon, pos);
+      cache_token(cache, tok_colon_colon);
     } else {
       /* Attempt to generate any parent scope's qualifiers. */
-      cache_scope_as_nested_name_specifier(cache, scope->parent, pos);
+      cache_scope_as_nested_name_specifier(cache, scope->parent);
     }  /* if */
     /* Generate the current scope's qualifier. */
     if (scope_is(scope, sck_class_struct_union) ||
         scope_is(scope, sck_enum)) {
       a_type_ptr type_ptr = scope->variant.assoc_type;
       check_assertion(type_ptr != NULL);
-      cache_identifier(cache, type_ptr->source_corresp.name, pos);
-      cache_token(cache, tok_colon_colon, pos);
+      cache_identifier(cache, type_ptr->source_corresp.name);
+      cache_token(cache, tok_colon_colon);
     } else if (scope_is(scope, sck_namespace)) {
       a_namespace_ptr namespace_ptr = scope->variant.assoc_namespace;
-      cache_identifier(cache, namespace_ptr->source_corresp.name, pos);
-      cache_token(cache, tok_colon_colon, pos);
+      cache_identifier(cache, namespace_ptr->source_corresp.name);
+      cache_token(cache, tok_colon_colon);
     }  /* if */
   }  /* if */
 }  /* cache_scope_as_nested_name_specifier */
@@ -19320,8 +19214,7 @@ the position of the qualified-id this nested-name-specifier is part of.
 
 void an_ifc_module::cache_nested_name_specifier_from_decl(
                                                 a_module_token_cache_ptr cache,
-                                                an_ifc_decl_index        decl,
-                                                a_source_position_ptr    pos)
+                                                an_ifc_decl_index        decl)
 /*
 Add the tokens corresponding to the given declaration's (decl)
 nested-name-specifier to cache.  pos is the position of the qualified-id this
@@ -19334,42 +19227,33 @@ nested-name-specifier is part of.
     /* Load the module entity pointer scope if not already processed. */
     mep->scope = get_home_scope(decl);
   }  /* if */
-  this->cache_scope_as_nested_name_specifier(cache, mep->scope, pos);
+  this->cache_scope_as_nested_name_specifier(cache, mep->scope);
 }  /* cache_nested_name_specifier_from_decl */
 
 
 void an_ifc_module::cache_qualified_name_from_decl(
-                                           a_module_token_cache_ptr     cache,
-                                           an_ifc_decl_index            decl,
-                                           const an_ifc_source_location &locus)
+                                                a_module_token_cache_ptr cache,
+                                                an_ifc_decl_index        decl)
 /*
 Add the tokens corresponding to the given declaration's (decl) qualified-id to
-cache.  locus is the location of the name use.
+cache.
 */
 {
-  a_source_position pos;
-
-  source_position_from_locus(&pos, locus);
-  cache_nested_name_specifier_from_decl(cache, decl, &pos);
-  cache_identifier(cache, name_from_decl(decl), &pos);
+  cache_nested_name_specifier_from_decl(cache, decl);
+  cache_identifier(cache, name_from_decl(decl));
 }  /* cache_qualified_name_from_decl */
 
 
-void an_ifc_module::cache_name_from_decl(a_module_token_cache_ptr     cache,
-                                         an_ifc_decl_index            decl,
-                                         const an_ifc_source_location &locus)
+void an_ifc_module::cache_name_from_decl(a_module_token_cache_ptr cache,
+                                         an_ifc_decl_index        decl)
 /*
 Add the tokens corresponding to the given declaration's (decl) name to cache.
-locus is the location of the name use.
 */
 {
   a_const_char *name = name_from_decl(decl);
 
   if (name != NULL) {
-    a_source_position pos;
-
-    source_position_from_locus(&pos, locus);
-    cache_identifier(cache, name, &pos);
+    cache_identifier(cache, name);
   } else {
     check_assertion_str(is_at_least_one_error(),
                         "expected errors from name_from_decl");
@@ -19404,7 +19288,7 @@ void an_ifc_module::cache_macro(a_module_token_cache_ptr cache,
 Add the tokens corresponding to the given macro's definition to cache.
 */
 {
-  a_source_position pos;
+  an_ifc_source_position_hint pos_hint(cache, macro);
 
   switch (macro.sort) {
     case ifc_ms_macro_object_like:
@@ -19414,12 +19298,10 @@ Add the tokens corresponding to the given macro's definition to cache.
         if (!opt_imol.has_value()) {
           goto invalid;
         }  /* if */
-        source_position_from_locus(&pos, get_ifc_locus(*opt_imol));
-        cache_identifier(cache, get_string_at_offset(get_ifc_name(*opt_imol)),
-                         &pos);
+        cache_identifier(cache, get_string_at_offset(get_ifc_name(*opt_imol)));
         /* Ensure there's a space between the macro identifier and the macro
            body. */
-        cache_pp_token(cache, " ", 1, &pos);
+        cache_pp_token(cache, " ", 1);
         cache_form(cache, get_ifc_body(*opt_imol));
       }
       break;
@@ -19431,21 +19313,19 @@ Add the tokens corresponding to the given macro's definition to cache.
           goto invalid;
         }  /* if */
 
-        source_position_from_locus(&pos, get_ifc_locus(*opt_imfl));
-        cache_identifier(cache, get_string_at_offset(get_ifc_name(*opt_imfl)),
-                         &pos);
-        cache_token(cache, tok_lparen, &pos);
+        cache_identifier(cache, get_string_at_offset(get_ifc_name(*opt_imfl)));
+        cache_token(cache, tok_lparen);
         if (func_macro_is_variadic(get_ifc_arity_variadic(*opt_imfl))) {
-          cache_token(cache, tok_ellipsis, &pos);
+          cache_token(cache, tok_ellipsis);
         } else {
           an_ifc_form_index parameters = get_ifc_parameters(*opt_imfl);
           check_assertion(!is_null_index(parameters));
           cache_form(cache, parameters, /*is_parameter_form=*/TRUE);
         }  /* if */
-        cache_token(cache, tok_rparen, &pos);
+        cache_token(cache, tok_rparen);
         /* Ensure there's a space between the macro parameter list and the
            macro body. */
-        cache_pp_token(cache, " ", 1, &pos);
+        cache_pp_token(cache, " ", 1);
         cache_form(cache, get_ifc_body(*opt_imfl));
       }
       break;
@@ -19460,18 +19340,14 @@ done:;
 
 
 static void cache_form_spelling(a_module_token_cache_ptr     cache,
-                                const an_ifc_source_location &locus,
                                 an_ifc_text_offset           spelling)
 /*
-Given a cache, locus, and form spelling, cache the given preprocessed form at
-the source position specified by locus.
+Cache the given preprocessed form.
 */
 {
-  a_const_char      *str = get_string_at_offset(spelling);
-  a_source_position pos;
+  a_const_char *str = get_string_at_offset(spelling);
 
-  locus.get_module()->source_position_from_locus(&pos, locus);
-  cache_pp_token(cache, str, strlen(str), &pos);
+  cache_pp_token(cache, str, strlen(str));
 }  /* cache_form_spelling */
 
 
@@ -19487,7 +19363,7 @@ FIXME: Many of these see non-identifiers cached as identifiers due to the
 raw-text spelling.
 */
 {
-  a_source_position pos;
+  an_ifc_source_position_hint pos_hint(cache, form);
 
   switch (form.sort) {
     case ifc_fs_form_identifier:
@@ -19497,10 +19373,8 @@ raw-text spelling.
         if (!opt_ifi.has_value()) {
           goto invalid;
         }  /* if */
-        source_position_from_locus(&pos, get_ifc_locus(*opt_ifi));
         cache_identifier(cache,
-                         get_string_at_offset(get_ifc_spelling(*opt_ifi)),
-                         &pos);
+                         get_string_at_offset(get_ifc_spelling(*opt_ifi)));
       }
       break;
     case ifc_fs_form_number:
@@ -19510,8 +19384,7 @@ raw-text spelling.
         if (!opt_ifn.has_value()) {
           goto invalid;
         }  /* if */
-        cache_form_spelling(cache, get_ifc_locus(*opt_ifn),
-                            get_ifc_spelling(*opt_ifn));
+        cache_form_spelling(cache, get_ifc_spelling(*opt_ifn));
       }
       break;
     case ifc_fs_form_character:
@@ -19521,8 +19394,7 @@ raw-text spelling.
         if (!opt_ifc.has_value()) {
           goto invalid;
         }  /* if */
-        cache_form_spelling(cache, get_ifc_locus(*opt_ifc),
-                            get_ifc_spelling(*opt_ifc));
+        cache_form_spelling(cache, get_ifc_spelling(*opt_ifc));
       }
       break;
     case ifc_fs_form_string:
@@ -19532,8 +19404,7 @@ raw-text spelling.
         if (!opt_ifs.has_value()) {
           goto invalid;
         }  /* if */
-        cache_form_spelling(cache, get_ifc_locus(*opt_ifs),
-                            get_ifc_spelling(*opt_ifs));
+        cache_form_spelling(cache, get_ifc_spelling(*opt_ifs));
       }
       break;
     case ifc_fs_form_operator:
@@ -19543,8 +19414,7 @@ raw-text spelling.
         if (!opt_ifo.has_value()) {
           goto invalid;
         }  /* if */
-        cache_form_spelling(cache, get_ifc_locus(*opt_ifo),
-                            get_ifc_spelling(*opt_ifo));
+        cache_form_spelling(cache, get_ifc_spelling(*opt_ifo));
       }
       break;
     case ifc_fs_form_keyword:
@@ -19554,8 +19424,7 @@ raw-text spelling.
         if (!opt_ifk.has_value()) {
           goto invalid;
         }  /* if */
-        cache_form_spelling(cache, get_ifc_locus(*opt_ifk),
-                            get_ifc_spelling(*opt_ifk));
+        cache_form_spelling(cache, get_ifc_spelling(*opt_ifk));
       }
       break;
     case ifc_fs_form_parameter:
@@ -19565,8 +19434,7 @@ raw-text spelling.
         if (!opt_ifp.has_value()) {
           goto invalid;
         }  /* if */
-        cache_form_spelling(cache, get_ifc_locus(*opt_ifp),
-                            get_ifc_spelling(*opt_ifp));
+        cache_form_spelling(cache, get_ifc_spelling(*opt_ifp));
       }
       break;
     case ifc_fs_form_header:
@@ -19576,8 +19444,7 @@ raw-text spelling.
         if (!opt_ifh.has_value()) {
           goto invalid;
         }  /* if */
-        cache_form_spelling(cache, get_ifc_locus(*opt_ifh),
-                            get_ifc_spelling(*opt_ifh));
+        cache_form_spelling(cache, get_ifc_spelling(*opt_ifh));
       }
       break;
     case ifc_fs_form_junk:
@@ -19587,8 +19454,7 @@ raw-text spelling.
         if (!opt_ifj.has_value()) {
           goto invalid;
         }  /* if */
-        cache_form_spelling(cache, get_ifc_locus(*opt_ifj),
-                            get_ifc_spelling(*opt_ifj));
+        cache_form_spelling(cache, get_ifc_spelling(*opt_ifj));
       }
       break;
     case ifc_fs_form_whitespace:
@@ -19598,10 +19464,9 @@ raw-text spelling.
         if (!opt_ifw.has_value()) {
           goto invalid;
         }  /* if */
-        source_position_from_locus(&pos, get_ifc_locus(*opt_ifw));
         /* FIXME: Ideally the whitespace information will contain the amount
            and kind of whitespace, and we'd cache that. */
-        cache_pp_token(cache, " ", 1, &pos);
+        cache_pp_token(cache, " ", 1);
       }
       break;
     case ifc_fs_form_stringize:
@@ -19611,8 +19476,7 @@ raw-text spelling.
         if (!opt_ifs.has_value()) {
           goto invalid;
         }  /* if */
-        source_position_from_locus(&pos, get_ifc_locus(*opt_ifs));
-        cache_pp_token(cache, "#", /*len=*/1, &pos);
+        cache_pp_token(cache, "#", /*len=*/1);
         cache_form(cache, get_ifc_operand(*opt_ifs));
       }
       break;
@@ -19623,9 +19487,8 @@ raw-text spelling.
         if (!opt_ifc.has_value()) {
           goto invalid;
         }  /* if */
-        source_position_from_locus(&pos, get_ifc_locus(*opt_ifc));
         cache_form(cache, get_ifc_first(*opt_ifc));
-        cache_pp_token(cache, "##", /*len=*/2, &pos);
+        cache_pp_token(cache, "##", /*len=*/2);
         cache_form(cache, get_ifc_second(*opt_ifc));
       }
       break;
@@ -19639,16 +19502,15 @@ raw-text spelling.
 
         an_ifc_form_pragma ifp = *opt_ifp;
         an_ifc_form_index  operand = get_ifc_operand(ifp);
-        source_position_from_locus(&pos, get_ifc_locus(ifp));
         if (operand.sort == ifc_fs_form_string) {
-          cache_pp_token(cache, "_Pragma", /*len=*/7, &pos);
+          cache_pp_token(cache, "_Pragma", /*len=*/7);
         } else {
           check_assertion(operand.sort == ifc_fs_form_tuple);
-          cache_pp_token(cache, "__pragma", /*len=*/8, &pos);
+          cache_pp_token(cache, "__pragma", /*len=*/8);
         }  /* if */
-        cache_token(cache, tok_lparen, &pos);
+        cache_token(cache, tok_lparen);
         cache_form(cache, operand);
-        cache_token(cache, tok_rparen, &pos);
+        cache_token(cache, tok_rparen);
       }
       break;
     case ifc_fs_form_parenthesized:
@@ -19658,10 +19520,9 @@ raw-text spelling.
         if (!opt_ifp.has_value()) {
           goto invalid;
         }  /* if */
-        source_position_from_locus(&pos, get_ifc_locus(*opt_ifp));
-        cache_token(cache, tok_lparen, &pos);
+        cache_token(cache, tok_lparen);
         cache_form(cache, get_ifc_operand(*opt_ifp));
-        cache_token(cache, tok_rparen, &pos);
+        cache_token(cache, tok_rparen);
       }
       break;
     case ifc_fs_form_tuple:
@@ -19681,13 +19542,13 @@ raw-text spelling.
           if (!is_first(traverser, indexed_ihpf)) {
             /* FIXME: Find a proper source position for these. */
             if (is_parameter_form) {
-              cache_token(cache, tok_comma, &null_source_position);
+              cache_token(cache, tok_comma);
             } else {
               /* FIXME: Currently IFC macros do not have whitespace encoded,
                  so add our own to ensure entities do not bleed together.
                  This is not always the correct thing to do, but there are
                  fewer issues than with not doing this at all. */
-              cache_pp_token(cache, " ", 1, &null_source_position);
+              cache_pp_token(cache, " ", 1);
             }  /* if */
           }  /* if */
           cache_form(cache, get_ifc_value(*indexed_ihpf));

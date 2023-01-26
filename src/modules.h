@@ -287,8 +287,8 @@ An internal token cache wrapper structure that represents additional state for
 modules.
 */
 struct a_module_token_cache {
-  a_module_token_cache()
-    : underlying_cache(), valid(TRUE)
+  a_module_token_cache(a_source_position_ptr initial_hint = NULL)
+    : underlying_cache(), valid(TRUE), position_hint(initial_hint)
     { clear_token_cache(&(this->underlying_cache), /*reusable=*/TRUE); }
   a_module_token_cache(const a_module_token_cache&) = delete;
 
@@ -306,15 +306,65 @@ struct a_module_token_cache {
     { return this->underlying_cache.first_token; }
   a_cached_token_ptr get_last_token()
     { return this->underlying_cache.last_token; }
+
+  a_source_position_ptr get_position_hint() const
+    { return this->position_hint; }
+  void set_position_hint(a_source_position_ptr new_position_hint)
+    { this->position_hint = new_position_hint; }
 private:
   a_token_cache
                 underlying_cache;
                         /* The underlying cache to insert tokens into. */
   a_boolean     valid;  /* TRUE if the underlying cache should be parsed after
                            caching; otherwise, FALSE. */
+  a_source_position_ptr
+                position_hint;
+                        /* Current source position hint (used for source
+                           position inference). */
 };  /* a_module_token_cache */
 
 using a_module_token_cache_ptr = a_module_token_cache*;
+
+inline a_source_position_ptr
+infer_next_source_position(a_module_token_cache_ptr cache,
+                           a_source_position_ptr    pos = NULL)
+/*
+Perform source position inference on the given cache.  The inferred position
+should only be requested when gathering the source position for a new token.
+
+Position inference resolves the source position to one of the following:
+
+  1. The provided source position (if not NULL).
+  2. The current position hint (a_module_token_cache_ptr::get_position_hint).
+  3. The previous token's source position.
+  4. The null source position.
+
+The current source position hint is cleared after inference as the new token's
+source position (i.e., the result of the most recent call to this function for
+this cache) should take priority.
+*/
+{
+  if (pos != NULL) {
+    goto done;
+  }  /* if */
+  pos = cache->get_position_hint();
+  if (pos != NULL) {
+    goto done;
+  }  /* if */
+
+  {
+    a_cached_token_ptr last_tok = cache->get_last_token();
+
+    if (last_tok != NULL) {
+      pos = &last_tok->source_position;
+    } else {
+      pos = &null_source_position;
+    }  /* if */
+  }  /* if */
+done:
+  cache->set_position_hint(NULL);
+  return pos;
+}  /* infer_next_source_position */
 
 
 inline a_token_sequence_number enter_module_token_rescan(
