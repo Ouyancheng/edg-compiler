@@ -19729,7 +19729,7 @@ for the copy/substitution.
                                                template_arg_list,
                                                template_param_list,
                                                source_pos,
-                                               /*is_type=*/FALSE,
+                                               /*is_type=*/FALSE, NULL,
                                                options,
                                                &copy_error,
                                                &local_ctws_state);

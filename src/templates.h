@@ -948,6 +948,7 @@ extern a_symbol_ptr copy_parent_type_with_substitution(
 			a_template_param_ptr		templ_param_list,
 			a_source_position		*source_pos,
 			a_boolean			is_type,
+			a_type_ptr			*new_type,
 			a_ctws_options_set		options,
 			a_boolean			*copy_error,
 			a_ctws_state_ptr		ctws_state);

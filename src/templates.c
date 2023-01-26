@@ -13850,7 +13850,7 @@ Otherwise, return the original template.
     sym = copy_parent_type_with_substitution(sym, parent_type,
                                              templ_arg_list, templ_param_list,
                                              source_pos,
-                                             /*is_type=*/FALSE,
+                                             /*is_type=*/FALSE, NULL,
                                              options,
                                              copy_error, ctws_state);
     if (sym != NULL) sym = fundamental_symbol_of(sym);
@@ -13937,7 +13937,7 @@ will not be for a variable, but for a ck_template_param constant.)
     sym = copy_parent_type_with_substitution(templ_sym, parent_type,
                                              templ_arg_list, templ_param_list,
                                              source_pos,
-                                             /*is_type=*/FALSE,
+                                             /*is_type=*/FALSE, NULL,
                                              options,
                                              copy_error, ctws_state);
     if (sym != NULL) sym = fundamental_symbol_of(sym);
@@ -14680,6 +14680,9 @@ end_of_loop:
        additional arguments can be deduced. */
     new_tap = alloc_template_arg(pack_tap->kind);
     *new_tap = *pack_tap;
+    if (have_params && tpp != NULL && tpp->is_pack) {
+      new_tap->is_pack_element = TRUE;
+    }  /* if */
     new_tap->next = NULL;
     if (new_list == NULL) {
       new_list = new_tap;
@@ -14715,10 +14718,9 @@ find the corresponding instance of the template indicated by
 template_sym.  options is a set of bit flags used to control how names
 are looked up, if needed.  The symbol of the new instance is returned.
 If the substitution results in a type with no associated symbol, which can
-occur if it turns out to be a template template parameter that refers
-to an alias template, the substituted type is returned in *new_type
-(and new_type must not be NULL).  Otherwise, if new_type is not NULL,
-*new_type is set to NULL.
+occur if template_sym refers to an alias template, the substituted type is
+returned in *new_type (and new_type must not be NULL).  Otherwise, if
+new_type is not NULL, *new_type is set to NULL.
 */
 {
   a_template_arg_ptr			new_list;
@@ -14730,7 +14732,6 @@ to an alias template, the substituted type is returned in *new_type
   a_template_symbol_supplement_ptr	tssp;
   a_boolean				is_nonreal_template;
   a_boolean				orig_is_prototype;
-  a_boolean				templ_param_is_alias = FALSE;
   a_template_param_ptr			ttp_param_list = NULL;
 
   if (new_type != NULL) *new_type = NULL;  
@@ -14750,7 +14751,6 @@ to an alias template, the substituted type is returned in *new_type
                                                 ctws_state);
     template_sym = (a_symbol_ptr)new_templ->source_corresp.assoc_info;
     tssp = template_sym->variant.template_info;
-    templ_param_is_alias = tssp->variant.class_template.is_alias_template;
   }  /* if */
   orig_sym = symbol_for(orig_type);
   check_assertion(orig_sym != NULL);
@@ -14794,10 +14794,9 @@ to an alias template, the substituted type is returned in *new_type
        of the template arguments, don't try to find a matching template
        class. */
     new_sym = NULL;
-  } else if (templ_param_is_alias) {
-    /* If the result of a template template parameter substitution is
-       an alias template, do substitution on the prototype type so that
-       a failure is a substitution failure, not a hard error. */
+  } else if (is_alias_template_symbol(template_sym)) {
+    /* For an alias template, substitution needs to be done on the prototype
+       type so that a failure is a substitution failure, not a hard error. */
     a_type_ptr	proto_type;
     a_type_ptr	tp;
     proto_type = tssp->variant.class_template.prototype_instantiation
@@ -14806,8 +14805,10 @@ to an alias template, the substituted type is returned in *new_type
        needed to make sure that the visibility of functions used by
        the alias is based on the alias declaration position. */
     push_instantiation_scope_for_rescan(template_sym);
-    /* Pushing an instantiation scope clears the expression stack. */
-    options &= ~CTWS_INSIDE_EXPR_RESCAN;
+    /* Pushing an instantiation scope clears the expression stack.  Also, a
+       deduced pack would already have been added to the new template argument
+       list. */
+    options &= ~(CTWS_INSIDE_EXPR_RESCAN | CTWS_PRESERVE_DEDUCED_PACKS);
     tp = copy_type_with_substitution(proto_type,
                                      new_list, tpp,
                                      source_pos,
@@ -15215,6 +15216,7 @@ a_symbol_ptr copy_parent_type_with_substitution(
 			a_template_param_ptr		templ_param_list,
 			a_source_position		*source_pos,
 			a_boolean			is_type,
+			a_type_ptr			*new_type,
 			a_ctws_options_set		options,
 			a_boolean			*copy_error,
 			a_ctws_state_ptr		ctws_state)
@@ -15224,10 +15226,13 @@ of sym.  The parent type is copied using copy_type_with_substitution,
 and the corresponding member is looked up in the updated parent type.
 The symbol associated with the corresponding member is returned.  A
 NULL symbol is returned if the updated parent type does not contain
-the specified member.  The returned symbol can be a projection symbol.
-If it involves no template-parameter type, simply return "sym".  options
-is a set of bit flags used to control how names are looked up, if needed.
-is_type is TRUE if the child entity is known to be a type.
+the specified member or if the substitution results in a type with no
+associated symbol.  In the latter case the substituted type is returned
+in *new_type (and new_type must not be NULL).  The returned symbol can
+be a projection symbol.  If it involves no template-parameter type,
+simply return "sym".  options is a set of bit flags used to control how
+names are looked up, if needed.  is_type is TRUE if the child entity is
+known to be a type.
 */
 {
   a_type_ptr	orig_parent_type;
@@ -15319,8 +15324,7 @@ is_type is TRUE if the child entity is known to be a type.
         fund_sym = copy_template_class_reference_with_substitution(
                                fund_sym, type_symbol_type(sym),
                                templ_arg_list, templ_param_list, source_pos,
-                               options, copy_error, ctws_state,
-                               (a_type_ptr*)NULL);
+                               options, copy_error, ctws_state, new_type);
         new_sym = fund_sym;
       }  /* if */
     }  /* if */
@@ -15890,7 +15894,13 @@ a pointer over a reference type or creating an array of references.
                                              sym, parent_type,
                                              templ_arg_list, templ_param_list,
                                              source_pos, /*is_type=*/TRUE,
-                                             options, copy_error, ctws_state);
+                                             &new_type, options, copy_error,
+                                             ctws_state);
+        if (new_type != NULL) {
+          /* Substitution for the member resulted in a type with no associated
+             symbol. */
+          goto done;
+        }  /* if */
         if (sym != NULL) sym = fundamental_symbol_of(sym);
         if (sym == NULL || !is_type_symbol(sym)) {
           /* The type was specified as something like A<T>::B, but the
