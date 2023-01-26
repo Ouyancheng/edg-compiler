@@ -1,5 +1,19 @@
 Version 6.5
 
+1/26/23  [EDGcpfe/25998]
+Missing inter-token spaces in preprocessor output
+
+In some obscure cases involving macro processing, the preprocessor output
+(e.g., via the -E command-line option) could contain tokens that must be
+separated by a space but were instead incorrectly concatenated.  This is
+now fixed.  For example, with -E:
+
+  #define M1(x)         L##x
+  #define M3  M1("B")
+  #define M4(a)  a
+  auto x = M4(M1("A")M3);   // Previously produced L"A"L"B", now L"A" L"B"
+
+
 1/26/23  [EDGcpfe/17059,EDGcpfe/18006,EDGcpfe/19579,EDGcpfe/20728,
 	  EDGcpfe/21691,EDGcpfe/24011,EDGcpfe/25159,EDGcpfe/25577]
 Substitution failures for nested alias templates

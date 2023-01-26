@@ -5230,40 +5230,45 @@ Start by getting the lexical category of the two characters.
 If either is a "singleton", i.e., a character that is always its own
 token and not part of another, then no space is needed.
 */
-#define token_separator_blank_if_needed(ch, prev_ch, prev_prev_ch,    \
-                                        token_start, statement)       \
-{ a_byte cat_ch, cat_prev_ch;                                         \
-  if (token_start) {                                                  \
-    token_start = FALSE;                                              \
-    if (!no_token_separators_in_this_line_of_pp_output) {             \
-      if ((cat_prev_ch = pp_lexical_category[prev_ch-CHAR_MIN]) ==    \
+#define token_separator_blank_if_needed(ch, prev_ch, prev_prev_ch,        \
+                                        token_start, statement)           \
+{ a_byte cat_ch, cat_prev_ch;                                             \
+  if (token_start) {                                                      \
+    token_start = FALSE;                                                  \
+    if (!no_token_separators_in_this_line_of_pp_output) {                 \
+      if ((cat_prev_ch = pp_lexical_category[prev_ch-CHAR_MIN]) ==        \
                                                          PLC_SINGLETON || \
           (cat_ch = pp_lexical_category[ch-CHAR_MIN]) == PLC_SINGLETON) { \
-        /* At least one is a singleton, so no space is needed. */     \
-      } else if (cat_prev_ch != cat_ch &&                             \
-        /* The two characters have different categories (i.e., one is \
-           a character that can appear in identifiers or pp-numbers,  \
-           and the other is not).  We probably do not need the space. \
-           However, check for some bizarre special cases having to do \
-           with pp-numbers (3.1.8; "e" or "E" followed by "+" or "-"  \
-           can appear in a pp-number, and the same for "+" or "-"     \
-           preceded by "e" or "E" and followed by a digit) and wide   \
-           literals ("L" followed by a single or double quote). */    \
-                 ((prev_ch != 'e' && prev_ch != 'E') ||               \
-                  (ch != '+' && ch != '-')) &&                        \
-                 !((prev_ch == '+' || prev_ch == '-') &&              \
-                   (prev_prev_ch == 'e' || prev_prev_ch == 'E') &&    \
-                   isdigit((unsigned char)ch)) &&                     \
-                 (prev_ch != 'L' || (ch != '\'' && ch != '"'))) {     \
-        /* No space is needed. */                                     \
-      } else {                                                        \
-        /* An extra space to separate tokens is needed. */            \
-        statement;                                                    \
-      }  /* if */                                                     \
-    }  /* if */                                                       \
-  }  /* if */                                                         \
-  prev_prev_ch = prev_ch;                                             \
-  prev_ch = ch;                                                       \
+        /* At least one is a singleton, so no space is needed. */         \
+      } else if (cat_prev_ch != cat_ch &&                                 \
+        /* The two characters have different categories (i.e., one is     \
+           a character that can appear in identifiers or pp-numbers,      \
+           and the other is not).  We probably do not need the space.     \
+           However, check for some bizarre special cases having to do     \
+           with pp-numbers (3.1.8; "e" or "E" followed by "+" or "-"      \
+           can appear in a pp-number, and the same for "+" or "-"         \
+           preceded by "e" or "E" and followed by a digit), prefixed      \
+           string and character literals ("L", "U", "u", or "u8" followed \
+           by a single or double quote), and user-defined string literal  \
+           suffixes ("x"y). */                                            \
+                 ((prev_ch != 'e' && prev_ch != 'E') ||                   \
+                  (ch != '+' && ch != '-')) &&                            \
+                 !((prev_ch == '+' || prev_ch == '-') &&                  \
+                   (prev_prev_ch == 'e' || prev_prev_ch == 'E') &&        \
+                   isdigit((unsigned char)ch)) &&                         \
+                 ((prev_ch != 'L' && prev_ch != 'U' && prev_ch != 'u' &&  \
+                   !(prev_prev_ch == 'u' && prev_ch == '8')) ||           \
+                  (ch != '\'' && ch != '"')) &&                           \
+                 (prev_ch != '"' || cat_ch != PLC_ID_OR_NUMBER)) {        \
+        /* No space is needed. */                                         \
+      } else {                                                            \
+        /* An extra space to separate tokens is needed. */                \
+        statement;                                                        \
+      }  /* if */                                                         \
+    }  /* if */                                                           \
+  }  /* if */                                                             \
+  prev_prev_ch = prev_ch;                                                 \
+  prev_ch = ch;                                                           \
 }  /* token_separator_blank_if_needed */
 
 
