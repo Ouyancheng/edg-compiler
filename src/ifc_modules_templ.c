@@ -506,7 +506,7 @@ INST_CONSTRUCT_NODE_UN(an_ifc_trait_specialization,
 namespace {
 
 template<typename an_ifc_Index_type>
-a_lexical_ifc_index_kind get_lexical_ifc_kind() = delete;
+a_lexical_ifc_index_kind get_lexical_ifc_kind() DELETED_FN_DEF
 
 template<>
 a_lexical_ifc_index_kind get_lexical_ifc_kind<an_ifc_decl_index>()

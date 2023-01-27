@@ -257,7 +257,7 @@ Create a position hint for the given cache from the given locus.  The position
 hint will last until it's consumed during token caching, or until the lifetime
 of this object expires (whichever is sooner).
 */
-: cache_ptr(cache), pos{}, hint_given(TRUE)
+: cache_ptr(cache), pos(), hint_given(TRUE)
 {
   source_position_from_locus(&this->pos, locus);
   this->cache_ptr->set_position_hint(&this->pos);
@@ -274,7 +274,7 @@ has no associated locus, the null_source_position will instead be used.  The
 position hint will last until it's consumed during token caching, or until the
 lifetime of this object expires (whichever is sooner).
 */
-: cache_ptr(cache), pos{null_source_position}, hint_given(TRUE)
+: cache_ptr(cache), pos(null_source_position), hint_given(TRUE)
 {
   if (!is_null_index(idx) && validate(idx) && has_ifc_locus(idx)) {
     an_ifc_source_location locus = get_ifc_locus(idx);
