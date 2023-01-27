@@ -3305,7 +3305,7 @@ private:
   a_map_type    underlying_map;
                         /* The Ptr_map backing the set.  Elements considered
                            in the set are stored in the underlying map
-                           with a paired value of "TRUE." */
+                           with a paired value of TRUE. */
 };  /* Ptr_set */
 
 
