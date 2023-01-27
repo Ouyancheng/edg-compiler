@@ -15,7 +15,8 @@ now fixed.  For example, with -E:
 
 
 1/26/23  [EDGcpfe/17059,EDGcpfe/18006,EDGcpfe/19579,EDGcpfe/20728,
-          EDGcpfe/21691,EDGcpfe/24011,EDGcpfe/25159,EDGcpfe/25577]
+          EDGcpfe/21691,EDGcpfe/24011,EDGcpfe/25159,EDGcpfe/25240,
+          EDGcpfe/25577]
 Substitution failures for nested alias templates
 
 Previously, substitution failures for nested alias templates were not
