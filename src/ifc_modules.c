@@ -3702,6 +3702,9 @@ TRUE if caching succeeds, FALSE otherwise.
   return FALSE;
 }  /* cache_direct_decl */
 
+/* FIXME: This code should be transition an_ifc_func_param_context (and
+   an_ifc_func_param_context updated in the process) to improve the overall
+   quality of IFC parameter handling. */
 
 static a_diagnostic_ptr start_rp_diag(
                                    a_routine_ptr     rp,
@@ -6885,18 +6888,19 @@ class_struct_union_case:
               (void)make_namespace_alias(ns_sym, &loc, aliased_sym,
                                          (a_source_sequence_entry*)NULL);
             } else {
-            /* FIXME: This will need to be re-worked when handling the
-               ifc_DeclSort_Tuple case (i.e., multiple items). */
-              create_nonmember_using_declaration((a_symbol_ptr)scp->assoc_info,
-                                                 &null_sym_ptr,
-                                                 (a_symbol_ptr)NULL,
-                                                 nsp,
-                                                 (a_type_ptr)NULL,
-                                                 &prev_udp,
-                                                 /*is_list=*/FALSE,
-                                                 /*suppress_redecl_error=*/TRUE,
-                                                 (an_attribute_ptr)NULL,
-                                                 /*copy_attributes=*/FALSE);
+              /* FIXME: This will need to be re-worked when handling the
+                 ifc_DeclSort_Tuple case (i.e., multiple items). */
+              create_nonmember_using_declaration(
+                                                (a_symbol_ptr)scp->assoc_info,
+                                                &null_sym_ptr,
+                                                (a_symbol_ptr)NULL,
+                                                nsp,
+                                                (a_type_ptr)NULL,
+                                                &prev_udp,
+                                                /*is_list=*/FALSE,
+                                                /*suppress_redecl_error=*/TRUE,
+                                                (an_attribute_ptr)NULL,
+                                                /*copy_attributes=*/FALSE);
             }  /* if */
           }  /* if */
         }  /* if */
@@ -13236,10 +13240,14 @@ declaration.
 
 template<typename an_ifc_Node_type>
 static void cache_func_parameters_and_qualifiers(
-                                                a_module_token_cache_ptr cache,
-                                                const an_ifc_Node_type   &decl)
+                                             a_module_token_cache_ptr cache,
+                                             an_ifc_decl_index        decl_idx,
+                                             const an_ifc_Node_type   &decl,
+                                             const an_ifc_cache_info  &cinfo)
 /*
-Cache the parameters-and-qualifiers for the given function-like declaration.
+Cache the parameters-and-qualifiers for the given function-like declaration
+(indexed by decl_idx).  cinfo contains information about the current cache
+context to help inform decisions about what to cache.
 */
 {
   an_ifc_source_location locus = get_ifc_locus(decl);
@@ -13247,7 +13255,7 @@ Cache the parameters-and-qualifiers for the given function-like declaration.
 
   source_position_from_locus(&pos, locus);
   cache_token(cache, tok_lparen, &pos);
-  cache_func_parameter_declaration_clause(cache, decl);
+  cache_func_parameter_declaration_clause(cache, decl_idx, decl, cinfo);
   cache_token(cache, tok_rparen, &pos);
   cache_func_cv_qualifiers(cache, decl);
   cache_func_ref_qualifier(cache, decl);
@@ -13383,15 +13391,19 @@ done:;
 
 
 template<typename an_ifc_Node_type>
-static void cache_func_parameter_declaration_clause(
-                                   a_module_token_cache_ptr cache,
-                                   const an_ifc_Node_type   &decl)
+static an_ifc_type_index get_func_param_type(const an_ifc_Node_type &decl)
 /*
-Cache the parameter-declaration-clause for the given function-like declaration.
+Return the IFC type index corresponding to the parameters of the given
+function-like declaration.  Failure to load the parameter type will result
+in a null IFC type index.
+
+FIXME: A null IFC type index is also a valid result representing no parameters.
+This isn't an issue for current uses of this function, but could become an
+issue.  A little more thought needs put into an_ifc_func_param_context.
 */
 {
-  an_ifc_type_index      func_type_idx = get_ifc_type(decl);
-  an_ifc_source_location locus = get_ifc_locus(decl);
+  an_ifc_type_index result = {};
+  an_ifc_type_index func_type_idx = get_ifc_type(decl);
 
   switch (func_type_idx.sort) {
     case ifc_ts_type_function:
@@ -13403,7 +13415,7 @@ Cache the parameter-declaration-clause for the given function-like declaration.
         }  /* if */
 
         an_ifc_type_function func_type = *opt_func_type;
-        cache_func_type_parameter_declaration_clause(cache, func_type, locus);
+        result = get_ifc_source(func_type);
       }
       break;
     case ifc_ts_type_method:
@@ -13415,7 +13427,7 @@ Cache the parameter-declaration-clause for the given function-like declaration.
         }  /* if */
 
         an_ifc_type_method func_type = *opt_func_type;
-        cache_func_type_parameter_declaration_clause(cache, func_type, locus);
+        result = get_ifc_source(func_type);
       }
       break;
     case ifc_ts_type_tor:
@@ -13427,7 +13439,7 @@ Cache the parameter-declaration-clause for the given function-like declaration.
         }  /* if */
 
         an_ifc_type_tor func_type = *opt_func_type;
-        cache_func_type_parameter_declaration_clause(cache, func_type, locus);
+        result = get_ifc_source(func_type);
       }
       break;
     default:
@@ -13437,6 +13449,399 @@ Cache the parameter-declaration-clause for the given function-like declaration.
       }
       break;
   }  /* if */
+  goto done;
+invalid:
+  expect_error_str("expected errors for bad function parameter type query");
+done:
+  return result;
+}  /* get_func_param_type */
+
+namespace {
+
+/*
+This class implements a lazily loadable function parameter chart abstraction.
+Given a (possibly null or invalid) chart index, it abstracts away retrieval of
+parameters from the chart, and lazily loading the chart (so it's only loaded if
+it's actually used).
+*/
+struct a_lazy_ifc_func_param_chart {
+  a_lazy_ifc_func_param_chart(an_ifc_chart_index chart_idx_val)
+    : chart_idx(chart_idx_val), opt_node{}, node_invalid(FALSE)
+    {}
+  inline Opt<an_ifc_decl_parameter> get(an_ifc_index_type param_idx);
+private:
+  inline a_boolean try_load_chart();
+  an_ifc_chart_index
+                chart_idx;
+                        /* The index for the function parameter chart. */
+  Opt<an_ifc_chart_unilevel>
+                opt_node;
+                        /* The (potentially unloaded) underlying parameter
+                           chart corresponding to chart_idx. */
+  a_boolean     node_invalid;
+                        /* TRUE if a loaded of opt_node was attempted but
+                           ultimately failed. */
+};  /* a_lazy_ifc_func_param_chart */
+
+
+static an_ifc_chart_index get_msvc_trait_func_param_chart_idx(
+                                                    an_ifc_decl_index decl_idx)
+/*
+Given a declaration index for a function-like declaration, return the chart
+index from the MSVC function parameters trait describing the function's
+parameters; otherwise, return a null chart index.
+*/
+{
+  an_ifc_chart_index                 result = {};
+  Opt<an_ifc_trait_msvc_func_params> opt_itmfp;
+
+  find_trait(&opt_itmfp, decl_idx);
+  if (opt_itmfp.has_value()) {
+    an_ifc_trait_msvc_func_params itmfp = *opt_itmfp;
+
+    result = get_ifc_params(itmfp);
+  }  /* if */
+  return result;
+}  /* get_msvc_trait_func_param_chart_idx */
+
+
+static an_ifc_chart_index get_func_defition_param_chart_idx(
+                                                    an_ifc_decl_index decl_idx)
+/*
+Given a declaration index for a function-like declaration, return the chart
+index from the function definition trait describing the function's parameters;
+otherwise, return a null chart index.
+*/
+{
+  an_ifc_chart_index                    result = {};
+  Opt<an_ifc_trait_function_definition> opt_itfd;
+
+  find_trait(&opt_itfd, decl_idx);
+  if (opt_itfd.has_value()) {
+    an_ifc_trait_function_definition itfd = *opt_itfd;
+
+    result = get_ifc_parameters(itfd);
+  }  /* if */
+  return result;
+}  /* get_func_defition_param_chart_idx */
+
+
+Opt<an_ifc_decl_parameter>
+a_lazy_ifc_func_param_chart::get(an_ifc_index_type param_idx)
+/*
+Attempt to load the chart (if not already loaded).  Then, using the given
+relative index for the parameter, attempt to resolve and return the associated
+IFC decl parameter (if possible); otherwise, return an empty optional.
+*/
+{
+  Opt<an_ifc_decl_parameter> result = {};
+
+  if (this->try_load_chart()) {
+    an_ifc_chart_unilevel uni_chart = *opt_node;
+    an_ifc_index          start_idx = get_ifc_start(uni_chart);
+    an_ifc_cardinality    cardinality = get_ifc_cardinality(uni_chart);
+
+    if (param_idx >= cardinality) {
+      goto invalid;
+    }  /* if */
+
+    /* FIXME: This is a bit of an abuse of the traverser, but the traverser
+       provides a much simplified validation scheme vs rolling out all the
+       loading code for the element "manually".  We should have a better
+       way to get a single element out of a heap. */
+    an_ifc_index_type          element_idx = start_idx + param_idx;
+    a_decl_parameter_traverser traverser(start_idx.mod, element_idx, 1);
+    for (an_Indexed<an_ifc_decl_parameter> indexed_idp : traverser) {
+      if (!indexed_idp.has_value()) {
+        goto invalid;
+      }  /* if */
+
+      result = *indexed_idp;
+      goto done;
+    }  /* if */
+  }  /* if */
+  goto done;
+invalid:
+  result.clear();
+done:
+  return result;
+}  /* a_lazy_ifc_func_param_chart::get */
+
+
+a_boolean a_lazy_ifc_func_param_chart::try_load_chart()
+/*
+Attempt to load the node value using the associated chart index.  If the chart
+is loaded successfully (or was already loaded), return TRUE; otherwise, return
+FALSE.
+*/
+{
+  if (!this->node_invalid) {
+    if (is_null_index(this->chart_idx)) {
+      /* This isn't strictly speaking invalid, it just means we don't have this
+         chart; the invalid case prevents reentry if this function is called
+         again. */
+      goto invalid;
+    }  /* if */
+
+    an_ifc_chart_sort chart_sort = this->chart_idx.sort;
+    if (chart_sort == ifc_cs_chart_none) {
+      /* This isn't strictly speaking invalid, it just means the chart contains
+         nothing; the invalid case prevents reentry if this function is called
+         again. */
+      goto invalid;
+    }  /* if */
+    if (chart_sort != ifc_cs_chart_unilevel) {
+      /* The associated chart index was set to a "real" chart index, but it
+         isn't a uni-level chart; so it's not a valid function parameter
+         chart. */
+      /* FIXME: We may want an error here. */
+      goto invalid;
+    }  /* if */
+    construct_node(&this->opt_node, this->chart_idx);
+    if (!this->opt_node.has_value()) {
+      goto invalid;
+    }  /* if */
+  }  /* if */
+  goto done;
+invalid:
+  this->node_invalid = TRUE;
+done:
+  return this->opt_node.has_value();
+}  /* a_lazy_ifc_func_param_chart::try_load_chart */
+
+
+/*
+This class implements a "function parameter context" which abstracts away the
+various locations the IFC stores parameter information to provide a consistent
+view of the "best" information the IFC provides.
+
+This type is implemented in terms of relative indexes vs something more like
+the Sequence_traverser type to allow for maximum flexibility (given the current
+IFC status-quo's potential for mismatched information).
+*/
+struct an_ifc_func_param_context {
+  template<typename an_ifc_Node_type>
+  inline an_ifc_func_param_context(an_ifc_decl_index      decl_idx,
+                                   const an_ifc_Node_type &decl);
+  an_ifc_index_type get_num_params() const
+    { return num_params; }
+  inline an_ifc_type_index get_param_type(an_ifc_index_type param_idx);
+  inline an_ifc_expr_index get_default_arg_expr(an_ifc_index_type param_idx);
+private:
+  inline an_ifc_index_type determine_param_count();
+  an_ifc_index_type
+                num_params;
+                        /* The determined number of parameters (see
+                           determine_param_count for more information). */
+  an_ifc_type_index
+                params_type;
+                        /* The type representing the function's parameters.
+                           This is typically the IFC source field of the
+                           function-like declaration's type. */
+  a_lazy_ifc_func_param_chart
+                decl_param_chart;
+                        /* The function parameter chart associated directly
+                           with this declaration.  This is typically the IFC
+                           chart field of the function-like declaration. */
+  a_lazy_ifc_func_param_chart
+                def_param_chart;
+                        /* The function parameter chart pulled from the
+                           associated IFC function definition trait. */
+  a_lazy_ifc_func_param_chart
+                msvc_traits_param_chart;
+                        /* The function parameter chart pulled from the
+                           associated MSVC function parameters trait. */
+};  /* an_ifc_func_param_context */
+
+template<typename an_ifc_Node_type>
+inline an_ifc_func_param_context::an_ifc_func_param_context(
+                                               an_ifc_decl_index      decl_idx,
+                                               const an_ifc_Node_type &decl)
+/*
+Given a function-like declaration (indexed by decl_idx) initial its function
+parameter context.
+*/
+  : num_params(0), params_type(get_func_param_type(decl)),
+    decl_param_chart(get_ifc_chart(decl)),
+    def_param_chart(get_func_defition_param_chart_idx(decl_idx)),
+    msvc_traits_param_chart(get_msvc_trait_func_param_chart_idx(decl_idx))
+{
+  this->num_params = this->determine_param_count();
+}  /* an_ifc_func_param_context:an_ifc_func_param_context */
+
+
+an_ifc_index_type an_ifc_func_param_context::determine_param_count()
+/*
+Given the information known to this function parameter context, attempt to
+determine and return the correct number of parameters.
+*/
+{
+  an_ifc_index_type result = 0;
+
+  if (!is_null_index(this->params_type)) {
+    if (this->params_type.sort == ifc_ts_type_tuple) {
+      Opt<an_ifc_type_tuple> opt_tuple_type;
+
+      construct_node(&opt_tuple_type, this->params_type);
+      if (opt_tuple_type.has_value()) {
+        an_ifc_type_tuple tuple_type = *opt_tuple_type;
+
+        result = get_ifc_cardinality(tuple_type);
+      }  /* if */
+    } else {
+      result = 1;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* an_ifc_func_param_context::determine_param_count */
+
+
+an_ifc_type_index
+an_ifc_func_param_context::get_param_type(an_ifc_index_type param_idx)
+/*
+Given the relative index of a parameter for the current function parameter
+context, return the type index for the parameter's type (if possible); if no
+valid type can be found, return a null type index.
+*/
+{
+  an_ifc_type_index result = {};
+
+  if (!is_null_index(this->params_type)) {
+    if (this->params_type.sort == ifc_ts_type_tuple) {
+      Opt<an_ifc_type_tuple> opt_tuple_type;
+
+      construct_node(&opt_tuple_type, this->params_type);
+      if (opt_tuple_type.has_value()) {
+        an_ifc_type_tuple  tuple_type = *opt_tuple_type;
+        an_ifc_index       start_idx = get_ifc_start(tuple_type);
+        an_ifc_cardinality cardinality = get_ifc_cardinality(tuple_type);
+
+        if (param_idx >= cardinality) {
+          goto invalid;
+        }  /* if */
+
+        /* FIXME: This is a bit of an abuse of the traverser, but the traverser
+           provides a much simplified validation scheme vs rolling out all the
+           loading code for the element "manually".  We should have a better
+           way to get a single element out of a heap. */
+        an_ifc_index_type     element_idx = start_idx + param_idx;
+        a_type_heap_traverser traverser(start_idx.mod, element_idx, 1);
+        for (an_Indexed<an_ifc_heap_type> indexed_iht : traverser) {
+          if (!indexed_iht.has_value()) {
+            goto invalid;
+          }  /* if */
+
+          an_ifc_heap_type heap_type = *indexed_iht;
+          result = get_ifc_value(heap_type);
+          goto done;
+        }  /* for */
+      }  /* if */
+    } else {
+      result = this->params_type;
+      goto done;
+    }  /* if */
+  }  /* if */
+  /* FIXME: Attempt other sources if we still don't have a type. */
+  goto done;
+invalid:
+  result = {};
+done:
+  return result;
+}  /* an_ifc_func_param_context::get_param_type */
+
+
+static an_ifc_expr_index get_default_arg_from_chart(
+                                         a_lazy_ifc_func_param_chart &chart,
+                                         an_ifc_index_type           param_idx)
+/*
+Given a function parameter chart, and the relative index of a parameter return
+the expr index for the parameter's default argument (if possible); if no valid
+default argument expression can be found, return a null expr index.
+*/
+{
+  an_ifc_expr_index          result = {};
+  Opt<an_ifc_decl_parameter> opt_decl_param = chart.get(param_idx);
+
+  if (opt_decl_param.has_value()) {
+    an_ifc_decl_parameter decl_param = *opt_decl_param;
+
+    result = get_ifc_initializer(decl_param);
+  }  /* if */
+  return result;
+}  /* get_default_arg_from_chart */
+
+an_ifc_expr_index
+an_ifc_func_param_context::get_default_arg_expr(an_ifc_index_type param_idx)
+/*
+Given the relative index of a parameter for the current function parameter
+context, return the expr index for the parameter's default argument (if
+possible); if no valid default argument expression can be found, return a null
+expr index.
+*/
+{
+  an_ifc_expr_index result;
+
+  /* FIXME: Is this the best order? */
+  result = get_default_arg_from_chart(this->decl_param_chart, param_idx);
+  if (!is_null_index(result)) {
+    goto done;
+  }  /* if */
+  result = get_default_arg_from_chart(this->msvc_traits_param_chart,
+                                      param_idx);
+  if (!is_null_index(result)) {
+    goto done;
+  }  /* if */
+  result = get_default_arg_from_chart(this->def_param_chart, param_idx);
+  /* FIXME: Do we need to do any "quality" comparison on the possible
+     results? */
+done:
+  return result;
+}  /* an_ifc_func_param_context::get_param_type */
+
+}  /* namespace */
+
+
+template<typename an_ifc_Node_type>
+static void cache_func_parameter_declaration_clause(
+                                             a_module_token_cache_ptr cache,
+                                             an_ifc_decl_index        decl_idx,
+                                             const an_ifc_Node_type   &decl,
+                                             const an_ifc_cache_info  &cinfo)
+/*
+Cache the parameter-declaration-clause for the given function-like declaration
+(indexed by decl_idx).  cinfo contains information about the current cache
+context to help inform decisions about what to cache
+*/
+{
+  an_ifc_func_param_context param_context(decl_idx, decl);
+  an_ifc_source_location    locus = get_ifc_locus(decl);
+  a_boolean                 first = TRUE;
+
+  for (an_ifc_index_type i = 0; i < param_context.get_num_params(); ++i) {
+    if (!first) {
+      cache_token(cache, tok_comma, &null_source_position);
+    }  /* if */
+
+    an_ifc_type_index arg_type = param_context.get_param_type(i);
+    /* If the type couldn't be resolved, fail; this isn't reasonably
+       recoverable. */
+    if (is_null_index(arg_type)) {
+      goto invalid;
+    }  /* if */
+    arg_type.mod->cache_type(cache, arg_type, locus);
+    /* Cache the default argument if we're not ignoring default arguments in
+       this context, and a default argument is found. */
+    if (!cinfo.ignore_default_arguments) {
+      an_ifc_expr_index arg_expr = param_context.get_default_arg_expr(i);
+
+      if (!is_null_index(arg_expr)) {
+        cache_token(cache, tok_assign, &null_source_position);
+        cache_token_with_index(cache, tok_pending_ifc_expr, arg_expr,
+                               &null_source_position);
+      }  /* if */
+    }  /* if */
+    first = FALSE;
+  }  /* for */
   goto done;
 invalid:
   expect_error_str("expected errors for bad parameter-declaration-clause"
@@ -15700,7 +16105,8 @@ END_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
         cache_func_return_type(cache, idf);
         cache_func_calling_convention(cache, idf);
         cache_simple_template_id(this, cache, decl, locus);
-        cache_func_parameters_and_qualifiers(cache, idf);
+        cache_func_parameters_and_qualifiers(cache, templated_decl_idx, idf,
+                                             cinfo);
         cache_func_body_or_end_decl(cache, templated_decl_idx, idf, cinfo);
       }
       break;
@@ -15727,7 +16133,8 @@ END_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
         }  /* if */
         cache_func_calling_convention(cache, idm);
         cache_simple_template_id(this, cache, decl, locus);
-        cache_func_parameters_and_qualifiers(cache, idm);
+        cache_func_parameters_and_qualifiers(cache, templated_decl_idx, idm,
+                                             cinfo);
         cache_func_virt_specifier_seq(cache, idm);
         cache_func_body_or_end_decl(cache, templated_decl_idx, idm, cinfo);
       }
@@ -15753,7 +16160,8 @@ END_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
            instead of cache_simple_template_id. */
         EDG_PREFIX::cache_name(cache, get_ifc_name(decl),
                                get_ifc_locus(idc));
-        cache_func_parameters_and_qualifiers(cache, idc);
+        cache_func_parameters_and_qualifiers(cache, templated_decl_idx, idc,
+                                             cinfo);
         cache_func_virt_specifier_seq(cache, idc);
         cache_func_body_or_end_decl(cache, templated_decl_idx, idc, cinfo);
       }
@@ -16360,7 +16768,7 @@ about what to cache.
         cache_func_return_type(cache, idf);
         cache_func_calling_convention(cache, idf);
         cache_name(cache, get_ifc_name(idf), locus);
-        cache_func_parameters_and_qualifiers(cache, idf);
+        cache_func_parameters_and_qualifiers(cache, decl, idf, cinfo);
         cache_func_body_or_end_decl(cache, decl, idf, cinfo);
       }
       break;
@@ -16381,7 +16789,7 @@ about what to cache.
         }  /* if */
         cache_func_calling_convention(cache, idm);
         cache_name(cache, name_idx, locus);
-        cache_func_parameters_and_qualifiers(cache, idm);
+        cache_func_parameters_and_qualifiers(cache, decl, idm, cinfo);
         cache_func_virt_specifier_seq(cache, idm);
         cache_func_body_or_end_decl(cache, decl, idm, cinfo);
       }
@@ -16398,7 +16806,7 @@ about what to cache.
         cache_func_decl_specifier_seq(cache, idc);
         cache_func_calling_convention(cache, idc);
         cache_name(cache, get_ifc_name(idc), locus);
-        cache_func_parameters_and_qualifiers(cache, idc);
+        cache_func_parameters_and_qualifiers(cache, decl, idc, cinfo);
         cache_func_virt_specifier_seq(cache, idc);
         cache_func_body_or_end_decl(cache, decl, idc, cinfo);
       }
@@ -19471,24 +19879,6 @@ diagnostic using the validation trace.
   }  /* if */
   return result;
 }  /* validate_element_exists */
-
-
-an_ifc_chart_index an_ifc_module::get_func_params_from_trait(
-                                                        an_ifc_decl_index decl)
-/*
-Find and return the index to the named function parameters corresponding to
-decl, or 0 if not found.
-*/
-{
-  an_ifc_chart_index                 params = {};
-  Opt<an_ifc_trait_msvc_func_params> opt_itmfp;
-
-  find_trait(&opt_itmfp, decl);
-  if (opt_itmfp.has_value()) {
-    params = get_ifc_params(*opt_itmfp);
-  }  /* if */
-  return params;
-}  /* get_func_params_from_trait */
 
 
 an_ifc_msvc_traits_bitfield an_ifc_module::get_vendor_traits(

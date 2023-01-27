@@ -510,7 +510,6 @@ public:
   void cache_form(a_module_token_cache_ptr cache,
                   an_ifc_form_index        form,
                   a_boolean                is_parameter_form = FALSE);
-  an_ifc_chart_index get_func_params_from_trait(an_ifc_decl_index decl);
   an_ifc_msvc_traits_bitfield get_vendor_traits(an_ifc_decl_index decl);
   char *parse_cached_explicit_specialization(
                                    a_module_token_cache_ptr         cache,
