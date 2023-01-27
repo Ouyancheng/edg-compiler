@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2022 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2023 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -26820,6 +26820,14 @@ extern a_boolean validate(an_ifc_decl_index idx);
 
 extern a_boolean validate(an_ifc_expr_index idx);
 
+extern a_boolean validate(an_ifc_form_index idx);
+
+extern a_boolean validate(an_ifc_macro_index idx);
+
+extern a_boolean validate(an_ifc_stmt_index idx);
+
+extern a_boolean validate(an_ifc_syntax_index idx);
+
 /*
 Visitor functions for retrieving access values from nodes on the DeclIndex.
 */
@@ -26861,6 +26869,38 @@ a_boolean has_ifc_locus(an_ifc_expr_index idx);
 extern an_ifc_source_location get_ifc_locus(an_ifc_expr_index idx);
 
 /*
+Visitor functions for retrieving locus values from nodes on the FormIndex.
+*/
+
+a_boolean has_ifc_locus(an_ifc_form_index idx);
+
+extern an_ifc_source_location get_ifc_locus(an_ifc_form_index idx);
+
+/*
+Visitor functions for retrieving locus values from nodes on the MacroIndex.
+*/
+
+a_boolean has_ifc_locus(an_ifc_macro_index idx);
+
+extern an_ifc_source_location get_ifc_locus(an_ifc_macro_index idx);
+
+/*
+Visitor functions for retrieving locus values from nodes on the StmtIndex.
+*/
+
+a_boolean has_ifc_locus(an_ifc_stmt_index idx);
+
+extern an_ifc_source_location get_ifc_locus(an_ifc_stmt_index idx);
+
+/*
+Visitor functions for retrieving locus values from nodes on the SyntaxIndex.
+*/
+
+a_boolean has_ifc_locus(an_ifc_syntax_index idx);
+
+extern an_ifc_source_location get_ifc_locus(an_ifc_syntax_index idx);
+
+/*
 Visitor functions for printing diagnostic textual representations on a given
 index.
 */
@@ -26895,6 +26935,6 @@ END_EDG_NAMESPACE
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2022 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2023 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

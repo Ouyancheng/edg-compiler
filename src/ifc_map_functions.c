@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2022 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2023 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -36544,6 +36544,1089 @@ representation is valid; otherwise, return FALSE.
 }  /* validate */
 
 
+a_boolean validate(an_ifc_form_index idx)
+/*
+Given the FormIndex, validate the associated node.  Return TRUE if the node's
+representation is valid; otherwise, return FALSE.
+*/
+{
+  a_boolean result = FALSE;
+
+  switch (idx.sort) {
+    case ifc_fs_form_catenate:
+      { Opt<an_ifc_form_catenate> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_fs_form_character:
+      { Opt<an_ifc_form_character> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_fs_form_header:
+      { Opt<an_ifc_form_header> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_fs_form_identifier:
+      { Opt<an_ifc_form_identifier> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_fs_form_junk:
+      { Opt<an_ifc_form_junk> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_fs_form_keyword:
+      { Opt<an_ifc_form_keyword> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_fs_form_number:
+      { Opt<an_ifc_form_number> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_fs_form_operator:
+      { Opt<an_ifc_form_operator> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_fs_form_parameter:
+      { Opt<an_ifc_form_parameter> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_fs_form_parenthesized:
+      { Opt<an_ifc_form_parenthesized> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_fs_form_pragma:
+      { Opt<an_ifc_form_pragma> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_fs_form_string:
+      { Opt<an_ifc_form_string> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_fs_form_stringize:
+      { Opt<an_ifc_form_stringize> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_fs_form_tuple:
+      { Opt<an_ifc_form_tuple> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_fs_form_whitespace:
+      { Opt<an_ifc_form_whitespace> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    default:
+      unexpected_condition_str("No known way to validate partition kind.");
+      break;
+  }  /* switch */
+  return result;
+}  /* validate */
+
+
+a_boolean validate(an_ifc_macro_index idx)
+/*
+Given the MacroIndex, validate the associated node.  Return TRUE if the node's
+representation is valid; otherwise, return FALSE.
+*/
+{
+  a_boolean result = FALSE;
+
+  switch (idx.sort) {
+    case ifc_ms_macro_function_like:
+      { Opt<an_ifc_macro_function_like> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ms_macro_object_like:
+      { Opt<an_ifc_macro_object_like> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    default:
+      unexpected_condition_str("No known way to validate partition kind.");
+      break;
+  }  /* switch */
+  return result;
+}  /* validate */
+
+
+a_boolean validate(an_ifc_stmt_index idx)
+/*
+Given the StmtIndex, validate the associated node.  Return TRUE if the node's
+representation is valid; otherwise, return FALSE.
+*/
+{
+  a_boolean result = FALSE;
+
+  switch (idx.sort) {
+    case ifc_ss_stmt_block:
+      { Opt<an_ifc_stmt_block> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_stmt_break:
+      { Opt<an_ifc_stmt_break> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_stmt_case:
+      { Opt<an_ifc_stmt_case> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_stmt_continue:
+      { Opt<an_ifc_stmt_continue> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_stmt_decl:
+      { Opt<an_ifc_stmt_decl> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_stmt_default:
+      { Opt<an_ifc_stmt_default> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_stmt_do_while:
+      { Opt<an_ifc_stmt_do_while> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_stmt_empty:
+      { Opt<an_ifc_stmt_empty> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_stmt_expansion:
+      { Opt<an_ifc_stmt_expansion> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_stmt_expression:
+      { Opt<an_ifc_stmt_expression> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_stmt_for:
+      { Opt<an_ifc_stmt_for> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_stmt_goto:
+      { Opt<an_ifc_stmt_goto> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_stmt_handler:
+      { Opt<an_ifc_stmt_handler> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_stmt_if:
+      { Opt<an_ifc_stmt_if> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_stmt_labeled:
+      { Opt<an_ifc_stmt_labeled> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_stmt_return:
+      { Opt<an_ifc_stmt_return> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_stmt_switch:
+      { Opt<an_ifc_stmt_switch> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_stmt_variable_decl:
+      { Opt<an_ifc_stmt_variable_decl> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_stmt_while:
+      { Opt<an_ifc_stmt_while> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    default:
+      unexpected_condition_str("No known way to validate partition kind.");
+      break;
+  }  /* switch */
+  return result;
+}  /* validate */
+
+
+a_boolean validate(an_ifc_syntax_index idx)
+/*
+Given the SyntaxIndex, validate the associated node.  Return TRUE if the node's
+representation is valid; otherwise, return FALSE.
+*/
+{
+  a_boolean result = FALSE;
+
+  switch (idx.sort) {
+    case ifc_ss_syntax_access_specifier:
+      { Opt<an_ifc_syntax_access_specifier> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_syntax_alias_declaration:
+      { Opt<an_ifc_syntax_alias_declaration> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_syntax_alignas:
+      { Opt<an_ifc_syntax_alignas> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_syntax_array_declarator:
+      { Opt<an_ifc_syntax_array_declarator> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_syntax_array_index:
+      { Opt<an_ifc_syntax_array_index> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_syntax_array_or_function_declarator:
+      { Opt<an_ifc_syntax_array_or_function_declarator> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_syntax_asm_statement:
+      { Opt<an_ifc_syntax_asm_statement> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_syntax_attribute:
+      { Opt<an_ifc_syntax_attribute> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_syntax_attribute_argument_clause:
+      { Opt<an_ifc_syntax_attribute_argument_clause> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_syntax_attribute_specifier:
+      { Opt<an_ifc_syntax_attribute_specifier> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_syntax_attribute_specifier_seq:
+      { Opt<an_ifc_syntax_attribute_specifier_seq> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_syntax_attribute_using_prefix:
+      { Opt<an_ifc_syntax_attribute_using_prefix> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_syntax_attributed_declaration:
+      { Opt<an_ifc_syntax_attributed_declaration> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_syntax_attributed_statement:
+      { Opt<an_ifc_syntax_attributed_statement> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_syntax_base_specifier:
+      { Opt<an_ifc_syntax_base_specifier> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_syntax_base_specifier_list:
+      { Opt<an_ifc_syntax_base_specifier_list> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_syntax_binary_fold_expression:
+      { Opt<an_ifc_syntax_binary_fold_expression> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_syntax_break_statement:
+      { Opt<an_ifc_syntax_break_statement> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_syntax_capture_default:
+      { Opt<an_ifc_syntax_capture_default> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_syntax_class_specifier:
+      { Opt<an_ifc_syntax_class_specifier> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_syntax_compound_requirement:
+      { Opt<an_ifc_syntax_compound_requirement> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_syntax_compound_statement:
+      { Opt<an_ifc_syntax_compound_statement> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_syntax_concept_definition:
+      { Opt<an_ifc_syntax_concept_definition> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_syntax_condition_declaration:
+      { Opt<an_ifc_syntax_condition_declaration> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_syntax_continue_statement:
+      { Opt<an_ifc_syntax_continue_statement> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_syntax_ctor_initializer:
+      { Opt<an_ifc_syntax_ctor_initializer> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_syntax_decl_specifier_seq:
+      { Opt<an_ifc_syntax_decl_specifier_seq> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_syntax_declaration_statement:
+      { Opt<an_ifc_syntax_declaration_statement> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_syntax_declarator:
+      { Opt<an_ifc_syntax_declarator> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_syntax_decltype_specifier:
+      { Opt<an_ifc_syntax_decltype_specifier> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_syntax_do_while_statement:
+      { Opt<an_ifc_syntax_do_while_statement> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_syntax_dynamic_exception_spec:
+      { Opt<an_ifc_syntax_dynamic_exception_spec> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_syntax_empty_statement:
+      { Opt<an_ifc_syntax_empty_statement> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_syntax_enum_specifier:
+      { Opt<an_ifc_syntax_enum_specifier> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_syntax_enumerator_definition:
+      { Opt<an_ifc_syntax_enumerator_definition> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_syntax_exception_declaration:
+      { Opt<an_ifc_syntax_exception_declaration> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_syntax_explicit_specifier:
+      { Opt<an_ifc_syntax_explicit_specifier> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_syntax_expression:
+      { Opt<an_ifc_syntax_expression> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_syntax_expression_statement:
+      { Opt<an_ifc_syntax_expression_statement> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_syntax_for_range_declaration:
+      { Opt<an_ifc_syntax_for_range_declaration> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_syntax_for_statement:
+      { Opt<an_ifc_syntax_for_statement> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_syntax_function_body:
+      { Opt<an_ifc_syntax_function_body> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_syntax_function_declarator:
+      { Opt<an_ifc_syntax_function_declarator> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_syntax_function_definition:
+      { Opt<an_ifc_syntax_function_definition> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_syntax_function_try_block:
+      { Opt<an_ifc_syntax_function_try_block> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_syntax_goto_statement:
+      { Opt<an_ifc_syntax_goto_statement> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_syntax_handler:
+      { Opt<an_ifc_syntax_handler> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_syntax_handler_seq:
+      { Opt<an_ifc_syntax_handler_seq> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_syntax_if_statement:
+      { Opt<an_ifc_syntax_if_statement> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_syntax_init_capture:
+      { Opt<an_ifc_syntax_init_capture> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_syntax_init_declarator:
+      { Opt<an_ifc_syntax_init_declarator> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_syntax_init_statement:
+      { Opt<an_ifc_syntax_init_statement> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_syntax_labeled_statement:
+      { Opt<an_ifc_syntax_labeled_statement> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_syntax_lambda_declarator:
+      { Opt<an_ifc_syntax_lambda_declarator> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_syntax_lambda_introducer:
+      { Opt<an_ifc_syntax_lambda_introducer> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_syntax_mem_initializer:
+      { Opt<an_ifc_syntax_mem_initializer> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_syntax_member_declaration:
+      { Opt<an_ifc_syntax_member_declaration> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_syntax_member_declarator:
+      { Opt<an_ifc_syntax_member_declarator> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_syntax_member_function_declaration:
+      { Opt<an_ifc_syntax_member_function_declaration> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_syntax_member_specification:
+      { Opt<an_ifc_syntax_member_specification> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_syntax_namespace_alias_definition:
+      { Opt<an_ifc_syntax_namespace_alias_definition> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_syntax_nested_requirement:
+      { Opt<an_ifc_syntax_nested_requirement> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_syntax_new_declarator:
+      { Opt<an_ifc_syntax_new_declarator> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_syntax_noexcept_specification:
+      { Opt<an_ifc_syntax_noexcept_specification> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_syntax_non_type_template_argument:
+      { Opt<an_ifc_syntax_non_type_template_argument> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_syntax_parameter_declarator:
+      { Opt<an_ifc_syntax_parameter_declarator> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_syntax_placeholder_type_specifier:
+      { Opt<an_ifc_syntax_placeholder_type_specifier> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_syntax_pointer_declarator:
+      { Opt<an_ifc_syntax_pointer_declarator> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_syntax_range_based_for_statement:
+      { Opt<an_ifc_syntax_range_based_for_statement> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_syntax_requirement_body:
+      { Opt<an_ifc_syntax_requirement_body> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_syntax_requires_clause:
+      { Opt<an_ifc_syntax_requires_clause> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_syntax_return_statement:
+      { Opt<an_ifc_syntax_return_statement> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_syntax_seh_except:
+      { Opt<an_ifc_syntax_seh_except> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_syntax_seh_finally:
+      { Opt<an_ifc_syntax_seh_finally> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_syntax_seh_leave:
+      { Opt<an_ifc_syntax_seh_leave> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_syntax_seh_try:
+      { Opt<an_ifc_syntax_seh_try> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_syntax_simple_capture:
+      { Opt<an_ifc_syntax_simple_capture> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_syntax_simple_declaration:
+      { Opt<an_ifc_syntax_simple_declaration> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_syntax_simple_requirement:
+      { Opt<an_ifc_syntax_simple_requirement> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_syntax_simple_type_specifier:
+      { Opt<an_ifc_syntax_simple_type_specifier> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_syntax_statement_seq:
+      { Opt<an_ifc_syntax_statement_seq> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_syntax_static_assert_declaration:
+      { Opt<an_ifc_syntax_static_assert_declaration> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_syntax_structured_binding_declaration:
+      { Opt<an_ifc_syntax_structured_binding_declaration> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_syntax_structured_binding_identifier:
+      { Opt<an_ifc_syntax_structured_binding_identifier> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_syntax_super:
+      { Opt<an_ifc_syntax_super> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_syntax_switch_statement:
+      { Opt<an_ifc_syntax_switch_statement> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_syntax_template_argument_list:
+      { Opt<an_ifc_syntax_template_argument_list> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_syntax_template_declaration:
+      { Opt<an_ifc_syntax_template_declaration> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_syntax_template_id:
+      { Opt<an_ifc_syntax_template_id> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_syntax_template_parameter_list:
+      { Opt<an_ifc_syntax_template_parameter_list> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_syntax_template_template_parameter:
+      { Opt<an_ifc_syntax_template_template_parameter> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_syntax_this_capture:
+      { Opt<an_ifc_syntax_this_capture> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_syntax_trailing_return_type:
+      { Opt<an_ifc_syntax_trailing_return_type> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_syntax_try_block:
+      { Opt<an_ifc_syntax_try_block> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_syntax_tuple:
+      { Opt<an_ifc_syntax_tuple> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_syntax_type_id:
+      { Opt<an_ifc_syntax_type_id> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_syntax_type_id_list_element:
+      { Opt<an_ifc_syntax_type_id_list_element> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_syntax_type_requirement:
+      { Opt<an_ifc_syntax_type_requirement> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_syntax_type_specifier_seq:
+      { Opt<an_ifc_syntax_type_specifier_seq> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_syntax_type_template_argument:
+      { Opt<an_ifc_syntax_type_template_argument> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_syntax_type_template_parameter:
+      { Opt<an_ifc_syntax_type_template_parameter> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_syntax_type_trait_intrinsic:
+      { Opt<an_ifc_syntax_type_trait_intrinsic> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_syntax_unary_fold_expression:
+      { Opt<an_ifc_syntax_unary_fold_expression> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_syntax_using_declaration:
+      { Opt<an_ifc_syntax_using_declaration> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_syntax_using_declarator:
+      { Opt<an_ifc_syntax_using_declarator> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_syntax_using_directive:
+      { Opt<an_ifc_syntax_using_directive> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_syntax_using_enum_declaration:
+      { Opt<an_ifc_syntax_using_enum_declaration> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_syntax_virtual_specifier_seq:
+      { Opt<an_ifc_syntax_virtual_specifier_seq> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_syntax_while_statement:
+      { Opt<an_ifc_syntax_while_statement> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    default:
+      unexpected_condition_str("No known way to validate partition kind.");
+      break;
+  }  /* switch */
+  return result;
+}  /* validate */
+
+
 /*
 Visitor functions for retrieving access values from nodes on the DeclIndex.
 */
@@ -38443,6 +39526,1120 @@ node's "locus" field value.
 }  /* get_ifc_locus */
 
 
+/*
+Visitor functions for retrieving locus values from nodes on the FormIndex.
+*/
+
+
+a_boolean has_ifc_locus(an_ifc_form_index idx)
+/*
+Given the FormIndex, test whether the associated node has the field "locus".
+Return TRUE if the node has the field "locus"; otherwise, return FALSE.
+*/
+{
+  an_ifc_module *mod = idx.mod;
+  a_boolean     result = get_fallback_presence_value(mod);
+
+  switch (idx.sort) {
+    case ifc_fs_form_catenate:
+      if (is_at_least(mod, 0, 33)) {
+        result = TRUE;
+      }  /* if */
+      break;
+    case ifc_fs_form_character:
+      if (is_at_least(mod, 0, 33)) {
+        result = TRUE;
+      }  /* if */
+      break;
+    case ifc_fs_form_header:
+      if (is_at_least(mod, 0, 33)) {
+        result = TRUE;
+      }  /* if */
+      break;
+    case ifc_fs_form_identifier:
+      if (is_at_least(mod, 0, 33)) {
+        result = TRUE;
+      }  /* if */
+      break;
+    case ifc_fs_form_junk:
+      if (is_at_least(mod, 0, 33)) {
+        result = TRUE;
+      }  /* if */
+      break;
+    case ifc_fs_form_keyword:
+      if (is_at_least(mod, 0, 33)) {
+        result = TRUE;
+      }  /* if */
+      break;
+    case ifc_fs_form_number:
+      if (is_at_least(mod, 0, 33)) {
+        result = TRUE;
+      }  /* if */
+      break;
+    case ifc_fs_form_operator:
+      if (is_at_least(mod, 0, 33)) {
+        result = TRUE;
+      }  /* if */
+      break;
+    case ifc_fs_form_parameter:
+      if (is_at_least(mod, 0, 33)) {
+        result = TRUE;
+      }  /* if */
+      break;
+    case ifc_fs_form_parenthesized:
+      if (is_at_least(mod, 0, 33)) {
+        result = TRUE;
+      }  /* if */
+      break;
+    case ifc_fs_form_pragma:
+      if (is_at_least(mod, 0, 33)) {
+        result = TRUE;
+      }  /* if */
+      break;
+    case ifc_fs_form_string:
+      if (is_at_least(mod, 0, 33)) {
+        result = TRUE;
+      }  /* if */
+      break;
+    case ifc_fs_form_stringize:
+      if (is_at_least(mod, 0, 33)) {
+        result = TRUE;
+      }  /* if */
+      break;
+    case ifc_fs_form_whitespace:
+      if (is_at_least(mod, 0, 33)) {
+        result = TRUE;
+      }  /* if */
+      break;
+    default:
+      result = FALSE;
+      break;
+  }  /* switch */
+  return result;
+}  /* has_ifc_locus */
+
+
+an_ifc_source_location get_ifc_locus(an_ifc_form_index idx)
+/*
+Given the FormIndex, return the universal representation of the associated
+node's "locus" field value.
+*/
+{
+  an_ifc_source_location result;
+
+  switch (idx.sort) {
+    case ifc_fs_form_catenate:
+      { an_ifc_form_catenate universal;
+
+        construct_node_prechecked(&universal, idx);
+        result = get_ifc_locus(universal);
+      }
+      break;
+    case ifc_fs_form_character:
+      { an_ifc_form_character universal;
+
+        construct_node_prechecked(&universal, idx);
+        result = get_ifc_locus(universal);
+      }
+      break;
+    case ifc_fs_form_header:
+      { an_ifc_form_header universal;
+
+        construct_node_prechecked(&universal, idx);
+        result = get_ifc_locus(universal);
+      }
+      break;
+    case ifc_fs_form_identifier:
+      { an_ifc_form_identifier universal;
+
+        construct_node_prechecked(&universal, idx);
+        result = get_ifc_locus(universal);
+      }
+      break;
+    case ifc_fs_form_junk:
+      { an_ifc_form_junk universal;
+
+        construct_node_prechecked(&universal, idx);
+        result = get_ifc_locus(universal);
+      }
+      break;
+    case ifc_fs_form_keyword:
+      { an_ifc_form_keyword universal;
+
+        construct_node_prechecked(&universal, idx);
+        result = get_ifc_locus(universal);
+      }
+      break;
+    case ifc_fs_form_number:
+      { an_ifc_form_number universal;
+
+        construct_node_prechecked(&universal, idx);
+        result = get_ifc_locus(universal);
+      }
+      break;
+    case ifc_fs_form_operator:
+      { an_ifc_form_operator universal;
+
+        construct_node_prechecked(&universal, idx);
+        result = get_ifc_locus(universal);
+      }
+      break;
+    case ifc_fs_form_parameter:
+      { an_ifc_form_parameter universal;
+
+        construct_node_prechecked(&universal, idx);
+        result = get_ifc_locus(universal);
+      }
+      break;
+    case ifc_fs_form_parenthesized:
+      { an_ifc_form_parenthesized universal;
+
+        construct_node_prechecked(&universal, idx);
+        result = get_ifc_locus(universal);
+      }
+      break;
+    case ifc_fs_form_pragma:
+      { an_ifc_form_pragma universal;
+
+        construct_node_prechecked(&universal, idx);
+        result = get_ifc_locus(universal);
+      }
+      break;
+    case ifc_fs_form_string:
+      { an_ifc_form_string universal;
+
+        construct_node_prechecked(&universal, idx);
+        result = get_ifc_locus(universal);
+      }
+      break;
+    case ifc_fs_form_stringize:
+      { an_ifc_form_stringize universal;
+
+        construct_node_prechecked(&universal, idx);
+        result = get_ifc_locus(universal);
+      }
+      break;
+    case ifc_fs_form_whitespace:
+      { an_ifc_form_whitespace universal;
+
+        construct_node_prechecked(&universal, idx);
+        result = get_ifc_locus(universal);
+      }
+      break;
+    default:
+      unexpected_condition_str("Invalid query, no locus value.");
+      break;
+  }  /* switch */
+  return result;
+}  /* get_ifc_locus */
+
+
+/*
+Visitor functions for retrieving locus values from nodes on the MacroIndex.
+*/
+
+
+a_boolean has_ifc_locus(an_ifc_macro_index idx)
+/*
+Given the MacroIndex, test whether the associated node has the field "locus".
+Return TRUE if the node has the field "locus"; otherwise, return FALSE.
+*/
+{
+  an_ifc_module *mod = idx.mod;
+  a_boolean     result = get_fallback_presence_value(mod);
+
+  switch (idx.sort) {
+    case ifc_ms_macro_function_like:
+      if (is_at_least(mod, 0, 33)) {
+        result = TRUE;
+      }  /* if */
+      break;
+    case ifc_ms_macro_object_like:
+      if (is_at_least(mod, 0, 33)) {
+        result = TRUE;
+      }  /* if */
+      break;
+    default:
+      result = FALSE;
+      break;
+  }  /* switch */
+  return result;
+}  /* has_ifc_locus */
+
+
+an_ifc_source_location get_ifc_locus(an_ifc_macro_index idx)
+/*
+Given the MacroIndex, return the universal representation of the associated
+node's "locus" field value.
+*/
+{
+  an_ifc_source_location result;
+
+  switch (idx.sort) {
+    case ifc_ms_macro_function_like:
+      { an_ifc_macro_function_like universal;
+
+        construct_node_prechecked(&universal, idx);
+        result = get_ifc_locus(universal);
+      }
+      break;
+    case ifc_ms_macro_object_like:
+      { an_ifc_macro_object_like universal;
+
+        construct_node_prechecked(&universal, idx);
+        result = get_ifc_locus(universal);
+      }
+      break;
+    default:
+      unexpected_condition_str("Invalid query, no locus value.");
+      break;
+  }  /* switch */
+  return result;
+}  /* get_ifc_locus */
+
+
+/*
+Visitor functions for retrieving locus values from nodes on the StmtIndex.
+*/
+
+
+a_boolean has_ifc_locus(an_ifc_stmt_index idx)
+/*
+Given the StmtIndex, test whether the associated node has the field "locus".
+Return TRUE if the node has the field "locus"; otherwise, return FALSE.
+*/
+{
+  an_ifc_module *mod = idx.mod;
+  a_boolean     result = get_fallback_presence_value(mod);
+
+  switch (idx.sort) {
+    case ifc_ss_stmt_block:
+      if (is_at_least(mod, 0, 42)) {
+        result = TRUE;
+      }  /* if */
+      break;
+    case ifc_ss_stmt_break:
+      if (is_at_least(mod, 0, 33)) {
+        result = TRUE;
+      }  /* if */
+      break;
+    case ifc_ss_stmt_case:
+      if (is_at_least(mod, 0, 33)) {
+        result = TRUE;
+      }  /* if */
+      break;
+    case ifc_ss_stmt_continue:
+      if (is_at_least(mod, 0, 33)) {
+        result = TRUE;
+      }  /* if */
+      break;
+    case ifc_ss_stmt_decl:
+      if (is_at_least(mod, 0, 42)) {
+        result = TRUE;
+      }  /* if */
+      break;
+    case ifc_ss_stmt_default:
+      if (is_at_least(mod, 0, 42)) {
+        result = FALSE;
+      } else if (is_at_least(mod, 0, 33)) {
+        result = TRUE;
+      }  /* if */
+      break;
+    case ifc_ss_stmt_do_while:
+      if (is_at_least(mod, 0, 33)) {
+        result = TRUE;
+      }  /* if */
+      break;
+    case ifc_ss_stmt_empty:
+      if (is_at_least(mod, 0, 42)) {
+        result = FALSE;
+      } else if (is_at_least(mod, 0, 33)) {
+        result = TRUE;
+      }  /* if */
+      break;
+    case ifc_ss_stmt_expansion:
+      if (is_at_least(mod, 0, 42)) {
+        result = TRUE;
+      }  /* if */
+      break;
+    case ifc_ss_stmt_expression:
+      if (is_at_least(mod, 0, 33)) {
+        result = TRUE;
+      }  /* if */
+      break;
+    case ifc_ss_stmt_for:
+      if (is_at_least(mod, 0, 33)) {
+        result = TRUE;
+      }  /* if */
+      break;
+    case ifc_ss_stmt_goto:
+      if (is_at_least(mod, 0, 42)) {
+        result = TRUE;
+      }  /* if */
+      break;
+    case ifc_ss_stmt_handler:
+      if (is_at_least(mod, 0, 42)) {
+        result = TRUE;
+      }  /* if */
+      break;
+    case ifc_ss_stmt_if:
+      if (is_at_least(mod, 0, 33)) {
+        result = TRUE;
+      }  /* if */
+      break;
+    case ifc_ss_stmt_labeled:
+      if (is_at_least(mod, 0, 42)) {
+        result = TRUE;
+      }  /* if */
+      break;
+    case ifc_ss_stmt_return:
+      if (is_at_least(mod, 0, 33)) {
+        result = TRUE;
+      }  /* if */
+      break;
+    case ifc_ss_stmt_switch:
+      if (is_at_least(mod, 0, 33)) {
+        result = TRUE;
+      }  /* if */
+      break;
+    case ifc_ss_stmt_variable_decl:
+      if (is_at_least(mod, 0, 42)) {
+        result = FALSE;
+      } else if (is_at_least(mod, 0, 33)) {
+        result = TRUE;
+      }  /* if */
+      break;
+    case ifc_ss_stmt_while:
+      if (is_at_least(mod, 0, 33)) {
+        result = TRUE;
+      }  /* if */
+      break;
+    default:
+      result = FALSE;
+      break;
+  }  /* switch */
+  return result;
+}  /* has_ifc_locus */
+
+
+an_ifc_source_location get_ifc_locus(an_ifc_stmt_index idx)
+/*
+Given the StmtIndex, return the universal representation of the associated
+node's "locus" field value.
+*/
+{
+  an_ifc_source_location result;
+
+  switch (idx.sort) {
+    case ifc_ss_stmt_block:
+      { an_ifc_stmt_block universal;
+
+        construct_node_prechecked(&universal, idx);
+        result = get_ifc_locus(universal);
+      }
+      break;
+    case ifc_ss_stmt_break:
+      { an_ifc_stmt_break universal;
+
+        construct_node_prechecked(&universal, idx);
+        result = get_ifc_locus(universal);
+      }
+      break;
+    case ifc_ss_stmt_case:
+      { an_ifc_stmt_case universal;
+
+        construct_node_prechecked(&universal, idx);
+        result = get_ifc_locus(universal);
+      }
+      break;
+    case ifc_ss_stmt_continue:
+      { an_ifc_stmt_continue universal;
+
+        construct_node_prechecked(&universal, idx);
+        result = get_ifc_locus(universal);
+      }
+      break;
+    case ifc_ss_stmt_decl:
+      { an_ifc_stmt_decl universal;
+
+        construct_node_prechecked(&universal, idx);
+        result = get_ifc_locus(universal);
+      }
+      break;
+    case ifc_ss_stmt_default:
+      { an_ifc_stmt_default universal;
+
+        construct_node_prechecked(&universal, idx);
+        result = get_ifc_locus(universal);
+      }
+      break;
+    case ifc_ss_stmt_do_while:
+      { an_ifc_stmt_do_while universal;
+
+        construct_node_prechecked(&universal, idx);
+        result = get_ifc_locus(universal);
+      }
+      break;
+    case ifc_ss_stmt_empty:
+      { an_ifc_stmt_empty universal;
+
+        construct_node_prechecked(&universal, idx);
+        result = get_ifc_locus(universal);
+      }
+      break;
+    case ifc_ss_stmt_expansion:
+      { an_ifc_stmt_expansion universal;
+
+        construct_node_prechecked(&universal, idx);
+        result = get_ifc_locus(universal);
+      }
+      break;
+    case ifc_ss_stmt_expression:
+      { an_ifc_stmt_expression universal;
+
+        construct_node_prechecked(&universal, idx);
+        result = get_ifc_locus(universal);
+      }
+      break;
+    case ifc_ss_stmt_for:
+      { an_ifc_stmt_for universal;
+
+        construct_node_prechecked(&universal, idx);
+        result = get_ifc_locus(universal);
+      }
+      break;
+    case ifc_ss_stmt_goto:
+      { an_ifc_stmt_goto universal;
+
+        construct_node_prechecked(&universal, idx);
+        result = get_ifc_locus(universal);
+      }
+      break;
+    case ifc_ss_stmt_handler:
+      { an_ifc_stmt_handler universal;
+
+        construct_node_prechecked(&universal, idx);
+        result = get_ifc_locus(universal);
+      }
+      break;
+    case ifc_ss_stmt_if:
+      { an_ifc_stmt_if universal;
+
+        construct_node_prechecked(&universal, idx);
+        result = get_ifc_locus(universal);
+      }
+      break;
+    case ifc_ss_stmt_labeled:
+      { an_ifc_stmt_labeled universal;
+
+        construct_node_prechecked(&universal, idx);
+        result = get_ifc_locus(universal);
+      }
+      break;
+    case ifc_ss_stmt_return:
+      { an_ifc_stmt_return universal;
+
+        construct_node_prechecked(&universal, idx);
+        result = get_ifc_locus(universal);
+      }
+      break;
+    case ifc_ss_stmt_switch:
+      { an_ifc_stmt_switch universal;
+
+        construct_node_prechecked(&universal, idx);
+        result = get_ifc_locus(universal);
+      }
+      break;
+    case ifc_ss_stmt_variable_decl:
+      { an_ifc_stmt_variable_decl universal;
+
+        construct_node_prechecked(&universal, idx);
+        result = get_ifc_locus(universal);
+      }
+      break;
+    case ifc_ss_stmt_while:
+      { an_ifc_stmt_while universal;
+
+        construct_node_prechecked(&universal, idx);
+        result = get_ifc_locus(universal);
+      }
+      break;
+    default:
+      unexpected_condition_str("Invalid query, no locus value.");
+      break;
+  }  /* switch */
+  return result;
+}  /* get_ifc_locus */
+
+
+/*
+Visitor functions for retrieving locus values from nodes on the SyntaxIndex.
+*/
+
+
+a_boolean has_ifc_locus(an_ifc_syntax_index idx)
+/*
+Given the SyntaxIndex, test whether the associated node has the field "locus".
+Return TRUE if the node has the field "locus"; otherwise, return FALSE.
+*/
+{
+  an_ifc_module *mod = idx.mod;
+  a_boolean     result = get_fallback_presence_value(mod);
+
+  switch (idx.sort) {
+    case ifc_ss_syntax_access_specifier:
+      if (is_at_least(mod, 0, 33)) {
+        result = TRUE;
+      }  /* if */
+      break;
+    case ifc_ss_syntax_alias_declaration:
+      if (is_at_least(mod, 0, 33)) {
+        result = TRUE;
+      }  /* if */
+      break;
+    case ifc_ss_syntax_alignas:
+      if (is_at_least(mod, 0, 33)) {
+        result = TRUE;
+      }  /* if */
+      break;
+    case ifc_ss_syntax_asm_statement:
+      if (is_at_least(mod, 0, 33)) {
+        result = TRUE;
+      }  /* if */
+      break;
+    case ifc_ss_syntax_attribute_using_prefix:
+      if (is_at_least(mod, 0, 33)) {
+        result = TRUE;
+      }  /* if */
+      break;
+    case ifc_ss_syntax_attributed_declaration:
+      if (is_at_least(mod, 0, 33)) {
+        result = TRUE;
+      }  /* if */
+      break;
+    case ifc_ss_syntax_binary_fold_expression:
+      if (is_at_least(mod, 0, 33)) {
+        result = TRUE;
+      }  /* if */
+      break;
+    case ifc_ss_syntax_capture_default:
+      if (is_at_least(mod, 0, 33)) {
+        result = TRUE;
+      }  /* if */
+      break;
+    case ifc_ss_syntax_compound_requirement:
+      if (is_at_least(mod, 0, 33)) {
+        result = TRUE;
+      }  /* if */
+      break;
+    case ifc_ss_syntax_concept_definition:
+      if (is_at_least(mod, 0, 33)) {
+        result = TRUE;
+      }  /* if */
+      break;
+    case ifc_ss_syntax_condition_declaration:
+      if (is_at_least(mod, 0, 33)) {
+        result = TRUE;
+      }  /* if */
+      break;
+    case ifc_ss_syntax_decl_specifier_seq:
+      if (is_at_least(mod, 0, 33)) {
+        result = TRUE;
+      }  /* if */
+      break;
+    case ifc_ss_syntax_declarator:
+      if (is_at_least(mod, 0, 33)) {
+        result = TRUE;
+      }  /* if */
+      break;
+    case ifc_ss_syntax_empty_statement:
+      if (is_at_least(mod, 0, 33)) {
+        result = TRUE;
+      }  /* if */
+      break;
+    case ifc_ss_syntax_enum_specifier:
+      if (is_at_least(mod, 0, 33)) {
+        result = TRUE;
+      }  /* if */
+      break;
+    case ifc_ss_syntax_enumerator_definition:
+      if (is_at_least(mod, 0, 33)) {
+        result = TRUE;
+      }  /* if */
+      break;
+    case ifc_ss_syntax_exception_declaration:
+      if (is_at_least(mod, 0, 33)) {
+        result = TRUE;
+      }  /* if */
+      break;
+    case ifc_ss_syntax_explicit_specifier:
+      if (is_at_least(mod, 0, 33)) {
+        result = TRUE;
+      }  /* if */
+      break;
+    case ifc_ss_syntax_goto_statement:
+      if (is_at_least(mod, 0, 33)) {
+        result = TRUE;
+      }  /* if */
+      break;
+    case ifc_ss_syntax_member_declarator:
+      if (is_at_least(mod, 0, 33)) {
+        result = TRUE;
+      }  /* if */
+      break;
+    case ifc_ss_syntax_nested_requirement:
+      if (is_at_least(mod, 0, 33)) {
+        result = TRUE;
+      }  /* if */
+      break;
+    case ifc_ss_syntax_noexcept_specification:
+      if (is_at_least(mod, 0, 33)) {
+        result = TRUE;
+      }  /* if */
+      break;
+    case ifc_ss_syntax_parameter_declarator:
+      if (is_at_least(mod, 0, 33)) {
+        result = TRUE;
+      }  /* if */
+      break;
+    case ifc_ss_syntax_placeholder_type_specifier:
+      if (is_at_least(mod, 0, 33)) {
+        result = TRUE;
+      }  /* if */
+      break;
+    case ifc_ss_syntax_pointer_declarator:
+      if (is_at_least(mod, 0, 33)) {
+        result = TRUE;
+      }  /* if */
+      break;
+    case ifc_ss_syntax_requirement_body:
+      if (is_at_least(mod, 0, 33)) {
+        result = TRUE;
+      }  /* if */
+      break;
+    case ifc_ss_syntax_requires_clause:
+      if (is_at_least(mod, 0, 33)) {
+        result = TRUE;
+      }  /* if */
+      break;
+    case ifc_ss_syntax_simple_declaration:
+      if (is_at_least(mod, 0, 33)) {
+        result = TRUE;
+      }  /* if */
+      break;
+    case ifc_ss_syntax_simple_requirement:
+      if (is_at_least(mod, 0, 33)) {
+        result = TRUE;
+      }  /* if */
+      break;
+    case ifc_ss_syntax_simple_type_specifier:
+      if (is_at_least(mod, 0, 33)) {
+        result = TRUE;
+      }  /* if */
+      break;
+    case ifc_ss_syntax_static_assert_declaration:
+      if (is_at_least(mod, 0, 33)) {
+        result = TRUE;
+      }  /* if */
+      break;
+    case ifc_ss_syntax_structured_binding_declaration:
+      if (is_at_least(mod, 0, 33)) {
+        result = TRUE;
+      }  /* if */
+      break;
+    case ifc_ss_syntax_super:
+      if (is_at_least(mod, 0, 33)) {
+        result = TRUE;
+      }  /* if */
+      break;
+    case ifc_ss_syntax_template_declaration:
+      if (is_at_least(mod, 0, 33)) {
+        result = TRUE;
+      }  /* if */
+      break;
+    case ifc_ss_syntax_template_id:
+      if (is_at_least(mod, 0, 33)) {
+        result = TRUE;
+      }  /* if */
+      break;
+    case ifc_ss_syntax_template_template_parameter:
+      if (is_at_least(mod, 0, 33)) {
+        result = TRUE;
+      }  /* if */
+      break;
+    case ifc_ss_syntax_this_capture:
+      if (is_at_least(mod, 0, 33)) {
+        result = TRUE;
+      }  /* if */
+      break;
+    case ifc_ss_syntax_type_id:
+      if (is_at_least(mod, 0, 33)) {
+        result = TRUE;
+      }  /* if */
+      break;
+    case ifc_ss_syntax_type_requirement:
+      if (is_at_least(mod, 0, 33)) {
+        result = TRUE;
+      }  /* if */
+      break;
+    case ifc_ss_syntax_type_specifier_seq:
+      if (is_at_least(mod, 0, 33)) {
+        result = TRUE;
+      }  /* if */
+      break;
+    case ifc_ss_syntax_type_template_parameter:
+      if (is_at_least(mod, 0, 33)) {
+        result = TRUE;
+      }  /* if */
+      break;
+    case ifc_ss_syntax_type_trait_intrinsic:
+      if (is_at_least(mod, 0, 33)) {
+        result = TRUE;
+      }  /* if */
+      break;
+    case ifc_ss_syntax_unary_fold_expression:
+      if (is_at_least(mod, 0, 33)) {
+        result = TRUE;
+      }  /* if */
+      break;
+    case ifc_ss_syntax_virtual_specifier_seq:
+      if (is_at_least(mod, 0, 33)) {
+        result = TRUE;
+      }  /* if */
+      break;
+    default:
+      result = FALSE;
+      break;
+  }  /* switch */
+  return result;
+}  /* has_ifc_locus */
+
+
+an_ifc_source_location get_ifc_locus(an_ifc_syntax_index idx)
+/*
+Given the SyntaxIndex, return the universal representation of the associated
+node's "locus" field value.
+*/
+{
+  an_ifc_source_location result;
+
+  switch (idx.sort) {
+    case ifc_ss_syntax_access_specifier:
+      { an_ifc_syntax_access_specifier universal;
+
+        construct_node_prechecked(&universal, idx);
+        result = get_ifc_locus(universal);
+      }
+      break;
+    case ifc_ss_syntax_alias_declaration:
+      { an_ifc_syntax_alias_declaration universal;
+
+        construct_node_prechecked(&universal, idx);
+        result = get_ifc_locus(universal);
+      }
+      break;
+    case ifc_ss_syntax_alignas:
+      { an_ifc_syntax_alignas universal;
+
+        construct_node_prechecked(&universal, idx);
+        result = get_ifc_locus(universal);
+      }
+      break;
+    case ifc_ss_syntax_asm_statement:
+      { an_ifc_syntax_asm_statement universal;
+
+        construct_node_prechecked(&universal, idx);
+        result = get_ifc_locus(universal);
+      }
+      break;
+    case ifc_ss_syntax_attribute_using_prefix:
+      { an_ifc_syntax_attribute_using_prefix universal;
+
+        construct_node_prechecked(&universal, idx);
+        result = get_ifc_locus(universal);
+      }
+      break;
+    case ifc_ss_syntax_attributed_declaration:
+      { an_ifc_syntax_attributed_declaration universal;
+
+        construct_node_prechecked(&universal, idx);
+        result = get_ifc_locus(universal);
+      }
+      break;
+    case ifc_ss_syntax_binary_fold_expression:
+      { an_ifc_syntax_binary_fold_expression universal;
+
+        construct_node_prechecked(&universal, idx);
+        result = get_ifc_locus(universal);
+      }
+      break;
+    case ifc_ss_syntax_capture_default:
+      { an_ifc_syntax_capture_default universal;
+
+        construct_node_prechecked(&universal, idx);
+        result = get_ifc_locus(universal);
+      }
+      break;
+    case ifc_ss_syntax_compound_requirement:
+      { an_ifc_syntax_compound_requirement universal;
+
+        construct_node_prechecked(&universal, idx);
+        result = get_ifc_locus(universal);
+      }
+      break;
+    case ifc_ss_syntax_concept_definition:
+      { an_ifc_syntax_concept_definition universal;
+
+        construct_node_prechecked(&universal, idx);
+        result = get_ifc_locus(universal);
+      }
+      break;
+    case ifc_ss_syntax_condition_declaration:
+      { an_ifc_syntax_condition_declaration universal;
+
+        construct_node_prechecked(&universal, idx);
+        result = get_ifc_locus(universal);
+      }
+      break;
+    case ifc_ss_syntax_decl_specifier_seq:
+      { an_ifc_syntax_decl_specifier_seq universal;
+
+        construct_node_prechecked(&universal, idx);
+        result = get_ifc_locus(universal);
+      }
+      break;
+    case ifc_ss_syntax_declarator:
+      { an_ifc_syntax_declarator universal;
+
+        construct_node_prechecked(&universal, idx);
+        result = get_ifc_locus(universal);
+      }
+      break;
+    case ifc_ss_syntax_empty_statement:
+      { an_ifc_syntax_empty_statement universal;
+
+        construct_node_prechecked(&universal, idx);
+        result = get_ifc_locus(universal);
+      }
+      break;
+    case ifc_ss_syntax_enum_specifier:
+      { an_ifc_syntax_enum_specifier universal;
+
+        construct_node_prechecked(&universal, idx);
+        result = get_ifc_locus(universal);
+      }
+      break;
+    case ifc_ss_syntax_enumerator_definition:
+      { an_ifc_syntax_enumerator_definition universal;
+
+        construct_node_prechecked(&universal, idx);
+        result = get_ifc_locus(universal);
+      }
+      break;
+    case ifc_ss_syntax_exception_declaration:
+      { an_ifc_syntax_exception_declaration universal;
+
+        construct_node_prechecked(&universal, idx);
+        result = get_ifc_locus(universal);
+      }
+      break;
+    case ifc_ss_syntax_explicit_specifier:
+      { an_ifc_syntax_explicit_specifier universal;
+
+        construct_node_prechecked(&universal, idx);
+        result = get_ifc_locus(universal);
+      }
+      break;
+    case ifc_ss_syntax_goto_statement:
+      { an_ifc_syntax_goto_statement universal;
+
+        construct_node_prechecked(&universal, idx);
+        result = get_ifc_locus(universal);
+      }
+      break;
+    case ifc_ss_syntax_member_declarator:
+      { an_ifc_syntax_member_declarator universal;
+
+        construct_node_prechecked(&universal, idx);
+        result = get_ifc_locus(universal);
+      }
+      break;
+    case ifc_ss_syntax_nested_requirement:
+      { an_ifc_syntax_nested_requirement universal;
+
+        construct_node_prechecked(&universal, idx);
+        result = get_ifc_locus(universal);
+      }
+      break;
+    case ifc_ss_syntax_noexcept_specification:
+      { an_ifc_syntax_noexcept_specification universal;
+
+        construct_node_prechecked(&universal, idx);
+        result = get_ifc_locus(universal);
+      }
+      break;
+    case ifc_ss_syntax_parameter_declarator:
+      { an_ifc_syntax_parameter_declarator universal;
+
+        construct_node_prechecked(&universal, idx);
+        result = get_ifc_locus(universal);
+      }
+      break;
+    case ifc_ss_syntax_placeholder_type_specifier:
+      { an_ifc_syntax_placeholder_type_specifier universal;
+
+        construct_node_prechecked(&universal, idx);
+        result = get_ifc_locus(universal);
+      }
+      break;
+    case ifc_ss_syntax_pointer_declarator:
+      { an_ifc_syntax_pointer_declarator universal;
+
+        construct_node_prechecked(&universal, idx);
+        result = get_ifc_locus(universal);
+      }
+      break;
+    case ifc_ss_syntax_requirement_body:
+      { an_ifc_syntax_requirement_body universal;
+
+        construct_node_prechecked(&universal, idx);
+        result = get_ifc_locus(universal);
+      }
+      break;
+    case ifc_ss_syntax_requires_clause:
+      { an_ifc_syntax_requires_clause universal;
+
+        construct_node_prechecked(&universal, idx);
+        result = get_ifc_locus(universal);
+      }
+      break;
+    case ifc_ss_syntax_simple_declaration:
+      { an_ifc_syntax_simple_declaration universal;
+
+        construct_node_prechecked(&universal, idx);
+        result = get_ifc_locus(universal);
+      }
+      break;
+    case ifc_ss_syntax_simple_requirement:
+      { an_ifc_syntax_simple_requirement universal;
+
+        construct_node_prechecked(&universal, idx);
+        result = get_ifc_locus(universal);
+      }
+      break;
+    case ifc_ss_syntax_simple_type_specifier:
+      { an_ifc_syntax_simple_type_specifier universal;
+
+        construct_node_prechecked(&universal, idx);
+        result = get_ifc_locus(universal);
+      }
+      break;
+    case ifc_ss_syntax_static_assert_declaration:
+      { an_ifc_syntax_static_assert_declaration universal;
+
+        construct_node_prechecked(&universal, idx);
+        result = get_ifc_locus(universal);
+      }
+      break;
+    case ifc_ss_syntax_structured_binding_declaration:
+      { an_ifc_syntax_structured_binding_declaration universal;
+
+        construct_node_prechecked(&universal, idx);
+        result = get_ifc_locus(universal);
+      }
+      break;
+    case ifc_ss_syntax_super:
+      { an_ifc_syntax_super universal;
+
+        construct_node_prechecked(&universal, idx);
+        result = get_ifc_locus(universal);
+      }
+      break;
+    case ifc_ss_syntax_template_declaration:
+      { an_ifc_syntax_template_declaration universal;
+
+        construct_node_prechecked(&universal, idx);
+        result = get_ifc_locus(universal);
+      }
+      break;
+    case ifc_ss_syntax_template_id:
+      { an_ifc_syntax_template_id universal;
+
+        construct_node_prechecked(&universal, idx);
+        result = get_ifc_locus(universal);
+      }
+      break;
+    case ifc_ss_syntax_template_template_parameter:
+      { an_ifc_syntax_template_template_parameter universal;
+
+        construct_node_prechecked(&universal, idx);
+        result = get_ifc_locus(universal);
+      }
+      break;
+    case ifc_ss_syntax_this_capture:
+      { an_ifc_syntax_this_capture universal;
+
+        construct_node_prechecked(&universal, idx);
+        result = get_ifc_locus(universal);
+      }
+      break;
+    case ifc_ss_syntax_type_id:
+      { an_ifc_syntax_type_id universal;
+
+        construct_node_prechecked(&universal, idx);
+        result = get_ifc_locus(universal);
+      }
+      break;
+    case ifc_ss_syntax_type_requirement:
+      { an_ifc_syntax_type_requirement universal;
+
+        construct_node_prechecked(&universal, idx);
+        result = get_ifc_locus(universal);
+      }
+      break;
+    case ifc_ss_syntax_type_specifier_seq:
+      { an_ifc_syntax_type_specifier_seq universal;
+
+        construct_node_prechecked(&universal, idx);
+        result = get_ifc_locus(universal);
+      }
+      break;
+    case ifc_ss_syntax_type_template_parameter:
+      { an_ifc_syntax_type_template_parameter universal;
+
+        construct_node_prechecked(&universal, idx);
+        result = get_ifc_locus(universal);
+      }
+      break;
+    case ifc_ss_syntax_type_trait_intrinsic:
+      { an_ifc_syntax_type_trait_intrinsic universal;
+
+        construct_node_prechecked(&universal, idx);
+        result = get_ifc_locus(universal);
+      }
+      break;
+    case ifc_ss_syntax_unary_fold_expression:
+      { an_ifc_syntax_unary_fold_expression universal;
+
+        construct_node_prechecked(&universal, idx);
+        result = get_ifc_locus(universal);
+      }
+      break;
+    case ifc_ss_syntax_virtual_specifier_seq:
+      { an_ifc_syntax_virtual_specifier_seq universal;
+
+        construct_node_prechecked(&universal, idx);
+        result = get_ifc_locus(universal);
+      }
+      break;
+    default:
+      unexpected_condition_str("Invalid query, no locus value.");
+      break;
+  }  /* switch */
+  return result;
+}  /* get_ifc_locus */
+
+
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE
 
@@ -38454,6 +40651,6 @@ END_EDG_NAMESPACE
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2022 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2023 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
