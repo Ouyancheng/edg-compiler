@@ -63,6 +63,10 @@ typedef struct a_tmpl_decl_state {
   a_decl_parse_state
 		*decl_parse;
 			/* General declaration information. */
+  a_symbol_ptr
+		sym;
+			/* A symbol representing the template being
+			   declared. */
   a_boolean	is_template_friend;
 			/* TRUE if this is a friend declaration. */
   a_boolean	is_member_decl;

@@ -505,6 +505,7 @@ Initialize a template declaration state block.
 */
 {
   tdsp->decl_parse = dps;
+  tdsp->sym = NULL;
   dps->function_definition_allowed = TRUE;
   dps->trailing_return_type_allowed = trailing_return_types_enabled;
   tdsp->is_template_friend = FALSE;
@@ -31572,6 +31573,7 @@ parameter lists that were scanned.
     if (sym != NULL) db_symbol(sym, "template symbol: ", 2);
   }  /* if */
 #endif /* DEBUG */
+  decl_state->sym = sym;
 #if BACK_END_IS_CP_GEN_BE
   if (tssp != NULL && tssp->il_template_entry != NULL) {
     /* Record the effect of any embedded #pragma pack directives: they will
@@ -34367,7 +34369,7 @@ Return a symbol for the declared entity if applicable.
   decl_state.enclosing_scope = scope_stack_top().il_scope;
   template_or_specialization_declaration_full(&decl_state, is_generic,
                                               orig_dps);
-  return dps.sym;
+  return decl_state.sym;
 }  /* template_or_specialization_declaration */
 
 
