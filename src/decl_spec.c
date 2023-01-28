@@ -6862,6 +6862,7 @@ template.  dsi_flags is the set of input flags passed to decl_specifiers.
   *type_ptr = enum_type;
   if (defines_something != NULL) *defines_something = is_definition;
 return_point:;
+  dps->sym = tag_sym;
   release_local_constant(&max_value);
   release_local_constant(&min_value);
   db_exit();
