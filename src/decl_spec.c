@@ -4832,6 +4832,7 @@ done:
     db_symbol(tag_sym, "tag_sym: ", 4);
   }  /* if */
 #endif /* DEBUG */
+  dps->sym = tag_sym;
   db_exit();
   return !err;
 }  /* class_specifier */
@@ -8856,7 +8857,7 @@ otherwise.
   if ((dps->dso_flags & DSO_THREAD_LOCAL) == 0) {
     /* Nothing to do.  This can occur if previous diagnostics "canceled" the
        thread_local specifier. */
-  } else if (sym == NULL) {
+  } else if (sym == NULL || is_class_symbol(sym) || sym->kind == sk_type) {
     if (dps->type != NULL &&
         is_immediate_class_type(dps->type) &&
         dps->type->source_corresp.name == NULL) {
@@ -9850,7 +9851,7 @@ the constexpr specifier.  Issue an error if the specifier is not applicable.
 {
   a_symbol_ptr  sym = dps->sym;
 
-  if (sym == NULL) {
+  if (sym == NULL || is_class_symbol(sym) || sym->kind == sk_type) {
     /* No declaration is associated with "constexpr": Issue an error. */
     pos_error(ec_invalid_constexpr, &dps->constexpr_pos);
   } else if (sym->is_error ||

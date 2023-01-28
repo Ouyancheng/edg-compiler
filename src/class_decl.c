@@ -29704,15 +29704,11 @@ block of information that is provided if this is a member template declaration.
     /* Should be a class, struct, union, or enum definition. */
     a_type_ptr    tp = skip_typerefs(dps->type);
     end_potential_abbr_func_templ_caching(dps);
+#if CHECKING
     if (!is_error_type(dps->type)) {
       a_symbol_ptr  sym = symbol_for(tp);
-      if (is_member_template) {
-        if (curr_token == tok_semicolon && !is_typedef) {
-          /* Issue an error later, based on the symbol. */
-          dps->sym = sym;
-        }  /* if */
-#if CHECKING
-      } else if (!sym->is_error) {
+
+      if (!is_member_template && !sym->is_error) {
         /* A nested class, struct, union, or enum definition.  Be sure the
            parent class was marked correctly.  In GNU or Microsoft modes, this
            could also be a delayed nested class definition appearing in a class
@@ -29722,9 +29718,9 @@ block of information that is provided if this is a member template declaration.
                               microsoft_mode || gpp_mode),
                              "class_member_declaration:",
                              "bad parent type on nested type");
-#endif /* CHECKING */
       }  /* if */
-    }  /* if */
+    }
+#endif /* CHECKING */
   } /* if */
   if (dso_flags & DSO_DANGLING_TYPE_SPECIFIER) {
     /* A malformed declaration was detected by decl_specifiers.  Issue
