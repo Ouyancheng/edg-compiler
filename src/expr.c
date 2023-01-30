@@ -32316,7 +32316,7 @@ that case.
     is_gnu_two_operand_form = (gnu_mode && curr_token == tok_colon);
   }  /* if */
 
-  if (is_gnu_two_operand_form) {
+  if (rcblock == NULL && is_gnu_two_operand_form) {
     /* In the binary form, the second operand is omitted and instead the
        value of the first operand is used.  Make a copy before the
        first operand is converted to bool.  Variables might change
