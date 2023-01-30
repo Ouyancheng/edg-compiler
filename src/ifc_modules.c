@@ -8889,108 +8889,6 @@ loaded and may contain all or part of its associated inner declarations.
 }  /* is_home_scope_readable */
 
 
-static an_ifc_decl_index get_declaring_class_scope_decl(
-                                                    an_ifc_decl_index decl_ref)
-/*
-Given a declaration that's a class member, return the scope the declaring class
-is a member of.  As an example, if the given declaration is a method of "class
-A" in "namespace B", this function returns the IFC declaration index of
-"namespace B".
-*/
-{
-  an_ifc_decl_index declaring_class = get_ifc_home_scope(decl_ref);
-
-  return get_ifc_home_scope(declaring_class);
-}  /* get_declaring_class_scope_decl */
-
-
-a_boolean an_ifc_module::is_name_qualifiable(an_ifc_decl_index decl_index)
-/*
-Given a declaration's index, return true if the declaration name
-can currently be qualified.
-*/
-{
-  a_boolean result = TRUE;
-
-  switch (decl_index.sort) {
-    case ifc_ds_decl_parameter:
-      /* This declaration can never have its name qualified. */
-      result = FALSE;
-      break;
-    case ifc_ds_decl_enumerator:
-    case ifc_ds_decl_enumeration:
-      {
-        /* FIXME: This is a hack to work around crashing when an enumerator's
-           home scope isn't loaded. */
-        a_module_entity_ptr mep = get_ifc_module_entity_ptr(decl_index);
-        result = mep->scope != NULL;
-      }
-      break;
-    case ifc_ds_decl_scope:
-      {
-        /* Nested scopes should never be qualified. */
-        result = !is_class_scope(get_ifc_home_scope(decl_index));
-      }
-      break;
-    case ifc_ds_decl_method:
-    case ifc_ds_decl_constructor:
-    case ifc_ds_decl_destructor:
-    case ifc_ds_decl_field:
-    case ifc_ds_decl_bitfield:
-    case ifc_ds_decl_property:
-      { /* These entities can only exist in a class. Return FALSE if that class
-           is a local class, otherwise return TRUE. */
-        an_ifc_decl_index declaring_class_scope =
-                                    get_declaring_class_scope_decl(decl_index);
-
-        result = declaring_class_scope.sort == ifc_ds_decl_scope;
-      }
-      break;
-    case ifc_ds_decl_reference:
-      { Opt<an_ifc_decl_reference> opt_decl_ref;
-
-        construct_node(&opt_decl_ref, decl_index);
-        if (!opt_decl_ref.has_value()) {
-          goto invalid;
-        }  /* if */
-
-        /* References are a special case where we need to recurse to a foreign
-           module. */
-        an_ifc_decl_reference decl_ref = *opt_decl_ref;
-        an_ifc_decl_index     remote_index = get_ifc_index(decl_ref);
-        an_ifc_module         *remote_mod = remote_index.mod;
-        result = remote_mod->is_name_qualifiable(remote_index);
-      }
-      break;
-    case ifc_ds_decl_variable:
-      {
-        an_ifc_decl_index home_scope = get_ifc_home_scope(decl_index);
-        if (home_scope.sort == ifc_ds_decl_vendor_extension) {
-          /* Local variables appear to be associated with a "vendor extension"
-             home scope.  Such variables cannot be qualified. */
-          result = FALSE;
-        } else {
-          result = TRUE;
-        }  /* if */
-      }
-      break;
-    default:
-      /* Assume the name can be qualified. */
-      break;
-  }  /* switch */
-  /* If name qualification is globally suppressed, this declaration's name
-     cannot be qualified. */
-  if (suppress_automatic_name_qualification) {
-    result = FALSE;
-  }  /* if */
-  goto done;
-invalid:
-  result = FALSE;
-done:;
-  return result;
-}  /* is_name_qualifiable */
-
-
 static a_calling_convention conv_calling_convention(
                                      an_ifc_calling_convention_sort convention)
 /*
@@ -15117,22 +15015,8 @@ this is needed.
         }  /* if */
         if (is_closure_type) {
           cache_token(cache, tok_auto);
-        } else if (is_name_qualifiable(decl)) {
-          cache_qualified_name_from_decl(cache, decl);
-        } else if (decl.sort == ifc_ds_decl_parameter) {
-          /* Represent the reference to a template parameter with a special
-             token because the name recorded for a parameter may not be the
-             one that the parameter was declared with in the current
-             context. */
-          cache_token_with_index(cache, tok_ifc_decl_ref, decl);
         } else {
-          /* We are contextually forbidden from qualifying this name or the
-             declaration type otherwise is considered to never appear
-             with a qualified name.
-
-             This can happen when building an unqualified-id within a dependent
-             context. */
-          cache_name_from_decl(cache, decl);
+          cache_token_with_index(cache, tok_ifc_decl_ref, decl);
         }  /* if */
       }
       break;
@@ -17721,70 +17605,6 @@ done:;
 }  /* cache_decl */
 
 
-inline void an_ifc_module::update_name_qualification_suppression(
-                                                   const an_ifc_expr_path &iep)
-/*
-An internal method for setting any necessary automatic nested name specifier
-qualification suppression flags based on the given path.
-
-As part of the contract for this function, the caller is responsible for
-restoring previous state of the potentially affected suppression flags.
-Currently this includes the variable(s):
-suppress_automatic_namespace_qualification.
-*/
-{
-  an_ifc_expr_index scope = get_ifc_scope(iep);
-
-  if (scope.sort == ifc_es_expr_named_decl) {
-    Opt<an_ifc_expr_named_decl> opt_iend;
-
-    construct_node(&opt_iend, scope);
-    if (!opt_iend.has_value()) {
-      goto invalid;
-    }  /* if */
-
-    an_ifc_expr_named_decl iend = *opt_iend;
-    an_ifc_decl_index      resolution = get_ifc_resolution(iend);
-    if (resolution.sort == ifc_ds_decl_scope) {
-      Opt<an_ifc_decl_scope> opt_ids;
-
-      construct_node(&opt_ids, resolution);
-      if (!opt_ids.has_value()) {
-        goto invalid;
-      }  /* if */
-
-      an_ifc_decl_scope            ids = *opt_ids;
-      an_ifc_type_index            type = get_ifc_type(ids);
-      Opt<an_ifc_type_fundamental> opt_itf;
-      construct_node(&opt_itf, type);
-      if (!opt_itf.has_value()) {
-        goto invalid;
-      }  /* if */
-
-      an_ifc_type_fundamental itf = *opt_itf;
-      an_ifc_type_basis_sort  basis = get_ifc_basis(itf);
-      switch (basis) {
-        case ifc_tbs_namespace:
-          /* This path already contains its namespace qualification, suppress
-             automatic namespace qualification. */
-          suppress_automatic_namespace_qualification = TRUE;
-          break;
-        case ifc_tbs_class:
-        case ifc_tbs_struct:
-        case ifc_tbs_union:
-          /* This path already contains its class qualification.  Suppress any
-             further automatic name qualification. */
-          suppress_automatic_name_qualification = TRUE;
-          break;
-        default:
-          break;
-      }  /* switch */
-    }  /* if */
-  }  /* if */
-invalid:;
-}  /* update_name_qualification_suppression */
-
-
 static void cache_args_with_parens(a_module_token_cache_ptr cache,
                                    an_ifc_expr_index        args,
                                    const an_ifc_cache_info  &cinfo)
@@ -17965,11 +17785,7 @@ tuple elements by '::' instead of ','.
       }
       break;
     case ifc_es_expr_path:
-      { Value_saver<a_boolean> suppression(
-                                  &suppress_automatic_namespace_qualification);
-        Value_saver<a_boolean> automatic_name_qualification(
-                                       &suppress_automatic_name_qualification);
-        Opt<an_ifc_expr_path>  opt_iep;
+      { Opt<an_ifc_expr_path>  opt_iep;
 
         construct_node(&opt_iep, expr);
         if (!opt_iep.has_value()) {
@@ -18552,15 +18368,6 @@ common_cast:
 
         an_ifc_expr_tuple      iet = *opt_iet;
         an_expr_heap_traverser traverser(iet);
-        Value_saver<a_boolean> suppression(
-                                       &suppress_automatic_name_qualification);
-
-        if (cinfo.qualified_name) {
-          /* This tuple contains a series of name qualifiers - we don't want to
-             perform automatic name qualification, as this would result in
-             duplicate qualifiers. */
-          suppress_automatic_name_qualification = TRUE;
-        }  /* if */
         for (an_Indexed<an_ifc_heap_expr> indexed_ihe : traverser) {
           if (!indexed_ihe.has_value()) {
             goto invalid;
@@ -18744,12 +18551,6 @@ Otherwise, parameter references should only include the parameter name.
         an_ifc_syntax_type_specifier_seq istss = *opt_istss;
         an_ifc_type_index                type = get_ifc_type(istss);
         an_ifc_syntax_index              type_name = get_ifc_type_name(istss);
-        Value_saver<a_boolean>           suppression(
-                                        &suppress_automatic_name_qualification,
-                                        /*new_value=*/TRUE);
-
-        /* We have explicit qualifiers - don't do automatic name qualification
-           (flag set above). */
         cache_qualifiers(cache, get_ifc_qualifiers(istss));
         if (is_null_index(type)) {
           check_assertion(!is_null_index(type_name));
@@ -19996,87 +19797,6 @@ invalid:
   cache->invalidate();
 done:;
 }  /* cache_name */
-
-
-inline a_boolean an_ifc_module::should_cache_nested_name_specifier_for_scope(
-                                                             a_scope_ptr scope)
-/*
-This function tests to see if the given scope and its parents should be cached
-as part of the currently nested name specifier currently being cached.  Return
-TRUE if the scope and its parents should be cached, FALSE otherwise.
-*/
-{
-  a_boolean result = TRUE;
-
-  if (scope == NULL) {
-    result = FALSE;
-  } else if (suppress_automatic_namespace_qualification &&
-             (scope->kind == sck_namespace || scope->kind == sck_file)) {
-    result = FALSE;
-  }  /* if */
-  return result;
-}  /* should_cache_nested_name_specifier_for_scope */
-
-
-void an_ifc_module::cache_scope_as_nested_name_specifier(
-                                                a_module_token_cache_ptr cache,
-                                                a_scope_ptr              scope)
-/*
-Add the tokens to cache representing a nested-name-specifier for scope.
-*/
-{
-  if (should_cache_nested_name_specifier_for_scope(scope)) {
-    if (scope_is(scope, sck_file) || scope_is(scope->parent, sck_file)) {
-      cache_token(cache, tok_colon_colon);
-    } else {
-      /* Attempt to generate any parent scope's qualifiers. */
-      cache_scope_as_nested_name_specifier(cache, scope->parent);
-    }  /* if */
-    /* Generate the current scope's qualifier. */
-    if (scope_is(scope, sck_class_struct_union) ||
-        scope_is(scope, sck_enum)) {
-      a_type_ptr type_ptr = scope->variant.assoc_type;
-      check_assertion(type_ptr != NULL);
-      cache_identifier(cache, type_ptr->source_corresp.name);
-      cache_token(cache, tok_colon_colon);
-    } else if (scope_is(scope, sck_namespace)) {
-      a_namespace_ptr namespace_ptr = scope->variant.assoc_namespace;
-      cache_identifier(cache, namespace_ptr->source_corresp.name);
-      cache_token(cache, tok_colon_colon);
-    }  /* if */
-  }  /* if */
-}  /* cache_scope_as_nested_name_specifier */
-
-
-void an_ifc_module::cache_nested_name_specifier_from_decl(
-                                                a_module_token_cache_ptr cache,
-                                                an_ifc_decl_index        decl)
-/*
-Add the tokens corresponding to the given declaration's (decl)
-nested-name-specifier to cache.
-*/
-{
-  a_module_entity_ptr mep = get_ifc_module_entity_ptr(decl);
-
-  if (mep->scope == NULL && has_ifc_home_scope(decl)) {
-    /* Load the module entity pointer scope if not already processed. */
-    mep->scope = get_home_scope(decl);
-  }  /* if */
-  this->cache_scope_as_nested_name_specifier(cache, mep->scope);
-}  /* cache_nested_name_specifier_from_decl */
-
-
-void an_ifc_module::cache_qualified_name_from_decl(
-                                                a_module_token_cache_ptr cache,
-                                                an_ifc_decl_index        decl)
-/*
-Add the tokens corresponding to the given declaration's (decl) qualified-id to
-cache.
-*/
-{
-  cache_nested_name_specifier_from_decl(cache, decl);
-  cache_identifier(cache, name_from_decl(decl));
-}  /* cache_qualified_name_from_decl */
 
 
 void an_ifc_module::cache_name_from_decl(a_module_token_cache_ptr cache,

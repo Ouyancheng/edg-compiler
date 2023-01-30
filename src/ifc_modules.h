@@ -206,16 +206,6 @@ struct an_ifc_module : public a_module_interface {
 			   import decl.  Since modules are lazily added to this
 			   list, it should not be assumed to be a complete
 			   set. */
-  a_boolean
-		suppress_automatic_name_qualification = FALSE;
-			/* Flag to indicate ExprSort_NameDecl should not be
-			   interpreted as concrete declarations that should be
-			   qualified. */
-  a_boolean
-		suppress_automatic_namespace_qualification = FALSE;
-			/* Flag to indicate the namespace portion of the
-			   current nested name specifier has already been
-			   cached and must not be recached. */
   a_boolean	suppress_friend_token = FALSE;
 			/* Flag to indicate that a "friend" keyword should be
 			   suppressed (typically because the friendship is
@@ -267,7 +257,6 @@ public:
   uint32_t get_num_entries(an_ifc_partition_kind partition) const;
   /* IFC Scope readers. */
   a_boolean is_home_scope_readable(an_ifc_decl_index decl_index);
-  a_boolean is_name_qualifiable(an_ifc_decl_index decl_index);
   a_type_ptr type_for_template_id(const an_ifc_expr_template_id &templ_id);
   a_template_arg_ptr template_arg_for_expr(
                                         const a_template_parameter *param,
@@ -363,8 +352,6 @@ public:
   void cache_decl(a_module_token_cache_ptr cache,
                   an_ifc_decl_index        decl,
                   const an_ifc_cache_info  &cinfo);
-  inline void update_name_qualification_suppression(
-                                                const an_ifc_expr_path &iespp);
   void cache_expr(a_module_token_cache_ptr cache,
                   an_ifc_expr_index        expr,
                   const an_ifc_cache_info  &cinfo);
@@ -458,14 +445,6 @@ public:
                            an_ifc_expr_index                initializer);
   void cache_name(a_module_token_cache_ptr     cache,
                   an_ifc_name_index            name);
-  inline a_boolean should_cache_nested_name_specifier_for_scope(
-                                                            a_scope_ptr scope);
-  void cache_scope_as_nested_name_specifier(a_module_token_cache_ptr cache,
-                                            a_scope_ptr              scope);
-  void cache_nested_name_specifier_from_decl(a_module_token_cache_ptr cache,
-                                             an_ifc_decl_index        decl);
-  void cache_qualified_name_from_decl(a_module_token_cache_ptr cache,
-                                      an_ifc_decl_index        decl);
   void cache_name_from_decl(a_module_token_cache_ptr cache,
                             an_ifc_decl_index        decl);
   void cache_macro(a_module_token_cache_ptr cache,
