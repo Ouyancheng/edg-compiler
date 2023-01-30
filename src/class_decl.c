@@ -25599,7 +25599,7 @@ Otherwise, *result will be NULL.
 }  /* record_inheriting_ctor_using_decl */
 
 
-static void member_using_or_alias_declaration(
+static a_symbol_ptr member_using_or_alias_declaration(
                                a_class_def_state_ptr  cdsp,
                                ARG_UNUSED a_boolean   marked_as_gnu_extension)
 /*
@@ -25612,9 +25612,11 @@ class being defined.  marked_as_gnu_extension is TRUE if the caller already
 consumed a GNU __extension__ keyword.  (The alias declaration case is almost
 entirely handled by a call to alias_declaration.  The latter call is made in
 this routine because the tok_using token must be consumed to distinguish an
-alias declaration from a using-declaration.)
+alias declaration from a using-declaration.)  Return a symbol for the aliased
+entity if applicable.
 */
 {
+  a_symbol_ptr         result = NULL;
   a_type_ptr           class_type = cdsp->class_type;
   an_access_specifier  access = cdsp->access;
   a_symbol_ptr         sym, declared_sym = NULL;
@@ -25677,6 +25679,7 @@ alias declaration from a using-declaration.)
       }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
       alias_declaration(&dps, &end_of_using_pos);
+      result = dps.sym;
       goto done;
     }  /* if */
     /* A using-declaration is outside the "Embedded C++" subset. */
@@ -25998,6 +26001,7 @@ next_using_declarator_if_any:
     (void)get_token();
     /* Attributes are not allowed here, but clang accepts them. */
     scan_and_attach_using_declaration_attributes(declared_sym);
+    result = declared_sym;
     if (!check_for_packs) break;
     pedep = end_potential_pack_expansion_context(pesep,
                                                  /*is_declarator=*/FALSE);
@@ -26031,6 +26035,7 @@ done:
   remove_stop_token(tok_semicolon);
   (void)required_token(tok_semicolon, ec_exp_semicolon);
   db_exit();
+  return result;
 }  /* member_using_or_alias_declaration */
 
 
@@ -32858,8 +32863,9 @@ classes.
               using_enum_declaration(class_type, class_state.access);
               cannot_bind_to_curr_construct();
             } else {
-              member_using_or_alias_declaration(&class_state,
-                                                marked_as_gnu_extension);
+              member_sym = member_using_or_alias_declaration(
+                                                      &class_state,
+                                                      marked_as_gnu_extension);
             }  /* if */
             goto next_declaration;
           }  /* if */
@@ -32894,8 +32900,9 @@ classes.
               /* This looks syntactically like an access adjustment
                  declaration.  Be sure the semantics are correct.  Its
                  semantics are the same as a using-declaration. */
-              member_using_or_alias_declaration(&class_state,
-                                                marked_as_gnu_extension);
+              member_sym = member_using_or_alias_declaration(
+                                                      &class_state,
+                                                      marked_as_gnu_extension);
               goto next_declaration;
             }  /* if */
           }
