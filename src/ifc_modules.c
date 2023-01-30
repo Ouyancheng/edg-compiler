@@ -331,7 +331,7 @@ static inline void cache_token(a_module_token_cache_ptr cache,
 This function proxies calls to the common cache_token function when using a
 module token cache.
 
-If position is passed it will be used as the source position; otherwise the
+If a position is passed it will be used as the source position; otherwise the
 position will be inferred (see infer_next_source_position for details about the
 rules of position inference).
 */
@@ -348,7 +348,7 @@ static void cache_resolved_type_token(a_module_token_cache_ptr cache,
 This function proxies calls to the common cache_resolved_type_token function
 when using a module token cache.
 
-If position is passed it will be used as the source position; otherwise the
+If a position is passed it will be used as the source position; otherwise the
 position will be inferred (see infer_next_source_position for details about the
 rules of position inference).
 */
@@ -365,7 +365,7 @@ static void cache_tokens_from_string(a_const_char             *str,
 This function proxies calls to the common cache_tokens_from_string function
 when using a module token cache.
 
-If position is passed it will be used as the source position; otherwise the
+If a position is passed it will be used as the source position; otherwise the
 position will be inferred (see infer_next_source_position for details about the
 rules of position inference).
 */
@@ -11038,7 +11038,7 @@ static void cache_identifier(a_module_token_cache_ptr cache,
 /*
 Add a tok_identifier for name to cache.
 
-If position is passed it will be used as the source position; otherwise the
+If a position is passed it will be used as the source position; otherwise the
 position will be inferred (see infer_next_source_position for details about the
 rules of position inference).
 */
@@ -11099,7 +11099,7 @@ the given module) to cache.  Do not use this for boolean literals, string
 literals, or user-defined literals (see cache_bool_literal,
 cache_string_literal, and cache_ud_literal for those).
 
-If position is passed it will be used as the source position; otherwise the
+If a position is passed it will be used as the source position; otherwise the
 position will be inferred (see infer_next_source_position for details about the
 rules of position inference).
 */
@@ -11146,7 +11146,7 @@ static void cache_bool_literal(a_module_token_cache_ptr cache,
 /*
 Cache a "true" or "false" token, depending on value.
 
-If position is passed it will be used as the source position; otherwise the
+If a position is passed it will be used as the source position; otherwise the
 position will be inferred (see infer_next_source_position for details about the
 rules of position inference).
 */
@@ -11215,7 +11215,7 @@ static void cache_ud_literal(a_module_token_cache_ptr cache,
 Add a tok_ud_literal for str with the given length and suffix to cache.  kind
 is the type of string literal (e.g., UTF-8, wchar, etc).
 
-If position is passed it will be used as the source position; otherwise the
+If a position is passed it will be used as the source position; otherwise the
 position will be inferred (see infer_next_source_position for details about the
 rules of position inference).
 */
@@ -11292,7 +11292,7 @@ static void cache_pragma(a_module_token_cache_ptr cache,
 /*
 Add the pragma given by kind to cache.
 
-If position is passed it will be used as the source position; otherwise the
+If a position is passed it will be used as the source position; otherwise the
 position will be inferred (see infer_next_source_position for details about the
 rules of position inference).
 */
@@ -11330,7 +11330,6 @@ static void cache_pp_token(a_module_token_cache_ptr cache,
                            a_targ_size_t            len)
 /*
 Add the preprocessor token contained in text with the given length to cache.
-pos is the position of the preprocessor token.
 */
 {
   check_assertion(text != NULL);
@@ -12804,8 +12803,7 @@ static void cache_noexcept_specifier(
                                   a_module_token_cache_ptr            cache,
                                   const an_ifc_noexcept_specification &eh_spec)
 /*
-Cache the noexcept-specifier for the given noexcept specification.  locus is
-the location of the noexcept-specifier.
+Cache the noexcept-specifier for the given noexcept specification.
 */
 {
   an_ifc_noexcept_sort sort = get_ifc_sort(eh_spec);
@@ -13929,8 +13927,7 @@ to this call -- so that we can determine if caching of a given declaration in
 static void cache_basic_specifiers(a_module_token_cache_ptr         cache,
                                    an_ifc_basic_specifiers_bitfield specifiers)
 /*
-Add tokens corresponding to specifiers to cache.  pos is the position of the
-specifier(s).
+Add tokens corresponding to specifiers to cache.
 */
 {
   if (test_bitmask<ifc_bsb_c>(specifiers)) {
@@ -16381,9 +16378,8 @@ void an_ifc_module::cache_template_head(a_module_token_cache_ptr cache,
                                         const an_ifc_cache_info  &cinfo)
 /*
 Add the tokens corresponding to the template head described by the given
-chart_idx to the cache.  pos is the position of the associated template or
-specialization.  cinfo contains information about the current cache context to
-help inform decisions about what to cache.
+chart_idx to the cache.  cinfo contains information about the current cache
+context to help inform decisions about what to cache.
 */
 {
   cache_token(cache, tok_template);
@@ -19202,8 +19198,7 @@ void an_ifc_module::cache_nested_name_specifier_from_decl(
                                                 an_ifc_decl_index        decl)
 /*
 Add the tokens corresponding to the given declaration's (decl)
-nested-name-specifier to cache.  pos is the position of the qualified-id this
-nested-name-specifier is part of.
+nested-name-specifier to cache.
 */
 {
   a_module_entity_ptr mep = get_ifc_module_entity_ptr(decl);
