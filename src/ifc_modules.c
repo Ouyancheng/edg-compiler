@@ -16904,13 +16904,15 @@ END_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
 
         an_ifc_decl_function idf = *opt_idf;
         this->cache_attrs(cache, templated_decl_idx);
+        cache_token(cache, tok_auto);
         cache_func_vendor_decl_specifier_seq(cache, templated_decl_idx);
         cache_func_decl_specifier_seq(cache, idf);
-        cache_func_return_type(cache, idf);
         cache_func_calling_convention(cache, idf);
         cache_specialized_func_declarator_id(cache, decl, idf, cinfo);
         cache_func_parameters_and_qualifiers(cache, templated_decl_idx, idf,
                                              cinfo);
+        cache_token(cache, tok_arrow);
+        cache_func_return_type(cache, idf);
         cache_func_body_or_end_decl(cache, templated_decl_idx, idf, cinfo);
       }
       break;
@@ -17529,10 +17531,12 @@ about what to cache.
           cache_token(cache, tok_static);
         }  /* if */
         cache_func_decl_specifier_seq(cache, idf);
-        cache_func_return_type(cache, idf);
+        cache_token(cache, tok_auto);
         cache_func_calling_convention(cache, idf);
         cache_func_declarator_id(cache, idf, cinfo);
         cache_func_parameters_and_qualifiers(cache, decl, idf, cinfo);
+        cache_token(cache, tok_arrow);
+        cache_func_return_type(cache, idf);
         cache_func_body_or_end_decl(cache, decl, idf, cinfo);
       }
       break;
