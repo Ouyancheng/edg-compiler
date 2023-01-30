@@ -1,5 +1,15 @@
 Version 6.5
 
+1/30/23  [EDGcpfe/25507]
+C++23: #warning
+
+As described in WG21 paper P2437R1, the #warning directive is now supported
+in strict C++23 mode.  (It was already available in all non-strict modes.)
+For example, with --strict --c++23:
+
+  #warning This is a warning.  // Issues a warning and continues processing
+
+
 1/30/23  [EDGcpfe/25770]
 Deduction failure for non-type template parameter of dependent type
 

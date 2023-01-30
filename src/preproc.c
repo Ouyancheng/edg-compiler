@@ -344,7 +344,8 @@ the "#" the current token (at least logically).
     } else if (curr_id_is("error")) {
       /* #error directive. */
       kind = ppd_error;
-    } else if ((!strict_ansi_mode || c23_mode) && curr_id_is("warning")) {
+    } else if ((!strict_ansi_mode || c23_mode || cpp23_mode) &&
+               curr_id_is("warning")) {
       /* #warning directive. */
       kind = ppd_warning;
 #if IDENT_DIRECTIVE_AND_PRAGMA
