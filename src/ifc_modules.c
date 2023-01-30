@@ -19728,9 +19728,22 @@ Otherwise, parameter references should only include the parameter name.
                                         &error_position);
       break;
     case ifc_ss_syntax_type_trait_intrinsic:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "SyntaxSort::TypeTraitIntrinsic",
-                                        &error_position);
+      { Opt<an_ifc_syntax_type_trait_intrinsic> opt_ty_trait;
+
+        construct_node(&opt_ty_trait, syntax);
+        if (!opt_ty_trait.has_value()) {
+          goto invalid;
+        }  /* if */
+
+        an_ifc_syntax_type_trait_intrinsic ty_trait = *opt_ty_trait;
+        an_ifc_operator_category           operator_cat =
+                                                   get_ifc_intrinsic(ty_trait);
+        an_ifc_syntax_index                args = get_ifc_arguments(ty_trait);
+        cache_operator(cache, operator_cat);
+        cache_token(cache, tok_lparen);
+        cache_syntax(cache, args, cinfo);
+        cache_token(cache, tok_rparen);
+      }
       break;
     case ifc_ss_syntax_tuple:
       { Opt<an_ifc_syntax_tuple> opt_ist;
