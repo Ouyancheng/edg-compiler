@@ -11746,7 +11746,7 @@ doing C++17-style template template parameter matching.
             a_boolean		copy_error = FALSE;
             a_ctws_state	ctws_state;
             init_ctws_state(&ctws_state);
-            constant_type = tpp->param_symbol->variant.constant->type;
+            constant_type = tpp->variant.constant.ptr->type;
             constant_type = copy_type_with_substitution(
                                     constant_type, new_list, templ_param_list,
 				    source_pos,

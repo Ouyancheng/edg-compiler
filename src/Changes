@@ -1,5 +1,23 @@
 Version 6.5
 
+1/30/23  [EDGcpfe/25770]
+Deduction failure for non-type template parameter of dependent type
+
+In cases involving nested instantiations, an explicitly specified non-type
+template argument could be converted to the corresponding parameter type of the
+outer instantiation, resulting in spurious deduction failures.  For example,
+with --c++14 -tused:
+
+  template<typename T, T, typename F>
+  int g(F f) {
+    return f(1);
+  }
+  int i = g<int, 0>([] (auto) {
+    return g<long, 1>([] (auto) {  // Previously a spurious error.  Now okay.
+      return 0; });
+  });
+
+
 1/30/23  [EDGcpfe/25576,EDGcpfe/25717]
 GNU compatibility: Substitution failure for two-operand conditional operator
 
