@@ -12780,7 +12780,7 @@ Cache the cv-qualifiers for the given function-like IFC type.
   if (test_bitmask<ifc_fttb_volatile>(traits)) {
     cache_token(cache, tok_volatile);
   }  /* if */
-}  /* cache_func_cv_qualifiers */
+}  /* cache_func_type_cv_qualifiers */
 
 
 template<typename an_ifc_Node_type>
@@ -12797,7 +12797,7 @@ Cache the ref-qualifier for the given function-like IFC type.
   } else if (test_bitmask<ifc_fttb_rvalue>(traits)) {
     cache_token(cache, tok_and_and);
   }  /* if */
-}  /* cache_func_ref_qualifier */
+}  /* cache_func_type_ref_qualifier */
 
 
 static void cache_noexcept_specifier(
@@ -12914,7 +12914,7 @@ type.
   an_ifc_calling_convention_sort convention = get_ifc_convention(type);
 
   cache_calling_convention(cache, convention);
-}  /* cache_func_calling_convention */
+}  /* cache_func_type_calling_convention */
 
 
 template<typename an_ifc_Node_type>
@@ -12927,7 +12927,7 @@ Cache the return type declarator for the given function-like type.
   an_ifc_type_index return_type = get_ifc_target(type);
 
   return_type.mod->cache_type(cache, return_type);
-}  /* cache_func_calling_convention */
+}  /* cache_func_type_return_type */
 
 
 template<typename an_ifc_Node_type>
@@ -12981,7 +12981,7 @@ Cache the cv-qualifiers for the given function-like declaration.
       }
       break;
     case ifc_ts_type_tor:
-      /* Constructor/Destructor types do not have cv qualifiers. */
+      /* Constructor/destructor types do not have cv-qualifiers. */
       break;
     default:
       { a_string err_msg("Unexpected ", str_for(func_type_idx.sort));
@@ -13033,7 +13033,7 @@ Cache the ref-qualifier for the given function-like declaration.
       }
       break;
     case ifc_ts_type_tor:
-      /* Constructor/Destructor types do not have cv qualifiers. */
+      /* Constructor/destructor types do not have ref-qualifiers. */
       break;
     default:
       { a_string err_msg("Unexpected ", str_for(func_type_idx.sort));
@@ -13128,7 +13128,7 @@ static void cache_func_vendor_decl_specifier_seq(
                                              a_module_token_cache_ptr cache,
                                              an_ifc_decl_index        decl_idx)
 /*
-Cache the vendor specific portion of the decl-specifier-seq for the
+Cache the vendor-specific portion of the decl-specifier-seq for the
 function-like declaration at the given declaration index.
 */
 {
@@ -13235,7 +13235,7 @@ static void cache_func_body(a_module_token_cache_ptr cache,
 Cache the function-body for the given function-like declaration (identified by
 decl_idx).
 
-If the IFC provides a user defined definition for said function, instead of a
+If the IFC provides a user-defined definition for said function, instead of a
 proper function-body being cached, a token indicating the presence of a
 lazy-loadable definition will instead be cached.  cinfo contains information
 about the current cache context to help inform decisions about what to cache.
@@ -13514,10 +13514,9 @@ done:
 namespace {
 
 /*
-This class implements a lazily loadable function parameter chart abstraction.
-Given a (possibly null or invalid) chart index, it abstracts away retrieval of
-parameters from the chart, and lazily loading the chart (so it's only loaded if
-it's actually used).
+This class implements a lazily-loadable function parameter chart abstraction
+(i.e., the chart remains unloaded until information about a parameter is
+requested).
 */
 struct a_lazy_ifc_func_param_chart {
   a_lazy_ifc_func_param_chart(an_ifc_chart_index chart_idx_val)
@@ -13534,7 +13533,7 @@ private:
                         /* The (potentially unloaded) underlying parameter
                            chart corresponding to chart_idx. */
   a_boolean     node_invalid;
-                        /* TRUE if a loaded of opt_node was attempted but
+                        /* TRUE if loading of opt_node was attempted but
                            ultimately failed. */
 };  /* a_lazy_ifc_func_param_chart */
 
@@ -13713,7 +13712,7 @@ inline an_ifc_func_param_context::an_ifc_func_param_context(
                                                an_ifc_decl_index      decl_idx,
                                                const an_ifc_Node_type &decl)
 /*
-Given a function-like declaration (indexed by decl_idx) initial its function
+Given a function-like declaration (indexed by decl_idx) initialize its function
 parameter context.
 */
   : num_params(0), params_type(get_func_param_type(decl)),
@@ -13809,7 +13808,7 @@ static an_ifc_expr_index get_default_arg_from_chart(
                                          a_lazy_ifc_func_param_chart &chart,
                                          an_ifc_index_type           param_idx)
 /*
-Given a function parameter chart, and the relative index of a parameter return
+Given a function parameter chart and the relative index of a parameter, return
 the expr index for the parameter's default argument (if possible); if no valid
 default argument expression can be found, return a null expr index.
 */
@@ -13824,6 +13823,7 @@ default argument expression can be found, return a null expr index.
   }  /* if */
   return result;
 }  /* get_default_arg_from_chart */
+
 
 an_ifc_expr_index
 an_ifc_func_param_context::get_default_arg_expr(an_ifc_index_type param_idx)
@@ -13865,7 +13865,7 @@ static void cache_func_parameter_declaration_clause(
 /*
 Cache the parameter-declaration-clause for the given function-like declaration
 (indexed by decl_idx).  cinfo contains information about the current cache
-context to help inform decisions about what to cache
+context to help inform decisions about what to cache.
 */
 {
   an_ifc_func_param_context param_context(decl_idx, decl);
@@ -15635,21 +15635,6 @@ initializer expression.
                         cache_init_fn);
   }  /* if */
 }  /* cache_variable_decl */
-
-
-template<typename an_ifc_Node_type>
-static void maybe_cache_func_def(a_module_token_cache_ptr cache,
-                                     an_ifc_decl_index        decl_idx,
-                                     const an_ifc_Node_type   &decl)
-/*
-For a function declaration (identified by decl_idx) in the module mod, if the
-IFC provides a definition for said function, cache a token indicating the
-presence of a lazy-loadable definition.
-*/
-{
-  if (function_is_user_defined(decl)) {
-  }  /* if */
-}  /* maybe_cache_func_def */
 
 
 uint32_t an_ifc_module::try_cache_class_attributes_from_body(
