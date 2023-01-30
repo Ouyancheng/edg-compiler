@@ -3131,12 +3131,43 @@ index information to the given symbol.
   ifc_decl_lookup_table->map(decl_idx, sym);
 
   /* Associate the appropriate module entity with this symbol's IL entity. */
-  an_il_entry_kind    kind;
-  char                *il_entity = il_entry_for_symbol_null_okay(sym, &kind);
   a_module_entity_ptr mep = get_ifc_module_entity_ptr(decl_idx);
-  if (il_entity != NULL) {
-    mep->entity.ptr = il_entity;
-    mep->entity.kind = kind;
+  if (sym->kind == sk_overloaded_function) {
+    mep->entity.kind = iek_il_entity_list_entry;
+
+    a_symbol_ptr overloaded_sym = sym->variant.overloaded_function.symbols;
+    do {
+      an_il_entity_list_entry_ptr ielep = alloc_il_entity_list_entry();
+      an_il_entry_kind            kind;
+      char                        *il_entity = il_entry_for_symbol_null_okay(
+                                                                overloaded_sym,
+                                                                &kind);
+      /* Convert the symbol to an IL entity list entry. */
+      if (il_entity != NULL) {
+        ielep->entity.kind = kind;
+        ielep->entity.ptr = il_entity;
+      } else {
+        /* If any list element fails, the entire list is considered invalid. */
+        mep->invalid = TRUE;
+      }  /* if */
+      /* Append the new symbol list entry. */
+      ielep->next = (an_il_entity_list_entry_ptr)mep->entity.ptr;
+      mep->entity.ptr = (char*)ielep;
+      /* Move to the next symbol. */
+      overloaded_sym = overloaded_sym->next;
+    } while (overloaded_sym != NULL);
+  } else {
+    an_il_entry_kind kind;
+    char             *il_entity = il_entry_for_symbol_null_okay(sym, &kind);
+
+    if (il_entity != NULL) {
+      mep->entity.ptr = il_entity;
+      mep->entity.kind = kind;
+    } else {
+      mep->invalid = TRUE;
+    }  /* if */
+  }  /* if */
+  if (!mep->invalid) {
     if (sym->is_class_member) {
       mep->scope = scope_stack[decl_scope_level].il_scope;
 #if CHECKING
@@ -3158,10 +3189,6 @@ index information to the given symbol.
                                "process_declaration_to_il_entity instead of "
                                "using tok_ifc_decl");
     }  /* if */
-  } else {
-    mep->invalid = TRUE;
-  }  /* if */
-  if (!mep->invalid) {
     map_pending_definitions(mep);
   }  /* if */
 }  /* record_symbol_for_ifc_decl */
