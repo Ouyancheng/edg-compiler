@@ -86,6 +86,9 @@ to allow easy zeroing via aggregate initialization.  This type should not be
 used directly.
 */
 struct an_ifc_cache_info_zero_bits {
+  a_bit_field   dependent_name:1;
+                        /* TRUE if a (potentially resolved) IFC name EDG must
+                           treat as dependent is being cached. */
   a_bit_field   qualified_name:1;
                         /* TRUE if a qualified name is being cached. */
   a_bit_field   skip_assign:1;

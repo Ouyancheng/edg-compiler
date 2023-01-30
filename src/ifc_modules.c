@@ -12338,7 +12338,7 @@ file for the additional information needed, depending on the kind of literal.
 
         switch(binding_expr.sort) {
           case ifc_es_expr_named_decl:
-            cache_token_with_index(cache, tok_ifc_entity_ref, binding_expr);
+            cache_expr(cache, binding_expr, /*cinfo=*/{});
             break;
           case ifc_es_expr_unresolved_id:
             { Opt<an_ifc_expr_unresolved_id> opt_ieud;
@@ -17688,7 +17688,20 @@ tuple elements by '::' instead of ','.
       }
       break;
     case ifc_es_expr_named_decl:
-      cache_token_with_index(cache, tok_ifc_entity_ref, expr);
+      if (cinfo.dependent_name) {
+        Opt<an_ifc_expr_named_decl> opt_named_decl;
+
+        construct_node(&opt_named_decl, expr);
+        if (!opt_named_decl.has_value()) {
+          goto invalid;
+        }  /* if */
+
+        an_ifc_expr_named_decl named_decl = *opt_named_decl;
+        an_ifc_decl_index      resolution = get_ifc_resolution(named_decl);
+        cache_name_from_decl(cache, resolution);
+      } else {
+        cache_token_with_index(cache, tok_ifc_entity_ref, expr);
+      }  /* if */
       break;
     case ifc_es_expr_unresolved_id:
       { Opt<an_ifc_expr_unresolved_id> opt_ieui;
@@ -17711,11 +17724,18 @@ tuple elements by '::' instead of ','.
         }  /* if */
 
         an_ifc_expr_template_id ieti = *opt_ieti;
+        an_ifc_expr_index       primary = get_ifc_primary(ieti);
         an_ifc_expr_index       arguments = get_ifc_arguments(ieti);
-        cache_expr(cache, get_ifc_primary(ieti), cinfo);
+        cache_expr(cache, primary, cinfo);
         cache_token(cache, tok_lt);
         if (!is_null_index(arguments)) {
-          cache_expr(cache, arguments, cinfo);
+          an_ifc_cache_info arg_cinfo = cinfo;
+          /* While the primary expression should be forced to a dependent name
+             in this context, template arguments shouldn't be affected.  Reset
+             dependent_name to FALSE. */
+          arg_cinfo.dependent_name = FALSE;
+
+          cache_expr(cache, arguments, arg_cinfo);
         }  /* if */
         cache_token(cache, tok_gt);
       }
@@ -17799,7 +17819,10 @@ tuple elements by '::' instead of ','.
           cache_expr(cache, get_ifc_scope(iep), cinfo);
           cache_token(cache, tok_colon_colon);
         }  /* if */
-        cache_expr(cache, get_ifc_member(iep), cinfo);
+
+        an_ifc_cache_info member_cinfo = cinfo;
+        member_cinfo.dependent_name = TRUE;
+        cache_expr(cache, get_ifc_member(iep), member_cinfo);
       }
       break;
     case ifc_es_expr_read:
