@@ -15096,7 +15096,11 @@ this is needed.
         }  /* if */
 
         an_ifc_type_lvalue_reference itlr = *opt_itlr;
+        an_ifc_type_index            referee = get_ifc_referee(itlr);
         cache_type_first_part(cache, get_ifc_referee(itlr));
+        if (referee.sort == ifc_ts_type_array) {
+          cache_token(cache, tok_lparen);
+        }  /* if */
         cache_token(cache, tok_ampersand);
       }
       break;
@@ -15109,7 +15113,11 @@ this is needed.
         }  /* if */
 
         an_ifc_type_rvalue_reference itrr = *opt_itrr;
-        cache_type_first_part(cache, get_ifc_referee(itrr));
+        an_ifc_type_index            referee = get_ifc_referee(itrr);
+        cache_type_first_part(cache, referee);
+        if (referee.sort == ifc_ts_type_array) {
+          cache_token(cache, tok_lparen);
+        }  /* if */
         cache_token(cache, tok_and_and);
       }
       break;
@@ -15358,7 +15366,13 @@ this is needed.
         if (!opt_itlr.has_value()) {
           goto invalid;
         }  /* if */
-        cache_type_second_part(cache, get_ifc_referee(*opt_itlr));
+
+        an_ifc_type_lvalue_reference itlr = *opt_itlr;
+        an_ifc_type_index            referee = get_ifc_referee(itlr);
+        if (referee.sort == ifc_ts_type_array) {
+          cache_token(cache, tok_rparen);
+        }  /* if */
+        cache_type_second_part(cache, referee);
       }
       break;
     case ifc_ts_type_rvalue_reference:
@@ -15368,7 +15382,13 @@ this is needed.
         if (!opt_itrr.has_value()) {
           goto invalid;
         }  /* if */
-        cache_type_second_part(cache, get_ifc_referee(*opt_itrr));
+
+        an_ifc_type_rvalue_reference itrr = *opt_itrr;
+        an_ifc_type_index            referee = get_ifc_referee(itrr);
+        if (referee.sort == ifc_ts_type_array) {
+          cache_token(cache, tok_rparen);
+        }  /* if */
+        cache_type_second_part(cache, referee);
       }
       break;
     case ifc_ts_type_function:
