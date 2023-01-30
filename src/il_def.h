@@ -1014,10 +1014,11 @@ enum a_token_kind : unsigned short {
                                in tokens from token caches (the cache's
                                associated index information should be
                                translated to type an_ifc_expr_index). */
-  tok_ifc_template_param,
-                            /* Generated when reading an IFC file to represent
-                               a reference to a template parameter.  This only
-                               appears in tokens from token caches. */
+  tok_ifc_decl_ref,
+                            /* This is a special variant of the
+                               tok_ifc_entity_ref that represents
+                               an_ifc_decl_index rather than
+                               an_ifc_expr_index.  */
   tok_ifc_decl,
                             /* Generated when reading an IFC file to record the
                                IFC index of a class member declaration in the
@@ -1478,7 +1479,7 @@ EXTERN a_const_char
    "cli typeid",
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
    "decltype construct", "pending IFC var init", "pending IFC expression",
-   "IFC entity ref", "IFC templ param", "IFC decl", "unimplemented",
+   "IFC entity ref", "IFC decl ref", "IFC decl", "unimplemented",
    "[", "]", "(", ")", ".", "->", "++", "--", "&", "*", "+", "-",
    "~", "!", "/", "%", "<<", ">>", "<", ">", "<=", ">=", "==", "!=", "<=>",
    "^", "|", "&&", "||", "?", ":", "=", "*=", "/=", "%=",

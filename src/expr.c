@@ -31421,6 +31421,7 @@ of:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case tok_identifier:
     case tok_ifc_entity_ref:
+    case tok_ifc_decl_ref:
     case tok_func_name:
     case tok_function_name:
     case tok_pretty_function_name:
@@ -34151,6 +34152,7 @@ Return TRUE if the indicated token is one that could start an expression.
     case tok_colon_colon:
     case tok_identifier:
     case tok_ifc_entity_ref:
+    case tok_ifc_decl_ref:
     case tok_decltype:
     case tok_operator:
     case tok_this:
@@ -39980,6 +39982,7 @@ handle_identifier:
       break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case tok_ifc_entity_ref:
+    case tok_ifc_decl_ref:
       { a_boolean okay_after_typename;
         scan_identifier(&local_result, local_options, prec_level,
                         (a_rescan_control_block *)NULL, (a_symbol *)NULL,

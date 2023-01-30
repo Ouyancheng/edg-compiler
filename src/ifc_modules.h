@@ -374,9 +374,6 @@ public:
   void cache_syntax(a_module_token_cache_ptr cache,
                     an_ifc_syntax_index      syntax,
                     const an_ifc_cache_info  &cinfo);
-  void cache_chart(a_module_token_cache_ptr cache,
-                   an_ifc_chart_index       chart,
-                   const an_ifc_cache_info  &cinfo);
   void cache_operator(a_module_token_cache_ptr cache,
                       an_ifc_operator_category op);
   void cache_operator(a_module_token_cache_ptr     cache,
@@ -609,9 +606,9 @@ extern a_dynamic_init_ptr load_variable_init_from_ifc_module(
 
 extern void record_symbol_for_ifc_decl(a_symbol_ptr  sym);
 
-extern a_symbol_ptr load_tok_ifc_entity_ref(void);
+extern a_symbol_ptr load_tok_ifc_entity_ref();
 
-extern a_symbol_ptr load_tok_ifc_template_param(void);
+extern a_symbol_ptr load_tok_ifc_decl_ref();
 
 extern void ifc_modules_one_time_init();
 

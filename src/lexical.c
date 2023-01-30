@@ -3216,7 +3216,7 @@ This is used to save tokens for later rescanning.
   } else if (curr_token == tok_pending_ifc_var_init ||
              curr_token == tok_pending_ifc_expr ||
              curr_token == tok_ifc_entity_ref ||
-             curr_token == tok_ifc_template_param ||
+             curr_token == tok_ifc_decl_ref ||
              curr_token == tok_ifc_decl) {
     /* This token has an associated index. */
     ctp->extra_info_kind = teik_ifc_index;
@@ -22634,7 +22634,7 @@ selection operator, in which case it points to the type of the left operand.
      whether the identifier is a class name or a type name, if needed.  */
   might_be_qualifier = FALSE;
   if (curr_token == tok_identifier || curr_token == tok_ifc_entity_ref ||
-      curr_token == tok_ifc_template_param) {
+      curr_token == tok_ifc_decl_ref) {
     next_tok = next_two_tokens_if_qualifier_delimiter(tok_colon_colon,
                                                       &next_tok_2);
     if (next_tok == tok_colon_colon || next_tok == tok_lt ||
@@ -22801,11 +22801,11 @@ selection operator, in which case it points to the type of the left operand.
          system type determined above. */
       qualifier_sym = symbol_for(cli_system_type_for_keyword);
     } else if (curr_token == tok_ifc_entity_ref ||
-               curr_token == tok_ifc_template_param) {
+               curr_token == tok_ifc_decl_ref) {
       if (curr_token == tok_ifc_entity_ref) {
         qualifier_sym = load_tok_ifc_entity_ref();
       } else {
-        qualifier_sym = load_tok_ifc_template_param();
+        qualifier_sym = load_tok_ifc_decl_ref();
       }  /* if */
       if (qualifier_sym == NULL) {
         /* A diagnostic will have been emitted by load_tok_ifc_entity_ref(). */
@@ -22970,8 +22970,7 @@ selection operator, in which case it points to the type of the left operand.
        template reference is coalesced and we don't want to lose that value. */
     specific_sym = locator_for_curr_id.specific_symbol;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (curr_token == tok_ifc_entity_ref ||
-        curr_token == tok_ifc_template_param) {
+    if (curr_token == tok_ifc_entity_ref || curr_token == tok_ifc_decl_ref) {
       /* Treat the token as an identifier from here, but do not clear the
          specific symbol even if this turns out to be an unqualified name. */
       curr_token = tok_identifier;
@@ -23300,12 +23299,12 @@ selection operator, in which case it points to the type of the left operand.
           curr_token = tok_identifier;
           set_to_error_locator(locator_for_curr_id);
         } else if (curr_token == tok_ifc_entity_ref ||
-                   curr_token == tok_ifc_template_param) {
+                   curr_token == tok_ifc_decl_ref) {
           a_symbol_ptr  sym;
           if (curr_token == tok_ifc_entity_ref) {
             sym = load_tok_ifc_entity_ref();
           } else {
-            sym = load_tok_ifc_template_param();
+            sym = load_tok_ifc_decl_ref();
           }  /* if */
           if (sym == NULL) {
             err = TRUE;
@@ -23318,7 +23317,7 @@ selection operator, in which case it points to the type of the left operand.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         if ((curr_token != tok_identifier &&
              curr_token != tok_ifc_entity_ref &&
-             curr_token != tok_ifc_template_param) ||
+             curr_token != tok_ifc_decl_ref) ||
             ((next_tok != qualifier_separator && next_tok != tok_colon_colon &&
               (!(microsoft_bugs && microsoft_version <= 1500) ||
                (is_qualified_name &&
@@ -23603,12 +23602,12 @@ selection operator, in which case it points to the type of the left operand.
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (curr_token == tok_ifc_entity_ref ||
-             curr_token == tok_ifc_template_param) {
+             curr_token == tok_ifc_decl_ref) {
     a_symbol_ptr  sym;
     if (curr_token == tok_ifc_entity_ref) {
       sym = load_tok_ifc_entity_ref();
     } else {
-      sym = load_tok_ifc_template_param();
+      sym = load_tok_ifc_decl_ref();
     }  /* if */
     if (sym == NULL) {
       err = TRUE;
@@ -24498,11 +24497,11 @@ scanned is, in fact, an identifier).
     if (symbol != NULL) reduce_projection_symbol_to_fundamental_symbol(symbol);
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (curr_token == tok_ifc_entity_ref ||
-             curr_token == tok_ifc_template_param) {
+             curr_token == tok_ifc_decl_ref) {
     if (curr_token == tok_ifc_entity_ref) {
       symbol = load_tok_ifc_entity_ref();
     } else {
-      symbol = load_tok_ifc_template_param();
+      symbol = load_tok_ifc_decl_ref();
     }  /* if */
     if (symbol != NULL) {
       make_locator_for_symbol(symbol, &locator_for_curr_id);

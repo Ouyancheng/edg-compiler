@@ -11776,7 +11776,7 @@ process_enum_specifier:
 #if MICROSOFT_EXTENSIONS_ALLOWED
       case tok_super:
       case tok_ifc_entity_ref:
-      case tok_ifc_template_param:
+      case tok_ifc_decl_ref:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         /* Identifier. */
 #if EXTRA_SOURCE_POSITIONS_IN_IL

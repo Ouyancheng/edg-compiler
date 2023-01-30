@@ -3238,6 +3238,95 @@ or template.
 }  /* overload_set_from_il_entity_list */
 
 
+static a_boolean is_template_parameter(const an_ifc_decl_parameter &decl)
+/*
+Return TRUE if the given declaration is for a template parameter; otherwise,
+return FALSE.
+*/
+{
+  an_ifc_parameter_sort param_sort = get_ifc_sort(decl);
+
+  return param_sort != ifc_ps_object;
+}  /* is_template_parameter */
+
+
+static a_symbol_ptr load_param_ref(an_ifc_decl_index decl_idx)
+/*
+*/
+{
+  a_symbol_ptr       result = NULL;
+  Opt<an_ifc_decl_parameter>
+                     opt_idp;
+
+#if DEBUG
+  if (db_flag_is_set("ifc_idx")) {
+    a_string dbg_msg("Parameter ref search started for ",
+                     index_to_str(decl_idx));
+
+    print(dbg_msg, f_debug);
+  }  /* if */
+#endif /* DEBUG */
+  construct_node(&opt_idp, decl_idx);
+  if (opt_idp.has_value()) {
+    an_ifc_decl_parameter      idp = *opt_idp;
+    a_boolean                  is_template_param = is_template_parameter(idp);
+    a_template_nesting_depth   pdepth = get_ifc_level(idp);
+    a_template_param_list_pos  pnum = get_ifc_position(idp);
+    a_scope_depth              sd = depth_scope_stack;
+
+    /* We currently have no structure that maps parameter coordinates to the
+       parameter representation.  We therefore just search the scope stack for
+       the required information. */
+    do {
+      if (is_template_param) {
+        a_template_param_ptr  tpp = NULL;
+        a_template_decl_info  *tdip = scope_stack[sd].template_decl_info;
+        a_symbol_ptr          tsym = scope_stack[sd].template_sym;
+        /* In some cases, the parameters can be retrieved from the template
+           declaration scope (via tdip) and in some cases from the associated
+           template symbol. */
+        if (tdip != NULL) {
+          tpp = tdip->parameters;
+        } else if (tsym != NULL) {
+          tpp = templ_params_of(tsym);
+        }  /* if */
+        if (tpp != NULL) {
+          a_template_param_coordinate_ptr  coord;
+          coord = coordinates_of_template_param(tpp);
+          if (coord->depth == pdepth) {
+            for (; tpp != NULL; tpp = tpp->next) {
+              if (tpp->param_num == pnum) {
+                result = tpp->param_symbol;
+                goto done;
+              }  /* if */
+            }  /* for */
+          }  /* if */
+        }  /* if */
+      } else {
+        a_param_id_ptr param_ptr = scope_stack[sd].param_id_list;
+
+        for (; param_ptr != NULL; param_ptr = param_ptr->next) {
+          if (param_ptr->param_num - 1 == pnum) {
+            result = param_ptr->symbol;
+            goto done;
+          }  /* if */
+        }  /* for */
+      }  /* if */
+    } while (--sd != DEPTH_OF_FILE_SCOPE);
+  }  /* if */
+done:
+#if DEBUG
+  if (db_flag_is_set("ifc_idx")) {
+    a_string dbg_msg("Parameter ref search done for ",
+                     index_to_str(decl_idx));
+
+    print(dbg_msg, f_debug);
+  }  /* if */
+#endif /* DEBUG */
+  return result;
+}  /* load_param_ref */
+
+
 static a_boolean has_imminent_subentity(a_module_entity_ptr mep)
 /*
 If the given module entity corresponds to an abstract module entity composed of
@@ -3282,7 +3371,13 @@ Return NULL if none is found.
 {
   a_symbol_ptr  result = ifc_decl_lookup_table->get(decl_idx);
 
-  if (result == NULL) {
+  if (result != NULL) {
+    goto already_mapped;
+  }  /* if */
+  /* The symbol has not been resolved previously, attempt resolution now. */
+  if (decl_idx.sort == ifc_ds_decl_parameter) {
+    result = load_param_ref(decl_idx);
+  } else {
     /* Load a namespace-scope entity from the IFC file and determine its
        front-end symbol. */
     a_source_correspondence     *scp;
@@ -3308,11 +3403,11 @@ Return NULL if none is found.
         mod->process_ifc_declaration(mep);
       }  /* if */
       result = ifc_decl_lookup_table->get(decl_idx);
+      if (result != NULL) {
+        goto already_mapped;
+      }  /* if */
     }  /* if */
-    if (result != NULL) {
-      /* This function may be called recursively for the same index, in which
-         case a result symbol might already have gotten mapped. */
-    } else {
+    if (result == NULL) {
       if (mep->entity.kind == iek_il_entity_list_entry) {
         result = overload_set_from_il_entity_list(
                                 (an_il_entity_list_entry_ptr)mep->entity.ptr);
@@ -3323,11 +3418,12 @@ Return NULL if none is found.
           result = (a_symbol_ptr)scp->assoc_info;
         }  /* if */
       }  /* if */
-      if (result != NULL) {
-        ifc_decl_lookup_table->map(decl_idx, result);
-      }  /* if */
     }  /* if */
   }  /* if */
+  if (result != NULL) {
+    ifc_decl_lookup_table->map(decl_idx, result);
+  }  /* if */
+already_mapped:
   return result;
 }  /* symbol_for_decl_index */
 
@@ -3437,7 +3533,7 @@ done:
 }  /* load_ifc_entity_ref */
 
 
-a_symbol_ptr load_tok_ifc_entity_ref(void)
+a_symbol_ptr load_tok_ifc_entity_ref()
 /*
 A wrapper for load_ifc_entity_ref that uses the current token as a source for
 an IFC expression index (that token should be a tok_ifc_entity_ref).
@@ -3475,73 +3571,19 @@ an IFC expression index (that token should be a tok_ifc_entity_ref).
 }  /* load_tok_ifc_entity_ref */
 
 
-a_symbol_ptr load_tok_ifc_template_param(void)
+a_symbol_ptr load_tok_ifc_decl_ref()
 /*
-The current token is tok_ifc_template_param, which encodes template parameter
-coordinates.  Return the symbol for the corresponding parameter.
+The current token is tok_ifc_decl_ref, which encodes a reference to a
+declaration.  Return the symbol for the corresponding declaration.
 */
 {
   a_lexical_ifc_index_reference
                      *idx = &ifc_index_for_curr_token;
   an_ifc_decl_index  decl_idx = from_lexical_index<an_ifc_decl_index>(*idx);
-  a_symbol_ptr       result = NULL;
-  Opt<an_ifc_decl_parameter>
-                     opt_idp;
 
-#if DEBUG
-  if (db_flag_is_set("ifc_idx")) {
-    a_string err_msg("Template param ref search started for ",
-                     index_to_str(decl_idx));
-
-    print(err_msg, f_debug);
-  }  /* if */
-#endif /* DEBUG */
-  construct_node(&opt_idp, decl_idx);
-  if (opt_idp.has_value()) {
-    an_ifc_decl_parameter      idp = *opt_idp;
-    a_template_nesting_depth   pdepth = get_ifc_level(idp);
-    a_template_param_list_pos  pnum = get_ifc_position(idp);
-    a_scope_depth              sd = depth_scope_stack;
-    /* We currently have no structure that maps parameter coordinates to the
-       parameter representation.  We therefore just search the scope stack for
-       the required information. */
-    do {
-      a_template_param_ptr  tpp = NULL;
-      a_template_decl_info  *tdip = scope_stack[sd].template_decl_info;
-      a_symbol_ptr          tsym = scope_stack[sd].template_sym;
-      /* In some cases, the parameters can be retrieved from the template
-         declaration scope (via tdip) and in some cases from the associated
-         template symbol. */
-      if (tdip != NULL) {
-        tpp = tdip->parameters;
-      } else if (tsym != NULL) {
-        tpp = templ_params_of(tsym);
-      }  /* if */
-      if (tpp != NULL) {
-        a_template_param_coordinate_ptr  coord;
-        coord = coordinates_of_template_param(tpp);
-        if (coord->depth == pdepth) {
-          for (; tpp != NULL; tpp = tpp->next) {
-            if (tpp->param_num == pnum) {
-              result = tpp->param_symbol;
-              goto done;
-            }  /* if */
-          }  /* for */
-        }  /* if */
-      }  /* if */
-    } while (--sd != DEPTH_OF_FILE_SCOPE);
-  }  /* if */
-done:
-#if DEBUG
-  if (db_flag_is_set("ifc_idx")) {
-    a_string err_msg("Template param ref search done for ",
-                     index_to_str(decl_idx));
-
-    print(err_msg, f_debug);
-  }  /* if */
-#endif /* DEBUG */
-  return result;
+  return symbol_for_decl_index(decl_idx);
 }  /* load_tok_ifc_template_param */
+
 
 template<typename an_ifc_Index_type>
 static void cache_token_with_index(a_module_token_cache_ptr cache,
@@ -3901,12 +3943,15 @@ done:;
 }  /* cache_statement */
 
 
+static void cache_template_param_chart(a_module_token_cache_ptr cache,
+                                       an_ifc_chart_index       chart,
+                                       const an_ifc_cache_info  &cinfo);
+
 template<typename an_ifc_Node_type>
 static
 a_boolean cache_direct_decl(a_module_token_cache_ptr cache,
                             const an_ifc_Node_type   &node,
                             const an_ifc_cache_info  &cinfo) DELETED_FN_DEF
-
 
 template<>
 a_boolean cache_direct_decl(a_module_token_cache_ptr  cache,
@@ -3924,7 +3969,7 @@ TRUE if caching succeeds, FALSE otherwise.
 
   /* Generate the template parameter list. */
   cache_token(cache, tok_template);
-  mod->cache_chart(cache, get_ifc_chart(idc), cinfo);
+  cache_template_param_chart(cache, get_ifc_chart(idc), cinfo);
   /* Generate "concept <concept-name>". */
   mod->cache_sentence(cache, get_ifc_head(idc));
   if (cinfo.ignore_definition) {
@@ -4058,6 +4103,99 @@ TRUE if caching succeeds, FALSE otherwise.
                                     &error_position);
   return FALSE;
 }  /* cache_direct_decl */
+
+
+static an_ifc_decl_index to_decl_index(an_ifc_partition_kind_index index)
+/*
+Given an IFC partition kind index, return an IFC decl index.
+*/
+{
+  an_ifc_decl_sort sort = to_decl_sort(index.partition_kind);
+
+  return an_ifc_decl_index{index.mod, sort, index.value};
+}  /* to_decl_index */
+
+
+static void cache_template_param_chart(a_module_token_cache_ptr cache,
+                                       an_ifc_chart_index       chart,
+                                       const an_ifc_cache_info  &cinfo)
+/*
+Add the tokens corresponding to the given chart to cache.  The caller is
+expected to have already cached the "template" keyword if it's required.  cinfo
+contains information about the current cache context to help inform decisions
+about what to cache.
+*/
+{
+  an_ifc_expr_index constraint = {};
+
+  cache_token(cache, tok_lt);
+  switch (chart.sort) {
+    case ifc_cs_chart_none:
+      /* No arguments to the template (i.e., specialization). */
+      break;
+    case ifc_cs_chart_unilevel:
+      { Opt<an_ifc_chart_unilevel> opt_icu;
+
+        construct_node(&opt_icu, chart);
+        if (!opt_icu.has_value()) {
+          goto invalid;
+        }  /* if */
+        constraint = get_ifc_constraint(*opt_icu);
+
+        a_decl_parameter_traverser traverser(*opt_icu);
+        a_boolean                  first = TRUE;
+        for (an_Indexed<an_ifc_decl_parameter> indexed_idp : traverser) {
+          if (!indexed_idp.has_value()) {
+            goto invalid;
+          }  /* if */
+          if (!first) {
+            cache_token(cache, tok_comma);
+          }  /* if */
+
+          an_ifc_decl_parameter param_decl = *indexed_idp;
+          if (!cache_direct_decl(cache, param_decl, cinfo)) {
+            goto invalid;
+          }  /* if */
+          first = FALSE;
+        }  /* for */
+      }
+      break;
+    case ifc_cs_chart_multilevel:
+      { Opt<an_ifc_chart_multilevel> opt_icm;
+
+        construct_node(&opt_icm, chart);
+        if (!opt_icm.has_value()) {
+          goto invalid;
+        }  /* if */
+
+        a_decl_temploid_traverser traverser(*opt_icm);
+        a_boolean                 first = TRUE;
+        for (an_Indexed<an_ifc_decl_temploid> indexed_idt : traverser) {
+          if (!first) {
+            cache_token(cache, tok_comma);
+          }  /* if */
+          /* FIXME: Is this correct? */
+          if (!cache_direct_decl(cache, *indexed_idt, cinfo)) {
+            goto invalid;
+          }  /* if */
+          first = FALSE;
+        }  /* for */
+      }
+      break;
+    default_is_unexpected_str("Unexpected ChartSort");
+  }  /* switch */
+  cache_token(cache, tok_gt);
+  if (!is_null_index(constraint)) {
+    /* The template parameter list is followed by a requires-clause. */
+    constraint.mod->cache_expr(cache, constraint, cinfo);
+  }  /* if */
+  goto done;
+invalid:
+  expect_error_str("expected errors for bad template param chart cache");
+  cache->invalidate();
+done:;
+}  /* cache_template_param_chart */
+
 
 /* FIXME: This code should be transition an_ifc_func_param_context (and
    an_ifc_func_param_context updated in the process) to improve the overall
@@ -5457,17 +5595,6 @@ an_ifc_template_lookup_table
 			   corresponding front end symbols. */
 
 
-an_ifc_decl_index to_decl_index(an_ifc_partition_kind_index index)
-/*
-Given an IFC partition kind index, return an IFC decl index.
-*/
-{
-  an_ifc_decl_sort sort = to_decl_sort(index.partition_kind);
-
-  return an_ifc_decl_index{index.mod, sort, index.value};
-}  /* to_decl_index */
-
-
 an_ifc_decl_array*
 get_or_alloc_specialization_list(an_ifc_decl_index templ_idx)
 /*
@@ -6665,7 +6792,8 @@ class_struct_union_case:
               break;
             }  /* if */
             cache_token(&cache, tok_template);
-            mod->cache_chart(&cache, get_ifc_chart(itf), /*cinfo=*/{});
+            cache_template_param_chart(&cache, get_ifc_chart(itf),
+                                       /*cinfo=*/{});
             cache_token(&cache, tok_using);
             cache_identifier(&cache, get_string_at_offset(get_ifc_name(ida)));
             cache_token(&cache, tok_assign);
@@ -13915,11 +14043,7 @@ Cache the qualified-id portion of declarator-id's id-expression (if any).
   an_ifc_decl_index home_scope = get_ifc_home_scope(decl);
 
   if (is_class_scope(home_scope) && home_scope != cinfo.lexical_scope) {
-    /* FIXME: Add a tok_ifc_entity_decl_ref for the special case where we don't
-       have an expression but want to form a direct reference to a
-       declaration. */
-    /* cache_token_with_index(cache, tok_ifc_entity_decl_ref, home_scope); */
-    home_scope.mod->cache_name_from_decl(cache, home_scope);
+    cache_token_with_index(cache, tok_ifc_decl_ref, home_scope);
     cache_token(cache, tok_colon_colon);
   }  /* if */
 }  /* cache_func_declarator_qualifier */
@@ -14626,6 +14750,9 @@ context to help inform decisions about what to cache.
       goto invalid;
     }  /* if */
     arg_type.mod->cache_type(cache, arg_type);
+
+    a_string param_name("param_", i);
+    cache_identifier(cache, param_name.as_temp_characters());
     /* Cache the default argument if we're not ignoring default arguments in
        this context, and a default argument is found. */
     if (!cinfo.ignore_default_arguments) {
@@ -14997,7 +15124,7 @@ this is needed.
              token because the name recorded for a parameter may not be the
              one that the parameter was declared with in the current
              context. */
-          cache_token_with_index(cache, tok_ifc_template_param, decl);
+          cache_token_with_index(cache, tok_ifc_decl_ref, decl);
         } else {
           /* We are contextually forbidden from qualifying this name or the
              declaration type otherwise is considered to never appear
@@ -15491,85 +15618,6 @@ cache_type_second_part should be used instead.
   cache_type_first_part(cache, type);
   cache_type_second_part(cache, type);
 }  /* cache_type */
-
-
-void an_ifc_module::cache_chart(a_module_token_cache_ptr cache,
-                                an_ifc_chart_index       chart,
-                                const an_ifc_cache_info  &cinfo)
-/*
-Add the tokens corresponding to the given chart to cache.  The caller is
-expected to have already cached the "template" keyword if it's required.  cinfo
-contains information about the current cache context to help inform decisions
-about what to cache.
-*/
-{
-  an_ifc_expr_index constraint = {};
-
-  cache_token(cache, tok_lt);
-  switch (chart.sort) {
-    case ifc_cs_chart_none:
-      /* No arguments to the template (i.e., specialization). */
-      break;
-    case ifc_cs_chart_unilevel:
-      { Opt<an_ifc_chart_unilevel> opt_icu;
-
-        construct_node(&opt_icu, chart);
-        if (!opt_icu.has_value()) {
-          goto invalid;
-        }  /* if */
-        constraint = get_ifc_constraint(*opt_icu);
-
-        a_decl_parameter_traverser traverser(*opt_icu);
-        a_boolean                  first = TRUE;
-        for (an_Indexed<an_ifc_decl_parameter> indexed_idp : traverser) {
-          if (!indexed_idp.has_value()) {
-            goto invalid;
-          }  /* if */
-          if (!first) {
-            cache_token(cache, tok_comma);
-          }  /* if */
-          if (!cache_direct_decl(cache, *indexed_idp, cinfo)) {
-            goto invalid;
-          }  /* if */
-          first = FALSE;
-        }  /* for */
-      }
-      break;
-    case ifc_cs_chart_multilevel:
-      { Opt<an_ifc_chart_multilevel> opt_icm;
-
-        construct_node(&opt_icm, chart);
-        if (!opt_icm.has_value()) {
-          goto invalid;
-        }  /* if */
-
-        a_decl_temploid_traverser traverser(*opt_icm);
-        a_boolean                 first = TRUE;
-        for (an_Indexed<an_ifc_decl_temploid> indexed_idt : traverser) {
-          if (!first) {
-            cache_token(cache, tok_comma);
-          }  /* if */
-          /* FIXME: Is this correct? */
-          if (!cache_direct_decl(cache, *indexed_idt, cinfo)) {
-            goto invalid;
-          }  /* if */
-          first = FALSE;
-        }  /* for */
-      }
-      break;
-    default_is_unexpected_str("Unexpected ChartSort");
-  }  /* switch */
-  cache_token(cache, tok_gt);
-  if (!is_null_index(constraint)) {
-    /* The template parameter list is followed by a requires-clause. */
-    cache_expr(cache, constraint, cinfo);
-  }  /* if */
-  goto done;
-invalid:
-  expect_error_str("expected errors for bad chart cache");
-  cache->invalidate();
-done:;
-}  /* cache_chart */
 
 
 void an_ifc_module::cache_operator(a_module_token_cache_ptr     cache,
@@ -17212,7 +17260,7 @@ context to help inform decisions about what to cache.
     cache_token(cache, tok_lt);
     cache_token(cache, tok_gt);
   } else {
-    cache_chart(cache, chart_idx, cinfo);
+    cache_template_param_chart(cache, chart_idx, cinfo);
   }  /* if */
 }  /* cache_template_head */
 
@@ -17422,7 +17470,7 @@ about what to cache.
           an_ifc_type_forall itf = *opt_itf;
           check_assertion(get_ifc_aliasee(ida).sort == ifc_ts_type_forall);
           cache_token(cache, tok_template);
-          cache_chart(cache, get_ifc_chart(itf), cinfo);
+          cache_template_param_chart(cache, get_ifc_chart(itf), cinfo);
           cache_token(cache, tok_using);
           cache_identifier(cache, get_string_at_offset(get_ifc_name(ida)));
           cache_token(cache, tok_assign);
@@ -17816,30 +17864,7 @@ tuple elements by '::' instead of ','.
       }
       break;
     case ifc_es_expr_named_decl:
-      { Opt<an_ifc_expr_named_decl> opt_iend;
-
-        construct_node(&opt_iend, expr);
-        if (!opt_iend.has_value()) {
-          goto invalid;
-        }  /* if */
-
-        an_ifc_expr_named_decl iend = *opt_iend;
-        an_ifc_decl_index      resolution = get_ifc_resolution(iend);
-        if (!validate(resolution)) {
-          goto invalid;
-        }  /* if */
-        if (is_name_qualifiable(resolution)) {
-          cache_qualified_name_from_decl(cache, resolution);
-        } else {
-          /* We are contextually forbidden from qualifying this name or the
-             declaration type otherwise is considered to never appear
-             with a qualified name.
-
-             This can happen when building an unqualified-id within a dependent
-             context. */
-          cache_name_from_decl(cache, resolution);
-        }  /* if */
-      }
+      cache_token_with_index(cache, tok_ifc_entity_ref, expr);
       break;
     case ifc_es_expr_unresolved_id:
       { Opt<an_ifc_expr_unresolved_id> opt_ieui;
@@ -17890,9 +17915,6 @@ tuple elements by '::' instead of ','.
            the first element of the ExprSort::Tuple will refer to the empty
            string that precedes the first "::". */
         if (!is_null_index(resolution)) {
-          /* Note: Do not suppress automatic name qualification here, as the
-             resolution can contain a qualified identifier, despite this being
-             an "unqualified" identifier. */
           cache_expr(cache, resolution, cinfo);
         } else if (!is_null_index(name)) {
           cache_name(cache, name);
@@ -17951,10 +17973,11 @@ tuple elements by '::' instead of ','.
         }  /* if */
 
         an_ifc_expr_path iep = *opt_iep;
-        if (!suppress_automatic_name_qualification) {
+        /* If this is part of a qualified name, the scope is presumed cached
+           already. */
+        if (!cinfo.qualified_name) {
           cache_expr(cache, get_ifc_scope(iep), cinfo);
           cache_token(cache, tok_colon_colon);
-          update_name_qualification_suppression(iep);
         }  /* if */
         cache_expr(cache, get_ifc_member(iep), cinfo);
       }

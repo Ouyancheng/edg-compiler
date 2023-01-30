@@ -1776,7 +1776,7 @@ types separated by commas (when single_type_required is FALSE).
     }  /* if */
 restore_token_sequence:
     wrapup_disambig_state(&state);
-    if (curr_token == tok_identifier) {
+    if (curr_token == tok_identifier || curr_token == tok_ifc_decl_ref) {
       /* Restore the saved value of the do_not_clear_specific_symbol
          flag. */
       locator_for_curr_id.do_not_clear_specific_symbol =
