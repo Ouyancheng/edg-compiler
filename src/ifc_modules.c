@@ -7838,6 +7838,9 @@ given cache.
     an_ifc_scope_member scope_mem = *indexed_scope_mem;
     an_ifc_decl_index   mem_idx = get_ifc_index(scope_mem);
     cache_bound_entity(cache, mem_idx, cache_content);
+#if DEBUG
+  ++num_module_decls_attempted;
+#endif /* DEBUG */
   }  /* for */
   goto done;
 invalid:
@@ -7888,6 +7891,9 @@ parsing; this is used to diagnose unprocessed tok_ifc_decl tokens.
       }
 #endif /* CHECKING */
       mem_mep->invalid = TRUE;
+#if DEBUG
+      ++num_module_decls_failed;
+#endif /* DEBUG */
     }  /* if */
   }  /* for */
 }  /* invalidate_failed_class_members */
