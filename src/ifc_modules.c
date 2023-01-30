@@ -6197,6 +6197,42 @@ resolved before attempting to resolve the function.
         }  /* if */
       }
       break;
+    case ifc_ds_decl_partial_specialization:
+      { Opt<an_ifc_decl_partial_specialization> opt_decl_spec;
+
+        construct_node(&opt_decl_spec, decl_idx);
+        if (!opt_decl_spec.has_value()) {
+          goto invalid;
+        }  /* if */
+
+        an_ifc_decl_partial_specialization decl_spec = *opt_decl_spec;
+        an_ifc_decl_index                  primary_templ =
+                                           get_ifc_primary_template(decl_spec);
+        a_module_entity_ptr                templ_mep =
+                                          process_decl_at_index(primary_templ);
+        if (templ_mep->invalid) {
+          goto invalid;
+        }  /* if */
+      }
+      break;
+    case ifc_ds_decl_specialization:
+      { Opt<an_ifc_decl_specialization> opt_decl_spec;
+
+        construct_node(&opt_decl_spec, decl_idx);
+        if (!opt_decl_spec.has_value()) {
+          goto invalid;
+        }  /* if */
+
+        an_ifc_decl_specialization decl_spec = *opt_decl_spec;
+        an_ifc_decl_index          primary_templ =
+                                           get_ifc_primary_template(decl_spec);
+        a_module_entity_ptr        templ_mep =
+                                          process_decl_at_index(primary_templ);
+        if (templ_mep->invalid) {
+          goto invalid;
+        }  /* if */
+      }
+      break;
     default:
       break;
   }  /* switch */
