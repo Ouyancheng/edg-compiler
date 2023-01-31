@@ -14371,14 +14371,17 @@ index from the MSVC function parameters trait describing the function's
 parameters; otherwise, return a null chart index.
 */
 {
-  an_ifc_chart_index                 result = {};
-  Opt<an_ifc_trait_msvc_func_params> opt_itmfp;
+  an_ifc_chart_index result = {};
 
-  find_trait(&opt_itmfp, decl_idx);
-  if (opt_itmfp.has_value()) {
-    an_ifc_trait_msvc_func_params itmfp = *opt_itmfp;
+  if (!is_null_index(decl_idx)) {
+    Opt<an_ifc_trait_msvc_func_params> opt_itmfp;
 
-    result = get_ifc_params(itmfp);
+    find_trait(&opt_itmfp, decl_idx);
+    if (opt_itmfp.has_value()) {
+      an_ifc_trait_msvc_func_params itmfp = *opt_itmfp;
+
+      result = get_ifc_params(itmfp);
+    }  /* if */
   }  /* if */
   return result;
 }  /* get_msvc_trait_func_param_chart_idx */
@@ -14392,14 +14395,17 @@ index from the function definition trait describing the function's parameters;
 otherwise, return a null chart index.
 */
 {
-  an_ifc_chart_index                    result = {};
-  Opt<an_ifc_trait_function_definition> opt_itfd;
+  an_ifc_chart_index result = {};
 
-  find_trait(&opt_itfd, decl_idx);
-  if (opt_itfd.has_value()) {
-    an_ifc_trait_function_definition itfd = *opt_itfd;
+  if (!is_null_index(decl_idx)) {
+    Opt<an_ifc_trait_function_definition> opt_itfd;
 
-    result = get_ifc_parameters(itfd);
+    find_trait(&opt_itfd, decl_idx);
+    if (opt_itfd.has_value()) {
+      an_ifc_trait_function_definition itfd = *opt_itfd;
+
+      result = get_ifc_parameters(itfd);
+    }  /* if */
   }  /* if */
   return result;
 }  /* get_func_defition_param_chart_idx */
