@@ -3397,8 +3397,10 @@ Return NULL if none is found.
       if (mep->imminent || has_imminent_subentity(mep)) {
         /* Trigger ifc_unexpected to call attention to the underlying problem
            without crashing. */
-        ifc_unexpected(decl_idx.mod,
-                       "entity refers to itself as part of the declaration");
+        a_string err_msg(index_to_str(decl_idx),
+                         " refers to itself as part of the declaration");
+
+        ifc_unexpected(decl_idx.mod, err_msg.as_temp_characters());
       } else {
         mod->process_ifc_declaration(mep);
       }  /* if */
