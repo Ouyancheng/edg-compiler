@@ -3327,6 +3327,17 @@ done:
 }  /* load_param_ref */
 
 
+static a_boolean is_entity_imminent(a_module_entity_ptr mep)
+/*
+Given a module entity pointer, return TRUE if the entity is an unresolved
+imminent state (i.e., the entity is not yet resolved to an IL entity or marked
+invalid); otherwise, return FALSE.
+*/
+{
+  return mep->imminent && !mep->invalid && mep->entity.ptr == NULL;
+}  /* is_entity_imminent */
+
+
 static a_boolean has_imminent_subentity(a_module_entity_ptr mep)
 /*
 If the given module entity corresponds to an abstract module entity composed of
@@ -3352,7 +3363,7 @@ the concrete "sub-entities" is imminent, return TRUE; otherwise, return FALSE.
 
         an_ifc_decl_index   heap_value = get_ifc_value(*indexed_ihd);
         a_module_entity_ptr emep = get_ifc_module_entity_ptr(heap_value);
-        if (emep->imminent) {
+        if (is_entity_imminent(emep)) {
           result = TRUE;
           break;
         }  /* if */
@@ -7789,7 +7800,7 @@ be mapped to the IL entity.
      interface. */
   check_assertion(mep->module_info->module_interface == this);
 #if CHECKING
-  if (!mep->invalid && mep->imminent && mep->entity.ptr == NULL) {
+  if (is_entity_imminent(mep)) {
     /* When this condition is violated, the entity was already being
        processed but, was again requested before processing completed.  When
        this occurs, the root cause of the cyclic dependency should be
