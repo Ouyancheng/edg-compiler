@@ -17811,6 +17811,57 @@ expression being cached.
 }  /* cache_args_with_parens */
 
 
+static a_boolean is_broken_reference_to_global_scope(
+                                             const an_ifc_expr_path &path_expr)
+/*
+Given an IFC path expression representation, return TRUE if the path is
+referencing a reference to a DeclScope with the name "`global namespace'"
+(which is presumed to be the global scope).
+*/
+{
+  a_boolean         result = FALSE;
+  an_ifc_expr_index scope_idx = get_ifc_scope(path_expr);
+
+  switch (scope_idx.sort) {
+    case ifc_es_expr_named_decl:
+      { Opt<an_ifc_expr_named_decl> opt_named_decl;
+
+        construct_node(&opt_named_decl, scope_idx);
+        if (!opt_named_decl.has_value()) {
+          goto done;
+        }  /* if */
+
+        an_ifc_expr_named_decl named_decl = *opt_named_decl;
+        an_ifc_decl_index      resolution_idx = get_ifc_resolution(named_decl);
+        if (resolution_idx.sort != ifc_ds_decl_scope) {
+          goto done;
+        }  /* if */
+
+        Opt<an_ifc_decl_scope> opt_decl_scope;
+        construct_node(&opt_decl_scope, resolution_idx);
+        if (!opt_decl_scope.has_value()) {
+          goto done;
+        }  /* if */
+
+        an_ifc_decl_scope decl_scope = *opt_decl_scope;
+        an_ifc_name_index name_idx = get_ifc_name(decl_scope);
+        a_const_char      *name_str = name_idx.mod->string_from_name_index(
+                                                                 name_idx,
+                                                                 /*loc=*/NULL);
+        if (strncmp(name_str, "`global namespace'", 18) == 0) {
+          result = TRUE;
+          goto done;
+        }  /* if */
+      }
+      break;
+    default:
+      break;
+  }  /* switch */
+done:
+  return result;
+}  /* if */
+
+
 void an_ifc_module::cache_expr(a_module_token_cache_ptr cache,
                                an_ifc_expr_index        expr,
                                const an_ifc_cache_info  &cinfo)
@@ -17999,16 +18050,20 @@ tuple elements by '::' instead of ','.
         }  /* if */
 
         an_ifc_expr_path iep = *opt_iep;
-        /* If this is part of a qualified name, the scope is presumed cached
-           already. */
-        if (!cinfo.qualified_name) {
-          cache_expr(cache, get_ifc_scope(iep), cinfo);
-          cache_token(cache, tok_colon_colon);
-        }  /* if */
+        if (is_broken_reference_to_global_scope(iep)) {
+          cache_expr(cache, get_ifc_member(iep), cinfo);
+        } else {
+          /* If this is part of a qualified name, the scope is presumed cached
+             already. */
+          if (!cinfo.qualified_name) {
+            cache_expr(cache, get_ifc_scope(iep), cinfo);
+            cache_token(cache, tok_colon_colon);
+          }  /* if */
 
-        an_ifc_cache_info member_cinfo = cinfo;
-        member_cinfo.dependent_name = TRUE;
-        cache_expr(cache, get_ifc_member(iep), member_cinfo);
+          an_ifc_cache_info member_cinfo = cinfo;
+          member_cinfo.dependent_name = TRUE;
+          cache_expr(cache, get_ifc_member(iep), member_cinfo);
+        }  /* if */
       }
       break;
     case ifc_es_expr_read:
