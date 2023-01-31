@@ -14678,6 +14678,36 @@ done:
 }  /* namespace */
 
 
+static a_boolean is_variadic_parameter_declaration_clause_type(
+                                                    an_ifc_type_index arg_type)
+/*
+If this is a type representing a variadic argument return TRUE; otherwise,
+return FALSE.
+
+For clarity, this is covering specifically the case of the ellipsis that
+appears in code like the following:
+
+  void f(int x, ...);
+*/
+{
+  a_boolean result = FALSE;
+
+  if (arg_type.sort == ifc_ts_type_fundamental) {
+    Opt<an_ifc_type_fundamental> opt_fund_type;
+
+    construct_node(&opt_fund_type, arg_type);
+    if (opt_fund_type.has_value()) {
+      an_ifc_type_fundamental fund_type = *opt_fund_type;
+      an_ifc_type_basis_sort  type_basis = get_ifc_basis(fund_type);
+
+      if (type_basis == ifc_tbs_ellipsis) {
+        result = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* is_variadic_parameter_declaration_clause_type */
+
 template<typename an_ifc_Node_type>
 static void cache_func_parameter_declaration_clause(
                                              a_module_token_cache_ptr cache,
@@ -14705,9 +14735,11 @@ context to help inform decisions about what to cache.
       goto invalid;
     }  /* if */
     arg_type.mod->cache_type(cache, arg_type);
+    if (!is_variadic_parameter_declaration_clause_type(arg_type)) {
+      a_string param_name("param_", i);
 
-    a_string param_name("param_", i);
-    cache_identifier(cache, param_name.as_temp_characters());
+      cache_identifier(cache, param_name.as_temp_characters());
+    }  /* if */
     /* Cache the default argument if we're not ignoring default arguments in
        this context, and a default argument is found. */
     if (!cinfo.ignore_default_arguments) {
