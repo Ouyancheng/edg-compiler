@@ -5941,9 +5941,10 @@ the existing template declaration; otherwise, *il_entity should be NULL.
     update_cache_info_for_template(&cache_info, (a_template_ptr)*il_entity);
   }  /* if */
   {
+    an_ifc_decl_index    decl_idx = decl_index_of(mep);
     a_module_token_cache cache;
 
-    mod->cache_decl_template(&cache, decl_templ, cache_info);
+    mod->cache_decl_template(&cache, decl_idx, decl_templ, cache_info);
     if (!cache.is_valid()) {
       goto invalid;
     }  /* if */
@@ -7213,7 +7214,7 @@ class_struct_union_case:
                the partial specializations that follow. */
             local_cache_info.ignore_definition = TRUE;
 
-            mod->cache_decl_template(&cache, idt, local_cache_info);
+            mod->cache_decl_template(&cache, decl_idx, idt, local_cache_info);
             if (!cache.is_valid()) {
               goto invalid;
             }  /* if */
@@ -14500,11 +14501,14 @@ IFC status-quo's potential for mismatched information).
 */
 struct an_ifc_func_param_context {
   template<typename an_ifc_Node_type>
-  inline an_ifc_func_param_context(an_ifc_decl_index      decl_idx,
-                                   const an_ifc_Node_type &decl);
+  inline an_ifc_func_param_context(
+                                 an_ifc_decl_index      decl_idx,
+                                 const an_ifc_Node_type &decl,
+                                 an_ifc_decl_index      parameterizing_entity);
   an_ifc_index_type get_num_params() const
     { return num_params; }
   inline an_ifc_type_index get_param_type(an_ifc_index_type param_idx);
+  inline an_ifc_name_index get_name(an_ifc_index_type param_idx);
   inline an_ifc_expr_index get_default_arg_expr(an_ifc_index_type param_idx);
 private:
   inline an_ifc_index_type determine_param_count();
@@ -14530,20 +14534,33 @@ private:
                 msvc_traits_param_chart;
                         /* The function parameter chart pulled from the
                            associated MSVC function parameters trait. */
+  a_lazy_ifc_func_param_chart
+                parameterizer_msvc_traits_param_chart;
+                        /* If this function is parameterized, this is the
+                           function parameter chart pulled from the associated
+                           MSVC function parameters trait for the
+                           parameterizing entity (see
+                           an_ifc_cache_info::parameterizing_entity for more
+                           information about the parameterizing entity). */
 };  /* an_ifc_func_param_context */
 
 template<typename an_ifc_Node_type>
 inline an_ifc_func_param_context::an_ifc_func_param_context(
-                                               an_ifc_decl_index      decl_idx,
-                                               const an_ifc_Node_type &decl)
+                                  an_ifc_decl_index      decl_idx,
+                                  const an_ifc_Node_type &decl,
+                                  an_ifc_decl_index      parameterizing_entity)
 /*
-Given a function-like declaration (indexed by decl_idx) initialize its function
+Given a function-like declaration (indexed by decl_idx) and (if parameterized)
+the parameterizing entity (see an_ifc_cache_info::parameterizing_entity for
+more information about the parameterizing entity) initialize its function
 parameter context.
 */
   : num_params(0), params_type(get_func_param_type(decl)),
     decl_param_chart(get_ifc_chart(decl)),
     def_param_chart(get_func_defition_param_chart_idx(decl_idx)),
-    msvc_traits_param_chart(get_msvc_trait_func_param_chart_idx(decl_idx))
+    msvc_traits_param_chart(get_msvc_trait_func_param_chart_idx(decl_idx)),
+    parameterizer_msvc_traits_param_chart(
+                    get_msvc_trait_func_param_chart_idx(parameterizing_entity))
 {
   this->num_params = this->determine_param_count();
 }  /* an_ifc_func_param_context:an_ifc_func_param_context */
@@ -14628,6 +14645,63 @@ invalid:
 done:
   return result;
 }  /* an_ifc_func_param_context::get_param_type */
+
+
+static an_ifc_name_index get_name_from_chart(
+                                         a_lazy_ifc_func_param_chart &chart,
+                                         an_ifc_index_type           param_idx)
+/*
+Given a function parameter chart and the relative index of a parameter, return
+the name index for the parameter's name (if possible); if no valid default name
+can be found, return a null name index.
+*/
+{
+  an_ifc_name_index          result = {};
+  Opt<an_ifc_decl_parameter> opt_decl_param = chart.get(param_idx);
+
+  if (opt_decl_param.has_value()) {
+    an_ifc_decl_parameter decl_param = *opt_decl_param;
+    an_ifc_text_offset    raw_result = get_ifc_name(decl_param);
+
+    /* FIXME: This is a repeated pattern, we could have codegen create
+       conversion functions for things of this ilk. */
+    result = an_ifc_name_index{raw_result.mod, ifc_ns_text_offset,
+                               raw_result.value};
+  }  /* if */
+  return result;
+}  /* get_name_from_chart */
+
+
+an_ifc_name_index
+an_ifc_func_param_context::get_name(an_ifc_index_type param_idx)
+/*
+Given the relative index of a parameter for the current function parameter
+context, return the name index for the parameter's name (if possible); if no
+valid name can be found, return a null name index.
+*/
+{
+  an_ifc_name_index result;
+
+  /* FIXME: Is this the best order? */
+  result = get_name_from_chart(this->parameterizer_msvc_traits_param_chart,
+                               param_idx);
+  if (!is_null_index(result)) {
+    goto done;
+  }  /* if */
+  result = get_name_from_chart(this->msvc_traits_param_chart, param_idx);
+  if (!is_null_index(result)) {
+    goto done;
+  }  /* if */
+  result = get_name_from_chart(this->def_param_chart, param_idx);
+  if (!is_null_index(result)) {
+    goto done;
+  }  /* if */
+  result = get_name_from_chart(this->decl_param_chart, param_idx);
+  /* FIXME: Do we need to do any "quality" comparison on the possible
+     results? */
+done:
+  return result;
+}  /* an_ifc_func_param_context::get_name */
 
 
 static an_ifc_expr_index get_default_arg_from_chart(
@@ -14724,7 +14798,8 @@ Cache the parameter-declaration-clause for the given function-like declaration
 context to help inform decisions about what to cache.
 */
 {
-  an_ifc_func_param_context param_context(decl_idx, decl);
+  an_ifc_func_param_context param_context(decl_idx, decl,
+                                          cinfo.parameterizing_entity);
   a_boolean                 first = TRUE;
 
   for (an_ifc_index_type i = 0; i < param_context.get_num_params(); ++i) {
@@ -14740,9 +14815,15 @@ context to help inform decisions about what to cache.
     }  /* if */
     arg_type.mod->cache_type(cache, arg_type);
     if (!is_variadic_parameter_declaration_clause_type(arg_type)) {
-      a_string param_name("param_", i);
+      an_ifc_name_index name_idx = param_context.get_name(i);
 
-      cache_identifier(cache, param_name.as_temp_characters());
+      if (is_null_index(name_idx)) {
+        a_string param_name("param_", i);
+
+        cache_identifier(cache, param_name.as_temp_characters());
+      } else {
+        cache_name(cache, name_idx);
+      }  /* if */
     }  /* if */
     /* Cache the default argument if we're not ignoring default arguments in
        this context, and a default argument is found. */
@@ -16430,14 +16511,15 @@ later processing).
 
 uint32_t an_ifc_module::cache_decl_template_declaration(
                                       a_module_token_cache_ptr   cache,
+                                      an_ifc_decl_index          decl_idx,
                                       const an_ifc_decl_template &decl,
                                       const an_ifc_cache_info    &cinfo)
 /*
-Add the tokens corresponding to the given template declaration (decl) to cache.
-cinfo contains information about the current cache context to help inform
-decisions about what to cache.  Return the offset into the template
-declaration's body at which to find the definition, or zero if there is no
-offset/the offset is not needed.
+Add the tokens corresponding to the given template declaration (decl; indexed
+by decl_idx) to cache.  cinfo contains information about the current cache
+context to help inform decisions about what to cache.  Return the offset into
+the template declaration's body at which to find the definition, or zero if
+there is no offset/the offset is not needed.
 */
 {
   an_ifc_parameterized_entity entity = get_ifc_entity(decl);
@@ -16474,6 +16556,7 @@ offset/the offset is not needed.
       decl_cinfo.no_access_specifier = TRUE;
       decl_cinfo.no_final_semicolon = TRUE;
       decl_cinfo.ignore_definition = TRUE;
+      decl_cinfo.parameterizing_entity = decl_idx;
       cache_decl(cache, entity_idx, decl_cinfo);
     }  /* if */
   }  /* if */
@@ -16522,12 +16605,13 @@ always require an initializer, otherwise they are not semantically correct.
 
 
 void an_ifc_module::cache_decl_template(a_module_token_cache_ptr   cache,
+                                        an_ifc_decl_index          decl_idx,
                                         const an_ifc_decl_template &decl,
                                         const an_ifc_cache_info    &cinfo)
 /*
-Add the tokens corresponding to the given template declaration (decl) to cache.
-cinfo contains information about the current cache context to help inform
-decisions about what to cache.
+Add the tokens corresponding to the given template declaration (decl; indexed
+by decl_idx) to cache.  cinfo contains information about the current cache
+context to help inform decisions about what to cache.
 */
 {
   an_ifc_sentence_index decl_body = get_ifc_body(get_ifc_entity(decl));
@@ -16546,7 +16630,7 @@ decisions about what to cache.
   }  /* if */
   /* If we're caching a definition, the final semicolon must be cached. */
   cache_info.no_final_semicolon = !cache_info.ignore_definition;
-  offset = cache_decl_template_declaration(cache, decl, cache_info);
+  offset = cache_decl_template_declaration(cache, decl_idx, decl, cache_info);
   if (!cache_info.ignore_definition) {
     (void)cache_sentence(cache, decl_body, offset);
   }  /* if */
@@ -17474,7 +17558,7 @@ about what to cache.
       { an_ifc_decl_template template_decl;
 
         construct_node_prechecked(&template_decl, decl);
-        cache_decl_template(cache, template_decl, cinfo);
+        cache_decl_template(cache, decl, template_decl, cinfo);
       }
       break;
     case ifc_ds_decl_partial_specialization:

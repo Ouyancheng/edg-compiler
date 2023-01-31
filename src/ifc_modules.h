@@ -129,12 +129,21 @@ IFC entities.
 */
 struct an_ifc_cache_info : public detail::an_ifc_cache_info_zero_bits {
   an_ifc_cache_info() :
-    an_ifc_cache_info_zero_bits{}, lexical_scope{}
+    an_ifc_cache_info_zero_bits{}, lexical_scope{}, parameterizing_entity{}
   {}
   an_ifc_decl_index
                 lexical_scope;
                         /* The declaration index of the scope that this entity
                            will be cached into. */
+  an_ifc_decl_index
+                parameterizing_entity;
+                        /* If the entity being cached is parameterized (e.g.,
+                           is an entity representing the parameterized
+                           declaration of a template or one of its
+                           specialization), this is the declaration index of
+                           the parameterizing entity (i.e., the template or
+                           specialization declaration itself); otherwise a null
+                           index. */
 };  /* an_ifc_cache_info */
 
 struct a_str_control_block;
@@ -406,9 +415,11 @@ public:
                                        a_module_token_cache_ptr cache,
                                        an_ifc_sentence_index    body_sentence);
   uint32_t cache_decl_template_declaration(a_module_token_cache_ptr   cache,
+                                           an_ifc_decl_index          decl_idx,
                                            const an_ifc_decl_template &decl,
                                            const an_ifc_cache_info    &cinfo);
   void cache_decl_template(a_module_token_cache_ptr   cache,
+                           an_ifc_decl_index          decl_idx,
                            const an_ifc_decl_template &decl,
                            const an_ifc_cache_info    &cinfo);
   void cache_decl_partial_specialization_declaration(
