@@ -18451,10 +18451,30 @@ common_cast:
       }
       break;
     case ifc_es_expr_nullptr:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "ExprSort::Nullptr",
-                                        &error_position);
-      goto invalid;
+      { Opt<an_ifc_expr_nullptr> opt_nullptr_expr;
+
+        construct_node(&opt_nullptr_expr, expr);
+        if (!opt_nullptr_expr.has_value()) {
+          goto invalid;
+        }  /* if */
+
+        an_ifc_expr_nullptr nullptr_expr = *opt_nullptr_expr;
+        an_ifc_type_index   type_idx = get_ifc_type(nullptr_expr);
+        cache_token(cache, tok_lparen);
+        if (is_null_index(type_idx)) {
+          cache_resolved_type_token(cache, standard_nullptr_type());
+        } else {
+          a_type_ptr il_type = type_for_type_index(type_idx, /*kind=*/NULL);
+
+          cache_resolved_type_token(cache, il_type);
+        }  /* if */
+        cache_token(cache, tok_rparen);
+
+        a_constant_ptr cp = alloc_cached_constant();
+        make_zero_of_proper_type(integer_type((an_integer_kind)ik_int), cp);
+        cache_literal(type_idx.mod, cache, cp);
+      }
+      break;
     case ifc_es_expr_this:
       /* FIXME: Currently unsupported. */
       issue_unsupported_construct_error(this, "ExprSort::This",
