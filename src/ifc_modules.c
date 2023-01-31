@@ -14023,10 +14023,10 @@ static void cache_func_declarator_id(a_module_token_cache_ptr cache,
 }  /* cache_func_declarator_id */
 
 
-template<typename an_ifc_Node_type>
-static void cache_func_declarator_id(a_module_token_cache_ptr     cache,
-                                     const an_ifc_decl_destructor &decl,
-                                     const an_ifc_cache_info      &cinfo)
+template<>
+void cache_func_declarator_id(a_module_token_cache_ptr     cache,
+                              const an_ifc_decl_destructor &decl,
+                              const an_ifc_cache_info      &cinfo)
 /*
 */
 {
