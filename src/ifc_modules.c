@@ -7853,9 +7853,12 @@ decl_loaded:
 
 template<typename a_Scope_seq_type>
 static void cache_scope_member_sequence(a_module_token_cache_ptr cache,
-                                        const a_Scope_seq_type   &seq)
+                                        const a_Scope_seq_type   &seq,
+                                        const an_ifc_cache_info  &cinfo)
 /*
-Cache a sequence (seq) of IFC scope member declarations into the cache.
+Cache a sequence (seq) of IFC scope member declarations into the cache.  cinfo
+contains information about the current cache context to help inform decisions
+about what to cache.
 */
 {
   a_scope_member_traverser traverser(seq);
@@ -7866,9 +7869,9 @@ Cache a sequence (seq) of IFC scope member declarations into the cache.
 
     an_ifc_scope_member scope_mem = *indexed_scope_mem;
     an_ifc_decl_index   mem_idx = get_ifc_index(scope_mem);
-    mem_idx.mod->cache_decl(cache, mem_idx, /*cinfo=*/{});
+    mem_idx.mod->cache_decl(cache, mem_idx, cinfo);
   }  /* for */
-      goto done;
+  goto done;
 invalid:
   expect_error_str("expected errors for bad scope member sequence cache");
   cache->invalidate();
@@ -7878,12 +7881,14 @@ done:;
 
 static void cache_scope(an_ifc_module            *mod,
                         a_module_token_cache_ptr cache,
+                        an_ifc_decl_index        decl_idx,
                         an_ifc_scope_index       scope)
 /*
-For the given IFC scope (i.e., a class or namespace definition), cache tokens
-corresponding to the brace-enclosed declarations of the scope (including the
-braces).  Note that in the case of a class scope this does not include the base
-class specifiers list.  A null IFC scope is handled by not caching any tokens.
+For the given IFC scope definition index (scope) of the declaration indexed by
+decl_idx, cache tokens corresponding to the brace-enclosed declarations of the
+scope (including the braces).  Note that in the case of a class scope this does
+not include the base class specifiers list.  A null IFC scope is handled by not
+caching any tokens.
 */
 {
   if (scope != 0) {
@@ -7898,7 +7903,10 @@ class specifiers list.  A null IFC scope is handled by not caching any tokens.
     }  /* if */
 
     an_ifc_scope_descriptor scope_seq = *opt_scope_seq;
-    cache_scope_member_sequence(cache, scope_seq);
+    an_ifc_cache_info       cinfo;
+    cinfo.lexical_scope = decl_idx;
+
+    cache_scope_member_sequence(cache, scope_seq, cinfo);
     cache_token(cache, tok_rbrace);
   }  /* if */
   goto done;
@@ -14794,13 +14802,13 @@ represents the declaration's body (e.g., for a class the member-specification).
   auto cache_name_fn = [this, cache, name]() {
     cache_name(cache, name);
   };
-  auto cache_scope_fn = [this, cache, base, type, scope]() {
+  auto cache_scope_fn = [this, cache, base, type, decl_idx, scope]() {
     /* If there are bases specified, cache the bases. */
     if (!is_null_index(base)) {
       cache_token(cache, tok_colon);
       cache_type(cache, base);
     }  /* if */
-    cache_scope(this, cache, scope);
+    cache_scope(this, cache, decl_idx, scope);
 
     /* Read the fundamental type so that we can determine if we're caching a
        namespace. */
@@ -16744,7 +16752,8 @@ current cache context to help inform decisions about what to cache.
           cache_scope_decl(cache, decl_idx, get_ifc_type(ids), cache_name_fn,
                            cache_scope_fn);
         } else {
-          auto cache_scope_fn = [this, cache, &cinfo, &ids]() {
+          auto cache_scope_fn =
+                            [this, cache, &cinfo, &ids, templated_decl_idx]() {
             if (!cinfo.ignore_definition) {
               an_ifc_type_index base = get_ifc_base(ids);
 
@@ -16753,7 +16762,8 @@ current cache context to help inform decisions about what to cache.
                 cache_token(cache, tok_colon);
                 cache_type(cache, base);
               }  /* if */
-              cache_scope(this, cache, get_ifc_initializer(ids));
+              cache_scope(this, cache, templated_decl_idx,
+                          get_ifc_initializer(ids));
             }  /* if */
             cache_token(cache, tok_semicolon);
           };
