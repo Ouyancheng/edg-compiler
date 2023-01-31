@@ -13608,9 +13608,13 @@ Cache the noexcept-specifier for the given noexcept specification.
         cache_bool_literal(cache, true);
         break;
       case ifc_ns_expression:
-        { an_ifc_sentence_index word_idx = get_ifc_words(eh_spec);
+        /* FIXME: MSVC is not encoding sufficient information to allow
+           references parameters to be looked up.  As the IFC is not always
+           encoding the noexcept specification, for now simply cache true. */
+        { /* an_ifc_sentence_index word_idx = get_ifc_words(eh_spec);
 
-          word_idx.mod->cache_sentence(cache, word_idx);
+             word_idx.mod->cache_sentence(cache, word_idx); */
+          cache_bool_literal(cache, true);
         }
         break;
       case ifc_ns_unenforced:
