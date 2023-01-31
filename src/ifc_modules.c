@@ -14819,7 +14819,7 @@ context to help inform decisions about what to cache.
     if (is_null_index(arg_type)) {
       goto invalid;
     }  /* if */
-    arg_type.mod->cache_type(cache, arg_type);
+    arg_type.mod->cache_type_first_part(cache, arg_type);
     if (!is_variadic_parameter_declaration_clause_type(arg_type)) {
       an_ifc_name_index name_idx = param_context.get_name(i);
 
@@ -14831,6 +14831,7 @@ context to help inform decisions about what to cache.
         cache_name(cache, name_idx);
       }  /* if */
     }  /* if */
+    arg_type.mod->cache_type_second_part(cache, arg_type);
     /* Cache the default argument if we're not ignoring default arguments in
        this context, and a default argument is found. */
     if (!cinfo.ignore_default_arguments) {
