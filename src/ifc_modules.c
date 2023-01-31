@@ -19908,7 +19908,7 @@ Add the tokens corresponding to the given name to cache.
         an_ifc_name_literal inl = *opt_inl;
         an_ifc_text_offset  encoded = get_ifc_encoded(inl);
         cache_token(cache, tok_operator);
-        cache_identifier(cache, get_string_at_offset(encoded));
+        cache_tokens_from_string(get_string_at_offset(encoded), cache);
       }
       break;
     case ifc_ns_name_guide:
