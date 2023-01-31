@@ -18342,6 +18342,12 @@ tuple elements by '::' instead of ','.
             cache_type(cache, get_ifc_target(iec));
             cache_expr(cache, get_ifc_source(iec), cache_info);
             break;
+          case ifc_dos_cast:
+            cache_token(cache, tok_lparen);
+            cache_type(cache, get_ifc_target(iec));
+            cache_token(cache, tok_rparen);
+            cache_expr(cache, get_ifc_source(iec), cinfo);
+            break;
           case ifc_dos_pretend:
             cache_token(cache, tok_lparen);
             cache_type(cache, get_ifc_target(iec));
