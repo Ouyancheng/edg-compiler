@@ -3103,6 +3103,11 @@ definition be required.
              marked invalid. */
           check_assertion(mep->entity.kind == iek_template);
           record_pending_ifc_template_definition(templ, decl_idx);
+        } else {
+          /* FIXME: We need to process specializations if we get here.  This
+             means IL processing gave us a defined entity, and definition
+             processing will never be called, so specializations will otherwise
+             never be loaded. */
         }  /* if */
       }
       break;
@@ -5956,17 +5961,14 @@ a_boolean
 process_template_definition(const an_ifc_decl_template &decl_templ,
                             a_module_entity_ptr        mep,
                             an_ifc_template_spec_info  spec_info,
-                            a_boolean                  process_specializations,
                             char                       **il_entity,
                             an_il_entry_kind           *kind)
 /*
 Given a module entity's IFC node information, module entity pointer, and
 aggregated template specialization information, attempt to complete the
-entity's definition and specializations.  If process_specializations is TRUE,
-specializations will be processed as well; otherwise, they will be ignored.
-Return TRUE if processing succeeds without error; otherwise, return FALSE.  If
-processing succeeds *il_entity and *kind will be set to the new IL entity for
-definition.
+entity's definition and specializations.  Return TRUE if processing succeeds
+without error; otherwise, return FALSE.  If processing succeeds *il_entity and
+*kind will be set to the new IL entity for definition.
 
 Notably, if there's a previous declaration *il_entity and *kind must be set to
 the existing template declaration; otherwise, *il_entity should be NULL.
@@ -5976,10 +5978,16 @@ the existing template declaration; otherwise, *il_entity should be NULL.
   a_boolean         result = TRUE;
   an_ifc_cache_info cache_info;
   an_ifc_module     *mod = get_assoc_ifc_module(mep);
+  a_boolean         specializations_processed = FALSE;
 
   if (*il_entity != NULL) {
     check_assertion(*kind == iek_template);
     update_cache_info_for_template(&cache_info, (a_template_ptr)*il_entity);
+    /* Process any specializations and explicit instantiations. */
+    if (spec_info.has_specs()) {
+      spec_info.process_specializations();
+      specializations_processed = TRUE;
+    }  /* if */
   }  /* if */
   {
     an_ifc_decl_index    decl_idx = decl_index_of(mep);
@@ -6004,9 +6012,10 @@ the existing template declaration; otherwise, *il_entity should be NULL.
       process_template_deduction_guides(templ, decl_idx);
     }  /* if */
   }
-  /* Process any specializations and explicit instantiations. */
+  /* Process any remaining specializations and any explicit instantiations. */
   if (spec_info.has_specs()) {
-    if (process_specializations) {
+    /* If specializations were not already processed, process them now. */
+    if (!specializations_processed) {
       spec_info.process_specializations();
     }  /* if */
     spec_info.process_instantiations();
@@ -6040,7 +6049,6 @@ kind set to iek_template.
   /* Delayed template definitions always follow a forward declaration,
      so specializations have already been handled. */
   return process_template_definition(decl_templ, mep, spec_info,
-                                     /*process_specializations=*/FALSE,
                                      il_entity, kind);
 }  /* process_delayed_template_definition */
 
@@ -6171,8 +6179,8 @@ resolved before attempting to resolve the function.
   an_ifc_decl_index      decl_idx = decl_index_of(mep);
   Opt<an_ifc_decl_index> opt_home_scope = get_home_scope_if_class(decl_idx);
 
-  /* Members of classes are processed via their enclosing class.  Thus, their
-     prerequisite is that it be processed. */
+  /* Members of classes require the class to be complete before anything
+     else. */
   if (opt_home_scope.has_value()) {
     an_ifc_decl_index   home_scope = *opt_home_scope;
     a_module_entity_ptr parent_mep = process_decl_at_index(home_scope);
@@ -6185,32 +6193,16 @@ resolved before attempting to resolve the function.
       an_ifc_module *parent_mod = get_assoc_ifc_module(parent_mep);
 
       parent_mod->complete_definition_of_module_class(parent_mep);
-#if CHECKING
-      /* The requested entity should've been loaded in the process of
-         completing the module class.  If that didn't occur something has
-         gone wrong (most likely, the entity and module entity pointer were
-         not correctly associated with each other -- see cache_bound_entity
-         for more information). */
-      /* FIXME: The module entity should always be imminent at this point,
-         however, because the front end does not currently map IL entities
-         for members of classes that already exist (e.g., from a global
-         module fragment), invalid status is also considered. */
-      if (!mep->imminent && !mep->invalid) {
-        an_ifc_decl_index parent_mep_idx = decl_index_of(parent_mep);
-        an_ifc_decl_index mep_idx = decl_index_of(mep);
-        a_string          err_msg("completion of ",
-                                  index_to_str(parent_mep_idx),
-                                  " failed to resolve child ",
-                                  index_to_str(mep_idx));
-
-        unexpected_condition_str(err_msg.as_temp_characters());
-      }  /* if */
-#endif /* CHECKING */
-      if (mep->invalid) {
-        goto invalid;
-      } else {
+      if (mep->imminent) {
+        /* If completing the class completed the entity, there's nothing more
+           to do. */
         goto done;
+      } else if (mep->invalid) {
+        /* If completing the class resulted in the entity being invalid,
+           there's nothing more to do. */
+        goto invalid;
       }  /* if */
+      /* Otherwise, check for further prerequisites based on the node type. */
     }  /* if */
   }  /* if */
   /* Handle prerequisites based on the node type. */
@@ -6299,6 +6291,41 @@ done:
 }  /* process_decl_prerequisites */
 
 
+static a_boolean is_template_redeclarable(const an_ifc_decl_template &decl)
+/*
+If the given IFC template declaration can be declared (without one of those
+declarations being an extern declaration) multiple times, return TRUE;
+otherwise, return FALSE.
+*/
+{
+  a_boolean         result = TRUE;
+  an_ifc_decl_index entity_decl = get_ifc_decl(get_ifc_entity(decl));
+
+  if (entity_decl.sort == ifc_ds_decl_variable) {
+    result = FALSE;
+  }  /* if */
+  return result;
+}  /* is_template_redeclarable */
+
+
+static a_boolean is_template_declaration_extern(a_template_ptr templ)
+/*
+If the given IL template is declared, return TRUE; otherwise, return FALSE.
+*/
+{
+  a_boolean result = FALSE;
+
+  if (templ->kind == templk_variable) {
+    a_variable_ptr variable = templ->prototype_instantiation.variable;
+
+    if (variable->storage_class != sc_extern) {
+      result = TRUE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* is_template_declaration_extern */
+
+
 static void process_decl_to_il_entity(a_module_entity_ptr mep,
                                       a_boolean           defer)
 /*
@@ -6308,11 +6335,13 @@ updated to note the deferred entity for lazy loading.  When defer is FALSE, we
 immediately process *mep and attempt to form an IL entity; if no IL entity can
 be formed, *mep will marked as invalid.
 
-Only module entity pointers for IL entities not in class scope should be passed
-to this function.
+Only module entity pointers for IL entities with all of their prerequisites
+fulfilled should be passed to this function.
+
+The functions process_decl_at_index and process_ifc_declaration should be
+strongly preferred over calling this function directly.
 */
 {
-  check_assertion(!get_home_scope_if_class(decl_index_of(mep)).has_value());
   an_ifc_module            *mod = get_assoc_ifc_module(mep);
   a_decl_pos_block         decl_pos_block;
   a_symbol_locator         loc;
@@ -7217,36 +7246,30 @@ class_struct_union_case:
             }  /* if */
             push_module_declaration_context(mep->scope, &scope_push_status);
           }  /* if */
-
           if (check_and_set_template_redeclaration(&loc, mep, &error_position,
                                                    &il_entity, &kind)) {
             a_template_ptr templ = (a_template_ptr)il_entity;
 
-            update_cache_info_for_template(&cache_info, templ);
-            /* Skip any further processing when the variable template is not
-               declared "extern" (as variable template declarations cannot
-               otherwise be meaningfully "merged"). */
-            if (templ->kind == templk_variable) {
-              a_variable_ptr variable =
-                                       templ->prototype_instantiation.variable;
+            /* Skip any further processing when the template cannot be
+               redeclared (without an extern declaration being the existing
+               declaration) and the existing declaration is not extern.
 
-              if (variable->storage_class != sc_extern) {
+               As an example, variable templates can be declared extern without
+               the declaration "counting" as a redeclaration of the
+               variable. */
+            if (!is_template_redeclarable(idt)) {
+              if (!is_template_declaration_extern(templ)) {
                 goto done;
               }  /* if */
             }  /* if */
+            update_cache_info_for_template(&cache_info, templ);
           }  /* if */
+
           /* Compute the DeclIndex of the current template and retrieve the
              sequence of explicit specializations and instantiations. */
           an_ifc_template_spec_info spec_info(decl_idx);
-          /* FIXME: Find a better way to handle self references; currently we
-             forward declare in almost all cases in part to handle self
-             references. */
-          an_ifc_decl_index         entity_decl =
-                                             get_ifc_decl(get_ifc_entity(idt));
           a_boolean                 forward_declare =
-                                              (!cache_info.ignore_definition &&
-                                   (entity_decl.sort != ifc_ds_decl_variable));
-          a_boolean                 defer_definition = FALSE;
+                                                 !cache_info.ignore_definition;
           if (forward_declare) {
             a_module_token_cache cache;
             an_ifc_cache_info    local_cache_info = cache_info;
@@ -7263,25 +7286,11 @@ class_struct_union_case:
             if (kind != iek_template) {
               goto invalid;
             }  /* if */
-            if (is_file_or_namespace_scope(mep->scope)) {
-              defer_definition = TRUE;
-            }  /* if */
-            if (spec_info.has_specs()) {
-              spec_info.process_specializations();
-            }  /* if */
-          }  /* if */
-          if (defer_definition) {
-            check_assertion(il_entity != NULL && kind == iek_template);
-            record_pending_ifc_template_definition((a_template_ptr)il_entity,
-                                                   decl_idx);
           } else {
-            /* If the definition hasn't been deferred (from a compatible
-               forward declaration being processed), process the definition
-               now.  If the declaration was not forward declared, be sure to
-               process any specializations as part of definition processing. */
+            /* If the definition couldn't be forward declared, process the
+               complete declaration and definition now. */
             if (!process_template_definition(
                                             idt, mep, spec_info,
-                                            /*process_specs=*/!forward_declare,
                                             &il_entity,
                                             &kind)) {
               goto invalid;
@@ -7432,6 +7441,8 @@ class_struct_union_case:
     case ifc_ds_decl_partial_specialization:
       { Opt<an_ifc_decl_partial_specialization> opt_idps;
 
+        /* Specialization deferral was migrated to defer_ifc_declaration. */
+        check_assertion(!defer);
         construct_node(&opt_idps, decl_idx);
         if (!opt_idps.has_value()) {
           goto invalid;
@@ -7439,33 +7450,26 @@ class_struct_union_case:
         if (!mod->init_decl_locator(*opt_idps, &loc)) {
           goto invalid;
         }  /* if */
-        /* Partial specializations should not be added to the deferred symbol
-           list as they'll be processed when the primary template is processed
-           via the associated entries in "trait.specialization". */
-        if (defer) {
-          associate_spec_with_template(decl_idx, *opt_idps);
-        } else {
-          an_ifc_decl_partial_specialization idps = *opt_idps;
 
-          mod->lazy_push_module_scope(idps, mep, &scope_push_status);
-          /* FIXME: Is it feasible to detect ignorable redeclarations of
-             partial specializations? */
-          if (get_ifc_body(get_ifc_entity(idps)) != 0) {
-            a_module_token_cache cache;
+        an_ifc_decl_partial_specialization idps = *opt_idps;
+        mod->lazy_push_module_scope(idps, mep, &scope_push_status);
+        /* FIXME: Is it feasible to detect ignorable redeclarations of
+           partial specializations? */
+        if (get_ifc_body(get_ifc_entity(idps)) != 0) {
+          a_module_token_cache cache;
 
-            /* There is a definition of the partial specialization.  Record the
-               resolution of the signature immediately so that the below
-               processing of the definition has access to it. */
-            mod->cache_decl_partial_specialization(&cache, decl_idx, idps);
-            if (!cache.is_valid()) {
-              goto invalid;
-            }  /* if */
-            il_entity = parse_cached_partial_specialization(&cache,
-                                                            mep->scope,
-                                                            &kind);
-            if (kind != iek_template) {
-              goto invalid;
-            }  /* if */
+          /* There is a definition of the partial specialization.  Record the
+             resolution of the signature immediately so that the below
+             processing of the definition has access to it. */
+          mod->cache_decl_partial_specialization(&cache, decl_idx, idps);
+          if (!cache.is_valid()) {
+            goto invalid;
+          }  /* if */
+          il_entity = parse_cached_partial_specialization(&cache,
+                                                          mep->scope,
+                                                          &kind);
+          if (kind != iek_template) {
+            goto invalid;
           }  /* if */
         }  /* if */
       }
@@ -7473,6 +7477,8 @@ class_struct_union_case:
     case ifc_ds_decl_specialization:
       { Opt<an_ifc_decl_specialization> opt_ids;
 
+        /* Specialization deferral was migrated to defer_ifc_declaration. */
+        check_assertion(!defer);
         construct_node(&opt_ids, decl_idx);
         if (!opt_ids.has_value()) {
           goto invalid;
@@ -7480,44 +7486,37 @@ class_struct_union_case:
         if (!mod->init_decl_locator(*opt_ids, &loc)) {
           goto invalid;
         }  /* if */
-        /* Specializations should not be added to the deferred symbol list as
-           they'll be processed when the primary template is processed via the
-           associated entries in "trait.specialization". */
-        if (defer) {
-          associate_spec_with_template(decl_idx, *opt_ids);
-        } else {
-          an_ifc_decl_specialization ids = *opt_ids;
-          a_module_token_cache       cache;
-          an_ifc_cache_info          cache_info;
 
-          mod->lazy_push_module_scope(ids, mep, &scope_push_status);
-          if (check_and_set_specialization_redeclaration(&loc, mep, ids,
-                                                         &error_position,
-                                                         &il_entity,
-                                                         &kind)) {
-            /* Specializations are fairly simple in nature; if the
-               specialization is already declared and already defined, there's
-               nothing to add; skip processing. */
-            if (is_defined(il_entity, kind)) {
-              break;
-            }  /* if */
+        an_ifc_decl_specialization ids = *opt_ids;
+        a_module_token_cache       cache;
+        an_ifc_cache_info          cache_info;
+        mod->lazy_push_module_scope(ids, mep, &scope_push_status);
+        if (check_and_set_specialization_redeclaration(&loc, mep, ids,
+                                                       &error_position,
+                                                       &il_entity,
+                                                       &kind)) {
+          /* Specializations are fairly simple in nature; if the
+             specialization is already declared and already defined, there's
+             nothing to add; skip processing. */
+          if (is_defined(il_entity, kind)) {
+            break;
           }  /* if */
-          mod->cache_decl_specialization(&cache, decl_idx, ids, cache_info);
-          if (!cache.is_valid()) {
-            goto invalid;
-          }  /* if */
-          if (get_ifc_sort(ids) == ifc_ss_instantiation) {
-            il_entity = mod->parse_cached_explicit_instantiation(&cache, ids,
-                                                                 &kind);
-          } else {
-            il_entity = mod->parse_cached_explicit_specialization(&cache,
-                                                                  mep->scope,
-                                                                  ids,
-                                                                  &kind);
-          }  /* if */
-          if (kind != iek_template) {
-            goto invalid;
-          }  /* if */
+        }  /* if */
+        mod->cache_decl_specialization(&cache, decl_idx, ids, cache_info);
+        if (!cache.is_valid()) {
+          goto invalid;
+        }  /* if */
+        if (get_ifc_sort(ids) == ifc_ss_instantiation) {
+          il_entity = mod->parse_cached_explicit_instantiation(&cache, ids,
+                                                               &kind);
+        } else {
+          il_entity = mod->parse_cached_explicit_specialization(&cache,
+                                                                mep->scope,
+                                                                ids,
+                                                                &kind);
+        }  /* if */
+        if (kind != iek_template) {
+          goto invalid;
         }  /* if */
       }
       break;
@@ -7793,12 +7792,6 @@ done:
     if (il_entity == NULL) {
       mep->invalid = TRUE;
     }  /* if */
-#if DEBUG
-    if (db_flag_is_set("ms_symbols")) {
-      (void)fprintf(f_debug, "Module entity defined: ");
-      db_module_entity(mep);
-    }  /* if */
-#endif /* DEBUG */
     /* If a scope was pushed, scope popping should always occur. */
     if (scope_push_status != mspk_unattempted) {
       pop_module_declaration_context(scope_push_status);
@@ -8870,14 +8863,54 @@ Only module entity pointers for IL entities not in class scope should be passed
 to this function.
 */
 {
+  an_ifc_decl_index decl_idx = decl_index_of(mep);
+
 #if DEBUG
   if (db_flag_is_set("ifc_decl")) {
     (void)fprintf(f_debug, "[>%lu] (deferred) ", ++decl_nesting_level);
     db_mep(mep);
   }  /* if */
 #endif /* DEBUG */
-  /* FIXME: Extract deferral logic from process_decl_to_il_entity. */
-  process_decl_to_il_entity(mep, /*defer=*/TRUE);
+  switch (decl_idx.sort) {
+    case ifc_ds_decl_partial_specialization:
+      { Opt<an_ifc_decl_partial_specialization> opt_idps;
+
+        construct_node(&opt_idps, decl_idx);
+        if (!opt_idps.has_value()) {
+          goto invalid;
+        }  /* if */
+
+        an_ifc_decl_partial_specialization idps = *opt_idps;
+        /* Partial specializations should not be added to the deferred symbol
+           list as they'll be processed when the primary template is processed
+           via the associated entries in "trait.specialization". */
+        associate_spec_with_template(decl_idx, idps);
+      }
+      break;
+    case ifc_ds_decl_specialization:
+      { Opt<an_ifc_decl_specialization> opt_ids;
+
+        construct_node(&opt_ids, decl_idx);
+        if (!opt_ids.has_value()) {
+          goto invalid;
+        }  /* if */
+
+        an_ifc_decl_specialization ids = *opt_ids;
+        /* Specializations should not be added to the deferred symbol list as
+           they'll be processed when the primary template is processed via the
+           associated entries in "trait.specialization". */
+        associate_spec_with_template(decl_idx, ids);
+      }
+      break;
+    default:
+      /* FIXME: Extract deferral logic from process_decl_to_il_entity. */
+      process_decl_to_il_entity(mep, /*defer=*/TRUE);
+      break;
+  }  /* switch */
+  goto done;
+invalid:
+  mep->invalid = TRUE;
+done:
 #if CHECKING
   if (!mep->invalid && mep->scope == NULL) {
     an_ifc_decl_index mep_idx = decl_index_of(mep);
@@ -11131,7 +11164,9 @@ Return TRUE if a scope was set.
 
   if (mep->scope == NULL) {
     mep->scope = get_home_scope(decl);
-    scope_initialized = TRUE;
+    if (mep->scope != NULL) {
+      scope_initialized = TRUE;
+    }  /* if */
   }  /* if */
   return scope_initialized;
 } /* lazy_init_module_scope */
@@ -16615,43 +16650,6 @@ there is no offset/the offset is not needed.
 }  /* cache_decl_template_declaration */
 
 
-static a_boolean is_template_def_required(const an_ifc_decl_template &decl)
-/*
-Some templates require their definition be cached even when we would normally
-suppress definition caching.  If the given template declaration is one of these
-templates, return TRUE; otherwise, return FALSE.
-
-An example is in-class static constexpr variables.  While the front end
-normally does not cache definitions for class-members inline, these variables
-always require an initializer, otherwise they are not semantically correct.
-*/
-{
-  a_boolean result = FALSE;
-
-  if (is_class_scope(get_ifc_home_scope(decl))) {
-    an_ifc_decl_index entity_idx = get_ifc_decl(get_ifc_entity(decl));
-
-    if (entity_idx.sort == ifc_ds_decl_variable) {
-      Opt<an_ifc_decl_variable> opt_var_decl;
-
-      construct_node(&opt_var_decl, entity_idx);
-      if (opt_var_decl.has_value()) {
-        an_ifc_decl_variable          var_decl = *opt_var_decl;
-        an_ifc_object_traits_bitfield var_traits = get_ifc_traits(var_decl);
-
-        /* At this point it's known the template is for a in-class static
-           variable.  If this variable is constexpr, it's required that the
-           definition be in class. */
-        if (test_bitmask<ifc_otb_constexpr>(var_traits)) {
-          result = TRUE;
-        }  /* if */
-      }  /* if */
-    }  /* if */
-  }  /* if */
-  return result;
-}  /* is_template_def_required */
-
-
 void an_ifc_module::cache_decl_template(a_module_token_cache_ptr   cache,
                                         an_ifc_decl_index          decl_idx,
                                         const an_ifc_decl_template &decl,
@@ -16667,12 +16665,13 @@ context to help inform decisions about what to cache.
   uint32_t              offset;
 
   if (decl_body == 0) {
-  /* Flag that the definition is ignored if there's no definition to cache. */
+    /* Flag that the definition is ignored if there's no definition to
+       cache. */
     cache_info.ignore_definition = TRUE;
   } else if (cache_info.ignore_definition) {
     /* In some cases the template overrides the contextually definition
-       ignoring rules (see is_template_def_required for more information). */
-    if (is_template_def_required(decl)) {
+       ignoring rules (see is_template_redeclarable for more information). */
+    if (!is_template_redeclarable(decl)) {
       cache_info.ignore_definition = FALSE;
     }  /* if */
   }  /* if */
