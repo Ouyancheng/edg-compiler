@@ -3622,6 +3622,39 @@ Add tok_to_cache to cache and associate it with index.
 }  /* cache_token_with_index */
 
 
+static a_boolean is_cachable_expr(an_ifc_expr_index expr_idx)
+/*
+Given an expression index, return TRUE if the indexed expression can be
+converted into tokens; otherwise, return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (is_null_index(expr_idx)) {
+    result = FALSE;
+  } else if (expr_idx.sort == ifc_es_expr_empty) {
+    result = FALSE;
+  }  /* if */
+  return result;
+}  /* is_cachable_expr */
+
+
+static void cache_pending_expr_token(a_module_token_cache_ptr cache,
+                                     an_ifc_expr_index        expr_idx)
+/*
+Add a tok_pending_ifc_expr, representing the deferred expression at the given
+expression index, to the cache.
+*/
+{
+  /* If this assertion is violated, the caller attempted to cache a
+     non-existent expression as pending expression.  This should be resolved
+     via the introduction of appropriate additional checks (typically a call to
+     is_cachable_expr) at the call site. */
+  check_assertion(is_cachable_expr(expr_idx));
+  cache_token_with_index(cache, tok_pending_ifc_expr, expr_idx);
+}  /* cache_pending_expr_token */
+
+
 template<typename an_ifc_Node_type>
 static a_boolean cache_decl_stmt(a_module_token_cache_ptr cache,
                                  const an_ifc_Node_type   &node)
@@ -4093,12 +4126,12 @@ TRUE if caching succeeds, FALSE otherwise.
   }  /* if */
 
   a_boolean is_template_param = param_sort != ifc_ps_object;
-  if (!is_null_index(initializer) &&
+  if (is_cachable_expr(initializer) &&
       ((!cinfo.ignore_default_arguments && !is_template_param) ||
        (!cinfo.ignore_default_template_arguments && is_template_param))) {
     cache_token(cache, tok_assign);
     if (defer_initializer_expr) {
-      cache_token_with_index(cache, tok_pending_ifc_expr, initializer);
+      cache_pending_expr_token(cache, initializer);
     } else {
       mod->cache_expr(cache, initializer, /*cinfo=*/{});
     }  /* if */
@@ -14845,9 +14878,9 @@ context to help inform decisions about what to cache.
     if (!cinfo.ignore_default_arguments) {
       an_ifc_expr_index arg_expr = param_context.get_default_arg_expr(i);
 
-      if (!is_null_index(arg_expr)) {
+      if (is_cachable_expr(arg_expr)) {
         cache_token(cache, tok_assign);
-        cache_token_with_index(cache, tok_pending_ifc_expr, arg_expr);
+        cache_pending_expr_token(cache, arg_expr);
       }  /* if */
     }  /* if */
     first = FALSE;
