@@ -326,6 +326,12 @@ the "#" the current token (at least logically).
     } else if (curr_id_is("elif")) {
       /* #elif directive. */
       kind = ppd_elif;
+    } else if (elifdef_enabled && curr_id_is("elifdef")) {
+      /* #elifdef directive. */
+      kind = ppd_elifdef;
+    } else if (elifdef_enabled && curr_id_is("elifndef")) {
+      /* #elifndef directive. */
+      kind = ppd_elifndef;
     } else if (curr_id_is("define")) {
       /* #define directive. */
       kind = ppd_define;
@@ -508,35 +514,35 @@ the #endif.
 }  /* proc_else */
 
 
-static void proc_elif(a_boolean perform_elif)
+static void proc_elif(a_boolean treat_as_else)
 /*
-Scan and process an #elif directive.  If perform_elif == TRUE, scan and
-evaluate the expression, and do the skip if appropriate.
+Scan and process a #elif, #elifdef, or #elifndef directive.  If
+treat_as_else is TRUE, skip to the corresponding #endif.
 */
 {
   if (pp_if_stack_depth <= base_pp_if_stack_depth) {
-    /* There was no #if corresponding to this #elif. */
+    /* There was no #if corresponding to this directive. */
     pos_error(ec_missing_pp_if, &error_position);
     flush_to_newline();
   } else if (pp_if_stack[pp_if_stack_depth].else_encountered) {
-    /* #else has already appeared; #elif is not valid here. */
+    /* #else has already appeared; the directive is not valid here. */
     pos_error(ec_pp_else_already_appeared, &error_position);
     flush_to_newline();
   } else {
-    /* The #elif is valid, process it. */
+    /* The directive is valid, process it. */
     a_byte	ifg_state = get_ifg_state();
     if (pp_if_stack_depth == (base_pp_if_stack_depth+1) &&
 	ifg_state != IFG_STATE_FAIL &&
 	ifg_state != IFG_STATE_ONCE) {
-      /* We've encountered a #elif at the outermost level.  This
-         means that this file is not a candidate for suppression
-         of subsequent includes. */
+      /* We've encountered a #elif, etc., at the outermost level.  This
+         means that this file is not a candidate for suppression of
+         subsequent includes. */
       set_ifg_state(IFG_STATE_FAIL);
     }  /* if */
-    if (perform_elif) {
-      /* When an #elif is hit when not skipping, it always acts like an
-         #else.  That is, the value of the expression is unimportant:
-         the skip to #endif is always done. */
+    if (treat_as_else) {
+      /* When a #elif, etc., is hit when not skipping, it always acts like
+         a #else.  That is, the condition is unimportant: the skip to
+         #endif is always done. */
       flush_to_newline();
       skip_to_endif(/*stop_skip_on_else_or_elif=*/FALSE);
     }  /* if */
@@ -607,17 +613,87 @@ Push a new entry on the preprocessing-if stack (pp_if_stack).
 }  /* push_pp_if_stack */
 
 
+static a_boolean check_if_defined_macro(a_boolean    is_ifdef,
+                                        a_boolean    *condition,
+                                        a_const_char **id_spelling,
+                                        sizeof_t     *id_length)
+/*
+Scan the operand of a #ifdef, #ifndef, #elifdef, or #elifndef directive;
+is_ifdef is TRUE for the "ifdef" variants and FALSE for the "ifndef" variants.
+If the operand is an identifier:
+  - if non-NULL, set *id_spelling and *id_length to designate the identifier;
+  - if the identifier is the name of a macro, set *condition to TRUE for the
+    "ifdef" variants and FALSE for the "ifndef" variants, and vice versa if
+    the identifier is not the name of a macro; and
+  - return TRUE.
+Otherwise, issue a diagnostic, set *condition to FALSE, and return FALSE.
+*/
+{
+  a_boolean           result = FALSE;
+  a_symbol_ptr        assoc_symbol;
+  a_symbol_header_ptr sym_hdr;
+
+  *condition = FALSE;
+  if (get_token() != tok_identifier) {
+    /* Expected an identifier.  If the token is an integer, give a warning
+       rather than an error because UNIX code includes things like #ifdef 3b5,
+       which is treated as undefined. */
+    if ((!strict_ansi_mode || strict_ansi_error_severity != es_error) &&
+        isdigit((unsigned char)*start_of_curr_token)) {
+      pos_warning(ec_exp_identifier, &error_position);
+      flush_to_newline();
+    } else {
+      syntax_error(ec_exp_identifier);
+      some_error_in_curr_directive = TRUE;
+    }  /* if */
+  } else {
+    a_const_char *id_ptr = start_of_curr_token;
+    sizeof_t     id_len = len_of_curr_token;
+    /* Get the canonical spelling of the identifier. */
+    if (id_contains_ucn_or_multibyte_char) {
+      id_ptr = make_canonical_identifier(start_of_curr_token, &id_len,
+                                         /*force_ucn=*/FALSE);
+    }  /* if */
+    if (id_spelling != NULL) {
+      *id_spelling = id_ptr;
+    }  /* if */
+    if (id_length != NULL) {
+      *id_length = id_len;
+    }  /* if */
+    /* The identifier __VA_ARGS__ is not allowed if variadic macros are
+       accepted, and similarly for __VA_OPT__ when va_opt_enabled is
+       TRUE.. */
+    check_for_reserved_VA_id(id_len, id_ptr);
+    /* Look to see if there is a macro with this name. */
+    sym_hdr = find_symbol_header(id_ptr, id_len, &locator_for_curr_id);
+    assoc_symbol = find_defined_macro(sym_hdr);
+    if (assoc_symbol != NULL) {
+      *condition = is_ifdef ? TRUE : FALSE;
+      mark_referenced(assoc_symbol, &pos_curr_token);
+    } else {
+      *condition = is_ifdef ? FALSE : TRUE;
+    }  /* if */
+    /* Move past the identifier. */
+    (void)get_token();
+    ignore_harmless_trailing_comment();
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* check_if_defined_macro */
+
+
 static void skip_to_endif(a_boolean stop_skip_on_else_or_elif)
 /*
 Skip to the #endif corresponding to the current directive.  If
-stop_skip_on_else_or_elif is true, also stop the skip on a
-corresponding #else or #elif.  On entry, the position should be at
+stop_skip_on_else_or_elif is true, also stop the skip on a corresponding
+#else, #elif, #elifdef, or #elifndef.  On entry, the position should be at
 the newline of the preprocessing directive that is causing this skip.
 */
 {
   a_boolean           condition;
   a_boolean           save_currently_in_pp_if_skip = currently_in_pp_if_skip;
   a_source_position   start_of_dir_position;
+  a_pp_directive_kind directive;
 
   db_enter(3, "skip_to_endif");
   /* Before leaving the current directive, check that all of it was taken.
@@ -650,7 +726,7 @@ the newline of the preprocessing directive that is causing this skip.
     start_of_dir_position = pos_curr_token;
     in_preprocessing_directive = TRUE;
     /* Identify the directive and process it. */
-    switch ((int)identify_dir_keyword()) {
+    switch ((int)(directive = identify_dir_keyword())) {
       case ppd_endif:
         /* #endif, valid end of if-skip. */
         proc_endif();
@@ -666,16 +742,25 @@ the newline of the preprocessing directive that is causing this skip.
         if (stop_skip_on_else_or_elif) goto end_skip;
         break;
       case ppd_elif:
-        proc_elif(/*perform_elif=*/FALSE);
+      case ppd_elifdef:
+      case ppd_elifndef:
+        proc_elif(/*treat_as_else=*/FALSE);
         /* Stop skipping if we're supposed to stop on an else. */
         if (stop_skip_on_else_or_elif) {
-          /* Scan and evaluate the expression. */
-          scan_if_expr(&condition);
+          if (directive == ppd_elif) {
+            /* Scan and evaluate the expression. */
+            scan_if_expr(&condition);
+          } else {
+            /* Check whether a macro is defined or not. */
+            (void)check_if_defined_macro(/*is_ifdef=*/directive == ppd_elifdef,
+                                         &condition, /*id_spelling=*/NULL,
+                                         /*id_length=*/NULL);
+          }  /* if */
           /* If the condition is TRUE, stop skipping. */
           if (condition) goto end_skip;
-          /* Check for extra text beyond the end of the expression.  For
-             the case where the skip is ended, the check is done at a
-             higher level. */
+          /* Check for extra text beyond the end of the expression or
+             identifier.  For the case where the skip is ended, the check
+             is done at a higher level. */
           end_of_directive_processing();
         }  /* if */
         break;
@@ -853,32 +938,12 @@ Scan and process an #ifdef or #ifndef directive (is_ifdef == TRUE and
 FALSE, respectively).
 */
 {
-  a_symbol_ptr		assoc_symbol;
-  a_boolean		condition = FALSE;
-  a_symbol_header_ptr	sym_hdr;
+  a_boolean    condition;
+  a_byte       ifg_state = get_ifg_state();
+  a_const_char *id_ptr;
+  sizeof_t     id_len;
 
-  if (get_token() != tok_identifier) {
-    /* Expected an identifier.  If the token is an integer, give a warning
-       rather than an error because UNIX code includes things like #ifdef 3b5,
-       which is treated as undefined. */
-    if ((!strict_ansi_mode || strict_ansi_error_severity != es_error) &&
-        isdigit((unsigned char)*start_of_curr_token)) {
-      pos_warning(ec_exp_identifier, &error_position);
-      condition = FALSE;
-      flush_to_newline();
-    } else {
-      syntax_error(ec_exp_identifier);
-      some_error_in_curr_directive = TRUE;
-    }  /* if */
-  } else {
-    a_byte       ifg_state = get_ifg_state();
-    a_const_char *id_ptr = start_of_curr_token;
-    sizeof_t     id_len = len_of_curr_token;
-    /* Get the canonical spelling of the identifier. */
-    if (id_contains_ucn_or_multibyte_char) {
-      id_ptr = make_canonical_identifier(start_of_curr_token, &id_len,
-                                         /*force_ucn=*/FALSE);
-    }  /* if */
+  if (check_if_defined_macro(is_ifdef, &condition, &id_ptr, &id_len)) {
     if (ifg_state == IFG_STATE_START) {
       /* If we are at the start of an include file then record 
          information about this @ifdef so that it can be used later to
@@ -898,21 +963,6 @@ FALSE, respectively).
     } else {
       /* Do nothing if state is FAIL, INTERMED or ONCE. */
     }  /* if */
-    /* The identifier __VA_ARGS__ is not allowed if variadic macros are
-       accepted, and similarly for __VA_OPT__ when va_opt_enabled is
-       TRUE.. */
-    check_for_reserved_VA_id(id_len, id_ptr);
-    /* Look to see if there is a macro with this name. */
-    sym_hdr = find_symbol_header(id_ptr, id_len, &locator_for_curr_id);
-    assoc_symbol = find_defined_macro(sym_hdr);
-    if (assoc_symbol != NULL) {
-      condition = TRUE;
-      mark_referenced(assoc_symbol, &pos_curr_token);
-    }  /* if */
-    if (!is_ifdef) condition = !condition;
-    /* Move past the identifier. */
-    (void)get_token();
-    ignore_harmless_trailing_comment();
   }  /* if */
   /* Do the if processing. */
   perform_if(condition);
@@ -4458,7 +4508,9 @@ preprocessor directives are handled by is_module_pp_directive.
         proc_ifdef(/*is_ifdef=*/FALSE);
         break;
       case ppd_elif:
-        proc_elif(/*perform_elif=*/TRUE);
+      case ppd_elifdef:
+      case ppd_elifndef:
+        proc_elif(/*treat_as_else=*/TRUE);
         break;
       case ppd_else:
         proc_else(/*perform_else=*/TRUE);

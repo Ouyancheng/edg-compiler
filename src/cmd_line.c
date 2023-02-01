@@ -3564,6 +3564,7 @@ process.
     if (!option_kind_used[(int)optk_digit_separators]) {
       digit_separators_enabled = TRUE;
     }  /* if */
+    elifdef_enabled = TRUE;
   }  /* if */
 }  /* set_c_mode_flags */
 
@@ -4076,6 +4077,7 @@ default mode (e.g., exception handling).
           if_consteval_enabled = TRUE;
           explicit_this_param_enabled = TRUE;
           extended_float_types = TRUE;
+          elifdef_enabled = TRUE;
         }  /* if */
       }  /* if */
     }  /* if */
@@ -5054,6 +5056,10 @@ This function is also called in clang mode.
       /* As of clang 12.0.0, __VA_OPT__ is supported in both C and C++. */
       va_opt_enabled = TRUE;
     }  /* if */
+    if (clang_version >= 130000) {
+      /* As of version 13.0.0, clang supports #elifdef/#elifndef. */
+      elifdef_enabled = TRUE;
+    }  /* if */
     if (clang_version < 140000 && !option_kind_used[(int)optk_old_id_chars]) {
       /* Clang implemented Unicode-based identifier characters in version
          14.0.0. */
@@ -5075,6 +5081,10 @@ This function is also called in clang mode.
          (a C++20 feature) is accepted by gcc in both C and C++ modes in
          all standard versions. */
       va_opt_enabled = TRUE;
+    }  /* if */
+    if (gnu_version >= 120000) {
+      /* As of version 12.1.0, gcc supports #elifdef/#elifndef. */
+      elifdef_enabled = TRUE;
     }  /* if */
     if (!option_kind_used[(int)optk_old_id_chars]) {
       /* gcc has not (as of version 12.2) implemented Unicode-based
@@ -13038,6 +13048,7 @@ variables declared in cmd_line.h.
   old_id_chars = FALSE;
   keep_restrict_in_signatures = FALSE;
   attributes_on_using_declarations = FALSE;
+  elifdef_enabled = FALSE;
 }  /* cmd_line_static_var_init */
 
 

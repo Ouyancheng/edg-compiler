@@ -2799,6 +2799,11 @@ EXTERN a_boolean
 			/* TRUE if attributes are allowed in using-declarations
 			   (that's the case in Clang C++ mode). */
 
+EXTERN a_boolean
+		elifdef_enabled;
+			/* TRUE if #elifdef/#elifndef (a C++23 and C23
+			   feature) are supported. */
+
 /* Process the command line arguments. */
 extern void proc_command_line(int argc, char *argv[]);
 #if COMPILE_MULTIPLE_SOURCE_FILES

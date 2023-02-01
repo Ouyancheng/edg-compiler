@@ -40,9 +40,9 @@ handled outside of this framework (see is_module_pp_directive).
 */
 enum a_pp_directive_kind {
   /* Enumeration of preprocessing directives. */
-  ppd_if, ppd_ifdef, ppd_ifndef, ppd_elif, ppd_else,
-  ppd_endif, ppd_include, ppd_define, ppd_undef, ppd_line,
-  ppd_error, ppd_pragma, ppd_null, ppd_linedef,
+  ppd_if, ppd_ifdef, ppd_ifndef, ppd_elif, ppd_else, ppd_elifdef,
+  ppd_elifndef, ppd_endif, ppd_include, ppd_define, ppd_undef,
+  ppd_line, ppd_error, ppd_pragma, ppd_null, ppd_linedef,
 #if IDENT_DIRECTIVE_AND_PRAGMA
   ppd_ident,
 #endif /* IDENT_DIRECTIVE_AND_PRAGMA */
@@ -75,6 +75,8 @@ EXTERN a_const_char
     "ifndef",
     "elif",
     "else",
+    "elifdef",
+    "elifndef",
     "endif",
     "include",
     "define",

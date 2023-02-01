@@ -1,5 +1,27 @@
 Version 6.5
 
+2/1/23   [EDGcpfe/24782,EDGcpfe/25697,EDGcpfe/25898]
+C++23/C23/GNU/clang compatibility: #elifdef/#elifndef preprocessor directives
+
+As described in WG21 paper P2334R1 and WG14 paper N2645, the front end now
+accepts the #elifdef and #elifndef preprocessor directives in C++23 and C23
+modes, as well as in GNU C and C++ modes with gnu_version >= 120000 and
+clang C and C++ modes with clang_version >= 130000.  For example, with
+--c++23:
+
+  #define B
+  constexpr int i =
+  #ifdef A
+  5
+  #elifndef B
+  10
+  #else
+  15
+  #endif
+  ;   // Initializes i with 15
+  static_assert(i == 15);
+
+
 1/30/23  [EDGcpfe/25507]
 C++23: #warning
 
