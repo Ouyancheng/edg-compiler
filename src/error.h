@@ -128,19 +128,28 @@ struct a_diagnostic_counter_set {
   a_diagnostic_counter
                 total;
                         /* A diagnostic counter aggregating all diagnostic
-                           counts. */
+                           counts (excluding diagnostics that are suppressed
+                           because they've already been encountered). */
   a_diagnostic_counter
                 suppressed;
                         /* A diagnostic counter aggregating all suppressed
-                           diagnostic counts. */
+                           counts (excluding diagnostics that are suppressed
+                           because they've already been encountered). */
   a_diagnostic_counter_ptr
                 local;
                         /* A pointer to a temporary diagnostic counter
                            aggregating all diagnostics counts (reported and
-                           suppressed) while it's set. */
+                           suppressed) while it's set (excluding diagnostics
+                           that are suppressed because they've already been
+                           encountered). */
+  a_diagnostic_counter
+                repeated;
+                        /* A diagnostic counter aggregating counts of all
+                           diagnostics that have been previously encountered,
+                           and thus were not rereported. */
 
   a_diagnostic_counter_set()
-    : total(), suppressed(), local(NULL)
+    : total(), suppressed(), local(NULL), repeated()
     {}
 };  /* a_diagnostic_counter_set */
 
@@ -206,12 +215,17 @@ particular context.
 */
 struct a_diag_count_snapshot {
   a_diag_count_snapshot()
-    : captured_state(diagnostic_counters.total)
+    : captured_total_state(diagnostic_counters.total),
+      captured_repeated_state(diagnostic_counters.repeated)
     {}
   a_diagnostic_counter
-                captured_state;
+                captured_total_state;
                         /* The captured state of the "total" diagnostic counter
                            when this object was constructed. */
+  a_diagnostic_counter
+                captured_repeated_state;
+                        /* The captured state of the "repeated" diagnostic
+                           counter when this object was constructed. */
 };  /* a_diag_count_snapshot */
 
 
@@ -222,8 +236,11 @@ Assert that at least one new error has occurred since the original snapshot was
 taken.
 */
 {
-  check_assertion_str((snapshot.captured_state.all_error_types() <
-                       diagnostic_counters.total.all_error_types()), err_msg);
+  check_assertion_str(((snapshot.captured_total_state.all_error_types() <
+                        diagnostic_counters.total.all_error_types()) ||
+                       (snapshot.captured_repeated_state.all_error_types() <
+                        diagnostic_counters.repeated.all_error_types())),
+                      err_msg);
 }  /* expect_error_since */
 
 

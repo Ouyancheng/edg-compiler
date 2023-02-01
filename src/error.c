@@ -5136,12 +5136,18 @@ The message is formatted into text strings and is output.
     /* Determine whether this diagnostic should not be issued because
        of the use of the "once" diagnostic control. */
     diag_should_be_issued = !diagnostic_already_issued_for_diag_once(dp);
-  }  /* if */
-  if (diag_should_be_issued) {
-    /* Suppress the diagnostic if it has already been issued during the
-       prototype instantiation. */
-    diag_should_be_issued =
-                !diagnostic_already_issued_for_prototype(dp);
+    if (diag_should_be_issued) {
+      /* Suppress the diagnostic if it has already been issued during the
+         prototype instantiation. */
+      diag_should_be_issued = !diagnostic_already_issued_for_prototype(dp);
+    }  /* if */
+    if (!diag_should_be_issued) {
+      an_error_severity reported_severity = determine_reported_severity(dp);
+
+      /* Update the repeated diagnostics counter. */
+      update_diagnostic_counter(reported_severity,
+                                &diagnostic_counters.repeated);
+    }  /* if */
   }  /* if */
   if (diag_should_be_issued) {
     /* Check to see if this error occurred while scanning a command-line macro
