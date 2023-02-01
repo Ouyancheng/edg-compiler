@@ -3368,8 +3368,6 @@ ec_unavailable_entity;;"%n was declared declared unavailable"
 ec_unavailable_entity_with_custom_message;;"%n was declared unavailable (%sq)"
 ec_deprecated_attr;;"because of a \"deprecated\" attribute"
 ec_explicit_lambda_template_parameters_is_cpp20;;"explicit lambda template parameters are a C++20 feature"
-ec_ifc_null_source_position_ignored;;"ignoring null source location value in module %sq"
-ec_ifc_null_source_position_ignored_info;;"from locus of partition %sq element %d1 (file position %d2, relative position %d3)"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

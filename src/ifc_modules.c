@@ -282,29 +282,23 @@ lifetime of this object expires (whichever is sooner).
     source_position_from_locus(&this->pos, locus);
     if (cmp_source_positions(this->pos, null_source_position) != 0) {
       this->cache_ptr->set_position_hint(&this->pos);
-    } else {
+    }
+    /* Do not add code here. */
+#if DEBUG
+    else if (db_flag_is_set("ifc_srcpos")) {
       /* The IFC gave us a null source location locus value, emit a remark. */
-      a_diagnostic_ptr            diag = pos_st_start_diagnostic(
-                                           es_remark,
-                                           ec_ifc_null_source_position_ignored,
-                                           &pos,
-                                           idx.mod->assoc_module_info->name);
-      an_ifc_partition_kind       kind = to_partition_kind(idx.sort);
-      an_ifc_partition_kind_index part_kind_idx = {idx.mod, kind, idx.value};
-      an_ifc_partition_metadata   *part_meta =
-                                         get_partition_metadata(part_kind_idx);
-      size_t                      part_start = part_meta->offset;
-      size_t                      abs_offset =
-                                           get_partition_offset(part_kind_idx);
-      size_t                      rel_offset = abs_offset - part_start;
+      an_ifc_partition_kind kind = to_partition_kind(idx.sort);
+      a_string              dbg_msg("ignoring null source location value in ",
+                                    "module ",
+                                    idx.mod->assoc_module_info->name,
+                                    " from locus of partition ",
+                                    get_partition_name_from_kind(kind),
+                                    " element ",
+                                    idx.value);
 
-      /* FIXME: Migrate to allowing diagnostics with size_t. */
-      st_num3_add_diag_info(diag, ec_ifc_null_source_position_ignored_info,
-                            get_partition_name_from_kind(kind), idx.value,
-                            (uint32_t)abs_offset, (uint32_t)rel_offset);
-      end_diagnostic(diag);
-      hint_given = FALSE;
+      print(dbg_msg, f_debug, /*end=*/"\n\n");
     }  /* if */
+#endif /* DEBUG */
   } else {
     hint_given = FALSE;
   }  /* if */
