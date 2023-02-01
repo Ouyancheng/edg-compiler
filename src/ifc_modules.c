@@ -3252,8 +3252,12 @@ return FALSE.
 
 static a_symbol_ptr load_param_ref(an_ifc_decl_index decl_idx)
 /*
+Return the (function or template) parameter symbol in the current scope stack
+corresponding to IFC parameter declaration at the given index.  If no parameter
+can be found, return null.
 */
 {
+  check_assertion(decl_idx.sort == ifc_ds_decl_parameter);
   a_symbol_ptr       result = NULL;
   Opt<an_ifc_decl_parameter>
                      opt_idp;
@@ -3317,8 +3321,9 @@ static a_symbol_ptr load_param_ref(an_ifc_decl_index decl_idx)
 done:
 #if DEBUG
   if (db_flag_is_set("ifc_idx")) {
-    a_string dbg_msg("Parameter ref search done for ",
-                     index_to_str(decl_idx));
+    a_string dbg_msg("Parameter ref search done ",
+                     index_to_str(decl_idx),
+                     (result != NULL) ? " [[found]]" : " [[missing]]");
 
     print(dbg_msg, f_debug);
   }  /* if */
@@ -3380,15 +3385,18 @@ Return the symbol associated with the declaration corresponding to decl_idx.
 Return NULL if none is found.
 */
 {
-  a_symbol_ptr  result = ifc_decl_lookup_table->get(decl_idx);
+  a_symbol_ptr  result;
 
-  if (result != NULL) {
-    goto already_mapped;
-  }  /* if */
-  /* The symbol has not been resolved previously, attempt resolution now. */
   if (decl_idx.sort == ifc_ds_decl_parameter) {
+    /* Parameters should always mapped in their current context.  This prevents
+       issues where template instantiation can end up with the incorrect
+       parameter symbol with alias declarations. */
     result = load_param_ref(decl_idx);
   } else {
+    result = ifc_decl_lookup_table->get(decl_idx);
+    if (result != NULL) {
+      goto already_mapped;
+    }  /* if */
     /* Load a namespace-scope entity from the IFC file and determine its
        front-end symbol. */
     a_source_correspondence     *scp;
@@ -3434,7 +3442,7 @@ Return NULL if none is found.
     }  /* if */
   }  /* if */
   if (result != NULL) {
-    ifc_decl_lookup_table->map(decl_idx, result);
+    // ifc_decl_lookup_table->map(decl_idx, result);
   }  /* if */
 already_mapped:
   return result;
