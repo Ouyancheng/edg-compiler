@@ -12981,7 +12981,7 @@ Cache the cv-qualifiers for the given function-like declaration.
         ifc_unexpected(func_type_idx.mod, err_msg);
       }
       break;
-  }  /* if */
+  }  /* switch */
   goto done;
 invalid:
   expect_error_str("expected errors for bad cv-qualifiers cache");
@@ -13033,7 +13033,7 @@ Cache the ref-qualifier for the given function-like declaration.
         ifc_unexpected(func_type_idx.mod, err_msg);
       }
       break;
-  }  /* if */
+  }  /* switch */
   goto done;
 invalid:
   expect_error_str("expected errors for bad ref-qualifier cache");
@@ -13094,7 +13094,7 @@ Cache the noexcept-specifier for the given function-like declaration.
         ifc_unexpected(func_type_idx.mod, err_msg);
       }
       break;
-  }  /* if */
+  }  /* switch */
   goto done;
 invalid:
   expect_error_str("expected errors for bad noexcept-specifier cache");
@@ -13366,7 +13366,7 @@ declaration.
         ifc_unexpected(func_type_idx.mod, err_msg);
       }
       break;
-  }  /* if */
+  }  /* switch */
   goto done;
 invalid:
   expect_error_str("expected errors for bad calling convention cache");
@@ -13428,7 +13428,7 @@ Cache the return type declarator for the given function-like declaration.
         ifc_unexpected(func_type_idx.mod, err_msg);
       }
       break;
-  }  /* if */
+  }  /* switch */
   goto done;
 invalid:
   expect_error_str("expected errors for bad return type declarator cache");
@@ -13495,7 +13495,7 @@ issue.  A little more thought needs put into an_ifc_func_param_context.
         ifc_unexpected(func_type_idx.mod, err_msg);
       }
       break;
-  }  /* if */
+  }  /* switch */
   goto done;
 invalid:
   expect_error_str("expected errors for bad function parameter type query");
@@ -13915,7 +13915,7 @@ to this call -- so that we can determine if caching of a given declaration in
 
   /* Iterate over the sequence calling decl_consumer for each element. */
   traverse_scope_member_sequence(seq, decl_consumer);
-}  /* cache_scope_member_sequence */
+}  /* an_ifc_module::cache_scope_member_sequence */
 
 
 static void cache_basic_specifiers(a_module_token_cache_ptr         cache,
