@@ -138,7 +138,7 @@ struct a_diagnostic_counter_set {
   a_diagnostic_counter_ptr
                 local;
                         /* A pointer to a temporary diagnostic counter
-                           aggregating all diagnostics counts (reported and
+                           aggregating all diagnostic counts (reported and
                            suppressed) while it's set (excluding diagnostics
                            that are suppressed because they've already been
                            encountered). */
