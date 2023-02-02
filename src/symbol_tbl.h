@@ -232,13 +232,13 @@ typedef struct a_symbol_locator {
 			   be entered into the symbol table. */
   a_bit_field	do_not_clear_specific_symbol:1;
 			/* TRUE if the specific symbol field of the locator
-		           should not be cleared when clear_specific_symbol
-                           is called.  This is set when clearing the specific
+			   should not be cleared when clear_specific_symbol is
+			   called.  This is set when clearing the specific
 			   symbol field would result in the loss of information
 			   that cannot be recovered by repeating the lookup
-			   process.  This is TRUE for template references
-			   that have been coalesced and for specific symbol
-			   error locators. */
+			   process.  This is TRUE for template references that
+			   have been coalesced, locators resolved from pseudo
+			   tokens, and for specific symbol error locators. */
   a_bit_field	is_template_id:1;
 			/* TRUE if the coalesced identifier is a template-id
 			   (i.e., template-name < template-arg-list >). */
@@ -4702,6 +4702,9 @@ extern a_boolean looks_like_ctor_or_dtor(a_symbol_locator  *loc);
 
 extern void make_locator_for_symbol(a_symbol_ptr     sym_ptr,
                                     a_symbol_locator *location);
+
+extern void make_resolved_id_pseudo_token_locator(a_symbol_ptr     sym_ptr,
+                                                  a_symbol_locator *location);
 
 extern void make_specific_symbol_error_locator(a_symbol_locator *locator);
 

@@ -2913,6 +2913,18 @@ Create in *location a locator for the symbol pointed to by sym_ptr.
 }  /* make_locator_for_symbol */
 
 
+void make_resolved_id_pseudo_token_locator(a_symbol_ptr     sym_ptr,
+                                           a_symbol_locator *location)
+/*
+Create in *location a locator for the symbol resolved from a resolved
+identifier pseudo token.
+*/
+{
+  make_locator_for_symbol(sym_ptr, location);
+  location->do_not_clear_specific_symbol = TRUE;
+}  /* make_resolved_id_pseudo_token_locator */
+
+
 void make_specific_symbol_error_locator(a_symbol_locator *locator)
 /*
 Make a specific symbol error locator in *locator.  This identifies a

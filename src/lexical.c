@@ -6568,6 +6568,27 @@ entry.
 }  /* processing_primary_source_file */
 
 
+a_symbol_ptr resolve_id_pseudo_token_to_sym()
+/*
+Return the symbol corresponding to the resolution of the current resolved
+identifier pseudo token.  If the symbol cannot be resolved, instead return
+NULL.
+*/
+{
+  check_assertion(is_resolved_id_pseudo_token(curr_token));
+  a_symbol_ptr result = NULL;
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (curr_token == tok_ifc_entity_ref) {
+    result = load_tok_ifc_entity_ref();
+  } else {
+    result = load_tok_ifc_decl_ref();
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  return result;
+}  /* resolve_id_pseudo_token_to_sym */
+
+
 static a_boolean no_more_preinclude_files(void)
 /*
 Returns TRUE if we are processing the last preinclude file.
@@ -22800,19 +22821,15 @@ selection operator, in which case it points to the type of the left operand.
       /* A construct like int::Parse("1").  Use the corresponding C++/CLI
          system type determined above. */
       qualifier_sym = symbol_for(cli_system_type_for_keyword);
-    } else if (curr_token == tok_ifc_entity_ref ||
-               curr_token == tok_ifc_decl_ref) {
-      if (curr_token == tok_ifc_entity_ref) {
-        qualifier_sym = load_tok_ifc_entity_ref();
-      } else {
-        qualifier_sym = load_tok_ifc_decl_ref();
-      }  /* if */
+    } else if (is_resolved_id_pseudo_token(curr_token)) {
+      qualifier_sym = resolve_id_pseudo_token_to_sym();
       if (qualifier_sym == NULL) {
         /* A diagnostic will have been emitted by load_tok_ifc_entity_ref(). */
         err = TRUE;
         make_error_locator(&locator_for_curr_id);
       } else {
-        make_locator_for_symbol(qualifier_sym, &locator_for_curr_id);
+        make_resolved_id_pseudo_token_locator(qualifier_sym,
+                                              &locator_for_curr_id);
         locator_for_curr_id.source_position = pos_curr_token;
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -23298,23 +23315,19 @@ selection operator, in which case it points to the type of the left operand.
           /* From now on, treat this as an identifier. */
           curr_token = tok_identifier;
           set_to_error_locator(locator_for_curr_id);
-        } else if (curr_token == tok_ifc_entity_ref ||
-                   curr_token == tok_ifc_decl_ref) {
-          a_symbol_ptr  sym;
-          if (curr_token == tok_ifc_entity_ref) {
-            sym = load_tok_ifc_entity_ref();
-          } else {
-            sym = load_tok_ifc_decl_ref();
-          }  /* if */
+        }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        if (is_resolved_id_pseudo_token(curr_token)) {
+          a_symbol_ptr sym = resolve_id_pseudo_token_to_sym();
+
           if (sym == NULL) {
             err = TRUE;
           } else {
-            make_locator_for_symbol(sym, &locator_for_curr_id);
+            make_resolved_id_pseudo_token_locator(sym, &locator_for_curr_id);
             locator_for_curr_id.source_position = pos_curr_token;
             curr_token = tok_identifier;
           }  /* if */
         }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         if ((curr_token != tok_identifier &&
              curr_token != tok_ifc_entity_ref &&
              curr_token != tok_ifc_decl_ref) ||
@@ -23600,23 +23613,16 @@ selection operator, in which case it points to the type of the left operand.
         qualifier_is_decltype = FALSE;
       }  /* for */
     }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  } else if (curr_token == tok_ifc_entity_ref ||
-             curr_token == tok_ifc_decl_ref) {
-    a_symbol_ptr  sym;
-    if (curr_token == tok_ifc_entity_ref) {
-      sym = load_tok_ifc_entity_ref();
-    } else {
-      sym = load_tok_ifc_decl_ref();
-    }  /* if */
+  } else if (is_resolved_id_pseudo_token(curr_token)) {
+    a_symbol_ptr sym = resolve_id_pseudo_token_to_sym();
+
     if (sym == NULL) {
       err = TRUE;
     } else {
-      make_locator_for_symbol(sym, &locator_for_curr_id);
+      make_resolved_id_pseudo_token_locator(sym, &locator_for_curr_id);
       locator_for_curr_id.source_position = pos_curr_token;
       curr_token = tok_identifier;
     }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
   /* Assume we have found an identifier until we discover otherwise. */
   is_identifier = TRUE;
@@ -24495,21 +24501,16 @@ scanned is, in fact, an identifier).
     }  /* if */
 #endif /* CHECKING */
     if (symbol != NULL) reduce_projection_symbol_to_fundamental_symbol(symbol);
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  } else if (curr_token == tok_ifc_entity_ref ||
-             curr_token == tok_ifc_decl_ref) {
-    if (curr_token == tok_ifc_entity_ref) {
-      symbol = load_tok_ifc_entity_ref();
-    } else {
-      symbol = load_tok_ifc_decl_ref();
-    }  /* if */
+  } else if (is_resolved_id_pseudo_token(curr_token)) {
+    symbol = resolve_id_pseudo_token_to_sym();
     if (symbol != NULL) {
-      make_locator_for_symbol(symbol, &locator_for_curr_id);
+      make_resolved_id_pseudo_token_locator(symbol, &locator_for_curr_id);
       locator_for_curr_id.source_position = pos_curr_token;
       curr_token = tok_identifier;
     } else {
       make_error_locator(&locator_for_curr_id);
     }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (locator_for_curr_id.symbol_header == NULL) {
     /* This can happen when producing tokens from an IFC file. */
     *err = TRUE;

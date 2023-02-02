@@ -12444,24 +12444,18 @@ indication in *rcblock).
       }  /* if */
       (void)required_token(tok_lparen, ec_exp_lparen);
       add_matching_stop_token(tok_rparen);
-#if MICROSOFT_EXTENSIONS_ALLOWED
-      if (curr_token == tok_ifc_entity_ref ||
-          curr_token == tok_ifc_decl_ref) {
-        a_symbol_ptr  ifc_ref_sym;
-        if (curr_token == tok_ifc_entity_ref) {
-          ifc_ref_sym = load_tok_ifc_entity_ref();
-        } else {
-          ifc_ref_sym = load_tok_ifc_decl_ref();
-        }  /* if */
+      if (is_resolved_id_pseudo_token(curr_token)) {
+        a_symbol_ptr ifc_ref_sym = resolve_id_pseudo_token_to_sym();
+
         if (ifc_ref_sym == NULL) {
           err = TRUE;
         } else {
-          make_locator_for_symbol(ifc_ref_sym, &locator_for_curr_id);
+          make_resolved_id_pseudo_token_locator(ifc_ref_sym,
+                                                &locator_for_curr_id);
           locator_for_curr_id.source_position = pos_curr_token;
           curr_token = tok_identifier;
         }  /* if */
       }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       if (curr_token != tok_identifier) {
         expr_syntax_error(ec_exp_identifier);
         err = TRUE;

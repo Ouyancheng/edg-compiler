@@ -3013,6 +3013,26 @@ because uses of the nonstandard spelling are warned about in some modes.)
  ((int)(tok) >= (int)tok_first_literal_token_kind &&                          \
   (int)(tok) <= (int)tok_last_literal_token_kind)
 
+
+inline a_boolean is_resolved_id_pseudo_token(a_token_kind tok)
+/*
+Given a token, return TRUE if it's a resolved identifier pseudo token;
+otherwise, return FALSE.
+*/
+{
+  a_boolean result = FALSE;
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (tok == tok_ifc_entity_ref || tok == tok_ifc_decl_ref) {
+    result = TRUE;
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  return result;
+}  /* is_resolved_id_pseudo_token */
+
+
+extern a_symbol_ptr resolve_id_pseudo_token_to_sym();
+
 extern void push_next_preinclude_file(void);
 
 /* Push a file onto the input stack. */
