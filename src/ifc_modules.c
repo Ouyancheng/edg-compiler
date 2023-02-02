@@ -3313,9 +3313,17 @@ can be found, return null.
         }  /* if */
       } else {
         a_param_id_ptr param_ptr = scope_stack[sd].param_id_list;
+        a_const_char   *name = decl_idx.mod->name_from_local_decl(decl_idx);
 
         for (; param_ptr != NULL; param_ptr = param_ptr->next) {
-          if (param_ptr->param_num - 1 == pnum) {
+          /* FIXME: Currently the IFC position information is not present for
+             function parameters resulting in a requirement that names be
+             compared. */
+          a_symbol_header *sym_hdr = param_ptr->symbol->header;
+          a_const_char    *identifier = sym_hdr->identifier;
+          sizeof_t        identifier_len = sym_hdr->identifier_length;
+
+          if (strncmp(identifier, name, identifier_len) == 0) {
             result = param_ptr->symbol;
             goto done;
           }  /* if */
