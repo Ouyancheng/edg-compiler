@@ -3509,7 +3509,7 @@ nested class.
   db_enter(3, "inline_function_fixup_for_class");
   /* Get the declaration sequence number at the point where fixup is
      being done. */
-  class_end_decl_seq = *curr_decl_seq_counter();
+  class_end_decl_seq = decl_seq_counter;
   /* First go though the routine fixup entries and scan the default
      argument expressions. */
   cssp = symbol_supplement_for_class(class_type);
@@ -32654,6 +32654,8 @@ classes.
         add_error_field(class_type, &class_state.end_of_field_list);
       }  /* if */
     } else {
+      a_decl_sequence_number  class_start_decl_seq = decl_seq_counter,
+                              friend_decl_seq_adjustment = 0;
 #if MICROSOFT_EXTENSIONS_ALLOWED
       if (cli_or_cx_enabled) {
         /* C++/CLI property and event definitions can consist of multiple
@@ -32687,6 +32689,20 @@ classes.
       scope_stack[decl_scope_level].current_assembly_access =
                                                   class_state.assembly_access;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      if (defer_function_prototype_instantiations &&
+          il_template_entry == NULL && is_template_instantiation) {
+        /* When deferring function prototype instantiations, the declaration
+           sequence counter of friend functions declared in the class needs to
+           be adjusted to the state when the class template was defined.  This
+           is done so that those friend functions will be visible to function
+           prototype instantiations. */
+        a_template_cache_ptr              body_cache;
+        a_template_symbol_supplement_ptr  tssp;
+        tssp = template_supplement_for_symbol(cssp->corresp_prototype_sym);
+        body_cache = cache_for_template(tssp);
+        friend_decl_seq_adjustment =
+                   decl_seq_counter - body_cache->decl_info->starting_decl_seq;
+      }  /* if */
       do {
         an_ms_attribute_ptr  ms_attributes = NULL;
         a_source_position    export_pos;
@@ -32995,6 +33011,17 @@ classes.
 next_declaration:
         /* There should be no "unscanned" attributes at this point. */
         check_assertion(!unscanned_attributes_pending());
+        if (defer_function_prototype_instantiations &&
+            member_sym != NULL && !member_sym->is_class_member &&
+            member_sym->decl_seq > class_start_decl_seq &&
+            (member_sym->kind == sk_routine ||
+             member_sym->kind == sk_function_template)) {
+          /* When deferring function prototype instantiations, adjust the
+             declaration sequence counter of friend functions declared in the
+             class so that they will be visible to the function prototype
+             instantiations. */
+          member_sym->decl_seq -= friend_decl_seq_adjustment;
+        }  /* if */
         if (curr_routine_fixup != NULL) dispose_of_curr_routine_fixup();
         remove_stop_token(tok_semicolon);
 #if MICROSOFT_EXTENSIONS_ALLOWED
