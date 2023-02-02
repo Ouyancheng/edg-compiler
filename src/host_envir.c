@@ -1671,10 +1671,10 @@ file should be a binary file if binary_file is TRUE.
 #if EDG_WIN32 && UNICODE_SOURCE_ENABLED
 #if __MICROSOFT_OS__
     /* On a Microsoft OS, first use the TMP environment variable, if set. */
-    /* coverity[tainted_string_return_content] */ /* coverity[var_assign] */
+    /* coverity[+taint_source] */ /* coverity[var_assign] */
     wide_temp_dir = _wgetenv(L"TMP");
 #endif /* __MICROSOFT_OS__ */
-    /* coverity[tainted_string_return_content] */ /* coverity[var_assign] */
+    /* coverity[+taint_source] */ /* coverity[var_assign] */
     if (wide_temp_dir == NULL) wide_temp_dir = _wgetenv(L"TMPDIR");
     if (wide_temp_dir != NULL && wcslen(wide_temp_dir) != 0) {
       temp_dir = conv_wide_to_utf8(wide_temp_dir);
@@ -1684,10 +1684,10 @@ file should be a binary file if binary_file is TRUE.
 #else /* !(EDG_WIN32 && UNICODE_SOURCE_ENABLED) */
 #if __MICROSOFT_OS__
     /* On a Microsoft OS, first use the TMP environment variable, if set. */
-    /* coverity[tainted_string_return_content] */ /* coverity[var_assign] */
+    /* coverity[+taint_source] */ /* coverity[var_assign] */
     temp_dir = getenv("TMP");
 #endif /* __MICROSOFT_OS__ */
-    /* coverity[tainted_string_return_content] */ /* coverity[var_assign] */
+    /* coverity[+taint_source] */ /* coverity[var_assign] */
     if (temp_dir == NULL) temp_dir = getenv("TMPDIR");
     if (temp_dir == NULL || strlen(temp_dir) == 0) temp_dir = DEFAULT_TMPDIR;
 #endif /* EDG_WIN32 && UNICODE_SOURCE_ENABLED */
