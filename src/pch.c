@@ -289,7 +289,7 @@ value passed by the caller.
 {
   a_pch_file_section	section_in_file;
 
-  /* coverity[tainted_data_argument] */ /* coverity[string_null_argument] */
+  /* coverity[+taint_source: arg-0] */ /* coverity[string_null_argument] */
   pch_read_value(section_in_file);
 #if DEBUG
   if (section_in_file != section) {
@@ -861,7 +861,7 @@ is returned.
 */
 {
   sizeof_t	length;
-  /* coverity[tainted_data_argument] */
+  /* coverity[+taint_source: arg-0] */
   pch_read_value(length);
   ensure_pch_buffer_space(length);
   if (length == 0) {
@@ -1220,7 +1220,7 @@ restore the memory regions.
      a separate area so that it can be compared with the existing
      information. */
   pch_read_value(new_size);
-  /* coverity[tainted_data_argument] */
+  /* coverity[+taint_source: arg-0] */
   pch_read_value(new_alloc_history_entries);
   bytes_in_new_alloc_history = new_alloc_history_entries *
                                                  sizeof(a_mem_alloc_history);
@@ -1477,7 +1477,7 @@ header information about the memory regions such as the mem_region_table.
   pch_read_value(il_header_from_pch);
   /* Read the memory region table and the region_scope_entry table from
      the IL header.  Note that index_for_il_file is not written. */
-  /* coverity[tainted_data_argument] */
+  /* coverity[+taint_source: arg-0] */
   pch_read_value(highest_used_region_number);
   /* Make sure that the tables allocated to store the memory region
      information are large enough. */
@@ -1836,7 +1836,7 @@ all match.
   /* Loop through the command line events until one that does not match
      is found. */
   for (pep = pch_cmd_line_event_list_head; pep != NULL; pep = pep->next) {
-    /* coverity[tainted_data] */   /* coverity[tainted_data_argument] */
+    /* coverity[tainted_data] */   /* coverity[+taint_source: arg-0] */
     if (!read_pch_event(&event) || !equivalent_pch_events(pep, &event)) {
       /* Either the event list of the file has ended, or the events are
          not equivalent. */
@@ -1879,7 +1879,7 @@ pch file.  Return a pointer to the last matching event.
   /* Read each of the events from the candidate file until a mismatch is
      found. */
   match = TRUE;
-  /* coverity[tainted_data_argument] */
+  /* coverity[+taint_source: arg-0] */
   while (read_pch_event(&event)) {
     a_boolean	is_define = FALSE;
     a_boolean	event_matches = FALSE;
