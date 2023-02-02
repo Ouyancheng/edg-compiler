@@ -7869,6 +7869,9 @@ be mapped to the IL entity.
       goto decl_loaded;
     }  /* if */
     process_decl_to_il_entity(mep, /*defer=*/FALSE);
+    if (!mep->invalid) {
+      map_pending_definitions(mep);
+    }  /* if */
   }  /* if */
   goto decl_loaded;
 decl_invalid:
@@ -7887,9 +7890,6 @@ decl_loaded:
     unexpected_condition_str(err_msg.as_temp_characters());
   }  /* if */
 #endif /* CHECKING */
-  if (!mep->invalid) {
-    map_pending_definitions(mep);
-  }  /* if */
 #if DEBUG
   if (db_flag_is_set("ifc_decl")) {
     (void)fprintf(f_debug, "[<%lu] ", --decl_nesting_level);
