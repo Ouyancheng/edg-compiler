@@ -699,6 +699,58 @@ return the respective partition index.
 }  /* to_partition_index */
 
 
+static an_ifc_decl_index to_decl_index(an_ifc_partition_kind_index index)
+/*
+Given an IFC partition kind index, return an IFC decl index.
+*/
+{
+  an_ifc_decl_sort sort = to_decl_sort(index.partition_kind);
+
+  return an_ifc_decl_index{index.mod, sort, index.value};
+}  /* to_decl_index */
+
+
+using an_ifc_parameterized_entity_map = Ptr_map<an_ifc_decl_index,
+                                                an_ifc_decl_index>;
+                        /* */
+
+static an_ifc_parameterized_entity_map
+                *ifc_parameterized_entities;
+                        /* */
+
+
+static an_ifc_partition_kind_index collapse_partition_index(
+                                               an_ifc_module         *mod,
+                                               an_ifc_partition_kind partition,
+                                               an_ifc_index_type     index)
+/*
+Some entities conceptually have multiple "module entities" (for instance, an
+explicit class template specialization is composed of an IFC DeclSpecialization
+and an IFC DeclScope), this function "collapses" these module entities making
+sure all equivalent module entities map back to the same module entity pointer.
+
+The module, partition kind, and index are taken as inputs and the collapsed IFC
+partition kind index is returned.
+*/
+{
+  an_ifc_partition_kind_index result{mod, partition, index};
+
+  if (is_decl_sort(partition)) {
+    an_ifc_decl_index decl_idx = to_decl_index(result);
+    an_ifc_decl_index specialization_idx =
+                                     ifc_parameterized_entities->get(decl_idx);
+
+    /* If the scope ref is a parameterized entity, we actually want the
+       specialization that's doing the parameterization. */
+    if (!is_null_index(specialization_idx)) {
+      decl_idx = specialization_idx;
+    }  /* if */
+    result = {decl_idx.mod, get_partition_kind(decl_idx), decl_idx.value};
+  }  /* if */
+  return result;
+}  /* collapse_partition_index */
+
+
 static a_module_entity_ptr get_ifc_module_entity_ptr(
                                                an_ifc_module         *mod,
                                                an_ifc_partition_kind partition,
@@ -710,16 +762,17 @@ been created, the partition is set according to the partition supplied by the
 caller.
 */
 {
-  an_ifc_partition_kind_index element_idx{mod, partition, index};
+  an_ifc_partition_kind_index element_idx =
+                               collapse_partition_index(mod, partition, index);
   a_module_entity_ptr         mep = get_module_entity_ptr(
-                                            mod->assoc_module_info,
+                                            element_idx.mod->assoc_module_info,
                                             get_partition_offset(element_idx));
 
   /* FIXME: Handle error case, formatting. */
   if (mep->variant.ifc_partition == ifc_pk_none) {
-    mep->variant.ifc_partition = partition;
+    mep->variant.ifc_partition = element_idx.partition_kind;
   } else {
-    check_assertion(mep->variant.ifc_partition == partition);
+    check_assertion(mep->variant.ifc_partition == element_idx.partition_kind);
   }  /* if */
   return mep;
 }  /* get_ifc_module_entity_ptr */
@@ -1366,7 +1419,6 @@ Given a scope reference find and return the associated scope.
   } else {
     a_module_entity_ptr mep = process_decl_at_index(scope_ref);
     a_type_ptr          assoc_type = NULL;
-
     if (!mep->invalid) {
       if (mep->entity.kind == iek_type) {
         assoc_type = (a_type_ptr)mep->entity.ptr;
@@ -3032,7 +3084,8 @@ to be needed later on.
 
 template<typename an_ifc_Node_type>
 static void try_map_routine_definition(const an_ifc_Node_type &decl_node,
-                                       a_module_entity_ptr    mep)
+                                       an_ifc_decl_index      decl_idx,
+                                       a_routine_ptr          rp)
 /*
 Given a declaration node representing a function, and its corresponding module
 entity pointer, map the associated IL entity to its pending definition (if a
@@ -3040,12 +3093,6 @@ definition is present).
 */
 {
   if (function_is_user_defined(decl_node)) {
-    an_ifc_decl_index decl_idx = decl_index_of(mep);
-    a_routine_ptr     rp = (a_routine_ptr)mep->entity.ptr;
-
-    /* The kind should be a routine, otherwise this mep should've been
-       marked invalid. */
-    check_assertion(mep->entity.kind == iek_routine);
     record_pending_ifc_function_body(rp, decl_idx);
   }  /* if */
 }  /* try_map_routine_definition */
@@ -3065,6 +3112,30 @@ out to be needed later on.
 }  /* record_pending_ifc_template_definition */
 
 
+static a_boolean is_entity_imminent(a_module_entity_ptr mep)
+/*
+Given a module entity pointer, return TRUE if the entity is an unresolved
+imminent state (i.e., the entity is not yet resolved to an IL entity or marked
+invalid); otherwise, return FALSE.
+*/
+{
+  return mep->imminent && !mep->invalid && mep->entity.ptr == NULL;
+}  /* is_entity_imminent */
+
+
+static void catch_up_template_specs(an_ifc_decl_index decl_idx);
+
+using an_ifc_decl_array = Dyn_array<an_ifc_decl_index>;
+using an_ifc_deferred_spec_map = Ptr_map<a_module_entity_ptr,
+                                         Dyn_array<an_ifc_decl_index>*>;
+                        /* */
+
+static an_ifc_deferred_spec_map
+                *ifc_deferred_specs;
+                        /* */
+
+/* FIXME: map_pending_definitions needs a better name. */
+
 static void map_pending_definitions(a_module_entity_ptr mep)
 /*
 Given a module entity pointer for a valid module entity with an existing IL
@@ -3080,28 +3151,48 @@ definition be required.
       { an_ifc_decl_constructor ctor_decl;
 
         construct_node_prechecked(&ctor_decl, decl_idx);
-        try_map_routine_definition(ctor_decl, mep);
+
+        a_routine_ptr rp = (a_routine_ptr)mep->entity.ptr;
+        /* The kind should be a routine, otherwise this mep should've been
+           marked invalid. */
+        check_assertion(mep->entity.kind == iek_routine);
+        try_map_routine_definition(ctor_decl, decl_idx, rp);
       }
       break;
     case ifc_ds_decl_destructor:
       { an_ifc_decl_destructor dtor_decl;
 
         construct_node_prechecked(&dtor_decl, decl_idx);
-        try_map_routine_definition(dtor_decl, mep);
+
+        a_routine_ptr rp = (a_routine_ptr)mep->entity.ptr;
+        /* The kind should be a routine, otherwise this mep should've been
+           marked invalid. */
+        check_assertion(mep->entity.kind == iek_routine);
+        try_map_routine_definition(dtor_decl, decl_idx, rp);
       }
       break;
     case ifc_ds_decl_function:
       { an_ifc_decl_function func_decl;
 
         construct_node_prechecked(&func_decl, decl_idx);
-        try_map_routine_definition(func_decl, mep);
+
+        a_routine_ptr rp = (a_routine_ptr)mep->entity.ptr;
+        /* The kind should be a routine, otherwise this mep should've been
+           marked invalid. */
+        check_assertion(mep->entity.kind == iek_routine);
+        try_map_routine_definition(func_decl, decl_idx, rp);
       }
       break;
     case ifc_ds_decl_method:
       { an_ifc_decl_method method_decl;
 
         construct_node_prechecked(&method_decl, decl_idx);
-        try_map_routine_definition(method_decl, mep);
+
+        a_routine_ptr rp = (a_routine_ptr)mep->entity.ptr;
+        /* The kind should be a routine, otherwise this mep should've been
+           marked invalid. */
+        check_assertion(mep->entity.kind == iek_routine);
+        try_map_routine_definition(method_decl, decl_idx, rp);
       }
       break;
     case ifc_ds_decl_template:
@@ -3116,10 +3207,40 @@ definition be required.
           check_assertion(mep->entity.kind == iek_template);
           record_pending_ifc_template_definition(templ, decl_idx);
         } else {
-          /* FIXME: We need to process specializations if we get here.  This
-             means IL processing gave us a defined entity, and definition
-             processing will never be called, so specializations will otherwise
-             never be loaded. */
+          an_ifc_decl_index   parent_decl_idx = get_ifc_home_scope(templ_decl);
+          a_module_entity_ptr deferring_entity = NULL;
+
+          /* Find the top level imminent entity, then add to its deferral list
+             this template's specializations.  If there is not imminent entity
+             that needs waited on, process this template's specialization
+             immediately. */
+          while (!is_null_index(parent_decl_idx)) {
+            a_module_entity_ptr parent_mep =
+                                    get_ifc_module_entity_ptr(parent_decl_idx);
+
+            if (!is_entity_imminent(parent_mep)) {
+              break;
+            }  /* if */
+            deferring_entity = parent_mep;
+            if (!has_ifc_home_scope(parent_decl_idx)) {
+              break;
+            }  /* if */
+            parent_decl_idx = get_ifc_home_scope(parent_decl_idx);
+          }  /* if */
+          if (deferring_entity != NULL) {
+            Dyn_array<an_ifc_decl_index>* deferred_spec_list =
+                                     ifc_deferred_specs->get(deferring_entity);
+
+            if (deferred_spec_list == NULL) {
+              deferred_spec_list =
+                                alloc_fe_of_type(Dyn_array<an_ifc_decl_index>);
+              construct(deferred_spec_list);
+              ifc_deferred_specs->map(deferring_entity, deferred_spec_list);
+            }  /* if */
+            deferred_spec_list->push_back(decl_idx);
+          } else {
+            catch_up_template_specs(decl_idx);
+          }  /* if */
         }  /* if */
       }
       break;
@@ -3128,16 +3249,78 @@ definition be required.
 
         construct_node_prechecked(&spec_decl, decl_idx);
 
-        an_ifc_decl_index   specialized_idx = get_ifc_decl(spec_decl);
-        a_module_entity_ptr specialized_mep =
-                                    get_ifc_module_entity_ptr(specialized_idx);
-        specialized_mep->entity = mep->entity;
-        map_pending_definitions(specialized_mep);
+        an_ifc_decl_index parameterized_idx = get_ifc_decl(spec_decl);
+        /* FIXME: This should probably be refactored to share more code with
+           the above cases doing the same thing for non-parameterized versions
+           of these declaration sorts. */
+        switch (parameterized_idx.sort) {
+          case ifc_ds_decl_constructor:
+            { an_ifc_decl_constructor ctor_decl;
+
+              construct_node_prechecked(&ctor_decl, parameterized_idx);
+
+              a_routine_ptr rp = (a_routine_ptr)mep->entity.ptr;
+              /* The kind should be a routine, otherwise this mep should've
+                 been marked invalid. */
+              check_assertion(mep->entity.kind == iek_routine);
+              try_map_routine_definition(ctor_decl, parameterized_idx, rp);
+            }
+            break;
+          case ifc_ds_decl_destructor:
+            { an_ifc_decl_destructor dtor_decl;
+
+              construct_node_prechecked(&dtor_decl, parameterized_idx);
+
+              a_routine_ptr rp = (a_routine_ptr)mep->entity.ptr;
+              /* The kind should be a routine, otherwise this mep should've
+                 been marked invalid. */
+              check_assertion(mep->entity.kind == iek_routine);
+              try_map_routine_definition(dtor_decl, parameterized_idx, rp);
+            }
+            break;
+          case ifc_ds_decl_function:
+            { an_ifc_decl_function func_decl;
+
+              construct_node_prechecked(&func_decl, parameterized_idx);
+
+              a_routine_ptr rp = (a_routine_ptr)mep->entity.ptr;
+              /* The kind should be a routine, otherwise this mep should've
+                 been marked invalid. */
+              check_assertion(mep->entity.kind == iek_routine);
+              try_map_routine_definition(func_decl, parameterized_idx, rp);
+            }
+            break;
+          case ifc_ds_decl_method:
+            { an_ifc_decl_method method_decl;
+
+              construct_node_prechecked(&method_decl, parameterized_idx);
+
+              a_routine_ptr rp = (a_routine_ptr)mep->entity.ptr;
+              /* The kind should be a routine, otherwise this mep should've
+                 been marked invalid. */
+              check_assertion(mep->entity.kind == iek_routine);
+              try_map_routine_definition(method_decl, parameterized_idx, rp);
+            }
+            break;
+          default:
+            break;
+        }  /* switch */
       }
       break;
     default:
       break;
   }  /* switch */
+
+  /* Process any specializations that were waiting for this declaration to be
+     complete. */
+  Dyn_array<an_ifc_decl_index>* deferred_spec_list =
+                                                  ifc_deferred_specs->get(mep);
+  if (deferred_spec_list != NULL) {
+    for (an_ifc_decl_index deferred_template : *deferred_spec_list) {
+      catch_up_template_specs(deferred_template);
+    }  /* if */
+    /* FIXME: Free memory. */
+  }  /* if */
 }  /* map_pending_definitions */
 
 
@@ -3412,17 +3595,6 @@ done:
 #endif /* DEBUG */
   return result;
 }  /* load_param_ref */
-
-
-static a_boolean is_entity_imminent(a_module_entity_ptr mep)
-/*
-Given a module entity pointer, return TRUE if the entity is an unresolved
-imminent state (i.e., the entity is not yet resolved to an IL entity or marked
-invalid); otherwise, return FALSE.
-*/
-{
-  return mep->imminent && !mep->invalid && mep->entity.ptr == NULL;
-}  /* is_entity_imminent */
 
 
 static a_boolean has_imminent_subentity(a_module_entity_ptr mep)
@@ -4298,17 +4470,6 @@ TRUE if caching succeeds, FALSE otherwise.
                                     &error_position);
   return FALSE;
 }  /* cache_direct_decl */
-
-
-static an_ifc_decl_index to_decl_index(an_ifc_partition_kind_index index)
-/*
-Given an IFC partition kind index, return an IFC decl index.
-*/
-{
-  an_ifc_decl_sort sort = to_decl_sort(index.partition_kind);
-
-  return an_ifc_decl_index{index.mod, sort, index.value};
-}  /* to_decl_index */
 
 
 static void cache_template_param_chart(a_module_token_cache_ptr cache,
@@ -5777,7 +5938,6 @@ using the normal IFC modules function loading logic.
 
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
 
-using an_ifc_decl_array = Dyn_array<an_ifc_decl_index>;
 using an_ifc_template_lookup_table = Ptr_map<an_ifc_decl_index,
                                              an_ifc_decl_array*>;
 			/* The type of a table that maps IFC template
@@ -6044,9 +6204,31 @@ should be called after all specializations are setup.
   }  /* for */
 }  /* process_instantiations */
 
+}  /* namespace */
 
-inline void update_cache_info_for_template(an_ifc_cache_info *cache_info,
-                                           a_template_ptr    templ)
+static void catch_up_template_specs(an_ifc_decl_index decl_idx)
+/*
+This function is called to process the template specializations for an IL
+entity that was defined outside of the IFC.
+
+As the entity is already defined, definition processing will never be called,
+so any specializations and instantiations that the IFC might provide to
+specialize the current IL template must be processed explicitly, as they will
+otherwise never be loaded.
+*/
+{
+  an_ifc_template_spec_info spec_info(decl_idx);
+
+  if (spec_info.has_specs()) {
+    spec_info.process_specializations();
+    spec_info.process_instantiations();
+  }  /* if */
+}  /* catch_up_template_specs */
+
+
+static inline
+void update_cache_info_for_template(an_ifc_cache_info *cache_info,
+                                    a_template_ptr    templ)
 /*
 Update the given IFC cache information to set flags for suppressing details the
 given IL template already contains.
@@ -6064,8 +6246,8 @@ given IL template already contains.
 }  /* update_cache_info_for_template */
 
 
-void process_template_deduction_guides(a_template_ptr    templ,
-                                       an_ifc_decl_index decl_idx)
+static void process_template_deduction_guides(a_template_ptr    templ,
+                                              an_ifc_decl_index decl_idx)
 /*
 For the given class template that is identified by the given declaration index,
 check if it has any associated deduction guides, and process them.
@@ -6093,7 +6275,7 @@ check if it has any associated deduction guides, and process them.
 }  /* process_template_deduction_guides */
 
 
-a_boolean
+static a_boolean
 process_template_definition(const an_ifc_decl_template &decl_templ,
                             a_module_entity_ptr        mep,
                             an_ifc_template_spec_info  spec_info,
@@ -6164,7 +6346,7 @@ done:
 }  /* process_template_definition */
 
 
-a_boolean
+static a_boolean
 process_delayed_template_definition(const an_ifc_decl_template &decl_templ,
                                     a_module_entity_ptr        mep,
                                     char                       **il_entity,
@@ -6188,7 +6370,6 @@ kind set to iek_template.
                                      il_entity, kind);
 }  /* process_delayed_template_definition */
 
-}  /* namespace */
 
 a_boolean has_template_definition_from_ifc_module(a_template_ptr  templ)
 /*
@@ -6318,28 +6499,46 @@ resolved before attempting to resolve the function.
   /* Members of classes require the class to be complete before anything
      else. */
   if (opt_home_scope.has_value()) {
-    an_ifc_decl_index   home_scope = *opt_home_scope;
-    a_module_entity_ptr parent_mep = process_decl_at_index(home_scope);
+    an_ifc_decl_index home_scope = *opt_home_scope;
+    an_ifc_decl_index parameterizing_entity =
+                                   ifc_parameterized_entities->get(home_scope);
 
-    if (parent_mep->invalid) {
-      /* If the parent was not successfully processed, the child cannot
-         succeed. */
-      goto invalid;
-    } else {
-      an_ifc_module *parent_mod = get_assoc_ifc_module(parent_mep);
+    if (!is_null_index(parameterizing_entity)) {
+      /* This is part of parameterized entity (at the time of writing, this
+         only applies to specializations).  Construct the parameterizer. */
+      a_module_entity_ptr parent_mep =
+                                  process_decl_at_index(parameterizing_entity);
 
-      parent_mod->complete_definition_of_module_class(parent_mep);
-      if (mep->imminent) {
-        /* If completing the class completed the entity, there's nothing more
-           to do. */
-        goto done;
-      } else if (mep->invalid) {
-        /* If completing the class resulted in the entity being invalid,
-           there's nothing more to do. */
+      if (parent_mep->invalid) {
+        /* If the parent was not successfully processed, the child cannot
+           succeed. */
         goto invalid;
       }  /* if */
-      /* Otherwise, check for further prerequisites based on the node type. */
+    } else {
+      /* This is a normal class.  Ensure the initial IL entity is constructed,
+         then complete the class type. */
+      a_module_entity_ptr parent_mep = process_decl_at_index(home_scope);
+
+      if (parent_mep->invalid) {
+        /* If the parent was not successfully processed, the child cannot
+           succeed. */
+        goto invalid;
+      } else {
+        an_ifc_module *parent_mod = get_assoc_ifc_module(parent_mep);
+
+        parent_mod->complete_definition_of_module_class(parent_mep);
+        if (mep->imminent) {
+          /* If completing the class completed the entity, there's nothing more
+             to do. */
+          goto done;
+        } else if (mep->invalid) {
+          /* If completing the class resulted in the entity being invalid,
+             there's nothing more to do. */
+          goto invalid;
+        }  /* if */
+      }  /* if */
     }  /* if */
+    /* Check for further prerequisites based on the node type. */
   }  /* if */
   /* Handle prerequisites based on the node type. */
   switch (decl_idx.sort) {
@@ -6476,42 +6675,14 @@ return TRUE.
 
   if (mep->scope == NULL) {
     mep->scope = get_home_scope(decl);
+    while (mep->scope != NULL &&
+           mep->scope->kind == sck_class_struct_union) {
+      mep->scope = mep->scope->parent;
+    }  /* while */
     if (mep->scope == NULL) {
       result = FALSE;
     }  /* if */
   }  /* if */
-  return result;
-} /* lazy_init_module_scope */
-
-
-template<>
-inline a_boolean lazy_init_module_scope(a_module_entity_ptr              mep,
-                                        const an_ifc_decl_specialization &decl)
-/*
-For the given specialized declaration, ensure its associated module entity
-pointer's scope is set.  Return FALSE if there was a problem initializing the
-scope; otherwise, return TRUE.
-*/
-{
-  a_boolean result = TRUE;
-
-  if (mep->scope == NULL) {
-    an_ifc_decl_index         primary_template_idx =
-                                                get_ifc_primary_template(decl);
-    Opt<an_ifc_decl_template> opt_templ_decl;
-
-    construct_node(&opt_templ_decl, primary_template_idx);
-    if (!opt_templ_decl.has_value()) {
-      result = FALSE;
-      goto done;
-    }  /* if */
-
-    an_ifc_decl_template templ_decl = *opt_templ_decl;
-    if (!lazy_init_module_scope(mep, templ_decl)) {
-      result = FALSE;
-    }  /* if */
-  }  /* if */
-done:
   return result;
 } /* lazy_init_module_scope */
 
@@ -6555,86 +6726,6 @@ pushed.
   }  /* if */
   return result;
 }  /* ensure_module_scope */
-
-
-template<typename an_ifc_Node_type>
-static a_boolean ensure_module_scope_for_class_member(
-                                   a_module_entity_ptr      mep,
-                                   const an_ifc_Node_type   &decl,
-                                   a_module_scope_push_kind *scope_push_status)
-/*
-If the given module entity pointer's scope is not yet set, set the scope and
-push the module declaration context.  If the declaration is a class member and
-the class is already a complete type, instead push the enclosing namespace
-scope.  Update *scope_push_status to mspk_unattempted if no scope push was
-attempted, mspk_unnecessary if the current scope is already the correct scope,
-or mspk_new if a new scope was pushed.
-*/
-{
-  a_boolean result = FALSE;
-
-  if (lazy_init_module_scope(mep, decl)) {
-    a_scope_ptr scope = mep->scope;
-
-    do {
-      /* FIXME: Is class reactivation right here? */
-      if (scope->kind != sck_class_struct_union &&
-          scope->kind != sck_class_reactivation) {
-        break;
-      }  /* if */
-
-      a_type_ptr class_ty = scope->variant.assoc_type;
-      if (is_incomplete_type(class_ty)) {
-        break;
-      }  /* if */
-      scope = scope->parent;
-    } while (scope != NULL);
-    if (scope != NULL) {
-      ensure_module_scope(scope, scope_push_status);
-      result = TRUE;
-    }  /* if */
-  }  /* if */
-  return result;
-}  /* ensure_module_scope_for_class_member */
-
-
-template<typename an_ifc_Node_type>
-static an_ifc_decl_index get_decl_index_for_current_scope(
-                                                  const an_ifc_Node_type &decl)
-/*
-Return the corresponding IFC declaration index for the scope stack state.
-
-This function ensure_module_scope or ensure_module_scope_for_class_member
-should be called and succeed without error before this function is called.
-*/
-{
-  an_ifc_decl_index       result = {};
-  an_ifc_decl_index       decl_idx = get_ifc_home_scope(decl);
-  a_scope_stack_entry_ptr ssep = &(scope_stack[decl_scope_level]);
-  a_scope_ptr             scope = ssep->il_scope;
-
-  while (!is_null_index(decl_idx)) {
-    a_scope_ptr decl_idx_scope = get_scope(decl_idx);
-
-    /* If this assertion fails, presumably the function did not follow a
-       successful call to ensure_module_scope_ function, but was called
-       anyways.  It should not be possible for ensure_module_scope_ functions
-       to succeed without the home scope (and the home scopes thereof) being
-       present. */
-    check_assertion(decl_idx_scope != NULL);
-    if (scope == decl_idx_scope) {
-      result = decl_idx;
-      break;
-    }  /* if */
-    /* Similarly to the check for decl_idx_scope != NULL, for
-       ensure_module_scope_ functions to have succeeded, there should be a
-       parent scope for all scopes, or we should've run out of scopes
-       (indicating the global scope). */
-    check_assertion(has_ifc_home_scope(decl_idx));
-    decl_idx = get_ifc_home_scope(decl_idx);
-  }  /* while */
-  return result;
-}  /* get_decl_index_for_current_scope */
 
 
 static void process_decl_to_il_entity(a_module_entity_ptr mep,
@@ -7730,8 +7821,7 @@ class_struct_union_case:
         }  /* if */
 
         an_ifc_decl_partial_specialization idps = *opt_idps;
-        if (!ensure_module_scope_for_class_member(mep, idps,
-                                                     &scope_push_status)) {
+        if (!ensure_module_scope(mep, idps, &scope_push_status)) {
           goto invalid;
         }  /* if */
         /* FIXME: Is it feasible to detect ignorable redeclarations of
@@ -7740,7 +7830,6 @@ class_struct_union_case:
           a_module_token_cache cache;
           an_ifc_cache_info    cinfo;
 
-          cinfo.lexical_scope = get_decl_index_for_current_scope(idps);
           /* There is a definition of the partial specialization.  Record the
              resolution of the signature immediately so that the below
              processing of the definition has access to it. */
@@ -7773,8 +7862,7 @@ class_struct_union_case:
 
         an_ifc_decl_specialization ids = *opt_ids;
         a_module_token_cache       cache;
-        if (!ensure_module_scope_for_class_member(mep, ids,
-                                                  &scope_push_status)) {
+        if (!ensure_module_scope(mep, ids, &scope_push_status)) {
           goto invalid;
         }  /* if */
         if (check_and_set_specialization_redeclaration(&loc, mep, ids,
@@ -7790,7 +7878,6 @@ class_struct_union_case:
         }  /* if */
 
         an_ifc_cache_info cinfo;
-        cinfo.lexical_scope = get_decl_index_for_current_scope(ids);
         mod->cache_decl_specialization(&cache, decl_idx, ids, cinfo);
         if (!cache.is_valid()) {
           goto invalid;
@@ -8997,6 +9084,27 @@ diagnostics if issue_diag is TRUE.
         if (line_number > sequence_numbers[file_index].max_line_number) {
           sequence_numbers[file_index].max_line_number = line_number;
         }  /* if */
+      }  /* for */
+    }  /* if */
+  }  /* if */
+  /* FIXME: At some point, hopefully the IFC itself will encode this
+     efficiently. */
+  if (get_partition_metadata(ifc_pk_decl_specialization).name != NULL) {
+    uint32_t num_specializations = get_num_entries(ifc_pk_decl_specialization);
+
+    if (num_specializations > 0) {
+      a_decl_specialization_traverser traverser(this, 0);
+
+      for (an_Indexed<an_ifc_decl_specialization> indexed_spec : traverser) {
+        if (!indexed_spec.has_value()) {
+          continue;
+        }  /* if */
+
+        an_ifc_decl_specialization decl_spec = *indexed_spec;
+        an_ifc_decl_index          parameterized_idx = get_ifc_decl(decl_spec);
+        an_ifc_decl_index          node_idx =
+                                          to_decl_index(indexed_spec.node_idx);
+        ifc_parameterized_entities->map(parameterized_idx, node_idx);
       }  /* for */
     }  /* if */
   }  /* if */
@@ -17219,7 +17327,8 @@ about the current cache context to help inform decisions about what to cache.
 
         /* Reconstruct the templated declaration. */
         an_ifc_decl_variable idv = *opt_idv;
-        auto cache_name_fn = [cache, &decl]() {
+        auto cache_name_fn = [cache, &decl, cinfo]() {
+          cache_func_declarator_qualifier(cache, decl, cinfo);
           cache_simple_template_id(cache, decl);
         };
         auto cache_init_fn = [this, cache, &decl]() {
@@ -17383,7 +17492,8 @@ current cache context to help inform decisions about what to cache.
 
         an_ifc_decl_variable idv = *opt_idv;
         /* Reconstruct the templated declaration. */
-        auto cache_name_fn = [cache, &decl]() {
+        auto cache_name_fn = [cache, &decl, cinfo]() {
+          cache_func_declarator_qualifier(cache, decl, cinfo);
           cache_simple_template_id(cache, decl);
         };
         auto cache_spec_init_fn = [this, cache, &cinfo, &idv]() {
@@ -21279,6 +21389,11 @@ for each compilation.
 #endif /* EXPENSIVE_CHECKING */
   decl_nesting_level = 0;
 #endif /* DEBUG */
+  ifc_parameterized_entities =
+                             alloc_fe_of_type(an_ifc_parameterized_entity_map);
+  construct(ifc_parameterized_entities, /*mask_width=*/10);
+  ifc_deferred_specs = alloc_fe_of_type(an_ifc_deferred_spec_map);
+  construct(ifc_deferred_specs, /*mask_width=*/10);
   ifc_function_bodies = alloc_fe_of_type(an_ifc_function_body_map);
   construct(ifc_function_bodies, /*mask_width=*/10);
   ifc_template_definitions = alloc_fe_of_type(an_ifc_template_def_map);
