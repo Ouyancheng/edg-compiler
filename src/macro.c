@@ -8724,7 +8724,7 @@ Scan and process a #define directive.
     }  /* if */
     /* The macro name __VA_ARGS__ is not allowed if variadic macros are
        accepted, and similarly for __VA_OPT__ when va_opt_enabled is
-       TRUE.. */
+       TRUE. */
     check_for_reserved_VA_id(id_len, id_ptr);
     /* Look to see if there is a macro with this name. */
     /* find_defined_macro cannot be used because if we have "#define defined"

@@ -662,7 +662,7 @@ Otherwise, issue a diagnostic, set *condition to FALSE, and return FALSE.
     }  /* if */
     /* The identifier __VA_ARGS__ is not allowed if variadic macros are
        accepted, and similarly for __VA_OPT__ when va_opt_enabled is
-       TRUE.. */
+       TRUE. */
     check_for_reserved_VA_id(id_len, id_ptr);
     /* Look to see if there is a macro with this name. */
     sym_hdr = find_symbol_header(id_ptr, id_len, &locator_for_curr_id);
