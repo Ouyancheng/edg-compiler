@@ -18328,6 +18328,8 @@ instantiation is available.
       break;
     case templk_concept:
       { an_expr_node_ptr  expr = tp->prototype_instantiation.constraint;
+        a_boolean         need_parens = FALSE;
+
         gen_template_header(tp->template_decl, (a_type_ptr)NULL,
                             /*is_cppcli_generic=*/FALSE,
                             /*for_generic_lambda=*/FALSE);
@@ -18342,8 +18344,11 @@ instantiation is available.
            cannot be rendered as:
                template<typename T> concept (T() == T()), true;
         */
-        gen_expr(expr, /*need_parens=*/node_is_operator(expr, eok_comma),
-                 /*obj_expr_of_mfunc_operator=*/FALSE);
+        if (is_operation_node(expr)) {
+          an_expr_operator_kind op = expr->variant.operation.kind;
+          need_parens = generated_precedence[(int)op] < PREC_OR_OR;
+        }  /* if */
+        gen_expr(expr, need_parens, /*obj_expr_of_mfunc_operator=*/FALSE);
         write_tok_str("; ");
         result = TRUE;
       }

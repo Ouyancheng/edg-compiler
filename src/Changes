@@ -1,5 +1,18 @@
 Version 6.5
 
+2/2/23   [EDGcpfe/26012]
+C++-generating back end: conditional expressions in concepts
+
+The C++-generating back end previously failed to enclose a conditional (?:)
+expression in parentheses when it appears as the expression in a concept
+definition, as required by the syntax of the construct.  This is how fixed.
+For example, with --c++20:
+
+template<typename T> concept foo = sizeof(T) == 4;
+// Previously incorrectly generated without the parentheses:
+template<typename T> concept DummyC = (foo<T> ? foo<char> : foo<float>);
+
+
 2/1/23   [EDGcpfe/24782,EDGcpfe/25697,EDGcpfe/25898]
 C++23/C23/GNU/clang compatibility: #elifdef/#elifndef preprocessor directives
 
