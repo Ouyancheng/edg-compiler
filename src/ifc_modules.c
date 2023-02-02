@@ -3254,19 +3254,6 @@ return FALSE.
   return param_sort != ifc_ps_object;
 }  /* is_template_parameter */
 
-namespace {
-
-using an_ifc_parameter_position_lookup_table = Ptr_map<an_ifc_decl_index,
-                                                       an_ifc_index_type>;
-
-an_ifc_parameter_position_lookup_table
-                *ifc_param_position_lookup_table;
-                        /* A hash table to map IFC function parameter
-                           declarations to their position information (to
-                           workaround an IFC production bug). */
-
-
-}  /* namespace */
 
 static a_symbol_ptr load_param_ref(an_ifc_decl_index decl_idx)
 /*
@@ -3327,11 +3314,8 @@ can be found, return null.
       } else {
         a_param_id_ptr param_ptr = scope_stack[sd].param_id_list;
 
-        /* FIXME: The IFC doesn't yet encode accurate position information for
-           function parameters. */
-        pnum = ifc_param_position_lookup_table->get(decl_idx);
         for (; param_ptr != NULL; param_ptr = param_ptr->next) {
-          if (param_ptr->param_num == pnum) {
+          if (param_ptr->param_num - 1 == pnum) {
             result = param_ptr->symbol;
             goto done;
           }  /* if */
@@ -14439,7 +14423,6 @@ struct a_lazy_ifc_func_param_chart {
   a_lazy_ifc_func_param_chart(an_ifc_chart_index chart_idx_val)
     : chart_idx(chart_idx_val), opt_node{}, node_invalid(FALSE)
     {}
-  inline an_ifc_decl_index get_index(an_ifc_index_type param_idx);
   inline Opt<an_ifc_decl_parameter> get(an_ifc_index_type param_idx);
 private:
   inline a_boolean try_load_chart();
@@ -14454,47 +14437,6 @@ private:
                         /* TRUE if loading of opt_node was attempted but
                            ultimately failed. */
 };  /* a_lazy_ifc_func_param_chart */
-
-
-an_ifc_decl_index
-a_lazy_ifc_func_param_chart::get_index(an_ifc_index_type param_idx)
-/*
-Attempt to load the chart (if not already loaded).  Then, using the given
-relative index for the parameter, attempt to resolve and return the associated
-IFC decl parameter's index (if possible); otherwise, return an null decl index.
-*/
-{
-  an_ifc_decl_index result;
-
-  if (this->try_load_chart()) {
-    an_ifc_chart_unilevel uni_chart = *opt_node;
-    an_ifc_index          start_idx = get_ifc_start(uni_chart);
-    an_ifc_cardinality    cardinality = get_ifc_cardinality(uni_chart);
-
-    if (param_idx >= cardinality) {
-      goto invalid;
-    }  /* if */
-
-    /* FIXME: This is a bit of an abuse of the traverser, but the traverser
-       provides a much simplified validation scheme vs rolling out all the
-       loading code for the element "manually".  We should have a better
-       way to get a single element out of a heap. */
-    an_ifc_index_type          element_idx = start_idx + param_idx;
-    a_decl_parameter_traverser traverser(start_idx.mod, element_idx, 1);
-    for (an_Indexed<an_ifc_decl_parameter> indexed_idp : traverser) {
-      if (!indexed_idp.has_value()) {
-        goto invalid;
-      }  /* if */
-
-      result = to_decl_index(indexed_idp.node_idx);
-      goto done;
-    }  /* if */
-  }  /* if */
-invalid:
-  result = {};
-done:
-  return result;
-}  /* a_lazy_ifc_func_param_chart::get */
 
 
 static an_ifc_chart_index get_msvc_trait_func_param_chart_idx(
@@ -14554,11 +14496,35 @@ IFC decl parameter (if possible); otherwise, return an empty optional.
 */
 {
   Opt<an_ifc_decl_parameter> result = {};
-  an_ifc_decl_index          param_decl_idx = this->get_index(param_idx);
 
-  if (!is_null_index(param_decl_idx)) {
-    construct_node(&result, param_decl_idx);
+  if (this->try_load_chart()) {
+    an_ifc_chart_unilevel uni_chart = *opt_node;
+    an_ifc_index          start_idx = get_ifc_start(uni_chart);
+    an_ifc_cardinality    cardinality = get_ifc_cardinality(uni_chart);
+
+    if (param_idx >= cardinality) {
+      goto invalid;
+    }  /* if */
+
+    /* FIXME: This is a bit of an abuse of the traverser, but the traverser
+       provides a much simplified validation scheme vs rolling out all the
+       loading code for the element "manually".  We should have a better
+       way to get a single element out of a heap. */
+    an_ifc_index_type          element_idx = start_idx + param_idx;
+    a_decl_parameter_traverser traverser(start_idx.mod, element_idx, 1);
+    for (an_Indexed<an_ifc_decl_parameter> indexed_idp : traverser) {
+      if (!indexed_idp.has_value()) {
+        goto invalid;
+      }  /* if */
+
+      result = *indexed_idp;
+      goto done;
+    }  /* if */
   }  /* if */
+  goto done;
+invalid:
+  result.clear();
+done:
   return result;
 }  /* a_lazy_ifc_func_param_chart::get */
 
@@ -14625,8 +14591,6 @@ struct an_ifc_func_param_context {
   inline an_ifc_type_index get_param_type(an_ifc_index_type param_idx);
   inline an_ifc_name_index get_name(an_ifc_index_type param_idx);
   inline an_ifc_expr_index get_default_arg_expr(an_ifc_index_type param_idx);
-  inline Dyn_array<an_ifc_decl_index> get_parameter_decls(
-                                                  an_ifc_index_type param_idx);
 private:
   inline an_ifc_index_type determine_param_count();
   an_ifc_index_type
@@ -14870,48 +14834,6 @@ done:
   return result;
 }  /* an_ifc_func_param_context::get_param_type */
 
-
-static void add_parameter_decl_idx_from_chart(
-                                        Dyn_array<an_ifc_decl_index> *results,
-                                        a_lazy_ifc_func_param_chart  &chart,
-                                        an_ifc_index_type            param_idx)
-/*
-Given an array to append into, a function parameter chart, and the relative
-index of a parameter, append the decl_idx of the matching parameter declaration
-into *results.
-*/
-{
-  an_ifc_decl_index decl_param = chart.get_index(param_idx);
-
-  if (!is_null_index(decl_param)) {
-    results->push_back(decl_param);
-  }  /* if */
-}  /* add_parameter_decl_idx_from_chart */
-
-
-Dyn_array<an_ifc_decl_index>
-an_ifc_func_param_context::get_parameter_decls(an_ifc_index_type param_idx)
-/*
-Given the relative index of a parameter for the current function parameter
-context, return the expr index for the parameter's default argument (if
-possible); if no valid default argument expression can be found, return a null
-expr index.
-*/
-{
-  Dyn_array<an_ifc_decl_index> result;
-
-  add_parameter_decl_idx_from_chart(&result, this->decl_param_chart,
-                                    param_idx);
-  add_parameter_decl_idx_from_chart(&result, this->def_param_chart, param_idx);
-  add_parameter_decl_idx_from_chart(&result, this->msvc_traits_param_chart,
-                                    param_idx);
-  add_parameter_decl_idx_from_chart(
-                                   &result,
-                                   this->parameterizer_msvc_traits_param_chart,
-                                   param_idx);
-  return result;
-}  /* an_ifc_func_param_context::get_param_type */
-
 }  /* namespace */
 
 
@@ -14945,7 +14867,6 @@ appears in code like the following:
   return result;
 }  /* is_variadic_parameter_declaration_clause_type */
 
-
 template<typename an_ifc_Node_type>
 static void cache_func_parameter_declaration_clause(
                                              a_module_token_cache_ptr cache,
@@ -14973,33 +14894,6 @@ context to help inform decisions about what to cache.
     if (is_null_index(arg_type)) {
       goto invalid;
     }  /* if */
-
-    /* Store information about the position to workaround an issue where the
-       IFC doesn't encode the position information properly. */
-    Dyn_array<an_ifc_decl_index> param_decl_idxs =
-                                          param_context.get_parameter_decls(i);
-    for (an_ifc_decl_index param_decl_idx : param_decl_idxs) {
-      an_ifc_index_type existing_position =
-                          ifc_param_position_lookup_table->get(param_decl_idx);
-
-      if (existing_position == 0) {
-        /* This parameter has yet to be mapped. */
-        ifc_param_position_lookup_table->map(param_decl_idx, i + 1);
-      } else if (existing_position == i + 1) {
-        /* This parameter was mapped with the same position, this is fine. */
-      } else {
-        /* This parameter was mapped with a different position, fail. */
-        a_string err_msg(index_to_str(param_decl_idx),
-                         " encodes both position ",
-                         existing_position,
-                         " and ",
-                         i + 1);
-
-        ifc_unexpected(param_decl_idx.mod, err_msg.as_temp_characters());
-        goto invalid;
-      }  /* if */
-    }  /* for */
-    /* Cache the parameter. */
     arg_type.mod->cache_type_first_part(cache, arg_type);
     if (!is_variadic_parameter_declaration_clause_type(arg_type)) {
       an_ifc_name_index name_idx = param_context.get_name(i);
@@ -20940,9 +20834,6 @@ for each compilation.
   ifc_decl_template_lookup_table = alloc_fe_of_type(
                                                  an_ifc_template_lookup_table);
   construct(ifc_decl_template_lookup_table, /*mask_width=*/10);
-  ifc_param_position_lookup_table = alloc_fe_of_type(
-                                       an_ifc_parameter_position_lookup_table);
-  construct(ifc_param_position_lookup_table, /*mask_width=*/10);
 }  /* ifc_modules_init */
 
 /*lint -restore*/ /* FIXME: temporary */
