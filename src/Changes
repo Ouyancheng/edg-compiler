@@ -1,5 +1,20 @@
 Version 6.5
 
+2/3/23   [EDGcpfe/25809]
+Abort on dependent substitution of constexpr if statement
+
+A substitution of a constexpr if statement with dependent template arguments,
+which can occur in an unevaluated context of an alias template, previously
+resulted in an internal error in add_to_constexpr_if_cache_hash_table.  For
+example, with --c++20:
+
+  template<bool B>
+  using A = decltype([] () {
+    if constexpr (B) return 1;  // Previously an internal error.  Now okay.
+    else return 2; } ());
+  template<bool B> using AA = A<B>;
+
+
 2/2/23   [EDGcpfe/26012]
 C++-generating back end: conditional expressions in concepts
 

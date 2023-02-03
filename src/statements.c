@@ -4169,15 +4169,17 @@ The syntax is:
       }  /* if */
       discard_more_info_list(&diag_list);
       release_local_constant(&folded_con);
-      sssep = &struct_stmt_stack[depth_stmt_stack];
-      if (is_template_dependent_context()) {
-        sssep->dependent_constexpr_if = !value_known;
+      if (is_nonspecialized_prototype_instantiation_context()) {
         /* Clear the local entry used to record the cache positions for
-           dependent constexpr ifs.  A copy will be made when this is added to
-           the hash table. */
+           constexpr ifs in the prototype instantiation.  A copy will be made
+           when this is added to the hash table. */
         cicip_to_create = &local_cici;
         clear_constexpr_if_cache_info(cicip_to_create);
         cicip_to_create->token_cache = get_token_cache_being_scanned();
+      }  /* if */
+      sssep = &struct_stmt_stack[depth_stmt_stack];
+      if (is_template_dependent_context()) {
+        sssep->dependent_constexpr_if = !value_known;
         if (value_known) {
           /* If we are in a (non-prototype) instantiation of an enclosing
              templated entity, the discarded substatement is not instantiated
