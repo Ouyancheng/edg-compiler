@@ -3568,39 +3568,52 @@ done:
 }  /* load_ifc_entity_ref */
 
 
+template<typename an_ifc_Index_type>
+static void diagnose_entity_load_failure(an_ifc_Index_type idx)
+/*
+Emit an error for an IFC resolved identifier pseudo token load failure (either
+from a tok_ifc_entity_ref or tok_ifc_decl_ref).
+*/
+{
+  an_ifc_module               *mod = idx.mod;
+  a_source_position           pos = pos_curr_token;
+  a_diagnostic_ptr            diag = pos_st_start_error(
+                                                 ec_ifc_entity_ref_failure,
+                                                 &pos,
+                                                 mod->assoc_module_info->name);
+  an_ifc_partition_kind       kind = to_partition_kind(idx.sort);
+  an_ifc_partition_kind_index part_kind_idx = {mod, kind, idx.value};
+  an_ifc_partition_metadata   *part_meta =
+                                         get_partition_metadata(part_kind_idx);
+  size_t                      part_start = part_meta->offset;
+  size_t                      abs_offset =
+                                           get_partition_offset(part_kind_idx);
+  size_t                      rel_offset = abs_offset - part_start;
+
+  /* FIXME: Migrate to allowing diagnostics with size_t. */
+  st_num3_add_diag_info(diag, ec_ifc_entity_ref_failure_info,
+                        get_partition_name_from_kind(kind), idx.value,
+                        (uint32_t)abs_offset, (uint32_t)rel_offset);
+  end_diagnostic(diag);
+}  /* diagnose_entity_load_failure */
+
+
 a_symbol_ptr load_tok_ifc_entity_ref()
 /*
-A wrapper for load_ifc_entity_ref that uses the current token as a source for
-an IFC expression index (that token should be a tok_ifc_entity_ref).
+The current token is tok_ifc_entity_ref, which encodes a reference to some IFC
+entity via an expression.  Load the IL entity if necessary, and return the its
+corresponding symbol.  If the entity could not be loaded, instead return NULL,
+and issue a diagnostic.
 */
 {
   a_lexical_ifc_index_reference
                      *idx = &ifc_index_for_curr_token;
-  an_ifc_module*     mod = (an_ifc_module*)idx->module;
   an_ifc_expr_index  expr_idx = from_lexical_index<an_ifc_expr_index>(*idx);
-  a_source_position  pos = pos_curr_token;
   a_symbol_ptr       result = load_ifc_entity_ref(expr_idx);
 
   if (result == NULL) {
     /* Something went wrong loading the IFC representation. */
-    a_diagnostic_ptr            diag = pos_st_start_error(
-                                                 ec_ifc_entity_ref_failure,
-                                                 &pos,
-                                                 mod->assoc_module_info->name);
-    an_ifc_partition_kind       kind = to_partition_kind(expr_idx.sort);
-    an_ifc_partition_kind_index part_kind_idx = {mod, kind, expr_idx.value};
-    an_ifc_partition_metadata   *part_meta =
-                                         get_partition_metadata(part_kind_idx);
-    size_t                      part_start = part_meta->offset;
-    size_t                      abs_offset =
-                                           get_partition_offset(part_kind_idx);
-    size_t                      rel_offset = abs_offset - part_start;
-
-    /* FIXME: Migrate to allowing diagnostics with size_t. */
-    st_num3_add_diag_info(diag, ec_ifc_entity_ref_failure_info,
-                          get_partition_name_from_kind(kind), expr_idx.value,
-                          (uint32_t)abs_offset, (uint32_t)rel_offset);
-    end_diagnostic(diag);
+    diagnose_entity_load_failure(expr_idx);
   }  /* if */
   return result;
 }  /* load_tok_ifc_entity_ref */
@@ -3609,14 +3622,21 @@ an IFC expression index (that token should be a tok_ifc_entity_ref).
 a_symbol_ptr load_tok_ifc_decl_ref()
 /*
 The current token is tok_ifc_decl_ref, which encodes a reference to a
-declaration.  Return the symbol for the corresponding declaration.
+declaration.  Load the IL entity for the declaration if necessary, and return
+the its corresponding symbol.  If the entity could not be loaded, instead
+return NULL, and issue a diagnostic.
 */
 {
   a_lexical_ifc_index_reference
                      *idx = &ifc_index_for_curr_token;
   an_ifc_decl_index  decl_idx = from_lexical_index<an_ifc_decl_index>(*idx);
+  a_symbol_ptr       result = symbol_for_decl_index(decl_idx);
 
-  return symbol_for_decl_index(decl_idx);
+  if (result == NULL) {
+    /* Something went wrong loading the IFC representation. */
+    diagnose_entity_load_failure(decl_idx);
+  }  /* if */
+  return result;
 }  /* load_tok_ifc_template_param */
 
 
