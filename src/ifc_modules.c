@@ -16834,10 +16834,12 @@ there is no offset/the offset is not needed.
   } else {
     /* Function or variable template. */
     an_ifc_decl_index entity_idx = get_ifc_decl(entity);
-    if (entity_idx.sort == ifc_ds_decl_variable) {
+    if (entity_idx.sort == ifc_ds_decl_variable ||
+        entity_idx.sort == ifc_ds_decl_deduction_guide) {
       /* FIXME: Cache the entity corresponding to decl->entity.decl instead (as
          was done for functions below).  Variables template declarations are
-         still a mess, but we can avoid updating them for now. */
+         still a mess, and deduction guides are unimplemented, but we can avoid
+         updating them for now. */
       cache_sentence(cache, get_ifc_head(entity));
     } else {
       an_ifc_cache_info decl_cinfo = cinfo;
