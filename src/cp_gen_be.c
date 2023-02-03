@@ -18337,14 +18337,10 @@ instantiation is available.
         gen_bare_name(&tp->source_corresp, iek_template);
         write_tok_str(" = ");
         adv_curr_source_sequence_entry();
-        /* The concept definition syntax does not permit a comma expression at
-           the top level of the constraint-expression.  So force parentheses
-           if needed.  E.g.:
-               template<typename T> concept (T() == T(), true);
-           cannot be rendered as:
-               template<typename T> concept (T() == T()), true;
-        */
         if (is_operation_node(expr)) {
+          /* A constraint-expression is a logical-or-expression, so an
+             expression with lower precedence - conditional, assignment, or
+             comma - requires parentheses. */
           an_expr_operator_kind op = expr->variant.operation.kind;
           need_parens = generated_precedence[(int)op] < PREC_OR_OR;
         }  /* if */
