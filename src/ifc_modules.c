@@ -1943,6 +1943,7 @@ enum an_operator_kind : uint8_t {
   opkind_func_like, /* A function-like operator (e.g., is_assignable). */
   opkind_c_cast,    /* A C-style cast (e.g., (X*)Y). */
   opkind_cpp_cast,  /* A C++-style cast (e.g., reinterpret_cast<X*>Y). */
+  opkind_new,       /* A new-expression operator. */
   opkind_other,     /* Something else. */
   opkind_error      /* Invalid/error operator value. */
 };
@@ -2145,7 +2146,7 @@ Return the kind of operator described by op in the context of the given module.
       break;
     case ifc_dos_new:
     case ifc_dos_new_array:
-      kind = opkind_other;
+      kind = opkind_new;
       break;
     case ifc_dos_cast:
     case ifc_dos_explicit_conversion:
@@ -18309,6 +18310,7 @@ tuple elements by '::' instead of ','.
           case opkind_error:
           case opkind_c_cast:
           case opkind_cpp_cast:
+          case opkind_new:
             ifc_unexpected(this, "Unexpected operator kind");
             goto invalid;
           case opkind_basic:
@@ -18424,6 +18426,15 @@ tuple elements by '::' instead of ','.
             cache_token(cache, tok_lparen);
             cache_expr(cache, arg_1, cinfo);
             cache_token(cache, tok_rparen);
+            break;
+          case opkind_new:
+            cache_token(cache, tok_new);
+            cache_expr(cache, arg_0, cinfo);
+            /* FIXME: at the time of writing the parens are included in the
+               caching of arg_1; this is likely not reliable (we'll probably
+               want to apply a mechanism that caches parens unless the operand
+               has its own parens). */
+            cache_expr(cache, arg_1, cinfo);
             break;
           default_is_unexpected();
         }  /* switch */
