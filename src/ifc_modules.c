@@ -15464,7 +15464,10 @@ this is needed.
         an_ifc_type_pointer itp = *opt_itp;
         an_ifc_type_index   pointee = get_ifc_pointee(itp);
         cache_type_first_part(cache, pointee);
-        if (pointee.sort != ifc_ts_type_pointer_to_member) {
+        if (pointee.sort == ifc_ts_type_array) {
+          cache_token(cache, tok_lparen);
+          cache_token(cache, tok_star);
+        } else if (pointee.sort != ifc_ts_type_pointer_to_member) {
           /* The tok_star will already have been cached if the pointee is a
              pointer-to-member. */
           cache_token(cache, tok_star);
@@ -15740,7 +15743,13 @@ this is needed.
         if (!opt_itp.has_value()) {
           goto invalid;
         }  /* if */
-        cache_type_second_part(cache, get_ifc_pointee(*opt_itp));
+
+        an_ifc_type_pointer itp = *opt_itp;
+        an_ifc_type_index   pointee = get_ifc_pointee(itp);
+        if (pointee.sort == ifc_ts_type_array) {
+          cache_token(cache, tok_rparen);
+        }  /* if */
+        cache_type_second_part(cache, pointee);
       }
       break;
     case ifc_ts_type_pointer_to_member:
