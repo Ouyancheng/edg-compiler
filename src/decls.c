@@ -16200,7 +16200,8 @@ placed.
 }  /* make_using_decl */
 
 
-void create_nonmember_using_declaration(a_symbol_ptr     sym,
+a_symbol_ptr create_nonmember_using_declaration(
+                                        a_symbol_ptr     sym,
                                         a_symbol_ptr     *overload_sym_ptr,
                                         a_symbol_ptr     other_decl,
                                         a_namespace_ptr  nsp,
@@ -16211,21 +16212,21 @@ void create_nonmember_using_declaration(a_symbol_ptr     sym,
                                         an_attribute_ptr attributes,
                                         a_boolean        copy_attributes)
 /*
-Create a projection for symbol "sym" from namespace "nsp" (or, in
-Microsoft bugs mode, from the class "class_type").  If this is part of
-an overload set being imported, "is_list" will be TRUE and
-"*overload_sym_ptr" will point to the overload symbol.  Even when it
-is not part of an overload set, we may need to create such a set
-because existing declarations in the scope are being overloaded.
-"*prev_udp" is the previous using-declaration structure for the
-using-declaration construct that is currently being processed (NULL if
-none).  If attributes is non-NULL, attach those attributes to the
-newly-created using-declaration (a copy of the attributes is made if
-copy_attributes is TRUE).
+Create a projection for symbol "sym" from namespace "nsp" (or, in Microsoft
+bugs mode, from the class "class_type").  If this is part of an overload set
+being imported, "is_list" will be TRUE and "*overload_sym_ptr" will point to
+the overload symbol.  Even when it is not part of an overload set, we may need
+to create such a set because existing declarations in the scope are being
+overloaded.  "*prev_udp" is the previous using-declaration structure for the
+using-declaration construct that is currently being processed (NULL if none).
+If attributes is non-NULL, attach those attributes to the newly-created
+using-declaration (a copy of the attributes is made if copy_attributes is
+TRUE).  Return the newly created symbol pointer, or NULL if no symbol was
+formed.
 */
 {
   a_symbol_locator   locator;
-  a_symbol_ptr       new_sym;
+  a_symbol_ptr       new_sym = NULL;
   a_symbol_ptr       overload_sym = *overload_sym_ptr;
   a_symbol_ptr       fund_sym = fundamental_symbol_of(sym);
   a_source_position  decl_pos;
@@ -16330,6 +16331,7 @@ copy_attributes is TRUE).
   set_namespace_membership(new_sym, (a_source_correspondence *)NULL,
                            (a_namespace_ptr)NULL);
 done:;
+  return new_sym;
 }  /* create_nonmember_using_declaration */
 
 
@@ -16389,12 +16391,13 @@ TRUE if and only if a redeclaration error is issued.
                                         IDL_NO_OPTIONS))) {
       /* We found a tag that was masked by another declaration (sym),
          and importing it is not just a redeclaration. */
-      create_nonmember_using_declaration(tag_sym, &null_sym_ptr,
-                                         other_decl, nsp, (a_type_ptr)NULL,
-                                         prev_udp, /*is_list=*/FALSE,
-                                         /*suppress_redecl_error=*/FALSE,
-                                         (an_attribute_ptr)NULL,
-                                         /*copy_attributes=*/FALSE);
+      (void)create_nonmember_using_declaration(tag_sym, &null_sym_ptr,
+                                               other_decl, nsp,
+                                               (a_type_ptr)NULL,
+                                               prev_udp, /*is_list=*/FALSE,
+                                               /*suppress_redecl_error=*/FALSE,
+                                               (an_attribute_ptr)NULL,
+                                               /*copy_attributes=*/FALSE);
       clear_specific_symbol(locator);
       *redecl_error = (curr_scope_id_lookup(
                           &locator, IDL_MUST_BE_TAG | IDL_PROJ_SYMBOL_ALLOWED)
@@ -16691,7 +16694,7 @@ the using_if_exists attribute at that location.
               }  /* if */
             }  /* if */
             for (; sym != NULL; sym = is_list ? sym->next : NULL) {
-              create_nonmember_using_declaration(sym, &overload_sym,
+              (void)create_nonmember_using_declaration(sym, &overload_sym,
                     other_decl, nsp, class_type, &prev_udp, is_list,
                     suppress_redecl_error, dps->prefix_attributes,
                     /*copy_attributes=*/(is_list ? sym->next != NULL : FALSE));

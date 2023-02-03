@@ -1956,7 +1956,7 @@ extern void mark_inline_variable(a_variable_ptr var,
 
 extern void diagnose_unattached_attributes(an_attribute_ptr  attributes);
 
-extern void create_nonmember_using_declaration(
+extern a_symbol_ptr create_nonmember_using_declaration(
                                        a_symbol_ptr     sym,
                                        a_symbol_ptr     *overload_sym_ptr,
                                        a_symbol_ptr     other_decl,

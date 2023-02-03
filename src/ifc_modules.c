@@ -3427,7 +3427,7 @@ Return NULL if none is found.
       /* FIXME: Some ifc_sls_msvc_binding source literals are self references
          to the declaration being declared.  There's no IL entity to return a
          symbol for as it's none has yet been constructed. (EDGcpfe/25972) */
-      if (mep->imminent || has_imminent_subentity(mep)) {
+      if (is_entity_imminent(mep) || has_imminent_subentity(mep)) {
         /* Trigger ifc_unexpected to call attention to the underlying problem
            without crashing. */
         a_string err_msg(index_to_str(decl_idx),
@@ -3569,7 +3569,7 @@ done:
 
 
 template<typename an_ifc_Index_type>
-static void diagnose_entity_load_failure(an_ifc_Index_type idx)
+static void diagnose_ifc_entity_load_failure(an_ifc_Index_type idx)
 /*
 Emit an error for an IFC resolved identifier pseudo token load failure (either
 from a tok_ifc_entity_ref or tok_ifc_decl_ref).
@@ -3613,7 +3613,7 @@ and issue a diagnostic.
 
   if (result == NULL) {
     /* Something went wrong loading the IFC representation. */
-    diagnose_entity_load_failure(expr_idx);
+    diagnose_ifc_entity_load_failure(expr_idx);
   }  /* if */
   return result;
 }  /* load_tok_ifc_entity_ref */
@@ -3634,7 +3634,7 @@ return NULL, and issue a diagnostic.
 
   if (result == NULL) {
     /* Something went wrong loading the IFC representation. */
-    diagnose_entity_load_failure(decl_idx);
+    diagnose_ifc_entity_load_failure(decl_idx);
   }  /* if */
   return result;
 }  /* load_tok_ifc_template_param */
@@ -7651,7 +7651,7 @@ class_struct_union_case:
           } else {
             /* Non-member using declaration.  Could be file scope or namespace
                scope. */
-            a_symbol_ptr            null_sym_ptr = NULL, aliased_sym;
+            a_symbol_ptr            aliased_sym;
             a_using_decl_ptr        prev_udp = NULL;
             a_namespace_ptr         nsp = NULL;
             a_source_correspondence *scp =
@@ -7699,7 +7699,8 @@ class_struct_union_case:
             } else {
               /* FIXME: This will need to be re-worked when handling the
                  ifc_DeclSort_Tuple case (i.e., multiple items). */
-              create_nonmember_using_declaration(
+              a_symbol_ptr null_sym_ptr = NULL;
+              a_symbol_ptr new_sym_ptr = create_nonmember_using_declaration(
                                                 (a_symbol_ptr)scp->assoc_info,
                                                 &null_sym_ptr,
                                                 (a_symbol_ptr)NULL,
@@ -7710,6 +7711,14 @@ class_struct_union_case:
                                                 /*suppress_redecl_error=*/TRUE,
                                                 (an_attribute_ptr)NULL,
                                                 /*copy_attributes=*/FALSE);
+
+              if (new_sym_ptr == NULL) {
+                goto invalid;
+              }  /* if */
+              /* FIXME: Should this be moved into
+                 il_entry_for_symbol_null_okay? */
+              new_sym_ptr = fundamental_symbol_of(new_sym_ptr);
+              il_entity = il_entry_for_symbol_null_okay(new_sym_ptr, &kind);
             }  /* if */
           }  /* if */
         }  /* if */
