@@ -13305,6 +13305,32 @@ done:;
 }  /* cache_source_keyword */
 
 
+static a_boolean
+is_source_identifier_ud_literal(a_module_token_cache_ptr cache,
+                                a_const_char             *name)
+/*
+Given the current token cache state and the name of a source identifier, return
+TRUE if a correction should be made to form a tok_ud_literal token; otherwise,
+return FALSE.
+*/
+{
+  a_boolean          result = TRUE;
+  a_cached_token_ptr last_tok = cache->get_last_token();
+
+  if (name[0] != '_') {
+    /* The first character of the name was not an underscore. */
+    result = FALSE;
+  } else if (last_tok == NULL || last_tok->token != tok_string_literal) {
+    /* The last token was not a string literal. */
+    result = FALSE;
+  } else if (last_tok->variant.constant->variant.string.length != 1) {
+    /* There was more than a null terminator present. */
+    result = FALSE;
+  }  /* if */
+  return result;
+}  /* is_source_identifier_ud_literal */
+
+
 void an_ifc_module::cache_source_identifier(
                                  a_module_token_cache_ptr                cache,
                                  const an_ifc_source_identifier_category &id)
@@ -13351,7 +13377,19 @@ for the additional information needed, depending on the kind of id.
   if (strcmp(name, "default") == 0) {
     cache_token(cache, tok_default);
   } else {
-    cache_identifier(cache, name);
+    if (is_source_identifier_ud_literal(cache, name)) {
+      /* FIXME: This an extremely brittle hack. */
+      a_module_token_cache tmp_cache(infer_next_source_position(cache));
+      a_string             composed("\"\"", name);
+
+      cache_tokens_from_string(composed.as_temp_characters(), &tmp_cache);
+      check_assertion((tmp_cache.get_last_token() != NULL &&
+                       (tmp_cache.get_first_token() ==
+                        tmp_cache.get_last_token())));
+      *cache->get_last_token() = *tmp_cache.get_last_token();
+    } else {
+      cache_identifier(cache, name);
+    }  /* if */
   }  /* if */
   goto done;
 invalid:
@@ -14875,6 +14913,7 @@ appears in code like the following:
   return result;
 }  /* is_variadic_parameter_declaration_clause_type */
 
+
 template<typename an_ifc_Node_type>
 static void cache_func_parameter_declaration_clause(
                                              a_module_token_cache_ptr cache,
@@ -14887,46 +14926,147 @@ Cache the parameter-declaration-clause for the given function-like declaration
 context to help inform decisions about what to cache.
 */
 {
-  an_ifc_func_param_context param_context(decl_idx, decl,
-                                          cinfo.parameterizing_entity);
-  a_boolean                 first = TRUE;
+  if (cinfo.parameterizing_entity.sort == ifc_ds_decl_template) {
+    /* Templates do not currently have correct encodings of function parameters
+       in the IFC nodes.  To work around this issue, cache the IFC "head"
+       sentence, and capture the parameter-declaration-clause from it. */
+    an_ifc_decl_index    decl_templ_idx = cinfo.parameterizing_entity;
+    a_module_token_cache templ_cache(infer_next_source_position(cache));
+    an_ifc_decl_template decl_templ;
 
-  for (an_ifc_index_type i = 0; i < param_context.get_num_params(); ++i) {
-    if (!first) {
-      cache_token(cache, tok_comma);
+    construct_node_prechecked(&decl_templ, decl_templ_idx);
+
+    an_ifc_parameterized_entity entity = get_ifc_entity(decl_templ);
+    an_ifc_sentence_index       head = get_ifc_head(entity);
+    head.mod->cache_sentence(&templ_cache, head);
+
+    a_module_token_cache name_cache(infer_next_source_position(cache));
+    an_ifc_name_index    name_idx = get_ifc_name(decl_templ);
+    cache_name(&name_cache, name_idx);
+
+    a_cached_token_ptr      ctp = templ_cache.get_first_token();
+    a_token_sequence_number first_param_tsn = NO_TOKEN_SEQUENCE_NUMBER;
+    a_token_sequence_number last_param_tsn = NO_TOKEN_SEQUENCE_NUMBER;
+    ptrdiff_t               brace_count = 0;
+    for (; ctp != NULL; ctp = ctp->next) {
+      if (first_param_tsn == NO_TOKEN_SEQUENCE_NUMBER) {
+        /* Look for the function "name" followed by a lparen. */
+        a_cached_token_ptr name_ctp = name_cache.get_first_token();
+        a_cached_token_ptr lookahead_ctp = ctp;
+        for (; name_ctp != NULL && lookahead_ctp != NULL;
+             name_ctp = name_ctp->next, lookahead_ctp = lookahead_ctp->next) {
+          if (name_ctp->token != lookahead_ctp->token) {
+            goto next_tok;
+          }  /* if */
+
+          if (name_ctp->token == tok_identifier) {
+            a_symbol_header_ptr name_sym_hdr =
+                                       name_ctp->variant.locator.symbol_header;
+            sizeof_t            name_id_len = name_sym_hdr->identifier_length;
+            a_symbol_header_ptr la_sym_hdr =
+                                  lookahead_ctp->variant.locator.symbol_header;
+            sizeof_t            la_id_len = la_sym_hdr->identifier_length;
+
+            if (name_id_len != la_id_len) {
+              goto next_tok;
+            }  /* if */
+
+            a_const_char *name_id = name_sym_hdr->identifier;
+            a_const_char *la_id = la_sym_hdr->identifier;
+            if (strncmp(name_id, la_id, name_id_len) != 0) {
+              goto next_tok;
+            }  /* if */
+          }  /* if */
+        }  /* for */
+        if (lookahead_ctp->token != tok_lparen) {
+          goto next_tok;
+        }  /* if */
+        /* Catch up to the lparen as the name matched. */
+        while (ctp != lookahead_ctp) {
+          ctp = ctp->next;
+        }  /* if */
+        /* Capture the token sequence number of the token following the
+           lparen. */
+        if (ctp->next == NULL) {
+          break;
+        }  /* if */
+        first_param_tsn = ctp->next->token_sequence_number;
+        /* Set an initial brace count value for brace matching. */
+        ++brace_count;
+      } else {
+        if (ctp->token == tok_lparen) {
+          ++brace_count;
+        } else if (ctp->token == tok_rparen) {
+          --brace_count;
+          if (brace_count == 0) {
+            last_param_tsn = ctp->token_sequence_number;
+            break;
+          }  /* if */
+        }  /* if */
+      }  /* if */
+      next_tok:;
     }  /* if */
+    /* Make sure the parameter-declaration-clause was found. */
+    if (first_param_tsn == NO_TOKEN_SEQUENCE_NUMBER ||
+        last_param_tsn == NO_TOKEN_SEQUENCE_NUMBER) {
+      /* The parameter-declaration-clause couldn't be extracted from the source
+         sequence. */
+      a_string err_msg("the parameter-declaration-clause could not be found "
+                       "for ",
+                       index_to_str(cinfo.parameterizing_entity));
 
-    an_ifc_type_index arg_type = param_context.get_param_type(i);
-    /* If the type couldn't be resolved, fail; this isn't reasonably
-       recoverable. */
-    if (is_null_index(arg_type)) {
+      ifc_unexpected(cinfo.parameterizing_entity.mod,
+                     err_msg.as_temp_characters());
       goto invalid;
     }  /* if */
-    arg_type.mod->cache_type_first_part(cache, arg_type);
-    if (!is_variadic_parameter_declaration_clause_type(arg_type)) {
-      an_ifc_name_index name_idx = param_context.get_name(i);
+    /* Copy over the parameter-declaration-clause. */
+    copy_tokens_from_cache(templ_cache.as_canonical(),
+                           first_param_tsn,
+                           last_param_tsn,
+                           /*include_last_token=*/FALSE,
+                           cache->as_canonical());
+  } else {
+    an_ifc_func_param_context param_context(decl_idx, decl,
+                                            cinfo.parameterizing_entity);
+    a_boolean                 first = TRUE;
 
-      if (is_null_index(name_idx)) {
-        a_string param_name("param_", i);
-
-        cache_identifier(cache, param_name.as_temp_characters());
-      } else {
-        cache_name(cache, name_idx);
+    for (an_ifc_index_type i = 0; i < param_context.get_num_params(); ++i) {
+      if (!first) {
+        cache_token(cache, tok_comma);
       }  /* if */
-    }  /* if */
-    arg_type.mod->cache_type_second_part(cache, arg_type);
-    /* Cache the default argument if we're not ignoring default arguments in
-       this context, and a default argument is found. */
-    if (!cinfo.ignore_default_arguments) {
-      an_ifc_expr_index arg_expr = param_context.get_default_arg_expr(i);
 
-      if (is_cachable_expr(arg_expr)) {
-        cache_token(cache, tok_assign);
-        cache_pending_expr_token(cache, arg_expr);
+      an_ifc_type_index arg_type = param_context.get_param_type(i);
+      /* If the type couldn't be resolved, fail; this isn't reasonably
+         recoverable. */
+      if (is_null_index(arg_type)) {
+        goto invalid;
       }  /* if */
-    }  /* if */
-    first = FALSE;
-  }  /* for */
+      arg_type.mod->cache_type_first_part(cache, arg_type);
+      if (!is_variadic_parameter_declaration_clause_type(arg_type)) {
+        an_ifc_name_index name_idx = param_context.get_name(i);
+
+        if (is_null_index(name_idx)) {
+          a_string param_name("param_", i);
+
+          cache_identifier(cache, param_name.as_temp_characters());
+        } else {
+          cache_name(cache, name_idx);
+        }  /* if */
+      }  /* if */
+      arg_type.mod->cache_type_second_part(cache, arg_type);
+      /* Cache the default argument if we're not ignoring default arguments in
+         this context, and a default argument is found. */
+      if (!cinfo.ignore_default_arguments) {
+        an_ifc_expr_index arg_expr = param_context.get_default_arg_expr(i);
+
+        if (is_cachable_expr(arg_expr)) {
+          cache_token(cache, tok_assign);
+          cache_pending_expr_token(cache, arg_expr);
+        }  /* if */
+      }  /* if */
+      first = FALSE;
+    }  /* for */
+  }  /* if */
   goto done;
 invalid:
   expect_error_str("expected errors for bad parameter-declaration-clause"
