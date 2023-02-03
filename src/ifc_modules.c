@@ -14672,6 +14672,7 @@ private:
                            information about the parameterizing entity). */
 };  /* an_ifc_func_param_context */
 
+
 template<typename an_ifc_Node_type>
 inline an_ifc_func_param_context::an_ifc_func_param_context(
                                   an_ifc_decl_index      decl_idx,
@@ -14784,9 +14785,28 @@ the name index for the parameter's name (if possible); if no valid default name
 can be found, return a null name index.
 */
 {
-  an_ifc_name_index          result = {};
-  Opt<an_ifc_decl_parameter> opt_decl_param = chart.get(param_idx);
+  an_ifc_name_index result = {};
+  an_ifc_index_type offset = 0;
 
+  /* Figure out where the "real" parameter names start, skipping bad parameters
+     in this chart. */
+  /* FIXME: Diagnose? */
+  for (; TRUE; ++offset) {
+    Opt<an_ifc_decl_parameter> opt_decl_param = chart.get(offset);
+
+    /* Check for a "bad" function parameter, and skip it. */
+    if (!opt_decl_param.has_value()) {
+      break;
+    }  /* if */
+
+    an_ifc_decl_parameter decl_param = *opt_decl_param;
+    if (!is_bad_ifc_parameter(decl_param)) {
+      break;
+    }  /* if */
+    ++param_idx;
+  }  /* for */
+
+  Opt<an_ifc_decl_parameter> opt_decl_param = chart.get(param_idx + offset);
   if (opt_decl_param.has_value()) {
     an_ifc_decl_parameter decl_param = *opt_decl_param;
     an_ifc_text_offset    raw_result = get_ifc_name(decl_param);
