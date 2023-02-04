@@ -9519,9 +9519,7 @@ accordingly.
           /* FIXME: Currently unsupported. */
           issue_unsupported_construct_error(this, "NameSort::Specialization",
                                             &error_position);
-          result = "<error-name>";
-          /* String literals have static duration, no buffer required. */
-          requires_buffer = FALSE;
+          /* FIXME: need to set result/requires_buffer as appropriate. */
           goto invalid;
         }
       case ifc_ns_name_guide:
@@ -9534,9 +9532,7 @@ accordingly.
           /* FIXME: Currently unsupported. */
           issue_unsupported_construct_error(this, "NameSort::Guide",
                                             &error_position);
-          result = "<error-name>";
-          /* String literals have static duration, no buffer required. */
-          requires_buffer = FALSE;
+          /* FIXME: need to set result/requires_buffer as appropriate. */
           goto invalid;
         }
       case ifc_ns_text_offset:
@@ -9552,6 +9548,7 @@ accordingly.
 invalid:
   /* FIXME: This function's error handling could be significantly improved. */
   result = "";
+  requires_buffer = FALSE;
 done:
   if (requires_buffer) {
     /* Check to see if a result buffer was passed that should be used.  If none
@@ -13597,6 +13594,7 @@ IFC decl parameter (if possible); otherwise, return an empty optional.
        way to get a single element out of a heap. */
     an_ifc_index_type          element_idx = start_idx + param_idx;
     a_decl_parameter_traverser traverser(start_idx.mod, element_idx, 1);
+    /* coverity[unreachable] */ /* See FIXME above. */
     for (an_Indexed<an_ifc_decl_parameter> indexed_idp : traverser) {
       if (!indexed_idp.has_value()) {
         goto invalid;
@@ -13772,6 +13770,7 @@ valid type can be found, return a null type index.
            way to get a single element out of a heap. */
         an_ifc_index_type     element_idx = start_idx + param_idx;
         a_type_heap_traverser traverser(start_idx.mod, element_idx, 1);
+        /* coverity[unreachable] */ /* See FIXME above. */
         for (an_Indexed<an_ifc_heap_type> indexed_iht : traverser) {
           if (!indexed_iht.has_value()) {
             goto invalid;

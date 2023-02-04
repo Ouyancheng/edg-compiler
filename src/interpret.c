@@ -2638,6 +2638,7 @@ arithmetic on void* pointers and treats them as pointing to byte arrays.)
       if (is_array_element(cap)) {
         *a_len = cap->length;
         *pos = (a_byte_count)(cap->address - get_base_address(cap));
+        check_assertion(*e_size != 0);
         *pos /= *e_size;
       } else {
         *a_len = 1;
@@ -3757,6 +3758,7 @@ interpreter storage.
         a_byte_count  esize, idx1, idx2;
         a_boolean     dummy_result = TRUE;
         esize = value_bytes_for_type(ips, etp, &dummy_result);
+        check_assertion(esize != 0);
         idx1 = ((a_byte_count)(cap1->address-parent_addr))/esize;
         idx2 = ((a_byte_count)(cap2->address-parent_addr))/esize;
         if (idx1 != idx2) {
@@ -4007,6 +4009,7 @@ Output the contents of the interpreted object of type tp stored at addr.
         indent += 2;
         for (offset = 0; offset < n_bytes; offset += e_bytes) {
           db_indent(indent-2);
+          check_assertion(e_bytes != 0);
           (void)fprintf(f_debug, "%u:\n", offset/e_bytes);
           db_object(addr+offset, etp, complete_object);
         }  /* for */
@@ -4658,6 +4661,7 @@ variant path.
         } while (type_is(obj_type, tk_array));
         elem_size = value_bytes_for_type(ips, obj_type, &result); 
         cap->flags |= CA_ARRAY_ELEMENT;
+        check_assertion(elem_size != 0);
         cap->length = array_size/elem_size;
         if (is_variant_path(cap)) {
           cap->variant.variant_path->base_address = cap->address;
@@ -19470,7 +19474,7 @@ subobject path.
             type = skip_typerefs(type->variant.array.element_type);
           }  /* while */
           elem_size = value_bytes_for_type(ips, type, &okay);
-          check_assertion(okay);
+          check_assertion(okay && elem_size != 0);
           pos = i_offset/elem_size;
           path_entry->variant.ptr_offset = (a_targ_ptrdiff_t)pos;
           t_offset += pos*type->size;
@@ -19774,9 +19778,9 @@ diagnostic in *ips.
                   utp = butp->variant.array.element_type;
                   butp = skip_typerefs(utp);
                 }  /* if */
-                con->variant.address.offset =
-                      butp->size *
-                            (offset/value_bytes_for_type(ips, butp, &result));
+                a_byte_count count = value_bytes_for_type(ips, butp, &result);
+                check_assertion(count != 0);
+                con->variant.address.offset = butp->size * (offset/count);
               }  /* if */
             } else {
               base_address = cap->address;

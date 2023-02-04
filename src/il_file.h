@@ -66,7 +66,7 @@ typedef off_t	a_file_position;
 #define set_file_position(file, offset, origin) fseeko(file, offset, origin)
 #endif /* EDG_WIN32 */
 #else /* !LARGE_IL_FILE_SUPPORT */
-typedef long	a_file_position;
+typedef off_t	a_file_position;
 			/* Position in a file as returned by ftell and
 			   accepted by fseek. */
 #define get_file_position(file) ftell(file)

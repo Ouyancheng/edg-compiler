@@ -831,6 +831,7 @@ depth_lambda is the scope depth of a lambda body.  Return a pointer to the
 other things to access the fields that contain the captures of local variables.
 */
 {
+  check_assertion(depth_lambda != NO_SCOPE_DEPTH);
   return this_variable_for_func_scope(scope_stack[depth_lambda].il_scope);
 }  /* this_variable_for_lambda_closure */
 

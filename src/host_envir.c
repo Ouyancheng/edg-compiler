@@ -5667,6 +5667,8 @@ available.
     entry->mmap_addr = mmap((caddr_t)0, entry->header.table_offset, PROT_READ,
                             MAP_PRIVATE, fileno(file), (off_t)0);
     if (entry->mmap_addr == MAP_FAILED) goto close_file_with_error_return;
+    /* Save the file pointer so we can close it later. */
+    entry->f_assembly = file;
     goto end_of_routine;
 close_file_with_error_return:
     /* Return this entry in the table and close the file. */

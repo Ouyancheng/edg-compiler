@@ -1525,8 +1525,8 @@ memory because of the properties of rout.  scope is the scope of rout
   a_type_ptr	closure_class;
 #endif /* DO_IL_LOWERING */
 
-  if (rout != NULL &&
-      keep_function_body_for_possible_inlining(rout)) {
+  check_assertion(rout != NULL);
+  if (keep_function_body_for_possible_inlining(rout)) {
     /* Keep the region for an inline function so it can be used to
        do inlining. */
     keep_memory = TRUE;
@@ -1538,15 +1538,13 @@ memory because of the properties of rout.  scope is the scope of rout
        that definition. */
     keep_memory = TRUE;
 #endif /* DO_IL_LOWERING */
-  } else if (rout != NULL &&
-             !scope->function_body_processing_finished) {
+  } else if (!scope->function_body_processing_finished) {
     /* If we haven't finished processing the function body, don't write
        it out.  In particular, if IL lowering has not been done yet,
        do not write out the body. */
     keep_memory = TRUE;
 #if MAINTAIN_NEEDED_FLAGS
-  } else if (rout != NULL &&
-             (!rout->keep_definition_in_il || !rout->definition_needed)) {
+  } else if (!rout->keep_definition_in_il || !rout->definition_needed) {
     /* This memory region so far looks as if it's unneeded.  Hold on
        to it for now.  If we make it to the end of the compilation with
        the memory region still unneeded, we will have the option of

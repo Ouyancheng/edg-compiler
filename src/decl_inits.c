@@ -5000,7 +5000,7 @@ to use for diagnostics by default.
                                          dps,
                                          /*parenthesized=*/FALSE,
                                          /*allow_empty_pack_expansion=*/FALSE);
-  check_assertion(is_last_elem(expr_icp));
+  check_assertion(expr_icp != NULL && is_last_elem(expr_icp));
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   if (decl_pos_block != NULL) {
     decl_pos_block->var_init_range.end = *init_component_end_pos(expr_icp);
@@ -5068,7 +5068,7 @@ to use for diagnostics by default.
                       &is->init_con);
     }  /* if */
   }  /* if */
-  if (expr_icp != NULL) free_init_component_list(expr_icp);
+  free_init_component_list(expr_icp);
   if (make_error_result) {
     is->init_con = alloc_error_constant();
     is->init_error = TRUE;
@@ -7287,7 +7287,6 @@ underlying element type and the array type itself is returned through
     if (orig_type->variant.typeref.is_dependent_type_operator) {
       template_param_init = TRUE;
     }  /* if */
-    init_type = orig_type;
   } else {
     /* A field or base class name. */
     member_or_base_sym = look_up_mem_initializer_id();

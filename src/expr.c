@@ -6403,6 +6403,7 @@ used in Clang mode to set the correct return type.
                                               (a_type_ptr)NULL,
                                               (a_type_ptr)NULL,
                                               (a_type_ptr)NULL);
+  check_assertion(rout != NULL);
   rout->type = rout_type;
   return rout;
 }  /* adjust_preserve_access_index */
@@ -50775,9 +50776,6 @@ selector type.
             expr_stack->suppress_diagnostics = saved_suppress;
             expr_stack->any_suppressed_error = saved_any_error;
           }  /* if */
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-          end_position = curr_construct_end_position;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
           release_local_constant(&orig_constant);
         }  /* if */
       }  /* if */

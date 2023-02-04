@@ -2484,6 +2484,7 @@ This routine does the C++17 "at least as specialized" checking (see N4849,
          discussions on this point suggest that this might be the preferred
          direction, with actual constraints checked when the template
          template argument is instantiated. */
+      check_assertion(arg_sym != NULL);
       ft1 = make_invented_function_template(param_list_for_arg,
                                             type_symbol_type(arg_sym));
       ft1->variant.template_info->il_template_entry = arg_template;

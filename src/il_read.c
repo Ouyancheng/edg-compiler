@@ -964,16 +964,20 @@ build the in-memory version.
     catastrophe(ec_bad_il_file);
   }  /* if */
   /* Read the number of regions. */
+  /* coverity[+taint_source: arg-0] */
   fread_with_check((char *)&highest_used_region_number,
                    sizeof(highest_used_region_number));
   /* Quick check for bad IL file. */
   if (highest_used_region_number < 1) catastrophe(ec_bad_il_file);
   /* Read the number of function definition entries. */
+  /* coverity[+taint_source: arg-0] */
   fread_with_check((char *)&highest_used_function_def_number,
                    sizeof(highest_used_function_def_number));
   /* Read the file offset for the file index. */
+  /* coverity[+taint_source: arg-0] */
   fread_with_check((char *)&index_pos, sizeof(index_pos));
   /* Read the position of the file scope memory region (and throw it away). */
+  /* coverity[+taint_source: arg-0] */
   fread_with_check((char *)&file_scope_pos, sizeof(file_scope_pos));
   /* Read the IL header. */
   /* Save the region_scope_entry pointer in case it points to allocated
@@ -985,6 +989,7 @@ build the in-memory version.
   il_header.function_def_table = old_il_header_function_def_table;
   init_flags_and_types();
   /* Read the orphaned_file_scope_il_entries array. */
+  /* coverity[+taint_source: arg-0] */
   fread_with_check((char *)orphaned_file_scope_il_entries,
                    sizeof(orphaned_file_scope_il_entries));
   /* Allocate index tables of the right size for the number of regions, or
@@ -1027,6 +1032,7 @@ build the in-memory version.
   if (set_file_position(f_il_input, index_pos, SEEK_SET) != 0) {
     catastrophe(ec_bad_il_file);
   }  /* if */
+  /* coverity[+taint_source: arg-0] */
   fread_with_check((char *)&index_for_il_file[FILE_SCOPE_REGION_NUMBER],
                    (sizeof_t)(sizeof(a_file_position)*
                               highest_used_region_number));

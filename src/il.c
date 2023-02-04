@@ -1574,16 +1574,18 @@ Dump the contents of the indicated type entry, for debug purposes.
       case tk_union:
       case tk_class:
         db_assembly_visibility_of_type(tp);
+        ctsp = class_type_supp(tp);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        fputs(cli_class_type_kind_is(tp, cctk_ref) ? "ref " :
-              cli_class_type_kind_is(tp, cctk_value) ? "value " :
-              cli_class_type_kind_is(tp, cctk_interface) ? "interface " : "",
-              f_debug);
+        if (ctsp != NULL) {
+          fputs(cli_class_type_kind_is(tp, cctk_ref) ? "ref " :
+                cli_class_type_kind_is(tp, cctk_value) ? "value " :
+                cli_class_type_kind_is(tp, cctk_interface) ? "interface " : "",
+                f_debug);
+        }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         fputs(tp->kind == (a_type_kind)tk_union ? "union " :
               tp->kind == (a_type_kind)tk_struct ? "struct " : "class ",
               f_debug);
-        ctsp = class_type_supp(tp);
 #if MICROSOFT_EXTENSIONS_ALLOWED
         if (ctsp != NULL) {
           a_type_kind  orig_type_kind = ctsp->orig_type_kind;

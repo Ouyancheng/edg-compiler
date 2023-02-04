@@ -278,6 +278,7 @@ given alignment.  Set *error set to TRUE if no such integer kind exists.
 #endif /* HAVE_LONG_LONG */
   } else {
     *error = 1;
+    result = ik_int;
   }  /* if */
   return result;
 }  /* int_kind_for_alignment */
@@ -576,8 +577,9 @@ int main() {
       fprintf(stderr, "Unable to determine TARG_JMP_BUF_ELEMENT_INT_KIND.\n");
       fprintf(stderr, "(It will have to be done manually.)\n");
     } else {
-      unsigned buffer_element_size = int_kind_to_size(buffer_type);
-      unsigned buffer_element_count = sizeof(jmp_buf) / buffer_element_size;
+      unsigned long buffer_element_size = int_kind_to_size(buffer_type);
+      unsigned long buffer_element_count =
+                                         sizeof(jmp_buf) / buffer_element_size;
       int      buffer_overflow = (sizeof(jmp_buf) % buffer_element_size) != 0;
 
       /* If the type does not evenly divide, add an element to address

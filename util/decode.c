@@ -5160,7 +5160,7 @@ parsed as part of the type.  parse_template_args is FALSE when parsing the
 demangled as part of the template function instead).
 */
 {
-  a_const_char *p = ptr, *s;
+  a_const_char *p = ptr, *s = "";
   long         num;
 
   /* Builtin type encodings are typically lower-case (with some exceptions).

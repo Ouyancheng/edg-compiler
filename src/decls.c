@@ -15576,6 +15576,8 @@ it's a definition and NULL otherwise).
       }  /* if */
       /* Skip over bad identifier. */
       (void)get_token();
+    } else {
+      clear_locator(&locator, &null_source_position);
     }  /* if */
   }  /* if */
   if (curr_token == tok_attribute && gnu_attributes_enabled &&

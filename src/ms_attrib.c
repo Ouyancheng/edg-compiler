@@ -1787,6 +1787,7 @@ scanned.
     a_boolean	err;
     value = value_of_integer_constant(constant, &err);
     /*lint --e{587,650,685}*/
+    /* coverity[result_independent_of_operands] */
     if (err || value > LONG_MAX || value < LONG_MIN) {
       /* Attribute values should be small integers.  Issue an error on an
          attempt to use a very large integer. */

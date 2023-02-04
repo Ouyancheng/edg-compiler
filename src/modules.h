@@ -475,6 +475,10 @@ is expected.
 #endif /* CHECKING */
       /* Do not put code here. */
       enter_module_token_rescan(cache);
+  } else {
+#if CHECKING
+    this->expected_end_tsn = NO_TOKEN_SEQUENCE_NUMBER;
+#endif /* CHECKING */
   }  /* if */
 }  /* a_module_entity_rescan */
 

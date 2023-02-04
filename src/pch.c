@@ -1354,6 +1354,7 @@ the PCH file.
   for (i = 0; i < new_alloc_history_entries; ++i) {
     a_mem_alloc_history_ptr	mahp = &new_alloc_history[i];
     offset = do_page_alignment(offset);
+    /* coverity[leaked_storage] */
     (void)map_input_file_to_region(f_pch_input, map_object,
                                    /*read_only=*/FALSE, offset, mahp->size,
                                    mahp->addr, pch_input_file_name);
