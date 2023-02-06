@@ -13184,7 +13184,10 @@ function-like declaration.
     cache_token(cache, tok_explicit);
   }  /* if */
   if (test_bitmask<ifc_ftb_no_return>(func_traits)) {
-    cache_token(cache, tok_noreturn);
+    auto cache_fn = [cache]() {
+      cache_identifier(cache, "noreturn");
+    };
+    cache_attr_fn(cache, cache_fn);
   }  /* if */
   if (test_bitmask<ifc_ftb_immediate>(func_traits)) {
     cache_token(cache, tok_consteval);
