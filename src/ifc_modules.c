@@ -3287,11 +3287,13 @@ can be found, return null.
     /* We currently have no structure that maps parameter coordinates to the
        parameter representation.  We therefore just search the scope stack for
        the required information. */
-    do {
-      if (is_template_param) {
-        a_template_param_ptr  tpp = NULL;
-        a_template_decl_info  *tdip = scope_stack[sd].template_decl_info;
-        a_symbol_ptr          tsym = scope_stack[sd].template_sym;
+    if (is_template_param) {
+      do {
+        a_template_param_ptr    tpp = NULL;
+        a_scope_stack_entry_ptr ssep = &(scope_stack[sd]);
+        a_template_decl_info    *tdip = ssep->template_decl_info;
+        a_symbol_ptr            tsym = ssep->template_sym;
+
         /* In some cases, the parameters can be retrieved from the template
            declaration scope (via tdip) and in some cases from the associated
            template symbol. */
@@ -3312,25 +3314,18 @@ can be found, return null.
             }  /* for */
           }  /* if */
         }  /* if */
-      } else {
-        a_param_id_ptr param_ptr = scope_stack[sd].param_id_list;
-        a_const_char   *name = decl_idx.mod->name_from_local_decl(decl_idx);
+      } while (--sd != DEPTH_OF_FILE_SCOPE);
+    } else {
+      a_const_char     *name = decl_idx.mod->name_from_local_decl(decl_idx);
+      a_symbol_locator loc;
 
-        for (; param_ptr != NULL; param_ptr = param_ptr->next) {
-          /* FIXME: Currently the IFC position information is not present for
-             function parameters resulting in a requirement that names be
-             compared. */
-          a_symbol_header *sym_hdr = param_ptr->symbol->header;
-          a_const_char    *identifier = sym_hdr->identifier;
-          sizeof_t        identifier_len = sym_hdr->identifier_length;
-
-          if (strncmp(identifier, name, identifier_len) == 0) {
-            result = param_ptr->symbol;
-            goto done;
-          }  /* if */
-        }  /* for */
-      }  /* if */
-    } while (--sd != DEPTH_OF_FILE_SCOPE);
+      /* FIXME: Currently the IFC position information is not present for
+         function parameters resulting in a requirement that names be looked
+         up.  There may additionally be issues with variable shadowing here. */
+      clear_locator(&loc, &null_source_position);
+      (void)find_symbol(name, (sizeof_t)strlen(name), &loc);
+      result = normal_id_lookup(&loc, IDL_NO_OPTIONS);
+    }  /* if */
   }  /* if */
 done:
 #if DEBUG
