@@ -422,14 +422,11 @@ public:
                            an_ifc_decl_index          decl_idx,
                            const an_ifc_decl_template &decl,
                            const an_ifc_cache_info    &cinfo);
-  void cache_decl_partial_specialization_declaration(
-                             a_module_token_cache_ptr                 cache,
-                             an_ifc_decl_index                        decl_idx,
-                             const an_ifc_decl_partial_specialization &decl);
   void cache_decl_partial_specialization(
                              a_module_token_cache_ptr                 cache,
                              an_ifc_decl_index                        decl_idx,
-                             const an_ifc_decl_partial_specialization &decl);
+                             const an_ifc_decl_partial_specialization &decl,
+                             const an_ifc_cache_info                  &cinfo);
   void cache_decl_specialization(a_module_token_cache_ptr         cache,
                                  an_ifc_decl_index                decl_idx,
                                  const an_ifc_decl_specialization &decl,

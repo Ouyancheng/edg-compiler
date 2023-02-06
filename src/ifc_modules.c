@@ -6350,6 +6350,148 @@ If the given IL template is declared, return TRUE; otherwise, return FALSE.
 }  /* is_template_declaration_extern */
 
 
+template<typename an_ifc_Decl_type>
+static inline a_boolean lazy_init_module_scope(a_module_entity_ptr      mep,
+                                               const an_ifc_Decl_type   &decl)
+/*
+For the given declaration, ensure its associated module entity pointer's scope
+is set.  Return FALSE if there was a problem initializing the scope; otherwise,
+return TRUE.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (mep->scope == NULL) {
+    mep->scope = get_home_scope(decl);
+    if (mep->scope == NULL) {
+      result = FALSE;
+    }  /* if */
+  }  /* if */
+  return result;
+} /* lazy_init_module_scope */
+
+
+static void ensure_module_scope(a_scope_ptr              scope,
+                                a_module_scope_push_kind *scope_push_status)
+/*
+Push the given scope as the module declaration context.  If a module
+declaration context was already pushed, revert that push first.  Update
+*scope_push_status to mspk_unattempted if no scope push was attempted,
+mspk_unnecessary if the current scope is already the correct scope, or mspk_new
+if a new scope was pushed.
+*/
+{
+  if (*scope_push_status != mspk_unattempted) {
+    pop_module_declaration_context(*scope_push_status);
+    *scope_push_status = mspk_unattempted;
+  }  /* if */
+  push_module_declaration_context(scope, scope_push_status);
+}  /* ensure_module_scope */
+
+
+template<typename an_ifc_Node_type>
+static a_boolean ensure_module_scope(
+                                   a_module_entity_ptr      mep,
+                                   const an_ifc_Node_type   &decl,
+                                   a_module_scope_push_kind *scope_push_status)
+/*
+If the given module entity pointer's scope is not yet set, set the scope and
+push the module declaration context.  Update *scope_push_status to
+mspk_unattempted if no scope push was attempted, mspk_unnecessary if the
+current scope is already the correct scope, or mspk_new if a new scope was
+pushed.
+*/
+{
+  a_boolean result = FALSE;
+
+  if (lazy_init_module_scope(mep, decl)) {
+    ensure_module_scope(mep->scope, scope_push_status);
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* ensure_module_scope */
+
+
+template<typename an_ifc_Node_type>
+static a_boolean ensure_module_scope_for_class_member(
+                                   a_module_entity_ptr      mep,
+                                   const an_ifc_Node_type   &decl,
+                                   a_module_scope_push_kind *scope_push_status)
+/*
+If the given module entity pointer's scope is not yet set, set the scope and
+push the module declaration context.  If the declaration is a class member and
+the class is already a complete type, instead push the enclosing namespace
+scope.  Update *scope_push_status to mspk_unattempted if no scope push was
+attempted, mspk_unnecessary if the current scope is already the correct scope,
+or mspk_new if a new scope was pushed.
+*/
+{
+  a_boolean result = FALSE;
+
+  if (lazy_init_module_scope(mep, decl)) {
+    a_scope_ptr scope = mep->scope;
+
+    do {
+      /* FIXME: Is class reactivation right here? */
+      if (scope->kind != sck_class_struct_union &&
+          scope->kind != sck_class_reactivation) {
+        break;
+      }  /* if */
+
+      a_type_ptr class_ty = scope->variant.assoc_type;
+      if (is_incomplete_type(class_ty)) {
+        break;
+      }  /* if */
+      scope = scope->parent;
+    } while (scope != NULL);
+    if (scope != NULL) {
+      ensure_module_scope(scope, scope_push_status);
+      result = TRUE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* ensure_module_scope_for_class_member */
+
+
+template<typename an_ifc_Node_type>
+static an_ifc_decl_index get_decl_index_for_current_scope(
+                                                  const an_ifc_Node_type &decl)
+/*
+Return the corresponding IFC declaration index for the scope stack state.
+
+This function ensure_module_scope or ensure_module_scope_for_class_member
+should be called and succeed without error before this function is called.
+*/
+{
+  an_ifc_decl_index       result = {};
+  an_ifc_decl_index       decl_idx = get_ifc_home_scope(decl);
+  a_scope_stack_entry_ptr ssep = &(scope_stack[decl_scope_level]);
+  a_scope_ptr             scope = ssep->il_scope;
+
+  while (!is_null_index(decl_idx)) {
+    a_scope_ptr decl_idx_scope = get_scope(decl_idx);
+
+    /* If this assertion fails, presumably the function did not follow a
+       successful call to ensure_module_scope_ function, but was called
+       anyways.  It should not be possible for ensure_module_scope_ functions
+       to succeed without the home scope (and the home scopes thereof) being
+       present. */
+    check_assertion(decl_idx_scope != NULL);
+    if (scope == decl_idx_scope) {
+      result = decl_idx;
+      break;
+    }  /* if */
+    /* Similarly to the check for decl_idx_scope != NULL, for
+       ensure_module_scope_ functions to have succeeded, there should be a
+       parent scope for all scopes, or we should've run out of scopes
+       (indicating the global scope). */
+    check_assertion(has_ifc_home_scope(decl_idx));
+    decl_idx = get_ifc_home_scope(decl_idx);
+  }  /* while */
+  return result;
+}  /* get_decl_index_for_current_scope */
+
+
 static void process_decl_to_il_entity(a_module_entity_ptr mep,
                                       a_boolean           defer)
 /*
@@ -7477,16 +7619,22 @@ class_struct_union_case:
         }  /* if */
 
         an_ifc_decl_partial_specialization idps = *opt_idps;
-        mod->lazy_push_module_scope(idps, mep, &scope_push_status);
+        if (!ensure_module_scope_for_class_member(mep, idps,
+                                                     &scope_push_status)) {
+          goto invalid;
+        }  /* if */
         /* FIXME: Is it feasible to detect ignorable redeclarations of
            partial specializations? */
         if (get_ifc_body(get_ifc_entity(idps)) != 0) {
           a_module_token_cache cache;
+          an_ifc_cache_info    cinfo;
 
+          cinfo.lexical_scope = get_decl_index_for_current_scope(idps);
           /* There is a definition of the partial specialization.  Record the
              resolution of the signature immediately so that the below
              processing of the definition has access to it. */
-          mod->cache_decl_partial_specialization(&cache, decl_idx, idps);
+          mod->cache_decl_partial_specialization(&cache, decl_idx, idps,
+                                                 cinfo);
           if (!cache.is_valid()) {
             goto invalid;
           }  /* if */
@@ -7514,8 +7662,10 @@ class_struct_union_case:
 
         an_ifc_decl_specialization ids = *opt_ids;
         a_module_token_cache       cache;
-        an_ifc_cache_info          cache_info;
-        mod->lazy_push_module_scope(ids, mep, &scope_push_status);
+        if (!ensure_module_scope_for_class_member(mep, ids,
+                                                     &scope_push_status)) {
+          goto invalid;
+        }  /* if */
         if (check_and_set_specialization_redeclaration(&loc, mep, ids,
                                                        &error_position,
                                                        &il_entity,
@@ -7527,7 +7677,10 @@ class_struct_union_case:
             break;
           }  /* if */
         }  /* if */
-        mod->cache_decl_specialization(&cache, decl_idx, ids, cache_info);
+
+        an_ifc_cache_info cinfo;
+        cinfo.lexical_scope = get_decl_index_for_current_scope(ids);
+        mod->cache_decl_specialization(&cache, decl_idx, ids, cinfo);
         if (!cache.is_valid()) {
           goto invalid;
         }  /* if */
@@ -7987,7 +8140,6 @@ caching any tokens.
     an_ifc_scope_descriptor scope_seq = *opt_scope_seq;
     an_ifc_cache_info       cinfo;
     cinfo.lexical_scope = decl_idx;
-
     cache_scope_member_sequence(cache, scope_seq, cinfo);
     cache_token(cache, tok_rbrace);
   }  /* if */
@@ -8096,9 +8248,8 @@ given cache.
 */
 {
   auto cache_content = [class_idx](a_module_token_cache *content_cache,
-                          an_ifc_decl_index    decl_idx) {
+                                   an_ifc_decl_index    decl_idx) {
     an_ifc_cache_info cinfo;
-    cinfo.lexical_scope = class_idx;
 
 #if DEBUG
     if (db_flag_is_set("ifc_idx")) {
@@ -8107,6 +8258,7 @@ given cache.
       print(err_msg, f_debug);
     }  /* if */
 #endif /* DEBUG */
+    cinfo.lexical_scope = class_idx;
     decl_idx.mod->cache_decl(content_cache, decl_idx, cinfo);
   };
   a_scope_member_traverser traverser(class_members);
@@ -11182,48 +11334,6 @@ succeeded, otherwise return FALSE.
   }  /* if */
   return result;
 }  /* init_decl_locator */
-
-
-template<typename an_ifc_Decl_type>
-inline a_boolean an_ifc_module::lazy_init_module_scope(
-                                                const an_ifc_Decl_type   &decl,
-                                                a_module_entity_ptr      mep)
-/*
-If the given module entity pointer's scope is not yet set, set the scope.
-Return TRUE if a scope was set.
-*/
-{
-  a_boolean scope_initialized = FALSE;
-
-  if (mep->scope == NULL) {
-    mep->scope = get_home_scope(decl);
-    if (mep->scope != NULL) {
-      scope_initialized = TRUE;
-    }  /* if */
-  }  /* if */
-  return scope_initialized;
-} /* lazy_init_module_scope */
-
-
-template<typename an_ifc_Decl_type>
-inline void an_ifc_module::lazy_push_module_scope(
-                                   const an_ifc_Decl_type   &decl,
-                                   a_module_entity_ptr      mep,
-                                   a_module_scope_push_kind *scope_push_status)
-/*
-If the given module entity pointer's scope is not yet set, set the scope and
-push the module declaration context.  Update scope_push_status to
-mspk_unattempted if no scope push was attempted, mspk_unnecessary if the
-current scope is already the correct scope, or mspk_new if a new scope was
-pushed.
-*/
-{
-  a_boolean scope_initialized = lazy_init_module_scope(decl, mep);
-
-  if (scope_initialized) {
-    push_module_declaration_context(mep->scope, scope_push_status);
-  }  /* if */
-} /* lazy_init_module_scope */
 
 
 void an_ifc_module::unsigned_integer_for_expr_index(
@@ -16951,10 +17061,12 @@ otherwise, return FALSE.
 void an_ifc_module::cache_decl_partial_specialization(
                              a_module_token_cache_ptr                 cache,
                              an_ifc_decl_index                        decl_idx,
-                             const an_ifc_decl_partial_specialization &decl)
+                             const an_ifc_decl_partial_specialization &decl,
+                             const an_ifc_cache_info                  &cinfo)
 /*
 Add the tokens corresponding to the given partial specialization declaration
-(decl indexed in the IFC by decl_idx) to cache.
+(decl indexed in the IFC by decl_idx) to cache.  cinfo contains information
+about the current cache context to help inform decisions about what to cache.
 */
 {
   an_ifc_decl_index           templated_decl_idx =
@@ -16963,7 +17075,7 @@ Add the tokens corresponding to the given partial specialization declaration
   an_ifc_source_position_hint pos_hint(cache, locus);
 
   /* Reconstruct the template-head. */
-  cache_template_head(cache, get_ifc_chart(decl), /*cinfo=*/{});
+  cache_template_head(cache, get_ifc_chart(decl), cinfo);
   /* Reconstruct the declaration. */
   /* FIXME: Eventually this entire block should be replaceable by a cache_decl
      call (due to problems in the IFC -- namely the templated decl having a
@@ -17810,7 +17922,8 @@ about what to cache.
       { an_ifc_decl_partial_specialization partial_spec_decl;
 
         construct_node_prechecked(&partial_spec_decl, decl);
-        cache_decl_partial_specialization(cache, decl, partial_spec_decl);
+        cache_decl_partial_specialization(cache, decl, partial_spec_decl,
+                                          cinfo);
       }
       break;
     case ifc_ds_decl_specialization:
