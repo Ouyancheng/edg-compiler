@@ -682,7 +682,7 @@ static an_attr_appl_descr known_attr_appl_table[(int)ak_last+1] = {
   { ak_override, "r:+v!", apply_override_attr },
   { ak_nodiscard, "r|c|e", apply_nodiscard_attr },
   { ak_noop_dtor, "", NO_APPL_FN },
-  { ak_maybe_unused, "c|t|v|p|d|r|e|E", apply_maybe_unused_attr },
+  { ak_maybe_unused, "c|t|v|p|d|r|e|E|l", apply_maybe_unused_attr },
   { ak_fallthrough, "s", apply_fallthrough_attr },
   { ak_likely, "l|s", apply_likely_attr },
   { ak_unlikely, "l|s", apply_likely_attr },
@@ -5298,6 +5298,13 @@ attribute, which is similar.
       /* Attributes applied to parameter types are attached to the
          associated variable at a later time (see
          attach_param_variable_attributes). */
+    } else if (entity_kind == iek_label &&
+               !C_mode() && strict_ansi_mode) {
+      /* Starting with C23, maybe_unused is allowed on a label.  Strictly
+         speaking C++ does not currently allow it (though most implementations
+         seem to). */
+      report_bad_attribute_target(es_error, ap);
+      make_attr_unrecognized(ap);
     } else {
       ((a_source_correspondence_ptr)entity)->maybe_unused = TRUE;
     }  /* if */
