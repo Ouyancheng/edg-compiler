@@ -7298,7 +7298,8 @@ class_struct_union_case:
              sequence of explicit specializations and instantiations. */
           an_ifc_template_spec_info spec_info(decl_idx);
           a_boolean                 forward_declare =
-                                                 !cache_info.ignore_definition;
+                                              (!cache_info.ignore_definition &&
+                                               is_template_redeclarable(idt));
           if (forward_declare) {
             a_module_token_cache cache;
             an_ifc_cache_info    local_cache_info = cache_info;
@@ -8102,7 +8103,6 @@ given cache.
   auto cache_content = [class_idx](a_module_token_cache *content_cache,
                           an_ifc_decl_index    decl_idx) {
     an_ifc_cache_info cinfo;
-    cinfo.ignore_definition = TRUE;
     cinfo.lexical_scope = class_idx;
 
 #if DEBUG
@@ -16870,23 +16870,18 @@ context to help inform decisions about what to cache.
 {
   an_ifc_sentence_index decl_body = get_ifc_body(get_ifc_entity(decl));
   an_ifc_cache_info     cache_info = cinfo;
+  a_boolean             has_cached_definition = decl_body != 0;
   uint32_t              offset;
 
-  if (decl_body == 0) {
-    /* Flag that the definition is ignored if there's no definition to
-       cache. */
-    cache_info.ignore_definition = TRUE;
-  } else if (cache_info.ignore_definition) {
-    /* In some cases the template overrides the contextually definition
-       ignoring rules (see is_template_redeclarable for more information). */
-    if (!is_template_redeclarable(decl)) {
-      cache_info.ignore_definition = FALSE;
-    }  /* if */
+  /* If we're ignoring definitions, even if the template has a definition, mark
+     that it should be ignored. */
+  if (cinfo.ignore_definition) {
+    has_cached_definition = FALSE;
   }  /* if */
-  /* If we're caching a definition, the final semicolon must be cached. */
-  cache_info.no_final_semicolon = !cache_info.ignore_definition;
+  /* If we're not caching a definition, the final semicolon must be cached. */
+  cache_info.no_final_semicolon = has_cached_definition;
   offset = cache_decl_template_declaration(cache, decl_idx, decl, cache_info);
-  if (!cache_info.ignore_definition) {
+  if (has_cached_definition) {
     (void)cache_sentence(cache, decl_body, offset);
   }  /* if */
 }  /* cache_decl_template */
