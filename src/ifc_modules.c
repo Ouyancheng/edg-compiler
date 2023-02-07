@@ -6570,12 +6570,8 @@ strongly preferred over calling this function directly.
           if (is_from_gmf(get_ifc_specifiers(idv))) {
             mep->global_module = TRUE;
           }  /* if */
-          if (mep->scope == NULL) {
-            mep->scope = get_home_scope(idv);
-            if (mep->scope == NULL) {
-              goto invalid;
-            }  /* if */
-            push_module_declaration_context(mep->scope, &scope_push_status);
+          if (!ensure_module_scope(mep, idv, &scope_push_status)) {
+            goto invalid;
           }  /* if */
           init_decl_parse_state(&dps);
           /* Naming aside, setting this is required to allow the inline keyword
@@ -6672,13 +6668,8 @@ strongly preferred over calling this function directly.
             /* FIXME: There's a chicken-and-egg problem here when the return
                type is deduced and requires access to the class scope (e.g.,
                returning a lambda declared within the function). */
-            if (mep->scope == NULL) {
-              mep->scope = get_home_scope(idf);
-              if (mep->scope == NULL) {
-                goto invalid;
-              }  /* if */
-              push_module_declaration_context(mep->scope,
-                                              &scope_push_status);
+            if (!ensure_module_scope(mep, idf, &scope_push_status)) {
+              goto invalid;
             }  /* if */
             if (!mod->init_dps(&dps, get_ifc_locus(idf), get_ifc_type(idf),
                                an_ifc_object_traits_bitfield{},
@@ -6779,12 +6770,8 @@ strongly preferred over calling this function directly.
         if (is_from_gmf(get_ifc_specifiers(ids))) {
           mep->global_module = TRUE;
         }  /* if */
-        if (mep->scope == NULL) {
-          mep->scope = get_home_scope(ids);
-          if (mep->scope == NULL) {
-            goto invalid;
-          }  /* if */
-          push_module_declaration_context(mep->scope, &scope_push_status);
+        if (!ensure_module_scope(mep, ids, &scope_push_status)) {
+          goto invalid;
         }  /* if */
         if (scope_is(mep->scope, sck_class_struct_union)) {
           /* This is a child class.  It will have already been entered as a
@@ -7014,13 +7001,8 @@ class_struct_union_case:
               a_partial_scope_stack_state psss;
 
               /* A type alias; declare a typedef for this case. */
-              if (mep->scope == NULL) {
-                mep->scope = get_home_scope(ida);
-                if (mep->scope == NULL) {
-                  goto invalid;
-                }  /* if */
-                push_module_declaration_context(mep->scope,
-                                                &scope_push_status);
+              if (!ensure_module_scope(mep, ida, &scope_push_status)) {
+                goto invalid;
               }  /* if */
               if (check_and_set_redeclaration(&loc, mep, &error_position,
                                               iek_type, &il_entity, &kind)) {
@@ -7066,12 +7048,8 @@ class_struct_union_case:
             an_ifc_source_position_hint pos_hint(&cache, locus);
             a_curr_token_preserver      guard;
             /* An alias template; declare a typedef for this case. */
-            if (mep->scope == NULL) {
-              mep->scope = get_home_scope(ida);
-              if (mep->scope == NULL) {
-                goto invalid;
-              }  /* if */
-              push_module_declaration_context(mep->scope, &scope_push_status);
+            if (!ensure_module_scope(mep, ida, &scope_push_status)) {
+              goto invalid;
             }  /* if */
             if (check_and_set_redeclaration(&loc, mep, &error_position,
                                             iek_template, &il_entity, &kind)) {
@@ -7171,12 +7149,8 @@ class_struct_union_case:
           a_partial_scope_stack_state psss;
 
           check_assertion(!is_null_index(base));
-          if (mep->scope == NULL) {
-            mep->scope = get_home_scope(ide);
-            if (mep->scope == NULL) {
-              goto invalid;
-            }  /* if */
-            push_module_declaration_context(mep->scope, &scope_push_status);
+          if (!ensure_module_scope(mep, ide, &scope_push_status)) {
+            goto invalid;
           }  /* if */
           enum_scope = mep->scope;
           scope_depth = enum_scope->depth_in_scope_stack;
@@ -7305,12 +7279,8 @@ class_struct_union_case:
           if (is_from_gmf(get_ifc_specifiers(ide))) {
             mep->global_module = TRUE;
           }  /* if */
-          if (mep->scope == NULL) {
-            mep->scope = get_home_scope(ide);
-            if (mep->scope == NULL) {
-              goto invalid;
-            }  /* if */
-            push_module_declaration_context(mep->scope, &scope_push_status);
+          if (!ensure_module_scope(mep, ide, &scope_push_status)) {
+            goto invalid;
           }  /* if */
 
           an_ifc_type_index  type_idx = get_ifc_type(ide);
@@ -7405,12 +7375,8 @@ class_struct_union_case:
           if (is_from_gmf(specifiers)) {
             mep->global_module = TRUE;
           }  /* if */
-          if (mep->scope == NULL) {
-            mep->scope = get_home_scope(idt);
-            if (mep->scope == NULL) {
-              goto invalid;
-            }  /* if */
-            push_module_declaration_context(mep->scope, &scope_push_status);
+          if (!ensure_module_scope(mep, idt, &scope_push_status)) {
+            goto invalid;
           }  /* if */
           if (check_and_set_template_redeclaration(&loc, mep, &error_position,
                                                    &il_entity, &kind)) {
@@ -7719,12 +7685,8 @@ class_struct_union_case:
             mep->global_module = TRUE;
           }  /* if */
           /* Activate the parent scope if needed. */
-          if (mep->scope == NULL) {
-            mep->scope = get_home_scope(idc);
-            if (mep->scope == NULL) {
-              goto invalid;
-            }  /* if */
-            push_module_declaration_context(mep->scope, &scope_push_status);
+          if (!ensure_module_scope(mep, idc, &scope_push_status)) {
+            goto invalid;
           }  /* if */
 
           a_module_token_cache cache;
