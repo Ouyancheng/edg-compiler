@@ -414,6 +414,35 @@ extern void decl_spec_one_time_init(void);
                         /* Set of bits that are lexically considered to
                            be storage-class-specifiers. */
 
+inline void check_for_c23_deprecation(a_const_char  *old_string,
+                                      an_error_code error_code)
+/*
+If we're in C23 mode and the current token matches old_string, give a
+diagnostic indicating that the keyword (as spelled by old_string) is an
+obsolescent feature (and that there's a new spelling).  Issue the diagnostic
+only once and suppress any diagnostic altogether in system header files.  Note
+that the use of a separate error_code (rather than the same error code with
+fill-ins) is to allow each instance of this error to be issued only once.
+*/
+{
+  if (c23_mode && locator_for_curr_id.symbol_header != NULL) {
+    sizeof_t old_len = strlen(old_string);
+    if (locator_for_curr_id.symbol_header->identifier_length == old_len &&
+        strncmp(locator_for_curr_id.symbol_header->identifier, old_string,
+                old_len) == 0 &&
+        !seq_is_in_system_header(pos_curr_token.seq)) {
+      /* Valid C17 code when compiled in C23 mode may see many of these
+         diagnostics, so make this a remark except in strict mode where it's
+         a warning. */
+      pos_diagnostic(strict_ansi_mode ? es_warning : es_remark, error_code,
+                     &pos_curr_token);
+      (void)set_severity_for_error_number((int)error_code, es_once,
+                                          /*make_default=*/FALSE);
+    }  /* if */
+  }  /* if */
+}  /* check_for_c23_deprecation */
+
+
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE
 

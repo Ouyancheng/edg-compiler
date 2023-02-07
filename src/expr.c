@@ -13291,6 +13291,7 @@ standard headers (e.g., to implement <stdarg.h>).
                                rcblock);
   expr_stack->unevaluated_expr_will_be_kept_in_il = TRUE;
 
+  check_for_c23_deprecation("_Alignof", ec_c23_alignof_deprecated);
   if (rcblock == NULL) {
     /* Advance past the __ALIGNOF__ token. */
     (void)get_token();

@@ -1,5 +1,19 @@
 Version 6.5
 
+2/7/23   [EDGcpfe/25890]
+C23: Obsolescent keywords
+
+As described in WG14 papers N2764 and N2934, the following keywords are now
+considered obsolescent features: _Alignas, _Alignof, _Bool, _Static_assert,
+_Thread_local, and _Noreturn.  The C23 standard recommends using the following
+new keywords instead (respectively): alignas, alignof, bool, static_assert,
+thread_local, and [[noreturn]].
+
+Use of the obsoleted spellings now yields a warning in strict mode and a
+remark in other C23 modes.  These diagnostics are suppressed in system header
+files and are issued only once per translation unit.
+
+
 2/7/23   [EDGcpfe/25874]
 C23: Enable _Static_assert with no message
 
@@ -2758,7 +2772,7 @@ in an invalid substitution of a typedef in place of the member type.  This
 is now fixed.
 
 
-7/28/22  [EDGcpfe/25129,EDGcpfe/23617,EDGcpfe/25468]
+7/28/22  [EDGcpfe/25129,EDGcpfe/23617,EDGcpfe/25468,EDGcpfe/25873]
 C23 compatibility: Attributes
 
 As described in papers N2335, N2554, N2267, N2448, N2270, N2334, N2408, and

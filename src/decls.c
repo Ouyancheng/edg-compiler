@@ -15019,6 +15019,7 @@ final token.
   /* Record the construct's position and verify the introductory tokens. */
   pos = pos_curr_token;
   check_assertion(curr_token == tok_static_assert);
+  check_for_c23_deprecation("_Static_assert", ec_c23_static_assert_deprecated);
   (void)get_token();
   add_stop_token(tok_semicolon);
   add_stop_token(tok_rparen);

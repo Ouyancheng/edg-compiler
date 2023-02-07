@@ -845,6 +845,23 @@ modes.
 }  /* enter_type_traits_helpers */
 
 
+static void enter_c23_keyword(a_token_kind token,
+                              a_const_char *old_keyword,
+                              a_const_char *new_keyword)
+/*
+A utility routine to handle keywords that have been deprecated in C23.
+old_keyword indicates the pre-C23 spelling of the keyword and new_keyword
+indicates the C23 spelling.  Both keywords are currently enabled (in C23 mode)
+and a diagnostic is given on uses of the old keyword.
+*/
+{
+  enter_keyword(token, old_keyword);
+  if (c23_mode) {
+    enter_keyword(token, new_keyword);
+  }  /* if */
+}  /* enter_c23_keyword */
+
+
 static void keyword_init(void)
 /*
 Install the keywords in the symbol table.
@@ -897,7 +914,7 @@ Install the keywords in the symbol table.
   }  /* if */
   if (c99_bool_is_keyword) {
     /* Enable keywords available in both C99 and GNU C mode. */
-    enter_keyword((a_token_kind)tok_c99_bool, "_Bool");
+    enter_c23_keyword(tok_c99_bool, "_Bool", "bool");
   }  /* if */
   if (gnu_mode) {
     /* In GNU C/C99/C++ modes, the availability of complex type operations is
@@ -937,7 +954,9 @@ Install the keywords in the symbol table.
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
   if (noreturn_keyword_enabled) {
     /* Enable the C11 _Noreturn keyword (accepted by default in some GNU C
-       modes as well as some clang C and C++ modes). */
+       modes as well as some clang C and C++ modes).  This has been deprecated
+       in C23 (in favor of [[noreturn]]) but the keyword is still enabled
+       (so a diagnostic can be given). */
     enter_keyword((a_token_kind)tok_noreturn, "_Noreturn");
   }  /* if */
   if (c11_mode || gcc_version_is(>= 40900) || clang_version_is(>= 30000) ||
@@ -951,24 +970,24 @@ Install the keywords in the symbol table.
   if (C_mode() || clang_version_is(>= 30200)) {
     /* Enabled in C mode as well as most C++ clang modes. */
     if (alignof_enabled) {
-      enter_keyword((a_token_kind)tok_alignof, "_Alignof");
+      enter_c23_keyword(tok_alignof, "_Alignof", "alignof");
     }  /* if */
   }  /* if */
   if (C_mode() || clang_version_is(>= 30300)) {
     /* Enabled in C mode as well as most C++ clang modes. */
     if (std_thread_local_storage_specifier_enabled) {
-      enter_keyword((a_token_kind)tok_c11_thread_local, "_Thread_local");
+      enter_c23_keyword(tok_c11_thread_local, "_Thread_local", "thread_local");
     }  /* if */
   }  /* if */
   if (C_mode()) {
     if (alignas_enabled) {
-      enter_keyword((a_token_kind)tok_alignas, "_Alignas");
+      enter_c23_keyword(tok_alignas, "_Alignas", "alignas");
     }  /* if */
     if (static_assert_enabled) {
       /* Enter the C version of "static_assert", except in non-C11 Microsoft
          modes. */
       if (!(microsoft_mode && !c11_mode)) {
-        enter_keyword((a_token_kind)tok_static_assert, "_Static_assert");
+        enter_c23_keyword(tok_static_assert,"_Static_assert", "static_assert");
       }  /* if */
       /* In some Microsoft modes, the C++ version is also enabled in C mode. */
       if (microsoft_mode && microsoft_version >= 1600) {

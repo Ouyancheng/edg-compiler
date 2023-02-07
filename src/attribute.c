@@ -2615,6 +2615,7 @@ af_alignas and the attribute name is "alignas".
   a_source_position  group_pos;
 
   check_assertion(curr_token == tok_alignas);
+  check_for_c23_deprecation("_Alignas", ec_c23_alignas_deprecated);
   ap->kind = ak_align;
   record_attribute_name(ap);
   ap->syntactic_location = loc;

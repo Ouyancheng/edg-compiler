@@ -9007,6 +9007,7 @@ which is processed after any other specifiers have also been consumed.
      specifier token is the current token. */
   if (first_token != tok_auto) {
     check_assertion(curr_token == first_token);
+    check_for_c23_deprecation("_Thread_local", ec_c23_thread_local_deprecated);
     pos_first_token = pos_curr_token;
     (void)get_token();
   } else {
@@ -11121,6 +11122,7 @@ storage_class_specifier:
         }  /* if */
         break;
       case tok_noreturn:
+        check_for_c23_deprecation("_Noreturn", ec_c23_noreturn_deprecated);
         if (decl_specifiers_seen & DS_NORETURN) {
           pos_warning(ec_dupl_decl_specifier, &pos_curr_token);
         } else if (is_parameter) {
@@ -11253,6 +11255,8 @@ storage_class_specifier:
             case tok_char16_t: basic_type = bt_char16_t; break;
             case tok_char32_t: basic_type = bt_char32_t; break;
             case tok_c99_bool:
+              check_for_c23_deprecation("_Bool", ec_c23_bool_deprecated);
+              FALLTHROUGH
             case tok_bool:     basic_type = bt_bool;    break;
             case tok_int:      basic_type = bt_int;     break;
             case tok_float:    basic_type = bt_float;   break;

@@ -3368,6 +3368,12 @@ ec_unavailable_entity;;"%n was declared declared unavailable"
 ec_unavailable_entity_with_custom_message;;"%n was declared unavailable (%sq)"
 ec_deprecated_attr;;"because of a \"deprecated\" attribute"
 ec_explicit_lambda_template_parameters_is_cpp20;;"explicit lambda template parameters are a C++20 feature"
+ec_c23_noreturn_deprecated;;"the use of \"_Noreturn\" has been obsoleted in C23; use \"[[noreturn]]\" instead"
+ec_c23_alignof_deprecated;;"the use of \"_Alignof\" has been obsoleted in C23; use \"alignof\" instead"
+ec_c23_alignas_deprecated;;"the use of \"_Alignas\" has been obsoleted in C23; use \"alignas\" instead"
+ec_c23_bool_deprecated;;"the use of \"_Bool\" has been obsoleted in C23; use \"bool\" instead"
+ec_c23_static_assert_deprecated;;"the use of \"_Static_assert\" has been obsoleted in C23; use \"static_assert\" instead"
+ec_c23_thread_local_deprecated;;"the use of \"_Thread_local\" has been obsoleted in C23; use \"thread_local\" instead"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
