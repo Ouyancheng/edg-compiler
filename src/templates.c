@@ -4990,8 +4990,8 @@ be completed here.
   tssp = template_sym == NULL ? NULL
                               : template_supplement_for_symbol(template_sym);
   if (template_sym != NULL) {
-    if (!template_sym->defined && tssp->il_template_entry != NULL &&
-        has_template_definition_from_module(tssp->il_template_entry)) {
+    if (tssp->il_template_entry != NULL &&
+        has_pending_template_definition_from_module(tssp->il_template_entry)) {
       /* A declaration but not a definition was loaded from a module file.
          Attempt to load the definition (and any specializations). */
       load_template_definition_from_module(tssp->il_template_entry);
@@ -7098,8 +7098,8 @@ cases).
        symbol. */
     template_sym = symbol_for(templ);
   }  /* if */
-  if (!template_sym->defined && tssp->il_template_entry != NULL &&
-      has_template_definition_from_module(tssp->il_template_entry)) {
+  if (tssp->il_template_entry != NULL &&
+      has_pending_template_definition_from_module(tssp->il_template_entry)) {
     /* A declaration but not a definition was loaded from a module file.
        Attempt to load the definition (and any specializations). */
     load_template_definition_from_module(tssp->il_template_entry);
@@ -7465,8 +7465,8 @@ expression context) rather than a declaration.
   template_sym = tip->template_sym;
   tssp = template_supplement_for_symbol(template_sym);
   if (is_var_templ_instance) {
-    if (!template_sym->defined && tssp->il_template_entry != NULL &&
-        has_template_definition_from_module(tssp->il_template_entry)) {
+    if (tssp->il_template_entry != NULL &&
+        has_pending_template_definition_from_module(tssp->il_template_entry)) {
       /* A declaration but not a definition was loaded from a module file.
          Attempt to load the definition (and any specializations). */
       load_template_definition_from_module(tssp->il_template_entry);
@@ -35303,7 +35303,7 @@ template entities.
                      exported_definition_is_available(tip) ||
                      rp->is_deleted || rp->is_defaulted ||
                      (tssp->il_template_entry != NULL &&
-                 has_template_definition_from_module(tssp->il_template_entry));
+         has_pending_template_definition_from_module(tssp->il_template_entry));
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION
       if (!template_def && !specialized && !tip->suppress_instantiation &&
           implicit_inclusion_okay && implicit_template_inclusion_mode) {
@@ -35460,8 +35460,8 @@ this overrides an "extern template" directive.
     rp = tip->instance_sym->variant.routine.ptr;
     specialized = rp->is_specialized;
     template_def = cache_for_template(tssp)->tokens.first_token != NULL ||
-                (tssp->il_template_entry != NULL &&
-                 has_template_definition_from_module(tssp->il_template_entry));
+        (tssp->il_template_entry != NULL &&
+         has_pending_template_definition_from_module(tssp->il_template_entry));
     if (!template_def && !specialized && export_template_allowed) {
       /* When exported templates are being used, look for an exported
          definition of this template */

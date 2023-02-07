@@ -10185,8 +10185,8 @@ entry.  pos is used to establish the type entry's position information.
   }  /* if */
   /* If the template originates from a module, ensure its definition is loaded
      if available. */
-  if (!class_template->defined && tssp->il_template_entry != NULL &&
-      has_template_definition_from_module(tssp->il_template_entry)) {
+  if (tssp->il_template_entry != NULL &&
+      has_pending_template_definition_from_module(tssp->il_template_entry)) {
     load_template_definition_from_module(tssp->il_template_entry);
   }  /* if */
   return type;
@@ -25198,6 +25198,14 @@ routine as actually referenced.
 {
   a_symbol_ptr  assoc_sym;
 
+  /* We need to make sure templates with lazily loaded definitions are
+     completely loaded before marking the template referenced.  This ensures a
+     template's specializations are not processed after the template is
+     referenced (resulting in a spurious diagnostic). */
+  a_template_ptr templ = routine->assoc_template;
+  if (templ != NULL && has_pending_template_definition_from_module(templ)) {
+    load_template_definition_from_module(templ);
+  }  /* if */
   if (!elided_reference) {
     /* Set the referenced flag.  This is only necessary for virtual
        functions referenced by qualified name.  For non-virtual functions,

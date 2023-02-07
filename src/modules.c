@@ -1164,6 +1164,23 @@ TRUE.  Otherwise, return FALSE.
 }  /* has_template_definition_from_module */
 
 
+a_boolean has_pending_template_definition_from_module(a_template_ptr  templ)
+/*
+If the given template is not already defined and has a definition available in
+an imported module, return TRUE.  Otherwise, return FALSE.
+*/
+{
+  a_boolean  result = FALSE;
+
+  check_assertion(templ != NULL);
+  if (!symbol_for(templ)->defined &&
+      has_template_definition_from_ifc_module(templ)) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* has_pending_template_definition_from_module */
+
+
 a_boolean load_template_definition_from_module(
                                              ARG_UNUSED a_template_ptr  templ)
 /*

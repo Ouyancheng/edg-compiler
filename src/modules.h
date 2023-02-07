@@ -274,6 +274,9 @@ extern a_boolean load_routine_definition_from_module(a_routine_ptr  rp);
 
 extern a_boolean has_template_definition_from_module(a_template_ptr  templ);
 
+extern a_boolean has_pending_template_definition_from_module(
+                                                        a_template_ptr  templ);
+
 extern a_boolean load_template_definition_from_module(a_template_ptr  templ);
 
 extern a_dynamic_init_ptr load_variable_init_from_module(
