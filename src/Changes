@@ -1,5 +1,14 @@
 Version 6.5
 
+2/7/23   [EDGcpfe/25874]
+C23: Enable _Static_assert with no message
+
+As described in WG14 paper N2265, the single argument version of _Static_assert
+is now enabled in C23 mode.  The single argument version of _Static_assert is
+also enabled in later clang modes (it was already enabled in later GNU modes --
+see the Changes for EDGcpfe/24198).
+
+
 2/6/23   [EDGcpfe/25872]
 C23: Allow [[maybe_unused]] on labels
 

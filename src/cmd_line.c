@@ -3565,6 +3565,7 @@ process.
       digit_separators_enabled = TRUE;
     }  /* if */
     elifdef_enabled = TRUE;
+    terse_static_assert_enabled = TRUE;
   }  /* if */
 }  /* set_c_mode_flags */
 
@@ -5150,6 +5151,9 @@ This function is also called in clang mode.
     }  /* if */
     if (clang_version >= 30300) {
       noreturn_keyword_enabled = TRUE;
+    }  /* if */
+    if (clang_version >= 30500) {
+      terse_static_assert_enabled = TRUE;
     }  /* if */
   } else {
     /* GCC (not Clang) mode. */
