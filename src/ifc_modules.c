@@ -7935,16 +7935,14 @@ invalid:
 #endif /* DEBUG */
   mep->invalid = TRUE;
 done:
-  if (!defer) {
-    /* Handle all cases where we didn't successfully consturct an IL entity by
-       marking the mep invalid. */
-    if (il_entity == NULL) {
-      mep->invalid = TRUE;
-    }  /* if */
-    /* If a scope was pushed, scope popping should always occur. */
-    if (scope_push_status != mspk_unattempted) {
-      pop_module_declaration_context(scope_push_status);
-    }  /* if */
+  /* Handle all cases where we didn't successfully consturct an IL entity by
+     marking the mep invalid. */
+  if (!defer && il_entity == NULL) {
+    mep->invalid = TRUE;
+  }  /* if */
+  /* If a scope was pushed, scope popping should always occur. */
+  if (scope_push_status != mspk_unattempted) {
+    pop_module_declaration_context(scope_push_status);
   }  /* if */
 #if DEBUG
   if (db_flag_is_set("ifc_idx")) {
@@ -9089,11 +9087,8 @@ deferred until they are referenced.
 */
 {
   if (scope != NULL && scope_index != 0) {
-    a_module_scope_push_kind scope_push_status = mspk_unattempted;
-
-    push_module_declaration_context(scope, &scope_push_status);
-
     Opt<an_ifc_scope_descriptor> opt_scope_members;
+
     construct_node(&opt_scope_members, scope_index);
     if (opt_scope_members.has_value()) {
       an_ifc_scope_descriptor  scope_members = *opt_scope_members;
@@ -9128,7 +9123,6 @@ deferred until they are referenced.
         }  /* if */
       }  /* for */
     }  /* if */
-    pop_module_declaration_context(scope_push_status);
   }  /* if */
 }  /* process_ifc_scope */
 

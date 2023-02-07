@@ -626,11 +626,9 @@ entries for this symbol header and process declarations for any that match the
 scope.
 */
 {
-  a_module_scope_push_kind scope_push_status = mspk_unattempted;
-  a_module_entity_ptr      mep, *mepp = &(sym_hdr->deferred_module_entities);
+  a_module_entity_ptr mep, *mepp = &(sym_hdr->deferred_module_entities);
 
   check_assertion(sym_hdr->deferred_module_entities != NULL);
-  push_module_declaration_context(scope, &scope_push_status);
   while (*mepp != NULL) {
     if ((*mepp)->scope == scope) {
 #if DEBUG
@@ -667,7 +665,6 @@ scope.
       mepp = &(*mepp)->next;
     }  /* if */
   }  /* for */
-  pop_module_declaration_context(scope_push_status);
 }  /* define_names_from_scope */
 
 
