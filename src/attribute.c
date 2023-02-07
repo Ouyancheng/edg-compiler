@@ -5303,8 +5303,12 @@ attribute, which is similar.
       /* Starting with C23, maybe_unused is allowed on a label.  Strictly
          speaking C++ does not currently allow it (though most implementations
          seem to). */
-      report_bad_attribute_target(es_error, ap);
-      make_attr_unrecognized(ap);
+      report_bad_attribute_target(strict_ansi_discretionary_severity, ap);
+      if (strict_ansi_discretionary_severity <= es_warning) {
+        ((a_source_correspondence_ptr)entity)->maybe_unused = TRUE;
+      } else {
+        make_attr_unrecognized(ap);
+      }  /* if */
     } else {
       ((a_source_correspondence_ptr)entity)->maybe_unused = TRUE;
     }  /* if */

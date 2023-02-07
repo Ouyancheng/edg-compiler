@@ -13,7 +13,7 @@ see the Changes for EDGcpfe/24198).
 C23: Allow [[maybe_unused]] on labels
 
 As described in WG14 paper N2662, the front end now accepts the maybe_unused
-attribute on labels (and suppresses an warning about unused labels when
+attribute on labels (and suppresses a warning about unused labels when
 appropriate) in C23 mode.  Note that the C++ standard does not allow the
 maybe_unused attribute to appertain to labels though most implementations
 allow it.  An error is now given in strict C++ mode and silently accepted in
