@@ -3112,6 +3112,18 @@ definition be required.
         }  /* if */
       }
       break;
+    case ifc_ds_decl_specialization:
+      { an_ifc_decl_specialization spec_decl;
+
+        construct_node_prechecked(&spec_decl, decl_idx);
+
+        an_ifc_decl_index   specialized_idx = get_ifc_decl(spec_decl);
+        a_module_entity_ptr specialized_mep =
+                                    get_ifc_module_entity_ptr(specialized_idx);
+        specialized_mep->entity = mep->entity;
+        map_pending_definitions(specialized_mep);
+      }
+      break;
     default:
       break;
   }  /* switch */
@@ -7658,9 +7670,6 @@ class_struct_union_case:
                                                                 mep->scope,
                                                                 ids,
                                                                 &kind);
-        }  /* if */
-        if (kind != iek_template) {
-          goto invalid;
         }  /* if */
       }
       break;
