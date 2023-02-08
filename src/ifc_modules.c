@@ -3130,6 +3130,23 @@ definition be required.
 }  /* map_pending_definitions */
 
 
+static a_boolean is_local_variable_symbol(a_symbol_ptr sym)
+/*
+Given a symbol, return TRUE if it's a symbol for a local variable; otherwise,
+return FALSE.
+*/
+{
+  a_boolean result = FALSE;
+
+  if (sym->kind == sk_variable) {
+    a_variable_ptr var = variable_for_symbol(sym);
+
+    result = var->source_corresp.is_local_to_function;
+  }  /* if */
+  return result;
+}  /* is_local_variable_symbol */
+
+
 void record_symbol_for_ifc_decl(a_symbol_ptr  sym)
 /*
 The current token is a tok_ifc_decl token.  Map its associated IFC declaration
@@ -3186,14 +3203,14 @@ index information to the given symbol.
     }  /* if */
   }  /* if */
   if (!mep->invalid) {
-    if (sym->is_class_member) {
+    if (sym->is_class_member || is_local_variable_symbol(sym)) {
       mep->scope = scope_stack[decl_scope_level].il_scope;
 #if CHECKING
-      /* FIXME: We don't know how to resolve the home scope on some
-         declarations that can end up here.  While this isn't (strictly
+      /* FIXME: We don't know how to resolve the home scope on some class
+         member declarations that can end up here.  While this isn't (strictly
          speaking) a problem, it does pose an issue for the validation logic
          that follows. */
-      if (has_ifc_home_scope(decl_idx)) {
+      if (sym->is_class_member && has_ifc_home_scope(decl_idx)) {
         /* FIXME: When the parent scope has a mep marked invalid, the result of
            get_home_scope is NULL.  Should this be propagated to this module
            entity?  Should this is even be "allowed" to happen at this point
@@ -3696,6 +3713,27 @@ expression index, to the cache.
 }  /* cache_pending_expr_token */
 
 
+template<typename a_Cache_fn>
+static void cache_bound_entity(a_module_token_cache_ptr cache,
+                               an_ifc_decl_index        decl_idx,
+                               a_Cache_fn               cache_fn)
+/*
+This function is used to handle entities that are indirectly constructed from a
+token cache that (potentially) contains multiple entities.
+*/
+{
+  a_module_entity_ptr mep = get_ifc_module_entity_ptr(decl_idx);
+
+  /* The front end should not mark the member declaration's module
+     entity pointer as being imminent before the class definition is
+     processed. */
+  check_assertion(!mep->imminent);
+  mep->imminent = TRUE;
+  cache_fn(cache, decl_idx);
+  cache_token_with_index(cache, tok_ifc_decl, decl_idx);
+}  /* cache_bound_entity */
+
+
 template<typename an_ifc_Node_type>
 static a_boolean cache_decl_stmt(a_module_token_cache_ptr cache,
                                  const an_ifc_Node_type   &node)
@@ -3707,21 +3745,30 @@ FALSE.
 {
   a_boolean                 result = FALSE;
   Opt<an_ifc_decl_variable> opt_idv;
-  an_ifc_decl_index         decl_idx = get_ifc_decl(node);
+  an_ifc_decl_index         var_decl_idx = get_ifc_decl(node);
 
-  construct_node(&opt_idv, decl_idx);
+  construct_node(&opt_idv, var_decl_idx);
   if (opt_idv.has_value()) {
-    an_ifc_module               *mod = node.get_module();
-    an_ifc_decl_variable        idv = *opt_idv;
-    an_ifc_source_location      locus = get_ifc_locus(idv);
-    an_ifc_source_position_hint pos_hint(cache, locus);
+    an_ifc_decl_variable idv = *opt_idv;
+    auto cache_content = [&idv](a_module_token_cache *content_cache,
+                                an_ifc_decl_index    decl_idx) {
+      an_ifc_module               *mod = decl_idx.mod;
+      an_ifc_source_location      locus = get_ifc_locus(idv);
+      an_ifc_source_position_hint pos_hint(content_cache, locus);
 
-    mod->cache_variable_decl(cache, decl_idx, /*is_class_member=*/FALSE,
-                             get_ifc_specifiers(idv), get_ifc_traits(idv),
-                             get_ifc_alignment(idv), get_ifc_type(idv),
-                             get_ifc_name(idv), an_ifc_text_offset{},
-                             an_ifc_expr_index{}, /*get_ifc_initializer(node)*/
-                             an_ifc_expr_index{});
+      mod->cache_variable_decl(content_cache, decl_idx,
+                               /*is_class_member=*/FALSE,
+                               get_ifc_specifiers(idv), get_ifc_traits(idv),
+                               get_ifc_alignment(idv), get_ifc_type(idv),
+                               get_ifc_name(idv), an_ifc_text_offset{},
+                               an_ifc_expr_index{},
+                               /*get_ifc_initializer(node)*/
+                                                          an_ifc_expr_index{});
+    };
+
+    /* FIXME: There should be logic to validate that this module entity is
+       bound or invalidated. */
+    cache_bound_entity(cache, var_decl_idx, cache_content);
     result = TRUE;
   }  /* if */
   return result;
@@ -8218,27 +8265,6 @@ of the class type.
     }  /* for */
   }  /* if */
 }  /* add_ifc_friends_to_class */
-
-
-template<typename a_Cache_fn>
-static void cache_bound_entity(a_module_token_cache_ptr cache,
-                               an_ifc_decl_index        decl_idx,
-                               a_Cache_fn               cache_fn)
-/*
-This function is used to handle entities that are indirectly constructed from a
-token cache that (potentially) contains multiple entities.
-*/
-{
-  a_module_entity_ptr mep = get_ifc_module_entity_ptr(decl_idx);
-
-  /* The front end should not mark the member declaration's module
-     entity pointer as being imminent before the class definition is
-     processed. */
-  check_assertion(!mep->imminent);
-  mep->imminent = TRUE;
-  cache_fn(cache, decl_idx);
-  cache_token_with_index(cache, tok_ifc_decl, decl_idx);
-}  /* cache_bound_entity */
 
 
 static void cache_class_members(a_module_token_cache_ptr      cache,

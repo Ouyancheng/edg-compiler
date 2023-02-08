@@ -39,6 +39,7 @@ decls.c -- Scanning of declarations.
 #include "lower_name.h"
 #endif /* DO_IL_LOWERING */
 #if MICROSOFT_EXTENSIONS_ALLOWED
+#include "ifc_modules.h"
 #include "ms_attrib.h"
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
@@ -21728,6 +21729,14 @@ advance_past_final_token:
     }  /* if */
     (void)get_token();
     next_token_is_top_level_decl_start = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (curr_token  == tok_ifc_decl) {
+      if (dps->sym != NULL) {
+        record_symbol_for_ifc_decl(dps->sym);
+      }  /*if */
+      (void)get_token();
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
 return_point:
   end_potential_abbr_func_templ_caching(dps);
