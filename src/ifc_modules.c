@@ -6383,6 +6383,38 @@ return TRUE.
 } /* lazy_init_module_scope */
 
 
+template<>
+inline a_boolean lazy_init_module_scope(a_module_entity_ptr              mep,
+                                        const an_ifc_decl_specialization &decl)
+/*
+For the given specialized declaration, ensure its associated module entity
+pointer's scope is set.  Return FALSE if there was a problem initializing the
+scope; otherwise, return TRUE.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (mep->scope == NULL) {
+    an_ifc_decl_index         primary_template_idx =
+                                                get_ifc_primary_template(decl);
+    Opt<an_ifc_decl_template> opt_templ_decl;
+
+    construct_node(&opt_templ_decl, primary_template_idx);
+    if (!opt_templ_decl.has_value()) {
+      result = FALSE;
+      goto done;
+    }  /* if */
+
+    an_ifc_decl_template templ_decl = *opt_templ_decl;
+    if (!lazy_init_module_scope(mep, templ_decl)) {
+      result = FALSE;
+    }  /* if */
+  }  /* if */
+done:
+  return result;
+} /* lazy_init_module_scope */
+
+
 static void ensure_module_scope(a_scope_ptr              scope,
                                 a_module_scope_push_kind *scope_push_status)
 /*
@@ -7641,7 +7673,7 @@ class_struct_union_case:
         an_ifc_decl_specialization ids = *opt_ids;
         a_module_token_cache       cache;
         if (!ensure_module_scope_for_class_member(mep, ids,
-                                                     &scope_push_status)) {
+                                                  &scope_push_status)) {
           goto invalid;
         }  /* if */
         if (check_and_set_specialization_redeclaration(&loc, mep, ids,
@@ -17128,7 +17160,7 @@ static void cache_specialized_func_declarator_id(
 {
   cache_func_declarator_qualifier(cache, specialization, cinfo);
   cache_simple_template_id(cache, specialization);
-}  /* cache_func_declarator_id */
+}  /* cache_specialized_func_declarator_id */
 
 
 template<>
