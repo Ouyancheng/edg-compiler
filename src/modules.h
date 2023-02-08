@@ -297,6 +297,7 @@ struct a_module_token_cache {
     : underlying_cache(), valid(TRUE), position_hint(initial_hint)
     { clear_token_cache(&(this->underlying_cache), /*reusable=*/TRUE); }
   a_module_token_cache(const a_module_token_cache&) = delete;
+  inline ~a_module_token_cache();
 
   a_boolean is_valid() const
     { return valid; }
@@ -328,6 +329,21 @@ private:
                         /* Current source position hint (used for source
                            position inference). */
 };  /* a_module_token_cache */
+
+
+a_module_token_cache::~a_module_token_cache()
+/*
+Cleanup after the token cache.
+*/
+{
+#if DEBUG
+  if (!this->valid && db_flag_is_set("invalid_token_cache")) {
+    fprintf(f_debug, "Discarded invalid module cache:\n");
+    db_tokens(&(this->underlying_cache));
+  }  /* if */
+#endif /* DEBUG */
+}  /* a_module_token_cache::~a_module_token_cache() */
+
 
 using a_module_token_cache_ptr = a_module_token_cache*;
 
