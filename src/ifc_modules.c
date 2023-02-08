@@ -20226,9 +20226,31 @@ Otherwise, parameter references should only include the parameter name.
                                         &error_position);
       break;
     case ifc_ss_syntax_array_index:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "SyntaxSort::ArrayIndex",
-                                        &error_position);
+      { Opt<an_ifc_syntax_array_index> opt_array_idx;
+
+        construct_node(&opt_array_idx, syntax);
+        if (!opt_array_idx.has_value()) {
+          goto invalid;
+        }  /* if */
+
+        an_ifc_syntax_array_index array_idx = *opt_array_idx;
+        an_ifc_expr_index         array = get_ifc_array(array_idx);
+        an_ifc_expr_index         index = get_ifc_index(array_idx);
+        cache_expr(cache, array, cinfo);
+        {
+          an_ifc_source_location      locus = get_ifc_left_bracket(array_idx);
+          an_ifc_source_position_hint tok_pos_hint(cache, locus);
+
+          cache_token(cache, tok_lbracket);
+        }
+        cache_expr(cache, index, cinfo);
+        {
+          an_ifc_source_location      locus = get_ifc_right_bracket(array_idx);
+          an_ifc_source_position_hint tok_pos_hint(cache, locus);
+
+          cache_token(cache, tok_rbracket);
+        }
+      }
       break;
     case ifc_ss_syntax_seh_try:
       /* FIXME: Currently unsupported. */
