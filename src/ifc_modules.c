@@ -9967,7 +9967,7 @@ error type.
           if (!opt_itd.has_value()) {
             goto invalid;
           }  /* if */
-          /* FIXME: Currently unsupported. */
+          /* FIXME: Currently unsupported, and (borderline) unimplementable. */
           issue_unsupported_construct_error(mod, "TypeSort::Decltype",
                                             &error_position);
           goto invalid;
@@ -18273,6 +18273,11 @@ tuple elements by '::' instead of ','.
         if (type.sort == ifc_ts_type_designated) {
           /* FIXME: This can show up as a literal type in some cases, but isn't
              really a literal in the sense that there's a constant to cache. */
+          cache_type(cache, type);
+        } else if (type.sort == ifc_ts_type_decltype) {
+          /* FIXME: We can't support the current version of TypeSort::DeclType
+             via a direct to IL type, and corresponding constant; instead, as
+             we're in a "cache" operation, cache the tokens. */
           cache_type(cache, type);
         } else {
           a_constant_ptr cp = constant_for_expr_index(expr,
