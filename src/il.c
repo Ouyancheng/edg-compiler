@@ -5682,6 +5682,12 @@ the entity is defined; otherwise, return FALSE.
         result = rp->defined;
       }
       break;
+    case iek_variable:
+      { a_variable_ptr vp = (a_variable_ptr)entity_ptr;
+
+        result = vp->storage_class != sc_extern;
+      }
+      break;
     default:
       break;
   }  /* switch */

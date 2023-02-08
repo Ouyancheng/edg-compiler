@@ -6346,7 +6346,8 @@ otherwise, return FALSE.
 
 static a_boolean is_template_declaration_extern(a_template_ptr templ)
 /*
-If the given IL template is declared, return TRUE; otherwise, return FALSE.
+If the given IL template is declared extern, return TRUE; otherwise, return
+FALSE.
 */
 {
   a_boolean result = FALSE;
@@ -6354,7 +6355,7 @@ If the given IL template is declared, return TRUE; otherwise, return FALSE.
   if (templ->kind == templk_variable) {
     a_variable_ptr variable = templ->prototype_instantiation.variable;
 
-    if (variable->storage_class != sc_extern) {
+    if (variable->storage_class == sc_extern) {
       result = TRUE;
     }  /* if */
   }  /* if */
