@@ -2772,7 +2772,7 @@ in an invalid substitution of a typedef in place of the member type.  This
 is now fixed.
 
 
-7/28/22  [EDGcpfe/25129,EDGcpfe/23617,EDGcpfe/25468,EDGcpfe/25873]
+7/28/22  [EDGcpfe/23617,EDGcpfe/25129,EDGcpfe/25468,EDGcpfe/25873]
 C23 compatibility: Attributes
 
 As described in papers N2335, N2554, N2267, N2448, N2270, N2334, N2408, and
