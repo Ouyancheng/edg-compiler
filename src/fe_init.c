@@ -849,7 +849,7 @@ static void enter_c23_keyword(a_token_kind token,
                               a_const_char *old_keyword,
                               a_const_char *new_keyword)
 /*
-A utility routine to handle keywords that have been deprecated in C23.
+A utility routine to handle keywords that have been deemed obsolescent in C23.
 old_keyword indicates the pre-C23 spelling of the keyword and new_keyword
 indicates the C23 spelling.  Both keywords are currently enabled (in C23 mode)
 and a diagnostic is given on uses of the old keyword.
