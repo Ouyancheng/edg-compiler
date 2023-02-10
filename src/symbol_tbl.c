@@ -17205,8 +17205,10 @@ const_for_curr_token.
       create_constant_from_token_spelling(&const_with_curr_tok_spelling);
     }  /* if */
   }  /* if */
+
   /* Look up the symbol(s) for the specified literal operator. */
-  orig_sym = normal_id_lookup(&locator_for_curr_id, IDL_NO_OPTIONS);
+  a_symbol_locator id_locator = locator_for_curr_id;
+  orig_sym = normal_id_lookup(&id_locator, IDL_NO_OPTIONS);
   if (orig_sym != NULL) {
     if (size_t_type == NULL) {
       /* Initialize the special types used for parameter checking. */
