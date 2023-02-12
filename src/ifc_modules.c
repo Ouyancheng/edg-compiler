@@ -3079,6 +3079,20 @@ definition be required.
   an_ifc_decl_index decl_idx = decl_index_of(mep);
 
   switch (decl_idx.sort) {
+    case ifc_ds_decl_constructor:
+      { an_ifc_decl_constructor ctor_decl;
+
+        construct_node_prechecked(&ctor_decl, decl_idx);
+        try_map_routine_definition(ctor_decl, mep);
+      }
+      break;
+    case ifc_ds_decl_destructor:
+      { an_ifc_decl_destructor dtor_decl;
+
+        construct_node_prechecked(&dtor_decl, decl_idx);
+        try_map_routine_definition(dtor_decl, mep);
+      }
+      break;
     case ifc_ds_decl_function:
       { an_ifc_decl_function func_decl;
 
