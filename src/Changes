@@ -1,5 +1,25 @@
 Version 6.5
 
+2/13/23  [EDGcpfe/26031]
+Abort on constant-evaluation of dynamic_cast of uninitialized object
+
+Consider (in C++20 mode):
+
+  struct V { virtual void f(); };
+  struct A: V { };
+  struct B: V { constexpr B(A*); };
+  struct D: B, A { constexpr D(): B(this) {} };
+  constexpr B::B(A* a) {
+    (void)dynamic_cast<B*>(a);
+  }
+  constexpr D d;
+
+The dynamic_cast operation in the B::B(A*) constructor is invalid when called
+during the construction of d because the A subobject that is passed in is not
+initialized.  The constant-evaluation interpreter failed to check that case
+resulting in an abort in do_constexpr_dynamic_cast.  That is now fixed.
+
+
 2/13/23  [EDGcpfe/25901]
 Core issue 2664: Deduction failure in CTAD for alias templates
 

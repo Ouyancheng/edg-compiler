@@ -13656,6 +13656,10 @@ represented by an entry of type a_constant (ck_address or ck_integer).
           do_constexpr_fail(result);
         }  /* if */
         goto done;
+      } else if (!is_initialized(opnd_addr)) {
+        info_with_pos(ec_object_not_initialized, &expr->position, ips);
+        do_constexpr_fail(result);
+        goto done;
       }  /* if */
       if (type_is(tp, tk_void) &&
           (baseward_bcp = find_base_in_type(opnd_type, tp))!= NULL) {
