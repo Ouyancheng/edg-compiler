@@ -15350,6 +15350,9 @@ not_direct_binding_case:
       tssp = base_conversion_symbol->variant.template_info;
       conversion_routine = tssp->variant.function.routine;
     }  /* if */
+    if (is_ineligible(symbol_for(conversion_routine))) {
+      goto reject_function;
+    }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (cli_or_cx_enabled &&
         (cppcli_atypical_case ==

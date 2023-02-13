@@ -1,5 +1,20 @@
 Version 6.5
 
+2/13/23  [EDGcpfe/24244,EDGcpfe/25124,EDGcpfe/26033]
+Constraint not checked on user-defined conversion
+
+Consider (in C++20 mode):
+
+  template<typename T> struct X {
+    operator bool() requires false;
+  };
+  template<class R> concept C = requires(R r) { (bool) r; };
+  static_assert(!C<X<int>>);  // Previously failed.  Now okay.
+
+This example previously failed because the front end failed to check the
+constraint on X<T>::operator bool().  That is now fixed.
+
+
 2/13/23  [EDGcpfe/26031]
 Abort on constant-evaluation of dynamic_cast of uninitialized object
 
