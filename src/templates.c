@@ -42358,11 +42358,22 @@ guide is recorded in the template symbol supplement associated with alias_sym.
      (ret_type) are deduced from the defining-type-id of the alias template
      (def_type). */
   ret_type = rout_type->variant.routine.return_type;
-  deduced_guide_args = create_initial_template_arg_list(guide_template_params,
-                                                        NULL, FALSE, NULL);
-  if ((guide_template_params == NULL) ||
-      matches_template_type(def_type, ret_type, &deduced_guide_args,
-                            guide_template_params, MTT_NO_FLAGS)) {
+  deduced_guide_args = create_initial_template_arg_list(
+                                          guide_template_params, NULL,
+                                          /*is_templ_templ_param_check=*/FALSE,
+                                          NULL);
+  if (guide_template_params != NULL &&
+      !matches_template_type(def_type, ret_type, &deduced_guide_args,
+                             guide_template_params, MTT_NO_FLAGS)) {
+    /* If deduction fails, proceed with an empty set of deduced template
+       arguments. */
+    free_template_arg_list(deduced_guide_args);
+    deduced_guide_args = create_initial_template_arg_list(
+                                          guide_template_params, NULL,
+                                          /*is_templ_templ_param_check=*/FALSE,
+                                          NULL);
+  }  /* if */
+  {
     a_template_param_ptr  new_template_params = NULL;
     a_routine_ptr         rout;
     a_ctws_state          ctws_state;
@@ -42710,7 +42721,7 @@ guide is recorded in the template symbol supplement associated with alias_sym.
 #endif /* DEBUG */
     add_deduction_guide(new_guide,
                         &alias_tssp->variant.class_template.deduction_guides);
-  }  /* if */
+  }
 done:
   pop_instantiation_scope_for_rescan();
   return new_guide;
