@@ -1102,6 +1102,7 @@ Initialize the given storage stack.
 */
 #define init_constexpr_stack(sss)                                            \
 {                                                                            \
+  (sss)->curr_block = NULL;                                                  \
   alloc_constexpr_stack_block(sss);                                          \
   (sss)->alloc_seq_number = 1;                                               \
 }

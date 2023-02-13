@@ -1,5 +1,12 @@
 Version 6.5
 
+2/13/23  [EDGcpfe/25987]
+Missing initialization in constant-evaluation interpreter
+
+A low-level field in the memory management structures for the constant-
+evaluation interpreter was not correctly initialized.  That is now fixed.
+
+
 2/13/23  [EDGcpfe/24244,EDGcpfe/25124,EDGcpfe/26033]
 Constraint not checked on user-defined conversion
 
