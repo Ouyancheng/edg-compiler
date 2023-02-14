@@ -38,7 +38,7 @@ Consider (in C++20 mode):
 
 The dynamic_cast operation in the B::B(A*) constructor is invalid when called
 during the construction of d because the A subobject that is passed in is not
-initialized.  The constant-evaluation interpreter failed to check that case
+initialized.  The constant-evaluation interpreter failed to check that case,
 resulting in an abort in do_constexpr_dynamic_cast.  That is now fixed.
 
 
