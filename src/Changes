@@ -1,5 +1,16 @@
 Version 6.5
 
+2/14/23  [EDGcpfe/26038]
+Structured bindings referencing temporaries
+
+When a reference variable is bound to a temporary, it extends the lifetime of
+that temporary to the lifetime of the variable.  In the IL, that is indicated
+by the flag extends_lifetime in the corresponding a_variable entry.  However,
+this flag was previously not set in such situations if the variable represents
+a structured binding.  (This could manifest as spurious constant-evaluation
+errors in some cases.)  That is now fixed.
+
+
 2/13/23  [EDGcpfe/25987]
 Missing initialization in constant-evaluation interpreter
 

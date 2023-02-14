@@ -18699,7 +18699,8 @@ early so that cases like "auto [x] = x;" are diagnosed.
     switched_region = TRUE;
   }  /* if */
   /* Rescan the bracketed list of binding names and declare a variable
-     for each binding (initializing each one as appropriate). */
+     for each binding (they will be initialized/defined later by a call to
+     define_struct_bindings). */
   rescan_cached_tokens(dps->variant.struct_bindings_cache);
   (void)required_token(tok_lbracket, ec_exp_lbracket);
   add_stop_token(tok_comma);
@@ -18831,6 +18832,7 @@ can be fully determined.
      for each one. */
   for (; binding_entry != NULL; binding_entry = binding_entry->next) {
     a_variable_ptr      vp = (a_variable_ptr)binding_entry->entity.ptr;
+    a_decl_parse_state  binding_dps;
     a_type_ptr          btype;
     an_init_component   *icp = NULL;
     if (err || dependent_case) {
@@ -18895,6 +18897,13 @@ can be fully determined.
        set of variables being deduced. */
     vars_being_deduced->unmap(vp);
     /* Record an initializer for the binding variable (if applicable). */
+    init_decl_parse_state(&binding_dps);
+    binding_dps.sym = symbol_for(vp);
+    binding_dps.type = btype;
+    binding_dps.specifiers_type = btype;
+    binding_dps.declarator_pos = vp->source_corresp.decl_position;
+    binding_dps.storage_class = vp->storage_class;
+    scope_stack_top().decl_parse_state = &binding_dps;
     if (err || dependent_case) {
       /* No initializer to record. */
     } else if (array_case) {
@@ -18910,6 +18919,7 @@ can be fully determined.
     record_symbol_reference(SRK_REFERENCE | SRK_USE, symbol_for(container),
                             &vp->source_corresp.decl_position,
                             /*update_il_entry=*/TRUE);
+    scope_stack_top().decl_parse_state = NULL;
   }  /* for */
   if (!err && n < n_elements) {
     pos_error(ec_missing_bindings, &dps->declarator_pos);

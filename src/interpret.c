@@ -2154,6 +2154,16 @@ complete object.
   addr->complete_object = compl_obj;
 }  /* set_active_address */
 
+
+static inline void constexpr_extend_lifetime(a_constexpr_address  *addr)
+/*
+Set the CA_LIFETIME_EXTENDED in the flag set of the given address.
+*/
+{
+  addr->flags |= CA_LIFETIME_EXTENDED;
+}  /* constexpr_extend_lifetime */
+
+
 /*
 Macro to initialize a constant address at addr referring to the function
 denoted by the IL a_routine entry rout.
@@ -12820,7 +12830,7 @@ interpreter context.
          we are not in a function scope. */
       valid = TRUE;
       if (ips->curr_call_frame == NULL) {
-        cap->flags |= CA_LIFETIME_EXTENDED;
+        constexpr_extend_lifetime(cap);
       }  /* if */
       cap->flags &= ~CA_ARRAY_ELEMENT;
     }  /* if */
@@ -19069,7 +19079,7 @@ the value representation of the integer value.
              address record. */ 
           cap->alloc_seq_number = alloc_seq_number;
           if (!temp_lifetime) {
-            cap->flags |= CA_LIFETIME_EXTENDED;
+            constexpr_extend_lifetime(cap);
 	  }  /* if */
           if (is_const_qualified_type(expr->type)) {
             cap->flags |= CA_CONST_STORAGE;
@@ -20026,8 +20036,7 @@ diagnostic in *ips.
           if (is_static_init_list && type_is(ftp, tk_pointer)) {
             /* A static-lifetime initializer list.  Make sure the underlying
                array is treated as having a static lifetime also. */
-            ((a_constexpr_address*)(object+offset))->flags |=
-                                                         CA_LIFETIME_EXTENDED;
+            constexpr_extend_lifetime((a_constexpr_address*)(object+offset));
             /* The call to copy_interpreter_object below will clear the
                permit_address_of_local_temporary flag.  However, if this is
                the second field of an initializer list (which may be a pointer
