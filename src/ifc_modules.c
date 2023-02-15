@@ -3768,10 +3768,18 @@ token cache that (potentially) contains multiple entities.
 {
   a_module_entity_ptr mep = get_ifc_module_entity_ptr(decl_idx);
 
-  /* The front end should not mark the member declaration's module
-     entity pointer as being imminent before the class definition is
-     processed. */
-  check_assertion(!mep->imminent);
+#if CHECKING
+  {
+    /* The front end should not mark the member declaration's module
+       entity pointer as being imminent before the class definition is
+       processed. */
+    a_string err_msg("a bound token was requested for ",
+                     index_to_str(decl_idx),
+                     " but it is already imminent");
+
+    check_assertion_str(!mep->imminent, err_msg.as_temp_characters());
+  }
+#endif /* CHECKING */
   mep->imminent = TRUE;
   mep->uses_bound_token = TRUE;
   cache_fn(cache, decl_idx);
