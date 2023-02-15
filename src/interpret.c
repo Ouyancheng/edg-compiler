@@ -11076,6 +11076,7 @@ the body of the (constructor) function proper.
     an_expr_node_ptr     args = dip->variant.constructor.args, arg;
     a_variable_ptr       params = callee_scope->variant.routine.parameters,
                          param, this_var;
+    a_base_class_ptr     bcp;
     a_constructor_init_ptr
                          ctor_init;
     a_byte_count         n_args = 1, n_params = 1;
@@ -11270,6 +11271,18 @@ the body of the (constructor) function proper.
     }  /* if */
     /* Set up the call frame. */
     push_call_frame(ips, &frame, callee, pos, result_storage, complete_object);
+    /* Mark all the empty base class subobjects as initialized. */
+    for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
+      a_byte_count    offset;
+      if (!bcp->direct || bcp->is_virtual ||
+          !bcp->type->variant.class_struct_union.is_empty_class) {
+        continue;
+      }  /* if */
+      get_mapped_byte_count(&persistent_map, bcp, offset);
+      init_subobject_to_zero(ips, result_storage+offset, bcp->type,
+                             complete_object);
+      record_subobject_derivation(result_storage+offset, bcp);
+    }  /* if */
     /* Run the constructor initializers. */
     ctor_init = callee_scope->variant.routine.constructor_inits;
     for (; ctor_init != NULL; ctor_init = ctor_init->next) {
@@ -11353,7 +11366,7 @@ the body of the (constructor) function proper.
                                            cap);
         break;
       } else {
-        a_base_class_ptr  bcp = ctor_init->variant.base_class;
+        bcp = ctor_init->variant.base_class;
         tp = bcp->type;
         if (bcp->direct) {
           get_mapped_byte_count(&persistent_map, bcp, offset);

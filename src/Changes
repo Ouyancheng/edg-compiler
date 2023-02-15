@@ -1,5 +1,36 @@
 Version 6.5
 
+2/14/23  [EDGcpfe/24647,EDGcpfe/25452]
+Constant-evaluation involving empty base classes
+
+Empty base classes are often trivially initialized (because they have no data
+members or bases classes to initialize), but if a constructor did not include
+such an empty base class in its mem-initializer list, the constant-evaluation
+of that constructor left corresponding subobjects uninitialized.  That in turn
+could lead to spurious constant-evaluation failures or even aborts.
+For example (in C++17 mode):
+
+  template<typename U> struct V {
+    constexpr bool f() {
+      auto &d = static_cast<U&>(*this);
+      return false;
+    }
+  };
+  template<typename T> struct D: V<D<T>> {
+    constexpr D(T t) {}
+  };
+  struct S {};
+  template<typename T> constexpr bool g(T &&t) {
+    D<S>{t}.f();
+    return true;
+  }
+  static_assert(g(S{}));  // Previously failed.  Now okay.
+
+Previously, the constant-evaluation of g(S{}) failed because the static_cast in
+V<S>::f() did not consider *this (which is an empty base of D<S>) to be
+initialized.  That is now fixed.
+
+
 2/14/23  [EDGcpfe/26038]
 Structured bindings referencing temporaries
 
