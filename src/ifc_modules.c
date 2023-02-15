@@ -2926,7 +2926,6 @@ kind with the associated entity kind.
   return get_parsed_template_entity(&decl_state, kind);
 }  /* parse_cached_partial_specialization */
 
-#if DEBUG || CHECKING
 
 template<typename an_ifc_Index_type>
 a_string index_to_str(an_ifc_Index_type idx)
@@ -2936,8 +2935,6 @@ Convert the given index value into a string representation.
 {
   return a_string(str_for(idx.sort), " (", idx.value, ")");
 }  /* index_to_str */
-
-#endif /* DEBUG || CHECKING */
 
 namespace {
 
@@ -8177,7 +8174,7 @@ be mapped to the IL entity.
   goto decl_loaded;
 decl_invalid:
   mep->invalid = TRUE;
-decl_loaded:
+decl_loaded:;
 #if CHECKING
   if (!mep->invalid && mep->entity.ptr == NULL) {
     an_ifc_decl_index mep_idx = decl_index_of(mep);
@@ -9115,6 +9112,7 @@ TRUE) otherwise.
   return !err;
 }  /* open_and_map_ifc_module_file */
 
+#if EXPENSIVE_CHECKING
 
 static a_boolean can_be_eager_loaded(an_ifc_decl_index decl_idx)
 /*
@@ -9131,6 +9129,7 @@ return FALSE.
   return result;
 }  /* can_be_eager_loaded */
 
+#endif /* EXPENSIVE_CHECKING */
 
 static void defer_ifc_declaration(a_module_entity_ptr mep)
 /*
@@ -9188,7 +9187,7 @@ to this function.
   goto done;
 invalid:
   mep->invalid = TRUE;
-done:
+done:;
 #if CHECKING
   if (!mep->invalid && mep->scope == NULL) {
     an_ifc_decl_index mep_idx = decl_index_of(mep);
