@@ -41730,17 +41730,25 @@ fails.
       constraint = param_type->variant.template_param.extra_info
                              ->constraint.type_constraint;
       if (constraint != NULL) {
+        /* Substitute the template arguments in the type constraint. */
+        a_template_arg_ptr  new_args;
+        an_expr_node_ptr    constraint_copy;
+        check_assertion(node_is(constraint, enk_concept_id));
         init_ctws_state(&ctws_state);
-        constraint = copy_expr_with_substitutions(
-                                            constraint,
-                                            templ_arg_list, templ_param_list,
-                                            (CTWS_MAY_BE_RESCANNED |
-                                             CTWS_NON_CONSTANT_EXPR),
-                                            copy_error, &ctws_state);
-        if (!*copy_error) {
-          param_type->variant.template_param.extra_info
-                    ->constraint.type_constraint = constraint;
-        }  /* if */
+        new_args = copy_template_arg_list_with_substitution(
+                                           (a_symbol_ptr)NULL,
+                                           constraint->variant.concept_id.args,
+                                           (a_template_param_ptr)NULL,
+                                           (a_template_param_ptr)NULL,
+                                           templ_arg_list, templ_param_list,
+                                           &constraint->position,
+                                           CTWS_MAY_BE_RESCANNED,
+                                           copy_error, &ctws_state);
+        if (*copy_error) break;
+        constraint_copy = copy_node(constraint);
+        constraint_copy->variant.concept_id.args = new_args;
+        param_type->variant.template_param.extra_info
+                  ->constraint.type_constraint = constraint_copy;
       }  /* if */
     } else if (symbol_is(param_sym, sk_constant) &&
                tpp->variant.constant.type_involves_template_param) {
@@ -41974,6 +41982,7 @@ identical).
     subst_pairs.push_back(spd);
     substitute_templ_params(templ_param_list, ct_sym, subst_pairs,
                             &copy_error);
+    if (copy_error) goto done;
   }
   /* Get the return type based on the class template argument list.
      The list is copied first because it may be discarded by
@@ -42003,7 +42012,6 @@ identical).
                                    class_templ_args, &copy_error);
     if (copy_error) goto done;
   }  /* if */
-  if (copy_error) goto done;
   tssp = sym->variant.template_info;
   tdip = tssp->cache.decl_info;
   tdip->parameters = templ_param_list;
@@ -42019,7 +42027,6 @@ identical).
   ctws_state.new_templ_params = templ_param_list;
   ctws_state.old_this_class = proto_type;
   ctws_state.new_this_class = return_type;
-  copy_error = FALSE;
   rout_type = copy_type_with_substitution(
                                   ctor_rout->type,
                                   class_templ_args,
