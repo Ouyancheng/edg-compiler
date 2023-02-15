@@ -19093,7 +19093,7 @@ the value representation of the integer value.
           cap->alloc_seq_number = alloc_seq_number;
           if (!temp_lifetime) {
             constexpr_extend_lifetime(cap);
-	  }  /* if */
+          }  /* if */
           if (is_const_qualified_type(expr->type)) {
             cap->flags |= CA_CONST_STORAGE;
           }  /* if */
