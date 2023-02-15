@@ -20,7 +20,7 @@ this would result in an abort in check_type_constraint.  For example, with
 Constant-evaluation involving empty base classes
 
 Empty base classes are often trivially initialized (because they have no data
-members or bases classes to initialize), but if a constructor did not include
+members or base classes to initialize), but if a constructor did not include
 such an empty base class in its mem-initializer list, the constant-evaluation
 of that constructor left corresponding subobjects uninitialized.  That in turn
 could lead to spurious constant-evaluation failures or even aborts.
