@@ -62,6 +62,13 @@ struct a_module_entity {
   a_bit_field	def_imminent:1;
 			/* This flag is set when the definition of the
 			   associated entity has started being loaded. */
+  a_bit_field	uses_bound_token:1;
+			/* This flag is set when the IL entity is being
+			   declared or defined via a reparse of a broader
+			   cache.  This indicates less strict requirements may
+			   be placed on recursive definition processing, as the
+			   entity could be severely "broken", the entity may
+			   actually be invalid but not yet marked as such. */
   a_bit_field	invalid:1;
 			/* TRUE if the associated entity cannot be constructed
 			   from the module for any reason. */

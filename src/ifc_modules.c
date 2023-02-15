@@ -3776,6 +3776,7 @@ token cache that (potentially) contains multiple entities.
      processed. */
   check_assertion(!mep->imminent);
   mep->imminent = TRUE;
+  mep->uses_bound_token = TRUE;
   cache_fn(cache, decl_idx);
   cache_token_with_index(cache, tok_ifc_decl, decl_idx);
 }  /* cache_bound_entity */
@@ -8117,20 +8118,37 @@ be mapped to the IL entity.
   /* Ensure the module entity is being processed by the corresponding module
      interface. */
   check_assertion(mep->module_info->module_interface == this);
-#if CHECKING
   if (is_entity_imminent(mep)) {
-    /* When this condition is violated, the entity was already being
-       processed but, was again requested before processing completed.  When
-       this occurs, the root cause of the cyclic dependency should be
-       determined and the front end should be updated to avoid said cyclic
-       dependency. */
-    an_ifc_decl_index mep_idx = decl_index_of(mep);
-    a_string          err_msg("processing of ", index_to_str(mep_idx),
-                              " resulted in a cyclic dependency");
+    /* When this condition is violated, the entity was already being processed
+       but, was again requested before processing completed.  This can happen
+       in one of two cases.
 
-    unexpected_condition_str(err_msg.as_temp_characters());
-  }  /* if */
+       In the first case, the module entity pointer is being resolved via a
+       bound token (indicated via the uses_bound_token data member).  In this
+       case the condition can be violated because the bound token was discarded
+       without being resolved (which can occur as a result of a bad token cache
+       or earlier errors).
+
+       In the second case, the module entity pointer is not being resolved via
+       a bound token.  This case is always a bug, and the root cause of the
+       cyclic dependency should be determined.  The front end should then be
+       updated to avoid said cyclic dependency. */
+    mep->invalid = TRUE;
+    if (mep->uses_bound_token) {
+      /* FIXME: expect_error_str cannot be used here with a_string as the
+         lifetime of the dynamically allocated buffer would expire by the time
+         the error is diagnosed. */
+      expect_error();
+    } else {
+#if CHECKING
+      an_ifc_decl_index mep_idx = decl_index_of(mep);
+      a_string          err_msg("processing of ", index_to_str(mep_idx),
+                                " resulted in a cyclic dependency");
 #endif /* CHECKING */
+
+      unexpected_condition_str(err_msg.as_temp_characters());
+    }  /* if */
+  }  /* if */
 #if DEBUG
   if (db_flag_is_set("ifc_decl")) {
     (void)fprintf(f_debug, "[>%lu] ", ++decl_nesting_level);

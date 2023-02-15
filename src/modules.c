@@ -758,6 +758,7 @@ the specified module.
     (*p)->file_offset = file_offset;
     (*p)->imminent = FALSE;
     (*p)->def_imminent = FALSE;
+    (*p)->uses_bound_token = FALSE;
     (*p)->invalid = FALSE;
     (*p)->global_module = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
