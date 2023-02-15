@@ -3160,6 +3160,33 @@ return FALSE.
   return result;
 }  /* is_local_variable_symbol */
 
+#if CHECKING
+
+static a_boolean is_in_explicit_specialization(a_module_entity_ptr mep)
+/*
+Given a module entity pointer, return TRUE mep->scope has an associated
+template class; otherwise, return FALSE.
+*/
+{
+  a_boolean result = FALSE;
+
+  if (mep->scope != NULL) {
+    a_scope_ptr scope = mep->scope;
+
+    if (scope->kind == sck_class_struct_union) {
+      a_type_ptr type = scope->variant.assoc_type;
+      auto       &extra_info = type->variant.class_struct_union.extra_info;
+
+      if (extra_info->assoc_template != NULL ||
+          extra_info->template_arg_list != NULL) {
+        result = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* is_in_explicit_specialization */
+
+#endif /* CHECKING */
 
 void record_symbol_for_ifc_decl(a_symbol_ptr  sym)
 /*
@@ -3221,10 +3248,16 @@ index information to the given symbol.
       mep->scope = scope_stack[decl_scope_level].il_scope;
 #if CHECKING
       /* FIXME: We don't know how to resolve the home scope on some class
-         member declarations that can end up here.  While this isn't (strictly
-         speaking) a problem, it does pose an issue for the validation logic
-         that follows. */
-      if (sym->is_class_member && has_ifc_home_scope(decl_idx)) {
+         member declarations that can end up here (hence the check for
+         has_ifc_home_scope).  While this isn't (strictly speaking) a problem,
+         it does pose an issue for the validation logic that follows. */
+      /* FIXME: Similarly for members of an explicit class template
+         specialization, we can't properly compute the scope from the decl idx
+         (in part as there's nothing linking the specialized IFC DeclScope back
+         to the IFC ExplicitSpecialization) resulting in a spuriously failing
+         comparison. */
+      if (sym->is_class_member && has_ifc_home_scope(decl_idx) &&
+          !is_in_explicit_specialization(mep)) {
         /* FIXME: When the parent scope has a mep marked invalid, the result of
            get_home_scope is NULL.  Should this be propagated to this module
            entity?  Should this is even be "allowed" to happen at this point
@@ -17290,8 +17323,21 @@ current cache context to help inform decisions about what to cache.
                 cache_token(cache, tok_colon);
                 cache_type(cache, base);
               }  /* if */
-              cache_scope(this, cache, templated_decl_idx,
-                          get_ifc_initializer(ids));
+
+              an_ifc_scope_index class_members_idx = get_ifc_initializer(ids);
+              if (class_members_idx != 0) {
+                Opt<an_ifc_scope_descriptor> opt_class_members;
+
+                construct_node(&opt_class_members, class_members_idx);
+                if (opt_class_members.has_value()) {
+                  an_ifc_scope_descriptor class_members = *opt_class_members;
+
+                  cache_token(cache, tok_lbrace);
+                  cache_class_members(cache, templated_decl_idx,
+                                      class_members);
+                  cache_token(cache, tok_rbrace);
+                }  /* if */
+              }  /* if */
             }  /* if */
             cache_token(cache, tok_semicolon);
           };
