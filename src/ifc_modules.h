@@ -307,14 +307,6 @@ public:
   template<typename an_ifc_Decl_type>
   inline a_boolean init_decl_locator(const an_ifc_Decl_type &decl,
                                      a_symbol_locator       *loc);
-  template<typename an_ifc_Decl_type>
-  inline a_boolean lazy_init_module_scope(const an_ifc_Decl_type &decl,
-                                          a_module_entity_ptr    mep);
-  template<typename an_ifc_Decl_type>
-  inline void lazy_push_module_scope(
-                                  const an_ifc_Decl_type   &decl,
-                                  a_module_entity_ptr      mep,
-                                  a_module_scope_push_kind *scope_push_status);
   void unsigned_integer_for_expr_index(an_ifc_expr_index expr_index,
                                        an_integer_value  *value);
   a_constant_ptr constant_for_expr_index(an_ifc_expr_index expr_index,
