@@ -26465,7 +26465,7 @@ for each compilation.
   min_exponent[(int)fk_std_float64]  = -1021;
   min_exponent[(int)fk_std_float128] = -16381;
   min_exponent[(int)fk_last]         = 0;
-  max_exponent[(int)fk_std_float16]  = 16;
+  max_exponent[(int)fk_float16]      = 16;
   max_exponent[(int)fk_float]        = targ_flt_max_exp;
   max_exponent[(int)fk_double]       = targ_dbl_max_exp;
   max_exponent[(int)fk_long_double]  = targ_ldbl_max_exp;

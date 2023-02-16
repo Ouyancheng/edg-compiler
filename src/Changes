@@ -1,5 +1,13 @@
 Version 6.5
 
+2/15/23  [EDGcpfe/26064]
+max_exponent for _Float16 set incorrectly
+
+The value of max_exponent for the _Float16 type (see the entry for
+EDGcpfe/20094,EDGcpfe/20264,EDGcpfe/25494) was not initialized to the
+correct value, i.e., 16.  This is now fixed.
+
+
 2/15/23  [EDGcpfe/26050]
 Abort on CTAD with constrained template parameter
 
