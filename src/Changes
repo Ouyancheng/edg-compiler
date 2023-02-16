@@ -1,5 +1,15 @@
 Version 6.5
 
+2/16/23  [EDGcpfe/26063]
+Clang compatibility: Adjust __fp16 return types in clang builtins
+
+Prior to the implementation of a 16-bit floating-point type, any clang builtin
+whose return type was "__fp16" had been mapped to the "short" type.  Builtin
+signatures have now been changed to use the "__edg_fp16__" type (which is a
+typedef for _Float16).  The "__fp16" clang-specific type is not yet
+implemented.
+
+
 2/15/23  [EDGcpfe/26064]
 max_exponent for _Float16 set incorrectly
 
