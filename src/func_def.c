@@ -823,17 +823,29 @@ associated with a variadic parameter, but not the initial one.
        in the variable. */
   } else {
     vp->variant.assoc_param_type = ptp;
+    /* Make sure the parameter recorded in the function type reflects the
+       name and position as it appeared in the definition of the function. */
     ptp->name = vp->source_corresp.name;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    {
+      a_decl_position_supplement_ptr  dpsp = ptp->decl_pos_info;
+      if (dpsp != NULL) {
+        dpsp->identifier_range = param_id->identifier_range;
+        dpsp->specifiers_range = param_id->specifiers_range;
+        dpsp->variant.declarator_range = param_id->declarator_range;
+      }  /* if */
+    }
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     attach_param_variable_attributes(vp);
   }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   {
-  a_decl_position_supplement_ptr  dpsp = vp->source_corresp.decl_pos_info;
-  if (dpsp != NULL) {
-    dpsp->identifier_range = param_id->identifier_range;
-    dpsp->specifiers_range = param_id->specifiers_range;
-    dpsp->variant.declarator_range = param_id->declarator_range;
-  }  /* if */
+    a_decl_position_supplement_ptr  dpsp = vp->source_corresp.decl_pos_info;
+    if (dpsp != NULL) {
+      dpsp->identifier_range = param_id->identifier_range;
+      dpsp->specifiers_range = param_id->specifiers_range;
+      dpsp->variant.declarator_range = param_id->declarator_range;
+    }  /* if */
   }
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   db_exit();

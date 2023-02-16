@@ -1,5 +1,25 @@
 Version 6.5
 
+2/16/23  [EDGcpfe/26049]
+Position information of parameters in Microsoft mode
+
+The changes for EDGcpfe/15165 etc. could cause the position information
+recorded in a function parameter to reflect the position of an earlier
+declaration, while the name recorded in the a_param_type entry reflects that
+as it appeared in a later definition. For example:
+
+  class S {
+    __declspec(nothrow) int f(char *p);
+  };
+  int S::f(char *p_str) {  // Recorded name was "p_str", but the associated
+    return 0;              // position was that of "p" above.
+  }
+
+That is now fixed.  In the example above, the primary parameter information
+recorded for the function S::f is that of p_str (with the correct associated
+position).
+
+
 2/16/23  [EDGcpfe/26063]
 Clang compatibility: Adjust __fp16 return types in clang builtins
 
