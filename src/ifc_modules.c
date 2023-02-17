@@ -17598,12 +17598,16 @@ END_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
 
         an_ifc_name_index name_idx = get_ifc_name(idm);
         if (name_idx.sort != ifc_ns_name_conversion) {
-          cache_func_return_type(cache, idm);
+          cache_token(cache, tok_auto);
         }  /* if */
         cache_func_calling_convention(cache, idm);
         cache_specialized_func_declarator_id(cache, decl, idm, cinfo);
         cache_func_parameters_and_qualifiers(cache, templated_decl_idx, idm,
                                              cinfo);
+        if (name_idx.sort != ifc_ns_name_conversion) {
+          cache_token(cache, tok_arrow);
+          cache_func_return_type(cache, idm);
+        }  /* if */
         cache_func_virt_specifier_seq(cache, idm);
         cache_func_body_or_end_decl(cache, templated_decl_idx, idm, cinfo);
       }
@@ -18217,11 +18221,15 @@ about what to cache.
 
         an_ifc_name_index name_idx = get_ifc_name(idm);
         if (name_idx.sort != ifc_ns_name_conversion) {
-          cache_func_return_type(cache, idm);
+          cache_token(cache, tok_auto);
         }  /* if */
         cache_func_calling_convention(cache, idm);
         cache_func_declarator_id(cache, idm, cinfo);
         cache_func_parameters_and_qualifiers(cache, decl, idm, cinfo);
+        if (name_idx.sort != ifc_ns_name_conversion) {
+          cache_token(cache, tok_arrow);
+          cache_func_return_type(cache, idm);
+        }  /* if */
         cache_func_virt_specifier_seq(cache, idm);
         cache_func_body_or_end_decl(cache, decl, idm, cinfo);
       }
