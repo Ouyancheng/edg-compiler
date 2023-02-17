@@ -33465,6 +33465,33 @@ Functions for converting IFC partition kinds to various IFC sorts.
 */
 
 
+a_boolean is_attr_sort(an_ifc_partition_kind kind)
+/*
+Given the partition kind, return TRUE if there is a corresponding universal
+representation of AttrSort; otherwise, return FALSE.
+*/
+{
+  a_boolean result;
+
+  switch (kind) {
+    case ifc_pk_attr_basic:
+    case ifc_pk_attr_called:
+    case ifc_pk_attr_elaborated:
+    case ifc_pk_attr_expanded:
+    case ifc_pk_attr_factored:
+    case ifc_pk_attr_labeled:
+    case ifc_pk_attr_scoped:
+    case ifc_pk_attr_tuple:
+      result = TRUE;
+      break;
+    default:
+      result = FALSE;
+      break;
+  }  /* switch */
+  return result;
+}  /* is_attr_sort */
+
+
 an_ifc_attr_sort to_attr_sort(an_ifc_partition_kind kind)
 /*
 Given the partition kind, return the corresponding universal representation of
@@ -33506,6 +33533,27 @@ AttrSort.  If no corresponding sort kind exists for AttrSort, abort.
 }  /* to_attr_sort */
 
 
+a_boolean is_chart_sort(an_ifc_partition_kind kind)
+/*
+Given the partition kind, return TRUE if there is a corresponding universal
+representation of ChartSort; otherwise, return FALSE.
+*/
+{
+  a_boolean result;
+
+  switch (kind) {
+    case ifc_pk_chart_multilevel:
+    case ifc_pk_chart_unilevel:
+      result = TRUE;
+      break;
+    default:
+      result = FALSE;
+      break;
+  }  /* switch */
+  return result;
+}  /* is_chart_sort */
+
+
 an_ifc_chart_sort to_chart_sort(an_ifc_partition_kind kind)
 /*
 Given the partition kind, return the corresponding universal representation of
@@ -33527,6 +33575,54 @@ ChartSort.  If no corresponding sort kind exists for ChartSort, abort.
   }  /* switch */
   return result;
 }  /* to_chart_sort */
+
+
+a_boolean is_decl_sort(an_ifc_partition_kind kind)
+/*
+Given the partition kind, return TRUE if there is a corresponding universal
+representation of DeclSort; otherwise, return FALSE.
+*/
+{
+  a_boolean result;
+
+  switch (kind) {
+    case ifc_pk_decl_alias:
+    case ifc_pk_decl_bitfield:
+    case ifc_pk_decl_concept:
+    case ifc_pk_decl_constructor:
+    case ifc_pk_decl_deduction_guide:
+    case ifc_pk_decl_destructor:
+    case ifc_pk_decl_enum:
+    case ifc_pk_decl_enumerator:
+    case ifc_pk_decl_expansion:
+    case ifc_pk_decl_explicit_instantiation:
+    case ifc_pk_decl_explicit_specialization:
+    case ifc_pk_decl_field:
+    case ifc_pk_decl_friend:
+    case ifc_pk_decl_function:
+    case ifc_pk_decl_inherited_constructor:
+    case ifc_pk_decl_intrinsic:
+    case ifc_pk_decl_method:
+    case ifc_pk_decl_segment:
+    case ifc_pk_decl_parameter:
+    case ifc_pk_decl_partial_specialization:
+    case ifc_pk_decl_property:
+    case ifc_pk_decl_reference:
+    case ifc_pk_decl_scope:
+    case ifc_pk_decl_specialization:
+    case ifc_pk_decl_template:
+    case ifc_pk_decl_temploid:
+    case ifc_pk_decl_tuple:
+    case ifc_pk_decl_using_declaration:
+    case ifc_pk_decl_variable:
+      result = TRUE;
+      break;
+    default:
+      result = FALSE;
+      break;
+  }  /* switch */
+  return result;
+}  /* is_decl_sort */
 
 
 an_ifc_decl_sort to_decl_sort(an_ifc_partition_kind kind)
@@ -33631,6 +33727,83 @@ DeclSort.  If no corresponding sort kind exists for DeclSort, abort.
   }  /* switch */
   return result;
 }  /* to_decl_sort */
+
+
+a_boolean is_expr_sort(an_ifc_partition_kind kind)
+/*
+Given the partition kind, return TRUE if there is a corresponding universal
+representation of ExprSort; otherwise, return FALSE.
+*/
+{
+  a_boolean result;
+
+  switch (kind) {
+    case ifc_pk_expr_alignof_type_id:
+    case ifc_pk_expr_array_value:
+    case ifc_pk_expr_assign_initializer:
+    case ifc_pk_expr_binary_fold:
+    case ifc_pk_expr_call:
+    case ifc_pk_expr_cast:
+    case ifc_pk_expr_compound_string:
+    case ifc_pk_expr_condition:
+    case ifc_pk_expr_designated_init:
+    case ifc_pk_expr_destructor_call:
+    case ifc_pk_expr_dyad:
+    case ifc_pk_expr_dynamic_dispatch:
+    case ifc_pk_expr_empty:
+    case ifc_pk_expr_expansion:
+    case ifc_pk_expr_expression_list:
+    case ifc_pk_expr_function_string:
+    case ifc_pk_expr_hierarchy_conversion:
+    case ifc_pk_expr_inheritance_path:
+    case ifc_pk_expr_initializer:
+    case ifc_pk_expr_initializer_list:
+    case ifc_pk_expr_label:
+    case ifc_pk_expr_lambda:
+    case ifc_pk_expr_literal:
+    case ifc_pk_expr_member_access:
+    case ifc_pk_expr_member_initializer:
+    case ifc_pk_expr_monad:
+    case ifc_pk_expr_decl:
+    case ifc_pk_expr_nullptr:
+    case ifc_pk_expr_packed_template_arguments:
+    case ifc_pk_expr_path:
+    case ifc_pk_expr_placeholder:
+    case ifc_pk_expr_pointer:
+    case ifc_pk_expr_product_type_value:
+    case ifc_pk_expr_push_state:
+    case ifc_pk_expr_qualified_name:
+    case ifc_pk_expr_read:
+    case ifc_pk_expr_requires:
+    case ifc_pk_expr_simple_identifier:
+    case ifc_pk_expr_sizeof_type:
+    case ifc_pk_expr_strings:
+    case ifc_pk_expr_string_sequence:
+    case ifc_pk_expr_class_subobject_value:
+    case ifc_pk_expr_sum_type_value:
+    case ifc_pk_expr_syntax_tree:
+    case ifc_pk_expr_template_id:
+    case ifc_pk_expr_template_reference:
+    case ifc_pk_expr_temporary:
+    case ifc_pk_expr_this:
+    case ifc_pk_expr_tokens:
+    case ifc_pk_expr_triad:
+    case ifc_pk_expr_tuple:
+    case ifc_pk_expr_type:
+    case ifc_pk_expr_type_trait:
+    case ifc_pk_expr_typeid:
+    case ifc_pk_expr_unary_fold:
+    case ifc_pk_expr_unqualified_id:
+    case ifc_pk_expr_unresolved:
+    case ifc_pk_expr_virtual_function_conversion:
+      result = TRUE;
+      break;
+    default:
+      result = FALSE;
+      break;
+  }  /* switch */
+  return result;
+}  /* is_expr_sort */
 
 
 an_ifc_expr_sort to_expr_sort(an_ifc_partition_kind kind)
@@ -33824,6 +33997,40 @@ ExprSort.  If no corresponding sort kind exists for ExprSort, abort.
 }  /* to_expr_sort */
 
 
+a_boolean is_form_sort(an_ifc_partition_kind kind)
+/*
+Given the partition kind, return TRUE if there is a corresponding universal
+representation of FormSort; otherwise, return FALSE.
+*/
+{
+  a_boolean result;
+
+  switch (kind) {
+    case ifc_pk_pp_catenate:
+    case ifc_pk_pp_char:
+    case ifc_pk_pp_header:
+    case ifc_pk_pp_ident:
+    case ifc_pk_pp_junk:
+    case ifc_pk_pp_key:
+    case ifc_pk_pp_num:
+    case ifc_pk_pp_op:
+    case ifc_pk_pp_param:
+    case ifc_pk_pp_paren:
+    case ifc_pk_pp_pragma:
+    case ifc_pk_pp_string:
+    case ifc_pk_pp_to_string:
+    case ifc_pk_pp_tuple:
+    case ifc_pk_pp_space:
+      result = TRUE;
+      break;
+    default:
+      result = FALSE;
+      break;
+  }  /* switch */
+  return result;
+}  /* is_form_sort */
+
+
 an_ifc_form_sort to_form_sort(an_ifc_partition_kind kind)
 /*
 Given the partition kind, return the corresponding universal representation of
@@ -33886,6 +34093,27 @@ FormSort.  If no corresponding sort kind exists for FormSort, abort.
 }  /* to_form_sort */
 
 
+a_boolean is_macro_sort(an_ifc_partition_kind kind)
+/*
+Given the partition kind, return TRUE if there is a corresponding universal
+representation of MacroSort; otherwise, return FALSE.
+*/
+{
+  a_boolean result;
+
+  switch (kind) {
+    case ifc_pk_macro_function_like:
+    case ifc_pk_macro_object_like:
+      result = TRUE;
+      break;
+    default:
+      result = FALSE;
+      break;
+  }  /* switch */
+  return result;
+}  /* is_macro_sort */
+
+
 an_ifc_macro_sort to_macro_sort(an_ifc_partition_kind kind)
 /*
 Given the partition kind, return the corresponding universal representation of
@@ -33907,6 +34135,32 @@ MacroSort.  If no corresponding sort kind exists for MacroSort, abort.
   }  /* switch */
   return result;
 }  /* to_macro_sort */
+
+
+a_boolean is_name_sort(an_ifc_partition_kind kind)
+/*
+Given the partition kind, return TRUE if there is a corresponding universal
+representation of NameSort; otherwise, return FALSE.
+*/
+{
+  a_boolean result;
+
+  switch (kind) {
+    case ifc_pk_name_conversion:
+    case ifc_pk_name_guide:
+    case ifc_pk_name_literal:
+    case ifc_pk_name_operator:
+    case ifc_pk_name_source_file:
+    case ifc_pk_name_specialization:
+    case ifc_pk_name_template:
+      result = TRUE;
+      break;
+    default:
+      result = FALSE;
+      break;
+  }  /* switch */
+  return result;
+}  /* is_name_sort */
 
 
 an_ifc_name_sort to_name_sort(an_ifc_partition_kind kind)
@@ -33945,6 +34199,44 @@ NameSort.  If no corresponding sort kind exists for NameSort, abort.
   }  /* switch */
   return result;
 }  /* to_name_sort */
+
+
+a_boolean is_stmt_sort(an_ifc_partition_kind kind)
+/*
+Given the partition kind, return TRUE if there is a corresponding universal
+representation of StmtSort; otherwise, return FALSE.
+*/
+{
+  a_boolean result;
+
+  switch (kind) {
+    case ifc_pk_stmt_block:
+    case ifc_pk_stmt_break:
+    case ifc_pk_stmt_case:
+    case ifc_pk_stmt_continue:
+    case ifc_pk_stmt_decl:
+    case ifc_pk_stmt_default:
+    case ifc_pk_stmt_do_while:
+    case ifc_pk_stmt_empty:
+    case ifc_pk_stmt_expansion:
+    case ifc_pk_stmt_expression:
+    case ifc_pk_stmt_for:
+    case ifc_pk_stmt_goto:
+    case ifc_pk_stmt_handler:
+    case ifc_pk_stmt_if:
+    case ifc_pk_stmt_labeled:
+    case ifc_pk_stmt_return:
+    case ifc_pk_stmt_switch:
+    case ifc_pk_stmt_variable:
+    case ifc_pk_stmt_while:
+      result = TRUE;
+      break;
+    default:
+      result = FALSE;
+      break;
+  }  /* switch */
+  return result;
+}  /* is_stmt_sort */
 
 
 an_ifc_stmt_sort to_stmt_sort(an_ifc_partition_kind kind)
@@ -34019,6 +34311,134 @@ StmtSort.  If no corresponding sort kind exists for StmtSort, abort.
   }  /* switch */
   return result;
 }  /* to_stmt_sort */
+
+
+a_boolean is_syntax_sort(an_ifc_partition_kind kind)
+/*
+Given the partition kind, return TRUE if there is a corresponding universal
+representation of SyntaxSort; otherwise, return FALSE.
+*/
+{
+  a_boolean result;
+
+  switch (kind) {
+    case ifc_pk_syntax_access_specifier:
+    case ifc_pk_syntax_alias_declaration:
+    case ifc_pk_syntax_alignas:
+    case ifc_pk_syntax_array_declarator:
+    case ifc_pk_syntax_array_index:
+    case ifc_pk_syntax_array_or_function_declarator:
+    case ifc_pk_syntax_asm_statement:
+    case ifc_pk_syntax_attribute:
+    case ifc_pk_syntax_attribute_argument_clause:
+    case ifc_pk_syntax_attribute_specifier:
+    case ifc_pk_syntax_attribute_specifier_seq:
+    case ifc_pk_syntax_attribute_using_prefix:
+    case ifc_pk_syntax_attributed_declaration:
+    case ifc_pk_syntax_attributed_statement:
+    case ifc_pk_syntax_base_specifier:
+    case ifc_pk_syntax_base_specifier_list:
+    case ifc_pk_syntax_binary_fold_expression:
+    case ifc_pk_syntax_break_statement:
+    case ifc_pk_syntax_capture_default:
+    case ifc_pk_syntax_class_specifier:
+    case ifc_pk_syntax_compound_requirement:
+    case ifc_pk_syntax_compound_statement:
+    case ifc_pk_syntax_concept_definition:
+    case ifc_pk_syntax_condition_declaration:
+    case ifc_pk_syntax_continue_statement:
+    case ifc_pk_syntax_ctor_initializer:
+    case ifc_pk_syntax_decl_specifier_seq:
+    case ifc_pk_syntax_declaration_statement:
+    case ifc_pk_syntax_declarator:
+    case ifc_pk_syntax_decltype_specifier:
+    case ifc_pk_syntax_do_statement:
+    case ifc_pk_syntax_dynamic_exception_spec:
+    case ifc_pk_syntax_empty_statement:
+    case ifc_pk_syntax_enum_specifier:
+    case ifc_pk_syntax_enumerator_definition:
+    case ifc_pk_syntax_exception_declaration:
+    case ifc_pk_syntax_explicit_specifier:
+    case ifc_pk_syntax_expression:
+    case ifc_pk_syntax_expression_statement:
+    case ifc_pk_syntax_for_range_declaration:
+    case ifc_pk_syntax_for_statement:
+    case ifc_pk_syntax_function_body:
+    case ifc_pk_syntax_function_declarator:
+    case ifc_pk_syntax_function_definition:
+    case ifc_pk_syntax_function_try_block:
+    case ifc_pk_syntax_goto_statement:
+    case ifc_pk_syntax_handler:
+    case ifc_pk_syntax_handler_seq:
+    case ifc_pk_syntax_if_statement:
+    case ifc_pk_syntax_init_capture:
+    case ifc_pk_syntax_init_declarator:
+    case ifc_pk_syntax_init_statement:
+    case ifc_pk_syntax_labeled_statement:
+    case ifc_pk_syntax_lambda_declarator:
+    case ifc_pk_syntax_lambda_introducer:
+    case ifc_pk_syntax_mem_initializer:
+    case ifc_pk_syntax_member_declaration:
+    case ifc_pk_syntax_member_declarator:
+    case ifc_pk_syntax_member_function_declaration:
+    case ifc_pk_syntax_member_specification:
+    case ifc_pk_syntax_namespace_alias_definition:
+    case ifc_pk_syntax_nested_requirement:
+    case ifc_pk_syntax_new_declarator:
+    case ifc_pk_syntax_noexcept_specification:
+    case ifc_pk_syntax_non_type_template_argument:
+    case ifc_pk_syntax_parameter_declarator:
+    case ifc_pk_syntax_placeholder_type_specifier:
+    case ifc_pk_syntax_pointer_declarator:
+    case ifc_pk_syntax_range_based_for_statement:
+    case ifc_pk_syntax_requirement_body:
+    case ifc_pk_syntax_requires_clause:
+    case ifc_pk_syntax_return_statement:
+    case ifc_pk_syntax_seh_except:
+    case ifc_pk_syntax_seh_finally:
+    case ifc_pk_syntax_seh_leave:
+    case ifc_pk_syntax_seh_try:
+    case ifc_pk_syntax_simple_capture:
+    case ifc_pk_syntax_simple_declaration:
+    case ifc_pk_syntax_simple_requirement:
+    case ifc_pk_syntax_simple_type_specifier:
+    case ifc_pk_syntax_statement_seq:
+    case ifc_pk_syntax_static_assert_declaration:
+    case ifc_pk_syntax_structured_binding_declaration:
+    case ifc_pk_syntax_structured_binding_identifier:
+    case ifc_pk_syntax_super:
+    case ifc_pk_syntax_switch_statement:
+    case ifc_pk_syntax_template_argument_list:
+    case ifc_pk_syntax_template_declaration:
+    case ifc_pk_syntax_template_id:
+    case ifc_pk_syntax_template_parameter_list:
+    case ifc_pk_syntax_template_template_parameter:
+    case ifc_pk_syntax_this_capture:
+    case ifc_pk_syntax_trailing_return_type:
+    case ifc_pk_syntax_try_block:
+    case ifc_pk_syntax_tuple:
+    case ifc_pk_syntax_type_id:
+    case ifc_pk_syntax_type_id_list_element:
+    case ifc_pk_syntax_type_requirement:
+    case ifc_pk_syntax_type_specifier_seq:
+    case ifc_pk_syntax_type_template_argument:
+    case ifc_pk_syntax_type_template_parameter:
+    case ifc_pk_syntax_type_trait_intrinsic:
+    case ifc_pk_syntax_unary_fold_expression:
+    case ifc_pk_syntax_using_declaration:
+    case ifc_pk_syntax_using_declarator:
+    case ifc_pk_syntax_using_directive:
+    case ifc_pk_syntax_using_enum_declaration:
+    case ifc_pk_syntax_virtual_specifier_seq:
+    case ifc_pk_syntax_while_statement:
+      result = TRUE;
+      break;
+    default:
+      result = FALSE;
+      break;
+  }  /* switch */
+  return result;
+}  /* is_syntax_sort */
 
 
 an_ifc_syntax_sort to_syntax_sort(an_ifc_partition_kind kind)
@@ -34363,6 +34783,46 @@ SyntaxSort.  If no corresponding sort kind exists for SyntaxSort, abort.
   }  /* switch */
   return result;
 }  /* to_syntax_sort */
+
+
+a_boolean is_type_sort(an_ifc_partition_kind kind)
+/*
+Given the partition kind, return TRUE if there is a corresponding universal
+representation of TypeSort; otherwise, return FALSE.
+*/
+{
+  a_boolean result;
+
+  switch (kind) {
+    case ifc_pk_type_array:
+    case ifc_pk_type_base:
+    case ifc_pk_type_decltype:
+    case ifc_pk_type_designated:
+    case ifc_pk_type_expansion:
+    case ifc_pk_type_forall:
+    case ifc_pk_type_function:
+    case ifc_pk_type_fundamental:
+    case ifc_pk_type_lvalue_reference:
+    case ifc_pk_type_nonstatic_member_function:
+    case ifc_pk_type_placeholder:
+    case ifc_pk_type_pointer:
+    case ifc_pk_type_pointer_to_member:
+    case ifc_pk_type_qualified:
+    case ifc_pk_type_rvalue_reference:
+    case ifc_pk_type_syntactic:
+    case ifc_pk_type_syntax_tree:
+    case ifc_pk_type_tor:
+    case ifc_pk_type_tuple:
+    case ifc_pk_type_typename:
+    case ifc_pk_type_unaligned:
+      result = TRUE;
+      break;
+    default:
+      result = FALSE;
+      break;
+  }  /* switch */
+  return result;
+}  /* is_type_sort */
 
 
 an_ifc_type_sort to_type_sort(an_ifc_partition_kind kind)

@@ -26748,23 +26748,43 @@ extern an_ifc_entity_size_storage get_ifc_partition_element_size(
 Functions for converting IFC partition kinds to various IFC sorts.
 */
 
+extern a_boolean is_attr_sort(an_ifc_partition_kind kind);
+
 extern an_ifc_attr_sort to_attr_sort(an_ifc_partition_kind kind);
+
+extern a_boolean is_chart_sort(an_ifc_partition_kind kind);
 
 extern an_ifc_chart_sort to_chart_sort(an_ifc_partition_kind kind);
 
+extern a_boolean is_decl_sort(an_ifc_partition_kind kind);
+
 extern an_ifc_decl_sort to_decl_sort(an_ifc_partition_kind kind);
+
+extern a_boolean is_expr_sort(an_ifc_partition_kind kind);
 
 extern an_ifc_expr_sort to_expr_sort(an_ifc_partition_kind kind);
 
+extern a_boolean is_form_sort(an_ifc_partition_kind kind);
+
 extern an_ifc_form_sort to_form_sort(an_ifc_partition_kind kind);
+
+extern a_boolean is_macro_sort(an_ifc_partition_kind kind);
 
 extern an_ifc_macro_sort to_macro_sort(an_ifc_partition_kind kind);
 
+extern a_boolean is_name_sort(an_ifc_partition_kind kind);
+
 extern an_ifc_name_sort to_name_sort(an_ifc_partition_kind kind);
+
+extern a_boolean is_stmt_sort(an_ifc_partition_kind kind);
 
 extern an_ifc_stmt_sort to_stmt_sort(an_ifc_partition_kind kind);
 
+extern a_boolean is_syntax_sort(an_ifc_partition_kind kind);
+
 extern an_ifc_syntax_sort to_syntax_sort(an_ifc_partition_kind kind);
+
+extern a_boolean is_type_sort(an_ifc_partition_kind kind);
 
 extern an_ifc_type_sort to_type_sort(an_ifc_partition_kind kind);
 
