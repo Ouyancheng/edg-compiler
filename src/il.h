@@ -528,13 +528,13 @@ a module.
   a_boolean  result;
 
   if (!scp->is_class_member) {
-    result = scp->module_entity != NULL;
+    result = scp->module_iface != NULL;
   } else {
     a_type_ptr  parent_class = scp_parent_class(scp);
     while (parent_class->source_corresp.is_class_member) {
       parent_class = parent_class_of(parent_class);
     }  /* if */
-    result = parent_class->source_corresp.module_entity != NULL;
+    result = parent_class->source_corresp.module_iface != NULL;
   }  /* if */
   return result;
 }  /* scp_is_module_imported */

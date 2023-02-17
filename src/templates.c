@@ -4967,13 +4967,8 @@ be completed here.
   a_boolean                         is_class_member;
   a_push_scope_options_set          ps_options = PS_NO_OPTIONS;
   a_boolean                         is_nonreal_instantiation = FALSE;
-  Value_saver<a_module_entity_ptr>  mep_saver(&curr_module_entity);
-
 
   db_enter(3, "f_instantiate_template_class");
-  /* Any members loaded during this instantiation should not be associated
-     with the current module entity (if any). */
-  curr_module_entity = NULL;
 #if CHECKING
   if (!is_class_struct_union_type(class_type)) {
     internal_error("f_instantiate_template_class: not a class");
@@ -5013,8 +5008,8 @@ be completed here.
       is_cli_generic_class_definition_symbol(instance_sym)) {
     /* Not a class based on a class template or the class that is generated
        to represent the definition of a C++/CLI generic class. */
-    if (class_type->source_corresp.module_entity != NULL) {
-      complete_definition_of_module_class(class_type);
+    if (has_type_definition_from_module(class_type)) {
+      load_type_definition_from_module(class_type);
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     /* Do not insert code here. */
@@ -7072,7 +7067,6 @@ cases).
   a_symbol_ptr                      rout_sym = tip->instance_sym,
                                     template_sym = tip->template_sym;
   a_symbol_ptr                      proto_sym;
-  a_template                        *templ;
   a_routine_ptr                     proto_rout_ptr;
   a_template_symbol_supplement_ptr  tssp, proto_tssp;
   a_template_cache_ptr		    tcp;
@@ -7084,20 +7078,10 @@ cases).
                                            source_sequence_entries_disallowed;
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  a_boolean                         from_ifc_module;
 
   db_enter(3, "instantiate_template_function_full");
   template_sym = tip->template_sym;
   tssp = template_supplement_for_symbol(template_sym);
-  templ = tssp->il_template_entry;
-  from_ifc_module = templ != NULL &&
-                    templ->source_corresp.module_entity != NULL;
-  if (from_ifc_module) {
-    /* IFC modules may create ad-hoc overload sets that duplicate function
-       and function template symbols.  Ensure that we use the original
-       symbol. */
-    template_sym = symbol_for(templ);
-  }  /* if */
   if (tssp->il_template_entry != NULL &&
       has_pending_template_definition_from_module(tssp->il_template_entry)) {
     /* A declaration but not a definition was loaded from a module file.
@@ -19281,6 +19265,8 @@ mode in-class specialization.
           (void)get_token();
         }  /* if */
       } else {
+        a_mode_swapped_parse swapped_parse(templ_sym);
+
         /* Obtain the type of the instance by rescanning the declaration
            tokens. */
         rout_type = scan_member_declaration(parent_class, templ_rout, tip);
@@ -19289,10 +19275,11 @@ mode in-class specialization.
 #endif /* DECL_MODIFIERS_IN_USE */
       }  /* if */
     } else {
-      a_decl_parse_state  state;
-      a_func_info_block	  func_info;
-      a_symbol_locator	  locator;
-      a_decl_pos_block    decl_pos_block;
+      a_decl_parse_state   state;
+      a_func_info_block    func_info;
+      a_symbol_locator     locator;
+      a_decl_pos_block     decl_pos_block;
+      a_mode_swapped_parse swapped_parse(templ_sym);
 
       clear_func_info(&func_info);
       clear_decl_pos_block(&decl_pos_block);

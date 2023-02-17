@@ -668,31 +668,6 @@ scope.
 }  /* define_names_from_scope */
 
 
-void complete_definition_of_module_class(a_type_ptr class_type)
-/*
-This routine is called (via complete_class_type_is_needed) when the front end
-has determined that the class is defined in a module and now needs a
-definition.  Complete the given class's definition from the information
-contained in the module that provided the class.
-*/
-{
-  a_module_entity_ptr  mep = class_type->source_corresp.module_entity;
-
-  check_assertion(mep != NULL);
-  if (!class_type->definition_pending && !mep->invalid) {
-    a_module_scope_push_kind scope_push_status = mspk_unattempted;
-
-    class_type->definition_pending = TRUE;
-    push_module_declaration_context(mep->scope, &scope_push_status);
-    mep->module_info->module_interface
-                    ->complete_definition_of_module_class(mep);
-    /* Once the class is defined, there is no need for this information. */
-    class_type->definition_pending = FALSE;
-    pop_module_declaration_context(scope_push_status);
-  }  /* if */
-}  /* complete_definition_of_module_class */
-
-
 static a_hash_table_ptr
        module_entity_hash_table;
                         /* A hash table to find module entities. */
@@ -914,36 +889,6 @@ it exists).
 }  /* set_name */
 
 #if !USE_VIRTUAL_FUNCTIONS
-
-/* FIXME: temporary*/
-/*lint -esym(1762,*a_module_interface::complete_definition_of_module_class)*/
-void a_module_interface::complete_definition_of_module_class(
-                                                       a_module_entity_ptr mep)
-/*
-Dispatch the complete_definition_of_module_class() call to the variant for the
-actual object.
-*/
-{
-  switch (mod_kind) {
-    case mk_none:
-      /* This is the actual object. */
-      break;
-    case mk_edg:
-      ((an_edg_module*)this)->complete_definition_of_module_class(mep);
-      break;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    case mk_ifc:
-      ((an_ifc_module*)this)->complete_definition_of_module_class(mep);
-      break;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    case mk_header:
-    case mk_any:
-      unexpected_condition();
-      break;
-    default_is_unexpected();
-  }  /* switch */
-}  /* complete_definition_of_module_class */
-
 #if DEBUG
 
 void a_module_interface::debug() const
@@ -1198,6 +1143,45 @@ and process that definition now, and return TRUE.  Otherwise, return FALSE.
 }  /* load_template_definition_from_module */
 
 
+a_boolean has_type_definition_from_module(ARG_UNUSED a_type_ptr  ty)
+/*
+If the given type has a definition available in an imported module, return
+TRUE.  Otherwise, return FALSE.
+*/
+{
+  a_boolean  result = FALSE;
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  result = has_type_definition_from_ifc_module(ty);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  return result;
+}  /* load_routine_definition_from_module */
+
+
+a_boolean load_type_definition_from_module(ARG_UNUSED a_type_ptr  ty)
+/*
+If the given type has a definition available in an imported module, load and
+process that definition now, and return TRUE.  Otherwise, return FALSE.
+
+The presence of a type definition should be checked for via
+has_type_definition_from_module prior to attempting to load the type
+definition.
+*/
+{
+  a_boolean  result = FALSE;
+
+  if (!ty->definition_pending) {
+    ty->definition_pending = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    result = load_type_definition_from_ifc_module(ty);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    /* Once the class is defined, there is no need for this information. */
+    ty->definition_pending = FALSE;
+  }  /* if */
+  return result;
+}  /* load_routine_definition_from_module */
+
+
 a_dynamic_init_ptr load_variable_init_from_module(
                                ARG_UNUSED a_type_ptr                    tp,
                                ARG_UNUSED a_lexical_ifc_index_reference *index)
@@ -1246,6 +1230,51 @@ exit_ifc_rescan is required; otherwise, return FALSE.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   return result;
 }  /* extract_tokens_for_module_expr */
+
+
+a_mode_swapped_parse::a_mode_swapped_parse(a_module_interface *mod)
+/*
+Swap the front end to a state compatible with the given module interface.
+*/
+: a_mode_swapped_parse()
+{
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  configure_front_end_parse_for_ifc_module(mod);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+}  /* a_mode_swapped_parse::a_mode_swapped_parse */
+
+
+a_mode_swapped_parse::a_mode_swapped_parse(ARG_UNUSED a_symbol *sym)
+/*
+Swap the front end to a state compatible with the given symbol.
+*/
+: a_mode_swapped_parse()
+{
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  an_il_entry_kind        kind;
+  char                    *entity = il_entry_for_symbol(sym, &kind);
+  a_source_correspondence *scp = source_corresp_for_il_entry(entity, kind);
+  a_module_interface      *interface = scp->module_iface;
+
+  if (interface != NULL) {
+    configure_front_end_parse_for_ifc_module(interface);
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+}  /* a_mode_swapped_parse::a_mode_swapped_parse */
+
+
+a_mode_swapped_parse::a_mode_swapped_parse()
+/*
+This is the "fundamental" constructor used to initialize the saved state.
+*/
+: old_microsoft_mode(&microsoft_mode),
+  old_microsoft_version(&microsoft_version), old_ms_extensions(&ms_extensions),
+  old_ms_compat(&ms_compat),
+  old_allow_in_class_specializations(&allow_in_class_specializations),
+  old_allow_in_class_instantiations(&allow_in_class_instantiations)
+{
+}  /* a_mode_swapped_parse::a_mode_swapped_parse */
+
 
 #if DEBUG
 
@@ -1387,7 +1416,7 @@ for each compilation.
   num_module_decls_failed = 0;
 #endif /* DEBUG */
   curr_module_sym = NULL;
-  curr_module_entity = NULL;
+  curr_mep_state = NULL;
   module_entity_hash_table = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   ifc_modules_init();

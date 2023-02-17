@@ -245,7 +245,7 @@ public:
                                         an_ifc_partition_kind part_kind) const;
 
   void process_ifc_declaration(a_module_entity_ptr mep);
-  void complete_definition_of_module_class(a_module_entity_ptr mep) OVERRIDE;
+  void complete_definition_of_module_class(a_module_entity_ptr mep);
   a_boolean cache_function_body(a_module_token_cache_ptr cache,
                                 an_ifc_decl_index        decl_idx,
                                 a_routine_ptr            rp,
@@ -573,6 +573,8 @@ extern a_boolean check_module(const an_ifc_module_reference &ref);
 
 extern an_ifc_module* get_module(const an_ifc_module_reference &ref);
 
+extern void configure_front_end_parse_for_ifc_module(a_module_interface *mod);
+
 extern a_boolean has_routine_definition_from_ifc_module(a_routine_ptr  rp);
 
 extern a_boolean load_routine_definition_from_ifc_module(a_routine_ptr  rp);
@@ -581,6 +583,10 @@ extern a_boolean has_template_definition_from_ifc_module(a_template_ptr templ);
 
 extern
 a_boolean load_template_definition_from_ifc_module(a_template_ptr  templ);
+
+extern a_boolean has_type_definition_from_ifc_module(a_type_ptr  ty);
+
+extern a_boolean load_type_definition_from_ifc_module(a_type_ptr  ty);
 
 extern a_dynamic_init_ptr load_variable_init_from_ifc_module(
                                                 a_type_ptr        tp,

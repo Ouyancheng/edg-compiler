@@ -49,43 +49,6 @@ static a_text_buffer_ptr
                         /* A text buffer used for processing file names from
                            the IFC. */
 
-namespace {
-
-struct a_module_entity_stack_state;
-
-a_module_entity_stack_state
-                *curr_mep_state = NULL;
-                        /* A global stack of module entity pointers currently
-                           being processed.  This stack can be printed with
-                           db_mep_stack(). */
-
-/*
-A class used to represent an element on the module entity state stack.  This is
-an RAII object that automatically manages the value of curr_mep_state for the
-module given during construction.
-*/
-struct a_module_entity_stack_state {
-  a_module_entity_stack_state(a_module_entity_ptr mep_val)
-    : parent(curr_mep_state), mep(mep_val)
-    { curr_mep_state = this; }
-
-  ~a_module_entity_stack_state()
-    { curr_mep_state = this->parent; }
-
-  void invalidate()
-    { this->mep->invalid = TRUE; }
-
-  a_module_entity_stack_state
-                *parent;
-                        /* The parent (old) module entity stack state, prior
-                           to this object's construction. */
-  a_module_entity_ptr
-                mep;
-                        /* The current module entity pointer. */
-};  /* a_module_entity_stack_state */
-
-}  /* namespace */
-
 static void ifc_requirement_impl(ARG_UNUSED int          line_number,
                                  ARG_UNUSED a_const_char *function,
                                  an_ifc_module           *mod,
@@ -955,6 +918,32 @@ Load and return the an_ifc_module handler for the referenced module.
   check_assertion(midp != NULL);
   return (an_ifc_module*)(midp->module_info->module_interface);
 }  /* get_module */
+
+
+static unsigned long get_microsoft_version(ARG_UNUSED an_ifc_module *mod)
+/*
+Given an IFC module, determine the appropriate version level of Microsoft mode
+to emulate.
+*/
+{
+  /* FIXME: This should depend on version information in the IFC file. */
+  return 1928;
+}  /* get_microsoft_version */
+
+
+void configure_front_end_parse_for_ifc_module(a_module_interface *mod)
+/*
+Configure the front end to resume an IFC parse for the given module interface.
+This should only be called from within the constructor of a_mode_swapped_parse.
+*/
+{
+  microsoft_mode = TRUE;
+  microsoft_version = get_microsoft_version((an_ifc_module*)mod);
+  ms_extensions = TRUE;
+  ms_compat = TRUE;
+  allow_in_class_specializations = TRUE;
+  allow_in_class_instantiations = TRUE;
+}  /* an_ifc_module::configure_front_end_parse */
 
 
 static inline uintptr_t hash_ptr(an_ifc_decl_index  idx)
@@ -3011,6 +3000,16 @@ an_ifc_template_def_map
                            retrieve the definition of the template when
                            needed. */
 
+using an_ifc_tag_def_map = Ptr_map<a_type_ptr, an_ifc_decl_index>;
+                        /* The type of a map that associates IFC tag
+                           definitions with IL tag entries. */
+
+an_ifc_tag_def_map
+                *ifc_tag_definitions;
+                        /* A map from tag IL pointers to entries of type
+                           an_ifc_decl_index that can be used to retrieve the
+                           definition of the tag when needed. */
+
 }  /* namespace */
 
 
@@ -4961,7 +4960,7 @@ return TRUE.
 {
   an_ifc_decl_index ifb = ifc_function_bodies->get(rp);
 
-  return ifb.mod != NULL;
+  return !is_null_index(ifb);
 }  /* has_routine_definition_from_ifc_module */
 
 
@@ -5812,82 +5811,6 @@ entity has default arguments; otherwise, return FALSE.
 }  /* has_default_arguments */
 
 
-/*
-An RAII object to temporarily enable Microsoft features even if not enabled
-otherwise.  This allows for MS specific IFC decls to be correctly processed.
-*/
-struct a_ms_mode_parse {
-  inline a_ms_mode_parse(an_ifc_module *mod);
-  inline ~a_ms_mode_parse();
-private:
-  a_boolean
-                old_microsoft_mode;
-                        /* The previous value of "microsoft_mode". */
-  unsigned long
-                old_microsoft_version;
-                        /* The previous value of "microsoft_version". */
-  a_boolean
-                old_ms_extensions;
-                        /* The previous value of "ms_extensions". */
-  a_boolean
-                old_ms_compat;
-                        /* The previous value of "ms_compat". */
-  a_boolean
-                old_allow_in_class_specializations;
-                        /* The previous value of
-                           "allow_in_class_specializations". */
-  a_boolean
-                old_allow_in_class_instantiations;
-                        /* The previous value of
-                           "allow_in_class_instantiations". */
-};  /* a_ms_mode_parse */
-
-
-unsigned long get_microsoft_version(ARG_UNUSED an_ifc_module *mod)
-/*
-Given an IFC module, determine the appropriate version level of Microsoft mode
-to emulate.
-*/
-{
-  /* FIXME: This should depend on version information in the IFC file. */
-  return 1928;
-}  /* get_microsoft_version */
-
-
-a_ms_mode_parse::a_ms_mode_parse(an_ifc_module *mod)
-    : old_microsoft_mode(microsoft_mode),
-      old_microsoft_version(microsoft_version),
-      old_ms_extensions(ms_extensions), old_ms_compat(ms_compat),
-      old_allow_in_class_specializations(allow_in_class_specializations),
-      old_allow_in_class_instantiations(allow_in_class_instantiations)
-/*
-Temporarily enter a limited Microsoft mode that's catered to the compiler used
-to produce the IFC file to process Microsoft specific features in context.
-*/
-{
-  microsoft_mode = TRUE;
-  microsoft_version = get_microsoft_version(mod);
-  ms_extensions = TRUE;
-  ms_compat = TRUE;
-  allow_in_class_specializations = TRUE;
-  allow_in_class_instantiations = TRUE;
-}  /* a_ms_mode_parse */
-
-
-a_ms_mode_parse::~a_ms_mode_parse()
-/*
-Restore to the previous compiler modes.
-*/
-{
-  allow_in_class_instantiations = old_allow_in_class_instantiations;
-  allow_in_class_specializations = old_allow_in_class_specializations;
-  ms_compat = old_ms_compat;
-  ms_extensions = old_ms_extensions;
-  microsoft_version = old_microsoft_version;
-  microsoft_mode = old_microsoft_mode;
-}  /* ~a_ms_mode_parse */
-
-
 a_boolean is_from_gmf(an_ifc_basic_specifiers_bitfield specifier)
 /*
 Return TRUE if the specifier indicates the associated entity came from the
@@ -6329,10 +6252,11 @@ the existing template declaration; otherwise, *il_entity should be NULL.
 */
 {
   check_assertion(*il_entity == NULL || *kind == iek_template);
-  a_boolean         result = TRUE;
-  an_ifc_cache_info cache_info;
-  an_ifc_module     *mod = get_assoc_ifc_module(mep);
-  a_boolean         specializations_processed = FALSE;
+  a_boolean            result = TRUE;
+  an_ifc_cache_info    cache_info;
+  an_ifc_module        *mod = get_assoc_ifc_module(mep);
+  a_boolean            specializations_processed = FALSE;
+  a_mode_swapped_parse tmp_ms_parse(mod);
 
   /* If there's a forward declaration already loaded, load the specializations
      so that if the template definition references a specialization, it's
@@ -6457,13 +6381,10 @@ module, but its definition hasn't been loaded yet.  Load the definition now.
     /* Reconstruct the module entity state. */
     Value_saver<a_source_position>
                                 saved_error_position(&error_position);
-    Value_saver<a_module_entity_ptr>
-                                saved_mep(&curr_module_entity);
     a_curr_token_preserver      guard;
     a_module_entity_ptr         mep = get_ifc_module_entity_ptr(def_decl_idx);
     a_module_entity_stack_state mep_state(mep);
     a_module_scope_push_kind    scope_push_status = mspk_unattempted;
-    curr_module_entity = mep;
     push_module_declaration_context(mep->scope, &scope_push_status);
 
     /* Process the definition. */
@@ -6801,8 +6722,7 @@ strongly preferred over calling this function directly.
                                          !display_module_import_diagnostics);
   Value_saver<a_boolean>   checking_pragma_saver(&no_checking_pragmas, TRUE);
   a_source_position        saved_error_position = error_position;
-  a_module_entity_ptr      saved_mep = curr_module_entity;
-  a_ms_mode_parse          tmp_ms_parse(mod);
+  a_mode_swapped_parse     tmp_ms_parse(mod);
   an_ifc_decl_index        decl_idx = decl_index_of(mep);
 
 #if DEBUG
@@ -6813,7 +6733,6 @@ strongly preferred over calling this function directly.
     print(err_msg, f_debug);
   }  /* if */
 #endif /* DEBUG */
-  curr_module_entity = mep;
   if (!defer) {
     mep->imminent = TRUE;
     if (mep->scope != NULL) {
@@ -7201,12 +7120,13 @@ class_struct_union_case:
                                                 iek_type, &il_entity, &kind)) {
                   a_type_ptr type = (a_type_ptr)il_entity;
 
-                  /* FIXME: Is this right? */
                   if (is_incomplete_type(type) &&
                       test_bitmask<ifc_rpb_initializer>(properties)) {
                     /* Record the presence of a definition on an existing
                        type. */
-                    type->source_corresp.module_entity = mep;
+                    if (is_null_index(ifc_tag_definitions->get(type))) {
+                      ifc_tag_definitions->map(type, decl_idx);
+                    }  /* if */
                   }  /* if */
                   break;
                 }  /* if */
@@ -7241,6 +7161,10 @@ class_struct_union_case:
                 /* FIXME: for now: */
                 tag_type->source_corresp.name_linkage =
                                    (a_name_linkage_kind)nlk_cplusplus_external;
+                if (test_bitmask<ifc_rpb_initializer>(properties)) {
+                  /* Record the presence of a definition. */
+                  ifc_tag_definitions->map(tag_type, decl_idx);
+                }  /* if */
                 il_entity = (char*)tag_type;
                 kind = iek_type;
               }  /* if */
@@ -8227,7 +8151,6 @@ done:
     print(err_msg, f_debug);
   }  /* if */
 #endif /* DEBUG */
-  curr_module_entity = saved_mep;
   error_position = saved_error_position;
 }  /* process_decl_to_il_entity */
 
@@ -8625,7 +8548,7 @@ Complete the definition of the class referred to by mep (if needed).
       a_source_position           saved_error_position = error_position;
       a_module_scope_push_kind    scope_push_status = mspk_unattempted;
       a_curr_token_preserver      guard;
-      a_ms_mode_parse             tmp_ms_parse(this);
+      a_mode_swapped_parse        tmp_ms_parse(this);
       a_module_entity_stack_state mep_state(mep);
       a_module_token_cache        cache;
       an_ifc_source_location      locus = get_ifc_locus(ids);
@@ -8727,6 +8650,47 @@ Complete the definition of the class referred to by mep (if needed).
 #endif /* DEBUG */
   }  /* if */
 }  /* complete_definition_of_module_class */
+
+
+a_boolean has_type_definition_from_ifc_module(a_type_ptr  ty)
+/*
+If the given type has a definition in a currently-imported IFC module return
+TRUE.
+*/
+{
+  an_ifc_decl_index def_idx = ifc_tag_definitions->get(ty);
+
+  return !is_null_index(def_idx);
+}  /* has_type_definition_from_ifc_module */
+
+
+a_boolean load_type_definition_from_ifc_module(a_type_ptr  ty)
+/*
+The given type claims to have a definition in a currently-imported IFC module;
+process said definition and return TRUE.  If problems are encountered during
+processing, return FALSE.
+
+The presence of a type definition should be checked for via
+has_type_definition_from_ifc_module prior to attempting to load the type
+definition.
+*/
+{
+  /* FIXME: Clean this up and convert it to use ifc_pending_definitions, and
+     generally be more similar to the other load_X_definition_from_ifc_module
+     functions. */
+  check_assertion(has_type_definition_from_ifc_module(ty));
+  an_ifc_decl_index   def_idx = ifc_tag_definitions->get(ty);
+  a_module_entity_ptr def_mep = get_ifc_module_entity_ptr(def_idx);
+
+  if (!def_mep->invalid) {
+    a_module_scope_push_kind scope_push_status = mspk_unattempted;
+
+    push_module_declaration_context(def_mep->scope, &scope_push_status);
+    def_idx.mod->complete_definition_of_module_class(def_mep);
+    pop_module_declaration_context(scope_push_status);
+  }  /* if */
+  return !def_mep->invalid;
+}  /* load_type_definition_from_ifc_module */
 
 #if DEBUG
 
@@ -9589,10 +9553,7 @@ error type.
 {
   a_type_ptr          result = NULL;
   a_module_entity_ptr mep = get_ifc_module_entity_ptr(type_index);
-  Value_saver<a_module_entity_ptr>
-                      mep_saver(&curr_module_entity);
 
-  curr_module_entity = NULL;
   if (kind != NULL) {
     *kind = ntk_none;
   }  /* if */
@@ -11665,11 +11626,9 @@ FIXME: shared or unshared?
 FIXME: what other expressions can we get here?
 */
 {
-  a_constant_ptr                   cp = NULL;
-  an_ifc_module                    *mod = expr_idx.mod;
-  Value_saver<a_module_entity_ptr> mep_saver(&curr_module_entity);
+  a_constant_ptr cp = NULL;
+  an_ifc_module  *mod = expr_idx.mod;
 
-  curr_module_entity = NULL;
   /* FIXME: Can this entire thing be replaced via caching the expression and
      then calling scan_expr_or_braced_init_list, as is done for
      ifc_ExprSort_Tokens below? */
@@ -21441,6 +21400,8 @@ for each compilation.
   construct(ifc_function_bodies, /*mask_width=*/10);
   ifc_template_definitions = alloc_fe_of_type(an_ifc_template_def_map);
   construct(ifc_template_definitions, /*mask_width=*/10);
+  ifc_tag_definitions = alloc_fe_of_type(an_ifc_tag_def_map);
+  construct(ifc_tag_definitions, /*mask_width=*/10);
   ifc_bad_function_bodies = alloc_fe_of_type(an_ifc_function_failure_set);
   construct(ifc_bad_function_bodies, /*mask_width=*/10);
   ifc_pending_definitions = alloc_fe_of_type(an_ifc_pending_definition_set);

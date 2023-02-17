@@ -152,8 +152,6 @@ struct a_module_interface {
 /* Module interface functions. */
   void set_name(a_const_char *module_name,
                 a_boolean    header_unit);
-  VIRTUAL void complete_definition_of_module_class(a_module_entity_ptr mep)
-                                                                      ABSTRACT;
   void report_suppressed_diagnostics() const;
 #if DEBUG
   VIRTUAL void debug() const ABSTRACT;
@@ -178,14 +176,39 @@ EXTERN unsigned long
 /* If in a module unit, the current module symbol. */
 EXTERN a_symbol_ptr    curr_module_sym;
 
+struct a_module_entity_stack_state;
+
+EXTERN a_module_entity_stack_state
+                *curr_mep_state;
+                        /* A global stack of module entity pointers currently
+                           being processed.  This stack can be printed with
+                           db_mep_stack(). */
+
 /*
-When processing a module entity, this points to a description of the entity in
-the ("binary") module file until the IL entry associated with the entity is
-created and made to point to the description.  (Be sure to save/clear/restore
-this variable in contexts that may trigger the creation of new IL entries
-before the actual module entity is represented.)
+A class used to represent an element on the module entity state stack.  This is
+an RAII object that automatically manages the value of curr_mep_state for the
+module given during construction.
 */
-EXTERN a_module_entity_ptr curr_module_entity;
+struct a_module_entity_stack_state {
+  a_module_entity_stack_state(a_module_entity_ptr mep_val)
+    : parent(curr_mep_state), mep(mep_val)
+    { curr_mep_state = this; }
+
+  ~a_module_entity_stack_state()
+    { curr_mep_state = this->parent; }
+
+  void invalidate()
+    { this->mep->invalid = TRUE; }
+
+  a_module_entity_stack_state
+                *parent;
+                        /* The parent (old) module entity stack state, prior
+                           to this object's construction. */
+  a_module_entity_ptr
+                mep;
+                        /* The current module entity pointer. */
+};  /* a_module_entity_stack_state */
+
 
 inline a_boolean magic_numbers_match(const a_byte magic[4],
                                      const a_byte expected[4])
@@ -222,8 +245,6 @@ extern void import_module_file(a_module_import_decl_ptr midp);
 extern void define_names_from_scope(a_scope_ptr     scope,
                                     a_symbol_header *sym_hdr);
 
-extern void complete_definition_of_module_class(a_type_ptr class_type);
-
 extern a_hash_value hash_module_entity(a_void_ptr  key);
 
 extern a_boolean compare_for_module_entity(a_void_ptr  entry,
@@ -255,11 +276,6 @@ struct an_edg_module : public a_module_interface {
   NORETURN void pch_reset(ARG_UNUSED a_module_import_decl_ptr midp) OVERRIDE
     { unexpected_condition_str("Unimplemented"); }
 
-  NORETURN void complete_definition_of_module_class(
-                                            ARG_UNUSED a_module_entity_ptr mep)
-                                                                       OVERRIDE
-    { unexpected_condition_str("Unimplemented"); }
-
 #if DEBUG
   NORETURN void debug() const OVERRIDE
     { unexpected_condition_str("Unimplemented"); }
@@ -285,6 +301,10 @@ extern a_boolean has_pending_template_definition_from_module(
                                                         a_template_ptr  templ);
 
 extern a_boolean load_template_definition_from_module(a_template_ptr  templ);
+
+extern a_boolean has_type_definition_from_module(a_type_ptr  ty);
+
+extern a_boolean load_type_definition_from_module(a_type_ptr  ty);
 
 extern a_dynamic_init_ptr load_variable_init_from_module(
                                          a_type_ptr                    tp,
@@ -531,6 +551,39 @@ the module entity rescan.
     exit_module_token_rescan(end_tsn, final_token);
   }
 }  /* ~a_module_entity_rescan */
+
+
+/*
+A structure used to modify the front end mode to the correct options for a
+different source context (e.g., while importing a module that needs different
+options than the importing TU).
+*/
+struct a_mode_swapped_parse {
+  a_mode_swapped_parse(a_module_interface *mod);
+  a_mode_swapped_parse(a_symbol *sym);
+private:
+  a_mode_swapped_parse();
+  Value_saver<a_boolean>
+                old_microsoft_mode;
+                        /* The previous value of "microsoft_mode". */
+  Value_saver<unsigned long>
+                old_microsoft_version;
+                        /* The previous value of "microsoft_version". */
+  Value_saver<a_boolean>
+                old_ms_extensions;
+                        /* The previous value of "ms_extensions". */
+  Value_saver<a_boolean>
+                old_ms_compat;
+                        /* The previous value of "ms_compat". */
+  Value_saver<a_boolean>
+                old_allow_in_class_specializations;
+                        /* The previous value of
+                           "allow_in_class_specializations". */
+  Value_saver<a_boolean>
+                old_allow_in_class_instantiations;
+                        /* The previous value of
+                           "allow_in_class_instantiations". */
+};  /* a_mode_swapped_parse */
 
 #if DEBUG
 
