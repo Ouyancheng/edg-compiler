@@ -103,7 +103,8 @@ A low-level field in the memory management structures for the constant-
 evaluation interpreter was not correctly initialized.  That is now fixed.
 
 
-2/13/23  [EDGcpfe/24244,EDGcpfe/25124,EDGcpfe/26033]
+2/13/23  [EDGcpfe/24130,EDGcpfe/24244,EDGcpfe/24802,EDGcpfe/25124,
+          EDGcpfe/26033,EDGcpfe/26034]
 Constraint not checked on user-defined conversion
 
 Consider (in C++20 mode):
