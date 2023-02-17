@@ -6275,6 +6275,42 @@ check if it has any associated deduction guides, and process them.
 }  /* process_template_deduction_guides */
 
 
+static a_boolean templ_def_missing_req_init(const an_ifc_decl_template &decl)
+/*
+Given an IFC template declaration, return TRUE if the template is missing a
+required initializer; otherwise, return FALSE.
+*/
+{
+  a_boolean                   result = FALSE;
+  an_ifc_parameterized_entity entity = get_ifc_entity(decl);
+  an_ifc_decl_index           entity_idx = get_ifc_decl(entity);
+
+  switch (entity_idx.sort) {
+    case ifc_ds_decl_variable:
+      { Opt<an_ifc_decl_variable> opt_var_decl;
+
+        construct_node(&opt_var_decl, entity_idx);
+        if (!opt_var_decl.has_value()) {
+          goto invalid;
+        }  /* if */
+
+        an_ifc_decl_variable var_decl = *opt_var_decl;
+        an_ifc_expr_index    init_expr = get_ifc_initializer(var_decl);
+        result = is_null_index(init_expr);
+      }
+      break;
+    default:
+      result = FALSE;
+      break;
+  }  /* switch */
+  goto done;
+invalid:
+  result = TRUE;
+done:
+  return result;
+}  /* templ_def_missing_req_init */
+
+
 static a_boolean
 process_template_definition(const an_ifc_decl_template &decl_templ,
                             a_module_entity_ptr        mep,
@@ -6298,6 +6334,9 @@ the existing template declaration; otherwise, *il_entity should be NULL.
   an_ifc_module     *mod = get_assoc_ifc_module(mep);
   a_boolean         specializations_processed = FALSE;
 
+  /* If there's a forward declaration already loaded, load the specializations
+     so that if the template definition references a specialization, it's
+     loaded. */
   if (*il_entity != NULL) {
     check_assertion(*kind == iek_template);
     update_cache_info_for_template(&cache_info, (a_template_ptr)*il_entity);
@@ -6307,7 +6346,11 @@ the existing template declaration; otherwise, *il_entity should be NULL.
       specializations_processed = TRUE;
     }  /* if */
   }  /* if */
-  {
+  /* Load the actual template definition unless there's already an IL entity
+     for the template, and the template definition does not have an initializer
+     (this can occur for things like static data members, which while
+     redeclarable, must be redeclared with an initializer). */
+  if (*il_entity == NULL || !templ_def_missing_req_init(decl_templ)) {
     an_ifc_decl_index    decl_idx = decl_index_of(mep);
     a_module_token_cache cache;
 
