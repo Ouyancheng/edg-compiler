@@ -6740,11 +6740,15 @@ mspk_unnecessary if the current scope is already the correct scope, or mspk_new
 if a new scope was pushed.
 */
 {
-  if (*scope_push_status != mspk_unattempted) {
-    pop_module_declaration_context(*scope_push_status);
-    *scope_push_status = mspk_unattempted;
+  /* Don't perform a redundant push/pop if not necessary. */
+  if (scope_stack_top().kind != sck_module_decl_import ||
+      scope_stack_top().il_scope != scope) {
+    if (*scope_push_status != mspk_unattempted) {
+      pop_module_declaration_context(*scope_push_status);
+      *scope_push_status = mspk_unattempted;
+    }  /* if */
+    push_module_declaration_context(scope, scope_push_status);
   }  /* if */
-  push_module_declaration_context(scope, scope_push_status);
 }  /* ensure_module_scope */
 
 
