@@ -10446,13 +10446,20 @@ param_list.
         an_ifc_heap_expr  ihe = *indexed_ihe;
         an_ifc_expr_index expr_index = get_ifc_value(ihe);
         check_assertion(param_list != NULL);
-        /* Packed template arguments shouldn't be part of a tuple.  If this is
-           ever encountered, the code below should be changed to recursively
-           call this function and iterate over *next_arg until it's NULL. */
         if (expr_index.sort == ifc_es_expr_packed_template_arguments) {
-          ifc_unexpected(expr_index.mod,
-                         "unexpected recursive pack template argument");
-          goto invalid;
+          a_template_arg_ptr recursive_args =
+                           template_args_for_expr_list(param_list, expr_index);
+
+          /* Recursively expand packed template arguments. */
+          if (recursive_args == NULL) {
+            goto invalid;
+          }  /* if */
+          *next_arg = recursive_args;
+          while (recursive_args != NULL) {
+            next_arg = &(*next_arg)->next;
+            recursive_args = recursive_args->next;
+          }  /* if */
+          continue;
         }  /* if */
 
         a_template_arg_ptr arg = template_arg_for_expr(param_list, expr_index);
