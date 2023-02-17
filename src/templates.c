@@ -7465,12 +7465,6 @@ expression context) rather than a declaration.
   template_sym = tip->template_sym;
   tssp = template_supplement_for_symbol(template_sym);
   if (is_var_templ_instance) {
-    if (tssp->il_template_entry != NULL &&
-        has_pending_template_definition_from_module(tssp->il_template_entry)) {
-      /* A declaration but not a definition was loaded from a module file.
-         Attempt to load the definition (and any specializations). */
-      load_template_definition_from_module(tssp->il_template_entry);
-    }  /* if */
     template_sym = check_variable_template_partial_specializations(tip);
     tssp = template_supplement_for_symbol(template_sym);
     /* For variable templates, get the information about the prototype
@@ -11476,6 +11470,14 @@ If template constraints are not satisfied, return NULL.
   }  /* if */
   /* The template symbol must be for the primary template. */
   check_assertion(tssp->primary_template_sym == NULL);
+  if (tssp->il_template_entry != NULL &&
+      has_pending_template_definition_from_module(tssp->il_template_entry)) {
+    /* A declaration but not a definition was loaded from a module file.
+       Attempt to load the definition (and any specializations).  Note this
+       must be performed before the find_instantiation call, as otherwise
+       specializations might be declared after implicit instantiations*/
+    load_template_definition_from_module(tssp->il_template_entry);
+  }  /* if */
   if (is_nonreal && prototype_allowed) {
     /* See if the list matches a partial specialization. */
     sym = find_variable_template_partial_specialization(
