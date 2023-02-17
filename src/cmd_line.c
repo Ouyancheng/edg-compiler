@@ -4079,6 +4079,7 @@ default mode (e.g., exception handling).
           explicit_this_param_enabled = TRUE;
           extended_float_types = TRUE;
           elifdef_enabled = TRUE;
+          size_suffix_enabled = TRUE;
         }  /* if */
       }  /* if */
     }  /* if */
@@ -5540,6 +5541,10 @@ before this routine is called.
       /* Enabled by default (with a warning if in non-C++20 mode). */
       nested_inline_namespace_definitions_enabled = TRUE;
     }  /* if */
+    if (clang_version >= 130000) {
+      /* As of version 13.0.0, clang recognizes the "z" integer suffix. */
+      size_suffix_enabled = TRUE;
+    }  /* if */
   } else {
     /* Not Clang mode. */
     /* Early template test for g++ prior to 4.7 (a TRUE value corresponds to
@@ -5580,6 +5585,10 @@ before this routine is called.
     if (gnu_version >= 60000) {
       /* g++ allows specializations to use inaccessible members. */
       relaxed_specialization_access_checking = TRUE;
+    }  /* if */
+    if (gnu_version >= 110000) {
+      /* As of version 11.1.0, g++ recognizes the "z" integer suffix. */
+      size_suffix_enabled = TRUE;
     }  /* if */
     if (gnu_version >= 120000) {
       float16_enabled = TRUE;
@@ -13053,6 +13062,7 @@ variables declared in cmd_line.h.
   keep_restrict_in_signatures = FALSE;
   attributes_on_using_declarations = FALSE;
   elifdef_enabled = FALSE;
+  size_suffix_enabled = FALSE;
 }  /* cmd_line_static_var_init */
 
 

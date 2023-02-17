@@ -11066,11 +11066,10 @@ int_imaginary_suffix:
     /* Definitely a decimal integer. */
     kind = k_decimal;
   }  /* if */
-  /* Integer constant of some kind.  Check for final suffix of "u" or
-     "l", or both, in upper or lower case. */
-#if LONG_LONG_ALLOWED
-  /* Or "ll" for long long. */
-#endif /* LONG_LONG_ALLOWED */
+  /* Integer constant of some kind.  Check for an integer suffix: an
+     optional "u/U", followed by an optional "l/L", "ll/LL" (if
+     LONG_LONG_ALLOWED is TRUE), or "z/Z" (if size_suffix_enabled is
+     TRUE). */
   possible_start_of_ud_suffix = curr_char_loc;
   for (;; curr_char_loc++) {
     ch = *curr_char_loc;
@@ -11087,6 +11086,8 @@ int_imaginary_suffix:
 #endif /* LONG_LONG_ALLOWED */
                                 ) {
       l_suffix_seen++;
+    } else if (size_suffix_enabled && (ch == 'z' || ch == 'Z')) {
+      /* C++23 size suffix. */
     } else {
       break;
     }  /* if */

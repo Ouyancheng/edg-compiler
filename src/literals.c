@@ -101,7 +101,9 @@ of the token if digit separators are enabled.
 */
 {
   an_integer_value number, ten, digit, mask;
-  a_boolean        has_u_suffix = FALSE, has_l_suffix = FALSE;
+  a_boolean        has_u_suffix = FALSE;
+  a_boolean        has_l_suffix = FALSE;
+  a_boolean        has_z_suffix = FALSE;
 #if LONG_LONG_ALLOWED
   a_boolean        has_ll_suffix = FALSE;
   char		   l_char_used = '\0';
@@ -117,11 +119,10 @@ of the token if digit separators are enabled.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
   *err_code = ec_no_error;
-  /* Locate and logically remove the suffix, if any.  The suffix is "u"
-     for unsigned or "l" for long, or both, in upper or lower case. */
-#if LONG_LONG_ALLOWED
-  /* "ll" means long long, "ull" means unsigned long long. */
-#endif /* LONG_LONG_ALLOWED */
+  /* Locate and logically remove the suffix, if any.  The suffix is an
+     optional "u/U" for unsigned, optionally followed by "l/L" for long,
+     "ll/LL" for long long (if LONG_LONG_ALLOWED is TRUE), or "z/Z" for the
+     size_t signed/unsigned type (if size_suffix_enabled is TRUE). */
   if (real_end_pos >= start_of_curr_token) {
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (ms_extensions) {
@@ -176,7 +177,7 @@ of the token if digit separators are enabled.
     for (;;) {
       if (*real_end_pos == 'u' || *real_end_pos == 'U') {
         has_u_suffix = TRUE;
-        real_end_pos--;
+        --real_end_pos;
       } else if (*real_end_pos == 'l' || *real_end_pos == 'L') {
 #if LONG_LONG_ALLOWED
         if (has_l_suffix) {
@@ -196,9 +197,13 @@ of the token if digit separators are enabled.
           l_char_used = *real_end_pos;
 #endif /* LONG_LONG_ALLOWED */
         }  /* if */
-        real_end_pos--;
+        --real_end_pos;
+      } else if (size_suffix_enabled &&
+                 (*real_end_pos == 'z' || *real_end_pos == 'Z')) {
+        has_z_suffix = TRUE;
+        --real_end_pos;
       } else {
-        /* Not an "l" or "u"; exit loop. */
+        /* Not an "l" or "z" or "u"; exit loop. */
         break;
       }  /* if */
     }  /* for */
@@ -431,7 +436,28 @@ pcc_kind_established:
       goto kind_established;
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    /* ANSI C constant checking. */
+    /* ISO C/C++ constant checking. */
+    if (has_z_suffix) {
+      an_integer_kind signed_size_int_kind;
+      an_integer_kind unsigned_size_int_kind;
+      if (int_kind_is_signed[(int)targ_size_t_int_kind]) {
+        signed_size_int_kind = targ_size_t_int_kind;
+        unsigned_size_int_kind = (an_integer_kind)(targ_size_t_int_kind + 1);
+      } else {
+        signed_size_int_kind = (an_integer_kind)(targ_size_t_int_kind - 1);
+        unsigned_size_int_kind = targ_size_t_int_kind;
+      }  /* if */
+      if (has_u_suffix &&
+          le_max_integer_value_of_kind(&number, /*is_signed=*/FALSE,
+                                       unsigned_size_int_kind)) {
+        kind = unsigned_size_int_kind;
+        goto kind_established;
+      } else if (le_max_integer_value_of_kind(&number, /*is_signed=*/TRUE,
+                                              signed_size_int_kind)) {
+        kind = signed_size_int_kind;
+        goto kind_established;
+      }  /* if */
+    }  /* if */
 #if LONG_LONG_ALLOWED
     if (has_ll_suffix) goto ll_check;
 #endif /* LONG_LONG_ALLOWED */

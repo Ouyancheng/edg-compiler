@@ -2804,6 +2804,11 @@ EXTERN a_boolean
 			/* TRUE if #elifdef/#elifndef (a C++23 and C23
 			   feature) are supported. */
 
+EXTERN a_boolean
+		size_suffix_enabled;
+			/* TRUE if the "z" integer suffix (a C++23 feature)
+			   is supported. */
+
 /* Process the command line arguments. */
 extern void proc_command_line(int argc, char *argv[]);
 #if COMPILE_MULTIPLE_SOURCE_FILES
