@@ -6442,6 +6442,29 @@ an empty optional.
 }  /* get_home_scope_if_class */
 
 
+/* FIXME: We should be able to (as an optimization) load only the
+   specialization (and thus remove the function below).  However, that needs
+   more design work; namely processing of the specialization can require the
+   definition of the template, which requires us to make sure all
+   specializations are loaded.  In attempting to make sure all specializations
+   are loaded, we end up processing this specialization twice, causing an
+   assertion failure.  We can presumably simply assume that an imminent
+   specialization is already being taken care of, however, until the IFC
+   modules implementation matures future, it's better to keep the design
+   simpler (but a bit sub-optimal). */
+static void ensure_prerequisite_template_def_loaded(a_module_entity_ptr mep)
+/*
+Ensure the template corresponding to the given module entity pointer has
+its definition (if any) loaded.
+*/
+{
+  a_template_ptr templ = ((a_template_ptr)mep->entity.ptr)->canonical_template;
+  if (has_template_definition_from_ifc_module(templ)) {
+    (void)load_template_definition_from_ifc_module(templ);
+  }  /* if */
+}  /* ensure_prerequisite_template_def_loaded */
+
+
 static a_boolean process_decl_prerequisites(a_module_entity_ptr mep)
 /*
 For the given declaration, process any prerequisites.  If processing succeeds
@@ -6559,6 +6582,7 @@ resolved before attempting to resolve the function.
         if (templ_mep->invalid) {
           goto invalid;
         }  /* if */
+        ensure_prerequisite_template_def_loaded(templ_mep);
       }
       break;
     case ifc_ds_decl_specialization:
@@ -6577,6 +6601,7 @@ resolved before attempting to resolve the function.
         if (templ_mep->invalid) {
           goto invalid;
         }  /* if */
+        ensure_prerequisite_template_def_loaded(templ_mep);
       }
       break;
     default:
