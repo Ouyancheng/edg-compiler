@@ -3,10 +3,10 @@ Version 6.5
 2/16/23  [EDGcpfe/26049]
 Position information of parameters in Microsoft mode
 
-The changes for EDGcpfe/15165 etc. could cause the position information
+The changes for EDGcpfe/15165, etc., could cause the position information
 recorded in a function parameter to reflect the position of an earlier
 declaration, while the name recorded in the a_param_type entry reflects that
-as it appeared in a later definition. For example:
+of a later definition. For example:
 
   class S {
     __declspec(nothrow) int f(char *p);
