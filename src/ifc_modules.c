@@ -17328,7 +17328,8 @@ about the current cache context to help inform decisions about what to cache.
           goto invalid;
         }  /* if */
         /* Reconstruct the templated declaration. */
-        auto cache_name_fn = [cache, &decl]() {
+        auto cache_name_fn = [cache, &decl, cinfo]() {
+          cache_func_declarator_qualifier(cache, decl, cinfo);
           cache_simple_template_id(cache, decl);
         };
         auto cache_scope_fn = [this, cache, &decl]() {
@@ -17462,7 +17463,8 @@ current cache context to help inform decisions about what to cache.
           goto invalid;
         }  /* if */
         /* Reconstruct the templated declaration. */
-        auto cache_name_fn = [cache, &decl]() {
+        auto cache_name_fn = [cache, &decl, cinfo]() {
+          cache_func_declarator_qualifier(cache, decl, cinfo);
           cache_simple_template_id(cache, decl);
         };
 
