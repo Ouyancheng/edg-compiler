@@ -438,25 +438,19 @@ pcc_kind_established:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* ISO C/C++ constant checking. */
     if (has_z_suffix) {
-      an_integer_kind signed_size_int_kind;
-      an_integer_kind unsigned_size_int_kind;
+      /* std::size_t or the corresponding signed type.  This literal can
+         only be one of those specific types; unlike other integer
+         literals, it cannot be implicitly interpreted as a larger type,
+         per core issue 2698. */
       if (int_kind_is_signed[(int)targ_size_t_int_kind]) {
-        signed_size_int_kind = targ_size_t_int_kind;
-        unsigned_size_int_kind = (an_integer_kind)(targ_size_t_int_kind + 1);
+        kind = has_u_suffix ? (an_integer_kind)(targ_size_t_int_kind + 1)
+                            : targ_size_t_int_kind;
       } else {
-        signed_size_int_kind = (an_integer_kind)(targ_size_t_int_kind - 1);
-        unsigned_size_int_kind = targ_size_t_int_kind;
+        kind = has_u_suffix ? targ_size_t_int_kind
+                            : (an_integer_kind)(targ_size_t_int_kind - 1);
       }  /* if */
-      if (has_u_suffix &&
-          le_max_integer_value_of_kind(&number, /*is_signed=*/FALSE,
-                                       unsigned_size_int_kind)) {
-        kind = unsigned_size_int_kind;
-        goto kind_established;
-      } else if (le_max_integer_value_of_kind(&number, /*is_signed=*/TRUE,
-                                              signed_size_int_kind)) {
-        kind = signed_size_int_kind;
-        goto kind_established;
-      }  /* if */
+      ovflo = !le_max_integer_value_of_kind(&number, !has_u_suffix, kind);
+      goto kind_established;
     }  /* if */
 #if LONG_LONG_ALLOWED
     if (has_ll_suffix) goto ll_check;

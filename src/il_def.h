@@ -5198,11 +5198,13 @@ enum a_type_kind : a_byte {
 
 
 enum an_integer_kind : a_byte {
-  /* Enumeration of the possible integer kinds.  Some of these may be
-     the same on the target, but they are kept distinct in the front end.
+  /* Enumeration of the possible integer kinds.  Some of these may be the
+     same on the target, but they are kept distinct in the front end.
      These must be listed in order of increasing size (or at least
-     non-decreasing size). */
-  /* If you change this, you should also change int_kind_is_signed below. */
+     non-decreasing size), and the kind for each unsigned type must
+     immediately follow the kind for the corresponding signed type. */
+  /* If you change this, you should also change int_kind_is_signed and
+     unsigned_int_kind_of below. */
   ik_char,
                         /* Not used in pcc mode; ik_signed_char or
                            ik_unsigned_char is used instead. */
