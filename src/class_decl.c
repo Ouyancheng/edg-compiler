@@ -21131,6 +21131,8 @@ information about the member declaration, respectively.
   decl_info->is_bit_field = FALSE;
   /* A colon next indicates a bit-field. */
   if (curr_token == tok_colon) {
+    a_type_ptr  specific_type = NULL;
+    a_boolean   is_bit_length = TRUE;
     decl_info->is_bit_field = TRUE;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     decl_info->bit_field_size_pos = pos_curr_token;
@@ -21139,7 +21141,19 @@ information about the member declaration, respectively.
     (void)get_token();
     /* Scan the integral size in bits of the bit-field. */
     decl_info->bit_field_size = local_constant();
-    scan_fs_integral_constant_expression((a_type_ptr)NULL, /*is_enum=*/FALSE,
+    if (microsoft_bugs) {
+      /* Ordinarily, the bit field length should be processed as an
+         integral constant expression (i.e., consider conversion to any
+         integral type).  However, MSVC appears to treat it as a
+         conversion to "int", specifically.  It also considers explicit
+         (constexpr) user-defined conversion functions, whereas other
+         compilers don't (setting is_bit_length to FALSE ensures that
+         explicit conversion functions are not ignored). */
+      specific_type = integer_type(ik_int);
+      is_bit_length = FALSE;
+    }  /* if */
+    scan_fs_integral_constant_expression(specific_type, /*is_enum=*/FALSE,
+                                         is_bit_length,
                                          decl_info->bit_field_size);
     if (decl_info->bit_field_size->expr != NULL &&
         class_state->is_local_class &&

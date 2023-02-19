@@ -5535,6 +5535,7 @@ is updated to reflect relevant positions of this definition.
            it as a "converted constant expression" for that type in C++11
            mode.) */
         scan_fs_integral_constant_expression(fixed_type, /*is_enum=*/TRUE,
+                                             /*is_bit_length=*/FALSE,
                                              constant);
         add_backing_expression_for_named_constant(constant);
         /* Even though the constant may just be "0", that property should
