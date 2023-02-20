@@ -4990,7 +4990,6 @@ definition.
     a_func_info_block           func_info;
     a_module_token_cache        def_cache;
     a_decl_flag_set             flags = SFB_NEW_STRUCT_STMT_STACK_REQUIRED;
-    a_curr_token_preserver      guard;
     a_module_entity_stack_state mep_state(get_ifc_module_entity_ptr(ifb));
     a_diagnostic_suppression    diag_suppress(
                                            &ifb.mod->suppressed_diagnostics,
@@ -6381,7 +6380,6 @@ module, but its definition hasn't been loaded yet.  Load the definition now.
     /* Reconstruct the module entity state. */
     Value_saver<a_source_position>
                                 saved_error_position(&error_position);
-    a_curr_token_preserver      guard;
     a_module_entity_ptr         mep = get_ifc_module_entity_ptr(def_decl_idx);
     a_module_entity_stack_state mep_state(mep);
     a_module_scope_push_kind    scope_push_status = mspk_unattempted;
@@ -7278,7 +7276,6 @@ class_struct_union_case:
             a_module_token_cache        cache;
             an_ifc_source_location      locus = get_ifc_locus(ida);
             an_ifc_source_position_hint pos_hint(&cache, locus);
-            a_curr_token_preserver      guard;
             /* An alias template; declare a typedef for this case. */
             if (!ensure_module_scope(mep, ida, &scope_push_status)) {
               goto invalid;
@@ -7601,7 +7598,6 @@ class_struct_union_case:
         } else {
           an_ifc_basic_specifiers_bitfield
                                  specifiers = get_ifc_specifiers(idt);
-          a_curr_token_preserver guard;
           an_ifc_cache_info      cache_info;
 
           if (is_from_gmf(specifiers)) {
@@ -7903,8 +7899,7 @@ class_struct_union_case:
           defer_symbol_creation(mep, &loc);
         } else {
           /* Create a definition for the concept and scan it. */
-          an_ifc_decl_concept    idc = *opt_idc;
-          a_curr_token_preserver guard;
+          an_ifc_decl_concept idc = *opt_idc;
 
           if (is_from_gmf(get_ifc_specifiers(idc))) {
             mep->global_module = TRUE;
@@ -8572,7 +8567,6 @@ Complete the definition of the class referred to by mep (if needed).
                                                    non_local_class_fixup_depth;
       a_source_position           saved_error_position = error_position;
       a_module_scope_push_kind    scope_push_status = mspk_unattempted;
-      a_curr_token_preserver      guard;
       a_mode_swapped_parse        tmp_ms_parse(this);
       a_module_entity_stack_state mep_state(mep);
       a_module_token_cache        cache;
@@ -10300,7 +10294,6 @@ given expression.
         an_ifc_source_location      locus = get_ifc_locus(iem);
         a_module_token_cache        cache;
         an_ifc_source_position_hint pos_hint(&cache, locus);
-        a_curr_token_preserver      guard;
         a_type_ptr                  type =
                                          type_for_type_index(get_ifc_type(iem),
                                                              /*kind=*/NULL);
