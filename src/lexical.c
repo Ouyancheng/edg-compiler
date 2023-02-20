@@ -11084,6 +11084,7 @@ int_imaginary_suffix:
       l_before_u_suffix = (l_suffix_seen > 0);
 #endif /* FIXED_POINT_ALLOWED */
     } else if ((ch == 'l' || ch == 'L') && !single_l_confirmed &&
+               !z_suffix_seen &&
 #if LONG_LONG_ALLOWED
                l_suffix_seen < 2
 #else /* !LONG_LONG_ALLOWED */
@@ -11092,7 +11093,7 @@ int_imaginary_suffix:
                                 ) {
       l_suffix_seen++;
     } else if (size_suffix_enabled && (ch == 'z' || ch == 'Z') &&
-               !z_suffix_seen) {
+               !z_suffix_seen && l_suffix_seen == 0) {
       z_suffix_seen = TRUE;
       if (l_suffix_seen == 1) {
         single_l_confirmed = TRUE;
