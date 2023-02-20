@@ -1,5 +1,27 @@
 Version 6.5
 
+2/20/23  [EDGcpfe/25427]
+Call in constraint expression treated as nondependent
+
+If a constraint contained a dependent function call, the call was correctly
+marked as dependent during the prototype instantiation but could later be
+marked as non-dependent when rescanning the constraint during substitution.
+This could cause spurious errors due to unsatisfied template constraints.  For
+example, with --c++20:
+
+  template<typename T> T f(T);
+  template<typename T> using A = decltype(f(T{}));
+  template<typename> concept C = true;
+  template<typename T> requires C<A<T>>
+  struct B {
+    static void g() requires C<A<T>>;
+  };
+  auto l = [] () {
+    B<int> b1;
+    B<int *> b2;  // Previously a spurious "template constraint not satisfied"
+  };              // error.  Now okay.
+
+
 2/19/23  [EDGcpfe/25659,EDGcpfe/26079]
 Bit-field length conversions
 

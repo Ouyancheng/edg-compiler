@@ -276,6 +276,19 @@ declaration, when friend injection is turned off.
   ((sym)->is_invisible && !(sym)->is_class_member)
 
 
+static a_boolean is_non_rescan_prototype_instantiation_context(void)
+/*
+Return TRUE if we are in a template prototype instantiation context, but
+exclude contexts where a member template of a real instantiation of the
+enclosing class or a constraint expression are being rescanned.
+*/
+{
+  return is_prototype_instantiation_context() &&
+         !is_real_instantiation_context() &&
+         !scope_stack_top().in_concept_rescan;
+}
+
+
 static void clear_overload_set_traversal_block(
                           a_candidate_function_ptr        *candidate_functions,
                           ARG_UNUSED a_symbol_ptr         *inaccessible_match,
@@ -11194,22 +11207,20 @@ normal_no_function_matches:
   /* Free the candidate functions list. */
   free_candidate_function_list(candidate_functions);
 have_function:
-  if (do_dependent_name_processing && is_prototype_instantiation_context() &&
-      !is_real_instantiation_context() &&
+  if (do_dependent_name_processing &&
+      is_non_rescan_prototype_instantiation_context() &&
       !dependent_call && do_arg_dep_lookup &&
       !(function_symbol != NULL && is_block_extern_symbol(function_symbol))) {
     /* Record the outcome of overload resolution for a nondependent call
-       in a prototype instantiation.  Dependent calls in such a context
-       don't get here.  Calls where argument-dependent lookup is turned
-       off are not recorded; they're considered non-dependent.  Also
-       block externs, which usually do not require special handling
-       because do_arg_dep_lookup is FALSE for them in standard mode,
-       but might come up in other modes, and should not be recorded
-       because they might have dependent return types or might depend
-       on (nondependent) typedefs in the prototype instantiation.  The
-       test of is_real_instantiation_context is done to suppress this
-       processing in calls (e.g., in a decltype) in a member template
-       being scanned inside a real instantiation of the enclosing class. */
+       in a prototype instantiation, excluding rescan contexts.
+       Dependent calls in such a context don't get here.  Calls where
+       argument-dependent lookup is turned off are not recorded; they're
+       considered non-dependent.  Also block externs, which usually do
+       not require special handling because do_arg_dep_lookup is FALSE
+       for them in standard mode, but might come up in other modes, and
+       should not be recorded because they might have dependent return
+       types or might depend on (nondependent) typedefs in the prototype
+       instantiation. */
     /* Note that function_symbol can be NULL here, e.g., for a call of
        a (possibly dependent) block extern declaration, which must be
        resolved in the real instantiation. */
@@ -19005,7 +19016,7 @@ selected, it is stored in *rewritten_candidate.
                                          operator_tok_seq_number,
                                          operator_position_2);
           check_assertion(!dependent_call);
-          if (is_prototype_instantiation_context()) {
+          if (is_non_rescan_prototype_instantiation_context()) {
             /* Make sure this call is treated as a nondependent call in
                a real instantiation. */
             record_nondependent_call((a_symbol_ptr)NULL,
@@ -19279,10 +19290,10 @@ no_applicable_operator_function:
                                candidate_functions->overloaded_function_symbol;
             check_assertion(overloaded_function_symbol != NULL);
             if (do_dependent_name_processing &&
-                is_prototype_instantiation_context()) {
+                is_non_rescan_prototype_instantiation_context()) {
               /* Record the outcome of overload resolution for a nondependent
-                 call in a prototype instantiation.  Dependent calls in such
-                 a context don't get here. */
+                 call in a prototype instantiation, excluding rescan contexts.
+                 Dependent calls in such a context don't get here. */
               check_assertion(!dependent_call &&
                               operator_tok_seq_number != 0);
               record_nondependent_call(
