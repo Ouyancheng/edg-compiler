@@ -23,7 +23,7 @@ example, with --c++20:
 
 
 2/19/23  [EDGcpfe/25659,EDGcpfe/26079]
-Bit-field length conversions
+Integral constant expression conversions
 
 Consider:
 
@@ -33,16 +33,20 @@ Consider:
   };
   constexpr X x{};
   struct S {
-    int i: x;  // Previously ambiguous.  Now okay.
+    int i: x;               // Previously ambiguous.  Now okay.
   };
+  struct alignas(x) S { };  // Previously ambiguous.  Now okay.
+  enum E { e = x };         // Previously ambiguous.  Now okay.
+
 
 The standard specifies that non-explicit user-defined conversions to integer
-types are considered for the bit field length.  The front end previously also
-considered explicit conversion functions, resulting in an ambiguity.  That is
-now fixed.  Furthermore, it appears that the Microsoft compiler does consider
-explicit conversion functions, but treats the bit-field length context as a
-conversion to the specific type "int", which also resolves the ambiguity (and
-the front end now emulates that nonstandard behavior).
+types are considered for bit field lengths, alignas operands, and enumerator
+constant values.  The front end previously also considered explicit conversion
+functions, resulting in an ambiguity for the example above.  That is now fixed.
+Furthermore, it appears that the Microsoft compiler does consider explicit
+conversion functions for bit-field lengths, but it treats the bit-field length 
+context as a conversion to the specific type "int", which also resolves the
+ambiguity (and the front end now emulates that nonstandard behavior).
 
 
 2/17/23  [EDGcpfe/23555]

@@ -41564,7 +41564,7 @@ static void process_converted_constant_expression(
                                    a_builtin_type_kind_set builtin_types,
                                    a_boolean               is_array_bound,
                                    a_boolean               is_enum,
-                                   a_boolean               is_bit_length,
+                                   a_boolean               no_expl_conv,
                                    a_constant              *result_con)
 /*
 "operand" is an expression scanned as a constant expression, and it
@@ -41577,8 +41577,8 @@ produce a constant.  If the conversion does not cause an error,
 the converted constant is returned in *result_con; otherwise, an
 error constant is returned.  is_array_bound is TRUE if the expression
 is an array bound.  is_enum is TRUE if the expression is the value of
-an enumerator.  is_bit_length is TRUE if the expression denotes the
-length of a bit field.
+an enumerator.  no_expl_conv is TRUE if explicit conversion functions
+should not be considered.
 */
 {
   a_boolean processed = FALSE;
@@ -41589,11 +41589,13 @@ length of a bit field.
     /* Try to convert a class operand to one of the built-in types
        in the set given, or to dest_type if that's non-NULL. */
     a_conv_context_set  conv_context = CCO_CONVERTED_CONSTANT_EXPR;
-    if (!(cpp11_mode && (is_array_bound | is_bit_length))) {
-      /* Array bounds and bit field lengths are contexts that involve a
-         "contextual implicit conversion" to an integral type. [conv.general]/5
-         (N4910) does not permit explicit conversion functions for those
-         contexts. */
+    if (!(cpp11_mode && (is_array_bound | no_expl_conv)) ||
+        (microsoft_bugs && dest_type != NULL)) {
+      /* Array bounds and other contexts that involve a "contextual implicit
+         conversion" to an integral type. [conv.general]/5 (N4910) does not
+         permit explicit conversion functions for those contexts.  MSVC
+         sometimes only considers conversions to a specific type (int), and
+         in those cases it allows explicit conversion functions. */
       conv_context |= CCO_ALLOW_EXPLICIT_CONV_FUNCTIONS;
     }  /* if */
     try_to_convert_class_operand_to_builtin_type(operand,
@@ -47168,8 +47170,7 @@ void scan_pp_expression(a_constant *constant)
 Scan a pre-processor expression.  See sections 3.4 and 3.8.1 in the standard.
 */
 {
-  an_operand              result;
-  an_expr_stack_entry     expr_stack_entry;
+  an_operand              result; an_expr_stack_entry     expr_stack_entry;
   an_expr_stack_entry_ptr saved_expr_stack;
 
   db_enter(3, "scan_pp_expression");
@@ -47203,15 +47204,13 @@ Scan a pre-processor expression.  See sections 3.4 and 3.8.1 in the standard.
 static void scan_integral_constant_expression_full(a_type_ptr specific_type,
                                                    a_boolean  is_array_bound,
                                                    a_boolean  is_enum,
-                                                   a_boolean  is_bit_length,
                                                    a_constant *constant)
 /*
-Scan an integral constant expression.  If specific_type is non-NULL,
-the constant will be converted to specific_type in C++11 mode.
-is_array_bound is TRUE if the expression is an array bound.
-is_enum is TRUE if the expression is the value of an enumerator.
-is_bit_length is TRUE if the expression denotes the length of a bit
-field.  The value of the constant is returned in *constant.
+Scan an integral constant expression.  If specific_type is non-NULL, the
+constant will be converted to specific_type in C++11 mode.  is_array_bound is
+TRUE if the expression is an array bound.  is_enum is TRUE if the expression
+is the value of an enumerator.  The value of the constant is returned in
+*constant.
 */
 {
   an_operand result;
@@ -47285,7 +47284,7 @@ field.  The value of the constant is returned in *constant.
       }  /* if */
       process_converted_constant_expression(&result, specific_type, btks,
                                             is_array_bound, is_enum,
-                                            is_bit_length, constant);
+                                            /*no_expl_conv=*/TRUE, constant);
     } else {
       /* C mode or pre-C++11 C++ mode. */
       do_operand_transformations(&result, TOPT_NO_OPTIONS);
@@ -47327,30 +47326,26 @@ Scan an integral constant expression, and return its value in *constant.
   scan_integral_constant_expression_full((a_type_ptr)NULL,
                                          /*is_array_bound=*/FALSE,
                                          /*is_enum=*/FALSE,
-                                         /*is_bit_field=*/FALSE,
                                          constant);
 }  /* scan_integral_constant_expression */
 
 
 void scan_fs_integral_constant_expression(a_type_ptr specific_type,
                                           a_boolean  is_enum,
-                                          a_boolean  is_bit_length,
                                           a_constant *constant)
 /*
 Scan an integral constant expression.  If specific_type is non-NULL,
 the constant will be converted to specific_type in C++11 mode.  The
 constant will be returned in *constant, which will be subsequently
 allocated in the file scope memory region.  is_enum is TRUE if the
-expression is the value of an enumerator.  is_bit_length is TRUE if
-the expression designated the length of a bit field.
+expression is the value of an enumerator.
 */
 {
   a_memory_region_number  region_to_switch_back_to;
 
   switch_to_file_scope_region(&region_to_switch_back_to);
   scan_integral_constant_expression_full(specific_type,
-                                         /*is_array_bound=*/FALSE,
-                                         is_enum, is_bit_length,
+                                         /*is_array_bound=*/FALSE, is_enum,
                                          constant);
   switch_back_to_original_region(region_to_switch_back_to);
 }  /* scan_fs_integral_constant_expression */
@@ -47368,7 +47363,6 @@ return it in *constant.
   scan_integral_constant_expression_full(required_type,
                                          /*is_array_bound=*/TRUE,
                                          /*is_enum=*/FALSE,
-                                         /*is_bit_length=*/FALSE,
                                          constant);
 }  /* scan_constant_dimension_expression */
 
@@ -49718,7 +49712,7 @@ a enclosing expression).
                                          (BTK_INTEGRAL | BTK_BOOL | BTK_ENUM),
                                        /*is_array_bound=*/FALSE,
                                        /*is_enum=*/FALSE,
-                                       /*is_bit_length=*/FALSE,
+                                       /*no_expl_conv=*/FALSE,
                                        con);
     make_constant_operand(con, result);
     restore_operand_details(result, &orig_result);
@@ -50809,7 +50803,7 @@ selector type.
                                          (BTK_INTEGRAL | BTK_BOOL | BTK_ENUM),
                                         /*is_array_bound=*/FALSE,
                                         /*is_enum=*/FALSE,
-                                        /*is_bit_length=*/FALSE,
+                                        /*no_expl_conv=*/FALSE,
                                         constant);
   wrap_up_constant_full_expression(constant);
   if (is_error_constant(constant)) {

@@ -617,7 +617,6 @@ extern void scan_integral_constant_expression(a_constant *constant);
 
 extern void scan_fs_integral_constant_expression(a_type_ptr specific_type,
                                                  a_boolean  is_enum,
-                                                 a_boolean  is_bit_field,
                                                  a_constant *constant);
 
 extern void scan_constant_dimension_expression(a_constant *constant);
