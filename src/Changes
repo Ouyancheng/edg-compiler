@@ -1,5 +1,28 @@
 Version 6.5
 
+2/20/23  [EDGcpfe/24368,EDGcpfe/26039]
+Clang and Microsoft compatibility: Variables of nonliteral types
+
+The changes for EDGcpfe/23852,EDGcpfe/24368 caused the front end to accept
+certain nonliteral type variables in constexpr functions that are template
+functions (see the entry of 10/5/22), at least in some Microsoft and Clang
+modes.  It turns out that Clang and MSVC also permit this in friend functions
+defined during class template instantiations.  For example:
+
+  template<typename T> struct D { ~D() {} };
+  template<typename T> struct S {
+    friend constexpr int f(S<T> s) {
+      D<T> d;      // Previously an error in non-C++23 modes.  Now okay
+      return 42;   // in many Clang and Microsoft non-C++23 modes.
+    }
+  };
+  int r = f(S<int>{});
+
+The front end now emulates this behavior (in Microsoft mode, the emulation is
+approximate in that MSVC disallows some cases accepted by Clang, and the front
+end's behavior is more similar to Clang's).
+
+
 2/20/23  [EDGcpfe/25427]
 Call in constraint expression treated as nondependent
 

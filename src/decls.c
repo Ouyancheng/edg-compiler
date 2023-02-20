@@ -2608,15 +2608,16 @@ the function non-constexpr in that case).
   } else if (!is_template_dependent_context()) {
     a_type_ptr     vtp = skip_typerefs(vp->type);
     if ((!is_literal_type(vtp) &&
-         !((ms_version_is(>=1930) || clang_version_is(any_version)) &&
-            rp->is_template_function)) ||
+         !((microsoft_version || clang_version_is(any_version)) &&
+           (rp->is_template_function ||
+            rp->friend_defined_in_instantiation))) ||
         (gpp_version_is(any_version) && is_immediate_class_type(vtp) &&
          vtp->variant.class_struct_union.any_virtual_base_classes)) {
       /* Prior to C++23, variables of nonliteral types were not permitted in
          constexpr (and consteval) functions.  GCC added to that variables of
-         class types with virtual base classes.  Clang and recent Microsoft
-         modes appear to ignore the constraint in constexpr functions that are
-         template instances. */
+         class types with virtual base classes.  Clang and Microsoft modes
+         appear to ignore the constraint in constexpr functions that are
+         template instances or friend functions defined in templates. */
       if ((!rp->is_template_function || rp->is_specialized) &&
           (rp->is_declared_constexpr || rp->is_consteval)) {
         pos_ty_error(is_literal_type(vtp) ?
