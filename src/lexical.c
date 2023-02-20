@@ -10830,6 +10830,8 @@ the kind of token.
   a_boolean     u_suffix_seen = FALSE;
   a_boolean     local_allow_hex_fp_constants;
   int           l_suffix_seen = 0;
+  a_boolean     z_suffix_seen = FALSE;
+  a_boolean     single_l_confirmed = FALSE;
 #if FIXED_POINT_ALLOWED
   a_boolean     l_before_u_suffix = FALSE;
   a_boolean     fixed_point_ruled_out = FALSE;
@@ -11067,18 +11069,21 @@ int_imaginary_suffix:
     kind = k_decimal;
   }  /* if */
   /* Integer constant of some kind.  Check for an integer suffix: an
-     optional "u/U", followed by an optional "l/L", "ll/LL" (if
-     LONG_LONG_ALLOWED is TRUE), or "z/Z" (if size_suffix_enabled is
-     TRUE). */
+     optional "u/U" and/or an optional "l/L", "ll/LL" (if LONG_LONG_ALLOWED
+     is TRUE), or "z/Z" (if size_suffix_enabled is TRUE).  These can appear
+     in either order. */
   possible_start_of_ud_suffix = curr_char_loc;
   for (;; curr_char_loc++) {
     ch = *curr_char_loc;
     if ((ch == 'u' || ch == 'U') && !u_suffix_seen) {
       u_suffix_seen = TRUE;
+      if (l_suffix_seen == 1) {
+        single_l_confirmed = TRUE;
+      }  /* if */
 #if FIXED_POINT_ALLOWED
       l_before_u_suffix = (l_suffix_seen > 0);
 #endif /* FIXED_POINT_ALLOWED */
-    } else if ((ch == 'l' || ch == 'L') &&
+    } else if ((ch == 'l' || ch == 'L') && !single_l_confirmed &&
 #if LONG_LONG_ALLOWED
                l_suffix_seen < 2
 #else /* !LONG_LONG_ALLOWED */
@@ -11086,8 +11091,12 @@ int_imaginary_suffix:
 #endif /* LONG_LONG_ALLOWED */
                                 ) {
       l_suffix_seen++;
-    } else if (size_suffix_enabled && (ch == 'z' || ch == 'Z')) {
-      /* C++23 size suffix. */
+    } else if (size_suffix_enabled && (ch == 'z' || ch == 'Z') &&
+               !z_suffix_seen) {
+      z_suffix_seen = TRUE;
+      if (l_suffix_seen == 1) {
+        single_l_confirmed = TRUE;
+      }  /* if */
     } else {
       break;
     }  /* if */
