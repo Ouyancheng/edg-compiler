@@ -29724,7 +29724,7 @@ block of information that is provided if this is a member template declaration.
                              "class_member_declaration:",
                              "bad parent type on nested type");
       }  /* if */
-    }
+    }  /* if */
 #endif /* CHECKING */
   } /* if */
   if (dso_flags & DSO_DANGLING_TYPE_SPECIFIER) {

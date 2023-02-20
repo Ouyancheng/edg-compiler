@@ -16331,7 +16331,7 @@ formed.
   }  /* if */
   set_namespace_membership(new_sym, (a_source_correspondence *)NULL,
                            (a_namespace_ptr)NULL);
-done:;
+done:
   return new_sym;
 }  /* create_nonmember_using_declaration */
 
