@@ -22,7 +22,7 @@ example, with --c++20:
   };              // error.  Now okay.
 
 
-2/19/23  [EDGcpfe/25659,EDGcpfe/26079]
+2/19/23  [EDGcpfe/18844,EDGcpfe/25659,EDGcpfe/26079]
 Integral constant expression conversions
 
 Consider:
