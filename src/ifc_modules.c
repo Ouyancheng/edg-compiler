@@ -3335,6 +3335,28 @@ return FALSE.
 
 #if CHECKING
 
+static a_boolean is_nested_class_member(a_module_entity_ptr mep)
+/*
+Given a module entity pointer, return TRUE mep->scope is a nested class;
+otherwise, return FALSE.
+*/
+{
+  a_boolean result = FALSE;
+
+  if (mep->scope != NULL) {
+    a_scope_ptr scope = mep->scope;
+    a_scope_ptr parent_scope = scope->parent;
+
+    if (scope->kind == sck_class_struct_union && parent_scope != NULL) {
+      if (parent_scope->kind == sck_class_struct_union) {
+        result = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* is_nested_class_member */
+
+
 static a_boolean is_in_explicit_specialization(a_module_entity_ptr mep)
 /*
 Given a module entity pointer, return TRUE mep->scope has an associated
@@ -3424,12 +3446,11 @@ index information to the given symbol.
          member declarations that can end up here (hence the check for
          has_ifc_home_scope).  While this isn't (strictly speaking) a problem,
          it does pose an issue for the validation logic that follows. */
-      /* FIXME: Similarly for members of an explicit class template
-         specialization, we can't properly compute the scope from the decl idx
-         (in part as there's nothing linking the specialized IFC DeclScope back
-         to the IFC ExplicitSpecialization) resulting in a spuriously failing
-         comparison. */
+      /* FIXME: Similarly for members of nested classes and explicit class
+         template specialization, we can't properly compute the scope from the
+         decl idx resulting in a spuriously failing comparison. */
       if (sym->is_class_member && has_ifc_home_scope(decl_idx) &&
+          !is_nested_class_member(mep) &&
           !is_in_explicit_specialization(mep)) {
         /* FIXME: When the parent scope has a mep marked invalid, the result of
            get_home_scope is NULL.  Should this be propagated to this module
@@ -8304,43 +8325,6 @@ invalid:
   cache->invalidate();
 done:;
 }  /* cache_scope_member_sequence */
-
-
-static void cache_scope(an_ifc_module            *mod,
-                        a_module_token_cache_ptr cache,
-                        an_ifc_decl_index        decl_idx,
-                        an_ifc_scope_index       scope)
-/*
-For the given IFC scope definition index (scope) of the declaration indexed by
-decl_idx, cache tokens corresponding to the brace-enclosed declarations of the
-scope (including the braces).  Note that in the case of a class scope this does
-not include the base class specifiers list.  A null IFC scope is handled by not
-caching any tokens.
-*/
-{
-  if (scope != 0) {
-    cache_token(cache, tok_lbrace);
-
-    Opt<an_ifc_scope_descriptor> opt_scope_seq;
-    construct_node(&opt_scope_seq, scope);
-    if (!opt_scope_seq.has_value()) {
-      /* As the invalidation step invalidates the cache, it's safe to skip the
-         tok_rbrace cache that follows. */
-      goto invalid;
-    }  /* if */
-
-    an_ifc_scope_descriptor scope_seq = *opt_scope_seq;
-    an_ifc_cache_info       cinfo;
-    cinfo.lexical_scope = decl_idx;
-    cache_scope_member_sequence(cache, scope_seq, cinfo);
-    cache_token(cache, tok_rbrace);
-  }  /* if */
-  goto done;
-invalid:
-  expect_error_str("expected errors for bad scope cache");
-  cache->invalidate();
-done:;
-}  /* cache_scope */
 
 
 static void add_friend_to_class(a_type_ptr    class_type,
@@ -15550,24 +15534,49 @@ represents the declaration's body (e.g., for a class the member-specification).
     cache_name(cache, name);
   };
   auto cache_scope_fn = [this, cache, base, type, decl_idx, scope]() {
-    /* If there are bases specified, cache the bases. */
-    if (!is_null_index(base)) {
-      cache_token(cache, tok_colon);
-      cache_type(cache, base);
-    }  /* if */
-    cache_scope(this, cache, decl_idx, scope);
-
     /* Read the fundamental type so that we can determine if we're caching a
        namespace. */
     Opt<an_ifc_type_fundamental> opt_itf;
+
     construct_node(&opt_itf, type);
     if (opt_itf.has_value()) {
       an_ifc_type_fundamental itf = *opt_itf;
+      an_ifc_type_basis_sort  basis = get_ifc_basis(itf);
 
-      /* If we aren't caching a namespace, add a semicolon. */
-      if (get_ifc_basis(itf) != ifc_tbs_namespace) {
+      if (basis != ifc_tbs_class && basis != ifc_tbs_struct &&
+          basis != ifc_tbs_union) {
+        a_string err_msg("attempted to cache scope ",
+                         index_to_str(decl_idx),
+                         " but ",
+                         str_for(basis),
+                         " is not a supported scope kind");
+
+        cache->invalidate();
+        ifc_unexpected(decl_idx.mod, err_msg.as_temp_characters());
+      } else {
+        /* If there are bases specified, cache the bases. */
+        if (!is_null_index(base)) {
+          cache_token(cache, tok_colon);
+          cache_type(cache, base);
+        }  /* if */
+        if (scope != 0) {
+          Opt<an_ifc_scope_descriptor> opt_class_members;
+
+          construct_node(&opt_class_members, scope);
+          if (opt_class_members.has_value()) {
+            an_ifc_scope_descriptor class_members = *opt_class_members;
+
+            cache_token(cache, tok_lbrace);
+            cache_class_members(cache, decl_idx, class_members);
+            cache_token(cache, tok_rbrace);
+          } else {
+            cache->invalidate();
+          }  /* if */
+        }  /* if */
         cache_token(cache, tok_semicolon);
       }  /* if */
+    } else {
+      cache->invalidate();
     }  /* if */
   };
   cache_scope_decl(cache, decl_idx, type, cache_name_fn, cache_scope_fn);
@@ -17503,6 +17512,8 @@ current cache context to help inform decisions about what to cache.
                   cache_class_members(cache, templated_decl_idx,
                                       class_members);
                   cache_token(cache, tok_rbrace);
+                } else {
+                  cache->invalidate();
                 }  /* if */
               }  /* if */
             }  /* if */
