@@ -4211,11 +4211,11 @@ tokens therein and clear the cache.
 }  /* discard_token_cache */
 
 
-static void fetch_token_from_cached_token_rescan_list(
+static void get_token_from_cached_token_rescan_list(
 					a_boolean	*no_tokens_on_list)
 /*
 Remove the first token from cached_token_rescan_list and establish it as the
-current token.  This routine and fetch_token_from_reusable_cache_stack are very
+current token.  This routine and get_token_from_reusable_cache_stack are very
 similar.  If a change is made to one routine the other should be checked to see
 if it needs an equivalent change.  If the rescan list contains only pragma
 entries, it is possible for there to be no actual token.  *no_tokens_on_list is
@@ -4237,7 +4237,7 @@ set to TRUE in that case, FALSE otherwise.
     /* Set the current token pragma list to point to the pragmas associated
        with the cached token. */
     check_assertion_str(!suppress_pragma_processing,
-                  "fetch_token_from...: pragma found in suppress_pragma mode");
+                    "get_token_from...: pragma found in suppress_pragma mode");
     curr_token_pragmas = ctp->variant.pragmas;
     free_cached_token(ctp);
     if (cached_token_rescan_list == NULL) {
@@ -4257,7 +4257,7 @@ set to TRUE in that case, FALSE otherwise.
            ctp->extra_info_kind == (a_token_extra_info_kind)teik_pp_token) {
       ctp = ctp->next;
     }  /* while */
-    check_assertion_str2(ctp != NULL, "fetch_token_from_reusable_cache_stack:",
+    check_assertion_str2(ctp != NULL, "get_token_from_reusable_cache_stack:",
                          "pp-token flush consumed all tokens");
     pos_error(ec_end_of_flush, &ctp->source_position);
     cached_token_rescan_list = ctp->next;
@@ -4309,7 +4309,7 @@ set to TRUE in that case, FALSE otherwise.
     /* Unlike tokens in reusable caches, tokens in cached_token_rescan_list are
        intended to be evaluated in the context in which they initially
        appeared.  As a result, the code below differs from the similar code in
-       fetch_token_from_reusable_cache in that the result of the original
+       get_token_from_reusable_cache in that the result of the original
        lookup for the literal operator symbol is simply reused rather than
        repeating the lookup in the current context, which in some cases may be
        (temporarily) different and thus yield a different result.  We still set
@@ -4333,7 +4333,7 @@ done:
   if (cached_token_rescan_list == NULL) {
     recalc_any_initial_get_token_tests_needed();
   }  /* if */
-}  /* fetch_token_from_cached_token_rescan_list */
+}  /* get_token_from_cached_token_rescan_list */
 
 
 void update_reusable_cache_rescan_location(
@@ -4374,18 +4374,18 @@ cache to have an unexpected value.  Return TRUE if the skip was performed.
 }  /* skip_to_token_handle_location */
 
 
-static void fetch_token_from_reusable_cache_stack(void)
+static void get_token_from_reusable_cache_stack(void)
 /*
 Fetch a token from the current entry on the reusable cache stack and establish
 it as the current token.  This routine and
-fetch_token_from_cached_token_rescan_list are very similar.  If a change is
+get_token_from_cached_token_rescan_list are very similar.  If a change is
 made to one routine the other should be checked to see if it needs an
 equivalent change.
 */
 {
   a_cached_token_ptr ctp;
 
-  db_enter(4, "fetch_token_from_reusable_cache_stack");
+  db_enter(4, "get_token_from_reusable_cache_stack");
   if (reusable_cache_stack->next_cached_token == NULL) {
     /* We make sure we don't pop a reusable cache if an error occurs
        during a rescan. */
@@ -4408,7 +4408,7 @@ equivalent change.
       /* Set the current token pragma list to point to the pragmas associated
          with the cached token. */
       check_assertion_str(!suppress_pragma_processing,
-                  "fetch_token_from...: pragma found in suppress_pragma mode");
+                    "get_token_from...: pragma found in suppress_pragma mode");
       curr_token_pragmas = make_copy_of_pragma_list(ctp->variant.pragmas);
     }  /* if */
   }  /* for */
@@ -4423,7 +4423,7 @@ equivalent change.
            ctp->extra_info_kind == (a_token_extra_info_kind)teik_pp_token) {
       ctp = ctp->next;
     }  /* while */
-    check_assertion_str2(ctp != NULL, "fetch_token_from_reusable_cache_stack:",
+    check_assertion_str2(ctp != NULL, "get_token_from_reusable_cache_stack:",
                          "pp-token flush consumed all tokens");
     pos_error(ec_end_of_flush, &ctp->source_position);
     reusable_cache_stack->next_cached_token = ctp->next;
@@ -4504,7 +4504,7 @@ equivalent change.
   }  /* while */
 done:
   db_exit();
-}  /* fetch_token_from_reusable_cache_stack */
+}  /* get_token_from_reusable_cache_stack */
 
 /*
 Macro that is TRUE when tokens are being rescanned from a cache.
@@ -15782,7 +15782,7 @@ restart:
        list. */
     if (cached_token_rescan_list != NULL) {
       a_boolean	no_tokens_on_list;
-      fetch_token_from_cached_token_rescan_list(&no_tokens_on_list);
+      get_token_from_cached_token_rescan_list(&no_tokens_on_list);
       if (no_tokens_on_list) {
         /* There were only pragma entries on the list.  Go back and check
            for other token sources. */
@@ -15802,7 +15802,7 @@ restart:
     } else if (reusable_cache_stack != NULL) {
       /* If there are tokens to be rescanned from the reusable cache stack
          take the next one on the list. */
-      fetch_token_from_reusable_cache_stack();
+      get_token_from_reusable_cache_stack();
       /* Update the ctoken value using the fetched token information. */
       ctoken = curr_token;
       gotten_from_cache = TRUE;
