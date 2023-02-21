@@ -305,7 +305,7 @@ function.
   /* Restore the previous default name linkage. */
   scope_stack[decl_scope_level].default_name_linkage = saved_name_linkage;
   sym->explicit_linkage_specifier = !C_mode();
-  sym->header->builtin_has_been_loaded = TRUE;
+  mark_builtin_loaded(sym->header);
   sym->variant.routine.ptr->variant.builtin_function_kind = kind;
   sym->variant.routine.ptr->is_consteval = is_consteval_builtin(kind);
 #if DEBUG
@@ -693,7 +693,7 @@ symbol for the builtin function.
   a_builtin_function_kind builtin_kind;
 
   check_assertion(sym_hdr->is_builtin_function);
-  sym_hdr->builtin_has_been_loaded = TRUE;
+  mark_builtin_loaded(sym_hdr);
   if (builtin_restrictions_met(sym_hdr, /*issue_error=*/TRUE)) {
     /* Push a scope suitable for a new top-level declaration. */
     push_new_top_level_declaration();
@@ -873,6 +873,20 @@ current emulation mode.
 }  /* preload_builtin_symbols */
 
 
+using a_builtin_func_load_set = Ptr_set<a_symbol_header*>;
+                        /* The type of a set that contains the symbols
+                           of all loaded builtin functions. */
+
+static a_builtin_func_load_set
+                *loaded_builtin_set;
+                        /* The set of currently loaded builtin function symbols
+                           for the current translation unit.  Note that for the
+                           primary translation unit this variable is always
+                           NULL, and the symbol header's
+                           builtin_has_been_loaded field should instead be
+                           consulted. */
+
+
 a_boolean builtin_needs_to_be_loaded_in_secondary_translation_unit(
                                                       a_symbol_header *sym_hdr)
 /*
@@ -881,17 +895,23 @@ loaded.  This function is only used in a secondary translation unit (as
 builtin_has_been_loaded has this information for the primary translation unit).
 */
 {
-  a_symbol_locator  loc;
-  a_symbol_ptr      sym;
-
   check_assertion(!is_primary_translation_unit);
-  clear_locator(&loc, &null_source_position);
-  loc.symbol_header = sym_hdr;
-  sym = file_scope_id_lookup(il_header.primary_scope, &loc,
-                             IDL_DIRECT_NAMESPACE_MEMBERS_ONLY |
-                             IDL_SUPPRESS_DECL_SEQ_CHECK);
-  return sym == NULL;
+  return !loaded_builtin_set->contains(sym_hdr);
 }  /* builtin_needs_to_be_loaded_in_secondary_translation_unit */
+
+
+void mark_builtin_loaded(a_symbol_header *sym_hdr)
+/*
+Mark the given builtin as loaded in the current translation unit.
+*/
+{
+  check_assertion(sym_hdr->is_builtin_function);
+  if (is_primary_translation_unit) {
+    sym_hdr->builtin_has_been_loaded = TRUE;
+  } else if (!loaded_builtin_set->contains(sym_hdr)) {
+    loaded_builtin_set->add(sym_hdr);
+  }  /* if */
+}  /* mark_builtin_loaded */
 
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
 
@@ -1880,7 +1900,7 @@ warning that the attribute is effectively being ignored.
   check_assertion(ap->kind == ak_availability);
   pos_warning(ec_availability_attribute_ignored, &ap->position);
   return TRUE;
-}  /* if */
+}  /* check_availability_attr */
 
 
 void sys_predef_trans_unit_init(void)
@@ -1895,6 +1915,8 @@ Do initialization for each source file.
                    num_builtin_type_entries * sizeof(a_builtin_function_type));
   memzero((char *)builtin_type_table,
           num_builtin_type_entries * sizeof(a_builtin_function_type));
+  loaded_builtin_set = alloc_fe_of_type(a_builtin_func_load_set);
+  construct(loaded_builtin_set, /*mask_width=*/10);
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
 }  /* sys_predef_trans_unit_init */
 
@@ -1918,6 +1940,7 @@ Do one-time initialization for data structures used in this file.
      between translation units. */
 #if BUILTIN_FUNCTIONS_ENABLED
   register_trans_unit_variable(builtin_type_table);
+  register_trans_unit_variable(loaded_builtin_set);
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
 #if CHECKING && USE_X86_FUNCTION_MULTIVERSIONING
   /* Perform some configuration checks. */
@@ -1935,6 +1958,7 @@ Do one-time initialization for data structures used in this file.
 #endif /* CHECKING && USE_X86_FUNCTION_MULTIVERSIONING */
 #if BUILTIN_FUNCTIONS_ENABLED
   builtin_type_table = NULL;
+  loaded_builtin_set = NULL;
   builtin_condition_table = (a_builtin_function_condition*)alloc_general(
          num_builtin_condition_entries * sizeof(a_builtin_function_condition));
   memzero((char *)builtin_condition_table,

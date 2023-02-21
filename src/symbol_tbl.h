@@ -4398,12 +4398,16 @@ typedef struct a_symbol_header {
 
 
 #if BUILTIN_FUNCTIONS_ENABLED
+
 /* Macro that is TRUE if the symbol header refers to a builtin function that
    has not been loaded yet. */
 #define builtin_needs_to_be_loaded(sym_hdr) \
   ((sym_hdr)->is_builtin_function && \
    (is_primary_translation_unit ? !(sym_hdr)->builtin_has_been_loaded : \
             builtin_needs_to_be_loaded_in_secondary_translation_unit(sym_hdr)))
+
+void mark_builtin_loaded(a_symbol_header *sym_hdr);
+
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
 
 #define SYMBOL_TABLE_SIZE 16381

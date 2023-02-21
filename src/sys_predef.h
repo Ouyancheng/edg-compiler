@@ -448,8 +448,11 @@ extern void load_matching_builtin_function_by_name(a_const_char *name);
 
 extern a_boolean builtin_function_or_keyword_is_enabled(a_const_char *name);
 
-extern a_boolean builtin_needs_to_be_loaded_in_secondary_translation_unit
-                                                    (a_symbol_header *sym_hdr);
+extern a_boolean builtin_needs_to_be_loaded_in_secondary_translation_unit(
+                                                     a_symbol_header *sym_hdr);
+
+extern void mark_builtin_loaded_in_secondary_translation_unit(
+                                                     a_symbol_header *sym_hdr);
 
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
 
