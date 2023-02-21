@@ -1,5 +1,17 @@
 Version 6.5
 
+2/21/23  [EDGcpfe/26085]
+C11: Duplicate typedefs
+
+C11 adopted the C++ rule that a typedef can be re-defined if it doesn't change
+the underlying type.  Previously, the front end issued a warning (by default)
+or error (in strict mode) for such cases.  That is now fixed.  For example:
+
+  typedef int Int;
+  typedef int Int;  // Previously triggered a diagnostic in C11 mode.
+                    // Now accepted without any diagnostic.
+
+
 2/20/23  [EDGcpfe/24368,EDGcpfe/26039]
 Clang and Microsoft compatibility: Variables of nonliteral types
 

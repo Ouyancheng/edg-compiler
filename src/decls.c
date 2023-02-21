@@ -12233,9 +12233,9 @@ symbol entry, and return a pointer to it in state->sym.
             size_t_type->variant.typeref.type = type_ptr;
           } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-          if (C_mode()) {
-            /* Allowing a benign redeclaration is an extension in C, so issue
-               a warning. */
+          if (C_mode() && !(c11_mode && types_are_identical)) {
+            /* Allowing a benign redeclaration is an extension in C prior to
+               C11, so issue a diagnostic (a warning in nonstrict modes). */
             pos_diagnostic(strict_ansi_mode ?
                              strict_ansi_error_severity : es_warning,
                            types_are_identical ?
