@@ -564,6 +564,15 @@ struct a_mode_swapped_parse {
 private:
   a_mode_swapped_parse();
   Value_saver<a_boolean>
+                old_allow_in_class_specializations;
+                        /* The previous value of
+                           "allow_in_class_specializations". */
+  Value_saver<a_boolean>
+                old_allow_in_class_instantiations;
+                        /* The previous value of
+                           "allow_in_class_instantiations". */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  Value_saver<a_boolean>
                 old_microsoft_mode;
                         /* The previous value of "microsoft_mode". */
   Value_saver<unsigned long>
@@ -575,14 +584,7 @@ private:
   Value_saver<a_boolean>
                 old_ms_compat;
                         /* The previous value of "ms_compat". */
-  Value_saver<a_boolean>
-                old_allow_in_class_specializations;
-                        /* The previous value of
-                           "allow_in_class_specializations". */
-  Value_saver<a_boolean>
-                old_allow_in_class_instantiations;
-                        /* The previous value of
-                           "allow_in_class_instantiations". */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 };  /* a_mode_swapped_parse */
 
 #if DEBUG

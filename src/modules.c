@@ -1110,7 +1110,8 @@ TRUE.  Otherwise, return FALSE.
 }  /* has_template_definition_from_module */
 
 
-a_boolean has_pending_template_definition_from_module(a_template_ptr  templ)
+a_boolean has_pending_template_definition_from_module(
+                                              ARG_UNUSED a_template_ptr  templ)
 /*
 If the given template is not already defined and has a definition available in
 an imported module, return TRUE.  Otherwise, return FALSE.
@@ -1119,10 +1120,12 @@ an imported module, return TRUE.  Otherwise, return FALSE.
   a_boolean  result = FALSE;
 
   check_assertion(templ != NULL);
+#if MICROSOFT_EXTENSIONS_ALLOWED
   if (!symbol_for(templ)->defined &&
       has_template_definition_from_ifc_module(templ)) {
     result = TRUE;
   }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   return result;
 }  /* has_pending_template_definition_from_module */
 
@@ -1267,11 +1270,14 @@ a_mode_swapped_parse::a_mode_swapped_parse()
 /*
 This is the "fundamental" constructor used to initialize the saved state.
 */
-: old_microsoft_mode(&microsoft_mode),
-  old_microsoft_version(&microsoft_version), old_ms_extensions(&ms_extensions),
-  old_ms_compat(&ms_compat),
-  old_allow_in_class_specializations(&allow_in_class_specializations),
+: old_allow_in_class_specializations(&allow_in_class_specializations),
   old_allow_in_class_instantiations(&allow_in_class_instantiations)
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  /* Do not add code here. */,
+  old_microsoft_mode(&microsoft_mode),
+  old_microsoft_version(&microsoft_version), old_ms_extensions(&ms_extensions),
+  old_ms_compat(&ms_compat)
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 {
 }  /* a_mode_swapped_parse::a_mode_swapped_parse */
 

@@ -29707,7 +29707,10 @@ block of information that is provided if this is a member template declaration.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (!C_mode() && (dso_flags & DSO_DEFINES_SOMETHING)) {
     /* Should be a class, struct, union, or enum definition. */
-    a_type_ptr    tp = skip_typerefs(dps->type);
+#if CHECKING
+    a_type_ptr tp = skip_typerefs(dps->type);
+#endif /* CHECKING */
+
     end_potential_abbr_func_templ_caching(dps);
 #if CHECKING
     if (!is_error_type(dps->type)) {
