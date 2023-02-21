@@ -120,9 +120,10 @@ of the token if digit separators are enabled.
 
   *err_code = ec_no_error;
   /* Locate and logically remove the suffix, if any.  The suffix is an
-     optional "u/U" for unsigned, optionally followed by "l/L" for long,
-     "ll/LL" for long long (if LONG_LONG_ALLOWED is TRUE), or "z/Z" for the
-     size_t signed/unsigned type (if size_suffix_enabled is TRUE). */
+     optional "u/U" for unsigned and/or "l/L" for long, "ll/LL" for long
+     long (if LONG_LONG_ALLOWED is TRUE), or "z/Z" for the size_t
+     signed/unsigned type (if size_suffix_enabled is TRUE); these can
+     appear in either order. */
   if (real_end_pos >= start_of_curr_token) {
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (ms_extensions) {
@@ -438,10 +439,12 @@ pcc_kind_established:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* ISO C/C++ constant checking. */
     if (has_z_suffix) {
-      /* std::size_t or the corresponding signed type.  This literal can
-         only be one of those specific types; unlike other integer
-         literals, it cannot be implicitly interpreted as a larger type,
-         per core issue 2698. */
+      /* The constant will have the type std::size_t or the corresponding
+         signed type.  This literal can only be one of those specific
+         types; unlike other integer literals, it cannot be implicitly
+         interpreted as a larger type, per core issue 2698.  Note that the
+         following code relies on these types having adjacent kinds, with
+         the unsigned type immediately following the signed type. */
       if (int_kind_is_signed[(int)targ_size_t_int_kind]) {
         kind = has_u_suffix ? (an_integer_kind)(targ_size_t_int_kind + 1)
                             : targ_size_t_int_kind;

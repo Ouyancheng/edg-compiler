@@ -11078,6 +11078,7 @@ int_imaginary_suffix:
     if ((ch == 'u' || ch == 'U') && !u_suffix_seen) {
       u_suffix_seen = TRUE;
       if (l_suffix_seen == 1) {
+        /* Don't accept another "l" after "u" ("lul"). */
         single_l_confirmed = TRUE;
       }  /* if */
 #if FIXED_POINT_ALLOWED
@@ -11096,6 +11097,7 @@ int_imaginary_suffix:
                !z_suffix_seen && l_suffix_seen == 0) {
       z_suffix_seen = TRUE;
       if (l_suffix_seen == 1) {
+        /* Dont accept another "l" after "z" ("lzl"). */
         single_l_confirmed = TRUE;
       }  /* if */
     } else {
