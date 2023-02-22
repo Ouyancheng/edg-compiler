@@ -41604,7 +41604,7 @@ should not be considered.
     /* Try to convert a class operand to one of the built-in types
        in the set given, or to dest_type if that's non-NULL. */
     a_conv_context_set  conv_context = CCO_CONVERTED_CONSTANT_EXPR;
-    if (!(cpp11_mode && (is_array_bound | no_expl_conv)) ||
+    if (!(cpp11_mode && (is_array_bound || no_expl_conv)) ||
         (microsoft_bugs && dest_type != NULL)) {
       /* Array bounds and other contexts that involve a "contextual implicit
          conversion" to an integral type do not permit explicit conversion
