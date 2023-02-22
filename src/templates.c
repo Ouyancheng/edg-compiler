@@ -12689,7 +12689,7 @@ partial specialization.
        okay for the template list to have another parameter if it is a
        parameter pack. */
     if (tap != NULL && templ_tap_is_pack &&
-        (flags & MTT_TEMPL_TEMPL_ARG_MATCH) != 0) {
+        (flags & MTT_TEMPL_TEMPL_MATCH) != 0) {
       /* The last templ_tap is an argument to a pack (but not a pack expansion,
          which would have had a pack_expansion_descr).  This can be a match
          when matching template template parameters.  For example:
@@ -12769,7 +12769,7 @@ matches a class type from the parameter list of a template function.
              templ_primary_template->variant.template_info->
                              variant.class_template.template_template_param) {
     /* A class based on a template template parameter. */
-    flags |= MTT_TEMPL_TEMPL_ARG_MATCH;
+    flags |= MTT_TEMPL_TEMPL_MATCH;
     if (class_matches_template_template_param(type, templ_primary_template,
                                               templ_arg_list,
                                               templ_param_list)) {

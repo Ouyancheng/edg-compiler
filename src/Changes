@@ -1,5 +1,19 @@
 Version 6.5
 
+2/22/23  [EDGcpfe/25949,EDGcpfe/26013]
+Regression in template template argument matching
+
+The changes for EDGcpfe/24912 in version 6.4 (see entry of 3/23/22) introduced
+a regression in some cases involving template template arguments.  For example:
+
+  template<typename... Ts> struct X {};
+  template<template <typename U, typename V> class> struct S {};
+  S<X> sx;  // Previously an error claiming X is not match for the
+            // corresponding template template parameter.  Now okay.
+
+That is now fixed.
+
+
 2/21/23  [EDGcpfe/26085]
 C11: Duplicate typedefs
 
