@@ -8778,6 +8778,30 @@ future reattempt conditions.
   if (expr_stack != NULL) {
     if (expr_stack->is_initial_default_arg_scan) {
       ips->reattempt_state.default_arg = TRUE;
+      /* There are direct uses of the source location builtins that are used as
+         the default argument to functions which aren't consteval; consider:
+
+           unsigned get_line(unsigned l = __builtin_LINE()) {
+             return l;
+           }
+
+         If this function is used as a default member initializer:
+
+           struct foo {
+             unsigned l = get_line();
+             foo() = default;
+           };
+
+         The call-expression "get_line()" is not manifestly-constant and thus
+         will not be evaluated.  In turn, the call expression will never get
+         its reattempt state marked for a default member-initializer reattempt.
+
+         To allow these direct uses of the builtin to be viable, the default
+         argument is marked with default_mem_init = TRUE as well.  This allows
+         the ctor_initializer to transform the copied default argument
+         expression in the ctor-initializer into a sensible default value.
+      */
+      ips->reattempt_state.default_mem_init = TRUE;
       result = TRUE;
     }  /* if */
     if (scope_stack_top().in_field_initializer) {
