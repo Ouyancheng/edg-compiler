@@ -673,6 +673,19 @@ Given an IFC partition kind index, return an IFC decl index.
 }  /* to_decl_index */
 
 
+static inline uintptr_t hash_ptr(an_ifc_decl_index  idx)
+/*
+Return a hash value for the given IFC declaration index.
+*/
+{
+  uintptr_t  result = 17*31 + hash_ptr((void*)idx.mod);
+
+  result = result*31 + (uintptr_t)idx.sort;
+  result = result*31 + (uintptr_t)idx.value;
+  return result;
+}  /* hash_ptr */
+
+
 using an_ifc_parameterized_entity_map = Ptr_map<an_ifc_decl_index,
                                                 an_ifc_decl_index>;
                         /* The type of a table that maps IFC declaration
@@ -952,19 +965,6 @@ This should only be called from within the constructor of a_mode_swapped_parse.
   allow_in_class_specializations = TRUE;
   allow_in_class_instantiations = TRUE;
 }  /* configure_front_end_parse_for_ifc_module */
-
-
-static inline uintptr_t hash_ptr(an_ifc_decl_index  idx)
-/*
-Return a hash value for the given IFC declaration index.
-*/
-{
-  uintptr_t  result = 17*31 + hash_ptr((void*)idx.mod);
-
-  result = result*31 + (uintptr_t)idx.sort;
-  result = result*31 + (uintptr_t)idx.value;
-  return result;
-}  /* hash_ptr */
 
 namespace {
 
