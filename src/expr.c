@@ -41607,10 +41607,10 @@ should not be considered.
     if (!(cpp11_mode && (is_array_bound | no_expl_conv)) ||
         (microsoft_bugs && dest_type != NULL)) {
       /* Array bounds and other contexts that involve a "contextual implicit
-         conversion" to an integral type. [conv.general]/5 (N4910) does not
-         permit explicit conversion functions for those contexts.  MSVC
-         sometimes only considers conversions to a specific type (int), and
-         in those cases it allows explicit conversion functions. */
+         conversion" to an integral type do not permit explicit conversion
+         functions [conv.general]/5 (N4910).  MSVC sometimes only considers
+         conversions to a specific type (int), and in those cases it includes
+         explicit conversion functions. */
       conv_context |= CCO_ALLOW_EXPLICIT_CONV_FUNCTIONS;
     }  /* if */
     try_to_convert_class_operand_to_builtin_type(operand,
