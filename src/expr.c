@@ -47185,7 +47185,8 @@ void scan_pp_expression(a_constant *constant)
 Scan a pre-processor expression.  See sections 3.4 and 3.8.1 in the standard.
 */
 {
-  an_operand              result; an_expr_stack_entry     expr_stack_entry;
+  an_operand              result;
+  an_expr_stack_entry     expr_stack_entry;
   an_expr_stack_entry_ptr saved_expr_stack;
 
   db_enter(3, "scan_pp_expression");
