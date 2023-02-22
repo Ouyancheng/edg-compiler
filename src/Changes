@@ -1,5 +1,13 @@
 Version 6.5
 
+2/22/23  [EDGcpfe/25963]
+Clang builtin function signatures
+
+The tool that builds the builtin_defs.h header file had a couple of bugs that
+had resulted in incorrect function signatures for some builtin functions
+(mostly those with vector types).  Now fixed.
+
+
 2/22/23  [EDGcpfe/25949,EDGcpfe/26013]
 Regression in template template argument matching
 

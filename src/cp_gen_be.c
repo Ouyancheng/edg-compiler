@@ -6765,6 +6765,12 @@ is TRUE, do not generate attributes associated with the primary declaration.
         (exclude_primary && ap->on_primary_declaration)) {
       continue;
     }  /* if */
+    if (ap->kind == ak_vector_size && gen_edg_special_types) {
+      /* Suppress any vector_size attributes when generating types for the
+         builtin definition table (they will be handled by
+         __edg_vector_type__). */
+      continue;
+    }  /* if */
     if (ap->group != agp) {
       gen_attribute_group_start(ap, postfix_position);
       agp = ap->group;
