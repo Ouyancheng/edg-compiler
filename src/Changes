@@ -1,5 +1,26 @@
 Version 6.5
 
+2/22/23  [EDGcpfe/25881,EDGcpfe/26087]
+Non-standard use of source location builtins outside of consteval functions
+
+There are direct uses of the source location builtins that are used as the
+default argument to functions which aren't consteval; consider:
+
+  unsigned get_line(unsigned l = __builtin_LINE()) {
+    return l;
+  }
+
+If this function is used as a default member initializer:
+
+  struct foo {
+    unsigned l = get_line();
+    foo() = default;
+  };
+
+Previously, such a use would result in an enk_const_eval_deferred expression
+appearing in lowering; this is now fixed.
+
+
 2/22/23  [EDGcpfe/25963]
 Clang builtin function signatures
 
