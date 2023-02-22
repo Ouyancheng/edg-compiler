@@ -2609,7 +2609,7 @@ the function non-constexpr in that case).
   } else if (!is_template_dependent_context()) {
     a_type_ptr     vtp = skip_typerefs(vp->type);
     if ((!is_literal_type(vtp) &&
-         !((microsoft_version || clang_version_is(any_version)) &&
+         !((microsoft_mode || clang_version_is(any_version)) &&
            (rp->is_template_function ||
             rp->friend_defined_in_instantiation))) ||
         (gpp_version_is(any_version) && is_immediate_class_type(vtp) &&
