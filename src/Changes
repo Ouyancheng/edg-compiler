@@ -37,7 +37,7 @@ a regression in some cases involving template template arguments.  For example:
 
   template<typename... Ts> struct X {};
   template<template <typename U, typename V> class> struct S {};
-  S<X> sx;  // Previously an error claiming X is not match for the
+  S<X> sx;  // Previously an error claiming X is not a match for the
             // corresponding template template parameter.  Now okay.
 
 That is now fixed.
