@@ -8778,14 +8778,15 @@ future reattempt conditions.
   if (expr_stack != NULL) {
     if (expr_stack->is_initial_default_arg_scan) {
       ips->reattempt_state.default_arg = TRUE;
-      /* In cases where the source location builtins are directly used as
-         default arguments for functions that aren't consteval, e.g.:
+      /* Cases have been observed where the source location builtins are
+         directly used as default arguments for functions that aren't
+         consteval, e.g.:
 
            unsigned get_line(unsigned l = __builtin_LINE()) {
              return l;
            }
 
-         If this function is used as a default member initializer:
+         If such a function is used as a default member initializer, e.g.:
 
            struct foo {
              unsigned l = get_line();
