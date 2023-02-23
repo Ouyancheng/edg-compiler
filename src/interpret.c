@@ -8778,8 +8778,8 @@ future reattempt conditions.
   if (expr_stack != NULL) {
     if (expr_stack->is_initial_default_arg_scan) {
       ips->reattempt_state.default_arg = TRUE;
-      /* There are direct uses of the source location builtins that are used as
-         the default argument to functions which aren't consteval; consider:
+      /* In cases where the source location builtins are directly used as
+         default arguments for functions that aren't consteval, e.g.:
 
            unsigned get_line(unsigned l = __builtin_LINE()) {
              return l;
