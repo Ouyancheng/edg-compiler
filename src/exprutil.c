@@ -18939,16 +18939,29 @@ set to reflect whether the call was folded or not.
     }  /* if */
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
+
   /* Make the function call expression node. */
+  an_expr_node_ptr underlying_func_call_node = NULL;
   call_node = func_call_expr(function_node, function_type, rout, is_virtual,
                              virtual_suppressed, selector_is_object_pointer,
                              compiler_generated,
                              is_conversion, arg_dep_lookup_suppressed,
                              qualified_function_name, found_through_adl,
                              uses_operator_syntax, operator_position,
-                             p_function_call_node);
+                             &underlying_func_call_node);
+  /* Set the source position information for the outer call node. */
   set_expr_position(call_node, start_position, end_position,
                     operator_position);
+  /* If the underlying function call node was set, update the source position
+     for the inner call node. */
+  if (underlying_func_call_node != NULL) {
+    set_expr_position(underlying_func_call_node, start_position, end_position,
+                      operator_position);
+  }  /* if */
+  /* Pass the underlying function call node to the caller if requested. */
+  if (p_function_call_node != NULL) {
+    *p_function_call_node = underlying_func_call_node;
+  }  /* if */
   /* Make an operand for the overall call (etc.). */
   make_expression_operand(call_node, result);
   result->position = *operator_position;
