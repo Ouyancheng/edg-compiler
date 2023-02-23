@@ -1174,6 +1174,7 @@ definition.
   a_boolean  result = FALSE;
 
   if (!ty->definition_pending) {
+    /* coverity[unused_value] */
     ty->definition_pending = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     result = load_type_definition_from_ifc_module(ty);

@@ -8729,9 +8729,10 @@ void db_mep(a_module_entity_ptr mep)
 Print information about the module entity pointer.
 */
 {
-  a_string summary_line = index_to_str(decl_index_of(mep));
+  a_string summary_line = "NULL";
 
   if (mep->module_info != NULL) {
+    summary_line = index_to_str(decl_index_of(mep));
     summary_line.append(" from ", mep->module_info->name);
   }  /* if */
   if (mep->invalid) {
@@ -9506,6 +9507,7 @@ position of the function declaration if not.
     case ifc_ns_unenforced:
       issue_unsupported_construct_error(this, "NoexceptSort::Unenforced", pos);
       break;
+    /* coverity[dead_error_begin] */
     case ifc_ns_none:
       /* This shouldn't be reachable, but is included here to prevent compiler
          warnings for unhandled enumerations. */
@@ -14068,14 +14070,6 @@ Cache the noexcept-specifier for the given noexcept specification.
     cache_token(cache, tok_noexcept);
     cache_token(cache, tok_lparen);
     switch (sort) {
-      case ifc_ns_none:
-      case ifc_ns_inferred:
-        /* Unreachable, but place here to have all enums covered. */
-        { a_string err_msg("Unexpected ", str_for(sort));
-
-          ifc_unexpected(eh_spec.get_module(), err_msg);
-        }
-        goto invalid;
       case ifc_ns_false:
         cache_bool_literal(cache, false);
         break;
@@ -14094,6 +14088,13 @@ Cache the noexcept-specifier for the given noexcept specification.
                                           "NoexceptSort::Unenforced",
                                           &error_position);
         goto invalid;
+      /* coverity[dead_error_begin] */
+      case ifc_ns_none:
+      case ifc_ns_inferred:
+        /* This shouldn't be reachable, but is included here to prevent
+           compiler warnings for unhandled enumerations. */
+        unexpected_condition();
+        break;
       default_is_unexpected_str("Unexpected NoexceptSpecification");
     }  /* switch */
     cache_token(cache, tok_rparen);
@@ -15349,7 +15350,7 @@ context to help inform decisions about what to cache.
             }  /* if */
           }  /* if */
         }  /* for */
-        if (lookahead_ctp->token != tok_lparen) {
+        if (lookahead_ctp == NULL || lookahead_ctp->token != tok_lparen) {
           goto next_tok;
         }  /* if */
         /* Catch up to the lparen as the name matched. */
