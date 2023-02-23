@@ -8778,22 +8778,20 @@ future reattempt conditions.
   if (expr_stack != NULL) {
     if (expr_stack->is_initial_default_arg_scan) {
       ips->reattempt_state.default_arg = TRUE;
-      /* Cases have been observed where the source location builtins are
-         directly used as default arguments for functions that aren't
-         consteval, e.g.:
+      /* In cases where the source location builtins are directly used as
+         default arguments for functions that aren't consteval, e.g.:
 
            unsigned get_line(unsigned l = __builtin_LINE()) {
              return l;
            }
 
-         If such a function is used as a default member initializer, e.g.:
+         and such a function is used as a default member initializer, e.g.:
 
            struct foo {
              unsigned l = get_line();
-             foo() = default;
            };
 
-         The call-expression "get_line()" is not manifestly-constant and thus
+         the call-expression "get_line()" is not manifestly-constant and thus
          will not be evaluated.  In turn, the call expression will never get
          its reattempt state marked for a default member-initializer reattempt.
 
