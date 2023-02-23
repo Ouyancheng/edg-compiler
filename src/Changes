@@ -1,5 +1,14 @@
 Version 6.5
 
+2/23/23  [EDGcpfe/26008,EDGcpfe/26045]
+Regression in expr_range values for some call-expressions
+
+The changes for EDGcpfe/22336 in version 6.4 (see entry of 10/20/22) introduced
+a regression where the IL is missing the expr_range source position information
+for function call expressions (i.e., IL enk_operation expressions with eok_call
+operation variant) wrapped in enk_temp_init expressions; this is now fixed.
+
+
 2/22/23  [EDGcpfe/25881,EDGcpfe/26087]
 Regression in non-consteval functions using source location builtins
 
