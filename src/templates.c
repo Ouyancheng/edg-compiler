@@ -40878,7 +40878,7 @@ that routine for how this routine differs from advance_to_next_template_arg.
   check_assertion(tap != NULL);
   *tap = (*tap)->next;
   /* Skip over any pack elements. */
-  while ((*tap) != NULL && ((*tap)->is_pack_element || (*tap)->is_pack)) {
+  while ((*tap) != NULL && (*tap)->is_pack_element) {
     *tap = (*tap)->next;
   }  /* while */
   param_num = (*tpp)->param_num;
