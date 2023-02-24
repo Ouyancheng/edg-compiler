@@ -13790,7 +13790,7 @@ a set of bit flags used to control how names are looked up, if needed.
     tap = get_template_arg_by_list_pos(
                                 templ_param_list, templ_arg_list, coordinates,
                                 /*is_rescan=*/TRUE,
-                                (options & CTWS_DEDUCTION_GUIDE) != 0);
+                                (options & CTWS_ADJUST_COORDINATES) != 0);
   } else if (in_pack_expansion()) {
     /* If this is a variadic parameter from an enclosing template, get the
        current argument value. */
@@ -13858,7 +13858,7 @@ Otherwise, return the original template.
       /* No value has been provided for this template parameter yet.
          Don't do the substitution, but don't consider this to be
          a copy error either. */
-      if ((options & CTWS_DEDUCTION_GUIDE) != 0) {
+      if ((options & CTWS_ADJUST_COORDINATES) != 0) {
         ctws_state->substituted_parameter_pack |= templ->is_pack;
       }  /* if */
     } else {
@@ -14605,7 +14605,7 @@ do_substitution:
       /* Exit the loop if the substitution failed. */
       if (*copy_error) goto done;
       if (tap->pack_expansion_descr != NULL && new_tap->is_pack &&
-          (options & (CTWS_DEDUCTION_GUIDE |
+          (options & (CTWS_ADJUST_COORDINATES |
                       CTWS_ALIAS_DEDUCTION_GUIDE)) != 0) {
         /* For deduction guide substitution, transfer the pack expansion
            information. */
@@ -14733,10 +14733,10 @@ new_type is not NULL, *new_type is set to NULL.
   orig_sym = symbol_for(orig_type);
   check_assertion(orig_sym != NULL);
   tap = template_arg_list_for_symbol(orig_sym);
-  /* In deduction guide substitution, we should not find the prototype
-     instantiation. */
+  /* When adjusting template parameter coordinates or in alias deduction guide
+     substitution, we should not find the prototype instantiation. */
   orig_is_prototype = is_immediate_class_type(orig_type) &&
-                      (options & CTWS_DEDUCTION_GUIDE) == 0 &&
+                      (options & CTWS_ADJUST_COORDINATES) == 0 &&
                       (options & CTWS_ALIAS_DEDUCTION_GUIDE) == 0 &&
                       orig_type->
                         variant.class_struct_union.is_prototype_instantiation;
@@ -15585,8 +15585,8 @@ parameters.
     a_boolean				any_more;
     a_param_type_ptr			first_element = NULL;
     a_boolean				err = FALSE;
-    
-    if ((options & CTWS_DEDUCTION_GUIDE) != 0) {
+
+    if ((options & CTWS_ADJUST_COORDINATES) != 0) {
       any_more = TRUE;
     } else {
       any_more = begin_rescan_pack_expansion_context(
@@ -15681,15 +15681,15 @@ parameters.
       new_ptp->is_cli_param_array = ptp->is_cli_param_array;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       if (ptp->is_parameter_pack) {
-        if ((options & CTWS_DEDUCTION_GUIDE) == 0) {
+        if ((options & CTWS_ADJUST_COORDINATES) == 0) {
           /* If the parameter is not a pack, make the new parameter a pack
              element. */
           if (!is_pack) {
             new_ptp->is_pack_element = TRUE;
           }  /* if */
         } else {
-          /* For deduction guides we want to preserve the original pack and
-             pack element status. */
+          /* When only adjusting template parameter coordinates, we want to
+             preserve the original pack and pack element status. */
           new_ptp->is_pack_element = ptp->is_pack_element;
         }  /* if */
         if (is_pack) {
@@ -15724,10 +15724,11 @@ parameters.
         new_ptp->orig_param_type_for_unevaluated_default_arg_expr =
                    ptp->orig_param_type_for_unevaluated_default_arg_expr;
       }  /* if */
-      if ((options & (CTWS_DEDUCTION_GUIDE |
+      if ((options & (CTWS_ADJUST_COORDINATES |
                       CTWS_ALIAS_DEDUCTION_GUIDE)) != 0) {
-        /* When doing substitution to create a deduction guide, copy the
-           deduction flags in the parameter type entry. */
+        /* When adjusting template coordinates or doing substitution to create
+           a deduction guide, copy the deduction flags in the parameter type
+           entry. */
         new_ptp->type_involves_template_param =
                                        ptp->type_involves_template_param;
         new_ptp->type_involves_deduced_template_param =
@@ -15741,7 +15742,7 @@ parameters.
       }  /* if */
       if (first_element == NULL) first_element = new_ptp;
       prev_ptp = new_ptp;
-      if ((options & CTWS_DEDUCTION_GUIDE) != 0) {
+      if ((options & CTWS_ADJUST_COORDINATES) != 0) {
         any_more = FALSE;
       } else { 
         (void)end_potential_pack_expansion_context(
@@ -15841,7 +15842,8 @@ a pointer over a reference type or creating an array of references.
        type.  However, such a type will be replaced in deduction guides.  If
        the type is a typedef, use the underlying type so that we don't
        end up with an incorrect A<T'>::X. */
-    if ((options & (CTWS_DEDUCTION_GUIDE | CTWS_ALIAS_DEDUCTION_GUIDE)) != 0) {
+    if ((options & (CTWS_ADJUST_COORDINATES |
+                    CTWS_ALIAS_DEDUCTION_GUIDE)) != 0) {
       type = skip_typerefs_not_dependent_decltypes(type);
     }  /* if */
   }  /* if */
@@ -15936,7 +15938,7 @@ a pointer over a reference type or creating an array of references.
                  Don't do the substitution, but don't consider this to be
                  a copy error either. */
               new_type = type;
-              if ((options & CTWS_DEDUCTION_GUIDE) != 0) {
+              if ((options & CTWS_ADJUST_COORDINATES) != 0) {
                 ctws_state->substituted_parameter_pack |= type_is_pack(type);
               }  /* if */
             } else {
@@ -34086,15 +34088,17 @@ static void update_param_depth_and_default_args(
 			a_boolean			update_nesting_depths,
 			a_boolean			*is_dependent)
 /*
-If update_nesting_depths is TRUE, update the nesting depths of the
-template parameters of decl_info.   If they have default arguments, do the
-prototype instantiation, if necessary.  If there is an enclosing decl_info,
-do a recursive call to process it.  If any template parameter is found to
-be dependent by recursive calls of this routine, *is_dependent is set
-to TRUE.
+If update_nesting_depths is TRUE, update the nesting depths of the template
+parameters of decl_info, and if the template declaration has a requires clause,
+update the nesting depths in the requires clause as well.  If the template
+parameters have default arguments, do the prototype instantiation, if
+necessary.  If there is an enclosing decl_info, do a recursive call to process
+it.  If any template parameter is found to be dependent by recursive calls of
+this routine, *is_dependent is set to TRUE.
 */
 {
-  a_template_param_ptr tpp;
+  a_template_param_ptr      templ_params, tpp;
+  a_template_nesting_depth  orig_nesting_depth;
 
   /* Process any enclosing template decl entries. */
   if (decl_info->enclosing_template_decl != NULL) {
@@ -34102,9 +34106,15 @@ to TRUE.
                                         decl_info->enclosing_template_decl,
                                         update_nesting_depths, is_dependent);
   }  /* if */
+  templ_params = decl_info->parameters;
   /* Increment the nesting depth for each level of decl_info. */
-  if (update_nesting_depths) decl_state->nesting_depth++;
-  for (tpp = decl_info->parameters; tpp != NULL; tpp = tpp->next) {
+  if (update_nesting_depths) {
+    decl_state->nesting_depth++;
+    if (templ_params != NULL) {
+      orig_nesting_depth = nesting_depth_of_template_param(templ_params);
+    }  /* if */
+  }  /* if */
+  for (tpp = templ_params; tpp != NULL; tpp = tpp->next) {
     a_symbol_kind	sym_kind = tpp->param_symbol->kind;
     /* Update the nesting depth of the template parameter, if needed. */
     if (update_nesting_depths) {
@@ -34144,6 +34154,40 @@ to TRUE.
     }  /* if */
     tpp->param_symbol->is_invisible = FALSE;
   }  /* for */
+  if (update_nesting_depths && orig_nesting_depth != 0 &&
+      decl_info->template_decl != NULL) {
+    a_requires_clause_ptr  rcp =
+                          decl_info->template_decl->constraint.requires_clause;
+    if (rcp != NULL) {
+      a_template_arg_ptr       proto_args;
+      a_ctws_state             ctws_state;
+      an_expr_node_ptr         new_expr;
+      a_boolean                copy_error = FALSE;
+      /* Any template parameter referenced in the constraint expression needs
+         to be updated to refer to the new template nesting depth.  This is
+         done by substituting the constraint expression with the prototype
+         arguments created from the update template parameter list. */
+      proto_args = create_prototype_arg_list(NULL, templ_params,
+                                             /*add_pack_descr=*/FALSE);
+      /* Temporarily revert the template parameters back to their original
+         nesting depth. */
+      for (tpp = templ_params; tpp != NULL; tpp = tpp->next) {
+        *nesting_depth_addr_of_template_param(tpp) = orig_nesting_depth;
+      }  /* for */
+      init_ctws_state(&ctws_state);
+      new_expr = copy_expr_with_substitutions(rcp->constraint,
+                                              proto_args, templ_params,
+                                              (CTWS_ADJUST_COORDINATES |
+                                               CTWS_MAY_BE_RESCANNED |
+                                               CTWS_NON_CONSTANT_EXPR),
+                                              &copy_error, &ctws_state);
+      if (!copy_error) rcp->constraint = new_expr;
+      for (tpp = templ_params; tpp != NULL; tpp = tpp->next) {
+        *nesting_depth_addr_of_template_param(tpp) = decl_state->nesting_depth;
+      }  /* for */
+      free_template_arg_list(proto_args);
+    }  /* if */
+  }  /* if */
   /* Fill in the information in the IL template declaration structures. */
   complete_template_decl(decl_info->template_decl, decl_info->parameters);
 }  /* update_param_depth_and_default_args */
@@ -42011,7 +42055,7 @@ identical).
                                   class_templ_args,
                                   orig_class_templ_params,
                                   &ct_sym->decl_position,
-                                  CTWS_DEDUCTION_GUIDE,
+                                  CTWS_ADJUST_COORDINATES,
                                   &copy_error,
                                   &ctws_state);
   if (copy_error) goto done;
@@ -42021,7 +42065,7 @@ identical).
                                             ctor_rcp->constraint,
                                             class_templ_args,
                                             orig_class_templ_params,
-                                            (CTWS_DEDUCTION_GUIDE |
+                                            (CTWS_ADJUST_COORDINATES |
                                              CTWS_MAY_BE_RESCANNED |
                                              CTWS_NON_CONSTANT_EXPR),
                                             &copy_error, &ctws_state);
@@ -42033,7 +42077,7 @@ identical).
                                   ctor_templ_args,
                                   orig_ctor_templ_params,
                                   &ct_sym->decl_position,
-                                  CTWS_DEDUCTION_GUIDE,
+                                  CTWS_ADJUST_COORDINATES,
                                   &copy_error,
                                   &ctws_state);
     if (copy_error) goto done;
@@ -42042,7 +42086,7 @@ identical).
                                             trailing_constraint,
                                             ctor_templ_args,
                                             orig_ctor_templ_params,
-                                            (CTWS_DEDUCTION_GUIDE |
+                                            (CTWS_ADJUST_COORDINATES |
                                              CTWS_MAY_BE_RESCANNED |
                                              CTWS_NON_CONSTANT_EXPR),
                                             &copy_error, &ctws_state);
@@ -42406,7 +42450,7 @@ guide is recorded in the template symbol supplement associated with alias_sym.
                                          alias_proto_args,
                                          alias_template_params,
                                          alias_position,
-                                         CTWS_DEDUCTION_GUIDE,
+                                         CTWS_ADJUST_COORDINATES,
                                          /*is_generic=*/FALSE,
                                          &copy_error, &ctws_state);
             check_assertion(!copy_error);
@@ -42455,7 +42499,7 @@ guide is recorded in the template symbol supplement associated with alias_sym.
                                            alias_proto_args,
                                            alias_template_params,
                                            alias_position,
-                                           CTWS_DEDUCTION_GUIDE,
+                                           CTWS_ADJUST_COORDINATES,
                                            /*is_generic=*/FALSE,
                                            &copy_error, &ctws_state);
               free_template_arg_list(tap);
@@ -42529,7 +42573,7 @@ guide is recorded in the template symbol supplement associated with alias_sym.
                                        alias_proto_args,
                                        alias_template_params,
                                        alias_position,
-                                       CTWS_DEDUCTION_GUIDE,
+                                       CTWS_ADJUST_COORDINATES,
                                        /*templ_is_generic=*/FALSE,
                                        &copy_error, &ctws_state);
           if (copy_error) goto done;

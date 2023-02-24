@@ -16136,7 +16136,7 @@ name.  We do not advance to the token after the decltype in this case.
              (rcblock->options & (CTWS_PRESERVE_DEDUCED_PACKS |
                                   CTWS_PARTIAL_ARG_LIST_OKAY |
                                   CTWS_MAY_BE_RESCANNED |
-                                  CTWS_DEDUCTION_GUIDE |
+                                  CTWS_ADJUST_COORDINATES |
                                   CTWS_ALIAS_DEDUCTION_GUIDE)) == 0) {
     /* A rescanned decltype construct that will not itself require further
        rescanning.  Rather than produce a typeref type representing the
@@ -49332,15 +49332,16 @@ a enclosing expression).
   if ((rcblock->options & (CTWS_PRESERVE_DEDUCED_PACKS |
                            CTWS_PARTIAL_ARG_LIST_OKAY |
                            CTWS_MAY_BE_RESCANNED |
-                           CTWS_DEDUCTION_GUIDE |
+                           CTWS_ADJUST_COORDINATES |
                            CTWS_ALIAS_DEDUCTION_GUIDE)) == 0) {
     /* A rescanned expression normally does not need rescanning itself.  An
        exception occurs when we are in a context where only part of the
        template parameters are rescanned (e.g., substituting explicit template
-       arguments).  The flag indicating that "deduced packs" should be
-       preserved is also an indication that another substitution might
-       follow.  Similarly for the flag indicating that we are creating the
-       type for a deduction guide. */
+       arguments).  The flags indicating that "deduced packs" should be
+       preserved or that template parameter coordinates are being adjusted are
+       also an indication that another substitution might follow.  Similarly
+       for the flag indicating that we are creating the type for an alias
+       deduction guide. */
     expr_stack->possible_rescan_context = FALSE;
   }  /* if */
   if (explicit_eriep != NULL) {

@@ -2484,9 +2484,13 @@ typedef int a_ctws_options_set;
 #define CTWS_CAST_OPERAND			0x1000
 			/* TRUE when substituting/rescanning the operand of a
 			   cast. */
-#define CTWS_DEDUCTION_GUIDE		0x2000
-			/* TRUE when doing substitution to create a
-			   deduction guide routine type. */
+#define CTWS_ADJUST_COORDINATES		0x2000
+			/* TRUE when doing substitution to adjust the
+			   coordinates of template parameters.  This is used
+			   when forming a deduction guide for a constructor
+			   template or adjusting the nesting depth of template
+			   parameters of a friend function template when
+			   instantiating its enclosing class. */
 #define CTWS_MAY_BE_RESCANNED		0x4000
 			/* TRUE if the result of substituting an expression may
 			   itself be subject to substitution ("rescanning")

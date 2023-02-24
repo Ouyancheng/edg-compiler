@@ -19525,9 +19525,11 @@ options is a set of substitution options.
       break;
     case enk_requires:
       if (template_arg_list_is_dependent(template_arg_list) &&
-          !(options & (CTWS_DEDUCTION_GUIDE | CTWS_ALIAS_DEDUCTION_GUIDE))) {
+          !(options & (CTWS_ADJUST_COORDINATES |
+                       CTWS_ALIAS_DEDUCTION_GUIDE))) {
         /* Don't attempt to substitute requires-expressions with dependent
-           parameter lists (unless we are synthesizing a deduction guide). */
+           parameter lists (unless we are adjusting template parameter
+           coordinates or synthesizing an alias deduction guide). */
         subst_fail(*copy_error);
       } else {
         /* If we're substituting as part of rescanning an expression, start
@@ -20187,7 +20189,7 @@ expression nodes may be reclaimed later on
       (options & (CTWS_PRESERVE_DEDUCED_PACKS |
                   CTWS_PARTIAL_ARG_LIST_OKAY |
                   CTWS_MAY_BE_RESCANNED |
-                  CTWS_DEDUCTION_GUIDE |
+                  CTWS_ADJUST_COORDINATES |
                   CTWS_ALIAS_DEDUCTION_GUIDE)) == 0) {
     copy_constant(*orig_con, caller_con);
     caller_con->expr = NULL;
@@ -20260,7 +20262,7 @@ options.
               if (tap->is_pack) {
                 ctws_state->substituted_parameter_pack = TRUE;
               }  /* if */
-            } else if ((options & CTWS_DEDUCTION_GUIDE) != 0) {
+            } else if ((options & CTWS_ADJUST_COORDINATES) != 0) {
               ctws_state->substituted_parameter_pack |= constant_is_pack(con);
             }  /* if */
           } else {

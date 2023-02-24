@@ -1,5 +1,25 @@
 Version 6.5
 
+2/24/23  [EDGcpfe/26061]
+Spurious unsatisfied constraint errors for friend function templates
+
+A friend function template declared in a class template has the nesting depth
+of its template parameters updated when the enclosing class template is
+instantiated.  However, a requires clause in the template declaration was
+previously not updated to use the new template parameter nesting depth,
+resulting in spurious errors due to that constraint not being satisfied.  For
+example, with --c++20:
+
+  template<unsigned N> concept C = N > 1;
+  template<typename> struct D
+  {
+    template<unsigned N> requires C<N>
+    friend int f(D, const char (&)[N]);
+  };
+  int i = f(D<int>{}, "Hello");  // Previously a "template constraint not
+                                 // satisfied" error.  Now okay.
+
+
 2/23/23  [EDGcpfe/26008,EDGcpfe/26045]
 Regression in expr_range values for some call-expressions
 

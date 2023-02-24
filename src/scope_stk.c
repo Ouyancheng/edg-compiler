@@ -12512,8 +12512,8 @@ set to TRUE, FALSE otherwise.
   a_pack_expansion_stack_entry_ptr	pesep = NULL;
 
   *err = FALSE;
-  if ((options & CTWS_DEDUCTION_GUIDE) != 0) {
-    /* For deduction guide substitution, don't rescan packs. */
+  if ((options & CTWS_ADJUST_COORDINATES) != 0) {
+    /* Don't rescan packs when adjusting template parameter coordinates. */
     pedp = NULL;
   } else if (pedp != NULL) {
     /* Make a copy of the template argument list.  In some cases the caller
