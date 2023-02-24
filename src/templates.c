@@ -14607,8 +14607,8 @@ do_substitution:
       if (tap->pack_expansion_descr != NULL && new_tap->is_pack &&
           (options & (CTWS_ADJUST_COORDINATES |
                       CTWS_ALIAS_DEDUCTION_GUIDE)) != 0) {
-        /* For deduction guide substitution, transfer the pack expansion
-           information. */
+        /* When adjusting template coordinates or in alias deduction guide
+           substitution, transfer the pack expansion information. */
         if (ctws_state->new_templ_params == NULL &&
             ctws_state->alias_parameter_pack_mapping == NULL) {
           new_tap->pack_expansion_descr = tap->pack_expansion_descr;
@@ -15727,8 +15727,8 @@ parameters.
       if ((options & (CTWS_ADJUST_COORDINATES |
                       CTWS_ALIAS_DEDUCTION_GUIDE)) != 0) {
         /* When adjusting template coordinates or doing substitution to create
-           a deduction guide, copy the deduction flags in the parameter type
-           entry. */
+           an alias deduction guide, copy the deduction flags in the parameter
+           type entry. */
         new_ptp->type_involves_template_param =
                                        ptp->type_involves_template_param;
         new_ptp->type_involves_deduced_template_param =
@@ -15839,9 +15839,10 @@ a pointer over a reference type or creating an array of references.
   if (type->source_corresp.is_class_member && type_is(type, tk_typeref)) {
     /* Normally copying a type such as A<T>::X won't result in a change if
        A<T> is a prototype instantiation and T is not replaced with a real
-       type.  However, such a type will be replaced in deduction guides.  If
-       the type is a typedef, use the underlying type so that we don't
-       end up with an incorrect A<T'>::X. */
+       type.  However, such a type will be replaced when adjusting template
+       coordinates or in alias deduction guide substitution.  If the type is
+       a typedef, use the underlying type so that we don't end up with an
+       incorrect A<T'>::X. */
     if ((options & (CTWS_ADJUST_COORDINATES |
                     CTWS_ALIAS_DEDUCTION_GUIDE)) != 0) {
       type = skip_typerefs_not_dependent_decltypes(type);
@@ -34166,7 +34167,7 @@ this routine, *is_dependent is set to TRUE.
       /* Any template parameter referenced in the constraint expression needs
          to be updated to refer to the new template nesting depth.  This is
          done by substituting the constraint expression with the prototype
-         arguments created from the update template parameter list. */
+         arguments created from the updated template parameter list. */
       proto_args = create_prototype_arg_list(NULL, templ_params,
                                              /*add_pack_descr=*/FALSE);
       /* Temporarily revert the template parameters back to their original
