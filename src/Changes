@@ -1,5 +1,33 @@
 Version 6.5
 
+2/24/23  [EDGcpfe/26095]
+C++-generating back end: member typedef in conversion operator name
+
+In cases where a conversion operator is declared using a member typedef
+as the target type, the C++-generating back end used that member typedef
+name without qualification in a function-style call to the conversion
+operator, relying on the fact that the object expression in a member
+access expression implicitly establishes the lookup scope for the member
+name.  However, clang and MSVC do not look in the class of the object
+expression when looking up the type in a conversion operator name and thus
+reported spurious errors on the generated code.  This is now fixed; when
+generating code for clang or for the Microsoft dialect, the member typedef
+in such cases is put out using a qualified name.  For example, with
+--clang --c++11:
+
+  struct S {
+    typedef int *IP;
+    operator IP();
+  };
+  void f() {
+    typedef int *P;
+    S s;
+    int *p = s.operator P();   // Previously generated as "operator IP",
+                               // now as "operator S::IP" in some modes
+  }
+
+
+
 2/24/23  [EDGcpfe/26061]
 Spurious unsatisfied constraint errors for friend function templates
 

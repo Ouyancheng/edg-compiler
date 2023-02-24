@@ -3685,16 +3685,25 @@ etc.)
   /* Parentheses are not allowed in the conversion-declarator of a
      conversion-type-id. */
   octl.suppress_ptr_to_data_member_parens = TRUE;
-  /* Push the class scope context so that the type name will be
-     appropriately qualified if necessary. */
-  push_name_context(rout->source_corresp.parent_scope);
+  if (!(clang_is_generated_code_target ||
+        microsoft_dialect_is_generated_code_target)) {
+    /* Push the class scope context so that the type name will be
+       appropriately qualified if necessary.  MSVC and clang do not look
+       for an operator type name in the class of the object expression in a
+       member access expression, so we do not push the context when
+       generating code for those compilers. */
+    push_name_context(rout->source_corresp.parent_scope);
+  }  /* if */
   gen_type(type);
   if (replaced_type != NULL) {
     /* Restore the inaccessible type. */
     *ptr_to_inaccessible_type = replaced_type;
   }  /* if */
   octl.suppress_ptr_to_data_member_parens = saved_suppress_parens;
-  pop_name_context();
+  if (!(clang_is_generated_code_target ||
+        microsoft_dialect_is_generated_code_target)) {
+    pop_name_context();
+  }  /* if */
 }  /* gen_conversion_function_name */
 
 
