@@ -21347,6 +21347,7 @@ be called to start a copy.
   expr_copy = copy_node(expr);
   if (options & (CE_COPYING_FOR_CONSTEXPR_FOLDING | CE_PRESERVE_RESCAN_INFO)) {
     expr_copy->extra.rescan_info = expr->extra.rescan_info;
+    expr_copy->is_pack_expansion = expr->is_pack_expansion;
   }  /* if */
   switch (expr->kind) {
     case enk_error:
