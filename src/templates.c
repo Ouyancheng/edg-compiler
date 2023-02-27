@@ -34099,7 +34099,7 @@ this routine, *is_dependent is set to TRUE.
 */
 {
   a_template_param_ptr      templ_params, tpp;
-  a_template_nesting_depth  orig_nesting_depth;
+  a_template_nesting_depth  orig_nesting_depth = 0;
 
   /* Process any enclosing template decl entries. */
   if (decl_info->enclosing_template_decl != NULL) {
