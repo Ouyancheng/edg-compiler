@@ -12064,7 +12064,7 @@ a common (unsigned) type.
       expr_pos_error(ec_vectors_must_have_same_size, err_pos);
       *operation_type = error_type();
       *op = (an_expr_operator_kind)eok_error;
-    } else if (!identical_types(el1_type, el2_type) &&
+    } else if (!identical_types_ignoring_qualifiers(el1_type, el2_type) &&
                !(is_integral_type(el1_type) && is_integral_type(el2_type) &&
                  (mixed_signedness =
                    integral_types_the_same_except_for_signedness(
