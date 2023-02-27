@@ -19346,8 +19346,15 @@ mode in-class specialization.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       if (rtsp->exception_specification != NULL &&
           !rtsp->exception_specification->arg_cached &&
+          !rtsp->exception_specification->indeterminate &&
           is_nothrow_type(underlying_rout_type)) {
         rp->never_throws = TRUE;
+      }  /* if */
+      if (templ_rout->is_inheriting_ctor) {
+        /* For an inheriting constructor, the associated routine needs to be
+           set so the actual exception specification can be determined when
+           needed. */
+        rtsp->assoc_routine = rp;
       }  /* if */
       if (templ_rout->is_lambda_body) {
         rtsp->assoc_routine_is_lambda_body = TRUE;

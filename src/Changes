@@ -1,5 +1,21 @@
 Version 6.5
 
+2/27/23  [EDGcpfe/15596,EDGcpfe/24928]
+Exception specification of inherited constructor templates
+
+Previously, the front end did not generate exception specifications for
+inherited constructor template specializations.  For example, with --c++11:
+
+  struct B {
+    template<typename T> B(T) noexcept;
+  };
+  struct D : B {
+    using B::B;
+  };
+  static_assert(noexcept(D(1)), "Unexpected");  // Previously failed.
+                                                // Now okay.
+
+
 2/24/23  [EDGcpfe/26095]
 C++-generating back end: member typedef in conversion operator name
 

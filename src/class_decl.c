@@ -15286,6 +15286,27 @@ the class.
 }  /* set_initializer_list_ctor_flags */
 
 
+static void add_indeterminate_exception_specification(
+                                           a_routine_type_supplement_ptr  rtsp,
+                                           a_routine_ptr                  rtn)
+/*
+Add an "indeterminate" exception specification to the given routine type
+supplement (which should neither have an associated exception specification nor
+an associated routine yet).  rtn is the associated routine for determining the
+actual exception specification when it is needed.
+*/
+{
+  an_exception_specification_ptr  esp = alloc_exception_specification();
+
+  check_assertion(rtsp->exception_specification == NULL &&
+                  rtsp->assoc_routine == NULL);
+  esp->indeterminate = TRUE;
+  esp->compiler_generated = TRUE;
+  rtsp->exception_specification = esp;
+  rtsp->assoc_routine = rtn;
+}  /* add_indeterminate_exception_specification */
+
+
 void add_noexcept_specification(a_routine_type_supplement_ptr  rtsp)
 /*
 Add a "noexcept" specification to the given routine type supplement (which
@@ -15410,10 +15431,7 @@ Otherwise, the member is left unchanged.
              will be replaced later on.  In nonstrict modes, use this
              mechanism for all generated special members: This may delay
              certain template instantiations, thereby avoiding errors. */
-          rtsp->exception_specification = alloc_exception_specification();
-          rtsp->exception_specification->indeterminate = TRUE;
-          rtsp->exception_specification->compiler_generated = TRUE;
-          rtsp->assoc_routine = rtn;
+          add_indeterminate_exception_specification(rtsp, rtn);
         } else {
           form_exception_specification_for_generated_function(
                                                      rtn, (a_symbol_ptr)NULL);
@@ -22425,9 +22443,12 @@ routine issues an error accordingly when that happens.
     }  /* if*/
   }  /* if */
   if (rtsp->exception_specification != NULL) {
+    a_symbol_ptr  bctor = NULL;
     rtsp->exception_specification = NULL;
-    form_exception_specification_for_generated_function(
-                                                      rp, (a_symbol_ptr)NULL);
+    if (rp->is_inheriting_ctor) {
+      bctor = symbol_for(rp->friends_or_originator.inherited_routine);
+    }  /* if */
+    form_exception_specification_for_generated_function(rp, bctor);
     /* Set the routine's never_throws flag if needed. */
     if (rtsp->exception_specification != NULL &&
         is_nothrow_type(skip_typerefs(rp->type))) {
@@ -24370,6 +24391,7 @@ will be generated for the given class type.
      avoid copying the default arguments as they may not yet be ready to be
      copied. */
   copy_type_full(brp->type, new_tp, /*copy_default_args=*/FALSE);
+  new_rtsp->assoc_routine = NULL;
   new_rtsp->exception_specification = NULL;
   new_rtsp->this_class = class_type;
   new_rtsp->has_this_param = TRUE;
@@ -24538,6 +24560,12 @@ templates from that base template.
       new_rp->is_initializer_list_ctor = TRUE;
       class_type_supp(class_type)->has_initializer_list_ctor = TRUE;
     }  /* if */
+    if (exceptions_enabled) {
+      /* For now, record an "indeterminate" exception specification, which will
+         be replaced when the actual exception specification is needed. */
+      a_routine_type_supplement_ptr  new_rtsp = rout_type_supp(new_tp);
+      add_indeterminate_exception_specification(new_rtsp, new_rp);
+    }  /* if */
     new_tssp->variant.function.decl_cache.decl_info=templ_decl_state.decl_info;
     curr_default_args = NULL;
     complete_generated_member_template(&templ_decl_state, &func_info,
@@ -24686,7 +24714,11 @@ constructor.
       decl_info.decl_state.sym->variant.routine.instance_ptr =
                                            bctor->variant.routine.instance_ptr;
       if (exceptions_enabled) {
-        form_exception_specification_for_generated_function(new_rp, bctor);
+        /* For now, record an "indeterminate" exception specification, which
+           will be replaced when the actual exception specification is
+           needed. */
+        a_routine_type_supplement_ptr  new_rtsp = rout_type_supp(new_tp);
+        add_indeterminate_exception_specification(new_rtsp, new_rp);
       }  /* if */
       done_with_func_info(func_info);
       if (instantiate_extern_inline && !new_rp->is_deleted &&
