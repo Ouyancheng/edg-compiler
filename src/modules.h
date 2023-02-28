@@ -67,8 +67,10 @@ struct a_module_entity {
 			   declared or defined via a reparse of a broader
 			   cache.  This indicates less strict requirements may
 			   be placed on recursive definition processing, as the
-			   entity could be severely "broken", the entity may
-			   actually be invalid but not yet marked as such. */
+			   entity could have a severely "broken" token
+			   representation or the entity may be invalid but not
+			   yet marked as such (as the parse is still
+			   ongoing). */
   a_bit_field	invalid:1;
 			/* TRUE if the associated entity cannot be constructed
 			   from the module for any reason. */

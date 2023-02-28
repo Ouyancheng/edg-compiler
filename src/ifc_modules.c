@@ -697,7 +697,7 @@ static an_ifc_parameterized_entity_map
                 *ifc_parameterized_entities;
                         /* A hash table to map IFC declaration indexes for
                            parameterized entities to their corresponding
-                           parameterizing IFC declaration index (e.g. a
+                           parameterizing IFC declaration index (e.g., a
                            DeclScope index representing a parameterized
                            DeclScope will be mapped to the parameterizing
                            DeclSpecialization IFC declaration index). */
@@ -3105,9 +3105,9 @@ static void try_map_routine_definition(const an_ifc_Node_type &decl_node,
                                        an_ifc_decl_index      decl_idx,
                                        a_routine_ptr          rp)
 /*
-Given a declaration node representing a function, and its corresponding module
-entity pointer, map the associated IL entity to its pending definition (if a
-definition is present).
+Given a declaration node (indexed by decl_idx) representing a function-like
+entity, and the corresponding IL entity (i.e., routine pointer), map the
+associated IL entity to its pending definition (if a definition is present).
 */
 {
   if (function_is_user_defined(decl_node)) {
@@ -3232,16 +3232,17 @@ static an_ifc_deferred_spec_map
                 *ifc_deferred_specs;
                         /* A hash table to map IFC module entity pointers to a
                            corresponding list of deferred specializations that
-                           need processed once the module entity (key value) is
-                           completed. */
+                           need to be processed once the module entity (key
+                           value) is completed. */
 
 
 static void finish_mep_processing(a_module_entity_ptr mep)
 /*
 Given a module entity pointer for a valid module entity with an existing IL
-declaration, complete any processing that needs performed on the module entity
-pointer now that it's been successfully loaded into the IL (e.g., map any
-pending definition information for later use should a definition be required).
+declaration, complete any processing that needs to be performed on the module
+entity pointer now that it's been successfully loaded into the IL (e.g., map
+any pending definition information for later use should a definition be
+required).
 */
 {
   check_assertion(!mep->invalid && mep->entity.ptr != NULL);
@@ -3268,8 +3269,8 @@ pending definition information for later use should a definition be required).
 
       /* Find the top level imminent entity, then add to its deferral list this
          template's specializations.  If there is not an imminent entity that
-         needs waited on, process this template's specialization immediately;
-         otherwise, defer until said entity is completed. */
+         needs to be waited on, process this template's specialization
+         immediately; otherwise, defer until said entity is completed. */
       while (!is_null_index(parent_decl_idx)) {
         a_module_entity_ptr parent_mep =
                                     get_ifc_module_entity_ptr(parent_decl_idx);
@@ -3337,7 +3338,7 @@ return FALSE.
 
 static a_boolean is_nested_class_member(a_module_entity_ptr mep)
 /*
-Given a module entity pointer, return TRUE mep->scope is a nested class;
+Given a module entity pointer, return TRUE if mep->scope is a nested class;
 otherwise, return FALSE.
 */
 {
@@ -3359,7 +3360,7 @@ otherwise, return FALSE.
 
 static a_boolean is_in_explicit_specialization(a_module_entity_ptr mep)
 /*
-Given a module entity pointer, return TRUE mep->scope has an associated
+Given a module entity pointer, return TRUE if mep->scope has an associated
 template class; otherwise, return FALSE.
 */
 {
@@ -3530,7 +3531,7 @@ static a_symbol_ptr load_param_ref(an_ifc_decl_index decl_idx)
 /*
 Return the (function or template) parameter symbol in the current scope stack
 corresponding to IFC parameter declaration at the given index.  If no parameter
-can be found, return null.
+can be found, return NULL.
 */
 {
   check_assertion(decl_idx.sort == ifc_ds_decl_parameter);
@@ -3657,7 +3658,7 @@ Return NULL if none is found.
 
   if (decl_idx.sort == ifc_ds_decl_parameter) {
     /* Parameters should always mapped in their current context.  This prevents
-       issues where template instantiation can end up with the incorrect
+       issues where a template instantiation can end up with the incorrect
        parameter symbol with alias declarations. */
     result = load_param_ref(decl_idx);
   } else {
@@ -3840,8 +3841,7 @@ from a tok_ifc_entity_ref or tok_ifc_decl_ref).
   an_ifc_partition_metadata   *part_meta =
                                          get_partition_metadata(part_kind_idx);
   size_t                      part_start = part_meta->offset;
-  size_t                      abs_offset =
-                                           get_partition_offset(part_kind_idx);
+  size_t                      abs_offset = get_partition_offset(part_kind_idx);
   size_t                      rel_offset = abs_offset - part_start;
 
   /* FIXME: Migrate to allowing diagnostics with size_t. */
@@ -3935,7 +3935,7 @@ expression index, to the cache.
 */
 {
   /* If this assertion is violated, the caller attempted to cache a
-     non-existent expression as pending expression.  This should be resolved
+     non-existent expression as a pending expression.  This should be resolved
      via the introduction of appropriate additional checks (typically a call to
      is_cachable_expr) at the call site. */
   check_assertion(is_cachable_expr(expr_idx));
@@ -3948,8 +3948,13 @@ static void cache_bound_entity(a_module_token_cache_ptr cache,
                                an_ifc_decl_index        decl_idx,
                                a_Cache_fn               cache_fn)
 /*
-This function is used to handle entities that are indirectly constructed from a
-token cache that (potentially) contains multiple entities.
+Given a function (cache_fn) that caches the entity's tokens, the entity's IFC
+declaration index, and the destination cache, cache a bound entity.
+
+Bound entities are token composed entities that are indirectly constructed from
+a token cache that (potentially) contains multiple entities.  Bound entities
+are immediately marked as imminent, and will be resolved to an IL entity during
+parsing.
 */
 {
   a_module_entity_ptr mep = get_ifc_module_entity_ptr(decl_idx);
@@ -5708,7 +5713,7 @@ check_and_set_specialization_redeclaration.
 
   if (!templ_mep->invalid && templ_entity.kind == iek_template) {
     a_template_ptr     primary_templ = (a_template_ptr)templ_entity.ptr;
-    /* FIXME: It would be nice to lazy load this, while comparisons are
+    /* FIXME: It would be nice to lazily load this, while comparisons are
        optimized by doing this up front, we're paying an unnecessary cost if
        there are no symbols to compare against. */
     a_template_arg_ptr templ_args = create_templ_args_for_comparison(
@@ -6459,13 +6464,13 @@ an empty optional.
 
 /* FIXME: We should be able to (as an optimization) load only the
    specialization (and thus remove the function below).  However, that needs
-   more design work; namely processing of the specialization can require the
-   definition of the template, which requires us to make sure all
+   more design work; in particular, processing of the specialization can
+   require the definition of the template, which requires us to make sure all
    specializations are loaded.  In attempting to make sure all specializations
    are loaded, we end up processing this specialization twice, causing an
    assertion failure.  We can presumably simply assume that an imminent
    specialization is already being taken care of, however, until the IFC
-   modules implementation matures future, it's better to keep the design
+   modules implementation matures further, it's better to keep the design
    simpler (but a bit sub-optimal). */
 static void ensure_prerequisite_template_def_loaded(a_module_entity_ptr mep)
 /*
@@ -6489,7 +6494,7 @@ As additional context, some declarations to load successfully must have
 prerequisites processed before the declaration itself is loaded.  As an
 example, a friend function declaration might be requested before its
 corresponding class.  When that class is loaded, it will attempt to process the
-friend function so that it can setup the friends of the class (resulting in an
+friend function so that it can set up the friends of the class (resulting in an
 unresolvable cyclic dependency).  To avoid that problem the friend function's
 type dependencies are resolved before attempting to resolve the function.
 */
@@ -6506,7 +6511,7 @@ type dependencies are resolved before attempting to resolve the function.
                                    ifc_parameterized_entities->get(home_scope);
 
     if (!is_null_index(parameterizing_entity)) {
-      /* This is part of parameterized entity (at the time of writing, this
+      /* This is part of a parameterized entity (at the time of writing, this
          only applies to specializations).  Construct the parameterizer. */
       a_module_entity_ptr parent_mep =
                                   process_decl_at_index(parameterizing_entity);
@@ -6540,7 +6545,6 @@ type dependencies are resolved before attempting to resolve the function.
         }  /* if */
       }  /* if */
     }  /* if */
-    /* Check for further prerequisites based on the node type. */
   }  /* if */
   /* Handle prerequisites based on the node type. */
   switch (decl_idx.sort) {
@@ -6555,7 +6559,7 @@ type dependencies are resolved before attempting to resolve the function.
         an_ifc_decl_enumerator decl_enumerator = *opt_decl_enumerator;
         an_ifc_decl_index      enumeration =
                                            get_ifc_home_scope(decl_enumerator);
-        /* Load the enclosing enumeration, ensure it's valid. */
+        /* Load the enclosing enumeration and ensure it's valid. */
         a_module_entity_ptr    enumeration_mep =
                                             process_decl_at_index(enumeration);
         if (enumeration_mep->invalid) {
@@ -6573,7 +6577,7 @@ type dependencies are resolved before attempting to resolve the function.
 
         an_ifc_decl_function decl_func = *opt_decl_func;
         an_ifc_type_index    type_idx = get_ifc_type(decl_func);
-        /* Load the function type, and ensure it's valid. */
+        /* Load the function type and ensure it's valid. */
         a_type_ptr           func_type = type_for_type_index(type_idx,
                                                              /*kind=*/NULL);
         if (is_error_type(func_type)) {
@@ -6592,6 +6596,7 @@ type dependencies are resolved before attempting to resolve the function.
         an_ifc_decl_partial_specialization decl_spec = *opt_decl_spec;
         an_ifc_decl_index                  primary_templ =
                                            get_ifc_primary_template(decl_spec);
+        /* Load the primary template and ensure it's valid. */
         a_module_entity_ptr                templ_mep =
                                           process_decl_at_index(primary_templ);
         if (templ_mep->invalid) {
@@ -6611,6 +6616,7 @@ type dependencies are resolved before attempting to resolve the function.
         an_ifc_decl_specialization decl_spec = *opt_decl_spec;
         an_ifc_decl_index          primary_templ =
                                            get_ifc_primary_template(decl_spec);
+        /* Load the primary template and ensure it's valid. */
         a_module_entity_ptr        templ_mep =
                                           process_decl_at_index(primary_templ);
         if (templ_mep->invalid) {
@@ -8227,8 +8233,8 @@ be mapped to the IL entity.
 #endif /* DEBUG */
   if (is_entity_imminent(mep)) {
     /* When this condition is violated, the entity was already being processed
-       but, was again requested before processing completed.  This can happen
-       in one of two cases.
+       but was again requested before processing completed.  This can happen in
+       one of two cases.
 
        In the first case, the module entity pointer is being resolved via a
        bound token (indicated via the uses_bound_token data member).  In this
@@ -8443,7 +8449,7 @@ invalidate_failed_class_members(
                          const an_ifc_scope_descriptor          &class_members,
                          ARG_UNUSED const a_diag_count_snapshot &diag_counts)
 /*
-Invalid the module entities of any class members for the given class member
+Invalidate the module entities of any class members for the given class member
 scope descriptor that failed to be mapped to an IL entity.  diag_counts is a
 diagnostic count snapshot of diagnostics that were emitted during class
 parsing; this is used to diagnose unprocessed tok_ifc_decl tokens.
@@ -9245,7 +9251,7 @@ TRUE) otherwise.
 
 static a_boolean can_be_eager_loaded(an_ifc_decl_index decl_idx)
 /*
-Given a declaration index, return TRUE if it can be eager loaded; otherwise,
+Given a declaration index, return TRUE if it can be eagerly loaded; otherwise,
 return FALSE.
 */
 {
@@ -9320,8 +9326,8 @@ done:;
 #if CHECKING
   if (!mep->invalid && mep->scope == NULL) {
     an_ifc_decl_index mep_idx = decl_index_of(mep);
-    /* When this condition is violated, the scope was not resolved for (an
-       otherwise valid) entity.  Either the scope was not correctly set, or
+    /* When this condition is violated, the scope was not resolved for an
+       (otherwise valid) entity.  Either the scope was not correctly set, or
        the entity should've been marked invalid. */
     a_string          err_msg("processing of ", index_to_str(mep_idx),
                               " did not set a scope or mark the entity"
@@ -14552,7 +14558,7 @@ decisions about what to cache.
 
   if (function_is_user_defined(decl)) {
     /* As noted above, the function definition will be mapped into an IL map of
-       lazy-loadable definitions; there's nothing to cache. */
+       lazy loadable definitions; there's nothing to cache. */
     if (!cinfo.no_final_semicolon) {
       cache_token(cache, tok_semicolon);
     }  /* if */
@@ -15322,7 +15328,7 @@ context to help inform decisions about what to cache.
     ptrdiff_t               brace_count = 0;
     for (; ctp != NULL; ctp = ctp->next) {
       if (first_param_tsn == NO_TOKEN_SEQUENCE_NUMBER) {
-        /* Look for the function "name" followed by a lparen. */
+        /* Look for the function "name" followed by a left paren. */
         a_cached_token_ptr name_ctp = name_cache.get_first_token();
         a_cached_token_ptr lookahead_ctp = ctp;
         for (; name_ctp != NULL && lookahead_ctp != NULL;
@@ -17185,7 +17191,7 @@ there is no offset/the offset is not needed.
     if (entity_idx.sort == ifc_ds_decl_variable ||
         entity_idx.sort == ifc_ds_decl_deduction_guide) {
       /* FIXME: Cache the entity corresponding to decl->entity.decl instead (as
-         was done for functions below).  Variables template declarations are
+         was done for functions below).  Variable template declarations are
          still a mess, and deduction guides are unimplemented, but we can avoid
          updating them for now. */
       cache_sentence(cache, get_ifc_head(entity));
@@ -17422,7 +17428,7 @@ void cache_specialized_func_declarator_id(
 Cache the declarator-id for the given specialized constructor declaration.
 */
 {
-  /* Constructors specialization syntax is identical to the non-specialized
+  /* Constructor specialization syntax is identical to the non-specialized
      constructor syntax (i.e., constructors cannot have a template argument
      list), so cache the declarator for the specialized entity. */
   cache_func_declarator_id(cache, specialized_entity, cinfo);
@@ -18482,7 +18488,7 @@ referencing a reference to a DeclScope with the name "`global namespace'"
   }  /* switch */
 done:
   return result;
-}  /* if */
+}  /* is_broken_reference_to_global_scope */
 
 
 void an_ifc_module::cache_expr(a_module_token_cache_ptr cache,

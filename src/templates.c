@@ -11459,7 +11459,7 @@ If template constraints are not satisfied, return NULL.
     /* A declaration but not a definition was loaded from a module file.
        Attempt to load the definition (and any specializations).  Note this
        must be performed before the find_instantiation call, as otherwise
-       specializations might be declared after implicit instantiations*/
+       specializations might be declared after implicit instantiations. */
     load_template_definition_from_module(tssp->il_template_entry);
   }  /* if */
   if (is_nonreal && prototype_allowed) {

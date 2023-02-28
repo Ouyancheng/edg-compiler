@@ -193,7 +193,7 @@ with the module interface importing the entity (if any).
 {
   (*scp) = def_source_corresp;
 
-  /* Mark this declaration as imported from the current module interface */
+  /* Mark this declaration as imported from the current module interface. */
   a_module_entity_stack_state *state = curr_mep_state;
   if (state != NULL) {
     scp->module_iface = state->mep->module_info->module_interface;
