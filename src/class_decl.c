@@ -15291,7 +15291,7 @@ static void add_indeterminate_exception_specification(
                                            a_routine_ptr                  rtn)
 /*
 Add an "indeterminate" exception specification to the given routine type
-supplement (which should neither have an associated exception specification nor
+supplement (which should have neither an associated exception specification nor
 an associated routine yet).  rtn is the associated routine for determining the
 actual exception specification when it is needed.
 */
