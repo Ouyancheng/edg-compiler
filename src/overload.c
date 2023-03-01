@@ -4665,7 +4665,7 @@ succeeds, FALSE if it fails.
       }  /* if */
       check_assertion(is_expression_component(arg));
       operand = operand_of_arg_list_elem(arg);
-      if (scope_stack_top().is_rescan && is_error_operand(operand)) {
+      if (expr_stack->suppress_diagnostics && is_error_operand(operand)) {
         /* Avoid propagating error types in rescanning contexts because they
            might end up in the IL of actual instantiations without a
            diagnostic ever being emitted.  (In non-rescanning contexts,
