@@ -23,7 +23,7 @@ fixed.
 
 
 2/27/23  [EDGcpfe/25762]
-Substitution of pack-expansion
+Substitution of pack expansion
 
   template<typename T, typename... Ts> void g(T, Ts...);
   template<typename> struct X {
@@ -34,7 +34,7 @@ Substitution of pack-expansion
   };
   auto r = X<int>().f(1);
 
-Previously, this failed to resolved the call X<int>().f(1) because somewhere
+Previously, this failed to resolve the call X<int>().f(1) because somewhere
 during the substitution of the requires-expression the variadic nature of the
 argument us was lost.  That is now fixed (and the example is now accepted).
 
