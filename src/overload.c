@@ -4665,6 +4665,10 @@ succeeds, FALSE if it fails.
       }  /* if */
       check_assertion(is_expression_component(arg));
       operand = operand_of_arg_list_elem(arg);
+      if (is_error_operand(operand)) {
+        deduction_okay = FALSE;
+        goto end_of_routine;
+      }  /* if */
       arg_type = operand->type;
     }  /* if */
     /* Adjust the types (e.g., for references) to prepare for the
