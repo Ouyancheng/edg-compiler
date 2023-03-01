@@ -3951,10 +3951,10 @@ static void cache_bound_entity(a_module_token_cache_ptr cache,
 Given a function (cache_fn) that caches the entity's tokens, the entity's IFC
 declaration index, and the destination cache, cache a bound entity.
 
-Bound entities are token composed entities that are indirectly constructed from
-a token cache that (potentially) contains multiple entities.  Bound entities
-are immediately marked as imminent, and will be resolved to an IL entity during
-parsing.
+Bound entities are entities that are reconstituted into their corresponding
+tokens in a token cache that (potentially) contains multiple entities.  Bound
+entities are immediately marked as imminent, and will be resolved to an IL
+entity during parsing.
 */
 {
   a_module_entity_ptr mep = get_ifc_module_entity_ptr(decl_idx);
@@ -6464,8 +6464,8 @@ an empty optional.
 
 /* FIXME: We should be able to (as an optimization) load only the
    specialization (and thus remove the function below).  However, that needs
-   more design work; in particular, processing of the specialization can
-   require the definition of the template, which requires us to make sure all
+   more design work; in particular, processing the specialization can require
+   the definition of the template, which requires us to make sure all
    specializations are loaded.  In attempting to make sure all specializations
    are loaded, we end up processing this specialization twice, causing an
    assertion failure.  We can presumably simply assume that an imminent
@@ -11288,7 +11288,7 @@ Given a declaration, return the name associated with that declaration.
       if (find_symbol(result, strlen(result), &loc) == NULL) {
         /* Declarations that come from the global module fragment aren't added
            to the module scope, so we need to ensure that we've added these
-           names to the lazily-loaded symbols list. */
+           names to the lazily loaded symbols list. */
         a_module_entity_ptr mep = get_ifc_module_entity_ptr(decl_idx);
 
         if (gmf_decl_scope.has_value()) {
@@ -14558,7 +14558,7 @@ decisions about what to cache.
 
   if (function_is_user_defined(decl)) {
     /* As noted above, the function definition will be mapped into an IL map of
-       lazy loadable definitions; there's nothing to cache. */
+       lazily loadable definitions; there's nothing to cache. */
     if (!cinfo.no_final_semicolon) {
       cache_token(cache, tok_semicolon);
     }  /* if */
@@ -14818,7 +14818,7 @@ done:
 namespace {
 
 /*
-This class implements a lazily-loadable function parameter chart abstraction
+This class implements a lazily loadable function parameter chart abstraction
 (i.e., the chart remains unloaded until information about a parameter is
 requested).
 */

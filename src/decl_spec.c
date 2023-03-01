@@ -9852,7 +9852,8 @@ the constexpr specifier.  Issue an error if the specifier is not applicable.
   a_symbol_ptr  sym = dps->sym;
 
   if (sym == NULL || is_class_symbol(sym) || sym->kind == sk_type) {
-    /* No declaration is associated with "constexpr": Issue an error. */
+    /* No declaration is associated with "constexpr" or "constexpr" has been
+       applied to a type declaration: Issue an error. */
     pos_error(ec_invalid_constexpr, &dps->constexpr_pos);
   } else if (sym->is_error ||
              (dps->type != NULL && is_error_type(dps->type))) {
