@@ -12623,6 +12623,10 @@ partial specialization.
     if (tap->kind != templ_tap->kind) {
       /* The argument kinds do not match */
       match = FALSE;
+    } else if (!templ_tap->is_pack && tap->is_pack) {
+      /* A pack expansion does not match a non-expansion; see N4910
+         [temp.deduct.type] bullet (9.2). */
+      match = FALSE;
     } else if (is_type_templ_arg(tap)) {
       /* A type template parameter.  See if the types match. */
       match = matches_template_type(tap->variant.type,
