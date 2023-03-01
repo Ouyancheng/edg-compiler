@@ -3071,6 +3071,9 @@ option values if they were not already set by a command line option.
       }  /* if */
       if (microsoft_version >= 1924) {
         /* Visual Studio 2019 version 16.4. */
+        if (ms_cpp20_mode) {
+          using_enum_enabled = TRUE;
+        }  /* if */
         if (!ms_permissive) {
           long_long_promotion_allowed = TRUE;
         }  /* if */
