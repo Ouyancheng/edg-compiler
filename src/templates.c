@@ -16474,7 +16474,6 @@ done_with_routine:
                  substituted "A<T>" does not contain a B, or the B found is not
                  a type. */
               subst_fail(*copy_error);
-              new_type = error_type();
             } else {
               new_type = type_symbol_type(new_sym);
             }  /* if */
@@ -16488,7 +16487,6 @@ done_with_routine:
            substitution of vector types. */
         if (vector_type_is_template_dependent(type)) {
           subst_fail(*copy_error);
-          new_type = error_type();
         } else {
           /* There is nothing to substitute, so the current type can be
              used. */

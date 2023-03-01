@@ -27553,6 +27553,10 @@ freed by this routine.
                               &braced_init_list, &rescan_dip,
                               result,
                               &local_bound_function_selector);
+    if (rcblock != NULL && rcblock->error_detected) {
+      make_error_operand(result);
+      goto end_of_routine;
+    }  /* if */
     if (rescan_dip != NULL && rescan_dip->is_compound_literal) {
       /* A compound literal rescan.  Handle as such and skip the rest of
          this routine. */

@@ -25915,10 +25915,11 @@ p_fatal and p_copy_error are NULL by default.
       result = FALSE;
     } else if (expr != NULL) {
       a_constant_ptr  cp = local_constant();
-      if (!is_bool_type(strip_implicit_operations(expr)->type)) {
+      a_type_ptr      ctp = strip_implicit_operations(expr)->type;
+      if (!is_bool_type(ctp)) {
         /* If the type is not a boolean after substitution, the failure is
            not SFINAE-like. */
-        *p_fatal = TRUE;
+        *p_fatal = !is_error_type(ctp);
         result = FALSE;
         more_info_diagnostic(ec_nonbool_atomic_constraint,
                              &constraint->position, diag_list);
@@ -25954,7 +25955,7 @@ p_fatal and p_copy_error are NULL by default.
       if (!is_bool_type(allocated_cp->type)) {
         /* If the type is not a boolean after substitution, the failure is
            not SFINAE-like. */
-        *p_fatal = TRUE;
+        *p_fatal = !is_error_type(allocated_cp->type);
         result = FALSE;
         more_info_diagnostic(ec_nonbool_atomic_constraint,
                              &constraint->position, diag_list);
