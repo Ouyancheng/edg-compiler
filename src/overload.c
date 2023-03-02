@@ -4670,7 +4670,7 @@ succeeds, FALSE if it fails.
            might end up in the IL of actual instantiations without a
            diagnostic ever being emitted.  (In non-rescanning contexts,
            however, error recovery is better if we just continue processing
-           with the error type. */
+           with the error type.) */
         deduction_okay = FALSE;
         goto end_of_routine;
       }  /* if */
