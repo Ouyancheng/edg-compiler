@@ -21730,7 +21730,7 @@ advance_past_final_token:
     (void)get_token();
     next_token_is_top_level_decl_start = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (curr_token  == tok_ifc_decl) {
+    if (curr_token == tok_ifc_decl) {
       if (dps->sym != NULL) {
         record_symbol_for_ifc_decl(dps->sym);
       }  /*if */

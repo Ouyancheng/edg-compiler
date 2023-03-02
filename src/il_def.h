@@ -1000,27 +1000,22 @@ enum a_token_kind : unsigned short {
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   tok_decltype_construct,   /* Used to represent a decltype(expr) construct
                                that has been coalesced. */
-  tok_pending_ifc_var_init,
-                            /* Generated when reading an IFC file to indicate
+  tok_pending_ifc_var_init, /* Generated when reading an IFC file to indicate
                                that the declaration for a variable has an
                                initializer that hasn't yet been processed. */
-  tok_pending_ifc_expr,
-                            /* Generated when reading an IFC file to indicate
+  tok_pending_ifc_expr,     /* Generated when reading an IFC file to indicate
                                that there exists an expression that has not yet
                                been processed. */
-  tok_ifc_entity_ref,
-                            /* Generated when reading an IFC file to represent
+  tok_ifc_entity_ref,       /* Generated when reading an IFC file to represent
                                a reference to another IFC entity.  Only appears
                                in tokens from token caches (the cache's
                                associated index information should be
                                translated to type an_ifc_expr_index). */
-  tok_ifc_decl_ref,
-                            /* This is a special variant of the
+  tok_ifc_decl_ref,         /* This is a special variant of the
                                tok_ifc_entity_ref that represents
                                an_ifc_decl_index rather than
                                an_ifc_expr_index.  */
-  tok_ifc_decl,
-                            /* Generated when reading an IFC file to record the
+  tok_ifc_decl,             /* Generated when reading an IFC file to record the
                                IFC index of a class member declaration in the
                                token stream.  This token currently always
                                follows the class member declaration (including

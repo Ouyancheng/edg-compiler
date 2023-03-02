@@ -1239,7 +1239,7 @@ exit_ifc_rescan is required; otherwise, return FALSE.
 }  /* extract_tokens_for_module_expr */
 
 
-a_mode_swapped_parse::a_mode_swapped_parse(a_module_interface *mod)
+a_mode_swapped_parse::a_mode_swapped_parse(ARG_UNUSED a_module_interface *mod)
 /*
 Swap the front end to a state compatible with the given module interface.
 */

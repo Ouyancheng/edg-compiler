@@ -3371,7 +3371,7 @@ template class; otherwise, return FALSE.
 
     if (scope->kind == sck_class_struct_union) {
       a_type_ptr type = scope->variant.assoc_type;
-      auto       &extra_info = type->variant.class_struct_union.extra_info;
+      auto       &extra_info = class_type_supp(type);
 
       if (extra_info->assoc_template != NULL ||
           extra_info->template_arg_list != NULL) {
@@ -3657,9 +3657,9 @@ Return NULL if none is found.
   a_symbol_ptr result;
 
   if (decl_idx.sort == ifc_ds_decl_parameter) {
-    /* Parameters should always mapped in their current context.  This prevents
-       issues where a template instantiation can end up with the incorrect
-       parameter symbol with alias declarations. */
+    /* Parameters should always be resolved in the current context.  This
+       prevents issues where a template instantiation can end up with the
+       incorrect parameter symbol with alias declarations. */
     result = load_param_ref(decl_idx);
   } else {
     result = ifc_decl_lookup_table->get(decl_idx);
@@ -3681,7 +3681,7 @@ Return NULL if none is found.
     if (mep->entity.ptr == NULL) {
       /* FIXME: Some ifc_sls_msvc_binding source literals are self references
          to the declaration being declared.  There's no IL entity to return a
-         symbol for as it's none has yet been constructed. (EDGcpfe/25972) */
+         symbol for as it's none has yet been constructed. */
       if (is_entity_imminent(mep) || has_imminent_subentity(mep)) {
         /* Trigger ifc_unexpected to call attention to the underlying problem
            without crashing. */
@@ -3847,7 +3847,7 @@ from a tok_ifc_entity_ref or tok_ifc_decl_ref).
   /* FIXME: Migrate to allowing diagnostics with size_t. */
   st_num3_add_diag_info(diag, ec_ifc_entity_ref_failure_info,
                         get_partition_name_from_kind(kind), idx.value,
-                        (uint32_t)abs_offset, (uint32_t)rel_offset);
+                        (int32_t)abs_offset, (int32_t)rel_offset);
   end_diagnostic(diag);
 }  /* diagnose_entity_load_failure */
 
@@ -3877,8 +3877,8 @@ a_symbol_ptr load_tok_ifc_decl_ref()
 /*
 The current token is tok_ifc_decl_ref, which encodes a reference to a
 declaration.  Load the IL entity for the declaration if necessary, and return
-the its corresponding symbol.  If the entity could not be loaded, instead
-return NULL, and issue a diagnostic.
+its corresponding symbol.  If the entity could not be loaded, instead return
+NULL, and issue a diagnostic.
 */
 {
   a_lexical_ifc_index_reference
@@ -4962,7 +4962,7 @@ an_ifc_function_failure_set
 
 using an_ifc_pending_definition_set = Ptr_set<a_tagged_pointer>;
                         /* The type of a set that pairs an IL entity with a
-                           pending . */
+                           pending. */
 
 an_ifc_pending_definition_set
                 *ifc_pending_definitions;
@@ -10441,7 +10441,7 @@ param_list.
           while (recursive_args != NULL) {
             next_arg = &(*next_arg)->next;
             recursive_args = recursive_args->next;
-          }  /* if */
+          }  /* while */
           continue;
         }  /* if */
 
@@ -11326,7 +11326,8 @@ restore_partial_scope_stack_if_necessary should be called with this pointer
 after the declaration has been processed.  Note that although dps->alignment
 is (conditionally) set in this routine, the IFC file only specifies an
 alignment if the alignment is explicitly specified.  Therefore callers of
-this routine need to handle the case where dps->alignment is 0.
+this routine need to handle the case where dps->alignment is 0.  Return TRUE if
+initialization succeeds; otherwise, return FALSE.
 */
 {
   a_boolean        result = TRUE;
@@ -18451,41 +18452,36 @@ referencing a reference to a DeclScope with the name "`global namespace'"
   a_boolean         result = FALSE;
   an_ifc_expr_index scope_idx = get_ifc_scope(path_expr);
 
-  switch (scope_idx.sort) {
-    case ifc_es_expr_named_decl:
-      { Opt<an_ifc_expr_named_decl> opt_named_decl;
+  if (scope_idx.sort == ifc_es_expr_named_decl) {
+    Opt<an_ifc_expr_named_decl> opt_named_decl;
 
-        construct_node(&opt_named_decl, scope_idx);
-        if (!opt_named_decl.has_value()) {
-          goto done;
-        }  /* if */
+    construct_node(&opt_named_decl, scope_idx);
+    if (!opt_named_decl.has_value()) {
+      goto done;
+    }  /* if */
 
-        an_ifc_expr_named_decl named_decl = *opt_named_decl;
-        an_ifc_decl_index      resolution_idx = get_ifc_resolution(named_decl);
-        if (resolution_idx.sort != ifc_ds_decl_scope) {
-          goto done;
-        }  /* if */
+    an_ifc_expr_named_decl named_decl = *opt_named_decl;
+    an_ifc_decl_index      resolution_idx = get_ifc_resolution(named_decl);
+    if (resolution_idx.sort != ifc_ds_decl_scope) {
+      goto done;
+    }  /* if */
 
-        Opt<an_ifc_decl_scope> opt_decl_scope;
-        construct_node(&opt_decl_scope, resolution_idx);
-        if (!opt_decl_scope.has_value()) {
-          goto done;
-        }  /* if */
+    Opt<an_ifc_decl_scope> opt_decl_scope;
+    construct_node(&opt_decl_scope, resolution_idx);
+    if (!opt_decl_scope.has_value()) {
+      goto done;
+    }  /* if */
 
-        an_ifc_decl_scope decl_scope = *opt_decl_scope;
-        an_ifc_name_index name_idx = get_ifc_name(decl_scope);
-        a_const_char      *name_str = name_idx.mod->string_from_name_index(
+    an_ifc_decl_scope decl_scope = *opt_decl_scope;
+    an_ifc_name_index name_idx = get_ifc_name(decl_scope);
+    a_const_char      *name_str = name_idx.mod->string_from_name_index(
                                                                  name_idx,
                                                                  /*loc=*/NULL);
-        if (strncmp(name_str, "`global namespace'", 18) == 0) {
-          result = TRUE;
-          goto done;
-        }  /* if */
-      }
-      break;
-    default:
-      break;
-  }  /* switch */
+    if (strncmp(name_str, "`global namespace'", 18) == 0) {
+      result = TRUE;
+      goto done;
+    }  /* if */
+  }  /* if */
 done:
   return result;
 }  /* is_broken_reference_to_global_scope */
