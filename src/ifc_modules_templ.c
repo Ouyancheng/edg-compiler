@@ -91,7 +91,7 @@ Return the index into the partition associated with the given index type.
 }  /* get_partition_index */
 
 
-/* FIXME: It probably shouldn't be necessary to have this specializations.  We
+/* FIXME: It probably shouldn't be necessary to have this specialization.  We
    probably need a role that represents an index into a particular
    partition. */
 template<>
