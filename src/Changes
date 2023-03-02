@@ -3,7 +3,7 @@ Version 6.5
 3/1/23   [EDGcpfe/26105]
 Microsoft compatibility: using enum declarations enabled
 
-C++20 using enum declarations (see the Changes entry for EDGcpfe/21586) is
+C++20 using enum declarations (see the Changes entry for EDGcpfe/21586) are
 now enabled in Microsoft emulation mode when microsoft_version >= 1924 and
 --ms_c++20 or --ms_c++latest is specified.
 
