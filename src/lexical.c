@@ -20585,6 +20585,7 @@ a routine to lookup the appropriate instance (or generate one if needed).
              accepts use a reference such as A::i, where A is a different
              class template and something like A<T>::i should be used.
              Accept the use and return the prototype instantiation symbol. */
+          check_assertion(tssp != NULL);
           new_sym = tssp->variant.class_template.prototype_instantiation;
           goto normal_exit;
         } else {
@@ -21158,6 +21159,7 @@ indicated by the template argument list.
       a_boolean	prototype_allowed;
       a_boolean	is_use = (options & GID_IS_EXPR_CONTEXT) != 0;
       prototype_allowed = (options & GID_USE_PROTOTYPE_NOT_NONREAL) != 0;
+      check_assertion(template_sym != NULL);
       new_sym = find_template_variable(template_sym, &arg_list,
                                        prototype_allowed, is_use,
                                        /*diagnose=*/TRUE);

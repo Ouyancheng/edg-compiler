@@ -5293,6 +5293,7 @@ class to be defined.
   if (!use_existing_context) {
     /* If the template was defined in a namespace, reactivate the namespace
        scope before pushing the instantiation scope. */
+    /*coverity[var_deref_model]*/
     get_parent_information_for_template(context_scope, is_lambda_body,
                                         template_sym, instance_sym,
                                         &parent_nsp, &parent_class);
@@ -9541,7 +9542,7 @@ being popped.
   if (kind == (a_scope_kind)sck_file ||
       kind == (a_scope_kind)sck_function) {
     /* Dump type list and object lifetime information. */
-    if (db_flag_is_set("dump_type_lists")) {
+    if (db_flag_is_set("dump_type_lists") && il_scope != NULL) {
       db_type_lists(il_scope, 0);
     }  /* if */
     if (db_flag_is_set("dump_lifetimes")) {
@@ -13009,6 +13010,7 @@ TRUE is returned if there are any more elements in the pack.  FALSE otherwise.
              and level match the current value.  In some cases, no parameter
              is found because it belongs to an "inner" pack while substituting
              an "outer" pack (i.e., a pack from a parent template). */
+          check_assertion(arg_prp != NULL);
           ptp = arg_prp->curr_argument.param_type;
           next_ptp = ptp != NULL ? ptp->next : NULL;
           if (next_ptp == NULL || ptp->param_num != next_ptp->param_num) {

@@ -3805,6 +3805,7 @@ is used.
       il_header.seq_number_lookup_entries = snlep;
     } else {
       /* Link this entry into the list of lookup entries. */
+      check_assertion(curr_seq_number_lookup_entry != NULL);
       curr_seq_number_lookup_entry->next = snlep;
     }  /* if */
     seq_number_lookup_table[il_header.num_seq_number_lookup_entries] = snlep;
@@ -7968,7 +7969,7 @@ are done.
 done:
 #if DEBUG
   db_level--;
-  if (!eq && db_flag_is_set("compare_expressions")) {
+  if (!eq && db_flag_is_set("compare_expressions") && node1 != NULL) {
     fprintf(f_debug, "compare_expressions:\n");
     fprintf(f_debug, "\n%*s%s (%lu/%lu)\n", db_level, "", "expr1: ",
             (unsigned long)node1->position.seq,
@@ -9203,32 +9204,27 @@ result of a string literal, but, e.g., of a call to a built-in function).
   cp->variant.string.value = str;
   hash_value = hash_constant(cp) % SIZE_SHAREABLE_CONSTANTS_TABLE;
   list_ptr = &shareable_constants_table[hash_value];
-  if (list_ptr != NULL) {
-    /* Search the entries in the list, if any. */
-    for (prev_scp = NULL, scp = *list_ptr;
-         scp != NULL;
-         prev_scp = scp, scp = scp->next) {
+  /* Search the entries in the list, if any. */
+  for (prev_scp = NULL, scp = *list_ptr;
+       scp != NULL;
+       prev_scp = scp, scp = scp->next) {
 #if DEBUG
-      num_compares_for_shareable_constants++;
+    num_compares_for_shareable_constants++;
 #endif /* DEBUG */
-      /* Compare the constant in the list with the desired constant. */
-      if (identical_constants(scp, cp)) {
-        /* The constants are the same: We have found a reusable constant. */
-        /* Remove the constant from the list.  It will be re-added at the
-           front of the list below.  This is so that common constants stay
-           near the front of the bucket list, to speed lookup. */
-        if (prev_scp == NULL) {
-          *list_ptr = scp->next;
-        } else {
-          prev_scp->next = scp->next;
-        }  /* if */
-        break;
+    /* Compare the constant in the list with the desired constant. */
+    if (identical_constants(scp, cp)) {
+      /* The constants are the same: We have found a reusable constant. */
+      /* Remove the constant from the list.  It will be re-added at the
+         front of the list below.  This is so that common constants stay
+         near the front of the bucket list, to speed lookup. */
+      if (prev_scp == NULL) {
+        *list_ptr = scp->next;
+      } else {
+        prev_scp->next = scp->next;
       }  /* if */
-    }  /* for */
-  } else {
-    /* No constants match this hash value yet. */
-    scp = NULL;
-  }  /* if */
+      break;
+    }  /* if */
+  }  /* for */
   if (scp == NULL) {
     /* No identical constant exists in the table, so create one. */
     scp = fs_constant((a_constant_repr_kind)ck_string);
@@ -23400,7 +23396,7 @@ process_ptr_to_member_selection:
               break;
             case eok_subscript:
               /* Swap operands if the pointer operand is second. */
-              if (is_pointer_type(op2->type)) {
+              if (op2 != NULL && is_pointer_type(op2->type)) {
                 an_expr_node_ptr saved_op1 = op1;
                 op1 = op2;
                 op2 = saved_op1;

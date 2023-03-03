@@ -13506,6 +13506,7 @@ that case.
   check_pending_qualifiers_used(state);
   check_use_of_placeholder_type(state);
   if (any_cfront_mode() &&
+      state->type != NULL &&
       check_member_function_typedef(state->type, &state->start_pos)) {
     /* The type is a cfront-style member function typedef -- it is an error
        to use it anywhere but in a pointer-to-member declaration. */

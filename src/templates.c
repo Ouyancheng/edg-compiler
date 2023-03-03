@@ -5704,6 +5704,7 @@ repl_token_kind, add repl_token_kind to the cache.
   last_token->next = NULL;
   /* Update the replacement token with information about the tokens that
      have been removed. */
+  check_assertion(body_repl_token != NULL);
   check_assertion(body_repl_token->extra_info_kind ==
                                            (a_token_extra_info_kind)teik_none);
   body_repl_token->extra_info_kind =
@@ -24869,6 +24870,7 @@ declaration of a partial specialization declared outside of its class.
   }  /* if */
 friend_template_checks_done:
   if (decl_state->is_partial_specialization) {
+    check_assertion(sym != NULL);
     sym = check_tmpl_class_partial_spec(sym, &locator, decl_state,
                                         &partial_spec_nonreal_sym);
   }  /* if */
@@ -28614,7 +28616,7 @@ supplement for this template should be returned to the caller.
                            &error_position)) {
     /* The template parameter list does not match previous declaration. */
     err = TRUE;
-  } else if (!is_initial_decl &&
+  } else if (!is_initial_decl && var != NULL &&
              var->is_thread_local !=
                                   ((dps->dso_flags & DSO_THREAD_LOCAL) != 0)) {
     /* If "thread_local" is specified on one declaration, it must be
@@ -34199,6 +34201,7 @@ this routine, *is_dependent is set to TRUE.
     }  /* if */
   }  /* if */
   /* Fill in the information in the IL template declaration structures. */
+  /*coverity[var_deref_model]*/
   complete_template_decl(decl_info->template_decl, decl_info->parameters);
 }  /* update_param_depth_and_default_args */
 
@@ -41690,6 +41693,7 @@ template argument list that have been replaced are freed.
     if (i >= mask.length()) {
       /* Add the remainder of the template arguments to the result list as
          there will be no more replacements. */
+      check_assertion(tail != NULL);
       tail->next = tap;
       break;
     }  /* if */
@@ -41697,6 +41701,7 @@ template argument list that have been replaced are freed.
       arg_to_add = replacement_tap;
       /* Advance to the next element in the replacement argument list and skip
          over any pack elements. */
+      check_assertion(replacement_tap != NULL);
       replacement_tap = replacement_tap->next;
       while (replacement_tap != NULL && replacement_tap->is_pack_element) {
         replacement_tap = replacement_tap->next;

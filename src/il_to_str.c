@@ -6273,7 +6273,7 @@ precedence confusion.  Do the output in the way described by octl.
       /* Put parentheses around the constant in case it's negative. */
       check_assertion(is_fixed_point_type(constant->type));
       octl->output_str("(", octl);
-      /* coverity[var_deref_op] */
+      /* coverity[var_deref_model] */
       form_fixed_point_constant(&constant->variant.fixed_point_value,
                                 &con_type->variant.fixed_point,
                                 octl);

@@ -4994,12 +4994,7 @@ ambiguity.
             ovfp->next = ovfp->next->next;
           } else {
             ++overriders_in_unambiguous_bases;
-            if (overriders_in_unambiguous_bases == 0) {
-              /* Keep this overrider in case we do not issue an error. */
-              *ovfp = *ovfp->next;
-            } else {
-              ovfp->next = ovfp->next->next;
-            }  /* if */
+            ovfp->next = ovfp->next->next;
           }  /* if */
           if (ovfp->next == NULL ||
               ovfp->next->primary_function != vfp) {
@@ -9593,6 +9588,7 @@ be NULL.
     prev_d_next = (*p_d_accessors != NULL) ? (*p_d_accessors)->next
                                            : (a_symbol_ptr)NULL;
     add_projections_for_symbols(b_sym_list, single, bcp, p_d_sym_list);
+    check_assertion(*p_d_accessors != NULL);
     if ((*p_d_accessors)->next != prev_d_next) {
       /* The derived-class accessor set has become an overload set (it wasn't
          before).  Create the sk_overloaded_function symbol for it. */
@@ -10063,6 +10059,7 @@ can only contain CLI interfaces.
     may_be_first_direct_nonvirtual_base = FALSE;
     /* Find the end of the base class list (a base class must already be
        present).  Also find the highest direct base number so far. */
+    check_assertion(ctsp != NULL);
     end_of_base_classes_list = ctsp->base_classes;
     check_assertion(end_of_base_classes_list != NULL);
     direct_base_number = largest_direct_base_number(end_of_base_classes_list,
@@ -10810,6 +10807,7 @@ implicitly as part of the dispose pattern implementation.
 #if EXPENSIVE_CHECKING
   if (!type_is(type_ptr, tk_union) &&
       !type_ptr->variant.class_struct_union.is_nonreal_class) {
+    check_assertion(ctsp != NULL);
     for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
       if (!bcp->is_pack_expansion) {
         verify_path_consistency(type_ptr, bcp);

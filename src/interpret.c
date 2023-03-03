@@ -3194,6 +3194,7 @@ search_base_subobjects:
         }  /* if */
       }  /* for */
     }  /* if */
+    check_assertion(last_bcp != NULL);
     type_size = value_bytes_for_type(ips, last_bcp->type, &okay);
     if (offset-sub_offset < type_size ||
         (offset-sub_offset == type_size && cannot_dereference(cap))) {
@@ -6351,6 +6352,7 @@ otherwise, this routine will look up that storage in ips->map.
     if (storage == NULL) {
       get_stack_bytes(ips, vp, storage);
     }  /* if */
+    check_assertion(storage != NULL);
     if (dyn_init_is(dip, dik_zero)) {
       init_subobject_to_zero(ips, storage, tp, storage);
     } else {
@@ -13131,7 +13133,8 @@ is within the given complete_object.
             clear_address(&var_addr, var_storage);
           }  /* if */
           if (dyn_init_is(sub_dip, dik_bitwise_copy)) {
-            check_assertion(sub_dip->variant.bitwise_copy.source == NULL);
+            check_assertion(sub_dip->variant.bitwise_copy.source == NULL &&
+                            var_storage != NULL);
             if (!constexpr_copy_object(ips, ftp, pos,
                                        var_storage, var_addr.complete_object,
                                        dst_bytes, complete_object)) {

@@ -12112,6 +12112,7 @@ the case where the left operand is a C++/CLI handle.
             goto done;
           }  /* if */
           /* Remove any namespace projection symbols. */
+          check_assertion(sym != NULL);
           while (member_sym->kind == (a_symbol_kind)sk_namespace_projection) {
             member_sym = namespace_projection_fundamental_symbol(sym);
           }  /* while */

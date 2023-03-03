@@ -867,7 +867,7 @@ swallowed); otherwise, it's "="-form or "{...}" form.
   if (C_mode()) {
     /* GNU C has some simplified deduction rules. */
     a_type_ptr  deduced_type, auto_type = dps->auto_type;
-    check_assertion(gcc_mode && is_expression_component(icp) &&
+    check_assertion(gcc_mode && icp != NULL && is_expression_component(icp) &&
                     !parenthesized_init);
     if (skip_typerefs(dps->type) != dps->auto_type) {
       pos_error(ec_modified_auto_type, &dps->auto_pos);
@@ -8183,6 +8183,7 @@ qualified_name_check:
           } else {
             /* Look up this identifier in the scope of the class, struct, or
                union. */
+            check_assertion(type_1 != NULL);
             member_sym = look_up_selection_name(&locator_for_curr_id, type_1);
           }  /* if */
           if (member_sym == NULL && locator_for_curr_id.is_destructor_name) {
@@ -8610,6 +8611,7 @@ a left parenthesis in the source.
          names something.  Things like parentheses and lvalue-to-rvalue
          conversion code should be dropped off. */
       sym = NULL;
+      check_assertion(member_op != NULL);
       member_op = strip_implicit_operations_for_rescan(
                                         member_op,
                                         (an_expr_rescan_info_entry_ptr *)NULL);
@@ -8796,6 +8798,7 @@ have_symbol:
       } else {
         *err = TRUE;
         subst_fail(rcblock->error_detected);
+        check_assertion(qualified_member_position != NULL);
         clear_locator(locator, qualified_member_position);
       }  /* if */
       break;
@@ -9354,7 +9357,8 @@ make_proxy_type_if_needed:
     } else {
       /* Class case. */
       dtor_type = skip_typerefs(dtor_type);
-      check_assertion(is_immediate_class_type(class_struct_union_type));
+      check_assertion(class_struct_union_type != NULL &&
+                      is_immediate_class_type(class_struct_union_type));
       if (!is_incomplete_type(class_struct_union_type) &&
           !identical_types(class_struct_union_type, dtor_type) &&
           !class_struct_union_type->variant.class_struct_union.
@@ -18072,6 +18076,7 @@ indication in *rcblock).
     complete_type_is_needed(type_of_type_info);
   }  /* if */
   if (!err && !is_cli_typeid &&
+      type_of_type_info != NULL &&
       (clang_mode && !ms_compat ?
             (symbol_for(type_of_type_info)->decl_scope == NO_SCOPE_DEPTH) :
             is_incomplete_type(type_of_type_info))) {
@@ -20694,6 +20699,7 @@ placement and initializer from a rescan block for the operator.
   }  /* if */
   if (nps->placement_new) {
     /* Pick up the placement new argument list. */
+    check_assertion(rescan_ndsp != NULL);
     rcblock->argument_list = rescan_ndsp->arg;
     scan_call_arguments((a_type_ptr)NULL, (a_routine_ptr)NULL,
                         /*already_after_left_paren=*/TRUE,
@@ -34432,7 +34438,7 @@ in *rcblock).
        semantic errors will not be issued on this throw expression. */
     expr_pos_error(ec_no_exception_support, &start_position);
     err = TRUE;
-  } else if (curr_expr_kind_is_traditional_const()) {
+  } else if (expr_stack != NULL && curr_expr_kind_is_traditional_const()) {
     /* "throw" not allowed in constant expressions. */
     expr_pos_error(ec_bad_constant_operator, &start_position);
     err = TRUE;

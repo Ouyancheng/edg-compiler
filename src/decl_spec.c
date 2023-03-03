@@ -12637,6 +12637,7 @@ exit_loop:
           err = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
         } else if (microsoft_w64_seen) {
+          check_assertion(type_ptr != NULL);
           apply_microsoft_w64_specifier(type_ptr, &microsoft_w64_pos);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         }  /* if */

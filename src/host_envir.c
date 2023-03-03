@@ -5624,6 +5624,7 @@ available.
                                pa_table_entries *
                                             sizeof(a_portable_assembly_entry));
     }  /* if */
+    check_assertion(portable_assembly_table != NULL);
     entry = &portable_assembly_table[idx];
     clear_portable_assembly_entry(entry);
     if (fstat(fileno(file), &stat_buf) != 0) {

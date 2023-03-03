@@ -9840,6 +9840,7 @@ inh_ctor.
     }  /* if */
   }  /* for */
 done:
+  check_assertion(direct_ctor != NULL);
   dip = forwarding_initializer_for_inheriting_constructor(ctor, direct_ctor);
   init->initializer = dip;
   init->initializer->is_constructor_init = TRUE;

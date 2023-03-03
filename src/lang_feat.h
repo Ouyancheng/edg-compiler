@@ -1279,8 +1279,8 @@ EXTERN a_boolean
 /* When Microsoft mode is unavailable, replace the variables for Microsoft
    mode and Microsoft bugs with macros.  This will allow optimizers to remove
    some useless code when the front-end itself is compiled. */
-#ifdef _lint
-/* When lint is used, avoid warnings about dead code. */
+#if defined(_lint) || defined(__COVERITY__)
+/* When static analysis is used, avoid warnings about dead code. */
 EXTERN a_boolean
 		microsoft_mode;
 EXTERN a_boolean
@@ -1299,7 +1299,7 @@ EXTERN a_boolean
 		cli_or_cx_enabled;
 EXTERN a_boolean 
 		scanning_generated_code_from_metadata;
-#else /* !defined(_lint) */
+#else /* !(defined(_lint) || defined(__COVERITY__) */
 #define microsoft_mode FALSE
 #define ms_extensions FALSE
 #define ms_compat FALSE

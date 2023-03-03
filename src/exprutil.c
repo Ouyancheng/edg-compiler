@@ -19324,6 +19324,7 @@ intended to be called from outside of the expression routines.
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/TRUE);
+  check_assertion(expr_stack != NULL);
   if (source->kind == (an_expr_node_kind)enk_object_lifetime) {
     /* The source expression already has an object lifetime on top, so
        use that as the lifetime for the entire expression.  This happens
@@ -19744,6 +19745,7 @@ as part of seeing whether an expression is a C++/CLI initonly field selection.
       a_routine_ptr routine = current_routine_entry();
       if (special_kind_is(routine, sfk_constructor)) {
         if (is_field_node(initonly_field_node) &&
+            class_instance_node != NULL &&
             is_this_parameter_expr_in_current_scope(class_instance_node)) {
           /* The expression is a nonstatic initonly field selection being
              evaluated within the context of its parent class' instance

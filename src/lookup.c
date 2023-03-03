@@ -5563,7 +5563,9 @@ end_lookup:
 #if DEBUG
   if (debug_level >= 4) {
     fprintf(f_debug, "class_qualified_id_lookup: id = %s, %s\n",
-                     locator->symbol_header->identifier,
+                     (locator->symbol_header != NULL) ?
+                                           locator->symbol_header->identifier :
+                                           "NULL",
                      (sym != NULL) ? "found" : "not found");
   }  /* if */
 #endif /* DEBUG */
