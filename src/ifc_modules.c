@@ -3681,7 +3681,7 @@ Return NULL if none is found.
     if (mep->entity.ptr == NULL) {
       /* FIXME: Some ifc_sls_msvc_binding source literals are self references
          to the declaration being declared.  There's no IL entity to return a
-         symbol for as it's none has yet been constructed. */
+         symbol for as none has yet been constructed. */
       if (is_entity_imminent(mep) || has_imminent_subentity(mep)) {
         /* Trigger ifc_unexpected to call attention to the underlying problem
            without crashing. */
