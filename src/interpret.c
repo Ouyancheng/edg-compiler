@@ -579,6 +579,11 @@ typedef struct a_call_frame {
 			/* The current allocation sequence number when the
 			   call frame was pushed.  This is used to identify
 			   the variables that need to be deactivated. */
+  an_alloc_seq_number
+		dest_seq_number_plus_one;
+			/* When we're about to evaluate a call initializing
+			   a variable, the allocation sequence number of that
+			   variable plus one.  Otherwise, 0. */
   a_bit_field	return_active:1;
 			/* TRUE while backtracking from a return statement. */
   a_bit_field	loop_break_active:1;
@@ -1321,6 +1326,7 @@ Macros to push and pop call frames.
     (p_frame)->result_storage = (p_result);                                  \
     (p_frame)->complete_object = (p_complete);                               \
     (p_frame)->entry_seq_number = (ips)->curr_alloc_seq_number;              \
+    (p_frame)->dest_seq_number_plus_one = 0;                                 \
     (p_frame)->return_active = FALSE;                                        \
     (p_frame)->loop_break_active = FALSE;                                    \
     (p_frame)->continue_active = FALSE;                                      \
@@ -6174,9 +6180,24 @@ by implied_src.
       break;
     case dik_expression:
     case dik_class_result_via_ctor:
-      result = do_constexpr_expression(ips, dip->variant.expression,
-                                       dst_addr->address,
-                                       dst_addr->complete_object);
+      { an_expr_node_ptr  expr = skip_parens(dip->variant.expression);
+        if (ips->curr_call_frame != NULL && is_call_node(expr) &&
+            !(expr->is_lvalue || expr->is_xvalue)) {
+          /* If a call expression initializes a local class type object, the
+             address of that object will be needed in the return statement
+             (see handling of stmk_return).  Currently, however,
+             do_constexpr_expression (called below) does not pass in the
+             allocation sequence number of its destination.  Until that is
+             reworked to take a_constexpr_address, the required allocation
+             sequence number is passed via the call frame (with offset 1, to
+             keep zero as a no-number representation). */
+          ips->curr_call_frame->dest_seq_number_plus_one =
+                                                 dst_addr->alloc_seq_number+1;
+        }  /* if */
+        result = do_constexpr_expression(ips, expr,
+                                         dst_addr->address,
+                                         dst_addr->complete_object);
+      }
       break;
     case dik_constructor:
       if (dip->variant.constructor.is_array_copy) {
@@ -7412,6 +7433,15 @@ successfully interpreted, FALSE otherwise.
           } else {
             a_constexpr_address  dst_addr;
             set_active_address(ips, &dst_addr, result_storage, complete_obj);
+            if (frame->parent == NULL) {
+              dst_addr.alloc_seq_number = 1;
+            } else if (frame->parent->dest_seq_number_plus_one != 0) {
+              /* The allocation sequence number of the destination was
+                 recorded when processing the dik_expression node for the
+                 call corresponding to this return statement. */
+              dst_addr.alloc_seq_number =
+                                    frame->parent->dest_seq_number_plus_one-1;
+            }  /* if */
             result = do_constexpr_dynamic_init(ips, dip, &stmt->position, 
                                                &dst_addr);
           }  /* if */

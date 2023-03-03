@@ -1,5 +1,22 @@
 Version 6.5
 
+3/3/23   [EDGcpfe/18466,EDGcpfe/25763,EDGcpfe/25765,EDGcpfe/25766]
+Spurious lifetime error on some self-referencing constant-evaluation results
+
+Consider:
+
+  struct S {
+    void *p;
+    constexpr S(): p(this) {}
+    constexpr S(S const &orig) : p(orig.p) {}
+  };
+  constexpr S g() { return S(); }
+  constexpr S r = g();
+
+Previously, this resulted in a spurious error about attempting to access
+expired storage during constant evaluation.  That is now fixed.
+
+
 3/1/23   [EDGcpfe/26105]
 Microsoft compatibility: using enum declarations enabled
 
