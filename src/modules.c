@@ -1173,20 +1173,17 @@ definition.
 {
   a_boolean  result = FALSE;
 
-  if (!ty->definition_pending) {
-    /* Coverity believes (incorrectly) that ty->definition_pending is
-       unused. */
-    /* coverity[value_overwrite] */
-    /* coverity[assigned_value] */
-    ty->definition_pending = TRUE;
+  /* Static analysis tools diagnose that ty->definition_pending is unused, so
+     for now (since there's no other case), only update ty->definition_pending
+     when Microsoft extensions are allowed. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
+  if (!ty->definition_pending) {
+    ty->definition_pending = TRUE;
     result = load_type_definition_from_ifc_module(ty);
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Once the class is defined, there is no need for this information. */
-    /* coverity[value_overwrite] */
-    /* coverity[assigned_value] */
     ty->definition_pending = FALSE;
   }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   return result;
 }  /* load_routine_definition_from_module */
 
