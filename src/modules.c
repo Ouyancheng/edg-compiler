@@ -1173,9 +1173,6 @@ definition.
 {
   a_boolean  result = FALSE;
 
-  /* Static analysis tools diagnose that ty->definition_pending is unused, so
-     for now (since there's no other case), only update ty->definition_pending
-     when Microsoft extensions are allowed. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (!ty->definition_pending) {
     ty->definition_pending = TRUE;
