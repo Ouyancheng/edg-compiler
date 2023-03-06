@@ -26776,17 +26776,23 @@ will be an lvalue instead of the usual prvalue.
       an_expr_node_ptr temp_init_node;
       if (force_temp) {
         /* We're supposed to force a temporary at the top level. */
-        if (!operand_is_temp_init_full(&operand, &temp_init_node) ||
-            /* If the temp is present but it is already representing something
-               special, make another temporary. */
-            (!init_handled_at_this_level &&
-             !is_generated_dynamic_init(
-                                 temp_init_node->variant.init.dynamic_init))) {
-          if (!is_error_operand(&operand)) {
-            /* Make a temporary.  Normally, it's a prvalue, but make an
-               lvalue if the caller has requested it. */
+        if (operand_is_temp_init_full(&operand, &temp_init_node)) {
+          /* If the temp is present but it is already representing something
+             special, make another temporary. */
+          if (!init_handled_at_this_level &&
+              !is_generated_dynamic_init(
+                                 temp_init_node->variant.init.dynamic_init)) {
             temp_init_from_operand(&operand, make_lvalue_temp);
           }  /* if */
+        } else if (!is_error_operand(&operand)) {
+          /* We only get here if we have already adjusted the operand's value
+             category in preparation for a bitwise copy but haven't performed
+             the copy yet.  Make a temporary by performing that bitwise copy
+             now.  Normally, it's a prvalue, but make an lvalue if the caller
+             has requested it. */
+          temp_init_by_bitwise_copy_from_operand(&operand, (a_type_ptr)NULL,
+                                                 make_lvalue_temp,
+                                                 /*is_explicit_cast=*/TRUE);
         }  /* if */
         if (operand_is_temp_init_full(&operand, &temp_init_node)) {
           dip = temp_init_node->variant.init.dynamic_init;
