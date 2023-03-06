@@ -1,5 +1,16 @@
 Version 6.5
 
+3/6/23   [EDGcpfe/26041]
+Lifetime extension through synthesized variables
+
+Range-based for-loop constructs cause the front end to synthesize implicit
+(i.e., compiler-generated) reference variables.  These variables may end up
+being bound to temporaries in a way that extends the lifetime of those
+temporaries.  Previously, the synthesized variable was not marked as extending
+the lifetime of a temporary, which caused the constant-evaluation interpreter
+to sometimes fail for spurious reasons.  That is now fixed.
+
+
 3/6/23   [EDGcpfe/25426]
 Incorrect move from lvalue for class with trivial copy constructor
 

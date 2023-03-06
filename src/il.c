@@ -16435,6 +16435,7 @@ needs to generate an explicit temporary.
 */
 {
   a_variable_ptr             temp_var;
+  a_symbol_ptr               sym;
   a_boolean                  at_file_scope;
   a_storage_class            storage_class;
   a_scope_ptr                sp;
@@ -16462,6 +16463,7 @@ needs to generate an explicit temporary.
      make_variable/alloc_variable uses the appropriate memory region,
      based on storage class.  */
   temp_var = make_variable(temp_type, storage_class, NO_SCOPE_DEPTH);
+  temp_var->compiler_generated = TRUE;
   /* Find the proper scope and add the temporary at the start of the
      scope's variable list. */
   sp = get_scope_for_list(at_file_scope ? DEPTH_OF_FILE_SCOPE :
@@ -16470,6 +16472,11 @@ needs to generate an explicit temporary.
                           &pointers_block);
   if (!at_file_scope) temp_var->source_corresp.is_local_to_function = TRUE;
   add_temporary_to_front_of_variables_list(temp_var, sp);
+  /* Associate a name-less symbol with the variable. */
+  sym = alloc_symbol((a_symbol_kind)sk_variable, 
+                     (a_symbol_header_ptr)NULL, &error_position);
+  sym->variant.variable.ptr  = temp_var;
+  temp_var->source_corresp.assoc_info = (char*)sym;
   /* Name linkage stays nlk_none. */
   return temp_var;
 }  /* alloc_temporary_variable */

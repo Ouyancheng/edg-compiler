@@ -10942,9 +10942,7 @@ typedef struct a_variable {
 			   argument of class type. */
   a_bit_field
 		compiler_generated:1;
-			/* TRUE if this is a compiler-generated variable
-			   (currently only set for the variables created for
-			   __func__ and similar tokens). */
+			/* TRUE if this is a compiler-generated variable. */
   a_bit_field	is_in_class_specialization:1;
 			/* TRUE if this is a specialized template instance
 			   and the specialization was declared within the

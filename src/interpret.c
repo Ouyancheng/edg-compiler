@@ -6884,6 +6884,7 @@ Interpret the given range-based for-statement.
   a_byte                 *var_storage[4];
   int                    k;
   a_dynamic_init_ptr     dip;
+
   save_storage_stack(ips, saved_stack);
   /* Acquire storage for the iteration variables. */
   vp[0] = loop_info->iterator;
@@ -6903,10 +6904,8 @@ Interpret the given range-based for-statement.
   if (!result) goto unmap_storage;
   /* Initialize the range and its delimiters: */
   for (k = 1; k<4; ++k) {
-    a_constexpr_address  var_addr;
-    set_active_address(ips, &var_addr, var_storage[k], var_storage[k]);
-    dip = vp[k]->initializer.dynamic;
-    if (!do_constexpr_dynamic_init(ips, dip, &stmt->position, &var_addr)) {
+    if (!do_constexpr_init_variable(ips, vp[k], var_storage[k],
+                                    &stmt->position)) {
       do_constexpr_fail(result);
       break;
     }  /* if */

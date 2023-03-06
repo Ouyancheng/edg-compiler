@@ -30461,9 +30461,22 @@ static void set_variable_initializer(a_variable_ptr vp,
 Set the initializer for the variable vp from the operand "operand".
 */
 {
-  a_dynamic_init_ptr dip;
-  an_operand         local_operand;
+  a_dynamic_init_ptr  dip;
+  an_operand          local_operand;
+  a_decl_parse_state  dps, *saved_dps;
 
+  /* Initialization processing sometimes reaches back into the scope stack to
+     identify the variable being initialized.  Ordinarily the required setup
+     is created by declaration processing, but this function is called for
+     synthesized variables that are not explicitly declared.  So we create a
+     synthetic "declaration parse state" and link it to the scope stack until
+     initialization processing is complete. */
+  init_decl_parse_state(&dps);
+  dps.sym = symbol_for(vp);
+  dps.type = vp->type;
+  dps.declarator_pos = vp->source_corresp.decl_position;
+  saved_dps = scope_stack_top().decl_parse_state;
+  scope_stack_top().decl_parse_state = &dps;
   /* Copy the operand so if its type changes the caller will not be
      affected. */
   copy_operand(operand, &local_operand);
@@ -30494,13 +30507,14 @@ Set the initializer for the variable vp from the operand "operand".
             dip,
             /*static_lifetime=*/var_has_static_or_thread_storage_duration(vp),
             /*block_lifetime=*/TRUE);
-    if (symbol_for(vp) != NULL) {
+    if (!vp->compiler_generated && symbol_for(vp) != NULL) {
       /* Record initialization for purposes of analyzing control flow (i.e.,
          whether a goto bypasses required initialization).  Skip this for
          compiler-generated variables. */
       record_trivial_init_control_flow(vp);
     }  /* if */
   }  /* if */
+  scope_stack_top().decl_parse_state = saved_dps;
 }  /* set_variable_initializer */
 
 
