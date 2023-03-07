@@ -26790,9 +26790,12 @@ will be an lvalue instead of the usual prvalue.
              the copy yet.  Make a temporary by performing that bitwise copy
              now.  Normally, it's a prvalue, but make an lvalue if the caller
              has requested it. */
+          an_operand  orig_operand = operand;
           temp_init_by_bitwise_copy_from_operand(&operand, (a_type_ptr)NULL,
                                                  make_lvalue_temp,
-                                                 /*is_explicit_cast=*/TRUE);
+                                                 /*is_explicit_cast=*/FALSE);
+          /* Restore the original source position, etc. */
+          restore_operand_details(&operand, &orig_operand);
         }  /* if */
         if (operand_is_temp_init_full(&operand, &temp_init_node)) {
           dip = temp_init_node->variant.init.dynamic_init;
