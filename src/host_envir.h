@@ -3460,6 +3460,8 @@ FILE *open_output_file(a_const_char		*file_name,
 
 a_boolean okay_as_output_file(a_const_char *file_name);
 
+extern a_boolean file_exists(a_const_char *file_name);
+
 extern FILE *fopen_with_result(a_const_char		*file_name,
                                a_const_char		*mode,
                                an_open_file_result	*open_result);

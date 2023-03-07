@@ -238,6 +238,46 @@ Given a module kind, return a string for that kind for use in error messages.
 }  /* err_string_for_module_kind */
 
 
+static a_boolean is_module_kind_available(a_module_kind kind)
+/*
+Given a supported module kind, return TRUE if it's currently usable; otherwise,
+return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (kind == mk_ifc && !microsoft_mode) {
+    result = FALSE;
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  return result;
+}  /* is_module_kind_available */
+
+
+static void diagnose_unavailable_module_file_kind(a_module_kind file_kind,
+                                                  a_const_char  *module_file)
+/*
+Given a module file, issue diagnostics for an unavailable file_kind.
+*/
+{
+  switch (file_kind) {
+    case mk_edg:
+      /* Always enabled. */
+      break;
+    case mk_ifc:
+      str_catastrophe(ec_ms_ifc_unavailable, module_file);
+      break;
+    case mk_any:
+    case mk_none:
+    case mk_header:
+      /* These module kinds are abstract. */
+      unexpected_condition();
+      break;
+  }  /* switch */
+}  /* diagnose_unavailable_module_file_kind */
+
+
 static void diagnose_mismatched_module_file_kind(a_module_kind file_kind,
                                                  a_module_kind expected_kind,
                                                  a_const_char  *module_file)
@@ -309,14 +349,43 @@ ignored.
        problem cases. */
     if (open_result.flags & OFR_CANNOT_OPEN) {
       /* Note that file_open_error does not return when called from here. */
-      file_open_error(es_catastrophe, ec_module_file, module_file,
+      file_open_error(es_error, ec_module_file, module_file,
                       &open_result);
-    } /* if */
+    }  /* if */
+
+    a_diagnostic_ptr dp = pos_st_start_diagnostic(es_catastrophe,
+                                                  ec_file_for_module_not_found,
+                                                  &error_position,
+                                                  module_file);
+
+    /* Note any module mappings pointing to this file. */
+    for (const a_module_file_map::an_entry &entry : *mod_map) {
+      if (entry.ptr == NULL) {
+        continue;
+      }  /* if */
+      if (strcmp(entry.value, module_file) == 0) {
+        /* A mapping for this file exists, add it to the diagnostic. */
+        a_const_char *module_name = entry.ptr.ptr;
+        str_add_diag_info(dp, ec_found_from_module_map, module_name);
+      }  /* if */
+    }  /* for */
+    /* Note any header unit mappings pointing to this file. */
+    for (const a_header_unit_map::an_entry &entry : *header_unit_map) {
+      if (entry.ptr == NULL) {
+        continue;
+      }  /* if */
+      if (strcmp(entry.value, module_file) == 0) {
+        /* A mapping for this file exists, add it to the diagnostic. */
+        a_const_char *header_path = entry.ptr.ptr;
+        str_add_diag_info(dp, ec_found_from_header_unit_map, header_path);
+      }  /* if */
+    }  /* for */
+    /* Emit the diagnostic. */
+    end_diagnostic(dp);
     goto done;
   }  /* if */
   /* We've found a file - determine what kind it is. */
   file_kind = determine_module_file_kind(file);
-  (void)fclose(file);
   if (file_kind != (a_module_kind)mk_none && *kind == (a_module_kind)mk_any) {
     *kind = file_kind;
   }  /* if */
@@ -329,7 +398,13 @@ ignored.
        the file and continue on searching. */
     diagnose_mismatched_module_file_kind(file_kind, *kind, module_file);
   }  /* if */
+  if (!is_module_kind_available(file_kind)) {
+    diagnose_unavailable_module_file_kind(file_kind, module_file);
+  }  /* if */
 done:
+  if (file != NULL) {
+    (void)fclose(file);
+  }  /* if */
   return result;
 }  /* check_module_file */
 
@@ -394,12 +469,6 @@ module file to the caller.
       mod->full_name = copy_string_to_region(file_scope_region_number,
                                              module_path);
       found = TRUE;
-    } else {
-      /* A mapping for this file exists but either the file cannot be read
-         (doesn't exist, insufficient permissions, etc.) or it's not the right
-         kind. */
-      pos_st_catastrophe(ec_invalid_module_file_map, &error_position,
-                         mod->name);
     }  /* if */
   }  /* if */
   return found;
@@ -431,12 +500,6 @@ module file to the caller.
       mod->full_name = copy_string_to_region(file_scope_region_number,
                                              module_path);
       found = TRUE;
-    } else {
-      /* A mapping for this file exists but either the file cannot be read
-         (doesn't exist, insufficient permissions, etc.) or it's not the right
-         kind. */
-      pos_st_catastrophe(ec_invalid_module_file_map, &error_position,
-                         mod->name);
     }  /* if */
   }  /* if */
   return found;
@@ -518,6 +581,9 @@ module file to the caller.
       a_module_kind skind = suffix.kind;
       if (kind != (a_module_kind)mk_any && suffix.kind != kind) continue;
       replace_file_name_suffix(suffix.suffix, module_search_buffer);
+      if (!file_exists(module_search_buffer->buffer)) {
+        continue;
+      }  /* if */
       if (check_module_file(&skind, module_search_buffer->buffer)) {
         found = TRUE;
         mod->kind = suffix.kind;

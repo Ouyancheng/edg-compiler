@@ -1365,6 +1365,22 @@ is the name of the file, which is used for diagnostic purposes.
 
 #endif /* UNICODE_SOURCE_SUPPORTED */
 
+a_boolean file_exists(a_const_char  *file_name)
+/*
+Return TRUE if the given file exists; otherwise, return FALSE.
+*/
+{
+  a_boolean   result = FALSE;
+  struct stat stat_buffer;
+
+  file_name = file_name_in_external_encoding(file_name);
+  if (stat(file_name, &stat_buffer) == 0) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* file_exists */
+
+
 FILE *fopen_with_result(a_const_char		*file_name,
 		        a_const_char		*mode,
 		        an_open_file_result	*open_result)
