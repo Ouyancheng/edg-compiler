@@ -5685,7 +5685,7 @@ end_scan_for_macro_modifs:;
       for (slmp2 = slmp; slmp2 != top_microsoft_slmp && slmp2 != NULL;
            slmp2 = parent_source_line_modif(slmp2)) {
         ++macro_name_depth;
-        if (slmp2->has_lparen_from_arg) {
+        if (macro_depth == 1 && slmp2->has_lparen_from_arg) {
           macro_name_involved_arg_lparen = TRUE;
         }  /* if */
       }  /* for */

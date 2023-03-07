@@ -1,5 +1,15 @@
 Version 6.5
 
+3/6/23   [EDGcpfe/26108]
+Microsoft compatibility: commas in variadic macro arguments
+
+The changes for EDGcpfe/25674 (not in a release but distributed to some
+customers as a patch) introduced a regression in some cases involving
+commas appearing in variadic macro arguments when emulating the traditional
+Microsoft preprocessor.  This regression manifested when processing the
+Boost concept_check.hpp header.  This is now fixed.
+
+
 3/6/23   [EDGcpfe/26041]
 Lifetime extension through synthesized variables
 
