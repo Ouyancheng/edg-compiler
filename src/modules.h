@@ -554,41 +554,6 @@ the module entity rescan.
   }
 }  /* ~a_module_entity_rescan */
 
-
-/*
-A structure used to modify the front end mode to the correct options for a
-different source context (e.g., while importing a module that needs different
-options than the importing TU).
-*/
-struct a_mode_swapped_parse {
-  a_mode_swapped_parse(a_module_interface *mod);
-  a_mode_swapped_parse(a_symbol *sym);
-private:
-  a_mode_swapped_parse();
-  Value_saver<a_boolean>
-                old_allow_in_class_specializations;
-                        /* The previous value of
-                           "allow_in_class_specializations". */
-  Value_saver<a_boolean>
-                old_allow_in_class_instantiations;
-                        /* The previous value of
-                           "allow_in_class_instantiations". */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  Value_saver<a_boolean>
-                old_microsoft_mode;
-                        /* The previous value of "microsoft_mode". */
-  Value_saver<unsigned long>
-                old_microsoft_version;
-                        /* The previous value of "microsoft_version". */
-  Value_saver<a_boolean>
-                old_ms_extensions;
-                        /* The previous value of "ms_extensions". */
-  Value_saver<a_boolean>
-                old_ms_compat;
-                        /* The previous value of "ms_compat". */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-};  /* a_mode_swapped_parse */
-
 #if DEBUG
 
 extern void db_tokens(a_module_token_cache_ptr cache);

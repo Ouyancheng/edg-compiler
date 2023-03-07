@@ -940,32 +940,6 @@ Load and return the an_ifc_module handler for the referenced module.
   return (an_ifc_module*)(midp->module_info->module_interface);
 }  /* get_module */
 
-
-static unsigned long get_microsoft_version(ARG_UNUSED an_ifc_module *mod)
-/*
-Given an IFC module, determine the appropriate version level of Microsoft mode
-to emulate.
-*/
-{
-  /* FIXME: This should depend on version information in the IFC file. */
-  return 1928;
-}  /* get_microsoft_version */
-
-
-void configure_front_end_parse_for_ifc_module(a_module_interface *mod)
-/*
-Configure the front end to resume an IFC parse for the given module interface.
-This should only be called from within the constructor of a_mode_swapped_parse.
-*/
-{
-  microsoft_mode = TRUE;
-  microsoft_version = get_microsoft_version((an_ifc_module*)mod);
-  ms_extensions = TRUE;
-  ms_compat = TRUE;
-  allow_in_class_specializations = TRUE;
-  allow_in_class_instantiations = TRUE;
-}  /* configure_front_end_parse_for_ifc_module */
-
 namespace {
 
 template<typename an_ifc_Node_type>
@@ -6272,11 +6246,10 @@ the existing template declaration; otherwise, *il_entity should be NULL.
 */
 {
   check_assertion(*il_entity == NULL || *kind == iek_template);
-  a_boolean            result = TRUE;
-  an_ifc_cache_info    cache_info;
-  an_ifc_module        *mod = get_assoc_ifc_module(mep);
-  a_boolean            specializations_processed = FALSE;
-  a_mode_swapped_parse tmp_ms_parse(mod);
+  a_boolean         result = TRUE;
+  an_ifc_cache_info cache_info;
+  an_ifc_module     *mod = get_assoc_ifc_module(mep);
+  a_boolean         specializations_processed = FALSE;
 
   /* If there's an IL entity already loaded (either from a forward declaration
      or something like the global module fragment), load the specializations so
@@ -6768,7 +6741,6 @@ strongly preferred over calling this function directly.
                                          !display_module_import_diagnostics);
   Value_saver<a_boolean>   checking_pragma_saver(&no_checking_pragmas, TRUE);
   a_source_position        saved_error_position = error_position;
-  a_mode_swapped_parse     tmp_ms_parse(mod);
   an_ifc_decl_index        decl_idx = decl_index_of(mep);
 
 #if DEBUG
@@ -8555,7 +8527,6 @@ Complete the definition of the class referred to by mep (if needed).
                                                    non_local_class_fixup_depth;
       a_source_position           saved_error_position = error_position;
       a_module_scope_push_kind    scope_push_status = mspk_unattempted;
-      a_mode_swapped_parse        tmp_ms_parse(this);
       a_module_entity_stack_state mep_state(mep);
       a_module_token_cache        cache;
       an_ifc_source_location      locus = get_ifc_locus(ids);

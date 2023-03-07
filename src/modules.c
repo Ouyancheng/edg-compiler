@@ -1234,54 +1234,6 @@ exit_ifc_rescan is required; otherwise, return FALSE.
   return result;
 }  /* extract_tokens_for_module_expr */
 
-
-a_mode_swapped_parse::a_mode_swapped_parse(ARG_UNUSED a_module_interface *mod)
-/*
-Swap the front end to a state compatible with the given module interface.
-*/
-: a_mode_swapped_parse()
-{
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  configure_front_end_parse_for_ifc_module(mod);
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-}  /* a_mode_swapped_parse::a_mode_swapped_parse */
-
-
-a_mode_swapped_parse::a_mode_swapped_parse(ARG_UNUSED a_symbol *sym)
-/*
-Swap the front end to a state compatible with the given symbol.
-*/
-: a_mode_swapped_parse()
-{
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  an_il_entry_kind        kind;
-  char                    *entity = il_entry_for_symbol(sym, &kind);
-  a_source_correspondence *scp = source_corresp_for_il_entry(entity, kind);
-  a_module_interface      *interface = scp->module_iface;
-
-  if (interface != NULL) {
-    configure_front_end_parse_for_ifc_module(interface);
-  }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-}  /* a_mode_swapped_parse::a_mode_swapped_parse */
-
-
-a_mode_swapped_parse::a_mode_swapped_parse()
-/*
-This is the "fundamental" constructor used to initialize the saved state.
-*/
-: old_allow_in_class_specializations(&allow_in_class_specializations),
-  old_allow_in_class_instantiations(&allow_in_class_instantiations)
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  /* Do not add code here. */,
-  old_microsoft_mode(&microsoft_mode),
-  old_microsoft_version(&microsoft_version), old_ms_extensions(&ms_extensions),
-  old_ms_compat(&ms_compat)
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-{
-}  /* a_mode_swapped_parse::a_mode_swapped_parse */
-
-
 #if DEBUG
 
 void db_tokens(a_module_token_cache_ptr cache)

@@ -19271,8 +19271,6 @@ mode in-class specialization.
           (void)get_token();
         }  /* if */
       } else {
-        a_mode_swapped_parse swapped_parse(templ_sym);
-
         /* Obtain the type of the instance by rescanning the declaration
            tokens. */
         rout_type = scan_member_declaration(parent_class, templ_rout, tip);
@@ -19281,11 +19279,10 @@ mode in-class specialization.
 #endif /* DECL_MODIFIERS_IN_USE */
       }  /* if */
     } else {
-      a_decl_parse_state   state;
-      a_func_info_block    func_info;
-      a_symbol_locator     locator;
-      a_decl_pos_block     decl_pos_block;
-      a_mode_swapped_parse swapped_parse(templ_sym);
+      a_decl_parse_state state;
+      a_func_info_block  func_info;
+      a_symbol_locator   locator;
+      a_decl_pos_block   decl_pos_block;
 
       clear_func_info(&func_info);
       clear_decl_pos_block(&decl_pos_block);

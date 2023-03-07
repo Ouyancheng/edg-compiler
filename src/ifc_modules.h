@@ -573,8 +573,6 @@ extern a_boolean check_module(const an_ifc_module_reference &ref);
 
 extern an_ifc_module* get_module(const an_ifc_module_reference &ref);
 
-extern void configure_front_end_parse_for_ifc_module(a_module_interface *mod);
-
 extern a_boolean has_routine_definition_from_ifc_module(a_routine_ptr  rp);
 
 extern a_boolean load_routine_definition_from_ifc_module(a_routine_ptr  rp);
