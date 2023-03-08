@@ -16436,7 +16436,6 @@ a helper variable.
 {
   a_variable_ptr             temp_var;
   a_symbol_ptr               sym;
-  a_symbol_locator           loc;
   a_boolean                  at_file_scope;
   a_storage_class            storage_class;
   a_scope_ptr                sp;
