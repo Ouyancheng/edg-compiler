@@ -16425,16 +16425,13 @@ a static or nonstatic variable.
 
 
 a_variable_ptr alloc_temporary_variable(a_type_ptr    temp_type,
-                                        a_boolean     force_static,
-                      /* Defaulted: */  a_const_char  *name)
+                                        a_boolean     force_static)
 /*
 Make a temporary variable whose type is temp_type.  Return a pointer to it.
 If force_static is TRUE, make the temporary static (otherwise, it will be
 automatic if we're currently inside a function).  This is used in some cases
 where the front end proper (as opposed to, say, IL lowering) needs to generate
-a helper variable.  name (which defaults to a null pointer) is the name to be
-given to the variable; that name is not required to be a valid identifier
-since the variable is never looked up by name (or entered in the symbol table).
+a helper variable.
 */
 {
   a_variable_ptr             temp_var;
@@ -16476,17 +16473,11 @@ since the variable is never looked up by name (or entered in the symbol table).
                           &pointers_block);
   if (!at_file_scope) temp_var->source_corresp.is_local_to_function = TRUE;
   add_temporary_to_front_of_variables_list(temp_var, sp);
-  /* Associate a symbol with the variable. */
-  if (name == NULL) {
-    name = copy_string_to_region(file_scope_region_number,
-                                 error_text(ec_unnamed));
-  }  /* if */
-  (void)find_symbol(name, strlen(name), &loc);
-  sym = alloc_symbol((a_symbol_kind)sk_variable, loc.symbol_header,
-                     &error_position);
+  /* Associate a name-less symbol with the variable. */
+  sym = alloc_symbol((a_symbol_kind)sk_variable, 
+                     (a_symbol_header_ptr)NULL, &error_position);
   sym->variant.variable.ptr  = temp_var;
   temp_var->source_corresp.assoc_info = (char*)sym;
-  temp_var->source_corresp.name = name;
   /* Name linkage stays nlk_none. */
   return temp_var;
 }  /* alloc_temporary_variable */
