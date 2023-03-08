@@ -742,7 +742,7 @@ initialized and should therefore be moved to the new allocator.
   if (old_start == src.local) {
     /* This allocation is owned by the buffer of src.  Steal the allocation
        from src's buffer and move its contents into this allocator's buffer. */
-    an_allocation alloced = this->alloc(src_alloc.n_elements);
+    an_allocation alloced = this->alloc(src_alloc.n_allocated);
 
     new_start = alloced.start;
     new_num_allocated = alloced.n_allocated;
@@ -754,7 +754,7 @@ initialized and should therefore be moved to the new allocator.
     /* This allocation was created by the fallback allocator of src.  Steal the
        allocation from src's fallback allocator to this allocator's fallback
        allocator. */
-    an_allocation alloced = this->fallback_allocator->move_alloc(
+    an_allocation alloced = this->fallback_allocator.move_alloc(
                                                         src.fallback_allocator,
                                                         src_alloc,
                                                         n_to_move);
