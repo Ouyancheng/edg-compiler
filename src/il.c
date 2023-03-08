@@ -16472,7 +16472,7 @@ a helper variable.
                           &pointers_block);
   if (!at_file_scope) temp_var->source_corresp.is_local_to_function = TRUE;
   add_temporary_to_front_of_variables_list(temp_var, sp);
-  /* Associate a name-less symbol with the variable. */
+  /* Associate an unnamed symbol with the variable. */
   sym = alloc_symbol((a_symbol_kind)sk_variable, 
                      (a_symbol_header_ptr)NULL, &error_position);
   sym->variant.variable.ptr  = temp_var;
