@@ -518,11 +518,12 @@ using a_module_file_map =
 EXTERN a_module_file_map
 		*mod_map;
 			/* A map for modules to find the corresponding module
-			   file.  Keys are module names, values are paths. */
+			   file name.  Keys are module names, values are
+			   paths. */
 using a_lazy_module_file_arr = Dyn_array<a_const_char*, General_allocator>;
 EXTERN a_lazy_module_file_arr
 		*lazy_mod_map_arr;
-			/* An array of modules files specified as module
+			/* An array of module file names specified as module
 			   mappings where the name of the module is not yet
 			   resolved.  When elements in this array are
 			   considered, they are removed from the array and
