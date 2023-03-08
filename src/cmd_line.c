@@ -1703,6 +1703,7 @@ therefore must be initialized before most initialization occurs).
 */
 {
   mod_map = new_general<a_module_file_map>(/*mask_width=*/4);
+  lazy_mod_map_arr = new_general<a_lazy_module_file_arr>(/*mask_width=*/4);
   header_unit_map = new_general<a_header_unit_map>(/*mask_width=*/4);
   header_unit_quote_map = new_general<a_header_unit_map>(/*mask_width=*/4);
   header_unit_angle_map = new_general<a_header_unit_map>(/*mask_width=*/4);
@@ -10281,24 +10282,27 @@ Process the arguments on the command line that invoked the compiler.
                                              &end_module_search_path);
         break;
       case optk_ms_module_file_map:
-        { a_C_str_handle module_name;
-          a_const_char   *path;
-          split_opt_arg_on_char(opt_arg, &module_name.ptr, &path, '=',
+        { a_const_char *part_1;
+          a_const_char *part_2;
+
+          split_opt_arg_on_char(opt_arg, &part_1, &part_2, '=',
                                 /*respect_quotes=*/TRUE);
-          if (path == NULL) {
-            /* No module name provided - add the path to a separate search
-               list. */
-            add_to_specified_include_search_path(
-                                       file_name_from_opt_arg(module_name.ptr),
-                                       /*system_dir=*/FALSE,
-                                       &mod_map_search_path,
-                                       &end_mod_map_search_path);
+          if (part_2 == NULL) {
+            /* Register a module with an unknown name for potential
+               consideration. */
+            a_const_char *path = file_name_from_opt_arg(part_1);
+
+            lazy_mod_map_arr->push_back(path);
           } else {
+            /* Split the parts to get the module name and path. */
+            a_C_str_handle module_name(part_1);
+            a_const_char   *path = file_name_from_opt_arg(part_2);
+
             /* Add this module name to the map. */
             if (mod_map->get(module_name) != NULL) {
               str_command_line_error(ec_duplicate_module_map, module_name.ptr);
             } else {
-              mod_map->map(module_name, file_name_from_opt_arg(path));
+              mod_map->map(module_name, path);
             }  /* if */
           }  /* if */
         }

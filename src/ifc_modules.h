@@ -573,6 +573,8 @@ extern a_boolean check_module(const an_ifc_module_reference &ref);
 
 extern an_ifc_module* get_module(const an_ifc_module_reference &ref);
 
+extern Opt<a_string> get_name_of_ifc_module(a_const_char *file_name);
+
 extern a_boolean has_routine_definition_from_ifc_module(a_routine_ptr  rp);
 
 extern a_boolean load_routine_definition_from_ifc_module(a_routine_ptr  rp);

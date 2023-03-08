@@ -940,6 +940,61 @@ Load and return the an_ifc_module handler for the referenced module.
   return (an_ifc_module*)(midp->module_info->module_interface);
 }  /* get_module */
 
+
+Opt<a_string> get_name_of_ifc_module(a_const_char *file_name)
+/*
+Given the file name of an IFC module, return the name of the module.  If no
+name can be determined, return an empty optional.
+*/
+{
+  Opt<a_string>        result;
+  /* FIXME: Using a fake module import decl creates a possibility for using an
+     improperly initialized module import decl.  This should be
+     reconsidered. */
+  a_module_import_decl mid;
+  a_module             mod;
+  an_ifc_module        ifc_mod;
+
+  mid.module_info = &mod;
+  mod.full_name = file_name;
+  /* FIXME: Use a better source position. */
+  mid.position = null_source_position;
+  mid.module_name_position = null_source_position;
+  if (!ifc_mod.open_and_map_ifc_module_file(&mid, /*issue_diag=*/FALSE)) {
+    goto done;
+  }  /* if */
+  /* FIXME: The current setup here in some cases leads to multiple diagnostics
+     for the same module as it's reconsidered.  However, suppressing
+     diagnostics here results in significantly worse diagnostics for a matching
+     module with a bad version. */
+  if (!ifc_mod.init_string_table_and_header(&mid, /*issue_diag=*/TRUE)) {
+    goto done_with_close;
+  }  /* if */
+  {
+    an_ifc_unit_index unit_idx = get_ifc_unit(ifc_mod.header);
+    a_C_str_handle    this_name;
+
+    switch (unit_idx.sort) {
+      case ifc_us_source:
+      case ifc_us_header:
+        break;
+      case ifc_us_primary:
+      case ifc_us_partition:
+      case ifc_us_exported_tu:
+        { an_ifc_text_offset text_offset{&ifc_mod, unit_idx.value};
+
+          result = ifc_mod.get_string_at_offset(text_offset);
+        }
+        break;
+      default_is_unexpected();
+    }  /* switch */
+  }
+done_with_close:
+  ifc_mod.close();
+done:
+  return result;
+}  /* get_name_of_ifc_module */
+
 namespace {
 
 template<typename an_ifc_Node_type>
@@ -2484,52 +2539,14 @@ Return TRUE if module_file is an IFC module file for module_name, FALSE
 otherwise.
 */
 {
-  a_boolean            result = FALSE;
-  /* FIXME: Using a fake module import decl creates a possibility for using an
-     improperly initialized module import decl.  This should be
-     reconsidered. */
-  a_module_import_decl mid;
-  a_module             mod;
+  a_boolean     result = FALSE;
+  Opt<a_string> opt_mod_name = get_name_of_ifc_module(module_file);
 
-  mid.module_info = &mod;
-  mod.full_name = module_file;
-  /* FIXME: Use a better source position. */
-  mid.position = null_source_position;
-  mid.module_name_position = null_source_position;
-  if (!open_and_map_ifc_module_file(&mid, /*issue_diag=*/FALSE)) {
-    goto done;
+  if (opt_mod_name.has_value()) {
+    a_C_str_handle mod_name(opt_mod_name->as_temp_characters());
+
+    result = (mod_name == module_name);
   }  /* if */
-  /* FIXME: The current setup here in some cases leads to multiple diagnostics
-     for the same module as it's reconsidered.  However, suppressing
-     diagnostics here results in significantly worse diagnostics for a matching
-     module with a bad version. */
-  if (!init_string_table_and_header(&mid, /*issue_diag=*/TRUE)) {
-    goto done_with_close;
-  }  /* if */
-  {
-    an_ifc_unit_index unit_idx = get_ifc_unit(header);
-    a_C_str_handle    this_name;
-
-    switch (unit_idx.sort) {
-      case ifc_us_source:
-      case ifc_us_header:
-        this_name.ptr = NULL;
-        break;
-      case ifc_us_primary:
-      case ifc_us_partition:
-      case ifc_us_exported_tu:
-        { an_ifc_text_offset text_offset{this, unit_idx.value};
-
-          this_name.ptr = get_string_at_offset(text_offset);
-        }
-        break;
-      default_is_unexpected();
-    }  /* switch */
-    result = (this_name == module_name);
-  }
-done_with_close:
-  close();
-done:
   return result;
 }  /* matches_module */
 

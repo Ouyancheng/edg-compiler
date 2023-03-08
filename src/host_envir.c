@@ -6050,8 +6050,6 @@ This is done before command line processing.
   windows_paths_allowed = WINDOWS_PATHS_ALLOWED;
   module_search_path = NULL;
   end_module_search_path = NULL;
-  mod_map_search_path = NULL;
-  end_mod_map_search_path = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   assembly_search_path = NULL;
   end_assembly_search_path = NULL;

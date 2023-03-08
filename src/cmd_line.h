@@ -519,6 +519,14 @@ EXTERN a_module_file_map
 		*mod_map;
 			/* A map for modules to find the corresponding module
 			   file.  Keys are module names, values are paths. */
+using a_lazy_module_file_arr = Dyn_array<a_const_char*, General_allocator>;
+EXTERN a_lazy_module_file_arr
+		*lazy_mod_map_arr;
+			/* An array of modules files specified as module
+			   mappings where the name of the module is not yet
+			   resolved.  When elements in this array are
+			   considered, they are removed from the array and
+			   added into mod_map with their name. */
 using a_header_unit_map =
 		     Ptr_map<a_path_handle, a_const_char*, General_allocator>;
 EXTERN a_header_unit_map

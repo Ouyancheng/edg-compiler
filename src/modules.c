@@ -369,6 +369,7 @@ ignored.
         str_add_diag_info(dp, ec_found_from_module_map, module_name);
       }  /* if */
     }  /* for */
+    /* FIXME: Should lazy_mod_map_arr elements be reported here? */
     /* Note any header unit mappings pointing to this file. */
     for (const a_header_unit_map::an_entry &entry : *header_unit_map) {
       if (entry.ptr == NULL) {
@@ -409,6 +410,60 @@ done:
 }  /* check_module_file */
 
 
+static a_module_kind get_module_kind(a_const_char *module_file)
+/*
+Given a module file, return the module's kind.
+*/
+{
+  a_module_kind       result = mk_none;
+  FILE*               file;
+  an_open_file_result open_result;
+
+  file = fopen_with_result(module_file, FOPEN_MODE_FOR_BINARY_READ,
+                           &open_result);
+  if (file == NULL) {
+    goto done;
+  }  /* if */
+  /* We've found a file - determine what kind it is. */
+  result = determine_module_file_kind(file);
+done:
+  if (file != NULL) {
+    (void)fclose(file);
+  }  /* if */
+  return result;
+}  /* get_module_kind */
+
+
+static Opt<a_string> get_name_of_module(a_const_char *module_file)
+/*
+Given a module file, return the module's name.  If the name could not be
+determined, return an empty optional.
+*/
+{
+  Opt<a_string> result;
+  a_module_kind kind = get_module_kind(module_file);
+
+  switch (kind) {
+    case mk_any:
+    case mk_header:
+      unexpected_condition_str("Unexpected module kind");
+      break;
+    case mk_edg:
+      unexpected_condition_str("Unimplemented");
+      break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case mk_ifc:
+      result = get_name_of_ifc_module(module_file);
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case mk_none:
+      break;
+    default_is_unexpected();
+  }  /* switch */
+  return result;
+}  /* get_name_of_module */
+
+
 static a_boolean module_file_matches(a_const_char  *module_name,
                                      a_const_char  *module_file,
                                      a_module_kind kind)
@@ -444,6 +499,36 @@ the kind of module_file.
 }  /* module_file_matches */
 
 
+static void resolve_lazy_mod_map_element()
+/*
+Resolve one pending lazy_mod_map_arr element.  This function converts the last
+element of the lazy_mod_map_arr into a mod_map element.  If a mod_map element
+already exists, it takes priority and this element is silently ignored.
+*/
+{
+  check_assertion(!lazy_mod_map_arr->is_empty());
+  a_const_char   *mod_path = lazy_mod_map_arr->back_elem();
+  Opt<a_string>  opt_mod_name = get_name_of_module(mod_path);
+
+  if (opt_mod_name.has_value()) {
+    a_C_str_handle tmp_mod_handle(opt_mod_name->as_temp_characters());
+
+    /* Using a temporary module handle, allocate a "permanent" module name
+       string. */
+    if (mod_map->get(tmp_mod_handle) == NULL) {
+      a_const_char   *mod_name_chars = opt_mod_name->as_allocated_characters();
+      a_C_str_handle mod_handle(mod_name_chars);
+
+      mod_map->map(mod_handle, mod_path);
+    } else {
+      pos_st_catastrophe(ec_multiple_module_matches, &error_position,
+                         tmp_mod_handle.ptr);
+    }  /* if */
+  }  /* if */
+  lazy_mod_map_arr->pop_back();
+}  /* resolve_lazy_mod_map */
+
+
 static a_boolean find_module_file_in_map(a_module_ptr  mod,
                                          a_module_kind kind)
 /*
@@ -458,11 +543,19 @@ not already been found - deferring diagnostics related to failing to find the
 module file to the caller.
 */
 {
-  a_boolean      found = FALSE;
-  a_C_str_handle module_name{mod->name};
-  a_const_char   *module_path;
+  a_boolean    found = FALSE;
+  a_const_char *module_path;
 
-  module_path = mod_map->get(module_name);
+  module_path = mod_map->get(mod->name);
+  /* FIXME: This emulates our previous behavior.  If we fail to find an element
+     in the map, we process the entire lazy mod map array (with diagnostics for
+     duplicates). */
+  if (module_path == NULL && !lazy_mod_map_arr->is_empty()) {
+    while (!lazy_mod_map_arr->is_empty()) {
+      resolve_lazy_mod_map_element();
+    }  /* while */
+    module_path = mod_map->get(mod->name);
+  }  /* if */
   if (module_path != NULL) {
     if (check_module_file(&kind, module_path)) {
       mod->kind = kind;
@@ -504,50 +597,6 @@ module file to the caller.
   }  /* if */
   return found;
 }  /* find_header_unit_in_map */
-
-
-static a_boolean find_module_file_in_list(a_module_ptr  mod,
-                                          a_module_kind kind)
-/*
-Find the module file associated with mod in the list of module files and
-update mod with the path to the file.  If kind == mk_any, select the first
-(supported) module file encountered and update the kind of mod.  Otherwise,
-only consider module files of the kind indicated by kind.  Return TRUE if a
-module file was found, FALSE otherwise.
-
-This routine is a helper for find_module_file and assumes the module file has
-not already been found - deferring diagnostics related to failing to find the
-module file to the caller.
-*/
-{
-  a_boolean                  found = FALSE;
-  a_directory_name_entry_ptr mod_list = mod_map_search_path;
-
-  for (; mod_list != NULL; mod_list = mod_list->next) {
-    a_module_kind this_kind = kind;
-    if (check_module_file(&this_kind, mod_list->dir_name) &&
-        module_file_matches(mod->name, mod_list->dir_name, this_kind)) {
-      /* The file exists, is a valid kind, and matches the module. */
-      if (found) {
-        /* More than one match was found. */
-        pos_st_catastrophe(ec_multiple_module_matches, &error_position,
-                           mod->name);
-        /* break; */  /* Unreachable as pos_st_catastrophe exits. */
-      } else {
-        found = TRUE;
-        mod->kind = this_kind;
-        mod->full_name = copy_string_to_region(file_scope_region_number,
-                                               mod_list->dir_name);
-        /* MSVC issues an error if more than one file in the list matches, so
-           we must search the entire list even if we've found one. */
-        if (!microsoft_mode) {
-          break;
-        }  /* if */
-      }  /* if */
-    }  /* if */
-  }  /* for */
-  return found;
-}  /* find_module_file_in_list */
 
 
 static a_boolean find_module_file_in_dirs(a_module_ptr  mod,
@@ -638,9 +687,6 @@ indicated by kind.  Return TRUE if a module file was found, FALSE otherwise.
     }  /* if */
   } else {
     found = find_module_file_in_map(mod, kind);
-    if (!found) {
-      found = find_module_file_in_list(mod, kind);
-    }  /* if */
     if (!found) {
       found = find_module_file_in_dirs(mod, kind);
     }  /* if */
