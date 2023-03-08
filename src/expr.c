@@ -46054,7 +46054,10 @@ expression.
     ref_type = make_reference_type(expr_type);
   }  /* if */
   /* Make the expression reference variable. */
-  ref_var = alloc_temporary_variable(ref_type, /*force_static=*/FALSE);
+  ref_var = alloc_temporary_variable(ref_type, /*force_static=*/FALSE,
+                                     copy_string_to_region(
+                                                   file_scope_region_number,
+                                                   error_text(ec_range)));
   rbflp->range = ref_var;
   *expr_position = result.position;
   set_variable_initializer(ref_var, &result);

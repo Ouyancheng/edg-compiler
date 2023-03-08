@@ -2120,8 +2120,9 @@ extern a_variable_ptr make_handler_parameter(a_type_ptr  type_ptr);
 extern void add_temporary_to_front_of_variables_list(a_variable_ptr temp,
                                                      a_scope_ptr    scope);
 
-extern a_variable_ptr alloc_temporary_variable(a_type_ptr temp_type,
-                                               a_boolean  force_static);
+extern a_variable_ptr alloc_temporary_variable(a_type_ptr    temp_type,
+                                               a_boolean     force_static,
+                                               a_const_char  *name = NULL);
 
 extern a_base_class_ptr next_direct_base(a_base_class_ptr  bcp);
 
