@@ -519,8 +519,11 @@ already exists, it takes priority and this element is silently ignored.
     /* Using a temporary module handle, allocate a "permanent" module name
        string. */
     if (mod_map->get(tmp_mod_handle) == NULL) {
-      a_const_char   *mod_name_chars = opt_mod_name->as_allocated_characters();
-      a_C_str_handle mod_handle(mod_name_chars);
+      General_allocator<char>
+                      allocator;
+      a_const_char    *mod_name_chars =
+                              opt_mod_name->as_allocated_characters(allocator);
+      a_C_str_handle  mod_handle(mod_name_chars);
 
       mod_map->map(mod_handle, mod_path);
     } else {
