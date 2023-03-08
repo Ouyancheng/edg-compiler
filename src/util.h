@@ -789,6 +789,21 @@ objects.
 
 
 /*
+A small "meta" class used to create derived Buffered_allocators that can used
+to create easy to use "Tiny" versions of existing allocator compatible
+templates.  See Tiny_dyn_array for an example.
+*/
+template<unsigned a_Capacity,
+         template<typename> class a_Fallback_allocator>
+struct Delegate_buffered_allocator {
+  template<typename an_Elem>
+  struct Meta : public Buffered_allocator<a_Capacity, a_Fallback_allocator,
+                                          an_Elem> {
+  };  /* Meta */
+};  /* Delegate_buffered_allocator */
+
+
+/*
 The Dyn_array template
 ======================
 The Dyn_array<E, A> template defined below implements a dynamic array construct
@@ -872,6 +887,17 @@ private:
 			   as the "length". */
   void grow();
 };  /* Dyn_array */
+
+/*
+A template alias used to form "tiny" Dyn_arrays that have an initial
+pre-allocated storage capacity before then falling back to a secondary
+allocator (typically for dynamically allocated storage).
+*/
+template<typename an_Elem, unsigned a_Capacity,
+         template<typename> class a_Fallback_allocator = FE_allocator>
+using Tiny_dyn_array = Dyn_array<an_Elem, Delegate_buffered_allocator<
+                                         a_Capacity,
+                                         a_Fallback_allocator>::template Meta>;
 
 
 template<typename an_Elem, template<typename> class Allocator>
