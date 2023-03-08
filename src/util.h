@@ -598,24 +598,26 @@ struct Dyn_array: private Allocator<an_Elem> {
   inline ~Dyn_array();
   inline auto operator=(const Dyn_array&) -> Dyn_array&;
   inline auto operator=(Dyn_array&&) -> Dyn_array&;
-  inline auto operator[](an_index i) -> an_elem&
-    { return this->elems[i]; }
-  inline auto operator[](an_index i) const -> const an_elem& 
-    { return this->elems[i]; }
+  inline auto operator[](an_index i) -> an_elem&;
+  inline auto operator[](an_index i) const -> const an_elem&;
   inline auto is_empty() const -> a_boolean 
     { return this->n_elems == 0; }
   inline auto length() const -> a_size 
     { return this->n_elems; }
   inline auto capacity() const -> a_size
     { return this->n_allocated; }
+  inline auto front_elem() -> an_elem&
+    { return (*this)[0]; }
+  inline auto front_elem() const -> const an_elem&
+    { return (*this)[0]; }
   inline auto back_elem() -> an_elem&
-    { return this->elems[this->n_elems-1]; }
+    { return (*this)[this->n_elems-1]; }
   inline auto back_elem() const -> const an_elem&
-    { return this->elems[this->n_elems-1]; }
+    { return (*this)[this->n_elems-1]; }
   inline void push_back(const an_elem  &value);
   inline void push_back(an_elem  &&value);
   inline void pop_back()
-    { destroy(&this->elems[--this->n_elems]); }
+    { destroy(&((*this)[this->n_elems-1])); --this->n_elems; }
   inline void insert(an_index i, const an_elem  &value);
   inline void insert(an_index i, an_elem  &&value);
   template<typename an_Input_iterator>
@@ -793,7 +795,7 @@ template<typename an_Elem, template<typename> class Allocator>
 inline auto Dyn_array<an_Elem, Allocator>::operator=(Dyn_array &&b)
             -> Dyn_array&
 /*
-Move assignment operator.  
+Move assignment operator.
 */
 {
   if (this != &b) {
@@ -802,6 +804,29 @@ Move assignment operator.
   }  /* if */
   return *this;
 }  /* Dyn_array::operator= */
+
+
+template<typename an_Elem, template<typename> class Allocator>
+inline auto Dyn_array<an_Elem, Allocator>::operator[](an_index i) -> an_elem&
+/*
+Subscript operator to access the element at the given index.
+*/
+{
+  check_assertion(0 <= i && i < this->n_elems);
+  return this->elems[i];
+}  /* Dyn_array::operator[] */
+
+
+template<typename an_Elem, template<typename> class Allocator>
+inline auto Dyn_array<an_Elem, Allocator>::operator[](an_index i) const ->
+                                                                 const an_elem&
+/*
+Subscript operator to access a const version of the element at the given index.
+*/
+{
+  check_assertion(0 <= i && i < this->n_elems);
+  return this->elems[i];
+}  /* Dyn_array::operator[] */
 
 
 template<typename an_Elem, template<typename> class Allocator>
@@ -846,6 +871,7 @@ Copy-insert the given value at the given index.  All subsequent values (if any)
 are first moved one position up.
 */
 {
+  check_assertion(0 <= i && i <= this->n_elems);
   a_size  n = this->n_elems;
 
   if (n_elems == this->n_allocated) {
@@ -869,6 +895,7 @@ Move-insert the given value at the given index.  All subsequent values (if any)
 are first moved one position up.
 */
 {
+  check_assertion(0 <= i && i <= this->n_elems);
   a_size  n = this->n_elems;
 
   if (n == this->n_allocated) {
@@ -895,6 +922,7 @@ into the array beginning at the given index i.  All existing values from index
 i through the end of the array are first moved len positions back.
 */
 {
+  check_assertion(0 <= i && i <= this->n_elems);
   a_size orig_count = this->n_elems;
 
   /* Ensure adequate capacity for the bulk insert operation. */
@@ -924,6 +952,7 @@ Destroy the entry at the given index.  All subsequent values (if any) are moved
 one position down.
 */
 {
+  check_assertion(0 <= i && i < this->n_elems);
   an_elem  *arr_elems = this->elems;
 
   destroy(arr_elems+i);
