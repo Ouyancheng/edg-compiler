@@ -3211,11 +3211,7 @@ invalid); otherwise, return FALSE.
 
 static void catch_up_template_specs(an_ifc_decl_index decl_idx);
 
-template<typename an_Elem>
-using an_ifc_tiny_decl_array_allocator =
-                                 Buffered_allocator<25, FE_allocator, an_Elem>;
-using an_ifc_tiny_decl_array = Dyn_array<an_ifc_decl_index,
-                                         an_ifc_tiny_decl_array_allocator>;
+using an_ifc_tiny_decl_array = Tiny_dyn_array<an_ifc_decl_index, 25>;
 using an_ifc_deferred_spec_map = Ptr_map<a_module_entity_ptr,
                                          an_ifc_tiny_decl_array*>;
                         /* The type of a table that maps IFC module entity
