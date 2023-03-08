@@ -402,6 +402,10 @@ struct FE_allocator {
                              a_size         new_capacity,
                              a_size         n_to_move)
                      -> an_allocation;
+  static auto move_alloc(ARG_UNUSED an_allocator  &src,
+                         an_allocation            src_alloc,
+                         ARG_UNUSED a_size        n_to_move) -> an_allocation
+    { return src_alloc; }
   inline static void dealloc(an_allocation allocation);
 };  /* FE_allocator */
 
@@ -492,6 +496,10 @@ struct General_allocator {
                              a_size         new_capacity,
                              a_size         n_to_move)
                      -> an_allocation;
+  static auto move_alloc(ARG_UNUSED an_allocator  &src,
+                         an_allocation            src_alloc,
+                         ARG_UNUSED a_size        n_to_move) -> an_allocation
+    { return src_alloc; }
   inline static void dealloc(an_allocation allocation);
 };  /* General_allocator */
 
@@ -566,6 +574,218 @@ general memory.
   destroy(p);
   General_allocator<an_Object>::dealloc(Allocation<an_Object>{p, 1});
 }  /* delete_general */
+
+
+/*
+A buffered allocator uses a local buffer of memory to avoid system calls for
+dynamically allocated memory unless the local buffer overflows, in which case a
+fallback allocator is used to provide the requested allocation.
+
+This allocator is designed to be extremely efficient for structures like
+Dyn_array that need one contigous block of memory that's regularly reallocated.
+It does not provide any kind of "memory pool" so structures that make use of
+many different allocations are unlikely to see much of a benefit.
+
+Note that when a Buffered_allocator is copy or move constructed the fallback
+allocator is copied, and the local buffer is left uninitialized.  To transfer
+ownership of allocated objects from the previous allocator to the new
+allocator, move_alloc should be called on any allocations that are to persist.
+This is required as the Buffered_allocator doesn't know what objects in its
+buffer are constructed, so it cannot perform the ownership transfer itself (put
+another way, the Buffered_allocator owns "dumb" block of memory, and that
+memory can't itself be meaningfully "moved").
+*/
+template<unsigned a_Capacity,
+         template<typename> class a_Fallback_allocator,
+         typename an_Elem>
+struct Buffered_allocator {
+  typedef an_Elem an_elem;
+  typedef a_ptrdiff a_size;
+  typedef Allocation<an_elem> an_allocation;
+  typedef a_Fallback_allocator<an_Elem> a_fallback_allocator;
+  typedef Buffered_allocator<a_Capacity, a_Fallback_allocator, an_Elem>
+                an_allocator;
+  typedef Buffered_allocator<a_Capacity, a_Fallback_allocator, an_Elem>
+                a_deallocator;
+
+  Buffered_allocator(a_fallback_allocator a = a_fallback_allocator())
+    : fallback_allocator(a), local_used(FALSE)
+    {}
+  Buffered_allocator(const Buffered_allocator &a)
+    : Buffered_allocator(a.fallback_allocator)
+    {}
+  Buffered_allocator(Buffered_allocator &&a)
+    : Buffered_allocator(a.fallback_allocator)
+    {}
+  ~Buffered_allocator()
+    {}
+
+  inline auto alloc(a_size n) -> an_allocation;
+  inline auto realloc(an_allocation  a,
+                      a_size         new_capacity,
+                      a_size         n_to_move) -> an_allocation;
+  inline auto move_alloc(an_allocator  &src,
+                         an_allocation src_alloc,
+                         a_size        n_to_move) -> an_allocation;
+  inline void dealloc(an_allocation allocation);
+private:
+  a_fallback_allocator
+                fallback_allocator;
+                        /* The fallback allocator used when the local buffer is
+                           already in use. */
+  a_boolean     local_used;
+                        /* TRUE if the local buffer is being used for an
+                           allocation, FALSE otherwise. */
+  union {
+    an_Elem     local[a_Capacity];
+                        /* The local buffer.  Represented as a union so the
+                           value can be uninitialized, and construction
+                           destruction is manually managed. */
+  };
+};  /* Buffered_allocator */
+
+
+template<unsigned a_Capacity,
+         template<typename> class a_Fallback_allocator,
+         typename an_Elem>
+inline auto
+Buffered_allocator<a_Capacity, a_Fallback_allocator, an_Elem>::alloc(
+                                                                   a_size n) ->
+                                                                  an_allocation
+/*
+Allocate at least n elements of type an_Elem and return the resulting
+allocation (which reflects the actual number of allocated elements).
+*/
+{
+  an_elem   *start;
+  a_ptrdiff num_allocated;
+
+  if (!this->local_used && n <= a_Capacity) {
+    this->local_used = TRUE;
+    start = this->local;
+    num_allocated = n;
+  } else {
+    an_allocation alloced = this->fallback_allocator.alloc(n);
+
+    start = alloced.start;
+    num_allocated = alloced.n_allocated;
+  }  /* if */
+  return an_allocation{start, num_allocated};
+}  /* Buffered_allocator::alloc */
+
+
+template<unsigned a_Capacity,
+         template<typename> class a_Fallback_allocator,
+         typename an_Elem>
+inline auto
+Buffered_allocator<a_Capacity, a_Fallback_allocator, an_Elem>::realloc(
+                                                   an_allocation  a,
+                                                   a_size         new_capacity,
+                                                   a_size         n_to_move) ->
+                                                                  an_allocation
+/*
+Replace the given allocation -- which was allocated by the same allocator -- by
+a new one with at least new_capacity elements.  The first n_to_move elements in
+the original allocation are initialized and should therefore be moved to the
+new allocation.
+*/
+{
+  an_elem   *new_start;
+  a_ptrdiff new_num_allocated;
+  an_elem   *old_start = a.start;
+
+  if ((!this->local_used || old_start == this->local) &&
+      new_capacity <= a_Capacity) {
+    /* Either the local buffer was not previously used, or the previous
+       allocation was already using the local buffer. */
+    this->local_used = TRUE;
+    new_start = this->local;
+    new_num_allocated = new_capacity;
+  } else {
+    an_allocation alloced = this->fallback_allocator.alloc(new_capacity);
+
+    new_start = alloced.start;
+    new_num_allocated = alloced.n_allocated;
+  }  /* if */
+  /* If we're still within the local capacity old_start will equal new_start,
+     and nothing more needs to happen. */
+  if (old_start != new_start) {
+    for (a_size k = 0; k < n_to_move; ++k) {
+      construct(new_start + k, move_from(old_start + k));
+      destroy(old_start + k);
+    }  /* for */
+    this->dealloc(a);
+  }  /* if */
+  return an_allocation{new_start, new_num_allocated};
+}  /* Buffered_allocator::realloc */
+
+
+template<unsigned a_Capacity,
+         template<typename> class a_Fallback_allocator,
+         typename an_Elem>
+inline auto
+Buffered_allocator<a_Capacity, a_Fallback_allocator, an_Elem>::move_alloc(
+                                                    an_allocator  &src,
+                                                    an_allocation src_alloc,
+                                                    a_size        n_to_move) ->
+                                                                  an_allocation
+/*
+Move the ownership of the given source allocation from the source allocator to
+this allocator.  The first n_to_move elements in the original allocation are
+initialized and should therefore be moved to the new allocator.
+*/
+{
+  an_elem   *new_start;
+  a_ptrdiff new_num_allocated;
+  an_elem   *old_start = src_alloc.start;
+
+  if (old_start == src.local) {
+    /* This allocation is owned by the buffer of src.  Steal the allocation
+       from src's buffer and move its contents into this allocator's buffer. */
+    an_allocation alloced = this->alloc(src_alloc.n_elements);
+
+    new_start = alloced.start;
+    new_num_allocated = alloced.n_allocated;
+    for (a_size k = 0; k < n_to_move; ++k) {
+      construct(new_start + k, move_from(old_start + k));
+      destroy(old_start + k);
+    }  /* for */
+  } else {
+    /* This allocation was created by the fallback allocator of src.  Steal the
+       allocation from src's fallback allocator to this allocator's fallback
+       allocator. */
+    an_allocation alloced = this->fallback_allocator->move_alloc(
+                                                        src.fallback_allocator,
+                                                        src_alloc,
+                                                        n_to_move);
+
+    new_start = alloced.start;
+    new_num_allocated = alloced.n_allocated;
+  }  /* if */
+  return an_allocation{new_start, new_num_allocated};
+}  /* Buffered_allocator::move_alloc */
+
+
+template<unsigned a_Capacity,
+         template<typename> class a_Fallback_allocator,
+         typename an_Elem>
+inline void
+Buffered_allocator<a_Capacity, a_Fallback_allocator, an_Elem>::dealloc(
+                                                              an_allocation  a)
+/*
+Release the given allocation -- which was allocated by the same allocator.
+The caller is responsible for ensuring the allocation contains no live
+objects.
+*/
+{
+  if (a.start == this->local) {
+    /* The local buffer was previously used, mark it as available. */
+    this->local_used = FALSE;
+  } else {
+    /* An allocated block of memory was previously used, deallocate it. */
+    this->fallback_allocator.dealloc(a);
+  }  /* if */
+}  /* Buffered_allocator::dealloc */
 
 
 /*
@@ -725,10 +945,15 @@ inline Dyn_array<an_Elem, Allocator>::Dyn_array(Dyn_array&&  src)
 Move constructor.
 */
   : an_allocator(move_from(&src))
-  , elems(src.elems)
-  , n_allocated(src.n_allocated)
+  , elems()
+  , n_allocated()
   , n_elems(src.n_elems)
 {
+  an_allocation src_alloc = an_allocation{src.elems, src.n_allocated};
+  an_allocation new_alloc = this->move_alloc(src, src_alloc, src.n_elems);
+
+  this->elems = new_alloc.start;
+  this->n_allocated = new_alloc.n_allocated;
   src.elems = NULL;
   src.n_allocated = 0;
   src.n_elems = 0;
