@@ -3211,9 +3211,13 @@ invalid); otherwise, return FALSE.
 
 static void catch_up_template_specs(an_ifc_decl_index decl_idx);
 
-using an_ifc_decl_array = Dyn_array<an_ifc_decl_index>;
+template<typename an_Elem>
+using an_ifc_tiny_decl_array_allocator =
+                                 Buffered_allocator<25, FE_allocator, an_Elem>;
+using an_ifc_tiny_decl_array = Dyn_array<an_ifc_decl_index,
+                                         an_ifc_tiny_decl_array_allocator>;
 using an_ifc_deferred_spec_map = Ptr_map<a_module_entity_ptr,
-                                         Dyn_array<an_ifc_decl_index>*>;
+                                         an_ifc_tiny_decl_array*>;
                         /* The type of a table that maps IFC module entity
                            pointers to an associated list of deferred
                            specializations. */
@@ -3275,11 +3279,11 @@ required).
         parent_decl_idx = get_ifc_home_scope(parent_decl_idx);
       }  /* if */
       if (deferring_entity != NULL) {
-        Dyn_array<an_ifc_decl_index>* deferred_spec_list =
+        an_ifc_tiny_decl_array* deferred_spec_list =
                                      ifc_deferred_specs->get(deferring_entity);
 
         if (deferred_spec_list == NULL) {
-          deferred_spec_list = alloc_fe_of_type(Dyn_array<an_ifc_decl_index>);
+          deferred_spec_list = alloc_fe_of_type(an_ifc_tiny_decl_array);
           construct(deferred_spec_list);
           ifc_deferred_specs->map(deferring_entity, deferred_spec_list);
         }  /* if */
@@ -3292,10 +3296,10 @@ required).
 
   /* Process any specializations that were waiting for this declaration to be
      complete. */
-  Dyn_array<an_ifc_decl_index> *deferred_spec_list_ptr =
+  an_ifc_tiny_decl_array *deferred_spec_list_ptr =
                                                   ifc_deferred_specs->get(mep);
   if (deferred_spec_list_ptr != NULL) {
-    Dyn_array<an_ifc_decl_index> &deferred_spec_list = *deferred_spec_list_ptr;
+    an_ifc_tiny_decl_array &deferred_spec_list = *deferred_spec_list_ptr;
 
     for (an_ifc_decl_index deferred_template : deferred_spec_list) {
       catch_up_template_specs(deferred_template);
@@ -5872,7 +5876,7 @@ using the normal IFC modules function loading logic.
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
 
 using an_ifc_template_lookup_table = Ptr_map<an_ifc_decl_index,
-                                             an_ifc_decl_array*>;
+                                             an_ifc_tiny_decl_array*>;
                         /* The type of a table that maps IFC template
                            declaration indices to the associated list of
                            specializations. */
@@ -5883,7 +5887,7 @@ an_ifc_template_lookup_table
                            corresponding front end symbols. */
 
 
-an_ifc_decl_array*
+an_ifc_tiny_decl_array*
 get_or_alloc_specialization_list(an_ifc_decl_index templ_idx)
 /*
 Return a dynamic array of specializations for the given template index that are
@@ -5891,11 +5895,11 @@ found in supplementary IFC files (i.e., those specializations for the template,
 but are declared by other IFC module files).
 */
 {
-  an_ifc_decl_array *specializations =
+  an_ifc_tiny_decl_array *specializations =
                                 ifc_decl_template_lookup_table->get(templ_idx);
 
   if (specializations == NULL) {
-    specializations = alloc_fe_of_type(an_ifc_decl_array);
+    specializations = alloc_fe_of_type(an_ifc_tiny_decl_array);
     construct(specializations);
     ifc_decl_template_lookup_table->map(templ_idx, specializations);
   }  /* if */
@@ -5909,7 +5913,7 @@ Give the index of the associated template, destroy the associated
 specialization list (if any).
 */
 {
-  an_ifc_decl_array *specializations =
+  an_ifc_tiny_decl_array *specializations =
                                 ifc_decl_template_lookup_table->get(templ_idx);
 
   if (specializations != NULL) {
@@ -5962,7 +5966,7 @@ specialization is declared in an additional module).
         /* FIXME: Is the Microsoft extension where code can exist between
            import declarations correctly handled here. */
         if (templ_mep->entity.ptr == NULL) {
-          an_ifc_decl_array *decl_arr =
+          an_ifc_tiny_decl_array *decl_arr =
                                    get_or_alloc_specialization_list(templ_idx);
 
           decl_arr->push_back(node_idx);
@@ -6006,17 +6010,17 @@ struct an_ifc_template_spec_info {
   void process_specializations();
   void process_instantiations();
 private:
-  void traverse_data(Opt<an_ifc_sequence> spec_sequence,
-                     an_ifc_decl_array    *spec_references);
+  void traverse_data(Opt<an_ifc_sequence>   spec_sequence,
+                     an_ifc_tiny_decl_array *spec_references);
   an_ifc_decl_index
                 templ_idx;
                         /* The IFC index for the associated template
                            declaration. */
-  an_ifc_decl_array
+  an_ifc_tiny_decl_array
                 specializations;
                         /* An array of IFC declaration indexes that represent
                            specializations of the associated template. */
-  an_ifc_decl_array
+  an_ifc_tiny_decl_array
                 explicit_instantiations;
                         /* An array of IFC declaration indexes that represent
                            explicit instantiations of the associated
@@ -6032,9 +6036,11 @@ Construct a new template spec info object for the template at the given IFC
 index.
 */
 {
-  Opt<an_ifc_sequence> opt_spec_seq =
+  Opt<an_ifc_sequence>
+                opt_spec_seq =
                          get_specialization_sequence_from_trait(templ_idx_val);
-  an_ifc_decl_array*   spec_references =
+  an_ifc_tiny_decl_array*
+                spec_references =
                             ifc_decl_template_lookup_table->get(templ_idx_val);
 
   this->traverse_data(opt_spec_seq, spec_references);
@@ -6066,8 +6072,9 @@ instantiation, return TRUE; otherwise, return FALSE.
 
 
 void
-an_ifc_template_spec_info::traverse_data(Opt<an_ifc_sequence> spec_sequence,
-                                         an_ifc_decl_array    *spec_references)
+an_ifc_template_spec_info::traverse_data(
+                                       Opt<an_ifc_sequence>   spec_sequence,
+                                       an_ifc_tiny_decl_array *spec_references)
 /*
 Traverse the given IFC sequence (if provided) and the given array of IFC
 declaration indexes; these are effectively independent containers each
