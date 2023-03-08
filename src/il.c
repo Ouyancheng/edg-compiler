@@ -16432,10 +16432,9 @@ Make a temporary variable whose type is temp_type.  Return a pointer to it.
 If force_static is TRUE, make the temporary static (otherwise, it will be
 automatic if we're currently inside a function).  This is used in some cases
 where the front end proper (as opposed to, say, IL lowering) needs to generate
-an helper variable.  name (which defaults to a null pointer) indicates which
-name should be given to the variable; that name is not required to be a valid
-identifier since the variable is never looked up by name (or entered in the
-symbol table).
+a helper variable.  name (which defaults to a null pointer) is the name to be
+given to the variable; that name is not required to be a valid identifier
+since the variable is never looked up by name (or entered in the symbol table).
 */
 {
   a_variable_ptr             temp_var;
