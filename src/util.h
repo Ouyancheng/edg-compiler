@@ -2532,10 +2532,9 @@ struct Allocated_string {
 
   a_const_char *as_temp_characters() const
     { return backing_array.begin(); }
-  template<typename Char_allocator>
+  template<template<typename> class Char_allocator>
   inline a_const_char*
-  as_allocated_characters(Char_allocator  allocator) const;
-  inline a_const_char* as_allocated_characters() const;
+  as_allocated_characters(Char_allocator<char>  allocator) const;
 
   a_size length() const
     { return backing_array.length() - 1; }
@@ -2571,9 +2570,10 @@ appended in the fashion described in detail::append_with_custom_reserve.
 
 
 template<template<typename> class Allocator>
-template<typename Char_allocator>
+template<template<typename> class Char_allocator>
 a_const_char*
-Allocated_string<Allocator>::as_allocated_characters(Char_allocator  allocator)
+Allocated_string<Allocator>::as_allocated_characters(
+                                               Char_allocator<char>  allocator)
                                                                           const
 /*
 Given an allocator, allocate and return a new character string.
@@ -2582,25 +2582,12 @@ Given an allocator, allocate and return a new character string.
   check_assertion(this->backing_array.length() > 0);
   check_assertion(this->backing_array.back_elem() == '\0');
   size_t        num_bytes = this->backing_array.length();
-  typename Char_allocator::an_allocation
+  typename Char_allocator<char>::an_allocation
                 allocation = allocator.alloc(num_bytes);
   char          *result = allocation.start;
 
   memcpy(result, this->backing_array.begin(), num_bytes);
   return result;
-}  /* Allocated_string::as_allocated_characters */
-
-
-template<template<typename> class Allocator>
-a_const_char* Allocated_string<Allocator>::as_allocated_characters() const
-/*
-Given an allocator, allocate and return a new character string using the
-general allocator.
-*/
-{
-  General_allocator<char> allocator;
-
-  return this->as_allocated_characters(allocator);
 }  /* Allocated_string::as_allocated_characters */
 
 
