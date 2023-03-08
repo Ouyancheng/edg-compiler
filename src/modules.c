@@ -522,7 +522,7 @@ already exists, it takes priority and this element is silently ignored.
       General_allocator<char>
                       allocator;
       a_const_char    *mod_name_chars =
-                              opt_mod_name->as_allocated_characters(allocator);
+                                 opt_mod_name->to_allocated_storage(allocator);
       a_C_str_handle  mod_handle(mod_name_chars);
 
       mod_map->map(mod_handle, mod_path);
