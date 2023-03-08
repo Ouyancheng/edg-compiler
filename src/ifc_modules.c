@@ -972,7 +972,6 @@ name can be determined, return an empty optional.
   }  /* if */
   {
     an_ifc_unit_index unit_idx = get_ifc_unit(ifc_mod.header);
-    a_C_str_handle    this_name;
 
     switch (unit_idx.sort) {
       case ifc_us_source:

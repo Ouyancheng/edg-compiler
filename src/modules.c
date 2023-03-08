@@ -265,15 +265,18 @@ Given a module file, issue diagnostics for an unavailable file_kind.
     case mk_edg:
       /* Always enabled. */
       break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
     case mk_ifc:
       str_catastrophe(ec_ms_ifc_unavailable, module_file);
       break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case mk_any:
     case mk_none:
     case mk_header:
       /* These module kinds are abstract. */
       unexpected_condition();
       break;
+    default_is_unexpected();
   }  /* switch */
 }  /* diagnose_unavailable_module_file_kind */
 
