@@ -2788,7 +2788,7 @@ struct Allocated_string {
     { return backing_array.begin(); }
   template<template<typename> class Char_allocator>
   inline a_const_char*
-  as_allocated_characters(Char_allocator<char>  allocator) const;
+  to_allocated_storage(Char_allocator<char>  allocator) const;
 
   a_size length() const
     { return backing_array.length() - 1; }
@@ -2826,7 +2826,7 @@ appended in the fashion described in detail::append_with_custom_reserve.
 template<template<typename> class Allocator>
 template<template<typename> class Char_allocator>
 a_const_char*
-Allocated_string<Allocator>::as_allocated_characters(
+Allocated_string<Allocator>::to_allocated_storage(
                                                Char_allocator<char>  allocator)
                                                                           const
 /*
@@ -2842,7 +2842,7 @@ Given an allocator, allocate and return a new character string.
 
   memcpy(result, this->backing_array.begin(), num_bytes);
   return result;
-}  /* Allocated_string::as_allocated_characters */
+}  /* Allocated_string::to_allocated_storage */
 
 
 template<template<typename> class Allocator>
