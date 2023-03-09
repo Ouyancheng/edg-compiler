@@ -6250,7 +6250,7 @@ done:
 static a_boolean
 process_template_definition(const an_ifc_decl_template &decl_templ,
                             a_module_entity_ptr        mep,
-                            an_ifc_template_spec_info  spec_info,
+                            an_ifc_template_spec_info  &spec_info,
                             char                       **il_entity,
                             an_il_entry_kind           *kind)
 /*
