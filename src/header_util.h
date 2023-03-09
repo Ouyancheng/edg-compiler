@@ -118,8 +118,8 @@ private:
     a_Value_type
                 stored_value;
                         /* The value stored.  Represented as a union so the
-                           value can be uninitialized, and construction
-                           destruction is manually managed. */
+                           value can be uninitialized, and construction and
+                           destruction are manually managed. */
   };
 #if CHECKING
   a_boolean

@@ -583,7 +583,7 @@ fallback allocator is used to provide the requested allocation.
 
 This allocator is designed to be extremely efficient for structures like
 Dyn_array that need one contigous block of memory that's regularly reallocated.
-It does not provide any kind of "memory pool" so structures that make use of
+It does not provide any kind of "memory pool", so structures that make use of
 many different allocations are unlikely to see much of a benefit.
 
 Note that when a Buffered_allocator is copy or move constructed the fallback
@@ -592,7 +592,7 @@ ownership of allocated objects from the previous allocator to the new
 allocator, move_alloc should be called on any allocations that are to persist.
 This is required as the Buffered_allocator doesn't know what objects in its
 buffer are constructed, so it cannot perform the ownership transfer itself (put
-another way, the Buffered_allocator owns "dumb" block of memory, and that
+another way, the Buffered_allocator owns a "dumb" block of memory, and that
 memory can't itself be meaningfully "moved").
 */
 template<unsigned a_Capacity,
@@ -639,8 +639,8 @@ private:
   union {
     an_Elem     local[a_Capacity];
                         /* The local buffer.  Represented as a union so the
-                           value can be uninitialized, and construction
-                           destruction is manually managed. */
+                           value can be uninitialized, and construction and
+                           destruction are manually managed. */
   };
 };  /* Buffered_allocator */
 
@@ -790,7 +790,7 @@ objects.
 
 /*
 A small "meta" class used to create derived Buffered_allocators that can used
-to create easy to use "Tiny" versions of existing allocator compatible
+to create easy to use "Tiny" versions of existing allocator-compatible
 templates.  See Tiny_dyn_array for an example.
 */
 template<unsigned a_Capacity,
