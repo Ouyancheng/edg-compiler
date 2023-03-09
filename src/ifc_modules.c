@@ -3275,7 +3275,7 @@ required).
         parent_decl_idx = get_ifc_home_scope(parent_decl_idx);
       }  /* if */
       if (deferring_entity != NULL) {
-        an_ifc_tiny_decl_array* deferred_spec_list =
+        an_ifc_tiny_decl_array *deferred_spec_list =
                                      ifc_deferred_specs->get(deferring_entity);
 
         if (deferred_spec_list == NULL) {
@@ -6035,8 +6035,8 @@ index.
   Opt<an_ifc_sequence>
                 opt_spec_seq =
                          get_specialization_sequence_from_trait(templ_idx_val);
-  an_ifc_tiny_decl_array*
-                spec_references =
+  an_ifc_tiny_decl_array
+                *spec_references =
                             ifc_decl_template_lookup_table->get(templ_idx_val);
 
   this->traverse_data(opt_spec_seq, spec_references);
