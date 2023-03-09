@@ -532,7 +532,7 @@ already exists, it takes priority and this element is silently ignored.
     }  /* if */
   }  /* if */
   lazy_mod_map_arr->pop_back();
-}  /* resolve_lazy_mod_map */
+}  /* resolve_lazy_mod_map_element */
 
 
 static a_boolean find_module_file_in_map(a_module_ptr  mod,
