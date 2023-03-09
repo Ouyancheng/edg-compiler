@@ -2860,14 +2860,13 @@ Allocated_string<Allocator>::to_allocated_storage(
 Given an allocator, allocate and return a new character string.
 */
 {
-  check_assertion(this->backing_array.length() > 0);
   check_assertion(this->backing_array.back_elem() == '\0');
   size_t        num_bytes = this->backing_array.length();
   typename Char_allocator<char>::an_allocation
                 allocation = allocator.alloc(num_bytes);
   char          *result = allocation.start;
 
-  memcpy(result, this->backing_array.begin(), num_bytes);
+  (void)memcpy(result, this->backing_array.begin(), num_bytes);
   return result;
 }  /* Allocated_string::to_allocated_storage */
 
@@ -2883,7 +2882,6 @@ is returned.
 */
 {
   /* Remove the null terminator. */
-  check_assertion(this->backing_array.length() > 0);
   check_assertion(this->backing_array.back_elem() == '\0');
   this->backing_array.pop_back();
   /* Append the new characters. */
