@@ -608,7 +608,7 @@ struct Buffered_allocator {
   typedef Buffered_allocator<a_Capacity, a_Fallback_allocator, an_Elem>
                 a_deallocator;
 
-  Buffered_allocator(a_fallback_allocator a = a_fallback_allocator())
+  Buffered_allocator(const a_fallback_allocator &a = a_fallback_allocator())
     : fallback_allocator(a), local_used(FALSE)
     {}
   Buffered_allocator(const Buffered_allocator &a)
@@ -823,11 +823,11 @@ struct Dyn_array: private Allocator<an_Elem> {
   typedef Allocator<an_Elem> an_allocator;
   typedef typename an_allocator::a_size a_size;
   typedef a_ptrdiff an_index;
-  inline Dyn_array(a_size       cap = 0,
-                   an_allocator a = an_allocator());
-  inline Dyn_array(a_size         cap,
-                   const an_elem& v,
-                   an_allocator   a = an_allocator());
+  inline Dyn_array(a_size             cap = 0,
+                   const an_allocator &a = an_allocator());
+  inline Dyn_array(a_size             cap,
+                   const an_elem      &v,
+                   const an_allocator &a = an_allocator());
   inline Dyn_array(const Dyn_array&);
   inline Dyn_array(Dyn_array&&);
   inline ~Dyn_array();
@@ -901,8 +901,8 @@ using Tiny_dyn_array = Dyn_array<an_Elem, Delegate_buffered_allocator<
 
 
 template<typename an_Elem, template<typename> class Allocator>
-inline Dyn_array<an_Elem, Allocator>::Dyn_array(a_size       cap,
-                                                an_allocator a)
+inline Dyn_array<an_Elem, Allocator>::Dyn_array(a_size             cap,
+                                                const an_allocator &a)
 /*
 Initialize a Dyn_array with a minimum of cap elements whose allocation is
 managed by the given allocator.
@@ -919,9 +919,9 @@ managed by the given allocator.
 
 
 template<typename an_Elem, template<typename> class Allocator>
-inline Dyn_array<an_Elem, Allocator>::Dyn_array(a_size         cap,
-                                                const an_elem& v,
-                                                an_allocator   a)
+inline Dyn_array<an_Elem, Allocator>::Dyn_array(a_size             cap,
+                                                const an_elem      &v,
+                                                const an_allocator &a)
 /*
 Initialize a Dyn_array with a minimum of cap elements whose allocation is
 managed by the given allocator.  Initialize the first cap elements to v.
@@ -941,7 +941,7 @@ managed by the given allocator.  Initialize the first cap elements to v.
 
 
 template<typename an_Elem, template<typename> class Allocator>
-inline Dyn_array<an_Elem, Allocator>::Dyn_array(const Dyn_array&  src)
+inline Dyn_array<an_Elem, Allocator>::Dyn_array(const Dyn_array &src)
 /*
 Copy constructor.
 */
@@ -966,7 +966,7 @@ Copy constructor.
 
 
 template<typename an_Elem, template<typename> class Allocator>
-inline Dyn_array<an_Elem, Allocator>::Dyn_array(Dyn_array&&  src)
+inline Dyn_array<an_Elem, Allocator>::Dyn_array(Dyn_array &&src)
 /*
 Move constructor.
 */
@@ -2626,7 +2626,7 @@ A string formatter for Allocated_string values.
 */
 template<template<typename> class Allocator>
 struct String_formatter<Allocated_string<Allocator>> {
-  static size_t size_hint_of(Allocated_string<Allocator> str)
+  static size_t size_hint_of(const Allocated_string<Allocator> &str)
     { return str.length(); }
 
   template<typename a_Dyn_array>
@@ -2804,7 +2804,8 @@ struct Allocated_string {
   typedef typename an_allocator::a_size a_size;
 
   template<typename... a_Text_convertible_type>
-  inline Allocated_string(an_allocator a, a_Text_convertible_type... args);
+  inline Allocated_string(const an_allocator         &a,
+                          a_Text_convertible_type... args);
   template<typename... a_Text_convertible_type>
   inline Allocated_string(a_Text_convertible_type... args)
     : Allocated_string(an_allocator{}, args...)
@@ -2832,7 +2833,7 @@ private:
 template<template<typename> class Allocator>
 template<typename... a_Text_convertible_type>
 inline Allocated_string<Allocator>::Allocated_string(
-                                               an_allocator               a,
+                                               const an_allocator         &a,
                                                a_Text_convertible_type... args)
 /*
 Construct a new string using the given allocator.  The passed arguments are
@@ -3035,7 +3036,8 @@ struct Ptr_map: private Allocator<Ptr_map_entry<a_Ptr_key, a_Value>> {
   typedef Allocator<Ptr_map_entry<a_Ptr_key, a_Value>> an_allocator;
   typedef unsigned int an_index;
   typedef Ptr_map_entry<a_key, a_value> an_entry;
-  inline Ptr_map(unsigned int mask_width, an_allocator a = an_allocator());
+  inline Ptr_map(unsigned int       mask_width,
+                 const an_allocator &a = an_allocator());
   inline ~Ptr_map();
   inline auto get_with_hash(a_key  key, uintptr_t  hash) const -> a_value;
   inline auto get(a_key  key) const -> a_value
@@ -3087,8 +3089,8 @@ private:
 template<typename a_Ptr_key, typename a_Value,
          template<typename> class Allocator>
 inline Ptr_map<a_Ptr_key, a_Value, Allocator>::Ptr_map(
-                                                     unsigned int  mask_width,
-                                                     an_allocator  a)
+                                                 unsigned int       mask_width,
+                                                 const an_allocator &a)
 /*
 Initialize the given pointer map with a capacity for 1<<mask_width slots.
 */
@@ -3598,7 +3600,8 @@ template<typename a_Ptr, template<typename> class Allocator = FE_allocator>
 struct Ptr_set {
   typedef Ptr_map<a_Ptr, a_boolean, Allocator> a_map_type;
   typedef typename a_map_type::an_allocator an_allocator;
-  inline Ptr_set(unsigned int mask_width, an_allocator a = an_allocator())
+  inline Ptr_set(unsigned int       mask_width,
+                 const an_allocator &a = an_allocator())
     : underlying_map(mask_width, a)
     {}
   inline a_boolean contains(a_Ptr key) const
