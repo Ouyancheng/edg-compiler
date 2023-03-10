@@ -4290,27 +4290,16 @@ Write the source line of the macro invocation, if needed.
 
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
 
-static void construct_message(a_diagnostic_ptr	dp)
+static void write_message_to_buffer(a_diagnostic_ptr dp)
 /*
-Convert a diagnostic entry (dp) and its fill-ins into a text string.  Write
-out that string as a diagnostic, and also write out the associated source
-line with an indication of the diagnostic position.  If there are
-sub-messages, output those messages as well.  Output any context messages
-that might be required.
 */
 {
-  a_const_char		*curr_char;
-  a_const_char		*msg_ptr;
-  sizeof_t		length;
-#define MAX_OPTIONS 30
-  char			options[MAX_OPTIONS];
+  constexpr int max_options = 30;
+  a_const_char  *curr_char;
+  a_const_char  *msg_ptr;
+  char          options[max_options];
+  sizeof_t      length;
 
-  reset_text_buffer(prefix_buffer);
-  if (dp->kind == dck_primary) {
-    /* Display the file name, position, etc. */
-    add_primary_prefix(dp);
-  }  /* if */
-  /* Get the error message text. */
   msg_ptr = error_text(dp->error_code);
   curr_char = msg_ptr;
   for (;;) {
@@ -4375,7 +4364,7 @@ that might be required.
                    (*curr_char >= 'A' && *curr_char < 'Z')) {
           options[opt_pos] = *curr_char;
           opt_pos++;
-          check_assertion_str2(opt_pos < MAX_OPTIONS, "construct_message:",
+          check_assertion_str2(opt_pos < max_options, "construct_cli_message:",
                                "too many option characters");
         } else {
           break;
@@ -4387,11 +4376,30 @@ that might be required.
       process_fill_in(dp, fill_in_char, options, fill_in_seq);
     }  /* if */
   }  /* for */
+}  /* write_message_to_buffer */
+
+
+static void construct_cli_message(a_diagnostic_ptr dp)
+/*
+Convert a diagnostic entry (dp) and its fill-ins into a text string.  Write
+out that string as a diagnostic, and also write out the associated source
+line with an indication of the diagnostic position.  If there are
+sub-messages, output those messages as well.  Output any context messages
+that might be required.
+*/
+{
+  reset_text_buffer(prefix_buffer);
+  if (dp->kind == dck_primary) {
+    /* Display the file name, position, etc. */
+    add_primary_prefix(dp);
+  }  /* if */
+  /* Get the error message text. */
+  write_message_to_buffer(dp);
 #if CHECKING
   /* Make sure all of the fill-ins were used. */
   { a_diag_fill_in_ptr	dfip;
     for (dfip = dp->fill_in_head; dfip != NULL; dfip = dfip->next) {
-      check_assertion_str2(dfip->fill_in_used, "construct_message:",
+      check_assertion_str2(dfip->fill_in_used, "construct_cli_message:",
                            "not all fill-ins used");
     }  /* for */
   }
@@ -4402,7 +4410,7 @@ that might be required.
   if (dp->kind == dck_primary) {
     a_diagnostic_ptr	sub_dp;
     for (sub_dp = dp->sub_msgs.head; sub_dp != NULL; sub_dp = sub_dp->next) {
-      construct_message(sub_dp);
+      construct_cli_message(sub_dp);
     }  /* for */
   }  /* if */
   if (dp->kind == dck_primary && !brief_diagnostics) {
@@ -4416,7 +4424,7 @@ that might be required.
     /* Output macro context diagnostics. */
     for (sub_dp = dp->macro_context.head; sub_dp != NULL;
          sub_dp = sub_dp->next) {
-      construct_message(sub_dp);
+      construct_cli_message(sub_dp);
     }  /* for */
     if (dp->kind == dck_primary && !brief_diagnostics) {
       /* Display the macro invocation source line, if needed. */
@@ -4429,12 +4437,12 @@ that might be required.
         /* Unlike other messages, the primary diagnostic is not known when
            the more_info messages are created. */
         mi_dp->primary_diag = dp;
-        construct_message(mi_dp);
+        construct_cli_message(mi_dp);
       }  /* for */
     }  /* if */
     /* Output instantiation context messages. */
     for (sub_dp = dp->context.head; sub_dp != NULL; sub_dp = sub_dp->next) {
-      construct_message(sub_dp);
+      construct_cli_message(sub_dp);
     }  /* for */
     if (!brief_diagnostics) {
       /* Put out an extra space line after the error, for clarity.  The
@@ -4446,7 +4454,264 @@ that might be required.
     fputs(write_diagnostic_buffer->buffer, f_error);
     (void)fflush(f_error);
   }  /* if */
-#undef MAX_OPTIONS
+}  /* construct_cli_message */
+
+#if !STANDALONE_UTILITY_PROGRAM
+
+static void write_sarif_rule_id(a_diagnostic_ptr dp)
+/*
+Write a SARIF "result object"."ruleId property" for the given diagnostic
+pointer to the write_diagnositic_buffer.
+*/
+{
+  char num_buffer[20];
+
+  add_string_to_text_buffer(write_diagnostic_buffer, "\"EC");
+  (void)sprintf(num_buffer, "%lu", (unsigned long)dp->error_code);
+  add_string_to_text_buffer(write_diagnostic_buffer, &num_buffer[0]);
+  add_string_to_text_buffer(write_diagnostic_buffer, "\"");
+}  /* write_sarif_rule_id */
+
+
+static void write_sarif_level(a_diagnostic_ptr dp)
+/*
+Write a SARIF "result object"."level property" for the given diagnostic pointer
+to the write_diagnositic_buffer.
+*/
+{
+  an_error_severity reported_severity = determine_reported_severity(dp);
+
+  switch (reported_severity) {
+    case es_remark:
+      add_string_to_text_buffer(write_diagnostic_buffer, "\"remark\"");
+      break;
+    case es_warning:
+      add_string_to_text_buffer(write_diagnostic_buffer, "\"warning\"");
+      break;
+    case es_error:
+    case es_discretionary_error:
+      add_string_to_text_buffer(write_diagnostic_buffer, "\"error\"");
+      break;
+    case es_catastrophe:
+      add_string_to_text_buffer(write_diagnostic_buffer, "\"catastrophe\"");
+      break;
+    case es_internal_error:
+      add_string_to_text_buffer(write_diagnostic_buffer, "\"internal_error\"");
+      break;
+    default:
+      unexpected_condition_str("determine_severity_code: bad severity");
+  }  /* switch */
+}  /* write_sarif_level */
+
+
+static void add_json_escaped_string_to_text_buffer(a_const_char *str)
+/*
+Add the given null-terminated string to the write_diagnostic_buffer with
+escaping on characters that would cause the string to terminate prematurely.
+Note this function does not add the surrounding double quotes for the string,
+this is the caller's responsibility.
+*/
+{
+  for (a_const_char *a_char = str; *a_char != '\0'; ++a_char) {
+    /* Add an escape \ if necessary. */
+    switch (*a_char) {
+      case '"':
+      case '\\':
+        add_char_to_text_buffer(write_diagnostic_buffer, '\\');
+        break;
+      default:
+        break;
+    }  /* switch */
+    /* Copy the character the to write_diagnostic_buffer. */
+    add_char_to_text_buffer(write_diagnostic_buffer, *a_char);
+  }  /* for */
+}  /* add_json_escaped_string_to_text_buffer */
+
+
+static void write_sarif_message(a_diagnostic_ptr dp)
+/*
+Write a SARIF "message object" for the given diagnostic pointer to the
+write_diagnositic_buffer.  Note that the msg_buffer will be updated and then
+reset in this process, thus it's important that the msg_buffer is not already
+in use.
+*/
+{
+  add_string_to_text_buffer(write_diagnostic_buffer, "{\"text\":\"");
+  /* Form the message in the msg_buffer. */
+  write_message_to_buffer(dp);
+  add_char_to_text_buffer(msg_buffer, '\0');
+  /* Copy the message buffer into the write_diagnostic_buffer with the required
+     JSON string escapes. */
+  add_json_escaped_string_to_text_buffer(msg_buffer->buffer);
+  reset_text_buffer(msg_buffer);
+  add_string_to_text_buffer(write_diagnostic_buffer, "\"}");
+}  /* write_sarif_message */
+
+
+static void write_sarif_artifact_location(a_const_char  *file_name)
+/*
+Write a SARIF "artifactLocation object" for the given file name to the
+write_diagnositic_buffer.
+*/
+{
+  add_string_to_text_buffer(write_diagnostic_buffer, "{\"uri\":\"file://");
+  /* SARIF file names should always be resolved paths (i.e., should not contain
+     relative path markers like ".."). */
+  file_name = normalize_file_name(file_name);
+  add_string_to_text_buffer(write_diagnostic_buffer, file_name);
+  add_string_to_text_buffer(write_diagnostic_buffer, "\"}");
+}  /* write_sarif_artifact_location */
+
+
+static void write_sarif_region(a_line_number   line_number,
+                               a_column_number column_number)
+/*
+Write a SARIF "physicalLocation object"."region property" for the given line
+and column numbers to the write_diagnositic_buffer.
+*/
+{
+  char num_buffer[20];
+
+  add_string_to_text_buffer(write_diagnostic_buffer, "{\"startLine\":");
+  (void)sprintf(num_buffer, "%lu", (unsigned long)line_number);
+  add_string_to_text_buffer(write_diagnostic_buffer, num_buffer);
+  add_string_to_text_buffer(write_diagnostic_buffer, ",\"startColumn\":");
+  (void)sprintf(num_buffer, "%lu", (unsigned long)column_number);
+  add_string_to_text_buffer(write_diagnostic_buffer, num_buffer);
+  add_string_to_text_buffer(write_diagnostic_buffer, "}");
+}  /* write_sarif_artifact_location */
+
+
+static void write_sarif_physical_location(a_source_position_ptr error_pos)
+/*
+Write a SARIF "location object"."physicalLocation property" for the given error
+position to the write_diagnositic_buffer.
+*/
+{
+  a_const_char  *file_name;
+  a_const_char  *full_name;
+  a_line_number line_number;
+  a_boolean     at_end_of_source;
+
+  (void)conv_seq_to_file_and_line(error_pos->seq, &file_name,
+                                  &full_name, &line_number,
+                                  &at_end_of_source);
+  add_string_to_text_buffer(write_diagnostic_buffer,
+                            "{\"artifactLocation:\":");
+  write_sarif_artifact_location(file_name);
+  add_string_to_text_buffer(write_diagnostic_buffer, ",\"region:\":");
+  write_sarif_region(line_number, error_pos->column);
+  add_string_to_text_buffer(write_diagnostic_buffer, "}");
+}  /* write_sarif_physical_location */
+
+
+static void write_sarif_locations(a_source_position_ptr error_pos)
+/*
+Write a SARIF "result object"."level property" for the given source position
+pointer to the write_diagnositic_buffer.
+*/
+{
+  add_string_to_text_buffer(write_diagnostic_buffer,
+                            "[{\"physicalLocation\":");
+  write_sarif_physical_location(error_pos);
+  add_string_to_text_buffer(write_diagnostic_buffer, "}]");
+}  /* write_sarif_locations */
+
+
+static void write_sarif_related_location(a_diagnostic_ptr dp)
+/*
+Write a SARIF "result object"."relatedLocations property" for the given
+diagnostic pointer to the write_diagnositic_buffer.
+*/
+{
+  add_string_to_text_buffer(write_diagnostic_buffer, "{");
+  add_string_to_text_buffer(write_diagnostic_buffer, "\"message\":");
+  write_sarif_message(dp);
+  if (dp->diag_header_pos.seq != 0) {
+    add_string_to_text_buffer(write_diagnostic_buffer,
+                              ",\"physicalLocation\":");
+    write_sarif_physical_location(&dp->diag_header_pos);
+  }  /* if */
+  add_string_to_text_buffer(write_diagnostic_buffer, "}");
+}  /* write_sarif_related_location */
+
+
+static void construct_sarif_result(a_diagnostic_ptr dp)
+/*
+Write a SARIF "result object" (and any preceding ,) for the given diagnostic
+pointer to the write_diagnositic_buffer.  Note that the msg_buffer will be
+updated and then reset in this process, thus it's important that the msg_buffer
+is not already in use.
+*/
+{
+  /* If this isn't the first diagnostic that's been outputted, add a comma to
+     start the new result. */
+  if (diagnostic_counters.total.all_error_types() > 1) {
+    add_char_to_text_buffer(write_diagnostic_buffer, ',');
+  }  /* if */
+  add_char_to_text_buffer(write_diagnostic_buffer, '{');
+  /* Construct the ruleId property. */
+  add_string_to_text_buffer(write_diagnostic_buffer, "\"ruleId\":");
+  write_sarif_rule_id(dp);
+  /* Construct the level property. */
+  add_string_to_text_buffer(write_diagnostic_buffer, ",\"level\":");
+  write_sarif_level(dp);
+  /* Construct the message property. */
+  add_string_to_text_buffer(write_diagnostic_buffer, ",\"message\":");
+  write_sarif_message(dp);
+  /* Construct the locations property. */
+  if (dp->diag_header_pos.seq != 0) {
+    add_string_to_text_buffer(write_diagnostic_buffer, ",\"locations\":");
+    write_sarif_locations(&dp->diag_header_pos);
+  }  /* if */
+
+  /* Construct the relatedLocations property. */
+  a_diagnostic_ptr mi_dp = dp->more_info.head;
+  if (mi_dp != NULL) {
+    a_boolean first = TRUE;
+
+    add_string_to_text_buffer(write_diagnostic_buffer, ",");
+    add_string_to_text_buffer(write_diagnostic_buffer,
+                              "\"relatedLocations\":[");
+    for (; mi_dp != NULL; mi_dp = mi_dp->next) {
+      /* Unlike other messages, the primary diagnostic is not known when the
+         more_info messages are created. */
+      mi_dp->primary_diag = dp;
+      write_sarif_related_location(mi_dp);
+      if (first) {
+        first = FALSE;
+      } else {
+        add_char_to_text_buffer(write_diagnostic_buffer, ',');
+      }  /* if */
+    }  /* for */
+    add_string_to_text_buffer(write_diagnostic_buffer, "]");
+  }  /* if */
+  /* Finish writing the result and flush the buffer. */
+  add_string_to_text_buffer(write_diagnostic_buffer, "}");
+  add_char_to_text_buffer(write_diagnostic_buffer, '\0');
+  fputs(write_diagnostic_buffer->buffer, f_error);
+  (void)fflush(f_error);
+}  /* construct_sarif_result */
+
+#endif /* !STANDALONE_UTILITY_PROGRAM */
+
+static void construct_message(a_diagnostic_ptr dp)
+/*
+*/
+{
+#if STANDALONE_UTILITY_PROGRAM
+  construct_cli_message(dp);
+#else /* !STANDALONE_UTILITY_PROGRAM */
+  switch (output_mode) {
+    case om_cli:
+      construct_cli_message(dp);
+      break;
+    case om_sarif:
+      construct_sarif_result(dp);
+      break;
+    default_is_unexpected();
+  }  /* switch */
+#endif /* STANDALONE_UTILITY_PROGRAM */
 }  /* construct_message */
 
 
@@ -4459,13 +4724,13 @@ otherwise, return FALSE.
   a_boolean result;
 
   switch (severity) {
-  case es_catastrophe:
-  case es_command_line_error:
-  case es_internal_error:
-    result = TRUE;
-    break;
-  default:
-    result = FALSE;
+    case es_catastrophe:
+    case es_command_line_error:
+    case es_internal_error:
+      result = TRUE;
+      break;
+    default:
+      result = FALSE;
   }  /* switch */
   return result;
 }  /* is_catastrophic_error_severity */

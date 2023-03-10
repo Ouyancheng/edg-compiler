@@ -1957,7 +1957,7 @@ source file's compilation.
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
   /* The primary source file pointer is updated when the file is opened. */
   il_header.primary_source_file = NULL;
-
+  write_init();
   db_exit();
 #if DEBUG
   /* Restore the initial debug level (from the command line, or 0 by

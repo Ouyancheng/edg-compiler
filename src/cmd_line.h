@@ -366,6 +366,7 @@ enum an_option_kind {
 #endif /* UNICODE_VULNERABILITY_DETECTION_SUPPORTED */
   optk_old_id_chars,
   optk_dump_command_options,
+  optk_output_mode,
   optk_last		/* Must be last. */
 };
 
@@ -2796,6 +2797,17 @@ EXTERN a_boolean
 			   that the classification of identifier characters
 			   in C++ should reflect earlier C++ Standards.
 			   Currently ignored for C identifiers. */
+
+enum an_output_mode {
+  /* Defines the output modes. */
+  om_cli,       /* The traditional front end textual CLI output mode. */
+  om_sarif      /* The (The Static Analysis Results Interchange Format) SARIF
+                   output mode. */
+};
+
+EXTERN an_output_mode
+		output_mode;
+			/* The output mode. */
 
 EXTERN a_boolean
 		extended_float_types;

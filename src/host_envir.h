@@ -799,6 +799,15 @@ instantiation_mode, which can be changed by a command-line option.
 #endif /* ifndef DEFAULT_INSTANTIATION_MODE */
 
 /*
+The default output mode, which controls how output is reported.  This is the
+default value of the global variable output_mode, which can be changed by a
+command-line option.
+*/
+#ifndef DEFAULT_OUTPUT_MODE
+#define DEFAULT_OUTPUT_MODE om_cli
+#endif /* ifndef DEFAULT_OUTPUT_MODE */
+
+/*
 Flag that is TRUE if, when a precompiled header file is generated, any
 instantiations that are needed will be done before the PCH file is generated
 so that they will not have to be generated for each file that uses the PCH
@@ -3534,6 +3543,8 @@ enum an_error_severity : a_byte {
 /* Terminate the compilation. */
 /*lint -sem(term_compilation, r_no)*/
 NORETURN extern void term_compilation(an_error_severity severity);
+/* Write a compilation init message if appropriate. */
+extern void write_init(void);
 /* Write a compilation signoff message if appropriate. */
 extern void write_signoff(void);
 /* Terminate the compilation without a signoff message. */

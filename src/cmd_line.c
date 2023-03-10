@@ -1693,6 +1693,9 @@ Initialize the option information table.
   add_option_description(optk_dump_command_options, "dump_command_options",
                          '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
                          pchek_none);
+  add_option_description(optk_output_mode, "output_mode", '\0',
+                         /*value=*/TRUE, /*arg_required=*/TRUE,
+                         pchek_none);
 }  /* initialize_option_descriptions */
 
 
@@ -11541,7 +11544,20 @@ enable_microsoft_mode:
            using the --name format. */
         dump_command_options();
         source_file_name_optional = TRUE;
-        break; 
+        break;
+      case optk_output_mode:
+        { a_const_char *output_mode_string = opt_arg;
+
+          if (strcmp(output_mode_string, "cli") == 0) {
+            output_mode = om_cli;
+          } else if (strcmp(output_mode_string, "sarif") == 0) {
+            output_mode = om_sarif;
+          } else {
+            str_command_line_error(ec_cl_invalid_output_mode,
+                                   output_mode_string);
+          }  /* if */
+        }
+        break;
      default:
         /* It should not be possible to get here. */
         unexpected_condition();
@@ -13066,6 +13082,7 @@ variables declared in cmd_line.h.
   check_unicode_security = FALSE;
 #endif /* UNICODE_VULNERABILITY_DETECTION_SUPPORTED */
   old_id_chars = FALSE;
+  output_mode = DEFAULT_OUTPUT_MODE;
   keep_restrict_in_signatures = FALSE;
   attributes_on_using_declarations = FALSE;
   elifdef_enabled = FALSE;

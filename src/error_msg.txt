@@ -3378,6 +3378,7 @@ ec_ms_ifc_unavailable;;"Microsoft mode must be enabled to use the module file %s
 ec_file_for_module_not_found;;"could not open module file %sq"
 ec_found_from_module_map;;"found in the module map for module %sq"
 ec_found_from_header_unit_map;;"found in the header unit map for %sq"
+ec_cl_invalid_output_mode;;"invalid output mode: %s"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

@@ -1820,8 +1820,8 @@ close_done:;
 #endif /* __MICROSOFT_OS__ */
 }  /* close_temp_file */
 
-
 #if __MICROSOFT_OS__
+
 static void close_all_temp_files(void)
 /*
 Close and delete all open temporary files.
@@ -1831,10 +1831,10 @@ Close and delete all open temporary files.
     close_temp_file(open_temp_files->file);
   }  /* while */
 }  /* close_all_temp_files */
+
 #endif /* __MICROSOFT_OS__ */
-
-
 #if COMPILE_MULTIPLE_SOURCE_FILES
+
 void identify_source_file(void)
 /*
 Identify the source file being compiled, when more than one file name
@@ -1847,10 +1847,67 @@ appears on the command line.
   }  /* if */
 #endif /* !USING_DRIVER */
 }  /* identify_source_file */
-#endif /* COMPILE_MULTIPLE_SOURCE_FILES */
 
+#endif /* COMPILE_MULTIPLE_SOURCE_FILES */
+#if !STANDALONE_UTILITY_PROGRAM
+
+static void write_sarif_init()
+/*
+Write the "prelude" for the SARIF output.  When this function exits, the front
+end is expected to output SARIF result objects to f_error.
+*/
+{
+  /* Print the SARIF "prelude", i.e.:
+
+     {
+       "version": "2.1.0",
+       "$schema": "https://raw.githubusercontent.com/oasis-tcs/[etc...]",
+       "runs": [
+         {
+           "tool": {
+             "driver": {
+               "name": "Edison Design Group C/C++ Front End",
+               "version": "[version]",
+               "fullName": "Edison Design Group C/C++ Front End - [version]"
+             }
+           },
+           "columnKind": "unicodeCodePoints",
+           "results": [
+   */
+  fprintf(f_error,
+          "{\"version\":\"2.1.0\",\"$schema\":\""
+          "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/"
+          "Schemata/sarif-schema-2.1.0.json\",\"runs\":[{"
+          "\"tool\":{\"driver\":{"
+          "\"name\":\"Edison Design Group C/C++ Front End\","
+          "\"version\":\"%s\","
+          "\"fullName\":\"Edison Design Group C/C++ Front End - %s\"}},"
+          "\"columnKind\":\"unicodeCodePoints\","
+          "\"results\":[", VERSION_NUMBER, VERSION_NUMBER);
+}  /* write_sarif_init */
+
+#endif /* !STANDALONE_UTILITY_PROGRAM */
+
+void write_init()
+/*
+Write the "prelude" for the front end's execution.
+*/
+{
+#if !STANDALONE_UTILITY_PROGRAM
+  switch (output_mode) {
+    case om_cli:
+      /* No init needs to occur here. */
+      break;
+    case om_sarif:
+      write_sarif_init();
+      break;
+    default_is_unexpected();
+  }  /* switch */
+#endif /* !STANDALONE_UTILITY_PROGRAM */
+}  /* write_init */
 
 #if STANDALONE_UTILITY_PROGRAM
+
 NORETURN void normal_termination(void)
 /*
 Terminate a utility program normally.  This is used by the C-generating back 
@@ -1860,10 +1917,10 @@ This routine does not return.
 {
   exit(RC_NORMAL);
 }  /* normal_termination */
-#endif /* STANDALONE_UTILITY_PROGRAM */
 
+#else /* !STANDALONE_UTILITY_PROGRAM */
 
-void write_signoff(void)
+static void write_cli_signoff()
 /*
 Write a compilation signoff message, giving the count of errors.
 Only write the signoff if there ARE errors, and if we are supposed to.
@@ -1937,6 +1994,36 @@ Only write the signoff if there ARE errors, and if we are supposed to.
     fputs("\n", f_error);
   }  /* if */
 #endif /* WRITE_SIGNOFF_MESSAGE && !STANDALONE_UTILITY_PROGRAM */
+}  /* write_cli_signoff */
+
+
+static void write_sarif_signoff()
+/*
+Write the "epilogue" for the SARIF output.  This terminates the SARIF output,
+starting at the SARIF results array.
+*/
+{
+  fputs("]}]}\n", f_error);
+}  /* write_sarif_signoff */
+
+#endif /* STANDALONE_UTILITY_PROGRAM */
+
+void write_signoff()
+/*
+Write the "epilogue" for the front end's execution.
+*/
+{
+#if !STANDALONE_UTILITY_PROGRAM
+  switch (output_mode) {
+    case om_cli:
+      write_cli_signoff();
+      break;
+    case om_sarif:
+      write_sarif_signoff();
+      break;
+    default_is_unexpected();
+  }  /* switch */
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 }  /* write_signoff */
 
 #if MAKE_FRONT_END_CALLABLE
@@ -1977,12 +2064,14 @@ severe diagnostic issued in this compilation.  This routine does not return.
 */
 {
 #if !USING_DRIVER && !STANDALONE_UTILITY_PROGRAM
-  /* For the more serious severities, write a message about the abrupt
-      termination. */
-  if (severity == es_catastrophe || severity == es_command_line_error) {
-    fprintf(f_error, "Compilation terminated.\n");
-  } else if (severity == es_internal_error) {
-    fprintf(f_error, "Compilation aborted.\n");
+  if (output_mode == om_cli) {
+    /* For the more serious severities, write a message about the abrupt
+       termination. */
+    if (severity == es_catastrophe || severity == es_command_line_error) {
+      fprintf(f_error, "Compilation terminated.\n");
+    } else if (severity == es_internal_error) {
+      fprintf(f_error, "Compilation aborted.\n");
+    }  /* if */
   }  /* if */
 #endif /* !USING_DRIVER && !STANDALONE_UTILITY_PROGRAM */
 
@@ -2014,9 +2103,7 @@ severe diagnostic issued in this compilation.  This routine does not return.
   }  /* switch */
 }  /* exit_compilation */
 
-
 #if !CHECKING
-
 
 NORETURN void exit_unrecoverable_compilation()
 /*
@@ -2027,9 +2114,7 @@ encountered.  This routine does not return.
   exit_compilation(es_internal_error);
 }  /* exit_unrecoverable_compilation */
 
-
 #endif /* !CHECKING */
-
 
 NORETURN void term_compilation(an_error_severity severity)
 /*
