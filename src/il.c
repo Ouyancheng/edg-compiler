@@ -19527,34 +19527,13 @@ options is a set of substitution options.
       }
       break;
     case enk_requires:
-      if (template_arg_list_is_dependent(template_arg_list)) {
+      if (template_arg_list_is_dependent(template_arg_list) &&
+          !(options & (CTWS_ADJUST_COORDINATES |
+                       CTWS_ALIAS_DEDUCTION_GUIDE))) {
         /* Don't attempt to substitute requires-expressions with dependent
-           parameter lists.  Exceptions occur when we are adjusting template
-           parameter coordinates or synthesizing an alias deduction guide:
-           In that case we must produce a new requires-expression. */
-        if (options & (CTWS_ADJUST_COORDINATES | CTWS_ALIAS_DEDUCTION_GUIDE)) {
-          an_expr_node_ptr  reqs = expr->variant.requires_expr.requirements;
-          reqs = copy_template_param_expr_list(reqs, template_arg_list,
-                                               template_param_list, source_pos,
-                                               options, copy_error,
-                                               ctws_state);
-          if (*copy_error) break;
-          a_subst_pairs_array  subst_pairs{};
-          a_param_type_ptr     ptp = expr->variant.requires_expr.parameters;
-          subst_pairs.push_back(a_subst_pairs_descr{ template_param_list,
-                                                     template_arg_list,
-                                                     FALSE, FALSE });
-          ptp = param_types_after_substitutions(ptp, subst_pairs,
-                                                &expr->position,
-                                                options, copy_error,
-                                                ctws_state);
-          if (*copy_error) break;
-          expr_copy = copy_node(expr);
-          expr_copy->variant.requires_expr.requirements = reqs;
-          expr_copy->variant.requires_expr.parameters = ptp;
-        } else {
-          subst_fail(*copy_error);
-        }  /* if */
+           parameter lists (unless we are adjusting template parameter
+           coordinates or synthesizing an alias deduction guide). */
+        subst_fail(*copy_error);
       } else {
         /* If we're substituting as part of rescanning an expression, start
            with the substitution pairs of any enclosing class template

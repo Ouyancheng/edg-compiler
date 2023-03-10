@@ -41,25 +41,6 @@ constructor on that lvalue.  For example, with --c++14:
   static_assert(f({}), "Unexpected");  // Previously failed.  Now okay.
 
 
-3/3/23   [EDGcpfe/25157]
-Requires-expressions in friend function template constraints
-
-Consider, in C++20 mode:
-
-  template<typename T> struct S {
-    template<typename U> requires requires { typename U::type; }
-      friend void f(S, U) { }
-  };
-  int main() {
-    S<int> si;
-    f(si, 1);  // Previously accepted.  Now an error.
-  }
-
-Previously the front end accepted this because it did not correctly substitute
-the requires-expression when attempting to call the friend function template.
-That is now fixed, and the call to f is now diagnosed as expected.
-
-
 3/3/23   [EDGcpfe/18466,EDGcpfe/25763,EDGcpfe/25765,EDGcpfe/25766]
 Spurious lifetime error on some self-referencing constant-evaluation results
 
