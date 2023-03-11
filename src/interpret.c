@@ -6883,7 +6883,7 @@ Interpret the given range-based for-statement.
   a_variable_ptr         vp[4];
   a_byte                 *var_storage[4];
   int                    k;
-  a_dynamic_init_ptr     dip;
+  a_dynamic_init_ptr     dip = NULL;
 
   save_storage_stack(ips, saved_stack);
   /* Acquire storage for the iteration variables. */
@@ -6955,6 +6955,7 @@ Interpret the given range-based for-statement.
           /* Initialize the iterator variable: */
           a_constexpr_address  var_addr;
           set_active_address(ips, &var_addr, var_storage[0], var_storage[0]);
+          check_assertion(dip != NULL);
           if (!do_constexpr_dynamic_init(ips, dip, &stmt->position,
                                          &var_addr)) {
             do_constexpr_fail(result);
