@@ -3845,7 +3845,7 @@ from a tok_ifc_entity_ref or tok_ifc_decl_ref).
 a_symbol_ptr load_tok_ifc_entity_ref()
 /*
 The current token is tok_ifc_entity_ref, which encodes a reference to some IFC
-entity via an expression.  Load the IL entity if necessary, and return the its
+entity via an expression.  Load the IL entity if necessary, and return its
 corresponding symbol.  If the entity could not be loaded, instead return NULL,
 and issue a diagnostic.
 */
