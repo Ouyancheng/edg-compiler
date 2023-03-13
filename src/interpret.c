@@ -11321,6 +11321,7 @@ the body of the (constructor) function proper.
       a_byte_count  n_class_bytes;
       a_boolean     dummy = TRUE;
       n_class_bytes = f_value_bytes_for_type(ips, class_type, &dummy);
+      check_assertion(n_class_bytes != 0);
       memzero(result_storage+sizeof(void*),
               size_t_arg(n_class_bytes-sizeof(void*)));
     }  /* if */
