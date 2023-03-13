@@ -7025,6 +7025,11 @@ file.
 #else /* !defined(DEFAULT_OPERATOR_OVERLOADING_ON_ENUMS) */
   comment_undefined_macro_name(DEFAULT_OPERATOR_OVERLOADING_ON_ENUMS);
 #endif /* defined(DEFAULT_OPERATOR_OVERLOADING_ON_ENUMS) */
+#if defined(DEFAULT_OUTPUT_MODE)
+  define_string_valued_macro(DEFAULT_OUTPUT_MODE);
+#else /* !defined(DEFAULT_OUTPUT_MODE) */
+  comment_undefined_macro_name(DEFAULT_OUTPUT_MODE);
+#endif /* defined(DEFAULT_OUTPUT_MODE) */
 #if defined(DEFAULT_PASS_STDARG_REFERENCES_TO_GENERATED_CODE)
   define_numeric_valued_macro(
                              DEFAULT_PASS_STDARG_REFERENCES_TO_GENERATED_CODE);
