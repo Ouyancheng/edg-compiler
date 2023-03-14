@@ -1866,9 +1866,11 @@ end is expected to output SARIF result objects to f_error.
          {
            "tool": {
              "driver": {
-               "name": "Edison Design Group C/C++ Front End",
+               "name": "EDG CPFE",
                "version": "[version]",
-               "fullName": "Edison Design Group C/C++ Front End - [version]"
+               "organization": "Edison Design Group",
+               "fullName": "Edison Design Group C/C++ Front End - [version]",
+               "informationUri": "https://edg.com/c"
              }
            },
            "columnKind": "unicodeCodePoints",
@@ -1879,9 +1881,11 @@ end is expected to output SARIF result objects to f_error.
           "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/"
           "Schemata/sarif-schema-2.1.0.json\",\"runs\":[{"
           "\"tool\":{\"driver\":{"
-          "\"name\":\"Edison Design Group C/C++ Front End\","
+          "\"name\":\"EDG CPFE\","
           "\"version\":\"%s\","
-          "\"fullName\":\"Edison Design Group C/C++ Front End - %s\"}},"
+          "\"organization\":\"Edison Design Group\","
+          "\"fullName\":\"Edison Design Group C/C++ Front End - %s\","
+          "\"informationUri\":\"https://edg.com/c\"}},"
           "\"columnKind\":\"unicodeCodePoints\","
           "\"results\":[", VERSION_NUMBER, VERSION_NUMBER);
 }  /* write_sarif_init */

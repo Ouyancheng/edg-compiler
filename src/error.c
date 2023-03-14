@@ -4578,9 +4578,14 @@ and column numbers to the write_diagnositic_buffer.
   add_string_to_text_buffer(write_diagnostic_buffer, "{\"startLine\":");
   (void)sprintf(num_buffer, "%lu", (unsigned long)line_number);
   add_string_to_text_buffer(write_diagnostic_buffer, num_buffer);
-  add_string_to_text_buffer(write_diagnostic_buffer, ",\"startColumn\":");
-  (void)sprintf(num_buffer, "%lu", (unsigned long)column_number);
-  add_string_to_text_buffer(write_diagnostic_buffer, num_buffer);
+  /* SARIF does not have a concept of "no column"; if no column information is
+     presented, omit the startColumn (though notably, this is interpreted in
+     the specification as equivalent to a startColumn value of 1). */
+  if (column_number != 0) {
+    add_string_to_text_buffer(write_diagnostic_buffer, ",\"startColumn\":");
+    (void)sprintf(num_buffer, "%lu", (unsigned long)column_number);
+    add_string_to_text_buffer(write_diagnostic_buffer, num_buffer);
+  }  /* if */
   add_char_to_text_buffer(write_diagnostic_buffer, '}');
 }  /* write_sarif_artifact_location */
 
@@ -4600,9 +4605,9 @@ position to the write_diagnositic_buffer.
                                   &full_name, &line_number,
                                   &at_end_of_source);
   add_string_to_text_buffer(write_diagnostic_buffer,
-                            "{\"artifactLocation:\":");
+                            "{\"artifactLocation\":");
   write_sarif_artifact_location(file_name);
-  add_string_to_text_buffer(write_diagnostic_buffer, ",\"region:\":");
+  add_string_to_text_buffer(write_diagnostic_buffer, ",\"region\":");
   write_sarif_region(line_number, error_pos->column);
   add_char_to_text_buffer(write_diagnostic_buffer, '}');
 }  /* write_sarif_physical_location */
@@ -4610,8 +4615,8 @@ position to the write_diagnositic_buffer.
 
 static void write_sarif_locations(a_source_position_ptr error_pos)
 /*
-Write a SARIF "result object"."level property" for the given source position
-pointer to the write_diagnositic_buffer.
+Write a SARIF "result object"."locations property" for the given source
+position pointer to the write_diagnositic_buffer.
 */
 {
   add_string_to_text_buffer(write_diagnostic_buffer,
