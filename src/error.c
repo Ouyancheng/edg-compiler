@@ -4366,7 +4366,8 @@ to the msg_buffer.
                    (*curr_char >= 'A' && *curr_char < 'Z')) {
           options[opt_pos] = *curr_char;
           opt_pos++;
-          check_assertion_str2(opt_pos < max_options, "construct_cli_message:",
+          check_assertion_str2(opt_pos < max_options,
+                               "construct_text_message:",
                                "too many option characters");
         } else {
           break;
