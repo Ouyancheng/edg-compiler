@@ -4292,6 +4292,8 @@ Write the source line of the macro invocation, if needed.
 
 static void write_message_to_buffer(a_diagnostic_ptr dp)
 /*
+Write the textual message for a given diagnostic entry pointer and its fill-ins
+to the msg_buffer.
 */
 {
   constexpr int max_options = 30;
@@ -4379,7 +4381,7 @@ static void write_message_to_buffer(a_diagnostic_ptr dp)
 }  /* write_message_to_buffer */
 
 
-static void construct_cli_message(a_diagnostic_ptr dp)
+static void construct_text_message(a_diagnostic_ptr dp)
 /*
 Convert a diagnostic entry (dp) and its fill-ins into a text string.  Write
 out that string as a diagnostic, and also write out the associated source
@@ -4399,7 +4401,7 @@ that might be required.
   /* Make sure all of the fill-ins were used. */
   { a_diag_fill_in_ptr	dfip;
     for (dfip = dp->fill_in_head; dfip != NULL; dfip = dfip->next) {
-      check_assertion_str2(dfip->fill_in_used, "construct_cli_message:",
+      check_assertion_str2(dfip->fill_in_used, "construct_text_message:",
                            "not all fill-ins used");
     }  /* for */
   }
@@ -4410,7 +4412,7 @@ that might be required.
   if (dp->kind == dck_primary) {
     a_diagnostic_ptr	sub_dp;
     for (sub_dp = dp->sub_msgs.head; sub_dp != NULL; sub_dp = sub_dp->next) {
-      construct_cli_message(sub_dp);
+      construct_text_message(sub_dp);
     }  /* for */
   }  /* if */
   if (dp->kind == dck_primary && !brief_diagnostics) {
@@ -4424,7 +4426,7 @@ that might be required.
     /* Output macro context diagnostics. */
     for (sub_dp = dp->macro_context.head; sub_dp != NULL;
          sub_dp = sub_dp->next) {
-      construct_cli_message(sub_dp);
+      construct_text_message(sub_dp);
     }  /* for */
     if (dp->kind == dck_primary && !brief_diagnostics) {
       /* Display the macro invocation source line, if needed. */
@@ -4437,12 +4439,12 @@ that might be required.
         /* Unlike other messages, the primary diagnostic is not known when
            the more_info messages are created. */
         mi_dp->primary_diag = dp;
-        construct_cli_message(mi_dp);
+        construct_text_message(mi_dp);
       }  /* for */
     }  /* if */
     /* Output instantiation context messages. */
     for (sub_dp = dp->context.head; sub_dp != NULL; sub_dp = sub_dp->next) {
-      construct_cli_message(sub_dp);
+      construct_text_message(sub_dp);
     }  /* for */
     if (!brief_diagnostics) {
       /* Put out an extra space line after the error, for clarity.  The
@@ -4454,7 +4456,7 @@ that might be required.
     fputs(write_diagnostic_buffer->buffer, f_error);
     (void)fflush(f_error);
   }  /* if */
-}  /* construct_cli_message */
+}  /* construct_text_message */
 
 #if !STANDALONE_UTILITY_PROGRAM
 
@@ -4638,14 +4640,14 @@ diagnostic pointer to the write_diagnositic_buffer.
 
 static void construct_sarif_result(a_diagnostic_ptr dp)
 /*
-Write a SARIF "result object" (and any preceding ,) for the given diagnostic
-pointer to the write_diagnositic_buffer.  Note that the msg_buffer will be
-updated and then reset in this process, thus it's important that the msg_buffer
-is not already in use.
+Write a SARIF "result object" (and a preceding comma if this is not the first
+result) for the given diagnostic pointer to the write_diagnositic_buffer.  Note
+that the msg_buffer will be updated and then reset in this process, thus it's
+important that the msg_buffer is not already in use.
 */
 {
-  /* If this isn't the first diagnostic that's been outputted, add a comma to
-     start the new result. */
+  /* If this isn't the first SARIF "result object" that's been emitted, add a
+     comma to start the new result. */
   if (diagnostic_counters.total.all_error_types() > 1) {
     add_char_to_text_buffer(write_diagnostic_buffer, ',');
   }  /* if */
@@ -4697,14 +4699,16 @@ is not already in use.
 
 static void construct_message(a_diagnostic_ptr dp)
 /*
+Convert and emit the given diagnostic entry (dp) as textual output with respect
+to the current output mode.
 */
 {
 #if STANDALONE_UTILITY_PROGRAM
-  construct_cli_message(dp);
+  construct_text_message(dp);
 #else /* !STANDALONE_UTILITY_PROGRAM */
   switch (output_mode) {
-    case om_cli:
-      construct_cli_message(dp);
+    case om_text:
+      construct_text_message(dp);
       break;
     case om_sarif:
       construct_sarif_result(dp);

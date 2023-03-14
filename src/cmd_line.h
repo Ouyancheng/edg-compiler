@@ -2800,7 +2800,7 @@ EXTERN a_boolean
 
 enum an_output_mode {
   /* Defines the output modes. */
-  om_cli,       /* The traditional front end textual CLI output mode. */
+  om_text,      /* The traditional front end textual output mode. */
   om_sarif      /* The (The Static Analysis Results Interchange Format) SARIF
                    output mode. */
 };

@@ -1895,7 +1895,7 @@ Write the "prelude" for the front end's execution.
 {
 #if !STANDALONE_UTILITY_PROGRAM
   switch (output_mode) {
-    case om_cli:
+    case om_text:
       /* No init needs to occur here. */
       break;
     case om_sarif:
@@ -1920,7 +1920,7 @@ This routine does not return.
 
 #else /* !STANDALONE_UTILITY_PROGRAM */
 
-static void write_cli_signoff()
+static void write_text_signoff()
 /*
 Write a compilation signoff message, giving the count of errors.
 Only write the signoff if there ARE errors, and if we are supposed to.
@@ -1994,7 +1994,7 @@ Only write the signoff if there ARE errors, and if we are supposed to.
     fputs("\n", f_error);
   }  /* if */
 #endif /* WRITE_SIGNOFF_MESSAGE && !STANDALONE_UTILITY_PROGRAM */
-}  /* write_cli_signoff */
+}  /* write_text_signoff */
 
 
 static void write_sarif_signoff()
@@ -2015,8 +2015,8 @@ Write the "epilogue" for the front end's execution.
 {
 #if !STANDALONE_UTILITY_PROGRAM
   switch (output_mode) {
-    case om_cli:
-      write_cli_signoff();
+    case om_text:
+      write_text_signoff();
       break;
     case om_sarif:
       write_sarif_signoff();
@@ -2064,7 +2064,7 @@ severe diagnostic issued in this compilation.  This routine does not return.
 */
 {
 #if !USING_DRIVER && !STANDALONE_UTILITY_PROGRAM
-  if (output_mode == om_cli) {
+  if (output_mode == om_text) {
     /* For the more serious severities, write a message about the abrupt
        termination. */
     if (severity == es_catastrophe || severity == es_command_line_error) {

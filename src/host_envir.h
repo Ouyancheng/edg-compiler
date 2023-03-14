@@ -804,7 +804,7 @@ default value of the global variable output_mode, which can be changed by a
 command-line option.
 */
 #ifndef DEFAULT_OUTPUT_MODE
-#define DEFAULT_OUTPUT_MODE om_cli
+#define DEFAULT_OUTPUT_MODE om_text
 #endif /* ifndef DEFAULT_OUTPUT_MODE */
 
 /*

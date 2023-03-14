@@ -11553,8 +11553,8 @@ enable_microsoft_mode:
       case optk_output_mode:
         { a_const_char *output_mode_string = opt_arg;
 
-          if (strcmp(output_mode_string, "cli") == 0) {
-            output_mode = om_cli;
+          if (strcmp(output_mode_string, "text") == 0) {
+            output_mode = om_text;
           } else if (strcmp(output_mode_string, "sarif") == 0) {
             output_mode = om_sarif;
           } else {
