@@ -701,6 +701,7 @@ command-line when compiling system headers.
 #define TARG_SIZEOF_INT_win64 4
 #define TARG_SIZEOF_INT128_win64 16
 #define TARG_SIZEOF_LARGEST_FIXED_POINT_win64 8
+#define TARG_SIZEOF_LARGEST_ATOMIC_win64 16
 #define TARG_SIZEOF_LONG_win64 4
 #define TARG_SIZEOF_LONG_DOUBLE_win64 8
 #define TARG_SIZEOF_LONG_LONG_win64 8
@@ -869,6 +870,7 @@ command-line when compiling system headers.
 #define TARG_SIZEOF_INT_win32 4
 #define TARG_SIZEOF_INT128_win32 16
 #define TARG_SIZEOF_LARGEST_FIXED_POINT_win32 8
+#define TARG_SIZEOF_LARGEST_ATOMIC_win32 8
 #define TARG_SIZEOF_LONG_win32 4
 #define TARG_SIZEOF_LONG_DOUBLE_win32 8
 #define TARG_SIZEOF_LONG_LONG_win32 8
@@ -1372,6 +1374,7 @@ command-line when compiling system headers.
 #define TARG_SIZEOF_INT_win64 4
 #define TARG_SIZEOF_INT128_win64 16
 #define TARG_SIZEOF_LARGEST_FIXED_POINT_win64 8
+#define TARG_SIZEOF_LARGEST_ATOMIC_win64 16
 #define TARG_SIZEOF_LONG_win64 4
 #define TARG_SIZEOF_LONG_DOUBLE_win64 8
 #define TARG_SIZEOF_LONG_LONG_win64 8
@@ -1544,6 +1547,7 @@ command-line when compiling system headers.
 #define TARG_SIZEOF_INT_win32 4
 #define TARG_SIZEOF_INT128_win32 16
 #define TARG_SIZEOF_LARGEST_FIXED_POINT_win32 8
+#define TARG_SIZEOF_LARGEST_ATOMIC_win32 8
 #define TARG_SIZEOF_LONG_win32 4
 #define TARG_SIZEOF_LONG_DOUBLE_win32 8
 #define TARG_SIZEOF_LONG_LONG_win32 8
@@ -1704,6 +1708,7 @@ command-line when compiling system headers.
 #define TARG_SIZEOF_INT_linux_x86_64 4
 #define TARG_SIZEOF_INT128_linux_x86_64 16
 #define TARG_SIZEOF_LARGEST_FIXED_POINT_linux_x86_64 8
+#define TARG_SIZEOF_LARGEST_ATOMIC_linux_x86_64 16
 #define TARG_SIZEOF_LONG_linux_x86_64 8
 #define TARG_SIZEOF_LONG_DOUBLE_linux_x86_64 16
 #define TARG_SIZEOF_LONG_LONG_linux_x86_64 8
@@ -1864,6 +1869,7 @@ command-line when compiling system headers.
 #define TARG_SIZEOF_INT_linux_i686 4
 #define TARG_SIZEOF_INT128_linux_i686 16
 #define TARG_SIZEOF_LARGEST_FIXED_POINT_linux_i686 8
+#define TARG_SIZEOF_LARGEST_ATOMIC_linux_i686 8
 #define TARG_SIZEOF_LONG_linux_i686 4
 #define TARG_SIZEOF_LONG_DOUBLE_linux_i686 12
 #define TARG_SIZEOF_LONG_LONG_linux_i686 8

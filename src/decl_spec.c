@@ -7977,10 +7977,6 @@ utp is a qualified type also issue an error and return an error type.
   } else if (is_function_type(utp) || is_array_type(utp)) {
     pos_ty_error(ec_c11_atomic_array_or_function_type, diag_pos, utp);
     result = error_type();
-  } else if (c11_atomic_classes_disabled &&
-             is_class_struct_union_type(utp)) {
-    pos_error(ec_c11_atomic_class_types_disabled, diag_pos);
-    result = error_type();
   } else if (!prev_quals_allowed && is_qualified_type(utp)) {
     pos_ty_error(ec_c11_atomic_specifier_with_qualified_type, diag_pos, utp);
     result = error_type();

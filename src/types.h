@@ -37,19 +37,6 @@ EXTERN a_boolean
 			   type.  Typically TRUE in C mode and FALSE in C++
 			   mode. */
 
-/* Return the size of a type.  Internally the size of a tk_void or tk_routine
-   type is 0, but in GCC emulation mode the size of a void or function
-   type is 1.  This macro hides the internal representation.  Typerefs
-   (if any) should be removed before calling this macro. */
-#if GNU_EXTENSIONS_ALLOWED
-#define size_of_type(tp)                                              \
-  ((gcc_mode &&                                                       \
-    ((tp)->kind == (a_type_kind)tk_void ||                            \
-     (tp)->kind == (a_type_kind)tk_routine)) ? (a_targ_size_t)1 : (tp)->size)
-#else /* !GNU_EXTENSIONS_ALLOWED */
-#define size_of_type(tp) ((tp)->size)
-#endif /* GNU_EXTENSIONS_ALLOWED */
-
 inline a_type_ptr skip_typerefs(a_type_ptr type_ptr)
 /*
 Strip any typeref entries off the given type to get to the real type, and
@@ -538,13 +525,15 @@ extern a_boolean is_possibly_qualified_typedef(a_type_ptr  tp);
 
 #define type_is_overaligned_for_new(tp)                                      \
   (overaligned_allocation_enabled &&                                         \
-   (tp)->alignment > targ_default_new_alignment)                             \
+   alignment_of_type(tp) > targ_default_new_alignment)                       \
 
 /*
-Return the alignment of the given type.  Normally, a skip_typeref must be
-performed to make sure we get correct alignment, but if the alignment was
-set explicitly using an attribute on a typedef, the skip_typeref could be
-erroneous (GNU and Microsoft modes only).
+Return the alignment of the given type.  Normally, a skip_typeref must
+be performed to make sure we get correct alignment, but if the alignment
+was set explicitly using an attribute on a typedef, the skip_typeref
+could be erroneous (GNU and Microsoft modes only).  Additionally, in
+clang mode a C11 atomic qualified class type can have stronger alignment
+requirements.
 */
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
 extern a_targ_alignment f_alignment_of_type(a_type_ptr  tp);
@@ -554,9 +543,31 @@ extern a_targ_alignment f_alignment_of_type(a_type_ptr  tp);
    (tp)->kind != (a_type_kind)tk_typeref ? (tp)->alignment :          \
                                            f_alignment_of_type((tp)))
 
+/*
+Return the size of a type.  Internally the size of a tk_void or
+tk_routine type is 0, but in GCC emulation mode the size of a void or
+function type is 1.  Additionally, in Clang mode an atomic-qualified
+type can have additional padding.
+*/
+#if GNU_EXTENSIONS_ALLOWED
+extern a_targ_size_t f_size_of_type(a_type_ptr  tp);
+
+#define size_of_non_typeref_type(tp)                                  \
+  ((gcc_mode &&                                                       \
+    ((tp)->kind == tk_void || (tp)->kind == tk_routine)) ?            \
+      (a_targ_size_t)1 : (tp)->size)
+#define size_of_type(tp)                                              \
+  ((tp)->kind != tk_typeref ? size_of_non_typeref_type(tp) :          \
+     f_size_of_type(tp))
+#else /* !GNU_EXTENSIONS_ALLOWED */
+#define size_of_non_typeref_type(tp) ((tp)->size)
+#define size_of_type(tp)             (skip_typerefs(tp)->size)
+#endif /* GNU_EXTENSIONS_ALLOWED */
+
 extern a_boolean type_contains_explicit_alignment(a_type_ptr  tp);
 #else /* !(GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED) */
 #define alignment_of_type(tp)  (skip_typerefs(tp)->alignment)
+#define size_of_type(tp)       (skip_typerefs(tp)->size)
 #endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
 
 extern a_type_qualifier_set f_get_type_qualifiers(a_type_ptr  tp,

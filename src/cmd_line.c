@@ -5150,11 +5150,8 @@ This function is also called in clang mode.
   if (clang_mode) {
     enumerator_attributes_enabled = TRUE;
     if (clang_version >= 30100) {
-      /* Clang enables _Atomic support in all C modes.  We currently disable
-         _Atomic class types in Clang modes, because Clang treats _Atomic
-         classes differently. */
+      /* Clang enables _Atomic support in all C modes. */
       c11_atomic_enabled = TRUE;
-      c11_atomic_classes_disabled = TRUE;
       std_thread_local_storage_specifier_enabled = TRUE;
     }  /* if */
     if (clang_version >= 30300) {
@@ -5523,11 +5520,8 @@ before this routine is called.
     if (clang_version >= 30000) {
       inline_namespaces_enabled = TRUE;
       if (clang_version >= 30100) {
-        /* Clang enables _Atomic support in all C++ modes.  We currently
-           disable _Atomic class types in Clang modes, because Clang treats
-           _Atomic classes differently. */
+        /* Clang enables _Atomic support in all C++ modes. */
         c11_atomic_enabled = TRUE;
-        c11_atomic_classes_disabled = TRUE;
       }  /* if */
       if (clang_version >= 30200) {
         alignof_enabled = TRUE;
@@ -9399,6 +9393,11 @@ file.
 #else /* !defined(TARG_SIZEOF_LARGEST_FIXED_POINT) */
   comment_undefined_macro_name(TARG_SIZEOF_LARGEST_FIXED_POINT);
 #endif /* defined(TARG_SIZEOF_LARGEST_FIXED_POINT) */
+#if defined(TARG_SIZEOF_LARGEST_ATOMIC)
+  define_numeric_valued_macro(TARG_SIZEOF_LARGEST_ATOMIC);
+#else /* !defined(TARG_SIZEOF_LARGEST_ATOMIC) */
+  comment_undefined_macro_name(TARG_SIZEOF_LARGEST_ATOMIC);
+#endif /* defined(TARG_SIZEOF_LARGEST_ATOMIC) */
 #if defined(TARG_SIZEOF_LARGEST_INTEGER)
   define_numeric_valued_macro(TARG_SIZEOF_LARGEST_INTEGER);
 #else /* !defined(TARG_SIZEOF_LARGEST_INTEGER) */
@@ -12693,7 +12692,6 @@ variables declared in cmd_line.h.
 #endif /* !USE_MMAP_FOR_MEMORY_REGIONS */
   pch_dir_name = NULL;
   c11_atomic_enabled = FALSE;
-  c11_atomic_classes_disabled = FALSE;
   restrict_enabled = FALSE;
   restrict_keyword_enabled = DEFAULT_RESTRICT_ENABLED;
   noreturn_keyword_enabled = FALSE;

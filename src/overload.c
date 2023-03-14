@@ -27318,6 +27318,17 @@ cases where bitwise copying applies.
       if (expr_error_should_be_issued()) {
         pos_ty_error(ec_no_suitable_assignment_operator, err_pos, class_type);
       }  /* if */
+    } else if (is_c11_atomic_qualified_type(dest_type)) {
+      /* For an atomic-qualified destination type, no conversions are performed
+         on the operands, so the unqualified operand types need to be
+         identical. */
+      if (identical_types_ignoring_qualifiers(class_type,
+                                              source_operand->type)) {
+        conv_glvalue_to_prvalue(source_operand);
+      } else if (expr_error_should_be_issued()) {
+        pos_opt_ty2_error(ec_incompatible_assignment_operands, err_pos,
+                          source_operand->type, dest_type);
+      }  /* if */
     } else {
       /* The bitwise copy is defined in terms of a notional generated copy
          assignment operator whose parameter is a reference to const.

@@ -2727,7 +2727,7 @@ there's no overflow TRUE is returned.
         if (!overflow && !field->is_optimized_empty_class) {
 #endif /* IA64_ABI */
           /* For a normal field. */
-          a_targ_size_t size_to_allocate = (a_targ_size_t)field_type->size;
+          a_targ_size_t size_to_allocate = size_of_type(field->type);
 #if IA64_ABI
           if (is_potentially_overlapping_data_member) {
             /* A potentially-overlapping data member has special layout

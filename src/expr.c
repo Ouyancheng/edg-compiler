@@ -13153,10 +13153,9 @@ previously-scanned sizeof expression, and return the result in *result
         constant->type = integer_type(targ_size_t_int_kind);
       } else {
         /* Normal case; known constant sizeof. */
-        a_type_ptr stripped_sizeof_type = skip_typerefs(sizeof_type);
         set_unsigned_integer_constant(
                              constant,
-                             (a_host_large_unsigned)stripped_sizeof_type->size,
+                             (a_host_large_unsigned)size_of_type(sizeof_type),
                              targ_size_t_int_kind);
         /* Make a sizeof expression that sits behind the constant and
            gives the original expression.  If the expression contains a
@@ -14960,8 +14959,8 @@ std::bit_cast.
                (is_template_dependent_type(type_arg) ||
                 is_template_dependent_type(op2.type))) {
       /* Skip remaining checks because at least one type is dependent. */
-    } else if (/*lint !e666*/size_of_type(f_skip_typerefs(type_arg)) !=
-               /*lint !e666*/size_of_type(f_skip_typerefs(op2.type))) {
+    } else if (/*lint !e666*/size_of_type(type_arg) !=
+               /*lint !e666*/size_of_type(op2.type)) {
       /* Give an error if the size of the type of the second operand is not the
          same as the size of the type specified as the first operand. */
       expr_pos_ty2_error(ec_types_must_have_same_size, &op2.position, type_arg,
@@ -19516,16 +19515,7 @@ type is the type operated on in a new or delete operation.
 Extract and return the underlying entity type.
 */
 {
-  a_type_ptr base_type;
-
-  base_type = type;
-  /* For multi-dimensional array cases, drop down to the underlying class
-     type. */
-  while (is_array_type(base_type)) {
-    base_type = array_element_type(base_type);
-  }  /* while */
-  base_type = skip_typerefs(base_type);
-  return base_type;
+  return skip_array_types(type);
 }  /* new_delete_base_type_from_operation_type */
 
 
@@ -21386,7 +21376,7 @@ argument for that.
               copy_expr_tree(nps->new_array_dimension, CE_COPY_NOT_EVALUATED);
     /* Note that the original first-level element type was retained in
        element_type (that matters for multi-dimension arrays). */
-    nps->element_type = skip_typerefs(nps->element_type);
+    a_targ_size_t    element_size = size_of_type(nps->element_type);
     /* Cast the dimension expression to size_t (it's already an integral
        type). */
     if (!is_template_param_type(array_size_expr->type)) {
@@ -21398,13 +21388,14 @@ argument for that.
                 /*within_expr_processing=*/TRUE,
                 &nps->type_position);
     }  /* if */
-    if (nps->element_type->size == 1) {
+    if (element_size == 1) {
       /* If the element size is 1, skip the multiplication. */
       sizeof_node = array_size_expr;
     } else {
       /* Multiply the number of elements by the size of each element. */
       sizeof_node = node_for_host_large_integer(
-        (a_host_large_integer)nps->element_type->size, targ_size_t_int_kind);
+                         (a_host_large_integer)element_size,
+                         targ_size_t_int_kind);
       array_size_expr->next = sizeof_node;
       sizeof_node = make_operator_node((an_expr_operator_kind)eok_multiply,
                                        sizeof_node->type,
@@ -21420,7 +21411,7 @@ argument for that.
          new int
     */
     set_integer_constant(sizeof_constant,
-                         (a_host_large_integer)nps->unqual_new_type->size,
+                         (a_host_large_integer)size_of_type(nps->new_type),
                          targ_size_t_int_kind);
     make_constant_operand(sizeof_constant, &sizeof_operand);
   }  /* if */
@@ -21438,11 +21429,11 @@ Otherwise return NULL.
   an_arg_list_elem_ptr align_alep = NULL;
   an_operand           alignment_operand;
 
-  if (type_is_overaligned_for_new(nps->unqual_new_type)) {
+  if (type_is_overaligned_for_new(nps->new_type)) {
     a_constant_ptr alignment_con = local_constant();
     a_boolean      did_not_fold;
     set_integer_constant(alignment_con,
-                        (a_host_large_integer)nps->unqual_new_type->alignment,
+                        (a_host_large_integer)alignment_of_type(nps->new_type),
                          targ_size_t_int_kind);
     type_change_constant(alignment_con, type_of_align_val_t,
                          /*is_implicit_cast=*/TRUE,
@@ -23276,7 +23267,6 @@ in *rcblock).
     ndsp->global_new_or_delete = use_global_delete;
     ndsp->type = delete_type;
     ndsp->arg = ptr_node;
-    delete_type = skip_typerefs(delete_type);
     base_delete_type = delete_type;
     if (!handle_type_case) {
       /* Handle type destruction is handled at runtime via a conversion to
@@ -23284,10 +23274,7 @@ in *rcblock).
          Dispose.  We don't need to lookup the destructor or deallocation
          routines. */
       /* Get the underlying type for any array type. */
-      while (is_array_type(base_delete_type)) {
-        base_delete_type = array_element_type(base_delete_type);
-        base_delete_type = skip_typerefs(base_delete_type);
-      }  /* if */
+      base_delete_type = skip_array_types(base_delete_type);
       if (is_class_struct_union_type(base_delete_type)) {
         /* Instantiate the class if it is a template class (before looking
            for the appropriate delete_routine). */
@@ -33613,11 +33600,15 @@ that case.  If the second operand of the assignment was a braced-init-list
     set_operand_position(result, &operand_1->position, &operand_2.end_position,
                          &operator_position);
   } else {
-    /* Check and process the assignment. */
+    /* Check and process the assignment.  Overload checking is not being done
+       for atomic-qualified trivially copyable types in C++ mode. */
+    a_boolean  check_for_overloading = C_mode() || !c11_atomic_enabled ||
+                              !is_c11_atomic_qualified_type(operand_1->type) ||
+                              !is_trivially_copyable_type(operand_1->type);
     process_simple_assignment(operand_1, &operand_2,
                               &operator_position,
                               operator_tok_seq_number,
-                              /*check_for_overloading=*/TRUE,
+                              check_for_overloading,
                               result);
   }  /* if */
   rule_out_expr_kinds(ROEK_CONSTANT, result);

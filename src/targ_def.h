@@ -1370,6 +1370,17 @@ compile-time constant.
 
 #endif /* FIXED_POINT_ALLOWED */
 
+#if GNU_EXTENSIONS_ALLOWED
+/*
+The size of the largest atomic type natively supported by the target.  In Clang
+mode, smaller atomic-qualified types get additional padding to make their size
+a power of 2.
+*/
+#ifndef TARG_SIZEOF_LARGEST_ATOMIC
+#define TARG_SIZEOF_LARGEST_ATOMIC (TARG_SIZEOF_LONG+TARG_SIZEOF_LONG)
+#endif /* TARG_SIZEOF_LARGEST_ATOMIC */
+#endif /* GNU_EXTENSIONS_ALLOWED */
+
 /*
 Type used as the representation of an integer value.  More precisely,
 this is the form used on the host to represent a target integer.

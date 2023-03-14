@@ -3591,21 +3591,84 @@ found_specifier_type:
   return return_type;
 }  /* type_specifier_of_type */
 
+#if GNU_EXTENSIONS_ALLOWED
+
+static a_targ_alignment alignment_of_clang_atomic(a_targ_size_t     size,
+                                                  a_targ_alignment  alignment)
+/*
+Return the alignment in Clang mode of an atomic-qualified type of the given
+size and alignment requirement.
+*/
+{
+  if (size <= targ_sizeof_largest_atomic && alignment < size) {
+    alignment = size;
+  }  /* if */
+  return alignment;
+}  /* alignment_of_clang_atomic */
+
+#endif /* GNU_EXTENSIONS_ALLOWED */
+
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
 
-a_targ_alignment f_alignment_of_type(a_type_ptr  tp)
+a_targ_alignment f_alignment_of_type(a_type_ptr  orig_tp)
 /*
 Return the alignment of the given type.  Normally, this function should only
 be called by using the macro alignment_of_type.
 */
 {
+  a_targ_alignment  alignment;
+  a_type_ptr        tp = orig_tp;
+  a_boolean         c11_atomic = FALSE;
   /* Skip any typerefs that do not affect the alignment. */
-  while (!tp->alignment_set_explicitly &&
-         tp->kind == (a_type_kind)tk_typeref) {
+  while (!tp->alignment_set_explicitly && tp->kind == tk_typeref) {
+    c11_atomic |= (tp->variant.typeref.qualifiers & TQ_C11_ATOMIC) != 0;
     tp = tp->variant.typeref.type;
   }  /* while */
-  return tp->alignment;
+  alignment = tp->alignment;
+#if GNU_EXTENSIONS_ALLOWED
+  if (c11_atomic && clang_mode) {
+    alignment = alignment_of_clang_atomic(size_of_type(orig_tp), alignment);
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
+  return alignment;
 }  /* f_alignment_of_type */
+
+#if GNU_EXTENSIONS_ALLOWED
+
+static a_targ_size_t size_of_clang_atomic(a_targ_size_t  size)
+/*
+Return the size in Clang mode of an atomic-qualified type of the given size
+(for the unqualified type).
+*/
+{
+  if (size <= targ_sizeof_largest_atomic && size > 2) {
+    a_targ_size_t  result = 4;
+    while (result < size) {
+      result += result;
+    }  /* while */
+    size = result;
+  }  /* if */
+  return size;
+}  /* size_of_clang_atomic */
+
+
+a_targ_size_t f_size_of_type(a_type_ptr  tp)
+/*
+Return the size of the given type.  Normally, this function should only
+be called by using the macro size_of_type.
+*/
+{
+  a_boolean  c11_atomic = FALSE;
+  /* Skip any typerefs that do not affect the alignment. */
+  while (tp->kind == tk_typeref) {
+    c11_atomic |= (tp->variant.typeref.qualifiers & TQ_C11_ATOMIC) != 0;
+    tp = tp->variant.typeref.type;
+  }  /* while */
+  return c11_atomic && clang_mode ? size_of_clang_atomic(tp->size) :
+                                                  size_of_non_typeref_type(tp);
+}  /* f_size_of_type */
+
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
@@ -4831,7 +4894,9 @@ and a diagnostic is issued (unless suppress_error is TRUE).
     array_type->incomplete =
                     (is_incomplete(elem_type) ||
                      (temp == 0 && !array_type->variant.array.bound_is_zero));
-    temp2 = elem_type->size;
+    /* Need to use the original type with typerefs to determine the size as we
+       might have an atomic qualifier that affects the size in Clang mode. */
+    temp2 = size_of_type(array_type->variant.array.element_type);
     /* Normally, element types cannot have size zero.  In GNU modes, however,
        there are zero-length arrays, zero-sized classes, and x[][] parameters.
        */

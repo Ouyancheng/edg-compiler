@@ -2824,7 +2824,8 @@ type of the array pointed to by ptr_type, and return a pointer to it.
   elem_type = new_delete_base_type_from_operation_type(
                                                     type_pointed_to(ptr_type));
   size_elem_node = node_for_host_large_integer(
-                  (a_host_large_integer)elem_type->size, targ_size_t_int_kind);
+                                 (a_host_large_integer)size_of_type(elem_type),
+                                 targ_size_t_int_kind);
   return size_elem_node;
 }  /* size_elem_node_from_pointer_type */
 
@@ -2842,7 +2843,8 @@ it.
   elem_type = new_delete_base_type_from_operation_type(
                                                     type_pointed_to(ptr_type));
   alignment_node = node_for_host_large_integer(
-             (a_host_large_integer)elem_type->alignment, targ_size_t_int_kind);
+                            (a_host_large_integer)alignment_of_type(elem_type),
+                            targ_size_t_int_kind);
   return alignment_node;
 }  /* alignment_node_from_pointer_type */
 
@@ -11177,6 +11179,7 @@ the position to insert the necessary code.
   a_boolean           err;
   a_variable_ptr      temp;
   a_type_ptr          num_elements_type= skip_typerefs((*num_elem_node)->type);
+  a_targ_size_t       elem_size;
   a_const_char        *array_new_length_name =
 #if IA64_ABI
                                            "__cxa_throw_bad_array_new_length";
@@ -11196,9 +11199,10 @@ the position to insert the necessary code.
   /* Compute the maximum number of elements that an array of the specified
      element type can have, i.e.,
      (targ_size_t_max - sizeof(cookie))/sizeof(array element). */
-  check_assertion(elem_type->size != 0);
+  elem_size = size_of_type(elem_type);
+  check_assertion(elem_size != 0);
   set_unsigned_integer_constant(elem_size_constant,
-                                (a_host_large_integer)elem_type->size,
+                                (a_host_large_integer)elem_size,
                                 targ_size_t_int_kind);
   set_unsigned_integer_constant(max_elements_constant,
                                 (a_host_large_integer)targ_size_t_max,
@@ -11351,6 +11355,7 @@ signed or unsigned).
   an_expr_node_ptr      number_of_elements, number_of_bytes, temp_node;
   a_variable_ptr        temp;
   a_type_ptr            elem_type, underlying_elem_type;
+  a_targ_size_t         elem_size;
   a_constant_ptr        constant = local_constant();
 
   number_of_elements = ndsp->number_of_elements;
@@ -11431,14 +11436,14 @@ signed or unsigned).
     }  /* if */
     /* Multiply the number of elements by the size of an underlying element to
        get the number of bytes. */
-    if (underlying_elem_type->size == 1) {
+    elem_size = size_of_type(underlying_elem_type);
+    if (elem_size == 1) {
       /* If the underlying element size is 1, skip the multiplication. */
       number_of_bytes = number_of_elements;
     } else {
-      check_assertion(underlying_elem_type->size != 0);
-      temp_node = node_for_host_large_integer(
-                              (a_host_large_integer)underlying_elem_type->size,
-                              targ_size_t_int_kind);
+      check_assertion(elem_size != 0);
+      temp_node = node_for_host_large_integer((a_host_large_integer)elem_size,
+                                              targ_size_t_int_kind);
       number_of_elements->next = temp_node;
       number_of_bytes = make_operator_node((an_expr_operator_kind)eok_multiply,
                                            temp_node->type,
@@ -11449,7 +11454,7 @@ signed or unsigned).
        that in some cases (e.g., some Microsoft modes), an incomplete
        type can get here (resulting in a size of zero). */
     set_unsigned_integer_constant_with_overflow_check(constant,
-                                               skip_typerefs(ndsp->type)->size,
+                                               size_of_type(ndsp->type),
                                                targ_size_t_int_kind,
                                                (a_type_ptr)NULL,
                                                /*preserve_needed_flag=*/FALSE);
@@ -12663,7 +12668,6 @@ delete routine.
   an_expr_node_ptr first_node;
   a_boolean is_sized_ver, is_aligned_delete, is_destroying_delete;
 
-  delete_type = skip_typerefs(delete_type);
   check_assertion(arg_node != NULL && arg_node->next == NULL);
   (void)is_default_operator_delete(delete_routine, &is_sized_ver,
                                    &is_aligned_delete, &is_destroying_delete);
@@ -12687,16 +12691,16 @@ delete routine.
     /* Sized form.  Add an argument of type size_t that indicates the
        (static) size of the object. */
     arg_node->next = node_for_host_large_integer(
-                                       (a_host_large_integer)delete_type->size,
-                                       targ_size_t_int_kind);
+                               (a_host_large_integer)size_of_type(delete_type),
+                               targ_size_t_int_kind);
     arg_node = arg_node->next;
   }  /* if */
   if (is_aligned_delete) {
     /* Aligned form.  Add an argument of type std::align_val_t
        (aka std::size_t) that indicates the alignment of the argument. */
     arg_node->next = node_for_host_large_integer(
-                                  (a_host_large_integer)delete_type->alignment,
-                                  targ_size_t_int_kind);
+                          (a_host_large_integer)alignment_of_type(delete_type),
+                          targ_size_t_int_kind);
   }  /* if */
   return first_node;
 }  /* modify_delete_call_args */

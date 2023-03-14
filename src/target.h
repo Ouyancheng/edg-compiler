@@ -197,6 +197,13 @@ EXTERN a_targ_size_t
 			/* Size of the longest integer in the configuration.
 			   Must be no larger than MAX_SIZEOF_LARGEST_INTEGER.*/
 
+#if GNU_EXTENSIONS_ALLOWED
+EXTERN a_targ_size_t
+		targ_sizeof_largest_atomic;
+			/* Size of the largest atomic type.  Initialized to the
+			   default value but reconfigurable.*/
+#endif /* GNU_EXTENSIONS_ALLOWED */
+
 #if MICROSOFT_EXTENSIONS_ALLOWED
 EXTERN a_boolean
 		is_64bit_target;
@@ -1312,6 +1319,9 @@ EXTERN an_integer_kind
 /* TARG_SIZEOF_LARGEST_INTEGER and TARG_SIZEOF_LARGEST_FIXED_POINT are not
    #undef'ed here (their definitions are used in MAX_SIZEOF_LARGEST_INTEGER and
    MAX_SIZEOF_LARGEST_FIXED_POINT. */
+#if GNU_EXTENSIONS_ALLOWED
+#undef TARG_SIZEOF_LARGEST_ATOMIC
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #undef TARG_MAX_CLASS_OBJECT_SIZE
 #undef TARG_MAX_BASE_CLASS_OFFSET
 #undef TARG_OPTIMIZE_EMPTY_BASE_CLASS_LAYOUT

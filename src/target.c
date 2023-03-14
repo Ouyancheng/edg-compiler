@@ -828,6 +828,10 @@ Return the field alignment for the given type.
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
         if (type->alignment_set_explicitly) {
           result = type->alignment;
+        } else if (clang_mode &&
+                   (type->variant.typeref.qualifiers & TQ_C11_ATOMIC) != 0) {
+          /* In Clang mode, atomic-qualified types get additional alignment. */
+          result = alignment_of_type(type);
         } else if (!gnu_mode || gnu_version/100 != 303) {
           /* In a chain of typedefs, the last one with attribute "aligned"
              normally determines the alignment.  However, gcc/g++ 3.3.x appears
