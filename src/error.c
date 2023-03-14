@@ -4580,7 +4580,7 @@ and column numbers to the write_diagnositic_buffer.
   add_string_to_text_buffer(write_diagnostic_buffer, ",\"startColumn\":");
   (void)sprintf(num_buffer, "%lu", (unsigned long)column_number);
   add_string_to_text_buffer(write_diagnostic_buffer, num_buffer);
-  add_string_to_text_buffer(write_diagnostic_buffer, "}");
+  add_char_to_text_buffer(write_diagnostic_buffer, '}');
 }  /* write_sarif_artifact_location */
 
 
@@ -4603,7 +4603,7 @@ position to the write_diagnositic_buffer.
   write_sarif_artifact_location(file_name);
   add_string_to_text_buffer(write_diagnostic_buffer, ",\"region:\":");
   write_sarif_region(line_number, error_pos->column);
-  add_string_to_text_buffer(write_diagnostic_buffer, "}");
+  add_char_to_text_buffer(write_diagnostic_buffer, '}');
 }  /* write_sarif_physical_location */
 
 
@@ -4626,15 +4626,14 @@ Write a SARIF "result object"."relatedLocations property" for the given
 diagnostic pointer to the write_diagnositic_buffer.
 */
 {
-  add_string_to_text_buffer(write_diagnostic_buffer, "{");
-  add_string_to_text_buffer(write_diagnostic_buffer, "\"message\":");
+  add_string_to_text_buffer(write_diagnostic_buffer, "{\"message\":");
   write_sarif_message(dp);
   if (dp->diag_header_pos.seq != 0) {
     add_string_to_text_buffer(write_diagnostic_buffer,
                               ",\"physicalLocation\":");
     write_sarif_physical_location(&dp->diag_header_pos);
   }  /* if */
-  add_string_to_text_buffer(write_diagnostic_buffer, "}");
+  add_char_to_text_buffer(write_diagnostic_buffer, '}');
 }  /* write_sarif_related_location */
 
 
@@ -4672,9 +4671,8 @@ important that the msg_buffer is not already in use.
   if (mi_dp != NULL) {
     a_boolean first = TRUE;
 
-    add_string_to_text_buffer(write_diagnostic_buffer, ",");
     add_string_to_text_buffer(write_diagnostic_buffer,
-                              "\"relatedLocations\":[");
+                              ",\"relatedLocations\":[");
     for (; mi_dp != NULL; mi_dp = mi_dp->next) {
       /* Unlike other messages, the primary diagnostic is not known when the
          more_info messages are created. */
@@ -4686,10 +4684,10 @@ important that the msg_buffer is not already in use.
         add_char_to_text_buffer(write_diagnostic_buffer, ',');
       }  /* if */
     }  /* for */
-    add_string_to_text_buffer(write_diagnostic_buffer, "]");
+    add_char_to_text_buffer(write_diagnostic_buffer, ']');
   }  /* if */
   /* Finish writing the result and flush the buffer. */
-  add_string_to_text_buffer(write_diagnostic_buffer, "}");
+  add_char_to_text_buffer(write_diagnostic_buffer, '}');
   add_char_to_text_buffer(write_diagnostic_buffer, '\0');
   fputs(write_diagnostic_buffer->buffer, f_error);
   (void)fflush(f_error);
