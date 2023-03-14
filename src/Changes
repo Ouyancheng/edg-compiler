@@ -1,5 +1,15 @@
 Version 6.5
 
+3/14/23  [EDGcpfe/26133]
+Add Initial SARIF Support
+
+The front end now has initial support for SARIF output.  The output mode can be
+changed for a single run via the --output_mode flag ("text" for traditional
+output or "sarif" for SARIF based output). The default output mode of the front
+end can be changed as well via the DEFAULT_OUTPUT_MODE configuration macro
+(with om_text and om_sarif respectively).
+
+
 3/6/23   [EDGcpfe/26108]
 Microsoft compatibility: commas in variadic macro arguments
 
