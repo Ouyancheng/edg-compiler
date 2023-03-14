@@ -4579,8 +4579,8 @@ and column numbers to the write_diagnositic_buffer.
   (void)sprintf(num_buffer, "%lu", (unsigned long)line_number);
   add_string_to_text_buffer(write_diagnostic_buffer, num_buffer);
   /* SARIF does not have a concept of "no column"; if no column information is
-     presented, omit the startColumn (though notably, this is interpreted in
-     the specification as equivalent to a startColumn value of 1). */
+     present, omit the startColumn (though notably, this is interpreted in the
+     specification as equivalent to a startColumn value of 1). */
   if (column_number != 0) {
     add_string_to_text_buffer(write_diagnostic_buffer, ",\"startColumn\":");
     (void)sprintf(num_buffer, "%lu", (unsigned long)column_number);
