@@ -982,6 +982,7 @@ check_abbreviation()
 --one_instantiation_per_object
 --optimize
 --output
+--output_mode
 --pack_alignment
 --parse_templates
 --patch
@@ -1846,7 +1847,8 @@ process_option()
          --vcmeta_directory | \
          --default_calling_convention | \
          --dump_legacy_as_target | \
-         --target)
+         --target | \
+         --output_mode)
       used_two_params=1
 #     See if an instantiation mode was specified
       case $arg in
@@ -1961,7 +1963,8 @@ process_option()
           --vcmeta_directory=* | \
           --default_calling_convention=* | \
           --dump_legacy_as_target=* | \
-          --target=*)
+          --target=* | \
+          --output_mode=*)
 #     See if an instantiation mode was specified
       case $arg in
         --definition_list_file=*)
