@@ -41225,7 +41225,7 @@ end_expr:
         copy_operand_position(&local_result, result);
       } else if (is_void_type(skip_typerefs(result->type))) {
         a_constant_ptr  cp = local_constant();
-        set_constant_kind(cp, ck_void);
+        clear_constant(cp, ck_void);
         cp->type = result->type;
         make_constant_operand(cp, result);
         copy_operand_position(&local_result, result);

@@ -1,5 +1,15 @@
 Version 6.5
 
+3/15/23  [EDGcpfe/26148]
+Uninitialized constant could result in undefined behavior
+
+The changes for EDGcpfe/21042 (in version 6.4) introduced an uninitialized
+constant that could cause undefined behavior when using the
+__builtin_choose_expr builtin.  Now fixed.  For example, with --gcc:
+
+  const int x = __builtin_choose_expr(1, 2, (void)0);
+
+
 3/15/23  [EDGcpfe/26147]
 Memory leak
 
