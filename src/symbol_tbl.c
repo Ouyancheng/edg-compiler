@@ -8501,9 +8501,7 @@ if the constraints fails, or FALSE otherwise.
     constraint = substitute_expr(rcp->constraint, subst_pairs, &ctws_state,
                                  CTWS_MAY_BE_RESCANNED, cp, &allocated_cp,
                                  &err);
-    if (err) {
-      release_local_constant(&cp);
-    } else if (constraint != NULL) {
+    if (err || constraint != NULL) {
       release_local_constant(&cp);
     } else {
       if (allocated_cp == NULL) {
