@@ -1,5 +1,35 @@
 Version 6.5
 
+3/15/23  [EDGcpfe/26077]
+Regression in field initializers using source location builtins
+
+The changes for EDGcpfe/22336 in version 6.4 (see entry of 10/20/22) introduced
+a regression in cases where the source location builtins are used as part of
+the constructor.  For example:
+
+  struct X {
+    X(unsigned l = __builtin_LINE()) {}
+  };
+
+If this type is used as a default member initializer using any form of brace
+initialization:
+
+  struct Y {
+    Y() {}
+    X x = {};
+  };
+  // OR
+  struct Y {
+    Y() {}
+    X x{};
+  };
+
+Previously, calls to source location builtins inside of such a case were not
+properly transformed for the individual constructors.  In configurations in
+which lowering is done, this could result in a request for an unresolvable
+constant, resulting in an abort in lower_expr_full.  This is now fixed.
+
+
 3/15/23  [EDGcpfe/26148]
 Uninitialized constant could result in undefined behavior
 

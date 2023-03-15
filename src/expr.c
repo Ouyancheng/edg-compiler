@@ -42753,9 +42753,6 @@ parenthesized initializer.
        to be checked later when we do know. */
     icp->braced_init_in_parentheses = TRUE;
   }  /* if */
-  if (expr_stack->const_eval_reattempt_state.default_mem_init) {
-    dps->init_state.is_ctor_dependent = TRUE;
-  }  /* if */
   return icp;
 }  /* scan_init_component_with_potential_pack_expansion */
 
