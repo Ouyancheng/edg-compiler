@@ -8502,6 +8502,7 @@ if the constraints fails, or FALSE otherwise.
                                  CTWS_MAY_BE_RESCANNED, cp, &allocated_cp,
                                  &err);
     if (err) {
+      release_local_constant(&cp);
     } else if (constraint != NULL) {
       release_local_constant(&cp);
     } else {

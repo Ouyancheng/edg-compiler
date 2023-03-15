@@ -1,5 +1,12 @@
 Version 6.5
 
+3/15/23  [EDGcpfe/26147]
+Memory leak
+
+The changes for EDGcpfe/23703 (in version 6.3) allocated a local constant
+without releasing it in some error conditions.  Now fixed.
+
+
 3/14/23  [EDGcpfe/24449,EDGcpfe/25680]
 Clang compatibility: support _Atomic class types
 
