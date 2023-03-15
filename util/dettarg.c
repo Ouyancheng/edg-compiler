@@ -238,6 +238,9 @@ static unsigned long int_kind_to_size(int_kind kind)
     case ik_short:
       result = targ_sizeof_short;
       break;
+    case ik_int:
+      result = targ_sizeof_int;
+      break;
     case ik_long:
       result = targ_sizeof_long;
       break;
@@ -566,7 +569,7 @@ int main() {
            targ_minimum_struct_alignment);
   }
   { struct { char c; jmp_buf s; } v;
-    unsigned long alignof_jmp_buf = alignment((char *)v.s, (char *)&v);
+    unsigned long alignof_jmp_buf = alignment((char *)&v.s, (char *)&v);
     int           error;
     int_kind      buffer_type;
 
