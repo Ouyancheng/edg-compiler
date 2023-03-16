@@ -7576,6 +7576,7 @@ this statement was preceded by the GNU keyword __extension__.
   a_boolean          prev_was_label = FALSE;
   a_boolean          get_another_statement;
   a_boolean          can_appear_in_constexpr_body = relaxed_constexpr_enabled;
+  an_error_severity  in_constexpr_body_sev = es_error;
   a_source_position  start_pos;
   an_il_entity_list_entry_ptr
                      entity_list;
@@ -7690,6 +7691,12 @@ rescan_statement:
       /* Asm "declaration" or Microsoft mode asm block. */
       asm_statement();
       can_appear_in_constexpr_body = cpp20_mode;
+      if (!can_appear_in_constexpr_body && cpp14_mode &&
+          gpp_version_is(>= 100000)) {
+        /* Newer versions of GCC only warn about asm declarations in constexpr
+           functions when in C++14 or C++17 mode. */
+        in_constexpr_body_sev = es_warning;
+      }  /* if */
       break;
     case tok_try:
       /* C++ try block. */
@@ -7886,10 +7893,11 @@ expr_statement:
     if (current_rp->is_declared_constexpr || current_rp->is_consteval) {
       /* Report an error if the statement is not one that is allowed in a
          constexpr function or constexpr constructor. */
-      pos_error(special_kind_is(current_rp, sfk_constructor) ?
+      pos_diagnostic(in_constexpr_body_sev,
+                     special_kind_is(current_rp, sfk_constructor) ?
                                 ec_invalid_statement_in_constexpr_constructor :
                                 ec_invalid_statement_in_constexpr_function,
-                &start_pos);
+                     &start_pos);
     }  /* if */
     scope_stack[depth_innermost_function_scope].constexpr_ruled_out = TRUE;
   }  /* if */
