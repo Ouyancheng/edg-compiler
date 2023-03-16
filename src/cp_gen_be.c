@@ -2568,6 +2568,87 @@ set *for_all_scopes to FALSE.
 }  /* access_from_cache_for */
 
 
+static a_scope_ptr parent_nonblock_scope(a_scope_ptr sp)
+/*
+Return the nearest parent scope of sp that is not a block scope.
+*/
+{
+  for (sp = sp->parent; sp != NULL && sp->kind == sck_block; sp = sp->parent)
+    {}
+  return sp;
+}  /* parent_nonblock_scope */
+
+
+static a_boolean is_accessible_via_friendship(a_source_correspondence_ptr scp)
+/*
+Return TRUE if the entity represented by scp is accessible at the current
+naming point (as reflected in curr_name_context) by virtue of a friend
+declaration in the entity's direct or containing parent classes, FALSE
+otherwise.
+*/
+{
+  a_boolean   is_accessible = FALSE;
+  a_type_ptr  parent_class = scp->is_class_member ? scp_parent_class(scp)
+                                                  : NULL;
+  a_scope_ptr innermost_cls_or_func_scope;
+
+  for (innermost_cls_or_func_scope = curr_name_context->assoc_scope;
+       innermost_cls_or_func_scope != NULL &&
+                   innermost_cls_or_func_scope->kind != sck_function &&
+                   innermost_cls_or_func_scope->kind != sck_class_struct_union;
+       innermost_cls_or_func_scope = innermost_cls_or_func_scope->parent)
+    {}
+  if (innermost_cls_or_func_scope != NULL) {
+    /* The naming point is in a function or class scope.  Check to see if
+       that function or class (or a containing class) is declared as a
+       friend of the entity's parent class. */
+    while (!is_accessible && parent_class != NULL) {
+      /* Check to see if the parent class grants friendship to the context
+         of the current naming point. */
+      for (a_scope_ptr sp = innermost_cls_or_func_scope;
+           sp != NULL && !is_accessible &&
+             (sp->kind == sck_function ||
+              sp->kind == sck_class_struct_union);
+           sp = parent_nonblock_scope(sp)) {
+        /* Look for classes that have befriended the current context.  If
+           one of those is the parent class of the entity, the entity is
+           accessible in the current context. */
+        a_class_list_entry_ptr clep;
+        if (sp->kind == sck_function) {
+          a_routine_ptr rp = sp->variant.routine.ptr;
+          if (rp->is_inheriting_ctor) {
+            clep = NULL;
+          } else {
+            clep = rp->friends_or_originator.befriending_classes;
+          }  /* if */
+        } else {
+          clep = class_type_supp(sp->variant.assoc_type)->befriending_classes;
+        }  /* if */
+        for (; !is_accessible && clep != NULL; clep = clep->next) {
+          if (clep->class_type == parent_class) {
+            /* The parent class has befriended the context of the current
+               naming point, so the entity is accessible. */
+            is_accessible = TRUE;
+          }  /* if */
+        }  /* for */
+      }  /* for */
+      if (scp->access == as_public) {
+        /* If the entity is a public member of its class, then friend
+           declaration in a containing class might grant access to the
+           current naming point. */
+        parent_class = parent_class_or_null(parent_class);
+      } else {
+        /* If the entity is not a public member of its class and we haven't
+           found a relevant friend declaration so far, containing classes
+           cannot grant access to the entity. */
+        parent_class = NULL;
+      }  /* if */
+    }  /* while */
+  }  /* if */
+  return is_accessible;
+}  /* is_accessible_via_friendship */
+
+
 static a_boolean entity_name_is_accessible(
                                    a_source_correspondence_ptr scp,
                                    an_il_entry_kind            kind,
@@ -2677,6 +2758,9 @@ names is not public, set *for_all_scopes to FALSE.
           }  /* if */
         }  /* for */
       }  /* if */
+    }  /* if */
+    if (!is_accessible && !ignore_context) {
+      is_accessible = is_accessible_via_friendship(scp);
     }  /* if */
     if (is_accessible && parent_class != NULL) {
       /* Need to check as well for inaccessible template arguments on

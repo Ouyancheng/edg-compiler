@@ -1,5 +1,16 @@
 Version 6.5
 
+3/15/23  [EDGcpfe/26130]
+C++-generating back end: unbounded recursion with inaccessible typedefs
+
+The C++-generating back end failed to consider friend relationships when
+checking the accessibility of names used in template arguments.  In some
+complex situations, this omission could result in unbounded recursion when
+the back end looked for an accessible substitute for a template argument
+for a template that was originally instantiated with an inaccessible
+argument.  This is now fixed.
+
+
 3/15/23  [EDGcpfe/26077]
 Regression in field initializers using source location builtins
 
