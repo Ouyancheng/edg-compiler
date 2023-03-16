@@ -579,7 +579,7 @@ configurations can be created in the same manner.
 #define TARG_SIZEOF_INT_linux_x86_64 4
 #define TARG_SIZEOF_INT128_linux_x86_64 16
 #define TARG_SIZEOF_LARGEST_FIXED_POINT_linux_x86_64 8
-#define TARG_SIZEOF_LARGEST_ATOMIC_linux_x86_64 8
+#define TARG_SIZEOF_LARGEST_ATOMIC_linux_x86_64 16
 #define TARG_SIZEOF_LONG_linux_x86_64 8
 #define TARG_SIZEOF_LONG_DOUBLE_linux_x86_64 16
 #define TARG_SIZEOF_LONG_LONG_linux_x86_64 8
@@ -908,7 +908,7 @@ configurations can be created in the same manner.
 #define TARG_SIZEOF_INT_linux_x86_64 4
 #define TARG_SIZEOF_INT128_linux_x86_64 16
 #define TARG_SIZEOF_LARGEST_FIXED_POINT_linux_x86_64 8
-#define TARG_SIZEOF_LARGEST_ATOMIC_linux_x86_64 8
+#define TARG_SIZEOF_LARGEST_ATOMIC_linux_x86_64 16
 #define TARG_SIZEOF_LONG_linux_x86_64 8
 #define TARG_SIZEOF_LONG_DOUBLE_linux_x86_64 16
 #define TARG_SIZEOF_LONG_LONG_linux_x86_64 8
