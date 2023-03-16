@@ -9945,9 +9945,10 @@ error type.
           an_ifc_type_designated itd = *opt_itd;
           an_ifc_decl_index      decl = get_ifc_decl(itd);
           switch (decl.sort) {
+            case ifc_ds_decl_alias:
+            case ifc_ds_decl_enumeration:
             case ifc_ds_decl_reference:
             case ifc_ds_decl_scope:
-            case ifc_ds_decl_enumeration:
               /* Find the type of the scope declaration by processing it (in
                  case it has been deferred). */
               { a_module_entity_ptr dmep = process_decl_at_index(decl);
@@ -11554,6 +11555,67 @@ succeeded, otherwise return FALSE.
 }  /* init_decl_locator */
 
 
+static a_boolean unsigned_integer_for_literal(an_integer_value *value,
+                                              an_ifc_lit_index lit_index)
+/*
+Given a pointer to a front end integer value, and a lit index, convert the
+given lit index into an integer value and store the result in *value.  If the
+conversion is successful, return TRUE; otherwise, return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  switch (lit_index.sort) {
+    case ifc_ls_immediate:
+      { /* An immediate literal (30 bits or less). */
+        a_host_large_unsigned encoded = (a_host_large_unsigned)lit_index.value;
+
+        set_unsigned_integer_value(value, encoded);
+      }
+      break;
+    case ifc_ls_integer:
+      { /* An integer larger than 30 bits. */
+        Opt<an_ifc_const_i64>       opt_ici64;
+        an_ifc_partition_kind_index int_idx{lit_index.mod, ifc_pk_const_i64,
+                                            lit_index.value};
+
+        construct_node(&opt_ici64, int_idx);
+        if (!opt_ici64.has_value()) {
+          goto invalid;
+        }  /* if */
+
+        char               raw_val[8];
+        an_ifc_u64_storage raw_value = get_ifc_value(*opt_ici64);
+        static_assert(sizeof(raw_val) == sizeof(raw_value),
+                      "Generated storage doesn't match expected byte size.");
+        static_assert(sizeof(raw_val) == sizeof(uint64_t),
+                      "Expected byte size isn't 64 bits wide.");
+        memcpy(&raw_val, &raw_value, 8);
+        if (!conv_bytes_to_integer_value(value, raw_val, sizeof(raw_val))) {
+          a_string err_msg("Failed to get a 64-bit integer from ",
+                           str_for(lit_index.sort));
+
+          ifc_unexpected(lit_index.mod, err_msg);
+          goto invalid;
+        }  /* if */
+      }
+      break;
+    case ifc_ls_floating_point:
+      { a_string err_msg("Unexpected ", str_for(lit_index.sort));
+
+        ifc_unexpected(lit_index.mod, err_msg);
+      }
+      goto invalid;
+    default_is_unexpected();
+  }  /* switch */
+  goto done;
+invalid:
+  result = FALSE;
+done:
+  return result;
+}  /* unsigned_integer_for_literal */
+
+
 void an_ifc_module::unsigned_integer_for_expr_index(
                                                   an_ifc_expr_index expr_index,
                                                   an_integer_value  *value)
@@ -11569,56 +11631,131 @@ No casting is performed.
   construct_node(&opt_iel, expr_index);
   if (opt_iel.has_value()) {
     an_ifc_lit_index lit_index = get_ifc_value(*opt_iel);
-    switch (lit_index.sort) {
-      case ifc_ls_immediate:
-        { /* An immediate literal (30 bits or less). */
-          a_host_large_unsigned encoded =
-                                        (a_host_large_unsigned)lit_index.value;
 
-          set_unsigned_integer_value(value, encoded);
-        }
-        break;
-      case ifc_ls_integer:
-        { /* An integer larger than 30 bits. */
-          Opt<an_ifc_const_i64>       opt_ici64;
-          an_ifc_partition_kind_index int_idx{expr_index.mod, ifc_pk_const_i64,
-                                              lit_index.value};
-
-          construct_node(&opt_ici64, int_idx);
-          if (!opt_ici64.has_value()) {
-            goto invalid;
-          }  /* if */
-
-          char               raw_val[8];
-          an_ifc_u64_storage raw_value = get_ifc_value(*opt_ici64);
-          static_assert(sizeof(raw_val) == sizeof(raw_value),
-                        "Generated storage doesn't match expected byte size.");
-          static_assert(sizeof(raw_val) == sizeof(uint64_t),
-                        "Expected byte size isn't 64 bits wide.");
-          memcpy(&raw_val, &raw_value, 8);
-          if (!conv_bytes_to_integer_value(value, raw_val, sizeof(raw_val))) {
-            a_string err_msg("Failed to get a 64-bit integer from ",
-                             str_for(lit_index.sort));
-
-            ifc_unexpected(lit_index.mod, err_msg);
-            goto invalid;
-          }  /* if */
-        }
-        break;
-      case ifc_ls_floating_point:
-        { a_string err_msg("Unexpected ", str_for(lit_index.sort));
-
-          ifc_unexpected(lit_index.mod, err_msg);
-        }
-        goto invalid;
-      default_is_unexpected();
-    }  /* switch */
-  } else {
-invalid:
-    /* FIXME: Error handling could be improved here. */
-    set_unsigned_integer_value(value, (a_host_large_unsigned)0);
+    if (!unsigned_integer_for_literal(value, lit_index)) {
+      goto invalid;
+    }  /* if */
   }  /* if */
+  goto done;
+invalid:
+  /* FIXME: Error handling could be improved here. */
+  set_unsigned_integer_value(value, (a_host_large_unsigned)0);
+done:;
 }  /* unsigned_integer_for_expr_index */
+
+
+static a_constant_ptr constant_for_literal(
+                                         an_ifc_type_index type,
+                                         an_ifc_lit_index  lit_index,
+                                         a_type_ptr        default_type = NULL)
+/*
+Attempt to form a constant (allocated in the current IL memory region) with the
+given type (or default type if type is a null index) and the value specified by
+the given lit index.  If a constant was successfully formed it is returned;
+otherwise, NULL is returned.
+*/
+{
+  a_constant_ptr result = NULL;
+
+  switch (lit_index.sort) {
+    case ifc_ls_immediate:
+    case ifc_ls_integer:
+      /* An integer. */
+      { an_integer_value value;
+
+        /* Retrieve the unsigned value of the integer. */
+        if (!unsigned_integer_for_literal(&value, lit_index)) {
+          goto invalid;
+        }  /* if */
+        result = alloc_constant(ck_integer);
+        if (is_null_index(type) && default_type == NULL) {
+          /* FIXME: not sure why the type is zero in some cases. */
+          set_unsigned_integer_constant(result,
+                                        (a_host_large_unsigned)lit_index.value,
+                                        (an_integer_kind)ik_unsigned_int);
+        } else {
+          a_type_ptr constant_type = default_type;
+
+          if (!is_null_index(type)) {
+            constant_type = type_for_type_index(type, /*kind=*/NULL);
+          }  /* if */
+          if (is_error_type(constant_type)) {
+            goto invalid;
+          }  /* if */
+          if (is_pointer_type(constant_type)) {
+            /* Pointer literal. */
+            set_unsigned_integer_constant(result, value, targ_size_t_int_kind);
+          } else if (is_nullptr_type(constant_type)) {
+            /* nullptr.  Make an integer zero and convert its type to
+               nullptr_t. */
+            a_boolean did_not_fold;
+
+            set_integer_constant(result, (a_host_large_integer)0,
+                                 (an_integer_kind)ik_int);
+            type_change_constant(result, constant_type,
+                                 /*is_implicit_cast=*/TRUE,
+                                 /*maintain_expression=*/FALSE,
+                                 &did_not_fold, &error_position);
+            if (did_not_fold) {
+              ifc_unexpected(lit_index.mod, "could not fold nullptr");
+              goto invalid;
+            }  /* if */
+          } else if (is_integral_or_enum_type(constant_type)) {
+            a_type_ptr stripped_type = skip_typerefs(constant_type);
+
+            if (int_type_is_signed(stripped_type)) {
+              sign_extend_integer_value(&value,
+                                   (int)(stripped_type->size * targ_char_bit));
+              set_integer_constant(result, value,
+                                   stripped_type->variant.integer.int_kind);
+            } else {
+              set_unsigned_integer_constant(result, value,
+                                      stripped_type->variant.integer.int_kind);
+            }  /* if */
+          } else {
+            ifc_unexpected(lit_index.mod, "expected an integer type");
+            goto invalid;
+          }  /* if */
+          result->type = constant_type;
+        }  /* if */
+      }
+      break;
+    case ifc_ls_floating_point:
+      { Opt<an_ifc_const_f64>       opt_icf;
+        an_ifc_partition_kind_index float_index{lit_index.mod,
+                                                ifc_pk_const_f64,
+                                                lit_index.value};
+        construct_node(&opt_icf, float_index);
+        if (!opt_icf.has_value()) {
+          goto invalid;
+        }  /* if */
+
+        /* FIXME: Find a better way to do the float conversion. */
+        an_ifc_ieeele_float value = get_ifc_value(*opt_icf);
+        double              float_value;
+        static_assert(sizeof(an_ifc_ieeele_float_storage) == sizeof(double),
+                      "Float storage bytes were not 64 bits wide.");
+        memcpy(&float_value, value.get_storage(), sizeof(double));
+
+        char      buf[32];
+        a_boolean err = FALSE;
+        sprintf(buf, "%f", float_value);
+        result = alloc_constant(ck_float);
+        result->type = float_type(fk_double);
+        fp_string_to_float(fk_double, buf, &result->variant.float_value, &err);
+        if (err) {
+          ifc_unexpected(lit_index.mod, "floating point conversion failure");
+        }  /* if */
+      }
+      break;
+    default_is_unexpected();
+  }  /* switch */
+  goto done;
+invalid:
+  result = NULL;
+done:
+  return result;
+}  /* constant_for_literal */
 
 
 a_constant_ptr an_ifc_module::constant_for_expr_index(
@@ -11626,10 +11763,9 @@ a_constant_ptr an_ifc_module::constant_for_expr_index(
                                                 a_type_ptr        default_type)
 /*
 Returns a constant (allocated in the current IL memory region) with the value
-specified by expr_idx.  Assumes the expression is constant.  If the
-expression's type is zero, use default_type as the expression's type.
-FIXME: shared or unshared?
-FIXME: what other expressions can we get here?
+specified by expr_idx.  This function assumes the expression is constant.  If
+the expression's type is null, use default_type as the expression's type.
+FIXME: shared or unshared?  FIXME: what other expressions can we get here?
 */
 {
   a_constant_ptr cp = NULL;
@@ -11647,101 +11783,10 @@ FIXME: what other expressions can we get here?
           goto invalid;
         }  /* if */
 
-        an_ifc_expr_literal   iel = *opt_iel;
-        an_ifc_type_index     type = get_ifc_type(iel);
-
-        an_ifc_lit_index lit_value = get_ifc_value(iel);
-        switch (lit_value.sort) {
-          case ifc_ls_immediate:
-          case ifc_ls_integer:
-            /* An integer. */
-            { an_integer_value value;
-
-              /* Retrieve the unsigned value of the integer. */
-              unsigned_integer_for_expr_index(expr_idx, &value);
-              cp = alloc_constant(ck_integer);
-              if (is_null_index(type) && default_type == NULL) {
-                /* FIXME: not sure why the type is zero in some cases. */
-                set_unsigned_integer_constant(
-                                        cp,
-                                        (a_host_large_unsigned)lit_value.value,
-                                        (an_integer_kind)ik_unsigned_int);
-              } else {
-                a_type_ptr constant_type = default_type;
-
-                if (!is_null_index(type)) {
-                  constant_type = type_for_type_index(type, /*kind=*/NULL);
-                  if (is_error_type(constant_type)) {
-                    goto invalid;
-                  }  /* if */
-                }  /* if */
-                if (is_pointer_type(constant_type)) {
-                  /* Pointer literal. */
-                  set_unsigned_integer_constant(cp, value,
-                                                targ_size_t_int_kind);
-                } else if (is_nullptr_type(constant_type)) {
-                  /* nullptr.  Make an integer zero and convert its type to
-                     nullptr_t. */
-                  a_boolean did_not_fold;
-                  set_integer_constant(cp, (a_host_large_integer)0,
-                                       (an_integer_kind)ik_int);
-                  type_change_constant(cp, constant_type,
-                                       /*is_implicit_cast=*/TRUE,
-                                       /*maintain_expression=*/FALSE,
-                                       &did_not_fold, &error_position);
-                  if (did_not_fold) {
-                    ifc_unexpected(this, "could not fold nullptr");
-                  }  /* if */
-                } else {
-                  a_type_ptr stripped_type = skip_typerefs(constant_type);
-                  if (type_is(stripped_type, tk_integer)) {
-                    if (int_type_is_signed(stripped_type)) {
-                      sign_extend_integer_value(&value,
-                                 (int)(stripped_type->size * targ_char_bit));
-                      set_integer_constant(cp, value,
-                                    stripped_type->variant.integer.int_kind);
-                    } else {
-                      set_unsigned_integer_constant(cp, value,
-                                    stripped_type->variant.integer.int_kind);
-                    }  /* if */
-                  } else {
-                    ifc_unexpected(this, "expected an integer type");
-                  }  /* if */
-                }  /* if */
-                cp->type = constant_type;
-              }  /* if */
-            }
-            break;
-          case ifc_ls_floating_point:
-            { Opt<an_ifc_const_f64>       opt_icf;
-              an_ifc_partition_kind_index float_index{lit_value.mod,
-                                                      ifc_pk_const_f64,
-                                                      lit_value.value};
-              construct_node(&opt_icf, float_index);
-              if (!opt_icf.has_value()) {
-                goto invalid;
-              }  /* if */
-
-              /* FIXME: Find a better way to do the float conversion. */
-              an_ifc_ieeele_float value = get_ifc_value(*opt_icf);
-              double              float_value;
-              static_assert(sizeof(an_ifc_ieeele_float_storage) ==
-                                                                sizeof(double),
-                            "Float storage bytes were not 64 bits wide.");
-              memcpy(&float_value, value.get_storage(), sizeof(double));
-
-              char      buf[32];
-              a_boolean err = FALSE;
-              sprintf(buf, "%f", float_value);
-              cp = alloc_constant(ck_float);
-              cp->type = float_type(fk_double);
-              fp_string_to_float(fk_double, buf, &cp->variant.float_value,
-                                 &err);
-              check_assertion(!err);
-            }
-            break;
-          default_is_unexpected();
-        }  /* switch */
+        an_ifc_expr_literal iel = *opt_iel;
+        an_ifc_type_index   type = get_ifc_type(iel);
+        an_ifc_lit_index    value = get_ifc_value(iel);
+        cp = constant_for_literal(type, value, default_type);
       }
       break;
     case ifc_es_expr_array_value:
@@ -12318,10 +12363,11 @@ rules of position inference).
 #endif /* FIXED_POINT_ALLOWED */
   } else if (is_character_type(lit_type)) {
     lit_kind = tok_char_constant;
-  } else if (is_integral_type(lit_type) || is_pointer_type(lit_type) ||
+  } else if (is_integral_or_enum_type(lit_type) || is_pointer_type(lit_type) ||
              is_nullptr_type(lit_type)) {
-    /* When caching pointer literals, cast to the correct pointer type. */
-    if (is_pointer_type(lit_type)) {
+    /* When caching pointer literals, or enumerations, cast to the correct
+       pointer type. */
+    if (is_pointer_type(lit_type) || is_enum_type(lit_type)) {
       cache_token(cache, tok_lparen, pos);
       cache_resolved_type_token(cache, lit_type, pos);
       cache_token(cache, tok_rparen, pos);
@@ -18477,6 +18523,95 @@ done:
 }  /* is_broken_reference_to_global_scope */
 
 
+static a_boolean is_broken_reference_to_template_parameter(
+                                       const an_ifc_expr_literal &literal_expr)
+/*
+Given an IFC literal expression representation, return TRUE if the literal is
+referencing a template parameter; otherwise return FALSE.
+
+This has been observed with code like the following:
+
+  template<typename T>
+  using x = typename y<sizeof(T)>;
+                              ^
+*/
+{
+  a_boolean                result = FALSE;
+  an_ifc_lit_index         value = get_ifc_value(literal_expr);
+  an_ifc_encoded_lit_index encoded_value = to_encoded(value.mod, value);
+
+  if (encoded_value == 0) {
+    an_ifc_type_index type = get_ifc_type(literal_expr);
+
+    if (type.sort == ifc_ts_type_designated) {
+      Opt<an_ifc_type_designated> opt_designated_ty;
+
+      construct_node(&opt_designated_ty, type);
+      if (!opt_designated_ty.has_value()) {
+        goto done;
+      }  /* if */
+
+      an_ifc_type_designated designated_ty = *opt_designated_ty;
+      an_ifc_decl_index      decl = get_ifc_decl(designated_ty);
+      if (decl.sort == ifc_ds_decl_parameter) {
+        result = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+done:
+  return result;
+}  /* is_broken_reference_to_template_parameter */
+
+
+static a_boolean is_broken_indirect_reference_to_template_parameter(
+                                       const an_ifc_expr_literal &literal_expr)
+/*
+Given an IFC literal expression representation, return TRUE if the literal is
+referencing a template parameter; otherwise return FALSE.
+
+This has been observed with code like the following:
+
+  template <class T, size_t = sizeof(remove_reference_t<T>)>
+  struct y;
+
+  template <typename T>
+  using x = typename y<T>;
+
+This is represented in the IFC with the default template argument inlined to:
+
+  template <class T, size_t = sizeof(remove_reference_t<T>)>
+
+  template <typename T>
+  using x = typename y<T>;
+*/
+{
+  a_boolean                result = FALSE;
+  an_ifc_lit_index         value = get_ifc_value(literal_expr);
+  an_ifc_encoded_lit_index encoded_value = to_encoded(value.mod, value);
+
+  if (encoded_value == 0) {
+    an_ifc_type_index type = get_ifc_type(literal_expr);
+
+    if (type.sort == ifc_ts_type_syntactic) {
+      Opt<an_ifc_type_syntactic> opt_syntactic_ty;
+
+      construct_node(&opt_syntactic_ty, type);
+      if (!opt_syntactic_ty.has_value()) {
+        goto done;
+      }  /* if */
+
+      an_ifc_type_syntactic syntactic_ty = *opt_syntactic_ty;
+      an_ifc_expr_index     expr = get_ifc_expr(syntactic_ty);
+      if (expr.sort == ifc_es_expr_template_id) {
+        result = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+done:
+  return result;
+}  /* is_broken_indirect_reference_to_template_parameter */
+
+
 void an_ifc_module::cache_expr(a_module_token_cache_ptr cache,
                                an_ifc_expr_index        expr,
                                const an_ifc_cache_info  &cinfo)
@@ -18510,19 +18645,35 @@ tuple elements by '::' instead of ','.
 
         an_ifc_expr_literal iel = *opt_iel;
         an_ifc_type_index   type = get_ifc_type(iel);
-        if (type.sort == ifc_ts_type_designated) {
-          /* FIXME: This can show up as a literal type in some cases, but isn't
-             really a literal in the sense that there's a constant to cache. */
-          cache_type(cache, type);
+        if (is_broken_reference_to_template_parameter(iel)) {
+          /* Replace the "literal" with a reference to the template
+             parameter. */
+          an_ifc_type_designated designated_type;
+
+          construct_node_prechecked(&designated_type, type);
+
+          an_ifc_decl_index decl = get_ifc_decl(designated_type);
+          cache_token_with_index(cache, tok_ifc_decl_ref, decl);
+        } else if (is_broken_indirect_reference_to_template_parameter(iel)) {
+          /* Replace the "literal" with the expression. */
+          an_ifc_type_syntactic syntactic_type;
+
+          construct_node_prechecked(&syntactic_type, type);
+
+          an_ifc_expr_index syn_expr = get_ifc_expr(syntactic_type);
+          cache_expr(cache, syn_expr, /*cinfo=*/{});
         } else if (type.sort == ifc_ts_type_decltype) {
           /* FIXME: We can't support the current version of TypeSort::DeclType
              via a direct to IL type, and corresponding constant; instead, as
              we're in a "cache" operation, cache the tokens. */
           cache_type(cache, type);
         } else {
-          a_constant_ptr cp = constant_for_expr_index(expr,
-                                                      /*default_type=*/NULL);
+          an_ifc_lit_index value = get_ifc_value(iel);
+          a_constant_ptr   cp = constant_for_literal(type, value);
 
+          if (cp == NULL) {
+            goto invalid;
+          }  /* if */
           cache_literal(this, cache, cp);
         }  /* if */
       }
