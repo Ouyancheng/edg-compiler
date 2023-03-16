@@ -24953,12 +24953,9 @@ TRUE, the result *p_dip and *p_constant are not constructed.
   }  /* if */
   /* Here, dip != NULL means the result is non-constant. */
   if (err && generate_il) {
-    /* For an error case, drop back to zeroing or an error constant. */
-    if (dip != NULL) {
-      set_dynamic_init_kind(dip, (a_dynamic_init_kind)dik_zero);
-    } else {
-      set_error_constant(con);
-    }  /* if */
+    /* For an error case, drop back to an error constant. */
+    check_assertion(dip == NULL);
+    set_error_constant(con);
   }  /* if */
   if (array_case) {
     /* The original type was an array type, so repeat the element

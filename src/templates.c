@@ -28685,6 +28685,7 @@ supplement for this template should be returned to the caller.
          template information to reflect this. */
       if (!tssp->is_specific_definition) is_initial_decl = TRUE;
       record_specialization(sym, tssp, &locator->source_position);
+      check_assertion(var != NULL);
       var->initializer_in_class = FALSE;
     }  /* if */
   }  /* if */
@@ -36267,15 +36268,8 @@ if one already exists.
          already exists.  This is done even when using a template
          information file so that unused .ii files will be cleaned up. */
       if (f_ii_file != NULL) {
-        /* Close the file before removing it.  This is necessary on
-           some operating systems. */
-        if (open_for_write) {
-          close_output_file_with_error_handling(&f_ii_file,
-                                                ec_instantiation_request);
-        } else {
-          (void)fclose(f_ii_file);
-          f_ii_file = NULL;
-        }  /* if */
+        (void)fclose(f_ii_file);
+        f_ii_file = NULL;
         delete_file(instantiation_request_file_name);
       }  /* if */
     }  /* if */

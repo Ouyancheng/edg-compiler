@@ -7975,11 +7975,13 @@ done:
             (unsigned long)node1->position.seq,
             (unsigned long)node1->position.column);
     db_expr_node(node1, db_level);
-    fprintf(f_debug, "\n%*s%s (%lu/%lu)\n", db_level, "", "expr2: ",
-            (unsigned long)node2->position.seq,
-            (unsigned long)node2->position.column);
-    db_expr_node(node2, db_level);
-    fprintf(f_debug, "\n");
+    if (node2 != NULL) {
+      fprintf(f_debug, "\n%*s%s (%lu/%lu)\n", db_level, "", "expr2: ",
+              (unsigned long)node2->position.seq,
+              (unsigned long)node2->position.column);
+      db_expr_node(node2, db_level);
+      fprintf(f_debug, "\n");
+    }  /* if */
   }  /* if */
 #endif /* DEBUG */
   return eq;
@@ -9233,19 +9235,17 @@ result of a string literal, but, e.g., of a call to a built-in function).
     (void)strcpy((char*)scp->variant.string.value, cp->variant.string.value);
     fix_memory_region_problems_in_copied_constant(scp);
 #if DEBUG
-    if (list_ptr != NULL) {
-      num_shareable_constants++;
-      if (*list_ptr == NULL) {
-        num_used_shareable_constant_buckets++;
-      }  /* if */
+    check_assertion(list_ptr != NULL);
+    num_shareable_constants++;
+    if (*list_ptr == NULL) {
+      num_used_shareable_constant_buckets++;
     }  /* if */
 #endif /* DEBUG */
   }  /* if */
-  if (list_ptr != NULL) {
-    /* Add the shareable constant to the front of the proper list. */
-    scp->next = *list_ptr;
-    *list_ptr = scp;
-  }  /* if */
+  check_assertion(list_ptr != NULL);
+  /* Add the shareable constant to the front of the proper list. */
+  scp->next = *list_ptr;
+  *list_ptr = scp;
   release_local_constant(&cp);
   return scp;
 }  /* shareable_fs_string_constant */
@@ -23390,6 +23390,7 @@ process_field_selection:
 process_ptr_to_member_selection:
               /* .* and ->*.  The second operand is a pointer-to-member that
                  indicates the type of the entity fetched. */
+              check_assertion(op2 != NULL);
               if (!is_ptr_to_member_type(op2->type)) break;
               does_fetch = TRUE;
               fetched_type = make_pm_selection_type(operand_type, op2->type);

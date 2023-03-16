@@ -9542,14 +9542,16 @@ being popped.
   if (kind == (a_scope_kind)sck_file ||
       kind == (a_scope_kind)sck_function) {
     /* Dump type list and object lifetime information. */
-    if (db_flag_is_set("dump_type_lists") && il_scope != NULL) {
-      db_type_lists(il_scope, 0);
-    }  /* if */
-    if (db_flag_is_set("dump_lifetimes")) {
-      fprintf(f_debug, "Object lifetime for ");
-      db_scope(il_scope);
-      fprintf(f_debug, ":\n");
-      db_object_lifetime_tree(il_scope->lifetime);
+    if (il_scope != NULL) {
+      if (db_flag_is_set("dump_type_lists")) {
+        db_type_lists(il_scope, 0);
+      }  /* if */
+      if (db_flag_is_set("dump_lifetimes")) {
+        fprintf(f_debug, "Object lifetime for ");
+        db_scope(il_scope);
+        fprintf(f_debug, ":\n");
+        db_object_lifetime_tree(il_scope->lifetime);
+      }  /* if */
     }  /* if */
   }  /* if */
 #endif /* DEBUG */
@@ -12995,6 +12997,7 @@ TRUE is returned if there are any more elements in the pack.  FALSE otherwise.
         }  /* if */
       } else if (param_prp->kind == prk_bases) {
         /* A template argument. */
+        check_assertion(arg_prp != NULL);
         a_template_arg_ptr	tap = arg_prp->curr_argument.template_arg;
         /* Advance to the next argument, if any. */
         tap = tap->next;

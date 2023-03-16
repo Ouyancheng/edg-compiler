@@ -8588,7 +8588,8 @@ a left parenthesis in the source.
     case eok_points_to_field:
       /* A field selection like this names a concrete field.  Get the symbol
          for it and make a locator. */
-      check_assertion(member_op->kind == (an_expr_node_kind)enk_field);
+      check_assertion(member_op != NULL &&
+                      member_op->kind == (an_expr_node_kind)enk_field);
       if (is_error_operand(&eriep->saved_operand)) {
         *err = TRUE;
         subst_fail(rcblock->error_detected);
@@ -22832,6 +22833,7 @@ expression, and return the result in *result (or an error indication in
     nps.new_routine = get_new_routine(&nps);
     if (nps.new_routine != NULL) nps.new_routine->called = TRUE;
     /* Mark the "new" routine as referenced, check access to it. */
+    check_assertion(nps.proj_function_symbol != NULL);
     overloaded_function_catch_up(nps.proj_function_symbol,
                                  nps.operator_new_symbol,
                                  (an_operand *)NULL,
@@ -34483,6 +34485,7 @@ in *rcblock).
        call may be optimized away (the recipient does the destruction
        for the object actually thrown).  This necessitates a call to
        fix_up_dynamic_init_dtors later. */
+    check_assertion(expr_stack != NULL);
     push_expr_stack_with_rcblock(expr_stack->expression_kind,
                                  &expr_stack_entry,
                                  /*force_object_lifetime=*/FALSE,

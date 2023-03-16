@@ -25010,7 +25010,7 @@ Return TRUE if dsym (a conversion function in a derived class) and bsym (a
 conversion function in a base class) convert to the same type.
 */
 {
-  a_boolean  result;
+  a_boolean  result = FALSE;
 
   if (!cli_or_cx_enabled) {
     /* In ordinary (non-CLI) C++, the symbol header is determined by the
