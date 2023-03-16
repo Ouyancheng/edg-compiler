@@ -10128,6 +10128,7 @@ pseudo_call can be NULL if that information is not needed.
       case bfk_ceil:
       case bfk_ceilf:
       case bfk_ceill:
+      case bfk_is_constant_evaluated:
         result = TRUE;
         break;
       case bfk_assume_aligned:

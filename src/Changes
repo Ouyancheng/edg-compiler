@@ -1,5 +1,12 @@
 Version 6.5
 
+3/15/23  [EDGcpfe/21202]
+GNU C++11 mode and __builtin_is_constant_evaluated()
+
+Calls to __builtin_is_constant_evaluated() in GNU C++11 mode were previously
+not successfully folded, which resulted in spurious errors.  That is now fixed.
+
+
 3/15/23  [EDGcpfe/26130]
 C++-generating back end: unbounded recursion with inaccessible typedefs
 
