@@ -1,7 +1,35 @@
 Version 6.5
 
+3/16/23  [EDGcpfe/26146]
+Fixed issues with dettarg calculations, primarily affecting 32-bit systems
+
+Previously ik_int was not handled by the improvements introduced by
+EDGcpfe/25681 in version 6.4 (see entry of 10/14/22).  This resulted in dettarg
+being unable to calculate the jmp_buf buffer size if it was determined (for
+alignment purposes) the jmp_buf buffer should be composed of integers.  This is
+now fixed.
+
+Additionally, a pre-existing issue where alignment was not calculated correctly
+for the jmp_buf type has been fixed.
+
+
 -------------------------------------------------------------------------------
 Version 6.4, October 25, 2022
+
+10/14/22 [EDGcpfe/25681]
+Improve dettarg setjmp and jmp_buf deduction support
+
+dettarg now supports calculating JMP_BUF definitions for jmp_buf
+implementations that are not based on arrays of integer types.
+
+Additionally, dettarg now properly supports libraries that remap "setjmp" to a
+different underlying function via a macro.  As an example, libstdc++ (at the
+time of writing) has switched to define setjmp as:
+
+  #define setjmp(env) _setjmp(env)
+
+where _setjmp is the actual function EDG should be calling.
+
 
 9/30/22  [EDGcpfe/20094,EDGcpfe/20264,EDGcpfe/25494]
 GNU/Clang compatibility: _Float16
