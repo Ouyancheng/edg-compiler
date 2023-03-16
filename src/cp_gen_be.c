@@ -2600,8 +2600,8 @@ otherwise.
     {}
   if (innermost_cls_or_func_scope != NULL) {
     /* The naming point is in a function or class scope.  Check to see if
-       that function or class (or a containing class) is declared as a
-       friend of the entity's parent class. */
+       that function or class (or a containing class or function) is
+       declared as a friend of the entity's parent class. */
     while (!is_accessible && parent_class != NULL) {
       /* Check to see if the parent class grants friendship to the context
          of the current naming point. */
@@ -2633,7 +2633,7 @@ otherwise.
         }  /* for */
       }  /* for */
       if (scp->access == as_public) {
-        /* If the entity is a public member of its class, then friend
+        /* If the entity is a public member of its class, then a friend
            declaration in a containing class might grant access to the
            current naming point. */
         parent_class = parent_class_or_null(parent_class);
