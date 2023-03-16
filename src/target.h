@@ -201,7 +201,7 @@ EXTERN a_targ_size_t
 EXTERN a_targ_size_t
 		targ_sizeof_largest_atomic;
 			/* Size of the largest atomic type.  Initialized to the
-			   default value but reconfigurable.*/
+			   default value but reconfigurable. */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED

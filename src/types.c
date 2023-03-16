@@ -3665,7 +3665,7 @@ be called by using the macro size_of_type.
     tp = tp->variant.typeref.type;
   }  /* while */
   return c11_atomic && clang_mode ? size_of_clang_atomic(tp->size) :
-                                                  size_of_non_typeref_type(tp);
+                                    size_of_non_typeref_type(tp);
 }  /* f_size_of_type */
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
