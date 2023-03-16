@@ -2244,8 +2244,8 @@ parameters match the corresponding ones for push_expr_stack_for_initializer.
     /* The expression stack has a reattempt state that indicates there's a
        constant expression evaluation that should be reattempted for any future
        uses as a default member initializer; this requires the initializer to
-       be considered per-constructor, and thus the initializer needs marked as
-       "ctor dependent." */
+       be considered per-constructor, and thus the initializer needs to be
+       marked as "ctor dependent." */
     dps->init_state.is_ctor_dependent = TRUE;
   }  /* if */
   pop_expr_stack();

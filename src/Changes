@@ -31,13 +31,13 @@ Regression in field initializers using source location builtins
 
 The changes for EDGcpfe/22336 in version 6.4 (see entry of 10/20/22) introduced
 a regression in cases where the source location builtins are used as part of
-the constructor.  For example:
+the constructor, for example:
 
   struct X {
     X(unsigned l = __builtin_LINE()) {}
   };
 
-If this type is used as a default member initializer using any form of brace
+if this type is used as a default member initializer using any form of brace
 initialization:
 
   struct Y {
@@ -50,7 +50,7 @@ initialization:
     X x{};
   };
 
-Previously, calls to source location builtins inside of such a case were not
+previously, calls to source location builtins inside of such a case were not
 properly transformed for the individual constructors.  In configurations in
 which lowering is done, this could result in a request for an unresolvable
 constant, resulting in an abort in lower_expr_full.  This is now fixed.
@@ -297,20 +297,20 @@ Regression in non-consteval functions using source location builtins
 
 The changes for EDGcpfe/22336 in version 6.4 (see entry of 10/20/22) introduced
 a regression in cases where the source location builtins are directly used as
-default arguments for functions that aren't consteval.  For example:
+default arguments for functions that aren't consteval, for example:
 
   unsigned get_line(unsigned l = __builtin_LINE()) {
     return l;
   }
 
-If this function is used as a default member initializer:
+if this function is used as a default member initializer:
 
   struct foo {
     unsigned l = get_line();
     foo() = default;
   };
 
-Previously, calls to source location builtins inside of such a case were not
+previously, calls to source location builtins inside of such a case were not
 folded to constants and instead appeared directly in the IL.  In configurations
 in which lowering is done, this could result in an abort in lower_expr_full.
 This is now fixed.
