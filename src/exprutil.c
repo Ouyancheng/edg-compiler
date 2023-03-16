@@ -2241,10 +2241,11 @@ parameters match the corresponding ones for push_expr_stack_for_initializer.
     is->constant_expr_ruled_out = expr_stack->constant_expr_ruled_out;
   }  /* if */
   if (dps != NULL && expr_stack->const_eval_reattempt_state.default_mem_init) {
-    /* The expression stack has attempted there's a failed constant expression
-       evaluation that should be reattempted for a default member initializer.
-       This requires the initializer to be considered per-constructor, and thus
-       the initializer needs marked as "ctor dependent." */
+    /* The expression stack has a reattempt state that indicates there's a
+       constant expression evaluation that should be reattempted for any future
+       uses as a default member initializer; this requires the initializer to
+       be considered per-constructor, and thus the initializer needs marked as
+       "ctor dependent." */
     dps->init_state.is_ctor_dependent = TRUE;
   }  /* if */
   pop_expr_stack();
