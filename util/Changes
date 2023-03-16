@@ -6,8 +6,8 @@ Fixed issues with dettarg calculations, primarily affecting 32-bit systems
 Previously ik_int was not handled by the improvements introduced by
 EDGcpfe/25681 in version 6.4 (see entry of 10/14/22).  This resulted in dettarg
 being unable to calculate the jmp_buf buffer size if it was determined (for
-alignment purposes) the jmp_buf buffer should be composed of integers.  This is
-now fixed.
+alignment purposes) that the jmp_buf buffer should be composed of integers.
+This is now fixed.
 
 Additionally, a pre-existing issue where alignment was not calculated correctly
 for the jmp_buf type has been fixed.
