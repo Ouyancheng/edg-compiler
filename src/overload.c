@@ -5327,11 +5327,16 @@ match.
     a_type_ptr  parent = parent_class_of(routine);
     if (class_symbol_supp(symbol_for(parent))->routine_fixup_list != NULL) {
       a_type_qualifier_set  *p_quals = NULL;
+      /* Reactivate the class. */
+      push_class_and_template_reactivation_scope(
+                               parent, is_unspecialized_template_class(parent),
+                               /*extend_namespace=*/TRUE);
       copy_inh_ctor_default_args_if_needed(routine,
                                            is_copy_constructor(
                                              routine, parent, p_quals,
                                              /*include_move_ctors=*/TRUE,
                                              /*is_declarative_context=*/TRUE));
+      pop_class_reactivation_scope();
     }  /* if */
   }  /* if */
   routine_type = skip_typerefs(routine_type);

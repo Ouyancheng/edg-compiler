@@ -3256,6 +3256,16 @@ fixup_declared_type: ;
       }  /* if */
       if (rfp->inheriting_ctor) {
         a_routine_ptr ctor;
+        if (!same_entities(curr_scope_class_type, rfp->class_type)) {
+          if (curr_scope_class_type != NULL) {
+            /* Pop the reactivated class scope from the scope stack. */
+            pop_class_reactivation_scope();
+          }  /* if  */
+          /* Reactivate the class. */
+          push_class_and_template_reactivation_scope(
+                rfp->class_type, is_template_based, /*extend_namespace=*/TRUE);
+          curr_scope_class_type = rfp->class_type;
+        }  /* if */
         ctor = sym->variant.routine.ptr;
         copy_inh_ctor_default_args_if_needed(ctor, rfp->inh_copy_move_ctor);
       }  /* if */
