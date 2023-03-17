@@ -1,5 +1,13 @@
 Version 6.5
 
+3/17/23  [EDGcpfe/23174,EDGcpfe/26000,EDGcpfe/26001,EDGcpfe/26157]
+Clang-mode vector conversions
+
+In Clang mode, the front end now accepts implicit conversions between any two
+vector types of equal size (in bytes).  In particular, there is no requirement
+that the underlying element types of the source and destination be related.
+
+
 3/17/23  [EDGcpfe/26136]
 Abort on default argument of inherited constructor
 

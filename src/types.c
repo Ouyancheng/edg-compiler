@@ -11551,10 +11551,12 @@ See conversion_possible.
        vector types.  Some versions by default allow conversions between
        vectors of the same size and "kind" (integer vs. float), regardless of
        the specific element type.  We emulate that behavior when
-       permissive_gnu_vector_conversions_enabled is TRUE. */
+       permissive_gnu_vector_conversions_enabled is TRUE.  Clang appears to
+       permit conversions between any vectors of equal size (in bytes). */
     if (!type_is(dest_type, tk_vector)) {
       /* okay = FALSE; -- already set. */
-    } else if (identical_types(source_type, dest_type)) {
+    } else if (identical_types(source_type, dest_type) ||
+               (clang_mode && source_type->size == dest_type->size)) {
       okay = TRUE;
       std_conv->nontrivial_conversion = FALSE;
     } else {
@@ -11566,22 +11568,6 @@ See conversion_possible.
           identical_types_ignoring_qualifiers(src_etp, dst_etp)) {
         okay = TRUE;
         std_conv->nontrivial_conversion = FALSE;
-      } else if (clang_mode && same_length) {
-        /* Clang appears to allow conversions between vectors of the same
-           length if the conversion on the underlying element type is
-           permitted. */
-        okay = impl_conversion_possible(src_etp,
-                                        /*source_is_constant=*/FALSE,
-                                        source_is_string_literal,
-                                        source_is_function,
-                                        is_copy_initialization,
-                                        (a_constant_ptr)NULL,
-                                        dst_etp,
-                                        /*singleton_braced_init=*/FALSE,
-                                        allow_qualifier_or_eh_mismatch,
-                                        suppress_extensions,
-                                        default_warning_code,
-                                        std_conv);
       } else if (permissive_gnu_vector_conversions_enabled) {
         if (skip_typerefs(src_etp)->kind == skip_typerefs(dst_etp)->kind &&
             source_type->size == dest_type->size) {
