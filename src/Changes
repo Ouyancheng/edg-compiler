@@ -72,7 +72,7 @@ initialization:
     X x{};
   };
 
-previously, calls to source location builtins inside of such a case were not
+Previously, calls to source location builtins inside of such a case were not
 properly transformed for the individual constructors.  In configurations in
 which lowering is done, this could result in a request for an unresolvable
 constant, resulting in an abort in lower_expr_full.  This is now fixed.
@@ -332,7 +332,7 @@ if this function is used as a default member initializer:
     foo() = default;
   };
 
-previously, calls to source location builtins inside of such a case were not
+Previously, calls to source location builtins inside of such a case were not
 folded to constants and instead appeared directly in the IL.  In configurations
 in which lowering is done, this could result in an abort in lower_expr_full.
 This is now fixed.
