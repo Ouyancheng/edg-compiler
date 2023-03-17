@@ -25,9 +25,10 @@ from within a template argument list.  For example, with --c++17:
 3/16/23  [EDGcpfe/22330]
 GNU C++14 compatibility: asm declarations in constexpr functions
 
-In C++20, asm declarations are permitted in constexpr function.  GCC 10.x also
-accepts them -- with a warning -- in C++14 (and C++17) modes.  The front end
-now emulates that in corresponding GNU C++ modes when gnu_version <= 100000.
+In C++20, asm declarations are permitted in constexpr function.  GCC 10.x and
+later also accepts them -- with a warning -- in C++14 (and C++17) modes.  The
+front end now emulates that in the corresponding GNU C++ modes when
+gnu_version >= 100000.
 
 
 3/16/23  [EDGcpfe/21202]
