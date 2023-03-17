@@ -18579,10 +18579,9 @@ This has been observed with code like the following:
 
 This is represented in the IFC with the default template argument inlined to:
 
-  template <class T, size_t = sizeof(remove_reference_t<T>)>
-
   template <typename T>
-  using x = typename y<T>;
+  using x = typename y<T, sizeof(remove_reference_t<T>)>;
+                                 ^^^^^^^^^^^^^^^^^^^^^
 */
 {
   a_boolean                result = FALSE;
