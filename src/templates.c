@@ -28625,8 +28625,9 @@ supplement for this template should be returned to the caller.
                     &locator->source_position,
                     &var->source_corresp.decl_position);
     err = TRUE;
-  } else if (sym->defined && (!var->initializer_in_class ||
-                              (var->is_inline && !var->is_constexpr))) {
+  } else if (sym->defined && var != NULL &&
+             (!var->initializer_in_class ||
+              (var->is_inline && !var->is_constexpr))) {
     /* Prior definition. */
     pos_sy_error(ec_already_defined, &locator->source_position, sym);
     err = TRUE;
@@ -28657,7 +28658,7 @@ supplement for this template should be returned to the caller.
     tssp = template_supplement_for_symbol(sym);
     var_sym = symbol_for(tssp->variant.variable.prototype_variable);
     if (symbol_is(var_sym, sk_static_data_member) &&
-        !(cpp17_mode && var->is_inline) &&
+        !(cpp17_mode && var != NULL && var->is_inline) &&
         tssp->variant.variable.has_out_of_class_definition) {
       /* Having more than one out-of-class declaration of a static data member
          is invalid, except for C++17 inline static data members (which are not
@@ -28863,6 +28864,7 @@ supplement for this template should be returned to the caller.
       attach_decl_attributes(dps, /*primary_decl=*/TRUE);
     }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
+    check_assertion(var != NULL);
     update_decl_pos_info(&var->source_corresp, &decl_state->decl_pos_block);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     decl_state->decl_token_cache_used = TRUE;
