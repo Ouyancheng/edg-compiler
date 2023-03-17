@@ -12932,6 +12932,7 @@ TRUE is returned if there are any more elements in the pack.  FALSE otherwise.
          param_prp != NULL;
          param_prp = param_prp->next, arg_prp = arg_prp->next) {
       a_symbol_ptr	sym = param_prp->symbol;
+      check_assertion(arg_prp != NULL);
       if (param_prp->kind == prk_variable) {
         /* The symbol for the first pack element is found by lookup.  Update
            that symbol (pointed to by primary_pack_symbol) to point
@@ -12997,7 +12998,6 @@ TRUE is returned if there are any more elements in the pack.  FALSE otherwise.
         }  /* if */
       } else if (param_prp->kind == prk_bases) {
         /* A template argument. */
-        check_assertion(arg_prp != NULL);
         a_template_arg_ptr	tap = arg_prp->curr_argument.template_arg;
         /* Advance to the next argument, if any. */
         tap = tap->next;

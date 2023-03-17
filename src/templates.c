@@ -28835,7 +28835,7 @@ supplement for this template should be returned to the caller.
        expression.  For a static data member initialized in-class, don't
        update the initializer cache for an out-of-class definition. */
     if (!is_variable_template || is_initial_decl ||
-        !var->initializer_in_class) {
+        (var != NULL && !var->initializer_in_class)) {
       /* Don't update the cache if an error occurred above (unless this is
          the initial declaration). */
       if (tssp->cache.tokens.first_token == NULL || !err) {
