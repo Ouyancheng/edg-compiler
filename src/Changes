@@ -1,5 +1,20 @@
 Version 6.5
 
+3/20/23  [EDGcpfe/23294,EDGcpfe/26114]
+Constant-evaluation of relation operators applied to null pointer values
+
+Consider (in C++14 or later mode):
+
+  constexpr bool test(int const *const &x, int const *const &y) {
+    return x<=y;
+  }
+  constexpr const int* ptr = nullptr;
+  static_assert(test(ptr, ptr));  // Previously an error.  Now okay.
+
+Previously, this example triggered an error claiming "test(ptr, ptr)" does not
+have a constant value.  That is now fixed.
+
+
 3/20/23  [EDGcpfe/26134]
 Regression in handling of user-defined conversions
 
