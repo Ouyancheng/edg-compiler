@@ -23684,7 +23684,7 @@ contains something not valid in a constant expression.
   a_boolean         err = FALSE;
   a_type_ptr        source_type = operand->type;
   a_boolean         valid_in_integral_const_expr;
-  a_boolean         valid_in_const_expr;
+  a_boolean         valid_in_const_expr = FALSE;
   an_error_code     err_code;
   an_error_severity err_severity = es_none;
   a_boolean         use_type_position_in_diag = FALSE;
@@ -23836,8 +23836,8 @@ contains something not valid in a constant expression.
     /* This cast is not valid in an integral constant expression. */
     *ruled_out_expr_kinds |= ROEK_INTEGRAL_CONSTANT;
   }  /* if */
-  /* Determine whether this cast is allowed in a constant expression. */
-  valid_in_const_expr = FALSE;
+  /* Determine whether this cast is allowed in a constant expression.  (Some
+     C++/CLI cases were already determined above.) */
   use_type_position_in_diag = FALSE;
   err_code = ec_no_error;
   if (is_arithmetic_or_enum_type(dest_type)) {
