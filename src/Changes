@@ -1,5 +1,23 @@
 Version 6.5
 
+3/20/23  [EDGcpfe/26167]
+Element constant of parenthesized aggregate initialization incorrectly marked
+as being enclosed in braces
+
+Consider, in C++20 mode:
+
+  struct S {
+      S() = default;
+      S(const S& other);
+  } s;
+  struct C { S m; } C(s);
+
+Here "C(s)" is a parenthesized aggregate initializer whose element is copy
+constructed from a constant-folded version of s.  However, that constant was
+previously erroneously marked as being explicitly enclosed by braces.  That is
+now fixed.
+
+
 3/20/23  [EDGcpfe/23294,EDGcpfe/26114]
 Constant-evaluation of relation operators applied to null pointer values
 

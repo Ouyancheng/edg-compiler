@@ -1083,7 +1083,7 @@ of the whole initialization (*is) as appropriate.
       (*init_con)->end_position = *init_component_end_pos(icp);
     }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-    (*init_con)->explicit_braces_on_aggregate = TRUE;
+    (*init_con)->explicit_braces_on_aggregate = !is->paren_as_aggregate_init;
     icp = icp->variant.braced.list;
     for (; icp != NULL; icp = next_elem(icp)) {
       a_constant_ptr  elem_con;
@@ -1290,7 +1290,7 @@ braced initializer (or NULL if there is none) is returned through *p_icp.
       (*init_con)->end_position = *init_component_end_pos(icp);
     }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-    (*init_con)->explicit_braces_on_aggregate = TRUE;
+    (*init_con)->explicit_braces_on_aggregate = !is->paren_as_aggregate_init;
   }  /* if */
   /* Determine the underlying floating-point type of dtype. */
   ftype = skip_typerefs(dtype);
@@ -2243,7 +2243,8 @@ initialization).  *is describes the initialization as a whole.
         (*init_con)->end_position = *init_component_end_pos(icp);
       }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-      (*init_con)->explicit_braces_on_aggregate = braced;
+      (*init_con)->explicit_braces_on_aggregate = braced &&
+                                                  !is->paren_as_aggregate_init;
     }  /* if */
     if (braced) {
       /* The element values are enclosed in braces. */
@@ -2533,7 +2534,7 @@ dims[rank].  Produce an aggregate constant representing this initialization in
         (*result)->end_position = *init_component_end_pos(icp);
       }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-      (*result)->explicit_braces_on_aggregate = TRUE;
+      (*result)->explicit_braces_on_aggregate = !is->paren_as_aggregate_init;
     }  /* if */
     icp = icp->variant.braced.list;
     while (icp != NULL) {
@@ -3623,7 +3624,8 @@ issued if no more specific position is available.
         (*init_con)->end_position = *init_component_end_pos(icp);
       }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-      (*init_con)->explicit_braces_on_aggregate = braced;
+      (*init_con)->explicit_braces_on_aggregate = braced &&
+                                                  !is->paren_as_aggregate_init;
     }  /* if */
     if (braced) {
       /* The element values are enclosed in braces. */
