@@ -10512,7 +10512,7 @@ valid; otherwise, return NULL.
 a_type_ptr an_ifc_module::type_for_template_id(
                                        const an_ifc_expr_template_id &templ_id)
 /*
-Returns the type that corresponds to the provided ExprSort::TemplateId in the
+Return the type that corresponds to the provided ExprSort::TemplateId in the
 module file.
 */
 {
@@ -11558,8 +11558,8 @@ succeeded, otherwise return FALSE.
 static a_boolean unsigned_integer_for_literal(an_integer_value *value,
                                               an_ifc_lit_index lit_index)
 /*
-Given a pointer to a front end integer value, and a lit index, convert the
-given lit index into an integer value and store the result in *value.  If the
+Given a pointer to a front end integer value and a lit index, convert the given
+lit index into an integer value and store the result in *value.  If the
 conversion is successful, return TRUE; otherwise, return FALSE.
 */
 {
@@ -11620,9 +11620,9 @@ void an_ifc_module::unsigned_integer_for_expr_index(
                                                   an_ifc_expr_index expr_index,
                                                   an_integer_value  *value)
 /*
-Returns in *value, the unsigned integer value represented by expr_index
-(which must be either a LiteralSort::Immediate or LiteralSort::Integer).
-No casting is performed.
+Return in *value, the unsigned integer value represented by expr_index (which
+must be either a LiteralSort::Immediate or LiteralSort::Integer).  No casting
+is performed.
 */
 {
   Opt<an_ifc_expr_literal> opt_iel;
@@ -11762,7 +11762,7 @@ a_constant_ptr an_ifc_module::constant_for_expr_index(
                                                 an_ifc_expr_index expr_idx,
                                                 a_type_ptr        default_type)
 /*
-Returns a constant (allocated in the current IL memory region) with the value
+Return a constant (allocated in the current IL memory region) with the value
 specified by expr_idx.  This function assumes the expression is constant.  If
 the expression's type is null, use default_type as the expression's type.
 FIXME: shared or unshared?  FIXME: what other expressions can we get here?
@@ -12067,7 +12067,7 @@ done:
 a_constant_ptr an_ifc_module::constant_for_named_decl(
                                            const an_ifc_expr_named_decl &iendp)
 /*
-Returns a constant (allocated in the current IL memory region) with the value
+Return a constant (allocated in the current IL memory region) with the value
 corresponding to the provided named declaration.  Assumes the expression is
 constant.
 FIXME: shared or unshared?
@@ -12365,7 +12365,7 @@ rules of position inference).
     lit_kind = tok_char_constant;
   } else if (is_integral_or_enum_type(lit_type) || is_pointer_type(lit_type) ||
              is_nullptr_type(lit_type)) {
-    /* When caching pointer literals, or enumerations, cast to the correct
+    /* When caching pointer literals or enumerations, cast to the correct
        pointer type. */
     if (is_pointer_type(lit_type) || is_enum_type(lit_type)) {
       cache_token(cache, tok_lparen, pos);
@@ -18577,7 +18577,8 @@ This has been observed with code like the following:
   template <typename T>
   using x = typename y<T>;
 
-This is represented in the IFC with the default template argument inlined to:
+This is represented in the IFC with the default template argument inlined and
+the following being represented as an IFC literal expression:
 
   template <typename T>
   using x = typename y<T, sizeof(remove_reference_t<T>)>;
