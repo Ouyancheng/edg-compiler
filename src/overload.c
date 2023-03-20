@@ -6187,6 +6187,7 @@ in a new-expression).
                                 CCO_ARG_VIA_COPY_CTOR |
                                 CCO_INITIALIZING_VARIABLE |
                                 CCO_INITIALIZING_RETURN_VALUE |
+                                CCO_MOVE_OPTIMIZATION_ALLOWED |
                                 CCO_ALLOW_EXPLICIT_CONV_FUNCTIONS |
                                 CCO_UNWRAPPED_BRACED_LIST)) &&
               !is_braced_init_component(arg_list_elem)) {
