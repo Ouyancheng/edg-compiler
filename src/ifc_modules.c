@@ -18578,7 +18578,7 @@ This has been observed with code like the following:
   using x = typename y<T>;
 
 This is represented in the IFC with the default template argument inlined and
-the following being represented as an IFC literal expression:
+the following type being represented as an IFC literal expression:
 
   template <typename T>
   using x = typename y<T, sizeof(remove_reference_t<T>)>;
