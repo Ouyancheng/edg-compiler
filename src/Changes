@@ -56,7 +56,7 @@ now fixed.
 
 
 3/20/23  [EDGcpfe/23294,EDGcpfe/26114]
-Constant-evaluation of relation operators applied to null pointer values
+Constant-evaluation of relational operators applied to null pointer values
 
 Consider (in C++14 or later mode):
 

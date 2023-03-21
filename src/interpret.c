@@ -16735,7 +16735,7 @@ the value representation of the integer value.
                 } else if (is_null_pointer_value(ptr1->variant.addr_con) &&
                            is_null_pointer_value(ptr2->variant.addr_con)) {
                   /* Two null pointer values (represented as "run-time"
-                     addresses. */
+                     addresses). */
                   *(an_integer_value *)result_storage = zero_int;
                 } else {
                   do_constexpr_fail(result);
@@ -16800,7 +16800,7 @@ the value representation of the integer value.
                 } else if (is_null_pointer_value(ptr1->variant.addr_con) &&
                            is_null_pointer_value(ptr2->variant.addr_con)) {
                   /* Two null pointer values (represented as "run-time"
-                     addresses. */
+                     addresses). */
                   *(an_integer_value *)result_storage = zero_int;
                 } else {
                   do_constexpr_fail(result);
@@ -16869,7 +16869,7 @@ the value representation of the integer value.
                 } else if (is_null_pointer_value(ptr1->variant.addr_con) &&
                            is_null_pointer_value(ptr2->variant.addr_con)) {
                   /* Two null pointer values (represented as "run-time"
-                     addresses. */
+                     addresses). */
                   *(an_integer_value *)result_storage = one_int;
                 } else {
                   do_constexpr_fail(result);
@@ -16938,7 +16938,7 @@ the value representation of the integer value.
                 } else if (is_null_pointer_value(ptr1->variant.addr_con) &&
                            is_null_pointer_value(ptr2->variant.addr_con)) {
                   /* Two null pointer values (represented as "run-time"
-                     addresses. */
+                     addresses). */
                   *(an_integer_value *)result_storage = one_int;
                 } else {
                   do_constexpr_fail(result);
