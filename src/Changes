@@ -47,12 +47,12 @@ Consider, in C++20 mode:
       S() = default;
       S(const S& other);
   } s;
-  struct C { S m; } C(s);
+  struct X { S m; } x(s);
 
-Here "C(s)" is a parenthesized aggregate initializer whose element is copy
-constructed from a constant-folded version of s.  However, that constant was
-previously erroneously marked as being explicitly enclosed by braces.  That is
-now fixed.
+The last line declares variable x with a parenthesized aggregate initializer
+whose element is copy constructed from a constant-folded version of s.
+However, that constant was previously erroneously marked as being explicitly
+enclosed by braces.  That is now fixed.
 
 
 3/20/23  [EDGcpfe/23294,EDGcpfe/26114]
