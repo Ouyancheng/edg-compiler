@@ -133,6 +133,7 @@ enum an_option_kind {
   optk_microsoft_cpplatest_mode,
   optk_microsoft_c11,
   optk_microsoft_c17,
+  optk_microsoft_c23,
   optk_microsoft_await,
   optk_microsoft_await_strict,
 #if NEAR_AND_FAR_ALLOWED

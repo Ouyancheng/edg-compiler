@@ -3686,11 +3686,12 @@ and the source dialect is not Microsoft mode.
 #endif /* ifndef MSVC_IS_GENERATED_CODE_TARGET */
 
 /*
-When generating code to be compiled with the Microsoft compiler,
-this macro specifies the version of the compiler being used.  This affects,
-for example, the static initialization method used by the generated
-code.  The number is the Microsoft version number of a Microsoft C/C++
-compiler release (e.g., 1300 corresponds to MSVC version 7).
+When generating code to be compiled with the Microsoft compiler, this macro
+specifies the version of the compiler being used.  This affects, for example,
+the static initialization method used by the generated code.  The number is the
+Microsoft version number of a Microsoft C/C++ compiler release (e.g., for MSVC
+version 7 this is 1300 -- the value of the _MSC_VER preprocessor macro in that
+version).
 */
 #ifndef MSVC_TARGET_VERSION_NUMBER
 #define MSVC_TARGET_VERSION_NUMBER DEFAULT_MICROSOFT_VERSION

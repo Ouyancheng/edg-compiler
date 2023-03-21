@@ -801,6 +801,7 @@ check_abbreviation()
 --ms_c++latest
 --ms_c11
 --ms_c17
+--ms_c23
 --ms_compatibility
 --ms_cplusplus_std_value
 --ms_extensions
@@ -1473,6 +1474,7 @@ process_option()
          --ms_c++latest | \
          --ms_c11 | \
          --ms_c17 | \
+         --ms_c23 | \
          --ms_compatibility | \
          --ms_stdc | \
          --no_ms_stdc | \

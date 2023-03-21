@@ -541,6 +541,9 @@ Initialize the option information table.
   add_option_description(optk_microsoft_c17, "ms_c17",
                          '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
                          pchek_command_line);
+  add_option_description(optk_microsoft_c23, "ms_c23",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
   add_option_description(optk_microsoft_await, "ms_await",
                          '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
                          pchek_command_line);
@@ -2453,7 +2456,9 @@ option values if they were not already set by a command line option.
   }  /* if */
   if (C_mode()) {
     /* Microsoft C mode. */
-    a_boolean ms_c11 = FALSE, ms_c17 = FALSE;
+    a_boolean ms_c11 = FALSE;
+    a_boolean ms_c17 = FALSE;
+    a_boolean ms_c23 = FALSE;
     /* Allow nonconstant expressions in aggregate initializers for automatic
        variables. */
     allow_nonconstant_auto_aggr_init_in_c_mode = TRUE;
@@ -2463,19 +2468,18 @@ option values if they were not already set by a command line option.
     }  /* if */
     if (option_kind_used[(int)optk_microsoft_c11]) {
       ms_c11 = TRUE;
-      if (microsoft_version >= 1928 &&
-          !option_kind_used[(int)optk_ms_std_preproc]) {
-        /* MSVC version 1928 uses the conforming preprocessor for C11. */
-        ms_std_preproc = TRUE;
-      }  /* if */
     }  /* if */
     if (option_kind_used[(int)optk_microsoft_c17]) {
       ms_c17 = ms_c11 = TRUE;
-      if (microsoft_version >= 1928 &&
-          !option_kind_used[(int)optk_ms_std_preproc]) {
-        /* MSVC version 1928 uses the conforming preprocessor for C17. */
-        ms_std_preproc = TRUE;
-      }  /* if */
+    }  /* if */
+    if (option_kind_used[(int)optk_microsoft_c23]) {
+      ms_c23 = ms_c17 = ms_c11 = TRUE;
+    }  /* if */
+    if (ms_c11 && microsoft_version >= 1928 &&
+        !option_kind_used[(int)optk_ms_std_preproc]) {
+      /* MSVC version 1928 uses the conforming preprocessor for C++11 and
+         higher. */
+      ms_std_preproc = TRUE;
     }  /* if */
 #if VLA_ALLOWED
     if (!(option_kind_used[(int)optk_vla]) && !clang_mode) {
@@ -2521,6 +2525,10 @@ option values if they were not already set by a command line option.
     }  /* if */
     if (ms_c17 && microsoft_version >= 1928) {
       /* Visual Studio version 16.8. */
+      /* Currently equivalent to --ms_c11. */
+    }  /* if */
+    if (ms_c23 && microsoft_version >= 1935) {
+      /* Visual Studio version 17.5. */
       /* Currently equivalent to --ms_c11. */
     }  /* if */
     if (microsoft_version >= 1934) {
@@ -10702,6 +10710,12 @@ enable_microsoft_mode:
       case optk_microsoft_c17:
         /* Emulate the Microsoft /std:c17 option. */
         std_version = 201710;
+        set_C_dialect(C_dialect_ANSI);
+        opt_value = TRUE;
+        goto enable_microsoft_mode;
+      case optk_microsoft_c23:
+        /* Emulate the Microsoft /std:c23 option. */
+        std_version = 202301;
         set_C_dialect(C_dialect_ANSI);
         opt_value = TRUE;
         goto enable_microsoft_mode;
