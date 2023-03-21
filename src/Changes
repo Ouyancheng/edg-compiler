@@ -91,9 +91,9 @@ have a constant value.  That is now fixed.
 3/20/23  [EDGcpfe/26134]
 Regression in handling of user-defined conversions
 
-The changes for EDGcpfe/25746 introduced a regression in C++14 and earlier
-modes in some cases like the following (which can occur with the old
-std::auto_ptr template):
+The changes for EDGcpfe/25746 (not yet in a release but distributed as a patch)
+introduced a regression in C++14 and earlier modes in some cases like the
+following (which can occur with the old std::auto_ptr template):
 
   template<typename T> struct R {
     explicit R(T*);
