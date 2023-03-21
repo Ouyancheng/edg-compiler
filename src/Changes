@@ -1,5 +1,18 @@
 Version 6.5
 
+3/21/23  [EDGcpfe/26170]
+Digit separators in #elif expressions
+
+In modes in which digit separators are accepted, the front end previously
+did not recognize them in numeric literals appearing in the expression of a
+#elif directive.  This is now fixed.  For example, with --c23:
+
+  #if 0
+  #elif 0b0'111 == 7   // Previously a spurious error
+  int i;
+  #endif
+
+
 3/21/23  [EDGcpfe/26154]
 Member alignments of extended floating point types
 

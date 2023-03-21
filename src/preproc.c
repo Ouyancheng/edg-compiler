@@ -450,14 +450,17 @@ truth value.
   a_boolean      save_fetch_pp_tokens = fetch_pp_tokens;
   a_boolean      save_expand_macros = expand_macros;
   a_constant_ptr temp_const = local_constant();
+  a_boolean      save_in_pp_if_skip = currently_in_pp_if_skip;
 
   fetch_pp_tokens = FALSE;
   expand_macros = TRUE;
   in_pp_if_expression = TRUE;
+  currently_in_pp_if_skip = FALSE;
   (void)get_token();
   /* Scan the conditional expression. */
   scan_pp_expression(temp_const);
   in_pp_if_expression = FALSE;
+  currently_in_pp_if_skip = save_in_pp_if_skip;
   if (is_error_constant(temp_const)) {
     *condition = FALSE;
     some_error_in_curr_directive = TRUE;
