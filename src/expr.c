@@ -2686,7 +2686,10 @@ additional ones over the basic ones implied for this case.
   }  /* if */
   /* Note that the code here is very similar to scan_expr_list and
      scan_potential_pack_expansion_initializer_expr. */
-  any_more = begin_potential_pack_expansion_context(&pesep);
+  do {
+    any_more = begin_potential_pack_expansion_context(&pesep);
+    /* Skip over any empty pack expansions. */
+  } while (!any_more && loop_token(tok_comma));
   while (any_more) {
     an_operand                 local_operand, local_bound_function_selector;
     a_pack_expansion_descr_ptr pedep;
@@ -2731,6 +2734,7 @@ additional ones over the basic ones implied for this case.
     any_more = advance_to_next_pack_element(pesep);
     first_time = FALSE;
   }  /* while */
+  skip_empty_pack_expansions_after_comma();
 }  /* scan_expression_list_context_expr */
 
 
@@ -2901,65 +2905,77 @@ is a set of expression-scanning options in case the caller wants to
 provide some additional ones over the basic ones implied for this case.
 */
 {
-  *expr_not_present = FALSE;
-  if (expr->is_pack_expansion) {
-    /* A variadic template pack expansion. */
-    a_boolean                        any_more;
-    an_expr_rescan_info_entry_ptr    eriep;
-    a_pack_expansion_descr_ptr       pedep;
-    a_pack_expansion_stack_entry_ptr pesep;
-    a_boolean                        err, first_time = TRUE;
+  a_boolean  first_time = TRUE;
+  *expr_not_present = TRUE;
+  /* We need to go through the whole list to check that it only contains a
+     single expression after any pack expansions. */
+  while (expr != NULL) {
+    if (expr->is_pack_expansion) {
+      /* A variadic template pack expansion. */
+      a_boolean                        any_more;
+      an_expr_rescan_info_entry_ptr    eriep;
+      a_pack_expansion_descr_ptr       pedep;
+      a_pack_expansion_stack_entry_ptr pesep;
+      a_boolean                        err;
 
-    /* Note this is similar to rescan_pack_expansion. */
-    eriep = get_expr_rescan_info(expr, (an_expr_rescan_info_entry *)NULL);
-    pedep = eriep->saved_operand.pack_expansion_descr;
-    check_assertion(pedep != NULL);
-    any_more = begin_rescan_pack_expansion_context(pedep,
+      /* Note this is similar to rescan_pack_expansion. */
+      eriep = get_expr_rescan_info(expr, (an_expr_rescan_info_entry *)NULL);
+      pedep = eriep->saved_operand.pack_expansion_descr;
+      check_assertion(pedep != NULL);
+      any_more = begin_rescan_pack_expansion_context(
+                                                  pedep,
                                                   rcblock->template_param_list,
-                                                   rcblock->template_arg_list,
-                                                   &pesep, rcblock->options,
-                                                   rcblock->ctws_state, &err);
-    /* Check if an error occurred (such as mismatched parameter pack
-       lengths). */
-    if (err) subst_fail(rcblock->error_detected);
-    *expr_not_present = TRUE;
-    while (any_more) {
-      an_operand local_operand, local_bound_function_selector;
-      make_rescan_operand_full(expr, rcblock, options, &local_operand,
-                               &local_bound_function_selector);
-      if (first_time) {
-        copy_operand(&local_operand, operand);
-        if (bound_function_selector != NULL) {
-          copy_operand(&local_bound_function_selector,
-                       bound_function_selector);
+                                                  rcblock->template_arg_list,
+                                                  &pesep, rcblock->options,
+                                                  rcblock->ctws_state, &err);
+      /* Check if an error occurred (such as mismatched parameter pack
+         lengths). */
+      if (err) subst_fail(rcblock->error_detected);
+      while (any_more) {
+        an_operand local_operand, local_bound_function_selector;
+        make_rescan_operand_full(expr, rcblock, options, &local_operand,
+                                 &local_bound_function_selector);
+        if (first_time) {
+          copy_operand(&local_operand, operand);
+          if (bound_function_selector != NULL) {
+            copy_operand(&local_bound_function_selector,
+                         bound_function_selector);
+          }  /* if */
+          *expr_not_present = FALSE;
+        } else {
+          /* More than one expression from a pack expansion. */
+          subst_fail(rcblock->error_detected);
+          /* It seems safest to allow the loop to run to its normal end. */
         }  /* if */
-        *expr_not_present = FALSE;
-      } else {
-        /* More than one expression from a pack expansion. */
-        subst_fail(rcblock->error_detected);
-        /* It seems safest to allow the loop to run to its normal end. */
-      }  /* if */
-      (void)end_potential_pack_expansion_context(pesep,
-                                                 /*is_declarator=*/FALSE);
-      any_more = advance_to_next_pack_element(pesep);
-      if (any_more) {
-        a_pack_reference_ptr prp = pesep->instantiation_descr->pack_status;
-        if (prp->kind == prk_parameter &&
-            prp->curr_argument.param_type->is_parameter_pack) {
-          /* This is the parameter pack that terminates a substituted
-             parameter pack expansion that is created under the option
-             CTWS_PRESERVE_DEDUCED_PACKS.  It should not be treated as
-             another expression in the expansion. */
-          any_more = FALSE;
+        (void)end_potential_pack_expansion_context(pesep,
+                                                   /*is_declarator=*/FALSE);
+        any_more = advance_to_next_pack_element(pesep);
+        if (any_more) {
+          a_pack_reference_ptr prp = pesep->instantiation_descr->pack_status;
+          if (prp->kind == prk_parameter &&
+              prp->curr_argument.param_type->is_parameter_pack) {
+            /* This is the parameter pack that terminates a substituted
+               parameter pack expansion that is created under the option
+               CTWS_PRESERVE_DEDUCED_PACKS.  It should not be treated as
+               another expression in the expansion. */
+            any_more = FALSE;
+          }  /* if */
         }  /* if */
-      }  /* if */
+        first_time = FALSE;
+      }  /* while */
+    } else if (first_time) {
+      /* Normal case, not a pack expansion. */
+      make_rescan_operand_full(expr, rcblock, options,
+                               operand, bound_function_selector);
+      *expr_not_present = FALSE;
       first_time = FALSE;
-    }  /* while */
-  } else {
-    /* Normal case, not a pack expansion. */
-    make_rescan_operand_full(expr, rcblock, options,
-                             operand, bound_function_selector);
-  }  /* if */
+    } else {
+      /* More than one expression. */
+      subst_fail(rcblock->error_detected);
+      break;
+    }  /* if */
+    expr = expr->next;
+  }  /* while */
 }  /* rescan_expression_list_context_expr */
 
 
@@ -3299,13 +3315,16 @@ a comma, or if called outside of a variadic template context.
   if (curr_token == tok_comma && is_variadic_template_context()) {
     clear_token_cache(&cache, /*reusable=*/FALSE);
     cache_curr_token(&cache);
-    (void)get_token();
-    /* Begin the potential pack expansion just to check for an empty
-       expansion. */
-    if (begin_potential_pack_expansion_context(&pesep)) {
-      abandon_potential_pack_expansion_context(pesep);
-      rescan_cached_tokens(&cache);
-    }  /* if */
+    do {
+      (void)get_token();
+      /* Begin the potential pack expansion just to check for an empty
+         expansion. */
+      if (begin_potential_pack_expansion_context(&pesep)) {
+        abandon_potential_pack_expansion_context(pesep);
+        rescan_cached_tokens(&cache);
+        break;
+      }  /* if */
+    } while (curr_token == tok_comma);
   }  /* if */
 }  /* skip_empty_pack_expansions_after_comma */
 
@@ -28086,18 +28105,12 @@ empty_parentheses:
           copy_operand(operand_of_arg_list_elem(supplied_arg_list), result);
         }  /* if */
       } else if (rcblock != NULL) {
-        if (rcblock->argument_list->next != NULL) {
-          /* Multiple operand expressions in a cast that can only take one. */
-          subst_fail(rcblock->error_detected);
-          make_error_operand(result);
-        } else {
-          /* Rescan the operand expression. */
-          rescan_expression_list_context_expr(rcblock->argument_list, rcblock,
-                                              EOPT_OPERAND_OF_CAST,
-                                              result,
-                                              &local_bound_function_selector,
-                                              &expr_not_present);
-        }  /* if */
+        /* Rescan the operand expression. */
+        rescan_expression_list_context_expr(rcblock->argument_list, rcblock,
+                                            EOPT_OPERAND_OF_CAST,
+                                            result,
+                                            &local_bound_function_selector,
+                                            &expr_not_present);
       } else {
         /* Scan the expression inside the parentheses. */
         /* Since the expression in parentheses is syntactically an
