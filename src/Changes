@@ -1,5 +1,22 @@
 Version 6.5
 
+3/21/23  [EDGcpfe/26154]
+Member alignments of extended floating point types
+
+When support for the C++23 extended floating point types was added to the
+front end (see the entry for EDGcpfe/25100,EDGcpfe/25170,EDGcpfe/25515),
+the values for their alignments as members of classes were not set.  The
+result of this omission could be incorrect sizes and alignments of classes
+and class members, as well as aborts in some configurations.  This is now
+fixed.  For example, with --c++23:
+
+  typedef decltype(0.0f16) f16_t;
+  template<typename T> struct S {
+    T t;
+  };
+  S<f16_t> s16;
+
+
 3/21/23  [EDGcpfe/26097]
 Microsoft compatibility: "typeid" and "__uuidof" address constants as template
 arguments

@@ -795,8 +795,13 @@ floating point types.
                                              targ_long_double_field_alignment;
   float_field_alignments[(int)fk_float80] = targ_float80_field_alignment;
   float_field_alignments[(int)fk_float128] = targ_float128_field_alignment;
+  float_field_alignments[(int)fk_std_bfloat16] = 2;
+  float_field_alignments[(int)fk_std_float16] = 2;
+  float_field_alignments[(int)fk_std_float32] = targ_float_field_alignment;
+  float_field_alignments[(int)fk_std_float64] = targ_double_field_alignment;
+  float_field_alignments[(int)fk_std_float128] = targ_float128_field_alignment;
 #if CHECKING
-  for (k = 0; k<(int)fk_first_extended_type; ++k) {
+  for (k = 0; k<(int)fk_last; ++k) {
     if (float_field_alignments[k] == 0) {
       unexpected_condition();
     }  /* if */
