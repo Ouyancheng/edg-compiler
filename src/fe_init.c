@@ -1279,6 +1279,12 @@ Install the keywords in the symbol table.
     enter_builtin_keyword((a_token_kind)tok_builtin_bit_cast,
                           "__builtin_bit_cast");
   }  /* if */
+  if (clang_version_is(>=110000)) {
+    /* Clang enables the __bf16 type in both C and C++ modes (although it is
+       not enabled for some architectures (it is enabled in all architectures
+       here). */
+    enter_keyword((a_token_kind)tok_bf16, "__bf16");
+  }  /* if */
   if (nullability_qualifiers_enabled) {
     enter_keyword((a_token_kind)tok_nullable, "_Nullable");
     enter_keyword((a_token_kind)tok_nonnull, "_Nonnull");

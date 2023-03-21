@@ -1,5 +1,15 @@
 Version 6.5
 
+3/21/23  [EDGcpfe/26171]
+Clang compatibility: Add __bf16 type
+
+Clang versions 11.0.0 and later accept the 16-bit floating-point __bf16
+type in C and C++ modes and now the front end accepts it as well in clang
+emulation mode when clang_version >= 110000.  The format is the same as the
+std::bfloat16_t type that was added as an extended floating-point type in C++23
+mode (see the Changes entry for EDGcpfe/25100,EDGcpfe/25170,EDGcpfe/25515).
+
+
 3/21/23  [EDGcpfe/26170]
 Digit separators in #elif expressions
 

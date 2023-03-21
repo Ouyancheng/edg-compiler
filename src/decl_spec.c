@@ -7361,6 +7361,7 @@ enum a_basic_type {
   bt_fract,
   bt_accum,
 #endif /* FIXED_POINT_ALLOWED */
+  bt_bfloat16,
   bt_float16,
   bt_float,
   bt_double,
@@ -7584,7 +7585,9 @@ unchanged.
     }  /* if */
   } else if (temp_type->kind == (a_type_kind)tk_float) {
     fkind = temp_type->variant.float_kind;
-    if (fkind == fk_float16) {
+    if (fkind == fk_std_bfloat16) {
+      basic_type = bt_bfloat16;
+    } else if (fkind == fk_float16) {
       basic_type = bt_float16;
     } else if (fkind == fk_float) {
       basic_type = bt_float;
@@ -7871,6 +7874,7 @@ _Sat was specified.
       }  /* if */
       break;
 #endif /* FIXED_POINT_ALLOWED */
+    case bt_bfloat16:
     case bt_float16:
     case bt_float:
     case bt_double:
@@ -7878,7 +7882,9 @@ _Sat was specified.
         bad_combination = TRUE;
       } else {
         if (size == size_none) {
-          if (basic_type == bt_float16) {
+          if (basic_type == bt_bfloat16) {
+            fkind = fk_std_bfloat16;
+          } else if (basic_type == bt_float16) {
             fkind = fk_float16;
           } else if (basic_type == bt_float) {
             /* float. */
@@ -11627,6 +11633,13 @@ process_enum_specifier:
         *type_ptr = edg_fp16_typedef;
         decl_specifiers_seen |= DS_TYPE;
         basic_type = bt_typedef;
+        break;
+      case tok_bf16:
+        /* Clang-specific encoding for 16-bit std::bfloat16_t floating-point
+           layout. */
+        *type_ptr = float_type(fk_std_bfloat16);
+        decl_specifiers_seen |= DS_TYPE;
+        basic_type = bt_bfloat16;
         break;
       case tok_edg_vector_type:
         *type_ptr = scan_edg_vector_type();

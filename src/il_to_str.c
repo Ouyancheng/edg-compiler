@@ -1462,7 +1462,9 @@ beginning with "**BAD" for a bad float kind.
     case fk_long_double:  p = "long double";        break;
     case fk_float80:      p = "__float80";          break;
     case fk_float128:     p = "__float128";         break;
-    case fk_std_bfloat16: p = "std::bfloat16_t";    break;
+    case fk_std_bfloat16: p = (use_C_form || !extended_float_types)
+                            ? "__bf16"
+                            : "std::bfloat16_t";    break;
     case fk_std_float16:  p = use_C_form
                             ? "_Float16"
                             : "std::float16_t";     break;
