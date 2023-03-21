@@ -48008,7 +48008,7 @@ are NULL by default.
       a_boolean  microsoft_oddity = FALSE;
       if (!generalized_nontype_arguments) {
         if (is_any_reference_type(tp)) {
-          err = !id_expr && !microsoft_mode;
+          err = !id_expr && !ms_extensions;
         } else if (ms_version_is(<1310) && id_expr &&
                    is_any_reference_type(constant->type)) {
           microsoft_oddity = TRUE;

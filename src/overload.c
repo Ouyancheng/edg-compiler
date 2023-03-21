@@ -23947,6 +23947,13 @@ reference type.  Return TRUE if it is acceptable.
     } else if (cp->variant.address.kind == (an_address_base_kind)abk_routine) {
       /* A routine whose address has been folded. */
       valid = TRUE;
+    } else if (ms_extensions && cp->variant.address.kind == abk_uuidof) {
+      /* A "__uuidof" address constant is accepted when Microsoft extensions
+         are enabled. */
+      valid = TRUE;
+    } else if (microsoft_mode && cp->variant.address.kind == abk_typeid) {
+      /* A "typeid" address constant is only accepted by MSVC. */
+      valid = TRUE;
     }  /* if */
   }  /* if */
   return valid;
@@ -24001,15 +24008,20 @@ appropriate.
     } else if (is_error_node(expr)) {
       invalid = FALSE;
     }  /* if */
-    if (microsoft_mode && invalid && is_operation_node(expr) &&
+    if (ms_extensions && invalid && is_operation_node(expr) &&
         node_operator_is(expr, eok_indirect)) {
-      /* Check for the "typeid" address constant case in Microsoft mode. */
+      /* Check for the "typeid" and "__uuidof" address constant cases in
+         Microsoft mode. */
       expr = skip_parens(expr->variant.operation.operands);
       if (is_constant_node(expr) &&
-          constant_is(node_constant(expr), ck_address) &&
-          node_constant(expr)->variant.address.kind ==
-                                           (an_address_base_kind)abk_typeid) {
-        invalid = FALSE;
+          constant_is(node_constant(expr), ck_address)) {
+        an_address_base_kind  abk = node_constant(expr)->variant.address.kind;
+        /* A "typeid" address constant is only accepted by MSVC; a "__uuidof"
+           address constant is also accepted by Clang with Microsoft extensions
+           enabled. */
+        if ((abk == abk_typeid && microsoft_mode) || abk == abk_uuidof) {
+          invalid = FALSE;
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
