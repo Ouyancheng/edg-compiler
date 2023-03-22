@@ -154,7 +154,7 @@ following (which can occur with the old std::auto_ptr template):
     template<typename U> operator R<U>();
   };
   void f() {
-    throw S<int>();  // Previously failed claiming S<int> has not suitable
+    throw S<int>();  // Previously failed claiming S<int> has no suitable
  }                   // copy constructor (in C++14 and earlier modes).
                      // Now okay.
 
