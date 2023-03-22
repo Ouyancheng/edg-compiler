@@ -1,5 +1,12 @@
 Version 6.5
 
+3/22/23  [EDGcpfe/26169]
+Clang compatibility: Clang 16.0.0 builtins
+
+The builtin_defs.h file has been updated to reflect the availability of
+these new builtins when clang_version >= 160000.
+
+
 3/21/23  [EDGcpfe/26162]
 Ctl-Z appearing in a command-line or predefined macro definition
 
