@@ -10792,9 +10792,11 @@ end_of_comment:;
       goto white_space_loop;
 #if READ_SOURCE_IN_BINARY_MODE_FOR_MSDOS
     case CONTROL_Z:
-      if (microsoft_mode) {
-        /* In this mode, a ctrl-Z (0x1a) appearing where a token start is
-           expected is treated as an end-of-file marker. */
+      if (microsoft_mode && curr_ise != NULL) {
+        /* In this mode, a ctrl-Z (0x1a) appearing in a file where a token
+           start is expected (i.e., not in a comment or string literal and
+           not on the command line or in the predefined macros file) is
+           treated as an end-of-file marker. */
         eof_read_on_curr_input_stream = TRUE;
         ch = LE_END_OF_LINE;
         goto end_of_current_line;
