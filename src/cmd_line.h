@@ -301,6 +301,7 @@ enum an_option_kind {
   optk_default_nocommon,
 #endif /* GNU_EXTENSIONS_ALLOWED */
   optk_token_separators_in_pp_output,
+  optk_c23_typeof,
   optk_cpp11_sfinae,
   optk_cpp11_sfinae_ignore_access,
   optk_variadic_templates,

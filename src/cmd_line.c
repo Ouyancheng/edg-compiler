@@ -1438,6 +1438,14 @@ Initialize the option information table.
                          "no_gen_move_operations",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
+  add_option_description(optk_c23_typeof,
+                         "c23_typeof", '\0',
+                         /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_c23_typeof,
+                         "no_c23_typeof", '\0',
+                         /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
   add_option_description(optk_cpp11_sfinae,
                          "c++11_sfinae", '\0',
                          /*value=*/TRUE, /*arg_required=*/FALSE,
@@ -4246,6 +4254,9 @@ setting is used, and to set various unmentioned settings as needed.
 #endif /* NAMED_REGISTERS_ALLOWED */
   if (option_kind_used[(int)optk_embedded_c]) {
     command_line_error(ec_cl_embedded_c_option_only_in_C);
+  }  /* if */
+  if (option_kind_used[(int)optk_c23_typeof]) {
+    command_line_error(ec_cl_c23_typeof_option_only_in_C);
   }  /* if */
   /* "//" is allowed as a comment delimiter. */
   end_of_line_comments_allowed = TRUE;
@@ -11461,6 +11472,9 @@ enable_microsoft_mode:
         check_assertion(opt_value == TRUE);
         no_token_separators_in_pp_output = TRUE;
         break;
+      case optk_c23_typeof:
+        c23_typeof_enabled = opt_value;
+        break;
       case optk_cpp11_sfinae:
         cpp11_sfinae_enabled = opt_value;
         break;
@@ -11719,6 +11733,9 @@ enable_microsoft_mode:
       cpp11_sfinae_enabled = TRUE;
       cpp11_sfinae_ignore_access = DEFAULT_CPP11_SFINAE_IGNORE_ACCESS;
     }  /* if */
+  }  /* if */
+  if (c23_mode && !option_kind_used[(int)optk_c23_typeof]) {
+    c23_typeof_enabled = TRUE;
   }  /* if */
   if (unrestricted_unions_enabled) {
     /* Unrestricted unions require the ability to mark special member functions
@@ -13032,6 +13049,7 @@ variables declared in cmd_line.h.
   va_arg_returns_lvalue = FALSE;
   warn_on_try_statement = FALSE;
   nullptr_enabled = DEFAULT_NULLPTR_ENABLED;
+  c23_typeof_enabled = FALSE;
   cpp11_sfinae_enabled = DEFAULT_CPP11_SFINAE_ENABLED;
   cpp11_sfinae_ignore_access = cpp11_sfinae_enabled &&
                             DEFAULT_CPP11_SFINAE_IGNORE_ACCESS; /*lint !e506*/

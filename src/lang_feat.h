@@ -2622,6 +2622,12 @@ EXTERN a_boolean
 			   enabled. */
 
 EXTERN a_boolean
+		c23_typeof_enabled;
+			/* When TRUE, the C23 typeof language feature is
+			   enabled regardless of the current C language
+			   level. */
+
+EXTERN a_boolean
 		cpp11_sfinae_enabled;
 			/* When TRUE, the C++11 SFINAE rules of N2634 are
 			   enabled. */

@@ -664,6 +664,7 @@ check_abbreviation()
 --c17
 --c18
 --c23
+--c23_typeof
 --c89
 --c99
 --c++
@@ -840,6 +841,7 @@ check_abbreviation()
 --no_base_assign_op_is_default
 --no_bool
 --no_brief_diagnostics
+--no_c23_typeof
 --no_c99
 --no_c++0x
 --no_c++11
@@ -1686,6 +1688,8 @@ process_option()
          --no_auto_storage | \
          --nullptr | \
          --no_nullptr | \
+         --c23_typeof | \
+         --no_c23_typeof | \
          --c++11_sfinae | \
          --no_c++11_sfinae | \
          --c++11_sfinae_ignore_access | \
