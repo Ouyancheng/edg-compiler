@@ -56,7 +56,7 @@ arguments
 Previously, the front end only accepted a "typeid" address constant as a
 template argument for a reference template parameter in pre-C++17 Microsoft
 modes.  Now, a "typeid" address constant is accepted in all Microsoft modes,
-and a "__uuid" address constant is accepted in Microsoft mode as well as in
+and a "__uuidof" address constant is accepted in Microsoft mode as well as in
 Clang mode with Microsoft extensions enabled.  For example, with --ms_c++17:
 
   #include <typeinfo>
