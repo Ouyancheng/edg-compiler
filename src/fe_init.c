@@ -1203,8 +1203,12 @@ Install the keywords in the symbol table.
     enter_keyword((a_token_kind)tok_builtin_offsetof, "__builtin_offsetof");
   }  /* if */
   if (gnu_mode) {
-    enter_keyword((a_token_kind)tok_extension, "__extension__");
     enter_gnu_keyword((a_token_kind)tok_typeof, "typeof");
+  } else if (c23_mode) {
+    enter_keyword((a_token_kind)tok_typeof, "typeof");
+  }  /* if */
+  if (gnu_mode) {
+    enter_keyword((a_token_kind)tok_extension, "__extension__");
     if (gcc_mode && gnu_version >= 40900) {
       enter_keyword((a_token_kind)tok_auto_type, "__auto_type");
     }  /* if */

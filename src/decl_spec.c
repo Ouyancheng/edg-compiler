@@ -11735,6 +11735,7 @@ process_enum_specifier:
           decl_specifiers_seen |= DS_TYPE;
           goto no_get_token;
         }
+#endif /* GNU_EXTENSIONS_ALLOWED */
       case tok_typeof:
         { a_source_position  typeof_pos = pos_curr_token;
           *type_ptr = scan_typeof_operator((a_rescan_control_block *)NULL,
@@ -11753,7 +11754,6 @@ process_enum_specifier:
           decl_specifiers_seen |= DS_TYPE;
           goto no_get_token;
         }
-#endif /* GNU_EXTENSIONS_ALLOWED */
       case tok_decltype:
         /* This could be decltype(auto), decltype(...)::... or just a plain
            decltype specifier.  The first case is handled here, and the others

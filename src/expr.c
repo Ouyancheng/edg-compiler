@@ -16411,11 +16411,7 @@ expression-processing routines.
   if (!is_typeof) {
     new_type = scan_decltype_operator(&rcblock, /*might_be_id_start=*/FALSE);
   } else {
-#if GNU_EXTENSIONS_ALLOWED
     new_type = scan_typeof_operator(&rcblock, (a_decl_pos_block *)NULL);
-#else /* !GNU_EXTENSIONS_ALLOWED */
-    unexpected_condition();
-#endif /* GNU_EXTENSIONS_ALLOWED */
   }  /* if */
   pop_expr_stack();
   pop_expr_rescan_context_if_necessary(&saved_context);
@@ -16504,16 +16500,18 @@ from outside of the expression-processing routines.
   return result;
 }  /* scan_underlying_type_operator */
 
-#if GNU_EXTENSIONS_ALLOWED
 
 a_type_ptr scan_typeof_operator(a_rescan_control_block      *rcblock,
                                 ARG_UNUSED a_decl_pos_block *decl_pos_block)
 /*
-Scan the typeof operator.  This is a GNU C/C++ extension that is similar
-to sizeof, but returns the type rather than the size.  It is used
-in type contexts, not expression contexts.
+Scan the typeof operator.  This is C23 language feature that was originally a
+GNU C/C++ extension.  typeof is similar to sizeof, but returns the type rather
+than the size.  It is used in type contexts, not expression contexts.
 
-Syntax:
+C23 Syntax:
+        typeof ( type-name )
+
+GNU Syntax:
         typeof ( type-name )    or   __typeof__ ( type-name )
         typeof expression       or   __typeof__ expression
 
@@ -16543,7 +16541,6 @@ the expression-processing routines.
   a_boolean                   parens_optional;
   an_expr_node_ptr            saved_decltype_rescan_operand = NULL;
 
-  check_assertion(gnu_mode || sun_mode);
   parens_optional = gpp_mode && gnu_version >= 30400;
   /* Note that, unlike e.g. sizeof, typeof can appear directly in a declarative
      context (without any intervening expression context).  The expression
@@ -16775,6 +16772,7 @@ the expression-processing routines.
   return result;
 }  /* scan_typeof_operator */
 
+#if GNU_EXTENSIONS_ALLOWED
 
 void typedef_initializer(a_symbol_ptr  symbol_ptr)
 /*
@@ -40763,10 +40761,10 @@ type_start:
           (void)get_token();
         } else if (curr_token == tok_underlying_type) {
           cast_type = scan_underlying_type_operator();
-#if GNU_EXTENSIONS_ALLOWED
         } else if (curr_token == tok_typeof) {
           cast_type = scan_typeof_operator((a_rescan_control_block *)NULL,
                                            (a_decl_pos_block*)NULL);
+#if GNU_EXTENSIONS_ALLOWED
         } else if (gpp_mode && gnu_version < 30400 &&
                    (is_class_type_keyword(curr_token) ||
                     curr_token == tok_enum)) {
