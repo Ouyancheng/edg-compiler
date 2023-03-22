@@ -3,7 +3,8 @@ Version 6.5
 3/21/23  [EDGcpfe/26162]
 Ctl-Z appearing in a command-line or predefined macro definition
 
-The changes for EDGcpfe/24920 (in version 6.4) introduced a regression in
+In configurations with READ_SOURCE_IN_BINARY_MODE_FOR_MSDOS set to TRUE,
+the changes for EDGcpfe/24920 (in version 6.4) introduced a regression in
 Microsoft mode when a ctl-Z (0x1a) appears at the start of a token in a
 macro definition appearing on the command line or in the predefined macros
 file, resulting in dereferencing a NULL pointer.  This is now fixed.
