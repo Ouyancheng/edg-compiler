@@ -1736,8 +1736,8 @@ process_option()
 #     Options that require additional processing
       case $arg in
         -m | --c | --c89 | --c99 | --no_c99 | --c11 | --c18 | --c17 | --c23 | \
-	-K | --old_c | --svr4 | --no_svr4 | \
-	--gcc | --no_gcc | --upc | --no_upc)
+        --ms_c11 | --ms_c17 | --ms_c23 | -K | --old_c | --svr4 | --no_svr4 | \
+        --gcc | --no_gcc | --upc | --no_upc)
           c_mode=1
           if [ $arg = "--c99" -o $arg = "--c11" ] ; then
             need_c_to_obj_c99_options=1
