@@ -10039,17 +10039,14 @@ typedef struct a_type {
 		is_underlying_type:1;
 			/* The type was created by an __underlying_type
 			   operator (a Microsoft extension). */
-#if GNU_EXTENSIONS_ALLOWED
       a_bit_field
 		is_typeof:1;
-			/* The type was created by a typeof operator
-                           (a GNU C extension). */
+			/* The type was created by a typeof operator. */
       a_bit_field
 		is_typeof_with_type_operand:1;
 			/* The type was created by a typeof operator applied to
 			   a type rather than an expression, i.e.,
 			   typeof(type-name) rather than typeof(expr). */
-#endif /* GNU_EXTENSIONS_ALLOWED */
       a_bit_field
 		is_dependent_type_operator:1;
 			/* TRUE if the type was created by decltype,
