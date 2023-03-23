@@ -192,7 +192,7 @@ typedef struct an_attr_descr {
 			   microsoft_version, and std_version respectively) and
 			   an applicable version range.  The auxiliary version
 			   specifier doesn't affect the attribute family.  For
-			   example, "1c+(201703-|M(1910-))" specifies a
+			   example, "c+(201703-|M(1910-))" specifies a
 			   standard attribute that is available when
 			   std_version >= 201703 or when microsoft_version >=
 			   1910.
@@ -207,7 +207,9 @@ typedef struct an_attr_descr {
 			   A prefix "1" means the attribute can appear at most
 			   once per attribute group.  E.g., "1c+" indicates a
 			   standard C++ attribute that can appear at most once
-			   in a attribute group (and with no namespace). */
+			   in a attribute group (and with no namespace).  [This
+			   is still enabled even though C++23 and C23 now allow
+			   duplicate attributes so it's not currently used.] */
   an_attribute_kind
 		attr_kind;
 			/* The attribute kind to record in the corresponding
@@ -227,22 +229,22 @@ static an_attr_descr known_attr_table[] = {
   /* C++ standard attributes (C++11 and later).  Note the use of "c+" to
      indicate these are valid in C++ modes only. */
   { "align", "(ct)", "c+", ak_align },
-  { "base_check", "", "1c+", ak_base_check },
-  { "carries_dependency", "", "1c+", ak_carries_dependency },
-  { "deprecated", "?(sx)", "1c+(201402-|M(1910-))", ak_deprecated },
-  { "final", "", "1c+", ak_final },
-  { "hiding", "", "1c+", ak_hiding },
+  { "base_check", "", "c+", ak_base_check },
+  { "carries_dependency", "", "c+", ak_carries_dependency },
+  { "deprecated", "?(sx)", "c+(201402-|M(1910-))", ak_deprecated },
+  { "final", "", "c+", ak_final },
+  { "hiding", "", "c+", ak_hiding },
   { "known_semantics", "", "c+[msvc](|M(1927-))", ak_known_semantics },
-  { "noreturn", "", "1c+", ak_noreturn },
-  { "override", "", "1c+", ak_override },
-  { "nodiscard", "?(sx)", "1c+(201703-|M(1910-))", ak_nodiscard },
+  { "noreturn", "", "c+", ak_noreturn },
+  { "override", "", "c+", ak_override },
+  { "nodiscard", "?(sx)", "c+(201703-|M(1910-))", ak_nodiscard },
   { "noop_dtor", "", "c+[msvc](|M(1928-))", ak_noop_dtor },
-  { "maybe_unused", "", "1c+(201703-|M(1910-)|G(70100-)|C(30900-))",
+  { "maybe_unused", "", "c+(201703-|M(1910-)|G(70100-)|C(30900-))",
     ak_maybe_unused },
-  { "fallthrough", "", "1c+(201703-|M(1910-))", ak_fallthrough },
-  { "likely", "", "1c+(202002-|G(80300-))", ak_likely },
-  { "unlikely", "", "1c+(202002-|G(80300-))", ak_unlikely },
-  { "no_unique_address", "", "1c+(202002-|G(80300-))", ak_no_unique_address },
+  { "fallthrough", "", "c+(201703-|M(1910-))", ak_fallthrough },
+  { "likely", "", "c+(202002-|G(80300-))", ak_likely },
+  { "unlikely", "", "c+(202002-|G(80300-))", ak_unlikely },
+  { "no_unique_address", "", "c+(202002-|G(80300-))", ak_no_unique_address },
 
   /* C standard attributes (C23 and later).  Also accepted by default when
      gnu_version >= 100000 or microsoft_version >= 1934 (see the setting of
@@ -289,9 +291,9 @@ static an_attr_descr known_attr_table[] = {
   { "ext_vector_type", "(ci)", "lx", ak_ext_vector_type },
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
   { "externally_visible", "", "gx(40000-)", ak_externally_visible },
-  { "fallthrough", "", "1gx(70000-)", ak_fallthrough },
-  { "fallthrough", "", "1lx{clang}(30900-)", ak_fallthrough },
-  { "fallthrough", "", "1lx{gnu}(30900-)", ak_fallthrough },
+  { "fallthrough", "", "gx(70000-)", ak_fallthrough },
+  { "fallthrough", "", "lx{clang}(30900-)", ak_fallthrough },
+  { "fallthrough", "", "lx{gnu}(30900-)", ak_fallthrough },
 #if GNU_X86_ATTRIBUTES_ALLOWED
   { "fastcall", "", "gx(30400-)", ak_fastcall },
 #endif /* GNU_X86_ATTRIBUTES_ALLOWED */
@@ -5366,7 +5368,9 @@ attribute currently has no effect in the front end.
 
   if (entity_kind == iek_statement) {
     a_statement_ptr sp = (a_statement_ptr)entity;
-    if (sp->is_likely || sp->is_unlikely) {
+    if ((sp->is_likely && ap->kind == ak_unlikely) ||
+        (sp->is_unlikely && ap->kind == ak_likely)) {
+      /* A conflict with a previous attribute. */
       err = TRUE;
     } else if (ap->kind == ak_likely) {
       sp->is_likely = TRUE;
@@ -5375,7 +5379,9 @@ attribute currently has no effect in the front end.
     }  /* if */
   } else if (entity_kind == iek_label) {
     a_label_ptr lp = (a_label_ptr)entity;
-    if (lp->is_likely || lp->is_unlikely) {
+    if ((lp->is_likely && ap->kind == ak_unlikely) ||
+        (lp->is_unlikely && ap->kind == ak_likely)) {
+      /* A conflict with a previous attribute. */
       err = TRUE;
     } else if (ap->kind == ak_likely) {
       lp->is_likely = TRUE;

@@ -1,5 +1,16 @@
 Version 6.5
 
+3/23/23  [EDGcpfe/24775,EDGcpfe/25887]
+C23, C++23 compatibility: Allow duplicate attributes
+
+Both C23 and C++23 now allow duplicate attributes to be specified (see
+WG14 paper N2557 and WG16 paper P2156R1).  The latter paper was approved
+as a defect report so this change applies to all C++ versions.
+For example, with --c++14:
+
+  [[deprecated, deprecated]] int i;   // Now accepted (previously an error).
+
+
 3/22/23  [EDGcpfe/26169]
 Clang compatibility: Clang 16.0.0 builtins
 
