@@ -35894,16 +35894,17 @@ a capture).
           check_assertion(var->is_anonymous_parent_object);
           err_code = ec_anon_union_ref_in_lambda;
           bad_ref = TRUE;
-        } else if ((gpp_mode || clang_mode) && rvalue_only != NULL &&
+        } else if (rvalue_only != NULL &&
                    var_is_reference_to_constant_address(var)) {
-          /* GCC and Clang accept examples such as:
+          /* Accept examples such as:
                 int v;
                 int g() {
                   int &r = v;
                   return []{ return r; }();
                 }
-             where the use of r doesn't require capture.  We treat it as a
-             form of "rvalue" use. */
+             where the use of r doesn't require capture because the reference
+             binding resolves to a constant address.  We treat it as a form of
+             "rvalue" use. */
           *lambda_capture = NULL;
           *rvalue_only = TRUE;
         } else {
