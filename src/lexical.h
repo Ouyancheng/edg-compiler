@@ -550,10 +550,11 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
    (an_opname_kind)onk_none,          /* tok_typename */
    (an_opname_kind)onk_none,          /* tok_static_assert */
    (an_opname_kind)onk_none,          /* tok_decltype */
-   (an_opname_kind)onk_none,          /* tok_typeof */
    (an_opname_kind)onk_none,          /* tok_auto_type */
    (an_opname_kind)onk_none,          /* tok_extension */
    (an_opname_kind)onk_none,          /* tok_null */
+   (an_opname_kind)onk_none,          /* tok_typeof */
+   (an_opname_kind)onk_none,          /* tok_typeof_unqual */
    (an_opname_kind)onk_none,          /* tok_overload */
 #if SUN_EXTENSIONS_ALLOWED
    (an_opname_kind)onk_none,          /* tok_global_link_scope */

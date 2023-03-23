@@ -911,6 +911,7 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
       case tok_decltype:
       case tok_underlying_type:
       case tok_typeof:
+      case tok_typeof_unqual:
       case tok_edg_vector_type:
       case tok_edg_internal_type:
         is_decl_specifier_token = TRUE;

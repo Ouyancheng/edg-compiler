@@ -1280,10 +1280,13 @@ enum a_token_kind : unsigned short {
   tok_static_assert,
   tok_decltype,
   /* Recognized in GNU C and C++ modes only. */
-  tok_typeof,
   tok_auto_type,
   tok_extension,
   tok_null,
+  /* Recognized in GNU C and C23 modes only. */
+  tok_typeof,
+  /* Recognized in C23 mode only. */
+  tok_typeof_unqual,
   /* Recognized in cfront compatibility mode only. */
   tok_overload,
 #if SUN_EXTENSIONS_ALLOWED
@@ -1531,7 +1534,7 @@ EXTERN a_const_char
    "export", "export", "export", "import", "module",
    "mutable", "namespace", "reinterpret_cast", "static_cast", "typeid",
    "using", "bool", "false", "true", "typename", "static_assert", "decltype",
-   "__typeof__", "__auto_type", "__extension__", "__null",
+   "__auto_type", "__extension__", "__null", "typeof", "typeof_unqual",
    "overload",
 #if SUN_EXTENSIONS_ALLOWED
    "__global", "__symbolic", "__hidden",

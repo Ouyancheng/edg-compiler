@@ -11737,6 +11737,7 @@ process_enum_specifier:
         }
 #endif /* GNU_EXTENSIONS_ALLOWED */
       case tok_typeof:
+      case tok_typeof_unqual:
         { a_source_position  typeof_pos = pos_curr_token;
           *type_ptr = scan_typeof_operator((a_rescan_control_block *)NULL,
                                            decl_pos_block);

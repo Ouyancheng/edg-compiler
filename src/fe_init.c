@@ -1207,6 +1207,9 @@ Install the keywords in the symbol table.
   } else if (c23_typeof_enabled) {
     enter_keyword((a_token_kind)tok_typeof, "typeof");
   }  /* if */
+  if (c23_typeof_enabled) {
+    enter_keyword((a_token_kind)tok_typeof_unqual, "typeof_unqual");
+  }  /* if */
   if (gnu_mode) {
     enter_keyword((a_token_kind)tok_extension, "__extension__");
     if (gcc_mode && gnu_version >= 40900) {

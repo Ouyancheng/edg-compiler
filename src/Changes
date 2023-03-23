@@ -1,5 +1,17 @@
 Version 6.5
 
+3/23/23  [EDGcpfe/25938,EDGcpfe/26054]
+C23: Implement typeof and typeof_unqual operators
+
+As described in WG14 papers N2927 and N2930, typeof can now be used to declare
+a type from either an existing type or an expression.  Similarly, typeof_unqual
+can be used to declare a type from either an existing type or an expression
+with type qualifiers removed.
+
+This feature can additionally be activated in earlier C modes with the
+--c23_typeof flag.
+
+
 3/23/23  [EDGcpfe/26175]
 Clang & GCC compatibility: Lambdas using local references to global objects
 

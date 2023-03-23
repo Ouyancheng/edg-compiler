@@ -16509,7 +16509,10 @@ GNU C/C++ extension.  typeof is similar to sizeof, but returns the type rather
 than the size.  It is used in type contexts, not expression contexts.
 
 C23 Syntax:
+        typeof ( expression )
         typeof ( type-name )
+        typeof_unqual ( expression )
+        typeof_unqual ( type-name )
 
 GNU Syntax:
         typeof ( type-name )    or   __typeof__ ( type-name )
@@ -16540,6 +16543,8 @@ the expression-processing routines.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   a_boolean                   parens_optional;
   an_expr_node_ptr            saved_decltype_rescan_operand = NULL;
+  a_boolean                   is_unqual_variant =
+                                               curr_token == tok_typeof_unqual;
 
   parens_optional = gpp_mode && gnu_version >= 30400;
   /* Note that, unlike e.g. sizeof, typeof can appear directly in a declarative
@@ -16562,9 +16567,12 @@ the expression-processing routines.
   } else {
     /* Normal, non-rescan, processing. */
     /* Skip the typeof or __typeof__ token. */
-    check_assertion(curr_token == tok_typeof);
-    report_gnu_extension_if_needed(&pos_curr_token,
-                                   ec_typeof_is_gnu_extension);
+    check_assertion(curr_token == tok_typeof ||
+                    curr_token == tok_typeof_unqual);
+    if (!c23_typeof_enabled) {
+      report_gnu_extension_if_needed(&pos_curr_token,
+                                     ec_typeof_is_gnu_extension);
+    }  /* if */
     (void)get_token();
     /* Distinguish between the type-name and expression case. */
     if (curr_token == tok_lparen) {
@@ -16707,6 +16715,10 @@ the expression-processing routines.
     a_type_ptr  typeof_type = alloc_type((a_type_kind)tk_typeref);
     a_boolean   dependent_arg = !C_mode() && is_template_dependent_context() &&
                                 is_template_dependent_type(result);
+
+    if (is_unqual_variant) {
+      result = skip_typerefs(result);
+    }  /* if */
     typeof_type->variant.typeref.type = result;
     typeof_type->variant.typeref.is_typeof = TRUE;
     typeof_type->variant.typeref.is_typeof_with_type_operand = is_type;
