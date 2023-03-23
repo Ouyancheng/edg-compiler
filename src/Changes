@@ -1,5 +1,21 @@
 Version 6.5
 
+3/23/23  [EDGcpfe/26175]
+Clang & GCC compatibility: Lambdas using local references to global objects
+
+Consider:
+
+  int v;
+  int g() {
+    int &r = v;
+    return []{ return r; }();  // Now accepted in GNU and Clang modes.
+  }
+
+Ordinarily, this triggers an error because the local variable r is used without
+being capture in the lambda expression.  GCC and Clang, however,  appear to
+accept such cases and the front end now emulates that behavior.
+
+
 3/23/23  [EDGcpfe/24775,EDGcpfe/25887]
 C23, C++23 compatibility: Allow duplicate attributes
 

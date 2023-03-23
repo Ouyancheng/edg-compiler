@@ -35721,6 +35721,21 @@ Return TRUE if the given variable is captured "by copy" by the given lambda.
 }  /* var_is_copy_captured */
 
 
+static a_boolean var_is_reference_to_constant_address(a_variable_ptr  vp)
+/*
+Return TRUE if the given variable has reference type and it refers to an
+entity with "constant address".
+*/
+{
+  a_boolean  result = FALSE;
+
+  if (is_reference_type(vp->type) && var_constant_value(vp) != NULL) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* var_is_reference_to_constant_address */
+
+
 static a_boolean bad_nested_function_variable_ref(
                                           a_symbol_ptr         sym_ptr,
                                           a_source_position    *ref_pos,
@@ -35865,6 +35880,18 @@ a capture).
           check_assertion(var->is_anonymous_parent_object);
           err_code = ec_anon_union_ref_in_lambda;
           bad_ref = TRUE;
+        } else if ((gpp_mode || clang_mode) && rvalue_only != NULL &&
+                   var_is_reference_to_constant_address(var)) {
+          /* GCC and Clang accept examples such as:
+                int v;
+                int g() {
+                  int &r = v;
+                  return []{ return r; }();
+                }
+             where the use of r doesn't require capture.  We treat it as a
+             form of "rvalue" use. */
+          *lambda_capture = NULL;
+          *rvalue_only = TRUE;
         } else {
           /* See if the variable has been or can be captured now. */
           *lambda_capture = lambda_capture_for_variable(
