@@ -35743,8 +35743,11 @@ entity with "constant address".
 {
   a_boolean  result = FALSE;
 
-  if (is_reference_type(vp->type) && var_constant_value(vp) != NULL) {
-    result = TRUE;
+  if (is_reference_type(vp->type)) {
+    a_constant_ptr  cp = var_constant_value(vp);
+    if (cp != NULL && constant_is(cp, ck_address)) {
+      result = TRUE;
+    }  /* if */
   }  /* if */
   return result;
 }  /* var_is_reference_to_constant_address */
