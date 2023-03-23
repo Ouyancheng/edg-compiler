@@ -1,5 +1,15 @@
 Version 6.5
 
+3/23/23  [EDGcpfe/26177]
+C23 compatibility: Accept attributes with leading and trailing underscores
+
+The C23 standard allows attributes to have optional leading and trailing
+sets of underscores, e.g., "__attr__" is treated as "attr".  For example,
+with --c23:
+
+  [[__deprecated__]] int i;   // Now accepted.
+
+
 3/23/23  [EDGcpfe/25938,EDGcpfe/26054]
 C23: Implement typeof and typeof_unqual operators
 
