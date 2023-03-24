@@ -35741,8 +35741,8 @@ Return TRUE if the given variable is captured "by copy" by the given lambda.
 
 static a_boolean var_is_reference_to_constant_address(a_variable_ptr  vp)
 /*
-Return TRUE if the given variable has reference type and it refers to an
-entity with "constant address".
+Return TRUE if the given variable has a reference type and it refers to an
+entity with a "constant address".
 */
 {
   a_boolean  result = FALSE;
