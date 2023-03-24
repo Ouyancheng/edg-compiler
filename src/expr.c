@@ -35901,8 +35901,7 @@ a capture).
           check_assertion(var->is_anonymous_parent_object);
           err_code = ec_anon_union_ref_in_lambda;
           bad_ref = TRUE;
-        } else if (rvalue_only != NULL &&
-                   var_is_reference_to_constant_address(var)) {
+        } else if (var_is_reference_to_constant_address(var)) {
           /* Accept examples such as:
                 int v;
                 int g() {
