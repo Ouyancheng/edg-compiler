@@ -1,5 +1,20 @@
 Version 6.5
 
+3/24/23  [EDGcpfe/26176,EDGcpfe/26179]
+Error handling of __has_c_attribute and __has_cpp_attribute
+
+The front end previously failed to diagnose ill-formed uses of
+__has_cpp_attribute and __has_c_attribute (in C++ and C modes,
+respectively) when the name is not immediately followed by a left
+parenthesis.  Also, diagnostics for ill-formed uses of __has_c_attribute
+previously referred to __has_cpp_attribute.  finally, diagnostics for
+ill-formed uses of these operators previously gave an incomplete list of
+contexts in which they may appear.  These issues are now fixed.  For
+example, with --c23 --strict:
+
+  int __has_c_attribute;   // Now elicits a correct diagnostic
+
+
 3/23/23  [EDGcpfe/26177]
 C23 compatibility: Accept attributes with leading and trailing underscores
 

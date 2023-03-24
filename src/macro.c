@@ -6149,7 +6149,17 @@ make_inert_macro:
             "Potential macro not followed by \"(\", left as identifier.\n");
       }  /* if */
 #endif /* DEBUG */
-      if (check_expansion_for_recursion) {
+      if (macro_symbol == has_cpp_attribute_symbol ||
+          macro_symbol == has_c_attribute_symbol) {
+        if (strict_ansi_mode) {
+          /* This operator may only appear inside #if, #ifdef, etc. */
+          pos_st_diagnostic(strict_ansi_discretionary_severity,
+                            ec_has_cpp_attrib_not_in_if, &start_pos,
+                            (macro_symbol == has_cpp_attribute_symbol)
+                                                          ? "has_cpp_attribute"
+                                                          : "has_c_attribute");
+        }  /* if */
+      } else if (check_expansion_for_recursion) {
         /* This macro name appeared in its own expansion: treat it as an
            inert macro, even though we wouldn't have expanded it here. */
         is_inert_macro = TRUE;
@@ -7215,9 +7225,12 @@ end_arg_expansion:;
       a_const_char *value = "0";
       a_const_char *namespace_name = NULL;
       if (strict_ansi_mode && !in_pp_if_expression) {
-        /* __has_cpp_attribute may only appear inside #if or #elif.*/
-        pos_diagnostic(strict_ansi_discretionary_severity,
-                       ec_has_cpp_attrib_not_in_if, &start_pos);
+        /* This operator may only appear inside #if, #ifdef, etc. */
+        pos_st_diagnostic(strict_ansi_discretionary_severity,
+                          ec_has_cpp_attrib_not_in_if, &start_pos,
+                          (macro_symbol == has_cpp_attribute_symbol)
+                                                          ? "has_cpp_attribute"
+                                                          : "has_c_attribute");
         ctoken = tok_identifier;
         *rescan = FALSE;
         goto return_point;
