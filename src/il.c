@@ -13547,7 +13547,7 @@ are not transferred from model_type to type.
 
 
 a_type_ptr make_unqualified_type(a_type_ptr type,
-                                 a_boolean  unqualify_array_elements)
+               /* Defaulted: */  a_boolean  unqualify_array_elements)
 /*
 Return a type that is the unqualified version of the type given by type.  If
 unqualify_array_elements is TRUE, qualifiers will be removed from array
@@ -13582,25 +13582,6 @@ C-mode-only code; see prvalue_type instead.
     }  /* while */
   }  /* if */
   return type;
-}  /* make_unqualified_type */
-
-
-a_type_ptr make_unqualified_type(a_type_ptr type)
-/*
-This function returns the unqualified type under the normal rules for forming
-an unqualified type in the current language mode via delegation to
-make_unqualified_type(a_type_ptr, a_boolean) (see said function for more
-information).
-*/
-{
-  /* In C array-of-const-int (for example) is not considered a qualified type
-     -- is_qualified_type will not return TRUE for it, so nothing more needs to
-     be done to make it unqualified.  In C++ array-of-const-int *is* a
-     qualified type.
-
-     Thus, indicate that array elements should be unqualified in C++ mode,
-     while left alone in C mode. */
-  return make_unqualified_type(type, /*unqualify_array_elements=*/!C_mode());
 }  /* make_unqualified_type */
 
 
