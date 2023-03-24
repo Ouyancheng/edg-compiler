@@ -16504,7 +16504,7 @@ from outside of the expression-processing routines.
 a_type_ptr scan_typeof_operator(a_rescan_control_block      *rcblock,
                                 ARG_UNUSED a_decl_pos_block *decl_pos_block)
 /*
-Scan the typeof operator.  This is a C23 language feature that was originally a
+Scan a typeof operator.  This is a C23 language feature that was originally a
 GNU C/C++ extension.  typeof is similar to sizeof, but returns the type rather
 than the size.  The C23 language feature additionally adds typeof_unqual;
 typeof_unqual is identical to typeof, other than it forms the unqualified type

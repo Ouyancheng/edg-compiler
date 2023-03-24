@@ -13587,11 +13587,10 @@ C-mode-only code; see prvalue_type instead.
 
 a_type_ptr make_unqualified_type(a_type_ptr type)
 /*
-Return a type that is the unqualified version of the type given by type.
-This differs from skip_typerefs in that it preserves typedefs where possible.
-Note that this is not the routine to use to drop qualifiers when changing
-to a prvalue type, except possibly for C-mode-only code; see prvalue_type
-instead.
+This function returns the unqualified type under the normal rules for forming
+an unqualified type in the current language mode via delegation to
+make_unqualified_type(a_type_ptr, a_boolean) (see said function for more
+information).
 */
 {
   /* In C array-of-const-int (for example) is not considered a qualified type
