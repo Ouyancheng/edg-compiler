@@ -2498,15 +2498,16 @@ interpreter storage.
 
 static void get_runtime_array_pos(an_interpreter_state  *ips,
                                   a_constexpr_address   *cap,
+                                  a_type_ptr            elem_type,
                                   a_byte_count          elem_size,
                                   a_byte_count          *a_len,
                                   a_byte_count          *p_pos)
 /*
 cap represents a run-time address constant or null pointer and elem_size the
-size of the element type being addressed.  For null pointers, set *a_len and
-*p_pos to zero.  Otherwise, return in *a_len the number of objects pointed to
-if known (the length of an array or one for a non-array object); if unknown,
-return MAX_ARRAY_LENGTH.  Return in *p_pos the "array" position being
+size of the element type (elem_type) being addressed.  For null pointers, set
+*a_len and *p_pos to zero.  Otherwise, return in *a_len the number of objects
+pointed to if known (the length of an array or one for a non-array object); if
+unknown, return MAX_ARRAY_LENGTH.  Return in *p_pos the "array" position being
 addressed (with non-array objects treated as arrays of one element).
 */
 {
@@ -2575,15 +2576,32 @@ addressed (with non-array objects treated as arrays of one element).
     }  /* switch */
     if (use_subobject_path) {
       a_subobject_path_ptr  spp = con_addr->variant.address.subobject_path;
-      a_type_ptr            atype = NULL;
+      a_type_ptr            atype;
       a_boolean             field_seen = FALSE;
       pos = 0;
+      if (address_base_is(con_addr, abk_variable)) {
+        atype = skip_typerefs(
+                            con_addr->variant.address.variant.variable->type);
+      } else {
+        atype = skip_typerefs(
+                            con_addr->variant.address.variant.constant->type);
+      }  /* if */
       /* Look through the subobject path to find the type of the addressed
-         sub-object (except for array elements) or the position of array
-         elements. */
+         sub-object and, if applicable, the position of array elements. */
       for (; spp != NULL; spp = spp->next) {
         if (spp->is_offset) {
-          pos = (a_byte_count)spp->variant.ptr_offset;
+          /* For an array, we may have to distinguish between the address of
+             a subarray and that of the first element in that array.  For the
+             latter case, etype will equal elem_type. */
+          a_type_ptr  etype;
+          check_assertion(type_is(atype, tk_array));
+          etype = skip_typerefs(atype->variant.array.element_type);
+          if (etype != elem_type) {
+            atype = etype;
+            pos = 0;
+          } else {
+            pos = (a_byte_count)spp->variant.ptr_offset;
+          }  /* if */
         } else if (spp->is_base_class) {
           atype = spp->variant.base_class->type;
           pos = 0;
@@ -2593,16 +2611,6 @@ addressed (with non-array objects treated as arrays of one element).
           field_seen = TRUE;
         }  /* if */
       }  /* for */
-      if (atype == NULL) {
-        /* The subobject path doesn't designate a field or class subobject.
-           So we are dealing with a top-level array or the address of an
-           object treated as an array of one element. */
-        if (address_base_is(con_addr, abk_variable)) {
-          atype = con_addr->variant.address.variant.variable->type;
-        } else {
-          atype = con_addr->variant.address.variant.constant->type;
-        }  /* if */
-      }  /* if */
       if (type_is(atype, tk_array)) {
         if (has_unknown_specified_bound(atype) ||
             (!field_seen && array_type_has_no_bound(atype))) {
@@ -2648,7 +2656,7 @@ arithmetic on void* pointers and treats them as pointing to byte arrays.)
 {
   if (is_runtime_data_address(cap)) {
     *e_size = type_is(elem_type, tk_void) ? 1 : (a_byte_count)elem_type->size;
-    get_runtime_array_pos(ips, cap, *e_size, a_len, pos);
+    get_runtime_array_pos(ips, cap, elem_type, *e_size, a_len, pos);
   } else {
     *e_size = value_bytes_for_type(ips, elem_type, p_result);
     if (*p_result) {

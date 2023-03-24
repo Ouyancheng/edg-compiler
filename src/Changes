@@ -1,5 +1,17 @@
 Version 6.5
 
+3/24/23  [EDGcpfe/26110]
+Constant-evaluation of subscripting into multidimensional array
+
+Consider:
+
+  const int x[4][5] = {0};
+  constexpr int const *p = &x[2][3];  // Previously an error.  Now okay.
+
+Previously, this elicited a spurious error claiming the x[2][3] subscript is
+out of bounds.  That is now fixed.
+
+
 3/24/23  [EDGcpfe/26176,EDGcpfe/26179]
 Error handling of __has_c_attribute and __has_cpp_attribute
 
