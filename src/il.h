@@ -1521,6 +1521,9 @@ under the qualifiers.
 extern a_type_ptr type_plus_qualifiers_from_second_type(a_type_ptr type,
                                                         a_type_ptr model_type);
 
+extern a_type_ptr make_unqualified_type(a_type_ptr old_type,
+                                        a_boolean  unqualify_array_elements);
+
 extern a_type_ptr make_unqualified_type(a_type_ptr old_type);
 
 extern a_type_ptr prvalue_type(a_type_ptr type);

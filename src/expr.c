@@ -16719,7 +16719,11 @@ the expression-processing routines.
                                 is_template_dependent_type(result);
 
     if (is_unqual_variant) {
-      result = skip_typerefs(result);
+      /* While C normally does not consider array-of-const-int (for example) a
+         qualified type, for purposes of typeof_unqual, the array element
+         type's qualifiers should be removed. */
+      result = make_unqualified_type(result,
+                                     /*unqualify_array_elements=*/TRUE);
     }  /* if */
     typeof_type->variant.typeref.type = result;
     typeof_type->variant.typeref.is_typeof = TRUE;

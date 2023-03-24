@@ -13546,28 +13546,25 @@ are not transferred from model_type to type.
 }  /* type_plus_qualifiers_from_second_type */
 
 
-a_type_ptr make_unqualified_type(a_type_ptr type)
+a_type_ptr make_unqualified_type(a_type_ptr type,
+                                 a_boolean  unqualify_array_elements)
 /*
-Return a type that is the unqualified version of the type given by type.
-This differs from skip_typerefs in that it preserves typedefs where possible.
-Note that this is not the routine to use to drop qualifiers when changing
-to a prvalue type, except possibly for C-mode-only code; see prvalue_type
-instead.
+Return a type that is the unqualified version of the type given by type.  If
+unqualify_array_elements is TRUE, qualifiers will be removed from array
+elements (i.e., the typical C++ rule); otherwise, array element qualifiers will
+be preserved (i.e., the typical C rule).  This differs from skip_typerefs in
+that it preserves typedefs where possible.  Note that this is not the routine
+to use to drop qualifiers when changing to a prvalue type, except possibly for
+C-mode-only code; see prvalue_type instead.
 */
 {
-  a_type_ptr  element_type;
-
   if (is_array_type(type)) {
-    /* There can never be type qualifiers on top of an array type.  If there
-       are qualifiers, they are attached to the element type. */
-    if (C_mode()) {
-      /* In C array-of-const-int (for example) is not considered a qualified
-         type -- is_qualified_type will not return TRUE for it, so nothing
-         more needs to be done to make it unqualified. */
-    } else {
-      /* In C++ array-of-const-int *is* a qualified type.  Remove the
+    if (unqualify_array_elements) {
+      /* There can never be type qualifiers on top of an array type.  If there
+         are qualifiers, they are attached to the element type.  Remove the
          qualifiers from the element type and create another array type. */
-      element_type = underlying_array_element_type(type);
+      a_type_ptr element_type = underlying_array_element_type(type);
+
       if (element_type == NULL) {
         /* Array-of-NULL is a possible temporary state during construction of
            a derived type. */
@@ -13585,6 +13582,26 @@ instead.
     }  /* while */
   }  /* if */
   return type;
+}  /* make_unqualified_type */
+
+
+a_type_ptr make_unqualified_type(a_type_ptr type)
+/*
+Return a type that is the unqualified version of the type given by type.
+This differs from skip_typerefs in that it preserves typedefs where possible.
+Note that this is not the routine to use to drop qualifiers when changing
+to a prvalue type, except possibly for C-mode-only code; see prvalue_type
+instead.
+*/
+{
+  /* In C array-of-const-int (for example) is not considered a qualified type
+     -- is_qualified_type will not return TRUE for it, so nothing more needs to
+     be done to make it unqualified.  In C++ array-of-const-int *is* a
+     qualified type.
+
+     Thus, indicate that array elements should be unqualified in C++ mode,
+     while left alone in C mode. */
+  return make_unqualified_type(type, /*unqualify_array_elements=*/!C_mode());
 }  /* make_unqualified_type */
 
 
