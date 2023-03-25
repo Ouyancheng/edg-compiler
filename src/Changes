@@ -73,7 +73,7 @@ because the reference binding resolves to a constant address.
 C23, C++23 compatibility: Allow duplicate attributes
 
 Both C23 and C++23 now allow duplicate attributes to be specified (see
-WG14 paper N2557 and WG16 paper P2156R1).  The latter paper was approved
+WG14 paper N2557 and WG21 paper P2156R1).  The latter paper was approved
 as a defect report so this change applies to all C++ versions.
 For example, with --c++14:
 
