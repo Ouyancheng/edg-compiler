@@ -1,5 +1,16 @@
 Version 6.5
 
+3/27/23  [EDGcpfe/26183]
+C23: value of __STDC_VERSION__
+
+In anticipation of the adoption of the next version of the ISO C Standard,
+the front end now defines the macro __STDC_VERSION__ to have the value
+202311L in C23 mode.  For example, with --strict --c23:
+
+  int i;
+  static_assert(__STDC_VERSION__ == 202311L, "Bad version number.");
+
+
 3/27/23  [EDGcpfe/25609,EDGcpfe/26117]
 Incorrect expansion of function parameter pack in trailing requires clause
 

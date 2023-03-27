@@ -11186,7 +11186,8 @@ command line -D options.
          -std=c90).  The front end doesn't distinguish between these so in
          gcc/clang emulation mode the definition is suppressed unless the
          dialect is c99 or later. */
-      a_const_char *stdc_version = c18_mode ? "201710L"
+      a_const_char *stdc_version = c23_mode ? "202311L"
+                                 : c18_mode ? "201710L"
                                  : c11_mode ? "201112L"
                                  : c99_mode ? "199901L"
                                             : "199409L";
