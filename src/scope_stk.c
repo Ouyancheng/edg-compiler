@@ -11453,7 +11453,8 @@ Return the number of actual arguments in *elements.
     }  /* for */
     if (result_ptp != NULL) {
       /* Count the number of pack elements. */
-      for (ptp = result_ptp; ptp != NULL && ptp->param_num == param_num;
+      for (ptp = result_ptp;
+           ptp != NULL && ptp->is_pack_element && ptp->param_num == param_num;
            ptp = ptp->next) {
         (*elements)++;
       }  /* for */
@@ -13016,7 +13017,8 @@ TRUE is returned if there are any more elements in the pack.  FALSE otherwise.
           check_assertion(arg_prp != NULL);
           ptp = arg_prp->curr_argument.param_type;
           next_ptp = ptp != NULL ? ptp->next : NULL;
-          if (next_ptp == NULL || ptp->param_num != next_ptp->param_num) {
+          if (next_ptp == NULL || !next_ptp->is_pack_element ||
+              ptp->param_num != next_ptp->param_num) {
             next_ptp = NULL;
             done = TRUE;
           }  /* if */
