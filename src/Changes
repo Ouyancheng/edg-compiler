@@ -1,5 +1,14 @@
 Version 6.5
 
+3/28/23  [EDGcpfe/23786,EDGcpfe/25812,EDGcpfe/26137]
+Abort in pop_object_lifetime_full on tuple-based structured binding
+
+When a structured binding relies on finding the get<N> accessor through
+argument-dependent lookup and the result of the accessor requires nontrivial
+destruction, the front end previously aborted in pop_object_lifetime_full.
+That is now fixed.
+
+
 3/27/23  [EDGcpfe/26183]
 C23: value of __STDC_VERSION__
 

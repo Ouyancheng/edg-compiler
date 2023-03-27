@@ -103,6 +103,43 @@ static void scan_await_expression(an_operand  *result);
                  (local_options))
 
 
+static void bundle_curr_expr_lifetime(an_arg_list_elem_ptr  alep,
+                                      a_boolean             fix_up_dtors)
+/*
+alep represents a just-scanned operand (typically in the context of a front-end
+generated expression, such has for the handling of structure bindings or
+coroutines).  Bundle the lifetime at the top of the current expression stack
+(if any) into *alep, and fix up the current expression context to disconnect
+it from *alep.  If fix_up_dtors is TRUE, call fix_up_dynamic_init_dtors().
+*/
+{
+  an_object_lifetime_ptr lifetime = expr_stack->lifetime;
+
+  if (fix_up_dtors) {
+    fix_up_dynamic_init_dtors();
+  }  /* if */
+  if (is_expression_component(alep)) {
+    an_operand  *operand = operand_of_arg_list_elem(alep);
+    if (lifetime != NULL) {
+      /* Preserve the lifetime associated with the expression.  This is related
+         to what scan_expr_as_init_component does, but in this case the
+         operand has already been scanned, or taken out of a cache and its
+         lifetime restored, so we're just saving here, not wrapping. */
+      check_assertion(curr_object_lifetime == expr_stack->lifetime);
+      alep->variant.expr.lifetime = expr_stack->lifetime;
+      curr_object_lifetime = curr_object_lifetime->parent_lifetime;
+      expr_stack->lifetime = NULL;
+      detach_from_object_lifetime_tree(alep->variant.expr.lifetime);
+    }  /* if */
+    alep->bundled = TRUE;
+    detach_ref_entries_from_curr_expr(operand);
+  }  /* if */
+  if (expr_stack->consteval_function_designator_seen) {
+    alep->consteval_function_designator_seen = TRUE;
+  }  /* if */
+}  /* bundle_curr_expr_lifetime */
+
+
 /*
 Data structure to retain the current state of scanning the "new" operator.
 */
@@ -35063,6 +35100,7 @@ is an lvalue.
                             oc_tuple_like_binding,
                             operand_of_arg_list_elem(*p_icp),
                             (an_expr_node_ptr*)NULL);
+    bundle_curr_expr_lifetime(*p_icp, /*fix_up_dtors=*/FALSE);
     free_arg_list(arg);
     *lvalue_binding = is_an_lvalue(operand_of_arg_list_elem(*p_icp));
   }  /* if */
@@ -46685,44 +46723,6 @@ class (nullptr_t is fine too).
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 
-static void bundle_coroutine_result(an_arg_list_elem_ptr  alep)
-/*
-alep represents a just-scanned operand of a coroutine return.  It will
-eventually be used as the operand of a call.
-*/
-{
-  an_object_lifetime_ptr lifetime = expr_stack->lifetime;
-
-  if (expr_stack->in_cctor_elision_initializer) {
-    /* We scanned the operand of a return expression, assuming that copy
-       constructor elision may be needed.  We now know that this is for a
-       coroutine return and so the elision does not apply.  Add destructors to
-       any dynamic initialization entries where they were partially
-       suppressed. */
-    fix_up_dynamic_init_dtors();
-  }  /* if */
-  if (is_expression_component(alep)) {
-    an_operand  *operand = operand_of_arg_list_elem(alep);
-    if (lifetime != NULL) {
-      /* Preserve the lifetime associated with the expression.  This is related
-         to what scan_expr_as_init_component does, but in this case the
-         operand has already been scanned, or taken out of a cache and its
-         lifetime restored, so we're just saving here, not wrapping. */
-      check_assertion(curr_object_lifetime == expr_stack->lifetime);
-      alep->variant.expr.lifetime = expr_stack->lifetime;
-      curr_object_lifetime = curr_object_lifetime->parent_lifetime;
-      expr_stack->lifetime = NULL;
-      detach_from_object_lifetime_tree(alep->variant.expr.lifetime);
-    }  /* if */
-    alep->bundled = TRUE;
-    detach_ref_entries_from_curr_expr(operand);
-  }  /* if */
-  if (expr_stack->consteval_function_designator_seen) {
-    alep->consteval_function_designator_seen = TRUE;
-  }  /* if */
-}  /* bundle_coroutine_result */
-
-
 an_expr_node_ptr make_coroutine_result_expression(
                                               an_arg_list_elem_ptr  alep,
                                               a_boolean             is_yield,
@@ -46897,7 +46897,13 @@ make_coroutine_result_expression.)
          as a coroutine return instead. */
       expression = NULL;
       *alep = icp;
-      bundle_coroutine_result(*alep);
+      /* We scanned the operand of a return expression, assuming that copy
+         constructor elision may be needed.  We now know that this is for a
+         coroutine return and so the elision does not apply.  Add destructors
+         to any dynamic initialization entries where they were partially
+         suppressed. */
+      bundle_curr_expr_lifetime(*alep,
+                                expr_stack->in_cctor_elision_initializer);
       goto done;
     }  /* if */
     if (curr_routine->has_deducible_return_type &&
@@ -46970,7 +46976,13 @@ make_coroutine_result_expression.)
       /* Bypass the usual processing on return expressions, and handle this
          as a coroutine return instead. */
       *alep = alloc_arg_list_elem_for_operand(&result);
-      bundle_coroutine_result(*alep);
+      /* We scanned the operand of a return expression, assuming that copy
+         constructor elision may be needed.  We now know that this is for a
+         coroutine return and so the elision does not apply.  Add destructors
+         to any dynamic initialization entries where they were partially
+         suppressed. */
+      bundle_curr_expr_lifetime(*alep,
+                                expr_stack->in_cctor_elision_initializer);
       expression = NULL;
       goto done;
     }  /* if */
