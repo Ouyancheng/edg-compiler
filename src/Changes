@@ -1,5 +1,20 @@
 Version 6.5
 
+3/27/23  [EDGcpfe/18058,EDGcpfe/22588,EDGcpfe/25791,EDGcpfe/26107]
+Constant evaluation of integer conversions
+
+In some cases, the front end did not correctly evaluate certain integer-to-
+integer conversions.  For example:
+
+  template<typename T> static constexpr int to_int(T data) {
+    return static_cast<int>(data);
+  }
+  static_assert(to_int<long long>(4294967254LL) == -42);
+      // Previously failed.  Now okay.
+
+That problem (due to incorrect sign-extension) is now fixed.
+
+
 3/27/23  [EDGcpfe/23786,EDGcpfe/25812,EDGcpfe/26137]
 Abort in pop_object_lifetime_full on tuple-based structured binding
 
