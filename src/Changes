@@ -1,6 +1,6 @@
 Version 6.5
 
-3/28/23  [EDGcpfe/23786,EDGcpfe/25812,EDGcpfe/26137]
+3/27/23  [EDGcpfe/23786,EDGcpfe/25812,EDGcpfe/26137]
 Abort in pop_object_lifetime_full on tuple-based structured binding
 
 When a structured binding relies on finding the get<N> accessor through
