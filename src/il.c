@@ -19525,7 +19525,8 @@ options is a set of substitution options.
           clear_diag_list(&diag_list);
           val = constraint_satisfied(expr, template_arg_list,
                                      template_param_list, &diag_list,
-                                     CTWS_NO_OPTIONS, copy_error, copy_error);
+                                     CTWS_NO_OPTIONS, (a_ctws_state_ptr)NULL,
+                                     copy_error, copy_error);
           make_bool_constant_value(val, constant);
           discard_more_info_list(&diag_list);
           free_template_arg_list(new_args);
@@ -19554,7 +19555,7 @@ options is a set of substitution options.
         subst_pairs.push_back(a_subst_pairs_descr{ template_param_list,
                                                    template_arg_list,
                                                    FALSE, FALSE });
-        val = requires_expr_satisfied(expr, subst_pairs);
+        val = requires_expr_satisfied(expr, subst_pairs, ctws_state);
         make_bool_constant_value(val, constant);
       }  /* if */
       break;

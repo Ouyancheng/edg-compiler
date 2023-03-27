@@ -10581,11 +10581,23 @@ issue a diagnostic if diagnose is TRUE.
   a_template_param_ptr  params = templ_params_of(template_sym);
   a_diag_list           diag_list;
   a_source_position     diag_pos = error_position;
+  a_ctws_state          ctws_state;
 
   push_instantiation_scope_for_rescan(template_sym);
   clear_diag_list(&diag_list);
+  init_ctws_state(&ctws_state);
+  if (template_sym->kind == sk_function_template ||
+      template_sym->kind == sk_member_function) {
+    /* Add function parameter pack information to the substitution state. */
+    a_template_symbol_supplement_ptr
+                        tssp = template_supplement_for_symbol(template_sym);
+    a_type_ptr          rtp = tssp->variant.function.routine->type;
+    ctws_state.routine_type_levels = 0;
+    create_variadic_param_info_for_routine_params(&ctws_state,
+                                                  function_type_params(rtp));
+  }  /* if */
   if (!constraint_satisfied(constraint, args, params, &diag_list,
-                            CTWS_NO_OPTIONS, &fatal)) {
+                            CTWS_NO_OPTIONS, &ctws_state, &fatal)) {
     if (!is_empty_diag_list(&diag_list)) {
       if (diagnose || (fatal && !clang_mode)) {
         a_diagnostic_ptr  dp;
@@ -10605,6 +10617,7 @@ issue a diagnostic if diagnose is TRUE.
     }  /* if */
     result = FALSE;
   }  /* if */
+  free_list_of_variadic_param_info(ctws_state.variadic_param_info);
   pop_instantiation_scope_for_rescan();
   return result;
 }  /* requires_constraint_satisfied */
@@ -15772,7 +15785,9 @@ parameters.
          added to the end of the list pointed to by ctws_state. */
       a_variadic_param_info_ptr	vpip;
       vpip = alloc_variadic_param_info();
-      vpip->param_type = first_element;
+      if (first_element != NULL && first_element->is_pack_element) {
+        vpip->param_type = first_element;
+      }  /* if */
       vpip->orig_param_type = ptp;
       vpip->level = ctws_state->routine_type_levels;
       if (ctws_state->variadic_param_info == NULL) {

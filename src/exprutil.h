@@ -3216,6 +3216,7 @@ a_boolean constraint_satisfied(an_expr_node_ptr      constraint,
                                a_template_param_ptr  template_param_list,
                                a_diag_list_ptr       diag_list,
                                a_ctws_options_set    options = CTWS_NO_OPTIONS,
+                               a_ctws_state_ptr      ctws_state = NULL,
                                a_boolean             *p_fatal = NULL,
                                a_boolean             *p_copy_error = NULL);
 
@@ -3236,7 +3237,8 @@ a_boolean check_type_constraint(a_type_ptr                 type,
 
 extern
 a_boolean requires_expr_satisfied(an_expr_node_ptr           requires_expr,
-                                  a_subst_pairs_array const  &subst_pairs);
+                                  a_subst_pairs_array const  &subst_pairs,
+                                  a_ctws_state_ptr           cwts_state);
 
 
 /*

@@ -25709,13 +25709,14 @@ static a_constraint_subst_cache
 			   substitution results. */
 
 
-a_boolean constraint_satisfied(an_expr_node_ptr      constraint,
-                               a_template_arg_ptr    template_arg_list,
-                               a_template_param_ptr  template_param_list,
-                               a_diag_list_ptr       diag_list,
-             /* Defaulted: */  a_ctws_options_set    options,
-                               a_boolean             *p_fatal,
-                               a_boolean             *p_copy_error)
+a_boolean constraint_satisfied(an_expr_node_ptr           constraint,
+                               a_template_arg_ptr         template_arg_list,
+                               a_template_param_ptr       template_param_list,
+                               a_diag_list_ptr            diag_list,
+             /* Defaulted: */  a_ctws_options_set         options,
+                               a_ctws_state_ptr           ctws_state,
+                               a_boolean                  *p_fatal,
+                               a_boolean                  *p_copy_error)
 /*
 Return TRUE if the given constraint expression, built on the given template
 parameter list, is satisfied by the given template argument list.  Otherwise,
@@ -25729,6 +25730,7 @@ return FALSE and:
   - if p_fatal is NULL and the failure is not subject to SFINAE, issue an
     error with any notes recorded in diag_list and clear diag_list.
 options is a set of substitution options; it is CTWS_NO_OPTIONS by default.
+ctws_state is a substitution state block pointer; it is NULL by default.
 p_fatal and p_copy_error are NULL by default.
 */
 {
@@ -25752,13 +25754,13 @@ p_fatal and p_copy_error are NULL by default.
     params = sym->variant.template_info->cache.decl_info->parameters;
     if (template_param_list != NULL) {
       /* Substitute the dependent arguments of the concept-id. */
-      a_ctws_state  ctws_state;
+      a_ctws_state  new_ctws_state;
       a_boolean     saved_in_concept_rescan =
                                           scope_stack_top().in_concept_rescan;
       scope_stack_top().in_concept_rescan = TRUE;
-      init_ctws_state(&ctws_state);
+      init_ctws_state(&new_ctws_state);
       if (options & CTWS_SUBST_PARENT_CLASS_ARGS) {
-        ctws_state.in_parent_substitution = TRUE;
+        new_ctws_state.in_parent_substitution = TRUE;
       }  /* if */
       /* Substitute the concept-id's original arguments.  We should really
          only substitute the parameters that are actually referenced by the
@@ -25772,7 +25774,8 @@ p_fatal and p_copy_error are NULL by default.
                                                   template_param_list, 
                                                   &constraint->position,
                                                   options,
-                                                  &copy_error, &ctws_state);
+                                                  &copy_error,
+                                                  &new_ctws_state);
       scope_stack_top().in_concept_rescan = saved_in_concept_rescan;
     } else {
       /* The concept-id is already fully non-dependent. */
@@ -25800,7 +25803,7 @@ p_fatal and p_copy_error are NULL by default.
       an_expr_node_ptr  expr = templ->prototype_instantiation.constraint;
       /* Evaluate the resulting constraint. */
       result = constraint_satisfied(expr, new_args, params, diag_list, options,
-                                    p_fatal);
+                                    ctws_state, p_fatal);
       if (!result && !*p_fatal) {
         /* Insert a diagnostic before the ones detailing the constraint
            failure. */
@@ -25820,10 +25823,10 @@ p_fatal and p_copy_error are NULL by default.
     an_expr_node_ptr  opnds = constraint->variant.operation.operands;
     result = constraint_satisfied(opnds, template_arg_list,
                                   template_param_list, diag_list, options,
-                                  p_fatal, &copy_error) &&
+                                  ctws_state, p_fatal, &copy_error) &&
              constraint_satisfied(opnds->next, template_arg_list,
                                   template_param_list, diag_list, options,
-                                  p_fatal, &copy_error);
+                                  ctws_state, p_fatal, &copy_error);
   } else if (node_is_operator(constraint, eok_lor)) {
     /* Check the two underlying constraints separately.  If the first
        determines the outcome, the second is neither substituted nor
@@ -25831,11 +25834,11 @@ p_fatal and p_copy_error are NULL by default.
     an_expr_node_ptr  opnds = constraint->variant.operation.operands;
     result = constraint_satisfied(opnds, template_arg_list,
                                   template_param_list, diag_list, options,
-                                  p_fatal, &copy_error) ||
+                                  ctws_state, p_fatal, &copy_error) ||
              (!*p_fatal && !copy_error &&
               constraint_satisfied(opnds->next, template_arg_list,
                                    template_param_list, diag_list, options,
-                                   p_fatal, &copy_error));
+                                   ctws_state, p_fatal, &copy_error));
   } else {
     /* An atomic constraint.  First perform substitution (or reuse a cached
        substitution); then evaluate the expression. */
@@ -25850,7 +25853,7 @@ p_fatal and p_copy_error are NULL by default.
       cached_subst = constraint_subst_cache->get_with_hash(test, hash);
       if (cached_subst.kind == a_test_subst_result::tsrk_none) {
         /* This is a new substitution. */
-        a_ctws_state            ctws_state;
+        a_ctws_state            new_ctws_state;
         a_source_position       saved_err_pos = error_position;
         a_constant_ptr          cp = local_constant();
         a_memory_region_number  region_to_switch_back_to;
@@ -25859,14 +25862,17 @@ p_fatal and p_copy_error are NULL by default.
         cached_subst.kind = a_test_subst_result::tsrk_pending;
         (void)constraint_subst_cache->map_or_replace_with_hash(
                                                     test, cached_subst, hash);
-        init_ctws_state(&ctws_state);
-        if (options & CTWS_SUBST_PARENT_CLASS_ARGS) {
-          ctws_state.in_parent_substitution = TRUE;
+        if (ctws_state == NULL) {
+          init_ctws_state(&new_ctws_state);
+          if (options & CTWS_SUBST_PARENT_CLASS_ARGS) {
+            new_ctws_state.in_parent_substitution = TRUE;
+          }  /* if */
+          ctws_state = &new_ctws_state;
         }  /* if */
         expr = copy_template_param_expr(
                             constraint, template_arg_list, template_param_list,
                             (a_type_ptr)NULL, &constraint->position,
-                            options, &copy_error, &ctws_state,
+                            options, &copy_error, ctws_state,
                             cp, &allocated_cp);
         /* Store the substitution in the cache. */
         if (expr != NULL || copy_error) {
@@ -26155,27 +26161,38 @@ non-NULL (it's NULL by default), update *diag_list accordingly.
 
 
 a_boolean requires_expr_satisfied(an_expr_node_ptr           requires_expr,
-                                  a_subst_pairs_array const  &subst_pairs)
+                                  a_subst_pairs_array const  &subst_pairs,
+                                  a_ctws_state_ptr           ctws_state)
 /*
 The given node is a requires-expression.  Return TRUE if substituting the
 template arguments of subst_pairs for the corresponding parameters of
-subst_pairs is successful.
+subst_pairs is successful.  ctws_state is a substitution state block pointer
+(primarily used for parameter pack information of enclosing functions).
 */
 {
   a_boolean         result = TRUE, copy_error = FALSE;
   an_expr_node_ptr  req = requires_expr->variant.requires_expr.requirements;
   a_param_type_ptr  ptp = requires_expr->variant.requires_expr.parameters;
-  a_ctws_state      ctws_state;
+  int32_t           saved_routine_type_levels;
+  a_variadic_param_info_ptr
+                    saved_variadic_param_info_tail;
 
-  init_ctws_state(&ctws_state);
+  /* Adjust the levels of enclosing parameter pack entries. */
+  for (a_variadic_param_info_ptr vpip = ctws_state->variadic_param_info;
+       vpip != NULL;
+       vpip = vpip->next) {
+    ++vpip->level;
+  }  /* for */
+  saved_variadic_param_info_tail = ctws_state->variadic_param_info_tail;
+  saved_routine_type_levels = ctws_state->routine_type_levels;
   if (ptp != NULL && subst_pairs.length() != 0) {
     /* Check that the parameter list can successfully be substituted, and
        record parameter pack information in *ctws_state if needed. */
-    ctws_state.routine_type_levels = 0;
+    ctws_state->routine_type_levels = 0;
     (void)param_types_after_substitutions(ptp, subst_pairs,
                                           &requires_expr->position,
                                           CTWS_NO_OPTIONS, &copy_error,
-                                          &ctws_state);
+                                          ctws_state);
     if (copy_error) result = FALSE;
   }  /* if */
   if (result) {
@@ -26186,7 +26203,7 @@ subst_pairs is successful.
             a_type_ptr          tp = req->variant.type_operand.type;
             tp = type_after_substitutions(tp, subst_pairs, &req->position,
                                           CTWS_NO_OPTIONS, &copy_error,
-                                          &ctws_state);
+                                          ctws_state);
             if (copy_error) result = FALSE;
           }  /* if */
           break;
@@ -26197,7 +26214,7 @@ subst_pairs is successful.
             a_boolean         is_noexcept, constrained = req_constr != NULL;
             a_type_ptr        expr_type;
             expr_type = check_requirement_expr(req_expr, subst_pairs,
-                                               &ctws_state, constrained,
+                                               ctws_state, constrained,
                                                &is_noexcept);
             if (expr_type == NULL) {
               result = FALSE;
@@ -26207,7 +26224,7 @@ subst_pairs is successful.
               /* Check the type constraint. */
               if (constrained &&
                   !check_type_constraint(expr_type, req_constr, subst_pairs,
-                                         &ctws_state)) {
+                                         ctws_state)) {
                 result = FALSE;
               }  /* if */
             }  /* if */
@@ -26225,7 +26242,8 @@ subst_pairs is successful.
               templ_params = subst_pairs.back_elem().params;
               templ_args = subst_pairs.back_elem().args;
               result = constraint_satisfied(
-                                  expr, templ_args, templ_params, &diag_list);
+                                  expr, templ_args, templ_params, &diag_list,
+                                  CTWS_NO_OPTIONS, ctws_state);
               discard_more_info_list(&diag_list);
               error_position = saved_error_pos;
             } else {
@@ -26246,7 +26264,7 @@ subst_pairs is successful.
         default:
           if (subst_pairs.length() != 0) {
             a_boolean  is_noexcept;
-            if (check_requirement_expr(req, subst_pairs, &ctws_state,
+            if (check_requirement_expr(req, subst_pairs, ctws_state,
                                 /*constrained=*/FALSE, &is_noexcept) == NULL) {
               result = FALSE;
             }  /* if */
@@ -26255,9 +26273,25 @@ subst_pairs is successful.
       }  /* switch */
     }  /* for */
   }  /* if */
-  if (ctws_state.variadic_param_info != NULL) {
-    free_list_of_variadic_param_info(ctws_state.variadic_param_info);
+  if (ctws_state->variadic_param_info != NULL) {
+    /* Free parameter pack information for this requires expression's parameter
+       list. */
+    if (saved_variadic_param_info_tail != NULL) {
+      free_list_of_variadic_param_info(saved_variadic_param_info_tail->next);
+      saved_variadic_param_info_tail->next = NULL;
+      /* Restore the levels of enclosing parameter pack entries. */
+      for (a_variadic_param_info_ptr vpip = ctws_state->variadic_param_info;
+           vpip != NULL;
+           vpip = vpip->next) {
+        --vpip->level;
+      }  /* for */
+    } else {
+      free_list_of_variadic_param_info(ctws_state->variadic_param_info);
+      ctws_state->variadic_param_info = NULL;
+    }  /* if */
+    ctws_state->variadic_param_info_tail = saved_variadic_param_info_tail;
   }  /* if */
+  ctws_state->routine_type_levels = saved_routine_type_levels;
   return result;
 }  /* requires_expr_satisfied */
 

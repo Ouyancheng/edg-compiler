@@ -11739,6 +11739,49 @@ lengths) *err is set to TRUE, FALSE otherwise.
                                                      &elements_for_pack);
             check_assertion(is_rescan || vpip != NULL);
             if (vpip != NULL) {
+              if (vpip->param_type != NULL &&
+                  vpip->param_type->is_parameter_pack) {
+                /* If we are checking a trailing requires clause, we might
+                   still see an unexpanded pack here, which we now need to
+                   expand. */
+                a_boolean            copy_error = FALSE;
+                a_ctws_state         local_ctws_state;
+                a_param_type_ptr     new_param_type;
+                a_subst_pairs_array  subst_pairs = get_current_subst_pairs();
+
+                subst_pairs.push_back(a_subst_pairs_descr{ templ_param_list,
+                                                           templ_arg_list,
+                                                           FALSE, FALSE });
+                local_ctws_state = *ctws_state;
+                local_ctws_state.variadic_param_info = NULL;
+                local_ctws_state.variadic_param_info_tail = NULL;
+                /* vpip->param_type points into the function parameter list,
+                   but as we only want to substitute a single parameter, make a
+                   copy and clear its next pointer. */
+                new_param_type = alloc_param_type(vpip->param_type->type);
+                *new_param_type = *vpip->param_type;
+                new_param_type->next = NULL;
+                vpip->param_type = param_types_after_substitutions(
+                                                            new_param_type,
+                                                            subst_pairs,
+                                                            &prp->position,
+                                                            CTWS_NO_OPTIONS,
+                                                            &copy_error,
+                                                            &local_ctws_state);
+                free_param_type_list(new_param_type);
+                free_list_of_variadic_param_info(
+                                         local_ctws_state.variadic_param_info);
+                elements_for_pack = 0;
+                if (!copy_error) {
+                  /* Count the number of pack elements. */
+                  for (a_param_type_ptr ptp = vpip->param_type;
+                       ptp != NULL && ptp->is_pack_element &&
+                                              ptp->param_num == prp->param_num;
+                       ptp = ptp->next) {
+                    ++elements_for_pack;
+                  }  /* for */
+                }  /* if */
+              }  /* if */
               new_prp->curr_argument.param_type = vpip->param_type;
             } else {
               new_prp->curr_argument.param_type = NULL;

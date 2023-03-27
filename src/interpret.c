@@ -19352,7 +19352,9 @@ the value representation of the integer value.
              be attempted here. */
           do_constexpr_fail(result);
         } else {
-          if (requires_expr_satisfied(expr, no_subst_pairs)) {
+          a_ctws_state ctws_state;
+          init_ctws_state(&ctws_state);
+          if (requires_expr_satisfied(expr, no_subst_pairs, &ctws_state)) {
             *(an_integer_value *)result_storage = one_int;
           } else {
             *(an_integer_value *)result_storage = zero_int;

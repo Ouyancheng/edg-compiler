@@ -8522,7 +8522,7 @@ if the constraints fails, or FALSE otherwise.
        correctly substituted in the constraint. */
     if (!constraint_satisfied(constraint, top_pair.args, top_pair.params,
                               &diag_list, CTWS_SUBST_PARENT_CLASS_ARGS,
-                              &err)) {
+                              (a_ctws_state_ptr)NULL, &err)) {
       err = TRUE;
     }  /* if */
   }  /* if */
