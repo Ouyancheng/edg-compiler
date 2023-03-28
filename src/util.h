@@ -2802,6 +2802,7 @@ template<template<typename> class Allocator>
 struct Allocated_string {
   typedef Allocator<char> an_allocator;
   typedef typename an_allocator::a_size a_size;
+  typedef typename an_allocator::a_size an_index;
 
   template<typename... a_Text_convertible_type>
   inline Allocated_string(const an_allocator         &a,
@@ -2812,13 +2813,20 @@ struct Allocated_string {
     { }
 
   a_const_char *as_temp_characters() const
-    { return backing_array.begin(); }
+    { return this->backing_array.begin(); }
   template<template<typename> class Char_allocator>
   inline a_const_char*
   to_allocated_storage(Char_allocator<char>  allocator) const;
 
-  a_size length() const
-    { return backing_array.length() - 1; }
+  inline auto operator[](an_index i) -> char&
+    { return this->backing_array[i]; }
+  inline auto operator[](an_index i) const -> const char&
+    { return this->backing_array[i]; }
+
+  size_t length() const
+    { return this->backing_array.length() - 1; }
+  a_boolean is_empty() const
+    { return this->length() == 0; }
 
   template<typename... a_Text_convertible_type>
   inline Allocated_string<Allocator>& append(a_Text_convertible_type... args);
@@ -2892,6 +2900,106 @@ is returned.
   detail::append_with_custom_reserve(reserve_func, args...);
   return *this;
 }  /* Allocated_string::append */
+
+
+template<template<typename> class Allocator_a,
+         template<typename> class Allocator_b>
+inline a_boolean operator==(const Allocated_string<Allocator_a> &str1,
+                            const Allocated_string<Allocator_b> &str2)
+/*
+Return TRUE if the string represented by str1 is the same as the string
+represented by str2.  If both strings are empty, the "strings" are considered
+the same.
+*/
+{
+  a_boolean result = TRUE;;
+
+  if (str1.length() != str2.length()) {
+    result = FALSE;
+  } else {
+    a_const_char *tmp1 = str1.as_temp_characters();
+    a_const_char *tmp2 = str2.as_temp_characters();
+
+    result = strncmp(tmp1, tmp2, str1.length()) == 0;
+  }  /* if */
+  return result;
+}  /* operator== */
+
+
+template<template<typename> class Allocator_a,
+         template<typename> class Allocator_b>
+inline a_boolean operator!=(const Allocated_string<Allocator_a> &str1,
+                            const Allocated_string<Allocator_b> &str2)
+/*
+Return TRUE if the string represented by str1 is not the same as the string
+represented by str2.  If both strings are empty, the "strings" are considered
+the same.
+*/
+{
+  return !(str1 == str2);
+}  /* operator!= */
+
+
+template<template<typename> class Allocator>
+inline a_boolean operator==(const Allocated_string<Allocator> &str1,
+                            a_const_char                      *str2)
+/*
+Return TRUE if the string represented by str1 is the same as the string
+represented by str2.  If both strings are empty, the "strings" are considered
+the same.
+*/
+{
+  a_boolean result = TRUE;;
+  size_t    str2_len = strlen(str2);
+
+  if (str1.length() != str2_len) {
+    result = FALSE;
+  } else {
+    a_const_char *tmp1 = str1.as_temp_characters();
+
+    result = strncmp(tmp1, str2, str1.length()) == 0;
+  }  /* if */
+  return result;
+}  /* operator== */
+
+
+template<template<typename> class Allocator>
+inline a_boolean operator!=(const Allocated_string<Allocator> &str1,
+                            a_const_char                      *str2)
+/*
+Return TRUE if the string represented by str1 is not the same as the string
+represented by str2.  If both strings are empty, the "strings" are considered
+the same.
+*/
+{
+  return !(str1 == str2);
+}  /* operator!= */
+
+
+template<template<typename> class Allocator>
+inline a_boolean operator==(a_const_char                      *str1,
+                            const Allocated_string<Allocator> &str2)
+/*
+Return TRUE if the string represented by str1 is the same as the string
+represented by str2.  If both strings are empty, the "strings" are considered
+the same.
+*/
+{
+  return (str2 == str1);
+}  /* operator== */
+
+
+template<template<typename> class Allocator>
+inline a_boolean operator!=(a_const_char                      *str1,
+                            const Allocated_string<Allocator> &str2)
+/*
+Return TRUE if the string represented by str1 is not the same as the string
+represented by str2.  If both strings are empty, the "strings" are considered
+the same.
+*/
+{
+  return !(str2 == str1);
+}  /* operator!= */
 
 
 /*
