@@ -2961,7 +2961,8 @@ be NULL if the corresponding return value is not needed.
     /* Use software-based routines for doing the binary to string
        conversion. */
     an_fp_return_type       res;
-    if (kind == fk_float16 || kind == fk_std_float16) {
+    if (kind == fk_float16 || kind == fk_std_bfloat16 ||
+        kind == fk_std_float16) {
       res = write_float16(str, sizeof(str), (unsigned char *)float_value);
 #if DEBUG
       if (db_flag_is_set("fp")) {
