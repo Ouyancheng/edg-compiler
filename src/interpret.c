@@ -2606,7 +2606,7 @@ addressed (with non-array objects treated as arrays of one element).
           atype = spp->variant.base_class->type;
           pos = 0;
         } else {
-          atype = spp->variant.field->type;
+          atype = skip_typerefs(spp->variant.field->type);
           pos = 0;
           field_seen = TRUE;
         }  /* if */
