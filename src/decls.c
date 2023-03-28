@@ -16536,6 +16536,7 @@ the using_if_exists attribute at that location.
                   locator_for_curr_id.symbol_header->identifier);
         err = TRUE;
       } else if (!locator_for_curr_id.is_qualified_name &&
+                 !locator_for_curr_id.is_implicitly_qualified &&
                  !nonstandard_using_decl_allowed) {
         /* An unqualified name is not allowed here.  This is optionally
            permitted because the Sun 5.0 compiler accepts an unqualified
@@ -16590,7 +16591,8 @@ the using_if_exists attribute at that location.
              Issue a warning and ignore the using-declaration. */
           pos_warning(ec_useless_using_declaration, &error_position);
         } else if (depth_scope_stack == DEPTH_OF_FILE_SCOPE && nsp == NULL &&
-                   class_type == NULL) {
+                   class_type == NULL &&
+                   !locator_for_curr_id.is_implicitly_qualified) {
           /* Attempting a using declaration at file scope with a name already
              declared in the file scope -- e.g.,
                int i; using ::i;
@@ -16605,11 +16607,16 @@ the using_if_exists attribute at that location.
         } else {
           a_boolean  is_list = FALSE;
           check_assertion(nsp != NULL ||
-                          class_type != NULL || 
+                          class_type != NULL ||
                           locator_for_curr_id.is_global_qualified_name ||
+                          locator_for_curr_id.is_implicitly_qualified ||
                           nonstandard_using_decl_allowed ||
                           ignore_std_namespace);
           locator = locator_for_curr_id;
+          /* As this is a copy made specifically for purposes of checking for
+             duplicates, clear the do_not_clear_specific_symbol flag to make
+             sure a fresh lookup is performed. */
+          locator.do_not_clear_specific_symbol = FALSE;
           clear_specific_symbol(locator);
           /* Look for a declaration of the same name in the current scope. */
           (void)curr_scope_id_lookup(&locator, IDL_PROJ_SYMBOL_ALLOWED);
@@ -16695,6 +16702,7 @@ the using_if_exists attribute at that location.
                 }  /* if */
               }  /* if */
             }  /* if */
+            dps->sym = sym;
             for (; sym != NULL; sym = is_list ? sym->next : NULL) {
               (void)create_nonmember_using_declaration(sym, &overload_sym,
                     other_decl, nsp, class_type, &prev_udp, is_list,

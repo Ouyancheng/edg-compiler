@@ -3765,14 +3765,15 @@ a_void_ptr map_input_file_to_region(FILE                        *file,
                                     a_void_ptr                  address,
                                     a_const_char                *file_name)
 /*
-Map the data pointed to by "file", starting at "offset" bytes, for "size" bytes
-to the address specified by "address".  map_object is unused.  When read_only
-is FALSE, the mapping is done as a private mapping so that any changes to the
-data will be local, otherwise the mapping is read-only.  This is used to map a
-section of a PCH file or a module file to a memory region.  If the memory
-cannot be mapped, a catastrophic error is issued.  file_name is the name of the
-mapped input file to be used if a diagnostic is issued.  Returns the mapped
-address (or issues a catastrophic error).
+This is used to map a section of a PCH file or a module file to a memory
+region.  The data pointed to by "file" is mapped, starting at "offset" bytes
+for "size" bytes, to the address specified by "address".  map_object is unused.
+The mapping never affects the opened file (due to the use of MAP_PRIVATE).
+However, if read_only is set the buffer cannot be manipulated; otherwise, the
+buffer can be freely modified without affecting the file.  If the memory cannot
+be mapped, a catastrophic error is issued.  file_name is the name of the mapped
+input file to be used if a diagnostic is issued.  Returns the mapped address
+(or issues a catastrophic error).
 */
 {
   int		fd = fileno(file); /*lint !e718 !e746*/

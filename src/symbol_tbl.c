@@ -2922,6 +2922,7 @@ identifier pseudo token.
 {
   make_locator_for_symbol(sym_ptr, location);
   location->do_not_clear_specific_symbol = TRUE;
+  location->is_implicitly_qualified = TRUE;
 }  /* make_resolved_id_pseudo_token_locator */
 
 
@@ -18340,6 +18341,7 @@ are handled in symbol_tbl_init.)
   cleared_locator.is_inheriting_ctor              = FALSE;
   cleared_locator.is_error                        = FALSE;
   cleared_locator.do_not_clear_specific_symbol    = FALSE;
+  cleared_locator.is_implicitly_qualified         = FALSE;
   cleared_locator.is_template_id                  = FALSE;
   cleared_locator.is_class_member                 = FALSE;
   cleared_locator.is_unknown_template_reference   = FALSE;

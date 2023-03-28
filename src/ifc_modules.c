@@ -44,11 +44,6 @@ the duration of this file.
 /*lint -save -e534 -e641 -e1576 -e1502*/
 /*lint -save -e1714*/ /* FIXME: temporarily disable "not referenced" */
 
-static a_text_buffer_ptr
-                file_name_buffer;
-                        /* A text buffer used for processing file names from
-                           the IFC. */
-
 static void ifc_requirement_impl(ARG_UNUSED int          line_number,
                                  ARG_UNUSED a_const_char *function,
                                  an_ifc_module           *mod,
@@ -114,6 +109,27 @@ string argument.
   ifc_requirement_impl(__LINE__, __EDG_func__,                          \
                        mod, FALSE, string)
 
+static Opt<a_string> name_from_decl(an_ifc_decl_index decl_idx);
+
+static Opt<a_string> name_from_index(an_ifc_name_index name_index,
+                                     a_symbol_locator  *loc = NULL);
+
+
+static Opt<a_string> name_from_index(an_ifc_text_offset text_offset,
+                                     a_symbol_locator   *loc = NULL)
+/*
+An overload of name_from_index for an_ifc_text_offset types, see
+name_from_index(an_ifc_name_index, a_symbol_locator*) for more information.
+*/
+{
+  /* Convert the text offset into a name index. */
+  an_ifc_name_index name_idx{text_offset.mod, ifc_ns_text_offset,
+                             text_offset.value};
+
+  return name_from_index(name_idx, loc);
+}  /* name_from_index */
+
+
 static a_boolean source_position_from_locus(
                                            a_source_position            *pos,
                                            const an_ifc_source_location &locus)
@@ -159,12 +175,17 @@ Return TRUE if processing succeeded, otherwise return FALSE.
            source file.  Note that this may be out-of-order as it depends on
            the order that entities are used, but the full tree of source file
            references isn't available in the IFC file. */
-        a_const_char *file_name;
-        reset_text_buffer(file_name_buffer);
-        file_name = mod->string_from_name_index(file, (a_symbol_locator *)NULL,
-                                                &file_name_buffer);
-        file_name = copy_string_to_region(FILE_SCOPE_REGION_NUMBER, file_name);
-        record_inclusion_of_module_source_file(file_name, pos,
+        Opt<a_string> opt_file_name = name_from_index(file);
+        if (!opt_file_name.has_value()) {
+          goto invalid;
+        }  /* if */
+
+        const a_string &file_name = *opt_file_name;
+        a_const_char   *copied_file_name = copy_string_to_region(
+                                               FILE_SCOPE_REGION_NUMBER,
+                                               file_name.as_temp_characters());
+
+        record_inclusion_of_module_source_file(copied_file_name, pos,
                                                mod->assoc_module_info,
                                                msnmp->max_line_number);
         msnmp->starting_sequence_number = pos->seq;
@@ -179,6 +200,9 @@ Return TRUE if processing succeeded, otherwise return FALSE.
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
     }  /* if */
   }  /* if */
+  goto done;
+invalid:
+  result = FALSE;
 done:
   return result;
 }  /* source_position_from_locus */
@@ -866,6 +890,24 @@ key).
 }  /* as_key */
 
 
+static a_const_char *get_string_at_offset(an_ifc_text_offset offset)
+/*
+Return a pointer to the IFC string table for a given TextOffset.  Strings in
+the IFC file are NULL-terminated.  This function does not do and adjustments or
+corrections to the IFC text; thus, for entity names prefer name_from_index or
+name_from_decl.
+*/
+{
+  an_ifc_module              *mod = offset.mod;
+  an_ifc_text_offset_storage raw_offset = offset;
+
+#if EXPENSIVE_CHECKING
+  check_assertion(raw_offset < get_ifc_string_table_size(mod->header));
+#endif /* EXPENSIVE_CHECKING */
+  return mod->string_table + raw_offset;
+}  /* get_string_at_offset */
+
+
 static a_module_import_decl_ptr transitive_import_module(
                                             const an_ifc_module_reference &ref)
 /*
@@ -875,7 +917,6 @@ Given a module reference, import the referenced module.
   an_ifc_module            *mod = ref.get_module();
   a_module_ref_key         ref_key = as_key(ref);
   a_module_import_decl_ptr midp;
-  a_const_char             *prim_name, *part_name;
 
   midp = mod->referenced_modules.get(ref_key);
   if (midp != NULL) {
@@ -887,14 +928,14 @@ Given a module reference, import the referenced module.
     midp = alloc_module_import_decl();
     mod->referenced_modules.map(ref_key, midp);
     midp->module_name_position = null_source_position;
-    prim_name = owner != 0 ? mod->get_string_at_offset(owner) : NULL;
-    part_name = partition != 0 ? mod->get_string_at_offset(partition) : NULL;
-    if (prim_name == NULL) {
+    if (owner == 0) {
       /* This is a header unit. */
-      check_assertion(part_name != NULL);
+      a_string part_name = get_string_at_offset(partition);
+
       midp->module_info = alloc_module((a_module_kind)mk_header);
-      midp->module_info->name = copy_string_to_region(FILE_SCOPE_REGION_NUMBER,
-                                                      part_name);
+      midp->module_info->name = copy_string_to_region(
+                                               FILE_SCOPE_REGION_NUMBER,
+                                               part_name.as_temp_characters());
       /* A non-header-unit module cannot leak macros, but may transitively
          import a header unit.  Ensure that the transitive import does not leak
          macro definitions. */
@@ -904,9 +945,17 @@ Given a module reference, import the referenced module.
       }  /* if */
       import_header_module(midp);
     } else {
-      a_symbol_ptr module_sym = make_module_symbol(prim_name, part_name,
+      a_string     prim_name = get_string_at_offset(owner);
+      a_string     part_name = get_string_at_offset(partition);
+      a_const_char *prim_name_chars = !prim_name.is_empty() ?
+                             prim_name.as_temp_characters() : NULL;
+      a_const_char *part_name_chars = !part_name.is_empty() ?
+                             part_name.as_temp_characters() : NULL;
+      a_symbol_ptr module_sym = make_module_symbol(prim_name_chars,
+                                                   part_name_chars,
                                                    /*is_interface=*/TRUE,
                                                    &null_source_position);
+
       midp->module_info = alloc_module((a_module_kind)mk_ifc);
       midp->module_info->name = module_sym->header->identifier;
       import_module(midp, module_sym);
@@ -982,7 +1031,7 @@ name can be determined, return an empty optional.
       case ifc_us_exported_tu:
         { an_ifc_text_offset text_offset{&ifc_mod, unit_idx.value};
 
-          result = ifc_mod.get_string_at_offset(text_offset);
+          result = get_string_at_offset(text_offset);
         }
         break;
       default_is_unexpected();
@@ -1339,13 +1388,11 @@ its ifc_AttrIndex.
 }  /* attr_index_of */
 
 
-static a_boolean is_class_scope(const an_ifc_decl_index scope_ref)
+static Opt<an_ifc_type_basis_sort> get_scope_kind(an_ifc_decl_index scope_ref)
 /*
-Return TRUE if the provided scope is a class/struct/union scope, FALSE
-otherwise.
 */
 {
-  a_boolean result = FALSE;
+  Opt<an_ifc_type_basis_sort> result;
 
   if (scope_ref.sort == ifc_ds_decl_scope) {
     Opt<an_ifc_decl_scope> opt_ids;
@@ -1366,7 +1413,26 @@ otherwise.
     if (!opt_itf.has_value()) {
       goto done;
     }  /* if */
-    switch (get_ifc_basis(*opt_itf)) {
+    result = get_ifc_basis(*opt_itf);
+  }  /* if */
+done:
+  return result;
+}  /* get_scope_kind */
+
+
+static a_boolean is_class_scope(an_ifc_decl_index scope_ref)
+/*
+Return TRUE if the provided scope is a class/struct/union scope, FALSE
+otherwise.
+*/
+{
+  a_boolean                   result = FALSE;
+  Opt<an_ifc_type_basis_sort> opt_scope_kind = get_scope_kind(scope_ref);
+
+  if (opt_scope_kind.has_value()) {
+    an_ifc_type_basis_sort scope_kind = *opt_scope_kind;
+
+    switch (scope_kind) {
       case ifc_tbs_class:
       case ifc_tbs_struct:
       case ifc_tbs_union:
@@ -1378,9 +1444,33 @@ otherwise.
         break;
     }  /* switch */
   }  /* if */
-done:
   return result;
 }  /* is_class_scope */
+
+
+static a_boolean is_namespace_scope(const an_ifc_decl_index scope_ref)
+/*
+Return TRUE if the provided scope is a class/struct/union scope, FALSE
+otherwise.
+*/
+{
+  a_boolean                   result = FALSE;
+  Opt<an_ifc_type_basis_sort> opt_scope_kind = get_scope_kind(scope_ref);
+
+  if (opt_scope_kind.has_value()) {
+    an_ifc_type_basis_sort scope_kind = *opt_scope_kind;
+
+    switch (scope_kind) {
+      case ifc_tbs_namespace:
+        result = TRUE;
+        break;
+      default:
+        result = FALSE;
+        break;
+    }  /* switch */
+  }  /* if */
+  return result;
+}  /* is_namespace_scope */
 
 
 static inline void ensure_type_has_scope(a_type_ptr tp)
@@ -1569,55 +1659,6 @@ nodes.
   }  /* if */
   pos_st_error(ec_unhandled_ifc_construct, pos, node);
 }  /* issue_unsupported_construct_error */
-
-
-static a_const_char *get_string_at_offset(an_ifc_text_offset offset)
-/*
-Return a pointer to the IFC string table for a given TextOffset.  Strings in
-the IFC file are NULL-terminated.
-*/
-{
-  an_ifc_module              *mod = offset.mod;
-  an_ifc_text_offset_storage raw_offset = offset;
-  char                       *result;
-
-#if EXPENSIVE_CHECKING
-  check_assertion(raw_offset < get_ifc_string_table_size(mod->header));
-#endif /* EXPENSIVE_CHECKING */
-  result = mod->string_table + raw_offset;
-  if (*result == '<') {
-    /* Unnamed entities get "synthesized" names that start with "<unnamed-".
-       Turn such names into valid reserved C identifiers, except for
-       "<unnamed-tag>" which is used for anonymous struct/unions. */
-#define UNNAMED_TAG_NAME "<unnamed-tag>"
-#define UNNAMED_PREFIX "<unnamed-"
-#define REPLACE_PREFIX "__noname_"
-    static_assert(sizeof(UNNAMED_PREFIX) == sizeof(REPLACE_PREFIX), "");
-    if (strncmp(result, UNNAMED_PREFIX, sizeof(UNNAMED_PREFIX)-1) == 0 &&
-        strcmp(result, UNNAMED_TAG_NAME) != 0) {
-      memcpy(result, (void*)REPLACE_PREFIX, sizeof(UNNAMED_PREFIX)-1);
-      for (char  *p = result+sizeof(UNNAMED_PREFIX); *p; ++p) {
-        if (*p == '-' || *p == '>') *p = '_';
-      }  /* while */
-    }  /* if */
-#undef REPLACE_PREFIX
-#undef UNNAMED_PREFIX
-#undef UNNAMED_TAG_NAME
-  }  /* if */
-  return (a_const_char*)result;
-}  /* get_string_at_offset */
-
-
-inline a_const_char *an_ifc_module::get_string_at_offset(
-                                                     an_ifc_text_offset offset)
-                                                                          const
-/*
-Return a pointer to the IFC string table for a given TextOffset.  Strings in
-the IFC file are NULL-terminated.
-*/
-{
-  return EDG_PREFIX::get_string_at_offset(offset);
-}  /* get_string_at_offset */
 
 
 static a_const_char* make_ifc_temporary_unique_id(an_ifc_unique_id id)
@@ -2876,7 +2917,7 @@ static inline char *get_parsed_entity(a_decl_parse_state *dps,
                                       an_il_entry_kind   *kind)
 /*
 Given a declaration parse state, return a pointer to the corresponding entity
-and update kind with the associated entity kind.
+and update *kind with the associated entity kind.
 */
 {
   char *result = NULL;
@@ -2894,7 +2935,7 @@ static inline char *get_parsed_template_entity(a_tmpl_decl_state  *decl_state,
                                                an_il_entry_kind   *kind)
 /*
 Given a template declaration parse state, return a pointer to the corresponding
-entity and update kind with the associated entity kind.
+entity and update *kind with the associated entity kind.
 */
 {
   char *result = NULL;
@@ -2915,7 +2956,7 @@ static char *parse_cached_template(a_module_token_cache_ptr cache,
 /*
 Parse the tokens corresponding to a template declaration cache.  encl_scope is
 the scope containing the template declaration.  Return a pointer to the
-corresponding template entity and update kind with the associated entity kind.
+corresponding template entity and update *kind with the associated entity kind.
 */
 {
   a_decl_parse_state dps;
@@ -2974,6 +3015,35 @@ kind with the associated entity kind.
                                                 /*orig_dps=*/NULL);
   }
   return get_parsed_template_entity(&decl_state, kind);
+}  /* parse_cached_partial_specialization */
+
+
+static char *parse_cached_using_declaration(
+                                           a_module_token_cache_ptr cache,
+                                           an_il_entry_kind         *kind)
+/*
+Parse the tokens corresponding to a using declaration cache.  Return a pointer
+to the corresponding partial specialization entity and update *kind with the
+associated entity kind.
+*/
+{
+  a_decl_parse_state dps;
+  a_token_kind       final_token = tok_error;
+
+#if DEBUG
+  if (db_flag_is_set("ms_ifc_token_def")) {
+    fprintf(f_debug, "Reconstituted using declaration:\n");
+    db_tokens(cache);
+    fprintf(f_debug, "\n---------------------\n");
+  }  /* if */
+#endif /* DEBUG */
+  {
+    a_module_entity_rescan rescan(cache, &final_token);
+
+    init_decl_parse_state(&dps);
+    scan_nonmember_declaration(&dps, /*=*/NULL);
+  }
+  return get_parsed_entity(&dps, kind);
 }  /* parse_cached_partial_specialization */
 
 
@@ -3577,17 +3647,26 @@ can be found, return NULL.
         }  /* if */
       } while (--sd != DEPTH_OF_FILE_SCOPE);
     } else {
-      a_const_char     *name = decl_idx.mod->name_from_local_decl(decl_idx);
+      Opt<a_string> opt_name = name_from_decl(decl_idx);
+
+      if (!opt_name.has_value()) {
+        goto invalid;
+      }  /* if */
+
+      const a_string   &name = *opt_name;
       a_symbol_locator loc;
 
       /* FIXME: Currently the IFC position information is not present for
          function parameters resulting in a requirement that names be looked
          up.  There may additionally be issues with variable shadowing here. */
       clear_locator(&loc, &null_source_position);
-      (void)find_symbol(name, (sizeof_t)strlen(name), &loc);
+      (void)find_symbol(name.as_temp_characters(), name.length(), &loc);
       result = normal_id_lookup(&loc, IDL_NO_OPTIONS);
     }  /* if */
   }  /* if */
+  goto done;
+invalid:
+  result = NULL;
 done:
 #if DEBUG
   if (db_flag_is_set("ifc_idx")) {
@@ -4372,16 +4451,29 @@ TRUE if caching succeeds, FALSE otherwise.
   /* An enumerator declaration is part of an enumeration declaration.
      The type, access, and specifiers should all be handled by the parent
      declaration. */
+  a_boolean                   result = TRUE;
   an_ifc_source_location      locus = get_ifc_locus(ide);
   an_ifc_source_position_hint pos_hint(cache, locus);
   an_ifc_expr_index           initializer = get_ifc_initializer(ide);
+  Opt<a_string>               opt_name = name_from_index(get_ifc_name(ide));
 
-  cache_identifier(cache, get_string_at_offset(get_ifc_name(ide)));
-  if (!is_null_index(initializer)) {
-    cache_token(cache, tok_assign);
-    ide.get_module()->cache_expr(cache, initializer, /*cinfo=*/{});
+  if (!opt_name.has_value()) {
+    goto invalid;
   }  /* if */
-  return TRUE;
+  {
+    const a_string &name = *opt_name;
+
+    cache_identifier(cache, name.as_temp_characters());
+    if (!is_null_index(initializer)) {
+      cache_token(cache, tok_assign);
+      ide.get_module()->cache_expr(cache, initializer, /*cinfo=*/{});
+    }  /* if */
+  }
+  goto done;
+invalid:
+  result = FALSE;
+done:
+  return result;
 }  /* cache_direct_decl */
 
 
@@ -4395,6 +4487,7 @@ the current cache context to help inform decisions about what to cache.  Return
 TRUE if caching succeeds, FALSE otherwise.
 */
 {
+  a_boolean                   result = TRUE;
   an_ifc_module               *mod = idp.get_module();
   an_ifc_source_location      locus = get_ifc_locus(idp);
   an_ifc_source_position_hint pos_hint(cache, locus);
@@ -4442,24 +4535,37 @@ TRUE if caching succeeds, FALSE otherwise.
     default_is_unexpected_str("Unexpected ParameterSort");
   }  /* switch */
   if (name != 0) {
-    cache_identifier(cache, get_string_at_offset(name));
-  }  /* if */
-  if (need_second_pass) {
-    mod->cache_type_second_part(cache, type);
-  }  /* if */
+    Opt<a_string> opt_name_str = name_from_index(name);
 
-  a_boolean is_template_param = param_sort != ifc_ps_object;
-  if (is_cachable_expr(initializer) &&
-      ((!cinfo.ignore_default_arguments && !is_template_param) ||
-       (!cinfo.ignore_default_template_arguments && is_template_param))) {
-    cache_token(cache, tok_assign);
-    if (defer_initializer_expr) {
-      cache_pending_expr_token(cache, initializer);
-    } else {
-      mod->cache_expr(cache, initializer, /*cinfo=*/{});
+    if (!opt_name_str.has_value()) {
+      goto invalid;
     }  /* if */
+
+    const a_string &name_str = *opt_name_str;
+    cache_identifier(cache, name_str.as_temp_characters());
   }  /* if */
-  return TRUE;
+  {
+    if (need_second_pass) {
+      mod->cache_type_second_part(cache, type);
+    }  /* if */
+
+    a_boolean is_template_param = param_sort != ifc_ps_object;
+    if (is_cachable_expr(initializer) &&
+        ((!cinfo.ignore_default_arguments && !is_template_param) ||
+         (!cinfo.ignore_default_template_arguments && is_template_param))) {
+      cache_token(cache, tok_assign);
+      if (defer_initializer_expr) {
+        cache_pending_expr_token(cache, initializer);
+      } else {
+        mod->cache_expr(cache, initializer, /*cinfo=*/{});
+      }  /* if */
+    }  /* if */
+  }
+  goto done;
+invalid:
+  result = FALSE;
+done:
+  return result;
 }  /* cache_direct_decl */
 
 
@@ -4479,6 +4585,94 @@ TRUE if caching succeeds, FALSE otherwise.
   issue_unsupported_construct_error(mod, "DeclSort::Temploid",
                                     &error_position);
   return FALSE;
+}  /* cache_direct_decl */
+
+
+static void cache_basic_specifiers(
+                                  a_module_token_cache_ptr         cache,
+                                  an_ifc_basic_specifiers_bitfield specifiers);
+
+
+template<>
+a_boolean cache_direct_decl(a_module_token_cache_ptr            cache,
+                            const an_ifc_decl_using_declaration &using_decl,
+                            const an_ifc_cache_info             &cinfo)
+/*
+Add the given using declaration into the cache.  cinfo contains information
+about the current cache context to help inform decisions about what to cache.
+Return TRUE if caching succeeds, FALSE otherwise.
+*/
+{
+  a_boolean result = TRUE;
+
+  cache_basic_specifiers(cache, get_ifc_specifiers(using_decl));
+  cache_token(cache, tok_using);
+
+  an_ifc_decl_index resolution = get_ifc_resolution(using_decl);
+  if (is_namespace_scope(resolution)) {
+    /* If the resolution is a namespace, is a using-directive. */
+    cache_token(cache, tok_namespace);
+    cache_token_with_index(cache, tok_ifc_decl_ref, resolution);
+  } else {
+    Opt<a_string> opt_decl_name = name_from_index(get_ifc_name(using_decl));
+
+    if (!opt_decl_name.has_value()) {
+      goto invalid;
+    }  /* if */
+
+    const a_string &decl_name = *opt_decl_name;
+    if (is_null_index(resolution)) {
+      /* If there's no resolution, this is a using-declaration for an inherited
+         constructor, e.g.
+
+           struct foo : x {
+             using x::y;
+           };
+
+         is equivalent to:
+
+           struct foo : x {
+             using <parent expr> :: <name index> ;
+           };
+
+       */
+      an_ifc_expr_index parent = get_ifc_parent(using_decl);
+
+      parent.mod->cache_expr(cache, parent, cinfo);
+      cache_token(cache, tok_colon_colon);
+      cache_identifier(cache, decl_name.as_temp_characters());
+    } else {
+      Opt<a_string> opt_aliased_decl_name = name_from_decl(resolution);
+
+      if (!opt_aliased_decl_name.has_value()) {
+        goto invalid;
+      }  /* if */
+
+      const a_string &aliased_decl_name = *opt_aliased_decl_name;
+      if (decl_name == aliased_decl_name) {
+        /* If the aliased declaration has the same name as the name given to
+           the using declaration, this is a using-declaration, e.g.:
+
+             using <resolution>;
+
+           For purposes of parsing, the resolved token is considered a
+           qualified identifier. */
+        cache_token_with_index(cache, tok_ifc_decl_ref, resolution);
+      } else {
+        /* If the aliased declaration has a different name compared to the name
+           given to the using declaration, this is an alias-declaration. */
+        cache_identifier(cache, decl_name.as_temp_characters());
+        cache_token(cache, tok_assign);
+        cache_token_with_index(cache, tok_ifc_decl_ref, resolution);
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  cache_token(cache, tok_semicolon);
+  goto done;
+invalid:
+  result = FALSE;
+done:
+  return result;
 }  /* cache_direct_decl */
 
 
@@ -4642,24 +4836,16 @@ Given an IFC parameter, check to see if the parameter has defects that suggest
 it should be skipped.
 */
 {
-  a_boolean    result = FALSE;
-  a_const_char *name = get_string_at_offset(get_ifc_name(param));
-  size_t       name_len = strlen(name);
+  a_boolean     result = TRUE;
+  Opt<a_string> opt_name = name_from_index(get_ifc_name(param));
 
-  switch (name_len) {
-    case 4:
-      if (strcmp(name, "this") == 0) {
-        result = TRUE;
-      }  /* if */
-      break;
-    case 12:
-      if (strcmp(name, "__$ReturnUdt") == 0) {
-        result = TRUE;
-      }  /* if */
-      break;
-    default:
-      break;
-  }  /* switch */
+  if (opt_name.has_value()) {
+    const a_string &name = *opt_name;
+
+    if (name != "this" && name != "__$ReturnUdt") {
+      result = FALSE;
+    }  /* if */
+  }  /* if */
   return result;
 }  /* is_bad_ifc_parameter */
 
@@ -4772,10 +4958,14 @@ pointer should be NULL.
   check_assertion(get_ifc_sort(idp) == ifc_ps_object);
   idp.get_module()->source_position_from_locus(&pos, get_ifc_locus(idp));
 
-  a_const_char     *name = get_string_at_offset(get_ifc_name(idp));
+  Opt<a_string> opt_name = name_from_index(get_ifc_name(idp));
+  /* The caller should've already validated that this name is valid. */
+  check_assertion(opt_name.has_value());
+
+  const a_string   &name = *opt_name;
   a_symbol_locator sym_loc;
   clear_locator(&sym_loc, &pos);
-  (void)find_symbol(name, strlen(name), &sym_loc);
+  (void)find_symbol(name.as_temp_characters(), name.length(), &sym_loc);
   add_to_param_id_list(&sym_loc,
                        make_qualified_type(ptp->type, ptp->qualifiers),
                        &pos, (a_storage_class)sc_auto, func_info,
@@ -5839,12 +6029,17 @@ global module fragment, FALSE otherwise.
 
 inline a_boolean is_unnamed_tag(a_const_char  *name)
 /*
-Return TRUE If the given string is "<unnamed-tag>".
+Return TRUE If the given string is an unnamed tag string, e.g. "<unnamed>",
+"<unnamed-tag>", "<unnamed-enum-value>", etc.
 */
 {
-#define UNNAMED_TAG_NAME "<unnamed-tag>"
-  return strncmp(name, UNNAMED_TAG_NAME, sizeof(UNNAMED_TAG_NAME)-1) == 0;
-#undef UNNAMED_TAG_NAME
+  a_boolean              result = FALSE;
+  constexpr a_const_char unnamed_tag [] = "<unnamed";
+
+  if (strncmp(name, unnamed_tag, sizeof(unnamed_tag) - 1) == 0) {
+    result = TRUE;
+  }  /* if */
+  return result;
 }  /* is_unnamed_tag */
 
 #if BUILTIN_FUNCTIONS_ENABLED
@@ -7302,7 +7497,13 @@ class_struct_union_case:
             cache_template_param_chart(&cache, get_ifc_chart(itf),
                                        /*cinfo=*/{});
             cache_token(&cache, tok_using);
-            cache_identifier(&cache, get_string_at_offset(get_ifc_name(ida)));
+            Opt<a_string> opt_name = name_from_index(get_ifc_name(ida));
+            if (!opt_name.has_value()) {
+              goto invalid;
+            }  /* if */
+
+            const a_string &name = *opt_name;
+            cache_identifier(&cache, name.as_temp_characters());
             cache_token(&cache, tok_assign);
             mod->cache_type(&cache, get_ifc_subject(itf));
             cache_token(&cache, tok_semicolon);
@@ -7962,110 +8163,29 @@ class_struct_union_case:
         goto unhandled;
       }
     case ifc_ds_decl_using_declaration:
-      { Opt<an_ifc_decl_using_declaration> opt_idud;
+      { Opt<an_ifc_decl_using_declaration> opt_using_decl;
 
-        construct_node(&opt_idud, decl_idx);
-        if (!opt_idud.has_value()) {
+        construct_node(&opt_using_decl, decl_idx);
+        if (!opt_using_decl.has_value()) {
           goto invalid;
         }  /* if */
 
-        an_ifc_decl_using_declaration idud = *opt_idud;
-        an_ifc_source_location        locus = get_ifc_locus(idud);
+        an_ifc_decl_using_declaration using_decl = *opt_using_decl;
+        if (!mod->init_decl_locator(using_decl, &loc)) {
+          goto invalid;
+        }  /* if */
         if (defer) {
-          if (!mod->init_locator_from_name(get_ifc_name(idud), locus, &loc)) {
-            goto invalid;
-          }  /* if */
           defer_symbol_creation(mep, &loc);
         } else {
-          an_ifc_decl_index resolution = get_ifc_resolution(idud);
-
-          if (!source_position_from_locus(&error_position, locus)) {
+          if (!ensure_module_scope(mep, using_decl, &scope_push_status)) {
             goto invalid;
           }  /* if */
-          if (resolution.sort == ifc_ds_decl_tuple) {
-            /* FIXME: Overload set? */
-            goto unhandled;
-          }  /* if */
-          a_module_entity_ptr umep = process_decl_at_index(resolution);
-          if (umep->invalid) {
+
+          a_module_token_cache cache;
+          if (!cache_direct_decl(&cache, using_decl, /*cinfo=*/{})) {
             goto invalid;
           }  /* if */
-          if (scope_is(umep->scope, sck_class_struct_union)) {
-            /* FIXME: Need to call create_member_using_declaration here. */
-            goto unhandled;
-          } else {
-            /* Non-member using declaration.  Could be file scope or namespace
-               scope. */
-            a_symbol_ptr            aliased_sym;
-            a_using_decl_ptr        prev_udp = NULL;
-            a_namespace_ptr         nsp = NULL;
-            a_source_correspondence *scp =
-                                    (a_source_correspondence*)umep->entity.ptr;
-            aliased_sym = (a_symbol_ptr)scp->assoc_info;
-            if (scp->parent_scope == NULL) {
-              /* Probably shouldn't happen, but happens now because of other
-                 issues. */
-              goto unhandled;
-            }  /* if */
-            if (scope_is(scp->parent_scope, sck_namespace)) {
-              nsp = scp_parent_namespace(scp);
-            }  /* if */
-            if (symbol_is(aliased_sym, sk_namespace)) {
-              /* A namespace alias. */
-              a_symbol_ptr  ns_sym;
-              if (!mod->init_locator_from_name(get_ifc_name(idud), locus,
-                                               &loc)) {
-                goto invalid;
-              }  /* if */
-              /* Check for a conflict with another declaration. */
-              ns_sym = curr_scope_id_lookup(&loc, IDL_NO_OPTIONS);
-              if (ns_sym != NULL) {
-                /* The alias name is already present in this scope.  That is
-                   okay only if it names an equivalent alias. */
-                a_boolean  mismatch = FALSE;
-                if (!symbol_is(ns_sym, sk_namespace)) {
-                  mismatch = TRUE;
-                } else {
-                  a_namespace_ptr  prev = ns_sym->variant.namespace_info.ptr;
-                  if (!prev->is_namespace_alias) {
-                    mismatch = TRUE;
-                  } else if (skip_namespace_aliases(prev) !=
-                             skip_namespace_aliases(
-                                    aliased_sym->variant.namespace_info.ptr)) {
-                    mismatch = TRUE;
-                  }  /* if */
-                }  /* if */
-                if (mismatch) {
-                  pos_sy_error(ec_already_defined, &error_position, ns_sym);
-                }  /* if */
-              }  /* if */
-              (void)make_namespace_alias(ns_sym, &loc, aliased_sym,
-                                         (a_source_sequence_entry*)NULL);
-            } else {
-              /* FIXME: This will need to be re-worked when handling the
-                 ifc_DeclSort_Tuple case (i.e., multiple items). */
-              a_symbol_ptr null_sym_ptr = NULL;
-              a_symbol_ptr new_sym_ptr = create_nonmember_using_declaration(
-                                                (a_symbol_ptr)scp->assoc_info,
-                                                &null_sym_ptr,
-                                                (a_symbol_ptr)NULL,
-                                                nsp,
-                                                (a_type_ptr)NULL,
-                                                &prev_udp,
-                                                /*is_list=*/FALSE,
-                                                /*suppress_redecl_error=*/TRUE,
-                                                (an_attribute_ptr)NULL,
-                                                /*copy_attributes=*/FALSE);
-
-              if (new_sym_ptr == NULL) {
-                goto invalid;
-              }  /* if */
-              /* FIXME: Should this be moved into
-                 il_entry_for_symbol_null_okay? */
-              new_sym_ptr = fundamental_symbol_of(new_sym_ptr);
-              il_entity = il_entry_for_symbol_null_okay(new_sym_ptr, &kind);
-            }  /* if */
-          }  /* if */
+          il_entity = parse_cached_using_declaration(&cache, &kind);
         }  /* if */
       }
       break;
@@ -9010,7 +9130,7 @@ diagnostics if issue_diag is TRUE.
       }  /* if */
 
       /* Read information about the partition. */
-      a_const_char          *name_str = get_string_at_offset(get_ifc_name(ip));
+      a_const_char *name_str = get_string_at_offset(get_ifc_name(ip));
 #if DEBUG
       if (db_flag_is_set("ifc_modules")) {
         (void)fprintf(
@@ -9215,7 +9335,7 @@ TRUE) otherwise.
 #else /* !EDG_WIN32 */
                                            (a_windows_handle)0,
 #endif /* EDG_WIN32 */
-                                           /*read_only=*/FALSE, (sizeof_t)0,
+                                           /*read_only=*/TRUE, (sizeof_t)0,
                                            mmap_size, NULL, mod->full_name);
       check_assertion(mmap_addr != NULL);
       f_size = mmap_size;
@@ -9401,7 +9521,7 @@ Return the number of entries in a given partition.
 }  /* get_num_entries */
 
 
-a_boolean an_ifc_module::is_home_scope_readable(an_ifc_decl_index decl_index)
+static a_boolean is_home_scope_readable(an_ifc_decl_index decl_index)
 /*
 Return TRUE if the home scope of the declaration (indexed by decl_index) is
 loaded and may contain all or part of its associated inner declarations.
@@ -10593,71 +10713,46 @@ Return TRUE if processing succeeded, otherwise return FALSE.
 }  /* source_position_from_locus */
 
 
-static a_const_char *string_from_name_ref(an_ifc_name_index name_ref,
-                                          a_symbol_locator  *loc)
+using a_bad_operator_name_encoding_array = Small_dyn_array<a_const_char*, 42>;
+                        /* The type for an array of bad operator name
+                           encodings. */
+
+static a_bad_operator_name_encoding_array
+                *bad_operator_name_encodings;
+                        /* An array containing operator names that appear
+                           without the operator prefix in a number of
+                           situations. */
+
+
+static Opt<a_string> name_from_index(an_ifc_name_index name_index,
+                    /*Defaulted: */  a_symbol_locator  *loc)
 /*
-Return the string referenced by name_ref.  The returned string is guaranteed to
-be in long-lived memory (either via pointing to IL, a constant, the memory
-mapping if enabled, or in the worst case an allocated pointer).  If non-NULL,
-fields (like is_operator_name) in *loc are updated accordingly.
+Return the string referenced by name_index.  If non-NULL, fields (like
+is_operator_name) in *loc are updated accordingly.
 */
 {
-  return name_ref.mod->string_from_name_index(name_ref, loc);
-}  /* string_from_name_ref */
+  Opt<a_string> result;
 
-
-a_const_char *an_ifc_module::string_from_name_index(
-                                                  an_ifc_name_index name_index,
-                                                  a_symbol_locator  *loc)
-/*
-Return the string referenced by name_index.  The returned string is guaranteed
-to be in long-lived memory (either via pointing to IL, a constant, the memory
-mapping if enabled, or in the worst case an allocated pointer).  If non-NULL,
-fields (like is_operator_name) in *loc are updated accordingly.
-*/
-{
-  /* Do not provide a buffer, forcing one to be dynamically allocated if
-     necessary.  Note that this will "leak" the buffer until the buffer list is
-     cleaned up. */
-  /* FIXME: Ideally there'd be some sort of "pool" of buffers that can be
-     recycled to handle common allocation profiles. */
-  a_text_buffer_ptr result_buffer = NULL;
-  return string_from_name_index(name_index, loc, &result_buffer);
-}  /* string_from_name_index */
-
-
-a_const_char *an_ifc_module::string_from_name_index(
-                                              an_ifc_name_index name_index,
-                                              a_symbol_locator  *loc,
-                                              a_text_buffer_ptr *result_buffer)
-/*
-Return the string referenced by name_index.  The pointer to which result_buffer
-points may be NULL.  If so, and if a buffer is required, *result_buffer will be
-set to the address of a new text buffer; otherwise, if it is not NULL and a
-buffer is required, the referenced text buffer must be empty and will be used
-for storage.  If non-NULL, fields (like is_operator_name) in *loc are updated
-accordingly.
-*/
-{
-  a_const_char *result = NULL, *prefix = NULL;
-  a_boolean    requires_buffer;
-
-  {
-    /* Initialize the default for buffer management logic.
-
-       If the module is memory mapped, default to directly pointing to the
-       pointer in that memory.  Otherwise, default to requiring a buffer. */
-#if USE_MMAP_FOR_MEMORY_REGIONS
-    requires_buffer = FALSE;
-#else /* !USE_MMAP_FOR_MEMORY_REGIONS */
-    requires_buffer = TRUE;
-#endif /* USE_MMAP_FOR_MEMORY_REGIONS */
-  }
   if (name_index.sort == ifc_ns_text_offset) {
     /* NameSort::Identifiers just refer to the string table. */
     an_ifc_text_offset text_offset{name_index.mod, name_index.value};
 
-    result = get_string_at_offset(text_offset);
+    a_string  text_value = get_string_at_offset(text_offset);
+    /* Work around a variety of known and anticipated bad encodings. */
+    a_boolean text_is_operator = FALSE;
+    if (1 <= text_value.length() && text_value.length() <= 2) {
+      for (a_const_char *op_str : *bad_operator_name_encodings) {
+        if (text_value == op_str) {
+          text_is_operator = TRUE;
+          break;
+        }  /* if */
+      }  /* for */
+    }  /* if */
+    if (text_is_operator) {
+      result = a_string("operator", text_value);
+    } else {
+      result = text_value;
+    }  /* if */
   } else {
     switch (name_index.sort) {
       case ifc_ns_name_source_file:
@@ -10685,9 +10780,8 @@ accordingly.
                                 &null_source_position);
             result = loc->symbol_header->identifier;
           } else {
-            prefix = "operator";
-            requires_buffer = TRUE;
-            result = get_string_at_offset(get_ifc_encoded(*opt_ino));
+            result = a_string("operator",
+                              get_string_at_offset(get_ifc_encoded(*opt_ino)));
           }  /* if */
         }
         break;
@@ -10699,17 +10793,16 @@ accordingly.
             goto invalid;
           }  /* if */
 
-          a_type_ptr target_type = type_for_type_index(
+          a_type_ptr   target_type = type_for_type_index(
                                                       get_ifc_target(*opt_inc),
                                                       /*kind=*/NULL);
-          prefix = "operator ";
-          requires_buffer = TRUE;
           /* Note that inscp->encoded contains the mangled name of the
              conversion function, so use the name from the type instead. */
-          result = target_type->source_corresp.name;
-          if (result == NULL) {
-            result = get_type_name(target_type);
+          a_const_char *type_name = target_type->source_corresp.name;
+          if (type_name == NULL) {
+            type_name = get_type_name(target_type);
           }  /* if */
+          result = a_string("operator", type_name);
           if (loc != NULL) {
             /* Set the locator as appropriate for a conversion function. */
             make_type_conversion_locator(target_type, loc,
@@ -10724,24 +10817,22 @@ accordingly.
           if (!opt_inl.has_value()) {
             goto invalid;
           }  /* if */
-          result = get_string_at_offset(get_ifc_encoded(*opt_inl));
+
+          a_const_char *encoded =
+                               get_string_at_offset(get_ifc_encoded(*opt_inl));
           if (loc != NULL) {
             /* Set the locator as appropriate for a user-defined literal
                operator (but skip the initial ""). */
-            check_assertion(result[0] == '"' && result[1] == '"');
-            result += 2;
-            make_literal_opname_locator(result, strlen(result), loc,
+            check_assertion(encoded[0] == '"' && encoded[1] == '"');
+            encoded += 2;
+            make_literal_opname_locator(encoded, strlen(encoded), loc,
                                         (a_source_position*)NULL);
             /* FIXME: set this? */
             loc->is_udl_operator_name = TRUE;
             result = loc->symbol_header->identifier;
-            /* Never require a buffer, one was already created for the locator
-               memory, and there is no prefix. */
-            requires_buffer = FALSE;
           } else {
             /* Microsoft doesn't use a space after the "operator" string. */
-            prefix = "operator";
-            requires_buffer = TRUE;
+            result = a_string("operator", encoded);
           }  /* if */
         }
         break;
@@ -10752,9 +10843,15 @@ accordingly.
           if (!opt_int.has_value()) {
             goto invalid;
           }  /* if */
-          prefix = "template ";
-          requires_buffer = TRUE;
-          result = string_from_name_index(get_ifc_name(*opt_int), loc);
+
+          Opt<a_string> opt_name =
+                                  name_from_index(get_ifc_name(*opt_int), loc);
+          if (!opt_name.has_value()) {
+            goto invalid;
+          }  /* if */
+
+          const a_string &name = *opt_name;
+          result = a_string("template ", name);
         }
         break;
       case ifc_ns_name_specialization:
@@ -10765,7 +10862,8 @@ accordingly.
             goto invalid;
           }  /* if */
           /* FIXME: Currently unsupported. */
-          issue_unsupported_construct_error(this, "NameSort::Specialization",
+          issue_unsupported_construct_error(name_index.mod,
+                                            "NameSort::Specialization",
                                             &error_position);
           /* FIXME: need to set result/requires_buffer as appropriate. */
           goto invalid;
@@ -10778,7 +10876,7 @@ accordingly.
             goto invalid;
           }  /* if */
           /* FIXME: Currently unsupported. */
-          issue_unsupported_construct_error(this, "NameSort::Guide",
+          issue_unsupported_construct_error(name_index.mod, "NameSort::Guide",
                                             &error_position);
           /* FIXME: need to set result/requires_buffer as appropriate. */
           goto invalid;
@@ -10789,75 +10887,21 @@ accordingly.
         break;
       default_is_unexpected();
     }  /* switch */
-    /* Ensure prefixes are processed with a buffer. */
-    check_assertion(prefix == NULL || requires_buffer);
   }  /* if */
   goto done;
 invalid:
-  /* FIXME: This function's error handling could be significantly improved. */
-  result = "";
-  requires_buffer = FALSE;
+  result.clear();
 done:
-  if (requires_buffer) {
-    /* Check to see if a result buffer was passed that should be used.  If none
-       was given, allocate a new buffer. */
-    if (*result_buffer == NULL) {
-      *result_buffer = alloc_text_buffer(20);
-    }  /* if */
-    /* Ensure the caller of this function fulfilled the contract and the buffer
-       is reset. */
-    check_assertion((*result_buffer)->size == 0);
-    /* Compose the string. */
-    if (prefix != NULL) {
-      add_string_to_text_buffer(*result_buffer, prefix);
-    }  /* if */
-    add_string_to_text_buffer(*result_buffer, result);
-    add_char_to_text_buffer(*result_buffer, '\0');
-    /* Update the result. */
-    result = (*result_buffer)->buffer;
-  }  /* if */
   return result;
-}  /* string_from_name_index */
+}  /* name_from_index */
 
 
-a_const_char *an_ifc_module::string_from_name_index(
-                                                an_ifc_text_offset text_offset,
-                                                a_symbol_locator   *loc)
-/*
-Return the string referenced by text_offset.  The returned string is guaranteed
-to be in long-lived memory (either via pointing to IL, a constant, the memory
-mapping if enabled, or in the worst case an allocated pointer).  If non-NULL,
-fields (like is_operator_name) in *loc are updated accordingly.
-*/
-{
-  /* Do not provide a buffer, forcing one to be dynamically allocated if
-     necessary.  Note that this will "leak" the buffer until the buffer list is
-     cleaned up. */
-  /* FIXME: Ideally there'd be some sort of "pool" of buffers that can be
-     recycled to handle common allocation profiles. */
-  a_text_buffer_ptr result_buffer = NULL;
-  an_ifc_name_index name_index{text_offset.mod, ifc_ns_text_offset,
-                               text_offset};
-
-  return string_from_name_index(name_index, loc, &result_buffer);
-}  /* string_from_name_index */
-
-
-static a_const_char* name_from_decl(an_ifc_decl_index decl_ref)
-/*
-Given a decl reference, return the name associated with that declaration.
-*/
-{
-  return decl_ref.mod->name_from_local_decl(decl_ref);
-}  /* name_from_decl */
-
-
-a_const_char* an_ifc_module::name_from_local_decl(an_ifc_decl_index decl_idx)
+static Opt<a_string> name_from_decl(an_ifc_decl_index decl_idx)
 /*
 Given a declaration, return the name associated with that declaration.
 */
 {
-  a_const_char           *result = NULL;
+  Opt<a_string>          result;
   Opt<an_ifc_decl_index> gmf_decl_scope;
   Opt<an_ifc_type_index> gmf_decl_type;
 
@@ -10865,7 +10909,7 @@ Given a declaration, return the name associated with that declaration.
     case ifc_ds_decl_vendor_extension:
     case ifc_ds_decl_explicit_instantiation:
     case ifc_ds_decl_explicit_specialization:
-      issue_unsupported_construct_error(this, str_for(decl_idx.sort),
+      issue_unsupported_construct_error(decl_idx.mod, str_for(decl_idx.sort),
                                         &error_position);
       goto invalid;
     case ifc_ds_decl_enumerator:
@@ -10877,7 +10921,7 @@ Given a declaration, return the name associated with that declaration.
         }  /* if */
 
         an_ifc_decl_enumerator ide = *opt_ide;
-        result = get_string_at_offset(get_ifc_name(ide));
+        result = name_from_index(get_ifc_name(ide));
         if (is_from_gmf(get_ifc_specifiers(ide))) {
           gmf_decl_type = get_ifc_type(ide);
         }  /* if */
@@ -10892,7 +10936,7 @@ Given a declaration, return the name associated with that declaration.
         }  /* if */
 
         an_ifc_decl_variable idv = *opt_idv;
-        result = string_from_name_index(get_ifc_name(idv), /*loc=*/NULL);
+        result = name_from_index(get_ifc_name(idv), /*loc=*/NULL);
         if (is_from_gmf(get_ifc_specifiers(idv))) {
           gmf_decl_scope = get_ifc_home_scope(idv);
         }  /* if */
@@ -10905,7 +10949,7 @@ Given a declaration, return the name associated with that declaration.
         if (!opt_idp.has_value()) {
           goto invalid;
         }  /* if */
-        result = get_string_at_offset(get_ifc_name(*opt_idp));
+        result = name_from_index(get_ifc_name(*opt_idp));
       }
       break;
     case ifc_ds_decl_field:
@@ -10917,7 +10961,7 @@ Given a declaration, return the name associated with that declaration.
         }  /* if */
 
         an_ifc_decl_field idf = *opt_idf;
-        result = get_string_at_offset(get_ifc_name(idf));
+        result = name_from_index(get_ifc_name(idf));
         if (is_from_gmf(get_ifc_specifiers(idf))) {
           gmf_decl_scope = get_ifc_home_scope(idf);
         }  /* if */
@@ -10932,7 +10976,7 @@ Given a declaration, return the name associated with that declaration.
         }  /* if */
 
         an_ifc_decl_bitfield idb = *opt_idb;
-        result = get_string_at_offset(get_ifc_name(idb));
+        result = name_from_index(get_ifc_name(idb));
         if (is_from_gmf(get_ifc_specifiers(idb))) {
           gmf_decl_scope = get_ifc_home_scope(idb);
         }  /* if */
@@ -10947,7 +10991,7 @@ Given a declaration, return the name associated with that declaration.
         }  /* if */
 
         an_ifc_decl_scope ids = *opt_ids;
-        result = string_from_name_index(get_ifc_name(ids), /*loc=*/NULL);
+        result = name_from_index(get_ifc_name(ids), /*loc=*/NULL);
         if (is_from_gmf(get_ifc_specifiers(ids))) {
           gmf_decl_scope = get_ifc_home_scope(ids);
         }  /* if */
@@ -10962,7 +11006,7 @@ Given a declaration, return the name associated with that declaration.
         }  /* if */
 
         an_ifc_decl_enumeration ide = *opt_ide;
-        result = get_string_at_offset(get_ifc_name(ide));
+        result = name_from_index(get_ifc_name(ide));
         if (is_from_gmf(get_ifc_specifiers(ide))) {
           gmf_decl_scope = get_ifc_home_scope(ide);
         }  /* if */
@@ -10977,7 +11021,7 @@ Given a declaration, return the name associated with that declaration.
         }  /* if */
 
         an_ifc_decl_alias ida = *opt_ida;
-        result = get_string_at_offset(get_ifc_name(ida));
+        result = name_from_index(get_ifc_name(ida));
         if (is_from_gmf(get_ifc_specifiers(ida))) {
           gmf_decl_scope = get_ifc_home_scope(ida);
         }  /* if */
@@ -10986,7 +11030,7 @@ Given a declaration, return the name associated with that declaration.
     case ifc_ds_decl_temploid:
       { a_string err_msg(str_for(decl_idx.sort), " does not have a name");
 
-        ifc_unexpected(this, err_msg);
+        ifc_unexpected(decl_idx.mod, err_msg);
       }
       goto invalid;
     case ifc_ds_decl_template:
@@ -10998,7 +11042,7 @@ Given a declaration, return the name associated with that declaration.
         }  /* if */
 
         an_ifc_decl_template idt = *opt_idt;
-        result = string_from_name_index(get_ifc_name(idt), /*loc=*/NULL);
+        result = name_from_index(get_ifc_name(idt), /*loc=*/NULL);
         if (is_from_gmf(get_ifc_specifiers(idt))) {
           gmf_decl_scope = get_ifc_home_scope(idt);
         }  /* if */
@@ -11013,7 +11057,7 @@ Given a declaration, return the name associated with that declaration.
         }  /* if */
 
         an_ifc_decl_partial_specialization idps = *opt_idps;
-        result = string_from_name_index(get_ifc_name(idps), /*loc=*/NULL);
+        result = name_from_index(get_ifc_name(idps), /*loc=*/NULL);
         if (is_from_gmf(get_ifc_specifiers(idps))) {
           gmf_decl_scope = get_ifc_home_scope(idps);
         }  /* if */
@@ -11028,7 +11072,7 @@ Given a declaration, return the name associated with that declaration.
         }  /* if */
 
         an_ifc_decl_specialization ids = *opt_ids;
-        result = string_from_name_ref(get_ifc_name(ids), /*loc=*/NULL);
+        result = name_from_index(get_ifc_name(ids), /*loc=*/NULL);
       }
       break;
     case ifc_ds_decl_concept:
@@ -11040,7 +11084,7 @@ Given a declaration, return the name associated with that declaration.
         }  /* if */
 
         an_ifc_decl_concept idc = *opt_idc;
-        result = get_string_at_offset(get_ifc_name(idc));
+        result = name_from_index(get_ifc_name(idc));
         if (is_from_gmf(get_ifc_specifiers(idc))) {
           gmf_decl_scope = get_ifc_home_scope(idc);
         }  /* if */
@@ -11055,7 +11099,7 @@ Given a declaration, return the name associated with that declaration.
         }  /* if */
 
         an_ifc_decl_function idf = *opt_idf;
-        result = string_from_name_index(get_ifc_name(idf), /*loc=*/NULL);
+        result = name_from_index(get_ifc_name(idf), /*loc=*/NULL);
         if (is_from_gmf(get_ifc_specifiers(idf))) {
           gmf_decl_scope = get_ifc_home_scope(idf);
         }  /* if */
@@ -11070,7 +11114,7 @@ Given a declaration, return the name associated with that declaration.
         }  /* if */
 
         an_ifc_decl_method idm = *opt_idm;
-        result = string_from_name_index(get_ifc_name(idm), /*loc=*/NULL);
+        result = name_from_index(get_ifc_name(idm), /*loc=*/NULL);
         if (is_from_gmf(get_ifc_specifiers(idm))) {
           gmf_decl_scope = get_ifc_home_scope(idm);
         }  /* if */
@@ -11149,7 +11193,7 @@ Given a declaration, return the name associated with that declaration.
         }  /* if */
 
         an_ifc_decl_using_declaration idud = *opt_idud;
-        result = get_string_at_offset(get_ifc_name(idud));
+        result = name_from_index(get_ifc_name(idud));
         if (is_from_gmf(get_ifc_specifiers(idud))) {
           gmf_decl_scope = get_ifc_home_scope(idud);
         }  /* if */
@@ -11163,7 +11207,7 @@ Given a declaration, return the name associated with that declaration.
           goto invalid;
         }  /* if */
         /* FIXME: Currently unsupported. */
-        issue_unsupported_construct_error(this, "DeclSort::Friend",
+        issue_unsupported_construct_error(decl_idx.mod, "DeclSort::Friend",
                                           &error_position);
         goto invalid;
       }
@@ -11175,7 +11219,7 @@ Given a declaration, return the name associated with that declaration.
           goto invalid;
         }  /* if */
         /* FIXME: Is this reachable? */
-        result = name_from_local_decl(get_ifc_operand(*opt_ide));
+        result = name_from_decl(get_ifc_operand(*opt_ide));
       }
       break;
     case ifc_ds_decl_deduction_guide:
@@ -11186,7 +11230,8 @@ Given a declaration, return the name associated with that declaration.
           goto invalid;
         }  /* if */
         /* FIXME: Currently unsupported. */
-        issue_unsupported_construct_error(this, "DeclSort::DeductionGuide",
+        issue_unsupported_construct_error(decl_idx.mod,
+                                          "DeclSort::DeductionGuide",
                                           &error_position);
         goto invalid;
       }
@@ -11210,7 +11255,7 @@ Given a declaration, return the name associated with that declaration.
         if (!opt_ihd.has_value()) {
           goto invalid;
         }  /* if */
-        result = name_from_local_decl(get_ifc_value(*opt_ihd));
+        result = name_from_decl(get_ifc_value(*opt_ihd));
       }
       break;
     case ifc_ds_decl_intrinsic:
@@ -11222,7 +11267,7 @@ Given a declaration, return the name associated with that declaration.
         }  /* if */
 
         an_ifc_decl_intrinsic idi = *opt_idi;
-        result = get_string_at_offset(get_ifc_name(idi));
+        result = name_from_index(get_ifc_name(idi));
         if (is_from_gmf(get_ifc_specifiers(idi))) {
           gmf_decl_scope = get_ifc_home_scope(idi);
         }  /* if */
@@ -11237,7 +11282,7 @@ Given a declaration, return the name associated with that declaration.
         }  /* if */
 
         an_ifc_decl_property idp = *opt_idp;
-        result = name_from_local_decl(get_ifc_member(idp));
+        result = name_from_decl(get_ifc_member(idp));
       }
       break;
     case ifc_ds_decl_output_segment:
@@ -11247,19 +11292,19 @@ Given a declaration, return the name associated with that declaration.
         if (!opt_idos.has_value()) {
           goto invalid;
         }  /* if */
-        result = get_string_at_offset(get_ifc_name(*opt_idos));
+        result = name_from_index(get_ifc_name(*opt_idos));
       }
       break;
     case ifc_ds_decl_barren:
     case ifc_ds_decl_using_directive:
     case ifc_ds_decl_syntax_tree:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, str_for(decl_idx.sort),
+      issue_unsupported_construct_error(decl_idx.mod, str_for(decl_idx.sort),
                                         &error_position);
       goto invalid;
     default_is_unexpected_str("Unexpected DeclSort");
   }  /* switch */
-  check_assertion(result != NULL);
+  check_assertion(result.has_value() && !result->is_empty());
   {
     /* FIXME: We're dodging an issue where the declaration (decl) is part of
        some enclosing class that we're currently trying to cache by checking to
@@ -11271,12 +11316,14 @@ Given a declaration, return the name associated with that declaration.
                          gmf_decl_type.has_value();
     if (gmf_decl && is_home_scope_readable(decl_idx)) {
       a_symbol_locator loc;
-
+      a_symbol_ptr     result_sym = find_symbol(result->as_temp_characters(),
+                                                result->length(),
+                                                &loc);
       /* FIXME: Do we want to have this check here, or should we always load
          the module's version of the declaration and rely on visibility rules
          to sort it out later?  Currently visibility is not well implemented
          and so the interplay here is not well understood. */
-      if (find_symbol(result, strlen(result), &loc) == NULL) {
+      if (result_sym == NULL) {
         /* Declarations that come from the global module fragment aren't added
            to the module scope, so we need to ensure that we've added these
            names to the lazily loaded symbols list. */
@@ -11296,7 +11343,7 @@ Given a declaration, return the name associated with that declaration.
   }
 invalid:
   return result;
-}  /* name_from_local_decl */
+}  /* name_from_decl */
 
 
 a_boolean an_ifc_module::init_dps(a_decl_parse_state               *dps,
@@ -11435,44 +11482,6 @@ initialization succeeds; otherwise, return FALSE.
 }  /* init_dps */
 
 
-static a_boolean get_textual_name(an_ifc_text_offset text_offset,
-                                  a_symbol_locator   *loc,
-                                  a_const_char       **name_result)
-/*
-Store the textual name representation for the given textual offset and location
-in the name result.  Return TRUE if this operation completed successfully,
-FALSE otherwise.
-*/
-{
-  *name_result = EDG_PREFIX::get_string_at_offset(text_offset);
-  return TRUE;
-}  /* get_textual_name */
-
-
-static a_boolean get_textual_name(an_ifc_name_index name_ref,
-                                  a_symbol_locator  *loc,
-                                  a_const_char      **name_result)
-/*
-Store the textual name representation for the given name reference and location
-in the name result.  Return TRUE if this operation completed successfully,
-FALSE otherwise.
-*/
-{
-  a_boolean result = FALSE;
-
-  if (name_ref.sort == ifc_ns_text_offset) {
-    /* Convert the name ref into a text offset. */
-    an_ifc_text_offset text_offset{name_ref.mod, name_ref.value};
-
-    result = get_textual_name(text_offset, loc, name_result);
-  } else {
-    *name_result = string_from_name_ref(name_ref, loc);
-    result = TRUE;
-  }  /* if */
-  return result;
-}  /* get_textual_name */
-
-
 template<typename an_ifc_Index_type>
 a_boolean an_ifc_module::init_locator_from_name(
                                            an_ifc_Index_type            ref,
@@ -11490,16 +11499,19 @@ FIXME: Not sure if we need source location here.
 {
   a_boolean         result = FALSE;
   a_source_position pos;
-  a_const_char      *name;
 
   if (source_position_from_locus(&pos, locus)) {
     clear_locator(loc, &pos);
-    if (get_textual_name(ref, loc, &name)) {
+
+    Opt<a_string> opt_name = name_from_index(ref, loc);
+    if (opt_name.has_value()) {
+      const a_string &name = *opt_name;
+
       if (!loc->is_operator_name &&
           !loc->is_conversion_name &&
           !loc->is_udl_operator_name) {
         /* Find the symbol (if not a special case). */
-        (void)find_symbol(name, (sizeof_t)strlen(name), loc);
+        (void)find_symbol(name.as_temp_characters(), name.length(), loc);
       }  /* if */
       /* Initialization was completed successfully. */
       result = TRUE;
@@ -12833,20 +12845,27 @@ file for the additional information needed, depending on the kind of literal.
     case ifc_sls_msvc_function_name_macro:
       { an_ifc_text_offset name_offset =
                                       literal.variant.msvc_function_name_macro;
-        a_const_char       *str = get_string_at_offset(name_offset);
-        a_token_kind       tok;
+        Opt<a_string>      opt_name = name_from_index(name_offset);
 
-        if (strncmp(str, "__func__", sizeof("__func__")) == 0) {
+        if (!opt_name.has_value()) {
+          goto invalid;
+        }  /* if */
+
+        const a_string &name = *opt_name;
+        a_token_kind   tok;
+        if (name == "__func__") {
           tok = tok_func_name;
-        } else if (strncmp(str, "__FUNCTION__", sizeof("__FUNCTION__")) == 0) {
+        } else if (name == "__FUNCTION__") {
           tok = tok_function_name;
-        } else if (strncmp(str, "__FUNCDNAME__", sizeof("__FUNCDNAME__"))
-                                                                        == 0) {
+        } else if (name == "__FUNCDNAME__") {
           tok = tok_decorated_function_name;
-        } else {
-          check_assertion(strncmp(str, "__FUNCSIG__", sizeof("__FUNCSIG__"))
-                                                                         == 0);
+        } else if (name == "__FUNCSIG__") {
           tok = tok_pretty_function_name;
+        } else {
+          a_string err_msg("unexpected MSVC function name macro: ", name);
+
+          ifc_unexpected(this, err_msg.as_temp_characters());
+          goto invalid;
         }  /* if */
         cache_token(cache, tok);
       }
@@ -12854,20 +12873,28 @@ file for the additional information needed, depending on the kind of literal.
     case ifc_sls_msvc_string_prefix_macro:
       { an_ifc_text_offset prefix_offset =
                                       literal.variant.msvc_function_name_macro;
-        a_const_char       *str = get_string_at_offset(prefix_offset);
-        a_token_kind       tok;
+        Opt<a_string>      opt_prefix = name_from_index(prefix_offset);
 
-        if (strncmp(str, "__LPREFIX", sizeof("__LPREFIX")) == 0) {
+        if (!opt_prefix.has_value()) {
+          goto invalid;
+        }  /* if */
+
+        const a_string &prefix = *opt_prefix;
+        a_token_kind   tok;
+
+        if (prefix == "__LPREFIX") {
           tok = tok_microsoft_Lprefix;
-        } else if (strncmp(str, "__lPREFIX", sizeof("__lPREFIX")) == 0) {
+        } else if (prefix == "__lPREFIX") {
           tok = tok_microsoft_lprefix;
-        } else if (strncmp(str, "__UPREFIX", sizeof("__UPREFIX"))
-                                                                        == 0) {
+        } else if (prefix == "__UPREFIX") {
           tok = tok_microsoft_Uprefix;
-        } else {
-          check_assertion(strncmp(str, "__uPREFIX", sizeof("__uPREFIX"))
-                                                                         == 0);
+        } else if (prefix == "__uPREFIX") {
           tok = tok_microsoft_uprefix;
+        } else {
+          a_string err_msg("unexpected MSVC string prefix macro: ", prefix);
+
+          ifc_unexpected(this, err_msg.as_temp_characters());
+          goto invalid;
         }  /* if */
         cache_token(cache, tok);
       }
@@ -12886,9 +12913,16 @@ file for the additional information needed, depending on the kind of literal.
               if (!opt_ieud.has_value()) {
                 goto invalid;
               }  /* if */
-              cache_identifier(cache,
-                               string_from_name_index(get_ifc_name(*opt_ieud),
-                                                      /*loc=*/NULL));
+
+              an_ifc_expr_unresolved_id ieud = *opt_ieud;
+              an_ifc_name_index         name = get_ifc_name(ieud);
+              Opt<a_string>             opt_name_str = name_from_index(name);
+              if (!opt_name_str.has_value()) {
+                goto invalid;
+              }  /* if */
+
+              const a_string &name_str = *opt_name_str;
+              cache_identifier(cache, name_str.as_temp_characters());
             }
             break;
           default:
@@ -13704,7 +13738,7 @@ done:;
 
 static a_boolean
 is_source_identifier_ud_literal(a_module_token_cache_ptr cache,
-                                a_const_char             *name)
+                                const a_string           &name)
 /*
 Given the current token cache state and the name of a source identifier, return
 TRUE if a correction should be made to form a tok_ud_literal token; otherwise,
@@ -13714,7 +13748,7 @@ return FALSE.
   a_boolean          result = TRUE;
   a_cached_token_ptr last_tok = cache->get_last_token();
 
-  if (name[0] != '_') {
+  if (name.is_empty() || name[0] != '_') {
     /* The first character of the name was not an underscore. */
     result = FALSE;
   } else if (last_tok == NULL || last_tok->token != tok_string_literal) {
@@ -13736,7 +13770,7 @@ Add tokens corresponding to id to cache.  index is the index into the IFC file
 for the additional information needed, depending on the kind of id.
 */
 {
-  a_const_char *name = NULL;
+  Opt<a_string> opt_name;
 
   switch (id.sort) {
     case ifc_sis_msvc:
@@ -13746,48 +13780,54 @@ for the additional information needed, depending on the kind of id.
       }
       goto invalid;
     case ifc_sis_plain:
-      name = get_string_at_offset(id.variant.plain);
+      opt_name = name_from_index(id.variant.plain);
       break;
     case ifc_sis_msvc_builtin_huge_val:
-      name = "__builtin_huge_val";
+      opt_name = "__builtin_huge_val";
       break;
     case ifc_sis_msvc_builtin_huge_valf:
-      name = "__builtin_huge_valf";
+      opt_name = "__builtin_huge_valf";
       break;
     case ifc_sis_msvc_builtin_nan:
-      name = "__builtin_nan";
+      opt_name = "__builtin_nan";
       break;
     case ifc_sis_msvc_builtin_nanf:
-      name = "__builtin_nanf";
+      opt_name = "__builtin_nanf";
       break;
     case ifc_sis_msvc_builtin_nans:
-      name = "__builtin_nans";
+      opt_name = "__builtin_nans";
       break;
     case ifc_sis_msvc_builtin_nansf:
-      name = "__builtin_nansf";
+      opt_name = "__builtin_nansf";
       break;
     default_is_unexpected_str("Unknown SourceIdentifier");
   }  /* switch */
-  check_assertion(name != NULL);
-  /* Microsoft treats "default" as an identifier rather than a keyword.  That
-     is also the case in the token sequences recorded in IFC files. */
-  if (strcmp(name, "default") == 0) {
-    cache_token(cache, tok_default);
-  } else {
-    if (is_source_identifier_ud_literal(cache, name)) {
-      /* FIXME: This an extremely brittle hack. */
-      a_module_token_cache tmp_cache(infer_next_source_position(cache));
-      a_string             composed("\"\"", name);
-
-      cache_tokens_from_string(composed.as_temp_characters(), &tmp_cache);
-      check_assertion((tmp_cache.get_last_token() != NULL &&
-                       (tmp_cache.get_first_token() ==
-                        tmp_cache.get_last_token())));
-      *cache->get_last_token() = *tmp_cache.get_last_token();
-    } else {
-      cache_identifier(cache, name);
-    }  /* if */
+  if (!opt_name.has_value()) {
+    goto invalid;
   }  /* if */
+  {
+    const a_string &name = *opt_name;
+
+    /* Microsoft treats "default" as an identifier rather than a keyword.  That
+       is also the case in the token sequences recorded in IFC files. */
+    if (name == "default") {
+      cache_token(cache, tok_default);
+    } else {
+      if (is_source_identifier_ud_literal(cache, name)) {
+        /* FIXME: This an extremely brittle hack. */
+        a_module_token_cache tmp_cache(infer_next_source_position(cache));
+        a_string             composed("\"\"", name);
+
+        cache_tokens_from_string(composed.as_temp_characters(), &tmp_cache);
+        check_assertion((tmp_cache.get_last_token() != NULL &&
+                         (tmp_cache.get_first_token() ==
+                          tmp_cache.get_last_token())));
+        *cache->get_last_token() = *tmp_cache.get_last_token();
+      } else {
+        cache_identifier(cache, name.as_temp_characters());
+      }  /* if */
+    }  /* if */
+  }
   goto done;
 invalid:
   expect_error_str("expected errors for bad source identifier cache");
@@ -17110,7 +17150,15 @@ initializer expression.
   auto cache_name_fn = [this, cache, name, raw_name]() {
     if (is_null_index(name)) {
       check_assertion(raw_name != 0);
-      cache_identifier(cache, get_string_at_offset(raw_name));
+      Opt<a_string> opt_name_str = name_from_index(raw_name);
+
+      if (opt_name_str.has_value()) {
+        const a_string &name_str = *opt_name_str;
+
+        cache_identifier(cache, name_str.as_temp_characters());
+      } else {
+        expect_error();
+      }  /* if */
     } else {
       cache_name(cache, name);
     }  /* if */
@@ -18139,7 +18187,14 @@ about what to cache.
           cache_expr(cache, alignment, cinfo);
           cache_token(cache, tok_rparen);
         }  /* if */
-        cache_identifier(cache, get_string_at_offset(get_ifc_name(ide)));
+
+        Opt<a_string> opt_name = name_from_index(get_ifc_name(ide));
+        if (!opt_name.has_value()) {
+          goto invalid;
+        }  /* if */
+
+        const a_string &name = *opt_name;
+        cache_identifier(cache, name.as_temp_characters());
         if (!is_null_index(base)) {
           cache_token(cache, tok_colon);
           cache_type(cache, base);
@@ -18189,7 +18244,14 @@ about what to cache.
             check_assertion(basis == ifc_tbs_namespace);
             cache_token(cache, tok_namespace);
           }  /* if */
-          cache_identifier(cache, get_string_at_offset(get_ifc_name(ida)));
+
+          Opt<a_string> opt_name = name_from_index(get_ifc_name(ida));
+          if (!opt_name.has_value()) {
+            goto invalid;
+          }  /* if */
+
+          const a_string &name = *opt_name;
+          cache_identifier(cache, name.as_temp_characters());
           cache_token(cache, tok_assign);
           cache_type(cache, get_ifc_aliasee(ida));
         } else if (type.sort == ifc_ts_type_forall) {
@@ -18205,7 +18267,14 @@ about what to cache.
           cache_token(cache, tok_template);
           cache_template_param_chart(cache, get_ifc_chart(itf), cinfo);
           cache_token(cache, tok_using);
-          cache_identifier(cache, get_string_at_offset(get_ifc_name(ida)));
+
+          Opt<a_string> opt_name = name_from_index(get_ifc_name(ida));
+          if (!opt_name.has_value()) {
+            goto invalid;
+          }  /* if */
+
+          const a_string &name = *opt_name;
+          cache_identifier(cache, name.as_temp_characters());
           cache_token(cache, tok_assign);
           cache_type(cache, get_ifc_subject(itf));
         } else {
@@ -18344,19 +18413,12 @@ about what to cache.
                                         &error_position);
       goto invalid;
     case ifc_ds_decl_using_declaration:
-      { an_ifc_decl_using_declaration idud;
+      { an_ifc_decl_using_declaration using_decl;
 
-        construct_node_prechecked(&idud, decl);
-
-        an_ifc_expr_index parent = get_ifc_parent(idud);
-        cache_basic_specifiers(cache, get_ifc_specifiers(idud));
-        cache_token(cache, tok_using);
-        if (!is_null_index(parent)) {
-          cache_expr(cache, parent, /*cinfo=*/{});
-          cache_token(cache, tok_colon_colon);
+        construct_node_prechecked(&using_decl, decl);
+        if (!cache_direct_decl(cache, using_decl, cinfo)) {
+          goto invalid;
         }  /* if */
-        cache_identifier(cache, get_string_at_offset(get_ifc_name(idud)));
-        cache_token(cache, tok_semicolon);
       }
       break;
     case ifc_ds_decl_using_directive:
@@ -18510,12 +18572,15 @@ referencing a reference to a DeclScope with the name "`global namespace'"
 
     an_ifc_decl_scope decl_scope = *opt_decl_scope;
     an_ifc_name_index name_idx = get_ifc_name(decl_scope);
-    a_const_char      *name_str = name_idx.mod->string_from_name_index(
-                                                                 name_idx,
-                                                                 /*loc=*/NULL);
-    if (strncmp(name_str, "`global namespace'", 18) == 0) {
-      result = TRUE;
-      goto done;
+    Opt<a_string>     opt_name_str = name_from_index(name_idx);
+    if (opt_name_str.has_value()) {
+      const a_string &name_str = *opt_name_str;
+      a_const_char   *name_str_chars = name_str.as_temp_characters();
+
+      if (strncmp(name_str_chars, "`global namespace'", 18) == 0) {
+        result = TRUE;
+        goto done;
+      }  /* if */
     }  /* if */
   }  /* if */
 done:
@@ -19120,7 +19185,13 @@ tuple elements by '::' instead of ','.
         an_ifc_type_index              base = get_ifc_base(iemi);
         if (!is_null_index(member)) {
           /* A nonstatic member initialization. */
-          cache_identifier(cache, name_from_decl(member));
+          Opt<a_string> opt_name_str = name_from_decl(member);
+          if (!opt_name_str.has_value()) {
+            goto invalid;
+          }  /* if */
+
+          const a_string &name_str = *opt_name_str;
+          cache_identifier(cache, name_str.as_temp_characters());
         } else if (!is_null_index(base)) {
           /* A base subobject initialization. */
           cache_type(cache, base);
@@ -19148,7 +19219,14 @@ tuple elements by '::' instead of ','.
         }  /* if */
 
         an_ifc_expr_member_access iema = *opt_iema;
-        cache_identifier(cache, get_string_at_offset(get_ifc_name(iema)));
+        an_ifc_text_offset        name_idx = get_ifc_name(iema);
+        Opt<a_string>             opt_name = name_from_index(name_idx);
+        if (!opt_name.has_value()) {
+          goto invalid;
+        }  /* if */
+
+        const a_string &name = *opt_name;
+        cache_identifier(cache, name.as_temp_characters());
       }
       break;
     case ifc_es_expr_inheritance_path:
@@ -19474,9 +19552,15 @@ common_cast:
         an_ifc_expr_index              arguments = get_ifc_arguments(ietr);
         cache_type(cache, get_ifc_scope(ietr));
         cache_token(cache, tok_colon_colon);
-        cache_identifier(cache,
-                         string_from_name_index(get_ifc_member_name(ietr),
-                                                /*loc=*/NULL));
+
+        an_ifc_name_index name_idx = get_ifc_member_name(ietr);
+        Opt<a_string>     opt_name_str = name_from_index(name_idx);
+        if (!opt_name_str.has_value()) {
+          goto invalid;
+        }  /* if */
+
+        const a_string &name_str = *opt_name_str;
+        cache_identifier(cache, name_str.as_temp_characters());
         if (!is_null_index(arguments)) {
           cache_token(cache, tok_lt);
           cache_expr(cache, arguments, cinfo);
@@ -20349,7 +20433,14 @@ Otherwise, parameter references should only include the parameter name.
         if (get_ifc_line(get_ifc_ellipsis(isttp)) != 0) {
           cache_token(cache, tok_ellipsis);
         }  /* if */
-        cache_identifier(cache, get_string_at_offset(get_ifc_name(isttp)));
+
+        Opt<a_string> opt_name = name_from_index(get_ifc_name(isttp));
+        if (!opt_name.has_value()) {
+          goto invalid;
+        }  /* if */
+
+        const a_string &name = *opt_name;
+        cache_identifier(cache, name.as_temp_characters());
         /* FIXME: Handle constraint field. */
         if (!is_null_index(argument)) {
           cache_token(cache, tok_eq);
@@ -20378,7 +20469,14 @@ Otherwise, parameter references should only include the parameter name.
 
           cache_token(cache, tok_ellipsis);
         }  /* if */
-        cache_identifier(cache, get_string_at_offset(get_ifc_name(isttp)));
+
+        Opt<a_string> opt_name = name_from_index(get_ifc_name(isttp));
+        if (!opt_name.has_value()) {
+          goto invalid;
+        }  /* if */
+
+        const a_string &name = *opt_name;
+        cache_identifier(cache, name.as_temp_characters());
         if (!is_null_index(argument)) {
           cache_token(cache, tok_eq);
           cache_syntax(cache, argument, cinfo);
@@ -20775,10 +20873,14 @@ Add the tokens corresponding to the given name to cache.
 {
   switch (name.sort) {
     case ifc_ns_text_offset:
-      { an_ifc_text_offset ident = {name.mod, name.value};
+      { Opt<a_string> opt_name_str = name_from_index(name);
 
-        /* NameSort::Identifiers just refer to the string table. */
-        cache_identifier(cache, get_string_at_offset(ident));
+        if (!opt_name_str.has_value()) {
+          goto invalid;
+        }  /* if */
+
+        const a_string &name_str = *opt_name_str;
+        cache_identifier(cache, name_str.as_temp_characters());
       }
       break;
     case ifc_ns_name_source_file:
@@ -20898,11 +21000,14 @@ void an_ifc_module::cache_name_from_decl(a_module_token_cache_ptr cache,
 Add the tokens corresponding to the given declaration's (decl) name to cache.
 */
 {
-  a_const_char *name = name_from_decl(decl);
+  Opt<a_string> opt_name = name_from_decl(decl);
 
-  if (name != NULL) {
-    cache_identifier(cache, name);
+  if (opt_name.has_value()) {
+    const a_string &name = *opt_name;
+
+    cache_identifier(cache, name.as_temp_characters());
   } else {
+    cache->invalidate();
     check_assertion_str(is_at_least_one_error(),
                         "expected errors from name_from_decl");
   } /* if */
@@ -20946,7 +21051,16 @@ Add the tokens corresponding to the given macro's definition to cache.
         if (!opt_imol.has_value()) {
           goto invalid;
         }  /* if */
-        cache_identifier(cache, get_string_at_offset(get_ifc_name(*opt_imol)));
+
+        an_ifc_macro_object_like imol = *opt_imol;
+        an_ifc_text_offset       name_idx = get_ifc_name(imol);
+        Opt<a_string>            opt_name = name_from_index(name_idx);
+        if (!opt_name.has_value()) {
+          goto invalid;
+        }  /* if */
+
+        const a_string &name = *opt_name;
+        cache_identifier(cache, name.as_temp_characters());
         /* Ensure there's a space between the macro identifier and the macro
            body. */
         cache_pp_token(cache, " ", 1);
@@ -20961,12 +21075,20 @@ Add the tokens corresponding to the given macro's definition to cache.
           goto invalid;
         }  /* if */
 
-        cache_identifier(cache, get_string_at_offset(get_ifc_name(*opt_imfl)));
+        an_ifc_macro_function_like imfl = *opt_imfl;
+        an_ifc_text_offset         name_idx = get_ifc_name(imfl);
+        Opt<a_string>              opt_name = name_from_index(name_idx);
+        if (!opt_name.has_value()) {
+          goto invalid;
+        }  /* if */
+
+        const a_string &name = *opt_name;
+        cache_identifier(cache, name.as_temp_characters());
         cache_token(cache, tok_lparen);
-        if (func_macro_is_variadic(get_ifc_arity_variadic(*opt_imfl))) {
+        if (func_macro_is_variadic(get_ifc_arity_variadic(imfl))) {
           cache_token(cache, tok_ellipsis);
         } else {
-          an_ifc_form_index parameters = get_ifc_parameters(*opt_imfl);
+          an_ifc_form_index parameters = get_ifc_parameters(imfl);
           check_assertion(!is_null_index(parameters));
           cache_form(cache, parameters, /*is_parameter_form=*/TRUE);
         }  /* if */
@@ -20974,7 +21096,7 @@ Add the tokens corresponding to the given macro's definition to cache.
         /* Ensure there's a space between the macro parameter list and the
            macro body. */
         cache_pp_token(cache, " ", 1);
-        cache_form(cache, get_ifc_body(*opt_imfl));
+        cache_form(cache, get_ifc_body(imfl));
       }
       break;
     default_is_unexpected_str("Unexpected MacroSort");
@@ -21021,8 +21143,14 @@ raw-text spelling.
         if (!opt_ifi.has_value()) {
           goto invalid;
         }  /* if */
-        cache_identifier(cache,
-                         get_string_at_offset(get_ifc_spelling(*opt_ifi)));
+
+        Opt<a_string> opt_name = name_from_index(get_ifc_spelling(*opt_ifi));
+        if (!opt_name.has_value()) {
+          goto invalid;
+        }  /* if */
+
+        const a_string &name = *opt_name;
+        cache_identifier(cache, name.as_temp_characters());
       }
       break;
     case ifc_fs_form_number:
@@ -21417,7 +21545,7 @@ char *an_ifc_module::parse_cached_explicit_specialization(
 Parse the tokens corresponding to the given explicit specialization
 declaration's (decl) cache.  encl_scope is the scope containing the explicit
 specialization declaration.  Return a pointer to the corresponding explicit
-specialization entity and update kind with the associated entity kind.
+specialization entity and update *kind with the associated entity kind.
 */
 {
   a_decl_parse_state dps;
@@ -21452,7 +21580,8 @@ char *an_ifc_module::parse_cached_explicit_instantiation(
 /*
 Parse the tokens corresponding to the given explicit instantiation
 declaration's (decl) cache.  Return a pointer to the corresponding
-explicitly-instantiated entity and update kind with the associated entity kind.
+explicitly-instantiated entity and update *kind with the associated entity
+kind.
 */
 {
   a_decl_parse_state dps;
@@ -21558,7 +21687,6 @@ Do one-time initialization of static variables defined in this file.
   /* Allocate a buffer for processing source file names.  These can get fairly
      long and this is shared across all IFC module processing so be generous
      with the initial allocation. */
-  file_name_buffer = alloc_text_buffer(200);
   if (precompiled_header_processing_required) {
     static a_pch_saved_variable saved_vars[] = {
       pch_saved_var_array_elem(lazy_symbols_may_be_visible),
@@ -21605,6 +21733,52 @@ for each compilation.
   ifc_decl_template_lookup_table = alloc_fe_of_type(
                                                  an_ifc_template_lookup_table);
   construct(ifc_decl_template_lookup_table, /*mask_width=*/10);
+  bad_operator_name_encodings = alloc_fe_of_type(
+                                           a_bad_operator_name_encoding_array);
+  construct(bad_operator_name_encodings);
+  bad_operator_name_encodings->push_back("new");
+  bad_operator_name_encodings->push_back("delete");
+  bad_operator_name_encodings->push_back("new[]");
+  bad_operator_name_encodings->push_back("delete[]");
+  bad_operator_name_encodings->push_back("co_await()");
+  bad_operator_name_encodings->push_back("[]");
+  bad_operator_name_encodings->push_back("->");
+  bad_operator_name_encodings->push_back("->*");
+  bad_operator_name_encodings->push_back("~");
+  bad_operator_name_encodings->push_back("!");
+  bad_operator_name_encodings->push_back("+");
+  bad_operator_name_encodings->push_back("-");
+  bad_operator_name_encodings->push_back("*");
+  bad_operator_name_encodings->push_back("/");
+  bad_operator_name_encodings->push_back("%");
+  bad_operator_name_encodings->push_back("^");
+  bad_operator_name_encodings->push_back("&");
+  bad_operator_name_encodings->push_back("|");
+  bad_operator_name_encodings->push_back("=");
+  bad_operator_name_encodings->push_back("+=");
+  bad_operator_name_encodings->push_back("-=");
+  bad_operator_name_encodings->push_back("*=");
+  bad_operator_name_encodings->push_back("/=");
+  bad_operator_name_encodings->push_back("%=");
+  bad_operator_name_encodings->push_back("^=");
+  bad_operator_name_encodings->push_back("&=");
+  bad_operator_name_encodings->push_back("|=");
+  bad_operator_name_encodings->push_back("==");
+  bad_operator_name_encodings->push_back("!=");
+  bad_operator_name_encodings->push_back("<");
+  bad_operator_name_encodings->push_back(">");
+  bad_operator_name_encodings->push_back("<=");
+  bad_operator_name_encodings->push_back(">=");
+  bad_operator_name_encodings->push_back("<=>");
+  bad_operator_name_encodings->push_back("&&");
+  bad_operator_name_encodings->push_back("||");
+  bad_operator_name_encodings->push_back("<<");
+  bad_operator_name_encodings->push_back(">>");
+  bad_operator_name_encodings->push_back("<<=");
+  bad_operator_name_encodings->push_back(">>=");
+  bad_operator_name_encodings->push_back("++");
+  bad_operator_name_encodings->push_back("--");
+  bad_operator_name_encodings->push_back(",");
 }  /* ifc_modules_init */
 
 /*lint -restore*/ /* FIXME: temporary */

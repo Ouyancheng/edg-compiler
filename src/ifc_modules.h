@@ -268,7 +268,6 @@ public:
                          a_scope_ptr        scope);
   uint32_t get_num_entries(an_ifc_partition_kind partition) const;
   /* IFC Scope readers. */
-  a_boolean is_home_scope_readable(an_ifc_decl_index decl_index);
   a_type_ptr type_for_template_id(const an_ifc_expr_template_id &templ_id);
   a_template_arg_ptr template_arg_for_expr(
                                         const a_template_parameter *param,
@@ -278,15 +277,6 @@ public:
                                         an_ifc_expr_index          arguments);
   a_boolean source_position_from_locus(a_source_position            *pos,
                                        const an_ifc_source_location &locus);
-  inline a_const_char *get_string_at_offset(an_ifc_text_offset offset) const;
-  a_const_char *string_from_name_index(an_ifc_name_index name_index,
-                                       a_symbol_locator  *loc);
-  a_const_char *string_from_name_index(an_ifc_name_index name_index,
-                                       a_symbol_locator  *loc,
-                                       a_text_buffer_ptr *result_buffer);
-  a_const_char *string_from_name_index(an_ifc_text_offset text_offset,
-                                       a_symbol_locator  *loc);
-  a_const_char *name_from_local_decl(an_ifc_decl_index decl);
   a_boolean init_dps(a_decl_parse_state               *dps,
                      const an_ifc_source_location     &locus,
                      an_ifc_type_index                type_index,

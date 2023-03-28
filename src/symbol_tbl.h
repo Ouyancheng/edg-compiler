@@ -239,6 +239,9 @@ typedef struct a_symbol_locator {
 			   process.  This is TRUE for template references that
 			   have been coalesced, locators resolved from pseudo
 			   tokens, and for specific symbol error locators. */
+  a_bit_field	is_implicitly_qualified:1;
+			/* TRUE if the specific symbol is implicitly qualified
+			   (such as a resolved pseudo token). */
   a_bit_field	is_template_id:1;
 			/* TRUE if the coalesced identifier is a template-id
 			   (i.e., template-name < template-arg-list >). */
