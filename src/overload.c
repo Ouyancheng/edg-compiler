@@ -20300,6 +20300,31 @@ error and set *processed to TRUE if the conversion is ambiguous.
       /* The conversion is possible -- do it. */
       /* Force the result to be a prvalue. */
       conversion.result_is_a_glvalue = FALSE;
+      if ((conv_context & CCO_CONVERTED_CONSTANT_EXPR) != 0 &&
+           operand != NULL && specific_type != NULL &&
+           conversion.routine != NULL) {
+        /* If this is a converted constant expression context, diagnose some
+           invalid situations (like narrowing conversions). */
+        a_constant_ptr  conv_result = local_constant();
+        a_routine_ptr   conv_routine = conversion.routine;
+        a_type_ptr      return_type = return_type_of(conv_routine->type);
+        a_boolean       okay;
+        an_error_code   err_code = ec_no_error;
+        okay = constant_conv_function_result(conv_routine, operand,
+                                             return_type, conv_result) &&
+               impl_converted_constant_expr_conversion_possible(
+                                             return_type,
+                                             /*source_is_constant=*/TRUE,
+                                             conv_result,
+                                             specific_type,
+                                             &err_code);
+        if (!okay && err_code != ec_no_error) {
+          pos_opt_ty2_diagnostic(es_discretionary_error, err_code,
+                                 &operand->position,
+                                 operand->type, specific_type);
+        }  /* if */
+        release_local_constant(&conv_result);
+      }  /* if */
       user_convert_operand(operand, specific_type,
                            &conversion, (a_conv_descr *)NULL,
                            /*force_copy_to_temp=*/FALSE);
