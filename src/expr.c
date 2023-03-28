@@ -107,7 +107,7 @@ static void bundle_curr_expr_lifetime(an_arg_list_elem_ptr  alep,
                                       a_boolean             fix_up_dtors)
 /*
 alep represents a just-scanned operand (typically in the context of a front-end
-generated expression, such has for the handling of structure bindings or
+generated expression, such as for the handling of structured bindings or
 coroutines).  Bundle the lifetime at the top of the current expression stack
 (if any) into *alep, and fix up the current expression context to disconnect
 it from *alep.  If fix_up_dtors is TRUE, call fix_up_dynamic_init_dtors().
@@ -123,7 +123,7 @@ it from *alep.  If fix_up_dtors is TRUE, call fix_up_dynamic_init_dtors().
     if (lifetime != NULL) {
       /* Preserve the lifetime associated with the expression.  This is related
          to what scan_expr_as_init_component does, but in this case the
-         operand has already been scanned, or taken out of a cache and its
+         operand has already been scanned or taken out of a cache and its
          lifetime restored, so we're just saving here, not wrapping. */
       check_assertion(curr_object_lifetime == expr_stack->lifetime);
       alep->variant.expr.lifetime = expr_stack->lifetime;
