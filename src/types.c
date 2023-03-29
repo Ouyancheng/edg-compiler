@@ -11680,10 +11680,11 @@ See conversion_possible.
             source_type->variant.integer.has_explicit_enum_base) {
           /* A conversion from an unscoped enum to its explicit underlying type
              is a promotion, and is preferred over other kinds of promotions.
-             (See core issue 1601 and [conv.prom]/4 in N4659.)  Clang and GCC
-             do not implement this yet. */
+             (See core issue 1601 and [conv.prom]/4 in N4659.)  Not all
+             versions of Clang and GCC implemented this. */
           base_type = source_type->variant.integer.extra_info->base_type;
-          if (cpp14_mode && !(gpp_mode || clang_version_is(<100000)) &&
+          if (cpp14_mode &&
+              !(gpp_version_is(<100000) || clang_version_is(<100000)) &&
               identical_types(base_type, dest_type)) {
             std_conv->promotion = TRUE;
             std_conv->fixed_enum_promotion = TRUE;

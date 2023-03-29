@@ -1,5 +1,23 @@
 Version 6.5
 
+3/29/23  [EDGcpfe/25089,EDGcpfe/25779]
+GNU compatibility: Core issue 1601
+
+Consider:
+
+  enum E: char { e };
+  constexpr int f(int) { return 0; }
+  constexpr int f(char) { return 1; }
+  static_assert(f(e) == 1, "");
+
+The changes to support Core issue 1601 (see the entry for EDGcpfe/18779)
+excluded GNU C++ mode since, at the time, GCC did not yet implement the
+resolution for that core issue, which in turn caused it to fail the
+static_assert in the example above.  GCC 10.x, however, corrected that and
+the front end now emulates that behavior in GNU C++14 modes with
+gnu_version >= 100000.
+
+
 3/29/23  [EDGcpfe/25992]
 Explicit static data member specialization that introduces constexpr
 
