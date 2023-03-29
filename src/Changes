@@ -1,5 +1,13 @@
 Version 6.5
 
+3/29/23  [EDGcpfe/26118,EDGcpfe/26122]
+Spurious lifetime error on some self-referencing constant-evaluation results
+
+The changes for EDGcpfe/18466 etc. did not cover some more complex variants of
+the example in the corresponding entry.  An additional tweak now covers those
+new variants as well.
+
+
 3/27/23  [EDGcpfe/18058,EDGcpfe/22588,EDGcpfe/25791,EDGcpfe/26107]
 Constant evaluation of integer conversions
 

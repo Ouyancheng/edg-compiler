@@ -6190,8 +6190,10 @@ by implied_src.
     case dik_expression:
     case dik_class_result_via_ctor:
       { an_expr_node_ptr  expr = skip_parens(dip->variant.expression);
+        a_boolean         reset_dest_seq_number = FALSE;
         if (ips->curr_call_frame != NULL && is_call_node(expr) &&
-            !(expr->is_lvalue || expr->is_xvalue)) {
+            !(expr->is_lvalue || expr->is_xvalue) &&
+            ips->curr_call_frame->dest_seq_number_plus_one == 0) {
           /* If a call expression initializes a local class type object, the
              address of that object will be needed in the return statement
              (see handling of stmk_return).  Currently, however,
@@ -6202,10 +6204,14 @@ by implied_src.
              keep zero as a no-number representation). */
           ips->curr_call_frame->dest_seq_number_plus_one =
                                                  dst_addr->alloc_seq_number+1;
+          reset_dest_seq_number = TRUE;
         }  /* if */
         result = do_constexpr_expression(ips, expr,
                                          dst_addr->address,
                                          dst_addr->complete_object);
+        if (reset_dest_seq_number) {
+          ips->curr_call_frame->dest_seq_number_plus_one = 0;
+        }  /* if */
       }
       break;
     case dik_constructor:
