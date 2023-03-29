@@ -4621,17 +4621,29 @@ Return TRUE if caching succeeds, FALSE otherwise.
     const a_string    &decl_name = *opt_decl_name;
     an_ifc_decl_index resolution = get_ifc_resolution(using_decl);
     if (is_null_index(resolution)) {
-      /* If there's no resolution, this is a using-declaration for an inherited
-         constructor, e.g.
+      /* If there's no resolution, this a using-declaration composed of the
+         parent expr and the name index, e.g.:
 
-           struct foo : x {
-             using x::y;
+           struct a {
+             int mem;
+           };
+           struct b : a {
+             using a::mem;
            };
 
          is equivalent to:
 
-           struct foo : x {
+           struct b : a {
              using <parent expr> :: <name index> ;
+           };
+
+         Note, this representation is also used for access declarations, e.g.:
+
+           struct a {
+             int mem;
+           };
+           struct b : a {
+             a::mem;
            };
 
        */
