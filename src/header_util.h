@@ -111,8 +111,7 @@ struct Opt {
   inline Opt<a_Value_type>& operator=(Opt<a_Value_type> &&other);
   inline void clear();
 private:
-  a_boolean
-                storing_value;
+  a_boolean     storing_value;
                         /* TRUE if there is a value stored, FALSE otherwise. */
   union {
     a_Value_type
@@ -122,8 +121,7 @@ private:
                            destruction are manually managed. */
   };
 #if CHECKING
-  a_boolean
-                value_presence_checked = FALSE;
+  a_boolean     value_presence_checked = FALSE;
                         /* TRUE if there was a call to has_value for this
                            instance of Opt, FALSE otherwise. */
 #endif /* CHECKING */

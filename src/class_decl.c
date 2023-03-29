@@ -33147,6 +33147,14 @@ next_declaration:
     } else {
       complete_class_definition(class_type, effective_decl_level,
                                 &class_state);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (curr_token == tok_ifc_decl) {
+        /* Record the symbol for a data member with an unnamed user-defined
+           type. */
+        record_symbol_for_ifc_decl(symbol_for(class_type));
+        (void)get_token();
+      }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
     if (need_restore_pack_alignment_state) {
       /* Now that the class instantiation has been scanned, restore the

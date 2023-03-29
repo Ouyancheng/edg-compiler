@@ -23623,8 +23623,6 @@ selection operator, in which case it points to the type of the left operand.
     } else {
       make_resolved_id_pseudo_token_locator(sym, &locator_for_curr_id);
       locator_for_curr_id.source_position = pos_curr_token;
-      is_qualified_name = locator_for_curr_id.is_qualified_name;
-      is_global_qualified_name = locator_for_curr_id.is_global_qualified_name;
       curr_token = tok_identifier;
     }  /* if */
   }  /* if */

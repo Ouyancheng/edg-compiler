@@ -100,6 +100,9 @@ struct an_ifc_cache_info_zero_bits {
   a_bit_field   func_body:1;
                         /* TRUE if the entity being cached is the top-level
                            function body statement. */
+  a_bit_field   inline_data_member_type:1;
+                        /* TRUE if the entity being cached is a data member
+                           with an anonymous inline type. */
   a_bit_field   requires_body:1;
                         /* TRUE if the entity being cached is part of a
                            requires clause body. */
@@ -321,13 +324,17 @@ public:
                         an_ifc_type_index            type,
                         an_ifc_name_index            name,
                         an_ifc_type_index            base,
-                        an_ifc_scope_index           scope);
+                        an_ifc_scope_index           scope,
+                        const an_ifc_cache_info      &cinfo);
   void cache_type_first_part(a_module_token_cache_ptr cache,
-                             an_ifc_type_index        type);
+                             an_ifc_type_index        type,
+                             const an_ifc_cache_info  &cinfo);
   void cache_type_second_part(a_module_token_cache_ptr cache,
-                              an_ifc_type_index        type);
+                              an_ifc_type_index        type,
+                              const an_ifc_cache_info  &cinfo);
   void cache_type(a_module_token_cache_ptr cache,
-                  an_ifc_type_index        type);
+                  an_ifc_type_index        type,
+                  const an_ifc_cache_info  &cinfo);
   void cache_type_param_introducer(a_module_token_cache_ptr cache,
                                    an_ifc_expr_index        constraint,
                                    a_boolean                is_pack);
@@ -424,6 +431,7 @@ public:
                             an_ifc_type_index                type,
                             a_Name_Cache_Fn                  cache_name_fn,
                             an_ifc_expr_index                width,
+                            const an_ifc_cache_info          &cinfo,
                             an_Init_Cache_Fn                 cache_init_fn);
   void cache_variable_decl(a_module_token_cache_ptr         cache,
                            an_ifc_decl_index                decl_idx,
@@ -435,7 +443,8 @@ public:
                            an_ifc_name_index                name,
                            an_ifc_text_offset               raw_name,
                            an_ifc_expr_index                width,
-                           an_ifc_expr_index                initializer);
+                           an_ifc_expr_index                initializer,
+                           const an_ifc_cache_info          &cinfo);
   void cache_name(a_module_token_cache_ptr     cache,
                   an_ifc_name_index            name);
   void cache_name_from_decl(a_module_token_cache_ptr cache,
