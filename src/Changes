@@ -145,9 +145,8 @@ For example, with --c++14:
 3/22/23  [EDGcpfe/26053]
 Microsoft compatibility: Add --ms_c23 command-line option
 
-In preparation for emulating Visual Studio's /std:c23 command-line option, the
---ms_c23 command-line option has been added to the front end.  It functions the
-same as the --ms_c17 command-line option currently.
+The front end now accepts the --ms_c23 command-line option to enable the
+features associated with the upcoming MSVC /std:c23 command-line option.
 
 
 3/22/23  [EDGcpfe/26169]
