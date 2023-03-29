@@ -3674,6 +3674,16 @@ declare it here as well.
 extern a_hash_value hash_source_string(a_void_ptr  key);
 
 
+template<template<typename> class Allocator>
+inline uintptr_t hash_ptr(const Allocated_string<Allocator> &str)
+/*
+Compute a hash for the given string.  The hash must be appropriate for Ptr_map.
+*/
+{
+  return (uintptr_t)hash_source_string((a_void_ptr)str.as_temp_characters());
+}  /* hash_ptr */
+
+
 inline uintptr_t hash_ptr(const a_C_str_handle str)
 /*
 Compute a hash for the given C-string.  The hash must be appropriate for
