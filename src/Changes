@@ -1,5 +1,23 @@
 Version 6.5
 
+3/29/23  [EDGcpfe/25992]
+Explicit static data member specialization that introduces constexpr
+
+Consider:
+
+  template<typename T> struct V {
+    static const V<T> zero;
+    constexpr V(): x() {}
+    constexpr V(const V&) = default;
+    T x;
+  };
+  template<> constexpr V<int> V<int>::zero = {};
+  constexpr V<int> vi = V<int>::zero;  // Previously an error.  Now okay.
+
+Previously, the front end failed to record the constexpr-ness of V<int>::zero,
+which in turn triggered an error in the definition of vi.  That is now fixed.
+
+
 3/29/23  [EDGcpfe/26118,EDGcpfe/26122]
 Spurious lifetime error on some self-referencing constant-evaluation results
 

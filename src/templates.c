@@ -32570,9 +32570,7 @@ that follows.
              in-class declaration). */
           vp->initializer_in_class = FALSE;
         }  /* if */
-        if (symbol_is(sym, sk_variable)) {
-          update_variable_decl_info(vp, dps, dps->is_definition);
-        }  /* if */
+        update_variable_decl_info(vp, dps, dps->is_definition);
         if (!already_specialized) {
           /* For a static data member, the instantiation of the enclosing class
              might have cause symbol to be marked as "defined" because it has
