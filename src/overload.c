@@ -20301,8 +20301,7 @@ error and set *processed to TRUE if the conversion is ambiguous.
       /* Force the result to be a prvalue. */
       conversion.result_is_a_glvalue = FALSE;
       if ((conv_context & CCO_CONVERTED_CONSTANT_EXPR) != 0 &&
-           operand != NULL && specific_type != NULL &&
-           conversion.routine != NULL) {
+           specific_type != NULL && conversion.routine != NULL) {
         /* If this is a converted constant expression context, diagnose some
            invalid situations (like narrowing conversions). */
         a_constant_ptr  conv_result = local_constant();
