@@ -16262,15 +16262,6 @@ formed.
       }  /* if */
       attach_attributes(attributes, (char*)udp, iek_using_decl);
     }  /* if */
-    if (scope_stack_top().exporting_decl &&
-        source_corresp_entry_for_symbol(fund_sym)->name_linkage
-                                        == (a_name_linkage_kind)nlk_internal) {
-      a_diagnostic_ptr dp;
-      dp = pos_start_diagnostic(es_error, ec_export_internal_linkage,
-                                &error_position);
-      sym_add_diag_info(dp, ec_export_internal_linkage_using_sym, sym);
-      end_diagnostic(dp);
-    }  /* if */
     /* Update cross-reference and source-sequence info, if required. */
     record_using_decl(fund_sym, &decl_pos, udp, *prev_udp);
     /* Set *prev_udp for a possible subsequent call to this function. */
@@ -16703,6 +16694,7 @@ the using_if_exists attribute at that location.
               }  /* if */
             }  /* if */
             dps->sym = sym;
+            dps->declarator_pos = error_position;
             for (; sym != NULL; sym = is_list ? sym->next : NULL) {
               (void)create_nonmember_using_declaration(sym, &overload_sym,
                     other_decl, nsp, class_type, &prev_udp, is_list,
