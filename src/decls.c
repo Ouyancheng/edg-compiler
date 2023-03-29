@@ -15643,7 +15643,7 @@ it's a definition and NULL otherwise).
       pos_error(ec_attribute_not_allowed, &attr_token_pos);
     }  /* if */
   }  /* if */
-  if (depth_scope_stack != depth_innermost_namespace_scope) {
+  if (decl_scope_level != depth_innermost_namespace_scope) {
     /* The current scope is not the file scope or a namespace scope. */
     if (!is_namespace_alias) {
       /* This is a namespace definition of some sort, which can only occur
@@ -15655,8 +15655,8 @@ it's a definition and NULL otherwise).
     } else {
       /* This is a namespace alias definition, which can also occur in
          function and block scopes. */
-      if (scope_stack[depth_scope_stack].kind != (a_scope_kind)sck_function &&
-          scope_stack[depth_scope_stack].kind != (a_scope_kind)sck_block) {
+      if (scope_stack[decl_scope_level].kind != (a_scope_kind)sck_function &&
+          scope_stack[decl_scope_level].kind != (a_scope_kind)sck_block) {
         pos_error(ec_namespace_alias_def_not_allowed, &namespace_pos);
         set_to_error_locator(locator);
         err = TRUE;

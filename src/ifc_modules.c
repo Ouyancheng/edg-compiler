@@ -4615,21 +4615,15 @@ Return TRUE if caching succeeds, FALSE otherwise.
   a_boolean result = TRUE;
 
   cache_basic_specifiers(cache, get_ifc_specifiers(using_decl));
-  cache_token(cache, tok_using);
 
-  an_ifc_decl_index resolution = get_ifc_resolution(using_decl);
-  if (is_namespace_scope(resolution)) {
-    /* If the resolution is a namespace, is a using-directive. */
-    cache_token(cache, tok_namespace);
-    cache_token_with_index(cache, tok_ifc_decl_ref, resolution);
-  } else {
-    Opt<a_string> opt_decl_name = name_from_index(get_ifc_name(using_decl));
+  Opt<a_string> opt_decl_name = name_from_index(get_ifc_name(using_decl));
 
-    if (!opt_decl_name.has_value()) {
-      goto invalid;
-    }  /* if */
-
-    const a_string &decl_name = *opt_decl_name;
+  if (!opt_decl_name.has_value()) {
+    goto invalid;
+  }  /* if */
+  {
+    const a_string    &decl_name = *opt_decl_name;
+    an_ifc_decl_index resolution = get_ifc_resolution(using_decl);
     if (is_null_index(resolution)) {
       /* If there's no resolution, this is a using-declaration for an inherited
          constructor, e.g.
@@ -4647,32 +4641,65 @@ Return TRUE if caching succeeds, FALSE otherwise.
        */
       an_ifc_expr_index parent = get_ifc_parent(using_decl);
 
+      cache_token(cache, tok_using);
       parent.mod->cache_expr(cache, parent, cinfo);
       cache_token(cache, tok_colon_colon);
       cache_identifier(cache, decl_name.as_temp_characters());
     } else {
       Opt<a_string> opt_aliased_decl_name = name_from_decl(resolution);
-
       if (!opt_aliased_decl_name.has_value()) {
         goto invalid;
       }  /* if */
 
       const a_string &aliased_decl_name = *opt_aliased_decl_name;
       if (decl_name == aliased_decl_name) {
-        /* If the aliased declaration has the same name as the name given to
-           the using declaration, this is a using-declaration, e.g.:
+        /* The aliased declaration has the same name as the name given to the
+           IFC using declaration.  Determine if this is a using-declaration or
+           a using-directive. */
+        if (is_namespace_scope(resolution)) {
+          /* This is a using-directive, e.g.:
 
-             using <resolution>;
+               using namespace namespace-name ;
 
-           For purposes of parsing, the resolved token is considered a
-           qualified identifier. */
-        cache_token_with_index(cache, tok_ifc_decl_ref, resolution);
+           */
+          cache_token(cache, tok_using);
+          cache_token(cache, tok_namespace);
+          cache_token_with_index(cache, tok_ifc_decl_ref, resolution);
+        } else {
+          /* This is a using-declaration, e.g.:
+
+               using using-declarator-list ;
+
+             For purposes of parsing, the resolved token is considered a
+             qualified identifier. */
+          cache_token(cache, tok_using);
+          cache_token_with_index(cache, tok_ifc_decl_ref, resolution);
+        }  /* if */
       } else {
-        /* If the aliased declaration has a different name compared to the name
-           given to the using declaration, this is an alias-declaration. */
-        cache_identifier(cache, decl_name.as_temp_characters());
-        cache_token(cache, tok_assign);
-        cache_token_with_index(cache, tok_ifc_decl_ref, resolution);
+        /* The aliased declaration has a different name compared to the name
+           given to the IFC using declaration.  Determine if this is an
+           alias-declaration or a namespace-alias-definition. */
+        if (is_namespace_scope(resolution)) {
+          /* This is a namespace-alias-definition, e.g.:
+
+               namespace identifier = qualified-namespace-specifier ;
+
+           */
+          cache_token(cache, tok_namespace);
+          cache_identifier(cache, decl_name.as_temp_characters());
+          cache_token(cache, tok_assign);
+          cache_token_with_index(cache, tok_ifc_decl_ref, resolution);
+        } else {
+          /* This is an alias-declaration, e.g..:
+
+               using identifier = qualified-namespace-specifier ;
+
+           */
+          cache_token(cache, tok_using);
+          cache_identifier(cache, decl_name.as_temp_characters());
+          cache_token(cache, tok_assign);
+          cache_token_with_index(cache, tok_ifc_decl_ref, resolution);
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
