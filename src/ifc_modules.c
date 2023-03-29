@@ -893,7 +893,7 @@ key).
 static a_const_char *get_string_at_offset(an_ifc_text_offset offset)
 /*
 Return a pointer to the IFC string table for a given TextOffset.  Strings in
-the IFC file are NULL-terminated.  This function does not do and adjustments or
+the IFC file are NULL-terminated.  This function does not do any adjustments or
 corrections to the IFC text; thus, for entity names prefer name_from_index or
 name_from_decl.
 */
@@ -1390,6 +1390,9 @@ its ifc_AttrIndex.
 
 static Opt<an_ifc_type_basis_sort> get_scope_kind(an_ifc_decl_index scope_ref)
 /*
+Return the type basis for the given decl index if the given IFC DeclIndex
+points to an IFC DeclScope with an IFC TypeFundamental; otherwise return an
+empty optional.
 */
 {
   Opt<an_ifc_type_basis_sort> result;
@@ -1422,8 +1425,8 @@ done:
 
 static a_boolean is_class_scope(an_ifc_decl_index scope_ref)
 /*
-Return TRUE if the provided scope is a class/struct/union scope, FALSE
-otherwise.
+Return TRUE if the provided scope is a class/struct/union scope; otherwise,
+return FALSE.
 */
 {
   a_boolean                   result = FALSE;
@@ -1450,8 +1453,8 @@ otherwise.
 
 static a_boolean is_namespace_scope(const an_ifc_decl_index scope_ref)
 /*
-Return TRUE if the provided scope is a class/struct/union scope, FALSE
-otherwise.
+Return TRUE if the provided scope is a namespace scope; otherwise, return
+FALSE.
 */
 {
   a_boolean                   result = FALSE;
@@ -1460,14 +1463,7 @@ otherwise.
   if (opt_scope_kind.has_value()) {
     an_ifc_type_basis_sort scope_kind = *opt_scope_kind;
 
-    switch (scope_kind) {
-      case ifc_tbs_namespace:
-        result = TRUE;
-        break;
-      default:
-        result = FALSE;
-        break;
-    }  /* switch */
+    result = (scope_kind == ifc_tbs_namespace);
   }  /* if */
   return result;
 }  /* is_namespace_scope */
