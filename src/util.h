@@ -2908,8 +2908,8 @@ inline a_boolean operator==(const Allocated_string<Allocator_a> &str1,
                             const Allocated_string<Allocator_b> &str2)
 /*
 Return TRUE if the string represented by str1 is the same as the string
-represented by str2.  If both strings are empty, the "strings" are considered
-the same.
+represented by str2.  If both strings are empty, the strings are considered the
+same.
 */
 {
   a_boolean result = TRUE;;
@@ -2932,8 +2932,8 @@ inline a_boolean operator!=(const Allocated_string<Allocator_a> &str1,
                             const Allocated_string<Allocator_b> &str2)
 /*
 Return TRUE if the string represented by str1 is not the same as the string
-represented by str2.  If both strings are empty, the "strings" are considered
-the same.
+represented by str2.  If both strings are empty, the strings are considered the
+same.
 */
 {
   return !(str1 == str2);
@@ -2945,8 +2945,8 @@ inline a_boolean operator==(const Allocated_string<Allocator> &str1,
                             a_const_char                      *str2)
 /*
 Return TRUE if the string represented by str1 is the same as the string
-represented by str2.  If both strings are empty, the "strings" are considered
-the same.
+represented by str2.  If both strings are empty, the strings are considered the
+same.
 */
 {
   a_boolean result = TRUE;;
@@ -2968,8 +2968,8 @@ inline a_boolean operator!=(const Allocated_string<Allocator> &str1,
                             a_const_char                      *str2)
 /*
 Return TRUE if the string represented by str1 is not the same as the string
-represented by str2.  If both strings are empty, the "strings" are considered
-the same.
+represented by str2.  If both strings are empty, the strings are considered the
+same.
 */
 {
   return !(str1 == str2);
@@ -2981,8 +2981,8 @@ inline a_boolean operator==(a_const_char                      *str1,
                             const Allocated_string<Allocator> &str2)
 /*
 Return TRUE if the string represented by str1 is the same as the string
-represented by str2.  If both strings are empty, the "strings" are considered
-the same.
+represented by str2.  If both strings are empty, the strings are considered the
+same.
 */
 {
   return (str2 == str1);
