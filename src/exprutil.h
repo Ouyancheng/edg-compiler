@@ -3236,9 +3236,13 @@ a_boolean check_type_constraint(a_type_ptr                 type,
                                 a_diag_list                *diag_list = NULL);
 
 extern
+a_boolean requires_expr_satisfied_full(an_expr_node_ptr          requires_expr,
+                                       a_subst_pairs_array const &subst_pairs,
+                                       a_ctws_state_ptr          cwts_state);
+
+extern
 a_boolean requires_expr_satisfied(an_expr_node_ptr           requires_expr,
-                                  a_subst_pairs_array const  &subst_pairs,
-                                  a_ctws_state_ptr           cwts_state);
+                                  a_subst_pairs_array const  &subst_pairs);
 
 
 /*

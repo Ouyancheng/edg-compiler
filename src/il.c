@@ -19555,7 +19555,7 @@ options is a set of substitution options.
         subst_pairs.push_back(a_subst_pairs_descr{ template_param_list,
                                                    template_arg_list,
                                                    FALSE, FALSE });
-        val = requires_expr_satisfied(expr, subst_pairs, ctws_state);
+        val = requires_expr_satisfied_full(expr, subst_pairs, ctws_state);
         make_bool_constant_value(val, constant);
       }  /* if */
       break;

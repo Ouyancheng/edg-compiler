@@ -39225,7 +39225,6 @@ Record the representation or the requires-expression in *result.
   a_param_type_ptr         params = NULL;         
   a_token_sequence_number  requires_tsn = curr_token_sequence_number;
   a_requires_range_descr   rrd = requires_ranges->get(requires_tsn);
-  a_ctws_state             ctws_state;
 
   (void)get_token();
   if (rrd.next_tsn == a_token_sequence_number()) {
@@ -39314,8 +39313,7 @@ done_with_requirements:
            but it can be "false" if a noexcept constraint failed. */
         a_boolean  val;
         a_subst_pairs_array  subst_pairs = get_current_subst_pairs();
-        init_ctws_state(&ctws_state);
-        val = requires_expr_satisfied(node, subst_pairs, &ctws_state);
+        val = requires_expr_satisfied(node, subst_pairs);
         make_integer_constant_operand(result, (a_host_large_integer)val);
         result->type = bool_type();
         result->variant.constant.type = result->type;
@@ -39373,9 +39371,7 @@ done_with_requirements:
       a_subst_pairs_array  subst_pairs = get_current_subst_pairs();
       a_boolean            val;
       push_instantiation_scope_for_rescan(/*template_sym=*/NULL);
-      init_ctws_state(&ctws_state);
-      val = requires_expr_satisfied(rrd.requires_expr, subst_pairs,
-                                    &ctws_state);
+      val = requires_expr_satisfied(rrd.requires_expr, subst_pairs);
       pop_instantiation_scope_for_rescan();
       make_integer_constant_operand(result, (a_host_large_integer)val);
       result->type = bool_type();

@@ -25709,14 +25709,14 @@ static a_constraint_subst_cache
 			   substitution results. */
 
 
-a_boolean constraint_satisfied(an_expr_node_ptr           constraint,
-                               a_template_arg_ptr         template_arg_list,
-                               a_template_param_ptr       template_param_list,
-                               a_diag_list_ptr            diag_list,
-             /* Defaulted: */  a_ctws_options_set         options,
-                               a_ctws_state_ptr           ctws_state,
-                               a_boolean                  *p_fatal,
-                               a_boolean                  *p_copy_error)
+a_boolean constraint_satisfied(an_expr_node_ptr      constraint,
+                               a_template_arg_ptr    template_arg_list,
+                               a_template_param_ptr  template_param_list,
+                               a_diag_list_ptr       diag_list,
+             /* Defaulted: */  a_ctws_options_set    options,
+                               a_ctws_state_ptr      ctws_state,
+                               a_boolean             *p_fatal,
+                               a_boolean             *p_copy_error)
 /*
 Return TRUE if the given constraint expression, built on the given template
 parameter list, is satisfied by the given template argument list.  Otherwise,
@@ -26160,9 +26160,9 @@ non-NULL (it's NULL by default), update *diag_list accordingly.
 }  /* check_type_constraint */
 
 
-a_boolean requires_expr_satisfied(an_expr_node_ptr           requires_expr,
-                                  a_subst_pairs_array const  &subst_pairs,
-                                  a_ctws_state_ptr           ctws_state)
+a_boolean requires_expr_satisfied_full(an_expr_node_ptr          requires_expr,
+                                       a_subst_pairs_array const &subst_pairs,
+                                       a_ctws_state_ptr          ctws_state)
 /*
 The given node is a requires-expression.  Return TRUE if substituting the
 template arguments of subst_pairs for the corresponding parameters of
@@ -26293,6 +26293,19 @@ subst_pairs is successful.  ctws_state is a substitution state block pointer
   }  /* if */
   ctws_state->routine_type_levels = saved_routine_type_levels;
   return result;
+}  /* requires_expr_satisfied_full */
+
+
+a_boolean requires_expr_satisfied(an_expr_node_ptr           requires_expr,
+                                  a_subst_pairs_array const  &subst_pairs)
+/*
+Interface to requires_expr_satisfied_full for the case where a default
+substitution state block is used.
+*/
+{
+  a_ctws_state  ctws_state;
+  init_ctws_state(&ctws_state);
+  return requires_expr_satisfied_full(requires_expr, subst_pairs, &ctws_state);
 }  /* requires_expr_satisfied */
 
 
