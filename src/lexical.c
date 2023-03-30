@@ -16028,7 +16028,7 @@ return_end_of_source_token:
       /* In C++, may be "::" or ":>".  Beginning with C23, "::" is a
          separator (used for attribute namespaces). */
       if ((ch = *(curr_char_loc+1)) == ':' &&
-          (!C_mode() || std_version >= 202301)) {
+          (!C_mode() || c23_mode)) {
         ctoken = tok_colon_colon;
         goto two_char_token;
       } else if (ch == '>' && digraphs_allowed()) {

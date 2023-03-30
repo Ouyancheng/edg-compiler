@@ -3570,7 +3570,7 @@ process.
     func_prototype_tags_enabled = TRUE;
   }  /* if */
   relaxed_abstract_checking = FALSE;
-  if (std_version >= 202301) {
+  if (std_version >= 202311) {
     /* C23 features. */
     std_attributes_enabled = TRUE;
     nodiscard_attribute_enabled = TRUE;
@@ -5732,7 +5732,7 @@ command line switches.
       C99               std_version >= 199901            --c99
       C11               std_version >= 201112            --c11
       C18               std_version >= 201710            --c18, --c17
-      C23               std_version >= 202301            --c23,
+      C23               std_version >= 202311            --c23,
         strict          strict_ansi_mode                 -A, -a, etc.
       "normal"            
         strict          strict_ansi_mode                 -A, -a, etc.
@@ -10726,7 +10726,7 @@ enable_microsoft_mode:
         goto enable_microsoft_mode;
       case optk_microsoft_c23:
         /* Emulate the Microsoft /std:c23 option. */
-        std_version = 202301;
+        std_version = 202311;
         set_C_dialect(C_dialect_ANSI);
         opt_value = TRUE;
         goto enable_microsoft_mode;
@@ -11080,7 +11080,7 @@ enable_microsoft_mode:
       case optk_c23_mode:
         /* Enable C23 mode.  This option implies ANSI C mode. */
         check_assertion(opt_value == TRUE);
-        std_version = 202301;
+        std_version = 202311;
         set_C_dialect(C_dialect_ANSI);
         break;
       case optk_c18_mode:

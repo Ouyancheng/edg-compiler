@@ -1885,7 +1885,7 @@ in C11).
 Macro that is TRUE when the front end should accept language features defined
 by the C23 standard or later C standards.
 */
-#define c23_mode (C_mode() && std_version >= 202301)
+#define c23_mode (C_mode() && std_version >= 202311)
 
 /*
 Flag that is TRUE if the C99 and C++ (beginning with C++11) predefined
