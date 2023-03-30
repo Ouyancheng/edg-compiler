@@ -1288,7 +1288,7 @@ Install the keywords in the symbol table.
   }  /* if */
   if (clang_version_is(>=110000)) {
     /* Clang enables the __bf16 type in both C and C++ modes (although it is
-       not enabled for some architectures (it is enabled in all architectures
+       not enabled for some architectures, it is enabled in all architectures
        here). */
     enter_keyword((a_token_kind)tok_bf16, "__bf16");
   }  /* if */
