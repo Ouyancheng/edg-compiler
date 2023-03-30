@@ -679,7 +679,6 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
    (an_opname_kind)onk_none,          /* tok_edg_throw */
    (an_opname_kind)onk_none,          /* tok_edg_internal_opnd */
    (an_opname_kind)onk_none,          /* tok_edg_fp16_type */
-   (an_opname_kind)onk_none,          /* tok_bf16 */
    (an_opname_kind)onk_none,          /* tok_clang_version */
    (an_opname_kind)onk_none,        /* tok_has_unique_object_representations */
    (an_opname_kind)onk_none,          /* tok_is_aggregate */

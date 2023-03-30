@@ -80,7 +80,8 @@ BEGIN_EDG_NAMESPACE
 #define MANGLING_STRING_FOR_LONG_DOUBLE "e"
 #define MANGLING_STRING_FOR_FLOAT80 "u7float80"
 #define MANGLING_STRING_FOR_FLOAT128 "g"
-#define MANGLING_STRING_FOR_STD_BFLOAT16 "DF16b"
+#define MANGLING_STRING_FOR_STD_BFLOAT16_X86 "DF16b"
+#define MANGLING_STRING_FOR_STD_BFLOAT16_ARM "u6__bf16"
 #define MANGLING_STRING_FOR_STD_FLOAT16 "DF16_"
 #define MANGLING_STRING_FOR_STD_FLOAT32 "DF32_"
 #define MANGLING_STRING_FOR_STD_FLOAT64 "DF64_"
@@ -10286,7 +10287,17 @@ top_of_loop:
             s = MANGLING_STRING_FOR_FLOAT128;
             break;
           case fk_std_bfloat16:
+#if IA64_ABI
+            if (clang_mode || (gnu_mode && target_is_arm_based())) {
+              /* Use "u6__bf16" mangling. */
+              s = MANGLING_STRING_FOR_STD_BFLOAT16_ARM;
+            } else {
+              /* Use "DF16b" mangling. */
+              s = MANGLING_STRING_FOR_STD_BFLOAT16_X86;
+            }  /* if */
+#else /* !IA64_ABI */
             s = MANGLING_STRING_FOR_STD_BFLOAT16;
+#endif /* IA64_ABI */
             break;
           case fk_std_float16:
             s = MANGLING_STRING_FOR_STD_FLOAT16;

@@ -11634,13 +11634,6 @@ process_enum_specifier:
         decl_specifiers_seen |= DS_TYPE;
         basic_type = bt_typedef;
         break;
-      case tok_bf16:
-        /* Clang/GNU-specific keyword for 16-bit std::bfloat16_t
-           floating-point layout. */
-        *type_ptr = float_type(fk_std_bfloat16);
-        decl_specifiers_seen |= DS_TYPE;
-        basic_type = bt_bfloat16;
-        break;
       case tok_edg_vector_type:
         *type_ptr = scan_edg_vector_type();
         decl_specifiers_seen |= DS_TYPE;

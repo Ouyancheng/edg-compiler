@@ -1198,6 +1198,14 @@ Enter predeclared symbols as required by the implementation.
       enter_predeclared_class(file_star_type, DEPTH_OF_FILE_SCOPE,
                               &null_source_position);
     }  /* if */
+    if (clang_version_is(>=110000) || gnu_version_is(>=130000)) {
+      /* Clang enables the __bf16 type in both C and C++ modes (although it is
+         not enabled for some architectures, it is enabled in all architectures
+         here).  GNU also supports this type in both C and C++ modes. */
+      (void)enter_predefined_typedef(
+                                    "__bf16",
+                                    float_type((a_float_kind)fk_std_bfloat16));
+    }  /* if */
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if BUILTIN_FUNCTIONS_ENABLED
