@@ -771,8 +771,7 @@ scope.
       switch (mep->module_info->kind) {
 #if MICROSOFT_EXTENSIONS_ALLOWED
         case mk_ifc:
-          ((an_ifc_module*)mep->module_info->module_interface)->
-                                                  process_ifc_declaration(mep);
+          process_ifc_declaration(mep);
           break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         case mk_edg:
@@ -834,6 +833,9 @@ the specified module.
                                   fn_for_function(hash_module_entity),
                                   fn_for_function(compare_for_module_entity));
   }  /* if */
+  /* A module interface must be present, otherwise this module entity pointer
+     is not viable. */
+  check_assertion(mod->module_interface != NULL);
   key.module_info = mod;
   key.file_offset = file_offset;
   p = (a_module_entity_ptr*)hash_find(module_entity_hash_table, &key,
