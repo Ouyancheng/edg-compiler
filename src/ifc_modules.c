@@ -4664,7 +4664,7 @@ Return TRUE if caching succeeds, FALSE otherwise.
            IFC using declaration.  Determine if this is a using-declaration or
            a using-directive. */
         if (is_namespace_scope(resolution)) {
-          /* This is a using-directive, e.g.:
+          /* This is a using-directive:
 
                using namespace namespace-name ;
 
@@ -4673,7 +4673,7 @@ Return TRUE if caching succeeds, FALSE otherwise.
           cache_token(cache, tok_namespace);
           cache_token_with_index(cache, tok_ifc_decl_ref, resolution);
         } else {
-          /* This is a using-declaration, e.g.:
+          /* This is a using-declaration:
 
                using using-declarator-list ;
 
@@ -4687,7 +4687,7 @@ Return TRUE if caching succeeds, FALSE otherwise.
            given to the IFC using declaration.  Determine if this is an
            alias-declaration or a namespace-alias-definition. */
         if (is_namespace_scope(resolution)) {
-          /* This is a namespace-alias-definition, e.g.:
+          /* This is a namespace-alias-definition:
 
                namespace identifier = qualified-namespace-specifier ;
 
@@ -4697,7 +4697,7 @@ Return TRUE if caching succeeds, FALSE otherwise.
           cache_token(cache, tok_assign);
           cache_token_with_index(cache, tok_ifc_decl_ref, resolution);
         } else {
-          /* This is an alias-declaration, e.g..:
+          /* This is an alias-declaration:
 
                using identifier = qualified-namespace-specifier ;
 
@@ -8742,7 +8742,7 @@ of the class type.
 namespace {
 
 /*
-An enum used to identifier different class member descriptors cases.
+An enum used to identify different class member descriptor cases.
 */
 enum a_class_member_descriptor_kind {
   cmdk_normal,  /* A normal descriptor (i.e., caching the given declaration
@@ -8810,8 +8810,8 @@ member scope descriptor into the given cache.
   Small_dyn_array<a_class_member_descriptor, 20> class_members;
   a_scope_member_traverser                       traverser(scope_desc);
 
-  /* Traverse the scope members, cleanup the data, and create a "plan" from it
-     describing what needs cached (i.e., populate class_members). */
+  /* Traverse the scope members, clean up the data, and create a "plan" from it
+     describing what needs to be cached (i.e., populate class_members). */
   for (an_Indexed<an_ifc_scope_member> indexed_scope_mem : traverser) {
     if (!indexed_scope_mem.has_value()) {
       goto invalid;
@@ -8849,10 +8849,10 @@ member scope descriptor into the given cache.
         const a_string &type_decl_name = *opt_type_decl_name;
         if (type_decl_name.is_empty()) {
           desc_kind = cmdk_inline_data_member_type;
-          /* This data member is using an anonymous type, look backwards
+          /* This data member is using an anonymous type; look backwards
              (typically the anonymous type would appear immediately before the
-             field, but there's not guarantee of that in the format) checking
-             for a matching scope member, if it exists, drop it. */
+             field, but there's no guarantee of that in the format) checking
+             for a matching scope member and, if it exists, drop it. */
           for (size_t i = class_members.length(); i > 0; --i) {
             if (class_members[i - 1].decl_idx == type_decl) {
               class_members.remove(i - 1);
@@ -11151,9 +11151,9 @@ non-NULL, fields (like is_operator_name) in *loc are updated accordingly.
           }  /* if */
         }  /* for */
       } else if (is_unnamed_tag(text_value.as_temp_characters())) {
-        /* The IFC file contain synthesized names for "unnamed" types, treat
+        /* The IFC file contain synthesized names for "unnamed" types; treat
            these "as-if" the name was actually left unspecified. */
-        /* FIXME: Ideally we'd have a warning here.  It's however, not entirely
+        /* FIXME: Ideally we'd have a warning here.  However, it's not entirely
            clear how to provide a useful warning. */
         result = "";
         goto done;
@@ -11305,7 +11305,7 @@ done:
 
 static Opt<a_string> name_from_decl(an_ifc_decl_index decl_idx)
 /*
-Given a declaration, return name associated with that declaration, an empty
+Given a declaration, return the name associated with that declaration, an empty
 string if no name was present (i.e., the declaration declares something
 anonymous), or an empty optional if the name was present but invalid.
 */
@@ -12643,7 +12643,7 @@ with no known special meaning and iir_error will be returned.
     /* These checks are performed after identifier validity as doing so
        prevents any negative performance impact on the "happy path." */
     if (id_start[0] == '\0') {
-      /* An empty string was cached (representing an absent identifier), skip
+      /* An empty string was cached (representing an absent identifier); skip
          the identifier. */
       result = iir_recover_via_skip;
     } else if (strlen(id_start) > 8 && strncmp(id_start, "operator", 8) == 0) {
