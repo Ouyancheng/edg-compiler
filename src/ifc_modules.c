@@ -7994,12 +7994,22 @@ class_struct_union_case:
           goto invalid;
         }  /* if */
 
-        a_symbol_locator loc;
-        if (!mod->init_decl_locator(*opt_idt, &loc)) {
-          goto invalid;
-        }  /* if */
-
+        a_symbol_locator     loc;
         an_ifc_decl_template idt = *opt_idt;
+        an_ifc_name_index    name_idx = get_ifc_name(idt);
+        a_boolean            is_named_decl = is_name_present(name_idx);
+        if (is_named_decl) {
+          if (!mod->init_decl_locator(idt, &loc)) {
+            goto invalid;
+          }  /* if */
+        } else {
+          a_source_position      pos;
+          an_ifc_source_location locus = get_ifc_locus(idt);
+
+          if (!source_position_from_locus(&pos, locus)) {
+            goto invalid;
+          }  /* if */
+        }  /* if */
 #if CHECKING
         {
           an_ifc_type_index ifc_type = get_ifc_type(idt);
@@ -8030,23 +8040,26 @@ class_struct_union_case:
           if (!ensure_module_scope(mep, idt, &scope_push_status)) {
             goto invalid;
           }  /* if */
-          if (check_and_set_template_redeclaration(&loc, mep, &error_position,
-                                                   &il_entity, &kind)) {
-            a_template_ptr templ = (a_template_ptr)il_entity;
+          if (is_named_decl) {
+            if (check_and_set_template_redeclaration(&loc, mep,
+                                                     &error_position,
+                                                     &il_entity, &kind)) {
+              a_template_ptr templ = (a_template_ptr)il_entity;
 
-            /* Skip any further processing when the template cannot be
-               redeclared (without an extern declaration being the existing
-               declaration) and the existing declaration is not extern.
+              /* Skip any further processing when the template cannot be
+                 redeclared (without an extern declaration being the existing
+                 declaration) and the existing declaration is not extern.
 
-               As an example, variable templates can be declared extern without
-               the declaration "counting" as a redeclaration of the
-               variable. */
-            if (!is_template_redeclarable(idt)) {
-              if (!is_template_declaration_extern(templ)) {
-                goto done;
+                 As an example, variable templates can be declared extern
+                 without the declaration "counting" as a redeclaration of the
+                 variable. */
+              if (!is_template_redeclarable(idt)) {
+                if (!is_template_declaration_extern(templ)) {
+                  goto done;
+                }  /* if */
               }  /* if */
+              update_cache_info_for_template(&cache_info, templ);
             }  /* if */
-            update_cache_info_for_template(&cache_info, templ);
           }  /* if */
 
           /* Compute the DeclIndex of the current template and retrieve the
