@@ -1,5 +1,25 @@
 Version 6.5
 
+3/29/23  [EDGcpfe/25676]
+C++-generating back end: inaccessible member constants in template arguments
+
+When the first reference to a template instance has a template argument
+that uses a member constant that is not public, the code put out by the
+C++-generating back end for subsequent references to that instance used
+that same member constant, even in contexts in which the member is
+inaccessible.  This is now fixed.  For example, with --c++11:
+
+  template<typename> struct A { };     
+  class B {  
+    static constexpr int x = 10;   // private member constant
+    A<int[x]> ba;    
+  }; 
+  struct C { 
+    static constexpr int y = 10;     
+    A<int[y]> ca;   // Previously generated as A<int[B::x]>, now A<int[10]>
+  };
+
+
 3/29/23  [EDGcpfe/25089,EDGcpfe/25779]
 GNU compatibility: Core issue 1601
 

@@ -5989,9 +5989,11 @@ precedence confusion.  Do the output in the way described by octl.
   } else if (constant_should_be_put_out_as_expr(constant) &&
              !octl->c_generating_back_end &&
              octl->output_expression != NULL &&
-             (expr = expr_node_from_constant(constant)) != NULL) {
-    /* An expression was recorded for this constant.  Output that expression
-       rather than the folded constant. */
+             (expr = expr_node_from_constant(constant)) != NULL &&
+             !(octl->expr_is_unusable != NULL &&
+               octl->expr_is_unusable(expr))) {
+    /* A usable expression was recorded for this constant.  Output that
+       expression rather than the folded constant. */
     octl->output_expression(expr, !need_parens);
     goto done;
   } else {
