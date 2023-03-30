@@ -9,13 +9,13 @@ C++-generating back end for subsequent references to that instance used
 that same member constant, even in contexts in which the member is
 inaccessible.  This is now fixed.  For example, with --c++11:
 
-  template<typename> struct A { };     
-  class B {  
+  template<typename> struct A { };
+  class B {
     static constexpr int x = 10;   // private member constant
-    A<int[x]> ba;    
-  }; 
-  struct C { 
-    static constexpr int y = 10;     
+    A<int[x]> ba;                  // instantiates A<int[10]>
+  };
+  struct C {
+    static constexpr int y = 10;
     A<int[y]> ca;   // Previously generated as A<int[B::x]>, now A<int[10]>
   };
 
