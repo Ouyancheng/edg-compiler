@@ -11177,6 +11177,9 @@ enable_microsoft_mode:
            the dialect flag here. */
         clang_version = scan_opt_arg_number(opt_arg);
         clang_mode = TRUE;
+        if (clang_version > 999999) {
+          str_command_line_error(ec_cl_invalid_clang_version, opt_arg);
+        }  /* if */
         break;
       case optk_report_gnu_extensions:
         /* An option to request that the use of GNU extensions outside system

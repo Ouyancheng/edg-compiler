@@ -1,5 +1,13 @@
 Version 6.5
 
+3/30/23  [EDGcpfe/26199]
+Invalid clang version command-line option
+
+Specifying a too-large clang version number on the command line previously
+resulted in a failed assertion in expand_version_string.  It is now
+reported as a command-line error.
+
+
 3/29/23  [EDGcpfe/25676]
 C++-generating back end: inaccessible member constants in template arguments
 

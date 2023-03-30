@@ -10688,9 +10688,7 @@ is responsible to deallocate the buffer using free_general.
   a_boolean      percent_m_seen = FALSE, percent_v_seen = FALSE;
 #endif /* CHECKING */
 
-  check_assertion_str(gnu_mode &&
-                      major_num < 100 && minor_num < 100 && patch_num < 100,
-                      "version too large");
+  check_assertion_str(gnu_mode && major_num < 100, "invalid version number");
   version_string = (char*)alloc_general(
                              (sizeof_t)(strlen(version_string_pattern) + 50));
   src = version_string_pattern;
