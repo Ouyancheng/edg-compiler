@@ -16484,7 +16484,9 @@ this is needed.
         an_ifc_type_placeholder itp = *opt_itp;
         an_ifc_type_basis_sort  basis = get_ifc_basis(itp);
         if (basis == ifc_tbs_auto) {
-          cache_token(cache, tok_auto);
+          an_ifc_type_index elaboration = get_ifc_elaboration(itp);
+
+          cache_type(cache, elaboration, cinfo);
         } else {
           check_assertion(basis == ifc_tbs_decltype_auto);
           cache_token(cache, tok_decltype);
