@@ -267,11 +267,14 @@ file, resulting in dereferencing a NULL pointer.  This is now fixed.
 3/21/23  [EDGcpfe/26171,EDGcpfe/26200]
 GNU and Clang compatibility: Add __bf16 type
 
-Clang versions 11.0.0 and later and (soon to be released) GNU version 13.0.1
-accept the 16-bit floating-point __bf16 type in C and C++ modes and now the
-front end accepts it as well those modes.  The format is the same as the
-std::bfloat16_t type that was added as an extended floating-point type in C++23
-mode (see the Changes entry for EDGcpfe/25100,EDGcpfe/25170,EDGcpfe/25515).
+Newer Clang and GNU versions (11.0.0 and 10.0.0 respectively) accept the 16-bit
+floating-point __bf16 type in C and C++ modes and now the front end accepts it
+as well those emulation modes.  The ARM variants of these compilers were the
+first to implement the new type with support following later in the x86
+versions (but the type is enabled by the front end regardless of target).  The
+format is the same as the std::bfloat16_t type that was added as an extended
+floating-point type in C++23 mode (see the Changes entry for
+EDGcpfe/25100,EDGcpfe/25170,EDGcpfe/25515).
 
 
 3/21/23  [EDGcpfe/26170]
