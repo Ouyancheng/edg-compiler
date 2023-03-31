@@ -1203,9 +1203,7 @@ Enter predeclared symbols as required by the implementation.
          with support for x86 targets later.  The type is enabled here based
          on the earliest version it occurred in (regardless of architecture).
          The type is available in both C and C++ modes. */
-      (void)enter_predefined_typedef(
-                                    "__bf16",
-                                    float_type((a_float_kind)fk_std_bfloat16));
+      (void)enter_predefined_typedef("__bf16", float_type(fk_std_bfloat16));
     }  /* if */
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
