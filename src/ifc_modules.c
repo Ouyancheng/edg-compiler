@@ -7405,10 +7405,9 @@ strongly preferred over calling this function directly.
                    push/pop_module_declaration_context on itself, rather than
                    managing the namespace scopes through an alternative code
                    path. */
-                if (test_bitmask<ifc_stb_unnamed>(traits)) {
+                if (test_bitmask<ifc_stb_unnamed>(traits) || !is_named_decl) {
                   ifc_unexpected(mod,
-                                 "anonymous namespaces are not yet "
-                                 "supported");
+                                 "anonymous namespaces are not yet supported");
                   goto invalid;
                 }  /* if */
                 { Value_saver<a_boolean> lazy_load_saver(
