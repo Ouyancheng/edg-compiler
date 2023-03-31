@@ -20475,10 +20475,11 @@ declarations.
       /* Abstract class objects are prohibited (ARM 10.3). */
       abstract_class_diagnostic(es_error, ec_abstract_class_object_not_allowed,
                                 field_type, &locator->source_position);
-    } else if (strict_ansi_mode && is_union_type(class_type) && is_ref) {
+    } else if (is_union_type(class_type) && is_ref) {
       /* Unions are not allowed to have members of reference type. */
-      pos_diagnostic(strict_ansi_error_severity, ec_ref_not_allowed_in_union,
-                     &decl_state->start_pos);
+      pos_diagnostic((any_cfront_mode() || ms_version_is(<1800)) ?
+                                          es_warning : es_discretionary_error,
+                     ec_ref_not_allowed_in_union, &decl_state->start_pos);
       if ((int)strict_ansi_error_severity > (int)es_warning) {
         err = TRUE;
       } /* if */

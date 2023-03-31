@@ -1,5 +1,14 @@
 Version 6.5
 
+3/30/23  [EDGcpfe/26195[
+Reference members in unions
+
+Unions cannot contain reference members in C++, but the front end previously
+only diagnosed violations of that rule in its strict mode.  Now, they are
+diagnosed with a discretionary error in all C++ modes except Cfront modes and
+early Microsoft C++ modes.
+
+
 3/30/23  [EDGcpfe/26199]
 Invalid clang version command-line option
 
