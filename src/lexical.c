@@ -19205,7 +19205,8 @@ If p_err is non-NULL, set *p_err to TRUE if an error is detected.
                                     /*allow_empty_list=*/FALSE,
                                     /*ignore_suppression=*/TRUE);
     while (any_args) {
-      a_boolean  is_secondary_integer_pack_elem = FALSE;
+      a_boolean     is_secondary_integer_pack_elem = FALSE;
+      a_token_kind  next_tok;
       if (curr_token == tok_gt && integer_pack_elems == NULL) {
         if (arg_list != NULL) {
           pos_error(ec_expected_template_arg, &error_position);
@@ -19247,7 +19248,13 @@ If p_err is non-NULL, set *p_err to TRUE if an error is detected.
                                  GID_TEMPLATE_ARGS_OPTIONAL, ilm_normal, &err);
       }  /* if */
       if (sym != NULL && is_class_template_symbol(sym) &&
-          !locator_for_curr_id.is_template_id) {
+          !locator_for_curr_id.is_template_id &&
+          (next_tok = next_token()) != tok_lparen &&
+          next_tok != tok_lbrace) {
+        /* A template name that is not part of a template-id is usually a
+           template template argument.  However, starting with C++17, it might
+           also introduce a functional-notation cast relying on class template
+           argument deduction (CTAD). */
         arg_kind = (a_templ_arg_kind)tak_template;
       } else {
         is_type_param = is_decl_not_expr(DFS_ABSTRACT_DECLARATOR_ALLOWED |
