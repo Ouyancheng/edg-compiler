@@ -7344,6 +7344,7 @@ strongly preferred over calling this function directly.
           if (!source_position_from_locus(&pos, locus)) {
             goto invalid;
           }  /* if */
+          defer = FALSE;
         }  /* if */
 
         a_type_kind       type_kind;
