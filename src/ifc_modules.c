@@ -132,8 +132,8 @@ name_from_index(an_ifc_name_index, a_symbol_locator*) for more information.
 
 static a_boolean is_name_present(an_ifc_name_index name_idx)
 /*
-Return TRUE if the given IFC name index represents the absence of a name;
-otherwise, return FALSE.
+Return TRUE if the given IFC name index represents a name; otherwise, return
+FALSE.
 */
 {
   a_boolean result = TRUE;
@@ -2585,9 +2585,9 @@ front of the queue; otherwise, it is added at the end.
   if (!already_on_deferred_list(mep, loc)) {
     a_symbol_header_ptr  hdr = loc->symbol_header;
 
-    /* For a symbol to be deferred, it must have a name.  If this check fails
-       either the symbol needs immediately constructed, or something is wrong
-       with the name of the symbol. */
+    /* For a symbol to be deferred, it must have a name.  If this check fails,
+       either the symbol needs to be immediately constructed, or something is
+       wrong with the name of the symbol. */
     check_assertion(hdr != NULL && strlen(hdr->identifier) > 0);
     if (!make_last) {
       mep->next = hdr->deferred_module_entities;
@@ -7505,7 +7505,7 @@ class_struct_union_case:
 
                     if (is_incomplete_type(type) &&
                         test_bitmask<ifc_rpb_initializer>(properties)) {
-                      /* Record the presence of a definition on an existing
+                      /* Record the presence of a definition of an existing
                          type. */
                       if (is_null_index(ifc_tag_definitions->get(type))) {
                         ifc_tag_definitions->map(type, decl_idx);
@@ -7542,7 +7542,7 @@ class_struct_union_case:
                 tag_sym->variant.class_struct_union.type = tag_type;
                 set_source_corresp(&(tag_type->source_corresp), tag_sym);
                 if (!is_named_decl) {
-                  /* Emulate the behavior of the class_specifier function
+                  /* Emulate the behavior of the class_specifier function:
 
                      Although the symbol header has a name of sorts, it should
                      not appear in the type, so NULL it out after the call to
@@ -11150,7 +11150,7 @@ non-NULL, fields (like is_operator_name) in *loc are updated accordingly.
           }  /* if */
         }  /* for */
       } else if (is_unnamed_tag(text_value.as_temp_characters())) {
-        /* The IFC file contain synthesized names for "unnamed" types; treat
+        /* The IFC file contains synthesized names for "unnamed" types; treat
            these "as-if" the name was actually left unspecified. */
         /* FIXME: Ideally we'd have a warning here.  However, it's not entirely
            clear how to provide a useful warning. */
