@@ -20477,7 +20477,7 @@ declarations.
                                 field_type, &locator->source_position);
     } else if (is_union_type(class_type) && is_ref) {
       /* Unions are not allowed to have members of reference type. */
-      pos_diagnostic((any_cfront_mode() || ms_version_is(<1800)) ?
+      pos_diagnostic((any_cfront_mode() || ms_version_is(<1900)) ?
                                           es_warning : es_discretionary_error,
                      ec_ref_not_allowed_in_union, &decl_state->start_pos);
       if ((int)strict_ansi_error_severity > (int)es_warning) {
