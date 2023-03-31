@@ -17,7 +17,7 @@ which is a cast relying on class template argument deduction (CTAD) --
 expecting a closing angle bracket instead.  That is now fixed.
 
 
-3/30/23  [EDGcpfe/26195[
+3/30/23  [EDGcpfe/26195]
 Reference members in unions
 
 Unions cannot contain reference members in C++, but the front end previously
