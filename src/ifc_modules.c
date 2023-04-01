@@ -7358,31 +7358,6 @@ strongly preferred over calling this function directly.
         if (!ensure_module_scope(mep, ids, &scope_push_status)) {
           goto invalid;
         }  /* if */
-        if (scope_is(mep->scope, sck_class_struct_union)) {
-          /* This is a child class.  It will have already been entered as a
-             member of the parent class.  Find that entry and skip the rest of
-             the processing. */
-          a_type_ptr   parent_class = mep->scope->variant.assoc_type;
-          a_symbol_ptr sym;
-
-          /* The parent class may contain references to this child class.
-             Clear the imminent flag to allow re-processing to occur if need be
-             (otherwise, we may fail to find the type of this entity during
-             completion of the parent class). */
-          mep->imminent = FALSE;
-          sym = look_up_name_string_in_class(loc.symbol_header->identifier,
-                                             parent_class,
-                                             IDL_TENTATIVE_TYPE_LOOKUP |
-                                                              IDL_MUST_BE_TAG);
-          mep->imminent = TRUE;
-          if (sym == NULL || !is_class_struct_union_symbol(sym)) {
-            expect_error();
-            goto invalid;
-          }  /* if */
-          il_entity = (char*)(sym->variant.class_struct_union.type);
-          kind = iek_type;
-          break;
-        }  /* if */
 
         /* Look at the "type" to determine whether we have a namespace or
            not. */
