@@ -7544,7 +7544,6 @@ class_struct_union_case:
                 set_source_corresp(&(tag_type->source_corresp), tag_sym);
                 if (!is_named_decl) {
                   /* Emulate the behavior of the class_specifier function:
-
                      Although the symbol header has a name of sorts, it should
                      not appear in the type, so NULL it out after the call to
                      set_source_corresp. */
