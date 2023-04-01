@@ -11335,18 +11335,19 @@ to unusable variables and class members.
   }  /* switch */
   if (scp != NULL) {
     if (scp->is_class_member) {
-      if (!scp_parent_class(scp)->
-                                 variant.class_struct_union.is_nonreal_class &&
-          ((!scp_parent_class(scp)->has_been_defined &&
+      a_type_ptr parent = scp_parent_class(scp);
+      if (!parent->variant.class_struct_union.is_nonreal_class &&
+          ((!(parent->has_been_defined ||
+              parent->variant.class_struct_union.is_template_class) &&
             !class_is_in_name_context_stack(
-                                  scp_parent_class(scp),
-                                  /*include_base_classes=*/FALSE,
+                                  parent, /*include_base_classes=*/FALSE,
                                   /*ignore_field_selection_contexts=*/TRUE)) ||
            (scp->is_local_to_function && !is_local_lambda_in_scope) ||
            !entity_name_is_accessible(scp, kind, /*ignore_context=*/FALSE,
                                       &for_all_scopes))) {
-        /* This node refers to a member of a not-yet-defined or local class,
-           so an explicit specialization for the class in which this
+        /* This node refers to a member of a not-yet-defined or local class
+           or to a member that is inaccessible in the current context, so
+           an explicit specialization for the class in which this
            expression appears or a type operator containing this expression
            would be invalid. */
         tblock->result = TRUE;
@@ -11363,7 +11364,7 @@ to unusable variables and class members.
         tblock->result = TRUE;
         tblock->terminate = TRUE;
       }  /* if */
-    } else if (scp->is_local_to_function) {
+    } else if (scp->is_local_to_function && !C_mode()) {
       a_scope_ptr sp = NULL;
       if (scp->parent_scope != NULL &&
           scp->parent_scope->kind == (a_scope_kind)sck_block) {
@@ -11375,7 +11376,8 @@ to unusable variables and class members.
       }  /* if */
       if (sp == NULL || !scope_is_in_name_context_stack(sp)) {
         /* This is something like a local variable referenced from outside
-           the scope in which it is declared.  The name is unusable. */
+           the scope in which it is declared.  (This cannot occur in C
+           mode.)  The name is unusable. */
         tblock->result = TRUE;
         tblock->terminate = TRUE;
       }  /* if */
