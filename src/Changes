@@ -1,5 +1,16 @@
 Version 6.5
 
+4/2/23   [EDGcpfe/18475,EDGcpfe/24365,EDGcpfe/24662,EDGcpfe/26073,
+          EDGcpfe/26204]
+GNU and Clang compatibility: __fp16 type
+
+The __fp16 type has now been added in relevant GNU and Clang emulation modes.
+The layout of the __fp16 type is the same as _Float16 (though it is mangled
+differently).  The __edg_fp16__ type (see the Changes entry for EDGcpfe/25179)
+has now been removed and builtin signatures that previously used the
+__edg_fp16__ type have been updated to use the __fp16 type.
+
+
 3/31/23  [EDGcpfe/25764]
 Parsing error on CTAD cast in template argument list
 

@@ -5325,6 +5325,9 @@ demangled as part of the template function instead).
             }  /* if */
             ++p;
             break;
+          case 'h':
+            s = "__fp16";
+            break;
           case 'n':
             s = "std::nullptr_t";
             break;

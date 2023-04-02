@@ -75,6 +75,7 @@ BEGIN_EDG_NAMESPACE
 #define MANGLING_STRING_FOR_UNSIGNED_INT128 "o"
 #endif /* INT128_EXTENSIONS_ALLOWED */
 #define MANGLING_STRING_FOR_FLOAT16 "DF16x"
+#define MANGLING_STRING_FOR_FP16 "Dh"
 #define MANGLING_STRING_FOR_FLOAT "f"
 #define MANGLING_STRING_FOR_DOUBLE "d"
 #define MANGLING_STRING_FOR_LONG_DOUBLE "e"
@@ -330,6 +331,7 @@ Z = template parameter (demangle_type_name)
 #define MANGLING_STRING_FOR_UNSIGNED_INT128 "Um16"
 #endif /* INT128_EXTENSIONS_ALLOWED */
 #define MANGLING_STRING_FOR_FLOAT16 "mf2"
+#define MANGLING_STRING_FOR_FP16 MANGLING_STRING_FOR_FLOAT16
 #define MANGLING_STRING_FOR_FLOAT "f"
 #define MANGLING_STRING_FOR_DOUBLE "d"
 #define MANGLING_STRING_FOR_LONG_DOUBLE "r"
@@ -10270,6 +10272,9 @@ top_of_loop:
         switch (type->variant.float_kind) {
           case fk_float16:
             s = MANGLING_STRING_FOR_FLOAT16;
+            break;
+          case fk_fp16:
+            s = MANGLING_STRING_FOR_FP16;
             break;
           case fk_float:
             s = MANGLING_STRING_FOR_FLOAT;

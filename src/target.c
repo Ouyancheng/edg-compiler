@@ -789,6 +789,7 @@ floating point types.
   }  /* for */
 #endif /* CHECKING */
   float_field_alignments[(int)fk_float16] = 2;
+  float_field_alignments[(int)fk_fp16] = 2;
   float_field_alignments[(int)fk_float] = targ_float_field_alignment;
   float_field_alignments[(int)fk_double] = targ_double_field_alignment;
   float_field_alignments[(int)fk_long_double] =

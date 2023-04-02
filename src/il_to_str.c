@@ -1457,6 +1457,7 @@ beginning with "**BAD" for a bad float kind.
 
   switch (kind) {
     case fk_float16:      p = "_Float16";           break;
+    case fk_fp16:         p = "__fp16";             break;
     case fk_float:        p = "float";              break;
     case fk_double:       p = "double";             break;
     case fk_long_double:  p = "long double";        break;

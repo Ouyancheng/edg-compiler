@@ -26501,6 +26501,7 @@ for each compilation.
   construct(constraint_subst_cache, /*mask_width=*/10);
   /* Initialize floating point data. */
   num_mantissa_bits[(int)fk_float16]      = 11;
+  num_mantissa_bits[(int)fk_fp16]         = 11;
   num_mantissa_bits[(int)fk_float]        = targ_flt_mant_dig;
   num_mantissa_bits[(int)fk_double]       = targ_dbl_mant_dig;
   num_mantissa_bits[(int)fk_long_double]  = targ_ldbl_mant_dig;
@@ -26513,6 +26514,7 @@ for each compilation.
   num_mantissa_bits[(int)fk_std_float128] = 113;
   num_mantissa_bits[(int)fk_last]         = 0;
   flt_type_size[(int)fk_float16]      = 2;
+  flt_type_size[(int)fk_fp16]         = 2;
   flt_type_size[(int)fk_float]        = targ_sizeof_float;
   flt_type_size[(int)fk_double]       = targ_sizeof_double;
   flt_type_size[(int)fk_long_double]  = targ_sizeof_long_double;
@@ -26525,6 +26527,7 @@ for each compilation.
   flt_type_size[(int)fk_std_float128] = 16;
   flt_type_size[(int)fk_last]         = 0;
   min_exponent[(int)fk_float16]      = -13;
+  min_exponent[(int)fk_fp16]         = -13;
   min_exponent[(int)fk_float]        = targ_flt_min_exp;
   min_exponent[(int)fk_double]       = targ_dbl_min_exp;
   min_exponent[(int)fk_long_double]  = targ_ldbl_min_exp;
@@ -26537,6 +26540,7 @@ for each compilation.
   min_exponent[(int)fk_std_float128] = -16381;
   min_exponent[(int)fk_last]         = 0;
   max_exponent[(int)fk_float16]      = 16;
+  max_exponent[(int)fk_fp16]         = 16;
   max_exponent[(int)fk_float]        = targ_flt_max_exp;
   max_exponent[(int)fk_double]       = targ_dbl_max_exp;
   max_exponent[(int)fk_long_double]  = targ_ldbl_max_exp;
@@ -26547,7 +26551,7 @@ for each compilation.
      actual value of the exponent for the largest floating point number in
      the corresponding representation, while the front end convention
      follows that of the C17 standard in 5.2.4.2.2, "maximum integer such
-     that FLT_RADIX raised ton one less than that power is a representable
+     that FLT_RADIX raised to one less than that power is a representable
      finite floating-point number, e_max." */
   max_exponent[(int)fk_std_bfloat16] = 128;
   max_exponent[(int)fk_std_float16]  = 16;

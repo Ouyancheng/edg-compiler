@@ -539,13 +539,6 @@ returned an error is issued (only if issue_error is TRUE).
             result = FALSE;
           }  /* if */
           break;
-        case 'h':
-          /* __fp16 is not currently implemented. */
-          if (issue_error) {
-            pos_error(ec_builtin_needs_fp16, &pos_curr_token);
-          }  /* if */
-          result = FALSE;
-          break;
         case 'i':
           /* Ensure that 128-bit integers are configured and enabled. */
 #if INT128_EXTENSIONS_ALLOWED
@@ -1197,6 +1190,12 @@ Enter predeclared symbols as required by the implementation.
                                                         "_IO_FILE");
       enter_predeclared_class(file_star_type, DEPTH_OF_FILE_SCOPE,
                               &null_source_position);
+    }  /* if */
+    if (clang_mode || gnu_version_is(>=60000)) {
+      /* Clang has always had support for __fp16 and GNU had initial support
+         for __fp16 on ARM targets with support for x86 targets later.  The
+         type is available in both C and C++ modes. */
+      (void)enter_predefined_typedef("__fp16", float_type(fk_fp16));
     }  /* if */
     if (clang_version_is(>=110000) || gnu_version_is(>=100000)) {
       /* Both Clang and GNU had initial support for __bf16 on ARM targets

@@ -7363,6 +7363,7 @@ enum a_basic_type {
 #endif /* FIXED_POINT_ALLOWED */
   bt_bfloat16,
   bt_float16,
+  bt_fp16,
   bt_float,
   bt_double,
   bt_typedef,
@@ -7589,6 +7590,8 @@ unchanged.
       basic_type = bt_bfloat16;
     } else if (fkind == fk_float16) {
       basic_type = bt_float16;
+    } else if (fkind == fk_fp16) {
+      basic_type = bt_fp16;
     } else if (fkind == fk_float) {
       basic_type = bt_float;
     } else if (fkind == fk_double) {
@@ -7876,6 +7879,7 @@ _Sat was specified.
 #endif /* FIXED_POINT_ALLOWED */
     case bt_bfloat16:
     case bt_float16:
+    case bt_fp16:
     case bt_float:
     case bt_double:
       if (sign != sign_none || (size != size_none && size != size_long)) {
@@ -7886,6 +7890,8 @@ _Sat was specified.
             fkind = fk_std_bfloat16;
           } else if (basic_type == bt_float16) {
             fkind = fk_float16;
+          } else if (basic_type == bt_fp16) {
+            fkind = fk_fp16;
           } else if (basic_type == bt_float) {
             /* float. */
             fkind = (a_float_kind)fk_float;
@@ -10295,11 +10301,6 @@ current scope stack entry.
 }  /* insert_typeref_for_naming_if_needed */
 
 
-static a_type_ptr
-                edg_fp16_typedef;
-                        /* Dummy typedef for __fp16 type used in builtins. */
-
-
 void decl_specifiers(a_decl_flag_set       input_flags,
                      a_decl_parse_state    *state,
                      a_decl_pos_block_ptr  decl_pos_block)
@@ -11619,21 +11620,6 @@ process_enum_specifier:
         decl_specifiers_seen |= DS_TYPE;
         basic_type = bt_typedef;
         break;
-      case tok_edg_fp16_type:
-        /* An EDG-specific way to specify a __fp16 type.  Clang uses IEEE
-           754-2008 binary16 format. */
-        if (edg_fp16_typedef == NULL) {
-          edg_fp16_typedef = alloc_type((a_type_kind)tk_typeref);
-          edg_fp16_typedef->variant.typeref.type =
-                                      float_type((a_float_kind)fk_std_float16);
-          set_source_corresp_name(&(edg_fp16_typedef->source_corresp),
-                                  locator_for_curr_id.symbol_header);
-          add_to_types_list(edg_fp16_typedef, decl_scope_level);
-        }  /* if */
-        *type_ptr = edg_fp16_typedef;
-        decl_specifiers_seen |= DS_TYPE;
-        basic_type = bt_typedef;
-        break;
       case tok_edg_vector_type:
         *type_ptr = scan_edg_vector_type();
         decl_specifiers_seen |= DS_TYPE;
@@ -12755,7 +12741,6 @@ decl-specifiers.
       largest_enum_int_kind = (an_integer_kind)ik_unsigned_long;
     }  /* if */
   }  /* if */
-  edg_fp16_typedef = NULL;
 
   /* Save variables from decl_spec.c that are needed for precompiled
      headers */
