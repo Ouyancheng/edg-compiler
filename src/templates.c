@@ -25916,7 +25916,7 @@ done:
 }  /* determine_template_param_kind */
 
 
-static a_symbol_ptr create_template_param_symbol(
+a_symbol_ptr create_template_param_symbol(
 					a_symbol_kind		kind,
 					a_symbol_locator	*locator,
 					a_boolean		is_unnamed,

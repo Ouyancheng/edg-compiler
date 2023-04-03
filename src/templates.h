@@ -580,7 +580,12 @@ extern a_boolean check_template_constraints(a_symbol_ptr        template_sym,
                                             a_template_arg_ptr  args,
                                             a_boolean           diagnose);
 
-a_template_param_ptr decl_type_template_param(
+extern a_symbol_ptr create_template_param_symbol(a_symbol_kind    kind,
+                                                 a_symbol_locator *locator,
+                                                 a_boolean        is_unnamed,
+                                                 a_boolean        is_rescan);
+
+extern a_template_param_ptr decl_type_template_param(
                                     a_template_param_list_pos param_pos,
                                     a_symbol_locator          *loc,
                                     a_boolean                 is_named,

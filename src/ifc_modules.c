@@ -3582,6 +3582,56 @@ return FALSE.
 }  /* is_template_parameter */
 
 
+static a_templ_arg_kind get_template_arg_kind(
+                                             const an_ifc_decl_parameter &decl)
+/*
+Return the template argument kind corresponding to the given template parameter
+declaration.
+*/
+{
+  check_assertion(is_template_parameter(decl));
+  a_templ_arg_kind      result;
+  an_ifc_parameter_sort param_sort = get_ifc_sort(decl);
+
+  switch (param_sort) {
+    case ifc_ps_type:
+      result = tak_type;
+      break;
+    case ifc_ps_non_type:
+      result = tak_nontype;
+      break;
+    case ifc_ps_template:
+      result = tak_template;
+      break;
+    case ifc_ps_object:
+      /* This is an IFC function parameter, not a template parameter. */
+      unexpected_condition();
+      break;
+    default_is_unexpected();
+  }  /* switch */
+  return result;
+}  /* get_template_arg_kind */
+
+
+static a_type_ptr alloc_dependent_type_templ_arg(
+                                       const an_ifc_decl_parameter &param_decl)
+{
+  a_type_ptr result = alloc_type((a_type_kind)tk_template_param);
+
+  result->variant.template_param.is_pack = get_ifc_pack(param_decl);
+  result->variant.template_param.is_generic_param = FALSE;
+
+  a_template_param_type_supplement_ptr extra_info =
+                                     result->variant.template_param.extra_info;
+  a_template_nesting_depth             pdepth = get_ifc_level(param_decl);
+  a_template_param_list_pos            pnum = get_ifc_position(param_decl);
+  extra_info->coordinates.depth = pdepth;
+  extra_info->coordinates.position = pnum;
+  set_type_size(result);
+  return result;
+}  /* alloc_dependent_type_templ_arg */
+
+
 static a_symbol_ptr load_param_ref(an_ifc_decl_index decl_idx)
 /*
 Return the (function or template) parameter symbol in the current scope stack
@@ -3617,27 +3667,63 @@ can be found, return NULL.
       do {
         a_template_param_ptr    tpp = NULL;
         a_scope_stack_entry_ptr ssep = &(scope_stack[sd]);
-        a_template_decl_info    *tdip = ssep->template_decl_info;
-        a_symbol_ptr            tsym = ssep->template_sym;
+        if (ssep->kind == sck_module_isolated) {
+          /* If a module isolation scope has been reached, this template
+             argument must be dependent. */
+          a_templ_arg_kind arg_kind = get_template_arg_kind(idp);
 
-        /* In some cases, the parameters can be retrieved from the template
-           declaration scope (via tdip) and in some cases from the associated
-           template symbol. */
-        if (tdip != NULL) {
-          tpp = tdip->parameters;
-        } else if (tsym != NULL) {
-          tpp = templ_params_of(tsym);
-        }  /* if */
-        if (tpp != NULL) {
-          a_template_param_coordinate_ptr  coord;
-          coord = coordinates_of_template_param(tpp);
-          if (coord->depth == pdepth) {
-            for (; tpp != NULL; tpp = tpp->next) {
-              if (tpp->param_num == pnum) {
-                result = tpp->param_symbol;
-                goto done;
-              }  /* if */
-            }  /* for */
+          switch (arg_kind) {
+            case tak_type:
+              { a_symbol_locator loc;
+
+                /* Resolve the template parameter declaration's name into the
+                   symbol locator. */
+                if (!idp.get_module()->init_decl_locator(idp, &loc)) {
+                  goto invalid;
+                }  /* if */
+                /* Create a new symbol referencing the template parameter. */
+                result = create_template_param_symbol(sk_type, &loc,
+                                                      /*is_named=*/TRUE,
+                                                      /*is_rescan=*/FALSE);
+
+                /* Form the dependent type backing the template parameter type
+                   symbol, and associate the two. */
+                a_type_ptr result_ty = alloc_dependent_type_templ_arg(idp);
+                set_source_corresp(&result_ty->source_corresp, result);
+                result->variant.type.ptr = result_ty;
+              }
+              break;
+            case tak_nontype:
+            case tak_template:
+            case tak_start_of_pack_expansion:
+              ifc_unexpected(decl_idx.mod,
+                             "unimplemented dependent param resolution");
+              break;
+            default_is_unexpected();
+          }  /* switch */
+        } else {
+          a_template_decl_info *tdip = ssep->template_decl_info;
+          a_symbol_ptr         tsym = ssep->template_sym;
+
+          /* In some cases, the parameters can be retrieved from the template
+             declaration scope (via tdip) and in some cases from the associated
+             template symbol. */
+          if (tdip != NULL) {
+            tpp = tdip->parameters;
+          } else if (tsym != NULL) {
+            tpp = templ_params_of(tsym);
+          }  /* if */
+          if (tpp != NULL) {
+            a_template_param_coordinate_ptr  coord;
+            coord = coordinates_of_template_param(tpp);
+            if (coord->depth == pdepth) {
+              for (; tpp != NULL; tpp = tpp->next) {
+                if (tpp->param_num == pnum) {
+                  result = tpp->param_symbol;
+                  goto done;
+                }  /* if */
+              }  /* for */
+            }  /* if */
           }  /* if */
         }  /* if */
       } while (--sd != DEPTH_OF_FILE_SCOPE);
@@ -3782,8 +3868,7 @@ already_mapped:
 }  /* symbol_for_decl_index */
 
 
-static
-a_symbol_ptr load_ifc_entity_ref(an_ifc_expr_index  expr_idx)
+static a_symbol_ptr load_ifc_entity_ref(an_ifc_expr_index  expr_idx)
 /*
 Load the entity referred to by expr_idx (currently, this handles a "named
 declaration" or a "template id") and return a symbol entry for it.  If any
@@ -10571,17 +10656,26 @@ error type.
           goto invalid;
         }
       case ifc_ts_type_typename:
-        { Opt<an_ifc_type_typename> opt_itt;
+        { a_module_token_cache cache;
 
-          construct_node(&opt_itt, type_idx);
-          if (!opt_itt.has_value()) {
-            goto invalid;
-          }  /* if */
-          /* FIXME: Currently unsupported. */
-          issue_unsupported_construct_error(mod, "TypeSort::Typename",
-                                            &error_position);
-          goto invalid;
+          type_idx.mod->cache_type(&cache, type_idx, /*cinfo=*/{});
+
+          {
+            a_symbol_ptr           type_sym = NULL;
+            a_decl_parse_state     dps;
+            a_decl_pos_block       decl_pos_block;
+            a_module_entity_rescan rescan(&cache);
+
+            (void)push_scope(sck_module_isolated, NO_SCOPE_NUMBER,
+                             /*assoc_type=*/NULL, /*assoc_routine=*/NULL);
+            init_decl_parse_state(&dps);
+            typename_specifier(&result, &type_sym, /*within_using_decl=*/FALSE,
+                               /*is_decl_specifier=*/FALSE, &dps,
+                               &decl_pos_block);
+            pop_scope();
+          }
         }
+        break;
       case ifc_ts_type_base:
         { Opt<an_ifc_type_base> opt_itb;
 

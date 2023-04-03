@@ -1791,10 +1791,11 @@ be handled in contexts such as expressions.  Typically, this is in
 a prototype instantiation, but can also occur in template declaration
 scopes.  It is also TRUE when in_nonreal_instantiation is TRUE.
 */
-#define is_template_dependent_context()					\
-  (depth_template_declaration_scope != NO_SCOPE_DEPTH ||		\
-   scope_stack[depth_scope_stack].in_prototype_instantiation ||		\
-   scope_stack[depth_scope_stack].in_nonreal_instantiation)
+#define is_template_dependent_context()                                 \
+  (depth_template_declaration_scope != NO_SCOPE_DEPTH ||                \
+   scope_stack[depth_scope_stack].in_prototype_instantiation ||         \
+   scope_stack[depth_scope_stack].in_nonreal_instantiation ||           \
+   scope_stack[depth_scope_stack].kind == sck_module_isolated)
 
 /*
 TRUE if we are within a template declaration scope.

@@ -112,25 +112,27 @@ Put out a scope kind name (for debugging).
   a_const_char *s;
 
   switch (sck) {
+    case sck_block:                  s = "block";                    break;
+    case sck_class_reactivation:     s = "class reactivation";       break;
+    case sck_class_struct_union:     s = "class/struct/union";       break;
+    case sck_condition:              s = "condition";                break;
+    case sck_enum:                   s = "enum";                     break;
     case sck_file:                   s = "file";                     break;
+    case sck_func_prototype:         s = "function prototype";       break;
+    case sck_function:               s = "function";                 break;
+    case sck_function_access:	     s = "function access";	     break;
+    case sck_instantiation_context:  s = "instantiation context";    break;
+    case sck_module_decl_import:     s = "module decl import";       break;
+    case sck_module_isolated:        s = "module isolation";         break;
     case sck_namespace:              s = "namespace";                break;
     case sck_namespace_extension:    s = "namespace extension";      break;
     case sck_namespace_reactivation: s = "namespace reactivation";   break;
-    case sck_func_prototype:         s = "function prototype";       break;
-    case sck_block:                  s = "block";                    break;
-    case sck_class_struct_union:     s = "class/struct/union";       break;
-    case sck_class_reactivation:     s = "class reactivation";       break;
-    case sck_function:               s = "function";                 break;
+    case sck_none:                   s = "none";                     break;
+    case sck_pragma:		     s = "pragma";		     break;
     case sck_template_declaration:   s = "template declaration";     break;
     case sck_template_instantiation: s = "template instantiation";   break;
-    case sck_pragma:		     s = "pragma";		     break;
-    case sck_function_access:	     s = "function access";	     break;
-    case sck_condition:              s = "condition";                break;
-    case sck_instantiation_context:  s = "instantiation context";    break;
-    case sck_module_decl_import:     s = "module decl import";       break;
-    case sck_enum:                   s = "enum";                     break;
-    default:                         s = "***UNKNOWN SCOPE KIND***"; break;
-  }  /* switch */
+    default_is_unexpected();
+  } /* switch */
   fputs(s, f_debug);
   return (int)strlen(s);
 }  /* db_scope_kind */
@@ -172,6 +174,17 @@ Display one scope stack entry.
   fprintf(f_debug, "%-*s", 25-len, "");
   fprintf(f_debug, "prev=%3d ", ssep->previous_scope);
   switch (ssep->kind) {
+    case sck_condition:
+    case sck_file:
+    case sck_func_prototype:
+    case sck_function_access:
+    case sck_instantiation_context:
+    case sck_module_decl_import:
+    case sck_module_isolated:
+    case sck_none:
+    case sck_pragma:
+    case sck_template_declaration:
+      break;
     case sck_function:
       if (ssep->il_scope == NULL) {
         fprintf(f_debug, "null IL scope");
@@ -179,8 +192,6 @@ Display one scope stack entry.
         db_name_full(&ssep->il_scope->variant.routine.ptr->source_corresp,
                      iek_routine);
       }  /* if */
-      break;
-    case sck_file:
       break;
     case sck_block:
       if (ssep->il_scope == NULL) {
@@ -219,10 +230,8 @@ Display one scope stack entry.
         }  /* if */
       }  /* if */
       break;
-    case sck_template_declaration:
-    case sck_func_prototype:
-    default:;
-  }  /* switch */
+    default_is_unexpected();
+  } /* switch */
   fputs("\n", f_debug);
 }  /* db_scope_stack_entry */
 
