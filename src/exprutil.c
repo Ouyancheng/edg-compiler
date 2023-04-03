@@ -25754,16 +25754,17 @@ p_fatal and p_copy_error are NULL by default.
     params = sym->variant.template_info->cache.decl_info->parameters;
     if (template_param_list != NULL) {
       /* Substitute the dependent arguments of the concept-id. */
-      a_ctws_state  new_ctws_state;
-      a_boolean     saved_in_concept_rescan =
+      a_ctws_state_ptr  args_ctws_state = ctws_state;
+      a_ctws_state      new_ctws_state;
+      a_boolean         saved_in_concept_rescan =
                                           scope_stack_top().in_concept_rescan;
       scope_stack_top().in_concept_rescan = TRUE;
-      if (ctws_state == NULL) {
+      if (args_ctws_state == NULL) {
         init_ctws_state(&new_ctws_state);
         if (options & CTWS_SUBST_PARENT_CLASS_ARGS) {
           new_ctws_state.in_parent_substitution = TRUE;
         }  /* if */
-        ctws_state = &new_ctws_state;
+        args_ctws_state = &new_ctws_state;
       }  /* if */
       /* Substitute the concept-id's original arguments.  We should really
          only substitute the parameters that are actually referenced by the
@@ -25778,7 +25779,7 @@ p_fatal and p_copy_error are NULL by default.
                                                   &constraint->position,
                                                   options,
                                                   &copy_error,
-                                                  ctws_state);
+                                                  args_ctws_state);
       scope_stack_top().in_concept_rescan = saved_in_concept_rescan;
     } else {
       /* The concept-id is already fully non-dependent. */
