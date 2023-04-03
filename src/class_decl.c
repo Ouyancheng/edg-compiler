@@ -29897,6 +29897,12 @@ block of information that is provided if this is a member template declaration.
         abbr_mem_func_templates->map(dps->start_tsn, dps->variant.auto_params);
         dps->reuse_auto_params_descr = TRUE;
       }  /* if */
+      /* Discard the current routine fixup (if any) before re-parsing the
+         template declaration. */
+      if (curr_routine_fixup != NULL && curr_routine_fixup->symbol == NULL) {
+        free_routine_fixup(curr_routine_fixup);
+        curr_routine_fixup = NULL;
+      }  /* if */
       reparse_abbr_func_template(dps, &final_token);
       if (final_token == tok_rbrace) {
         (void)required_token(tok_rbrace, ec_exp_rbrace);

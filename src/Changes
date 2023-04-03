@@ -1,5 +1,18 @@
 Version 6.5
 
+4/3/23   [EDGcpfe/26206]
+Abort on abbreviated member template with default argument
+
+Consider (in C++20 mode):
+
+  struct S {
+    void f(int = 0, auto ...) {}
+  };
+
+Previously, this aborted with an internal error in add_to_routine_fixup_list.
+That is now fixed.
+
+
 4/2/23   [EDGcpfe/18475,EDGcpfe/24365,EDGcpfe/24662,EDGcpfe/26073,
           EDGcpfe/26204]
 GNU and Clang compatibility: __fp16 type
