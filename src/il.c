@@ -19525,7 +19525,7 @@ options is a set of substitution options.
           clear_diag_list(&diag_list);
           val = constraint_satisfied(expr, template_arg_list,
                                      template_param_list, &diag_list,
-                                     CTWS_NO_OPTIONS, (a_ctws_state_ptr)NULL,
+                                     CTWS_NO_OPTIONS, ctws_state,
                                      copy_error, copy_error);
           make_bool_constant_value(val, constant);
           discard_more_info_list(&diag_list);

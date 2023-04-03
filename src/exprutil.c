@@ -25758,9 +25758,12 @@ p_fatal and p_copy_error are NULL by default.
       a_boolean     saved_in_concept_rescan =
                                           scope_stack_top().in_concept_rescan;
       scope_stack_top().in_concept_rescan = TRUE;
-      init_ctws_state(&new_ctws_state);
-      if (options & CTWS_SUBST_PARENT_CLASS_ARGS) {
-        new_ctws_state.in_parent_substitution = TRUE;
+      if (ctws_state == NULL) {
+        init_ctws_state(&new_ctws_state);
+        if (options & CTWS_SUBST_PARENT_CLASS_ARGS) {
+          new_ctws_state.in_parent_substitution = TRUE;
+        }  /* if */
+        ctws_state = &new_ctws_state;
       }  /* if */
       /* Substitute the concept-id's original arguments.  We should really
          only substitute the parameters that are actually referenced by the
@@ -25775,7 +25778,7 @@ p_fatal and p_copy_error are NULL by default.
                                                   &constraint->position,
                                                   options,
                                                   &copy_error,
-                                                  &new_ctws_state);
+                                                  ctws_state);
       scope_stack_top().in_concept_rescan = saved_in_concept_rescan;
     } else {
       /* The concept-id is already fully non-dependent. */
