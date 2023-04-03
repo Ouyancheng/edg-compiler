@@ -1,5 +1,22 @@
 Version 6.5
 
+4/3/23   [EDGcpfe/26210]
+Address of consteval functions during concept evaluation
+
+Consider:
+
+  consteval void g() {}
+  consteval bool f() {
+    decltype(auto) pg = &g;
+    return true;
+  }
+  template<typename T> concept C = f();
+  static_assert(C<void>);  // Previously an error.  Now okay.
+
+Previously, this elicited a spurious error in the processing of C<void> with a
+message indicating that "&g" cannot be interpreted.  That is now fixed.
+
+
 4/3/23   [EDGcpfe/26206]
 Abort on abbreviated member template with default argument
 

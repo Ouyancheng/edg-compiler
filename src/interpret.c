@@ -19099,7 +19099,8 @@ the value representation of the integer value.
            node in the expression tree so invalid uses can be diagnosed. */
         if (rp != NULL &&
             !rp->is_prototype_instantiation &&
-            !(rp->is_consteval && !ips->allow_consteval_routine_node)) {
+            !(rp->is_consteval && !ips->allow_consteval_routine_node &&
+              ips->curr_call_frame == NULL)) {
 #if GNU_EXTENSIONS_ALLOWED
           if (rp->is_weak) {
             /* Weakly declared functions have no definite address (they could
