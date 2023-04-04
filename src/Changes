@@ -1,5 +1,25 @@
 Version 6.5
 
+4/4/23   [EDGcpfe/25637]
+Abort in mangling after Microsoft-mode "nonreal instantiation"
+
+Consider:
+
+  template<typename, typename> struct E {};
+  template<template<typename...> class TT, typename... Ts> struct X {
+    using Type = TT<Ts...>;
+    operator Type() & { return Type{}; }
+  };
+  template<typename T1, typename T2> struct S: X<E, T1, T2> {};
+
+This example previously caused an error type entry to silently (i.e., without
+associated diagnostic) be inserted in the IL tree for the "nonreal
+instantiation" performed in Microsoft mode for X<E, T1, T2>.  In some
+configurations, that error type entry reached the mangling routines and
+triggered an internal error.  That is now fixed (by not emitting an error
+entry if there is no actual error).
+
+
 4/4/23   [EDGcpfe/26209]
 Clang compatibility: Suppress __GXX_RTTI predefined macro
 

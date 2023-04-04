@@ -20007,19 +20007,21 @@ next_integer_pack_element:
          seen a default argument, an error will have been issued on the
          template declaration, except in Microsoft mode where the error
          is downgraded to a warning. */
+      a_boolean  mismatch_error = TRUE;
       if (!any_default_args || microsoft_mode) {
         if (microsoft_mode &&
             (caching_tokens || in_ms_nonreal_class_instantiation())) {
           /* Silently ignore this while caching tokens or performing Microsoft
              "nonreal instantiations".  If the token cache is used, an error
              will be issued then. */
+          mismatch_error = FALSE;
         } else {
           sym_error(ec_too_few_template_args, templ_sym_for_default);
         }  /* if */
         /* Suppress any subsequent errors. */
         any_default_args = TRUE;
       }  /* if */
-      *any_errors = TRUE;
+      if (mismatch_error) *any_errors = TRUE;
       break;
     }  /* if */
   }  /* for */
