@@ -3328,6 +3328,15 @@ copy-initialization).
         goto have_level;
       }  /* if */
     }  /* if */
+    /* One additional exact match case: __fp16 is considered an exact match
+       for float in overload resolution. */
+    if (!param_is_reference && param_type->kind == tk_float &&
+        param_type->variant.float_kind == fk_float &&
+        arg_type->kind == tk_float &&
+        arg_type->variant.float_kind == fk_fp16) {
+      arg_summary->match_level = aml_exact;
+      goto have_level;
+    }  /* if */
     if (arg_operand != NULL && is_indefinite_function_operand(arg_operand) &&
         (source_can_be_rvalue || is_a_function_designator(arg_operand)) &&
         (!param_is_rvalue_reference || is_an_rvalue(arg_operand))) {
