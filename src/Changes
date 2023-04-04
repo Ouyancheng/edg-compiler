@@ -1,5 +1,22 @@
 Version 6.5
 
+4/4/23   [EDGcpfe/23475,EDGcpfe/25708]
+Clang C compatibility: Promotion and overload resolution
+
+In Clang C mode, the "overloadable" attribute enables overloading function
+names.  However, the front end previously did not distinguish integral
+promotion from other implicit integral conversions in C mode, thus rendering
+ambiguous certain cases that Clang accepts in its C mode.  For example:
+
+  void __attribute((overloadable)) g(int);
+  void __attribute((overloadable)) g(unsigned);
+  void f(char c) {
+    g(c);  // Previously ambiguous.  Now okay.
+  }
+
+That is now fixed.
+
+
 4/4/23   [EDGcpfe/25637]
 Abort in mangling after Microsoft-mode "nonreal instantiation"
 

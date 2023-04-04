@@ -11673,9 +11673,10 @@ See conversion_possible.
             std_conv->is_mild_warning = TRUE;
           }  /* if */
         }  /* if */
-      } else {
-        /* C++ mode. */
-        /* Note the cases that are promotions. */
+      }  /* if */
+      { /* Note the cases that are promotions.  (This matters for overload
+           resolution in C++, but also in Clang C mode where the "overloadable"
+           attribute is supported.) */
         a_type_ptr  base_type;
         if (is_enum(source_type) && is_integral(dest_type) &&
             source_type->variant.integer.has_explicit_enum_base) {
@@ -11702,19 +11703,17 @@ See conversion_possible.
 #if MICROSOFT_EXTENSIONS_ALLOWED
         } else if (microsoft_bugs &&
                    is_integral(source_type) &&
-                   source_type->variant.integer.int_kind ==
-                                                    (an_integer_kind)ik_long &&
+                   source_type->variant.integer.int_kind == ik_long &&
                    is_integral(dest_type) &&
-                   dest_type->variant.integer.int_kind ==
-                                                    (an_integer_kind)ik_int) {
+                   dest_type->variant.integer.int_kind == ik_int) {
           /* MSVC++ considers long --> int to be better than a standard
              conversion (presumably because the representations are the
              same). */
           std_conv->promotion = TRUE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if C99_IL_EXTENSIONS_SUPPORTED
-        } else if (gpp_mode &&
-                   is_complex_type(source_type) !=is_complex_type(dest_type)) {
+        } else if (gpp_mode && is_complex_type(source_type) !=
+                                                 is_complex_type(dest_type)) {
           /* GNU C++ does not allow _Complex double -> double and vice versa,
              for example.  C99 and GNU C do allow those conversions. */
           if (gnu_version >= 40300 && is_complex_type(dest_type)) {
