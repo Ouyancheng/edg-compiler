@@ -5451,22 +5451,9 @@ if the type is not declared by a declaration, return an empty optional.
   return result;
 }  /* decl_index_from_type_index */
 
-namespace {
+a_type_ptr type_for_type_index(an_ifc_type_index type_index);
 
-/*
-An enum used to encode additional context when processing an IFC type.
-*/
-enum a_non_type_kind : uint8_t {
-  ntk_none,
-  ntk_ellipsis,
-  ntk_namespace,
-  ntk_empty_pack_expansion,
-};
-
-a_type_ptr type_for_type_index(an_ifc_type_index type_index,
-                               a_non_type_kind   *kind);
-
-a_type_kind type_kind_for_type_index(an_ifc_type_index type_idx)
+static a_type_kind type_kind_for_type_index(an_ifc_type_index type_idx)
 /*
 Given a type index, return the corresponding type kind.
 */
@@ -5542,7 +5529,7 @@ Given a type index, return the corresponding type kind.
       }
       break;
     default:
-      { a_type_ptr type = type_for_type_index(type_idx, /*kind=*/NULL);
+      { a_type_ptr type = type_for_type_index(type_idx);
 
         result = type->kind;
       }
@@ -5553,7 +5540,7 @@ invalid:;
 }  /* type_kind_for_type_index */
 
 
-a_boolean type_represents_ellipsis(an_ifc_type_index type_idx)
+static a_boolean type_represents_ellipsis(an_ifc_type_index type_idx)
 /*
 Given a type index, return TRUE if the type index represents an ellipsis.
 */
@@ -5575,7 +5562,7 @@ Given a type index, return TRUE if the type index represents an ellipsis.
 }  /* type_represents_ellipsis */
 
 
-a_boolean type_represents_templ_param_ref(an_ifc_type_index type_idx)
+static a_boolean type_represents_templ_param_ref(an_ifc_type_index type_idx)
 /*
 Given a type index, return TRUE if the type index represents a reference to a
 type template parameter.
@@ -5598,11 +5585,12 @@ type template parameter.
 }  /* type_represents_templ_param_ref */
 
 
-a_boolean is_redeclared_basic_entity(a_symbol            *sym,
-                                     a_module_entity_ptr mep,
-                                     an_il_entry_kind    expected_kind,
-                                     char                **redecl_entity,
-                                     an_il_entry_kind    *redecl_kind)
+static a_boolean
+is_redeclared_basic_entity(a_symbol            *sym,
+                           a_module_entity_ptr mep,
+                           an_il_entry_kind    expected_kind,
+                           char                **redecl_entity,
+                           an_il_entry_kind    *redecl_kind)
 /*
 For a given module entity's potentially previously declared symbol, module
 entity pointer, and expected kind, check to see if the symbol is indeed a
@@ -5633,7 +5621,7 @@ kind; otherwise, return FALSE.
 }  /* is_redeclared_basic_entity */
 
 
-a_boolean
+static a_boolean
 find_redeclared_basic_entity_in_list(a_symbol            *sym_list,
                                      a_module_entity_ptr mep,
                                      an_il_entry_kind    expected_kind,
@@ -5662,11 +5650,12 @@ check_and_set_redeclaration.
 }  /* find_redeclared_basic_symbol_in_list */
 
 
-a_boolean find_redeclared_basic_entity(a_symbol_header     *sym_header,
-                                       a_module_entity_ptr mep,
-                                       an_il_entry_kind    expected_kind,
-                                       char                **redecl_entity,
-                                       an_il_entry_kind    *redecl_kind)
+static a_boolean
+find_redeclared_basic_entity(a_symbol_header     *sym_header,
+                             a_module_entity_ptr mep,
+                             an_il_entry_kind    expected_kind,
+                             char                **redecl_entity,
+                             an_il_entry_kind    *redecl_kind)
 /*
 For a given module entity's symbol header, module entity pointer, and expected
 kind, search the active and inactive symbols for a redeclaration.  If a
@@ -5692,13 +5681,13 @@ check_and_set_redeclaration.
 }  /* find_redeclared_basic_entity */
 
 
-a_boolean check_and_set_redeclaration(
-                              a_symbol_locator                 *loc,
-                              a_module_entity_ptr              mep,
-                              ARG_UNUSED a_source_position_ptr pos,
-                              an_il_entry_kind                 expected_kind,
-                              char                             **redecl_entity,
-                              an_il_entry_kind                 *redecl_kind)
+static a_boolean
+check_and_set_redeclaration(a_symbol_locator                 *loc,
+                            a_module_entity_ptr              mep,
+                            ARG_UNUSED a_source_position_ptr pos,
+                            an_il_entry_kind                 expected_kind,
+                            char                             **redecl_entity,
+                            an_il_entry_kind                 *redecl_kind)
 /*
 Given an IFC module entity's symbol locator, module entity pointer, source
 position, and expected kind check for a redeclaration.  If a redeclaration is
@@ -5733,23 +5722,23 @@ redeclaration is.
 }  /* check_and_set_redeclaration */
 
 
-a_boolean has_matching_func_param(const an_ifc_decl_parameter &mod_templ_param,
-                                  a_param_type_ptr            il_param_type)
+static a_boolean
+has_matching_func_param(const an_ifc_decl_parameter &mod_templ_param,
+                        a_param_type_ptr            il_param_type)
 /*
 Return TRUE if the given IFC node information for a parameter declaration
 represents the same type as the given IL param type.
 */
 {
   an_ifc_type_index ifc_type_idx = get_ifc_type(mod_templ_param);
-  a_type_ptr        mod_param_type = type_for_type_index(ifc_type_idx,
-                                                         /*kind=*/NULL);
+  a_type_ptr        mod_param_type = type_for_type_index(ifc_type_idx);
 
   return il_identical_types(il_param_type->declared_type, mod_param_type);
 }  /* has_matching_func_param */
 
 
-a_boolean is_function_template_redecl(a_module_entity_ptr mep,
-                                      a_template_ptr      templ)
+static a_boolean is_function_template_redecl(a_module_entity_ptr mep,
+                                             a_template_ptr      templ)
 /*
 For a given module entity's module entity pointer and the potentially
 previously-declared template IL entity, check to see if the symbol is indeed a
@@ -5831,10 +5820,11 @@ done:
 }  /* is_function_template_redecl */
 
 
-a_boolean is_redeclared_template_entity(a_symbol            *sym,
-                                        a_module_entity_ptr mep,
-                                        char                **redecl_entity,
-                                        an_il_entry_kind    *redecl_kind)
+static a_boolean
+is_redeclared_template_entity(a_symbol            *sym,
+                              a_module_entity_ptr mep,
+                              char                **redecl_entity,
+                              an_il_entry_kind    *redecl_kind)
 /*
 For a given module entity's potentially previously-declared symbol and module
 entity pointer, check to see if the symbol is indeed a redeclaration.  If the
@@ -5891,7 +5881,7 @@ check_and_set_template_redeclaration.
 }  /* is_redeclared_template_entity */
 
 
-a_boolean
+static a_boolean
 find_redeclared_template_entity_in_list(a_symbol            *sym_list,
                                         a_module_entity_ptr mep,
                                         char                **redecl_entity,
@@ -5918,10 +5908,11 @@ check_and_set_template_redeclaration.
 }  /* find_redeclared_template_entity_in_list */
 
 
-a_boolean find_redeclared_template_entity(a_symbol_header     *sym_header,
-                                          a_module_entity_ptr mep,
-                                          char                **redecl_entity,
-                                          an_il_entry_kind    *redecl_kind)
+static a_boolean
+find_redeclared_template_entity(a_symbol_header     *sym_header,
+                                a_module_entity_ptr mep,
+                                char                **redecl_entity,
+                                an_il_entry_kind    *redecl_kind)
 /*
 For a given module entity's symbol header and module entity pointer, search the
 active and inactive symbols for a redeclaration.  If a redeclaration is found,
@@ -5946,7 +5937,7 @@ check_and_set_template_redeclaration.
 }  /* find_redeclared_template_entity */
 
 
-a_boolean check_and_set_template_redeclaration(
+static a_boolean check_and_set_template_redeclaration(
                               a_symbol_locator                 *loc,
                               a_module_entity_ptr              mep,
                               ARG_UNUSED a_source_position_ptr pos,
@@ -5982,7 +5973,7 @@ modules.
 }  /* check_and_set_template_redeclaration */
 
 
-a_template_arg_ptr create_templ_args_for_comparison(
+static a_template_arg_ptr create_templ_args_for_comparison(
                              const an_ifc_decl_specialization &decl_spec,
                              a_template_ptr                   primary_template)
 /*
@@ -6009,11 +6000,12 @@ problem is encountered during reconstruction, NULL is returned instead.
 }  /* create_templ_args_for_comparison */
 
 
-a_boolean is_redeclared_specialized_entity(a_symbol_ptr        sym,
-                                           a_template_ptr      primary_templ,
-                                           a_template_arg_ptr  templ_args,
-                                           char                **redecl_entity,
-                                           an_il_entry_kind    *redecl_kind)
+static a_boolean
+is_redeclared_specialized_entity(a_symbol_ptr        sym,
+                                 a_template_ptr      primary_templ,
+                                 a_template_arg_ptr  templ_args,
+                                 char                **redecl_entity,
+                                 an_il_entry_kind    *redecl_kind)
 /*
 For a given module entity's potentially previously-declared symbol, primary
 template, and template arguments, check to see if the symbol is indeed a
@@ -6047,7 +6039,7 @@ check_and_set_specialization_redeclaration.
 }  /* is_redeclared_specialized_entity */
 
 
-a_boolean
+static a_boolean
 find_redeclared_specialized_entity_in_list(a_symbol_ptr        sym_list,
                                            a_template_ptr      primary_templ,
                                            a_template_arg_ptr  templ_args,
@@ -6079,7 +6071,7 @@ check_and_set_specialization_redeclaration.
 }  /* find_redeclared_specialized_entity_in_list */
 
 
-a_boolean find_redeclared_specialized_entity(
+static a_boolean find_redeclared_specialized_entity(
                               a_symbol_header                  *sym_header,
                               const an_ifc_decl_specialization &decl_spec,
                               char                             **redecl_entity,
@@ -6137,7 +6129,7 @@ check_and_set_specialization_redeclaration.
 }  /* find_redeclared_specialized_entity */
 
 
-a_boolean check_and_set_specialization_redeclaration(
+static a_boolean check_and_set_specialization_redeclaration(
                               a_symbol_locator                 *loc,
                               a_module_entity_ptr              mep,
                               const an_ifc_decl_specialization &decl_spec,
@@ -6176,7 +6168,7 @@ modules.
 }  /* check_and_set_specialization_redeclaration */
 
 
-a_boolean has_default_arguments(char *entity_ptr, an_il_entry_kind kind)
+static a_boolean has_default_arguments(char *entity_ptr, an_il_entry_kind kind)
 /*
 Given an entity pointer and its corresponding tag (kind), return TRUE if the
 entity has default arguments; otherwise, return FALSE.
@@ -6221,7 +6213,7 @@ entity has default arguments; otherwise, return FALSE.
 }  /* has_default_arguments */
 
 
-a_boolean is_from_gmf(an_ifc_basic_specifiers_bitfield specifier)
+static a_boolean is_from_gmf(an_ifc_basic_specifiers_bitfield specifier)
 /*
 Return TRUE if the specifier indicates the associated entity came from the
 global module fragment, FALSE otherwise.
@@ -6237,7 +6229,7 @@ global module fragment, FALSE otherwise.
 }  /* is_from_gmf */
 
 
-inline a_boolean is_unnamed_tag(a_const_char  *name)
+static inline a_boolean is_unnamed_tag(a_const_char  *name)
 /*
 Return TRUE If the given string is an unnamed tag string, e.g. "<unnamed>",
 "<unnamed-tag>", "<unnamed-enum-value>", etc.
@@ -6254,8 +6246,8 @@ Return TRUE If the given string is an unnamed tag string, e.g. "<unnamed>",
 
 #if BUILTIN_FUNCTIONS_ENABLED
 
-a_boolean is_builtin_function(const an_ifc_decl_function &func,
-                              a_symbol_locator           *loc)
+static a_boolean is_builtin_function(const an_ifc_decl_function &func,
+                                     a_symbol_locator           *loc)
 /*
 Given an IFC function declaration, return TRUE if this function should be
 processed by loading a builtin; otherwise, return FALSE and load the function
@@ -6275,6 +6267,7 @@ using the normal IFC modules function loading logic.
 }  /* is_builtin_function */
 
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
+namespace {
 
 using an_ifc_template_lookup_table = Ptr_map<an_ifc_decl_index,
                                              an_ifc_small_decl_array*>;
@@ -6287,8 +6280,9 @@ an_ifc_template_lookup_table
                         /* A hash table to map IFC declaration indices to
                            corresponding front end symbols. */
 
+}  /* namespace */
 
-an_ifc_small_decl_array*
+static an_ifc_small_decl_array*
 get_or_alloc_specialization_list(an_ifc_decl_index templ_idx)
 /*
 Return a dynamic array of specializations for the given template index that are
@@ -6308,7 +6302,7 @@ but are declared by other IFC module files).
 }  /* get_or_alloc_specialization_list */
 
 
-void free_specialization_list(an_ifc_decl_index templ_idx)
+static void free_specialization_list(an_ifc_decl_index templ_idx)
 /*
 Give the index of the associated template, destroy the associated
 specialization list (if any).
@@ -6326,8 +6320,8 @@ specialization list (if any).
 
 
 template<typename an_ifc_Node_type>
-void associate_spec_with_template(an_ifc_decl_index      node_idx,
-                                  const an_ifc_Node_type &node)
+static void associate_spec_with_template(an_ifc_decl_index      node_idx,
+                                         const an_ifc_Node_type &node)
 /*
 Given an IFC declaration index and its associated node information, associate
 the specialization with its primary template for later processing.  If later
@@ -6380,7 +6374,7 @@ specialization is declared in an additional module).
 }  /* associate_spec_with_template */
 
 
-Opt<an_ifc_sequence> get_specialization_sequence_from_trait(
+static Opt<an_ifc_sequence> get_specialization_sequence_from_trait(
                                                         an_ifc_decl_index decl)
 /*
 Find and return the sequence of specializations corresponding to the template
@@ -6398,6 +6392,7 @@ decl, or an empty sequence if not found.
   return result;
 }  /* get_specialization_sequence_from_trait */
 
+namespace {
 
 /*
 A structure used to aggregate information provided by the IFC file and the
@@ -6428,6 +6423,7 @@ private:
                            template. */
 };  /* an_ifc_template_spec_info */
 
+}  /* namespace */
 
 an_ifc_template_spec_info::an_ifc_template_spec_info(
                                                an_ifc_decl_index templ_idx_val)
@@ -6448,7 +6444,7 @@ index.
 }  /* an_ifc_template_spec_info */
 
 
-a_boolean is_explicit_instantiation(an_ifc_decl_index decl_idx)
+static a_boolean is_explicit_instantiation(an_ifc_decl_index decl_idx)
 /*
 If the given decl index refers to the declaration of an explicit
 instantiation, return TRUE; otherwise, return FALSE.
@@ -6545,7 +6541,6 @@ should be called after all specializations are setup.
   }  /* for */
 }  /* process_instantiations */
 
-}  /* namespace */
 
 static void catch_up_template_specs(an_ifc_decl_index decl_idx)
 /*
@@ -6975,8 +6970,7 @@ type dependencies are resolved before attempting to resolve the function.
         an_ifc_decl_function decl_func = *opt_decl_func;
         an_ifc_type_index    type_idx = get_ifc_type(decl_func);
         /* Load the function type and ensure it's valid. */
-        a_type_ptr           func_type = type_for_type_index(type_idx,
-                                                             /*kind=*/NULL);
+        a_type_ptr           func_type = type_for_type_index(type_idx);
         if (is_error_type(func_type)) {
           goto invalid;
         }  /* if */
@@ -7994,8 +7988,7 @@ class_struct_union_case:
           }  /* if */
 
           an_ifc_type_index  type_idx = get_ifc_type(ide);
-          a_type_ptr         enum_type = type_for_type_index(type_idx,
-                                                             /*kind=*/NULL);
+          a_type_ptr         enum_type = type_for_type_index(type_idx);
           if (is_error_type(enum_type)) {
             goto invalid;
           }  /* if */
@@ -8212,7 +8205,7 @@ class_struct_union_case:
                                                                decl_pos_block);
             break;
           case ifc_ps_non_type:
-            param_type = type_for_type_index(get_ifc_type(idp), /*kind=*/NULL);
+            param_type = type_for_type_index(get_ifc_type(idp));
             /* FIXME: Handle unnamed parameters properly. */
             param = make_nontype_template_param(get_ifc_level(idp),
                                                 get_ifc_position(idp),
@@ -10058,9 +10051,7 @@ done:
   return result;
 }  /* exception_specification */
 
-namespace {
-
-a_param_type_ptr make_param_type_from_ifc(
+static a_param_type_ptr make_param_type_from_ifc(
                                       a_routine_type_supplement_ptr rtsp,
                                       an_ifc_type_index             param_type)
 /*
@@ -10076,7 +10067,7 @@ this is an index parameter, update the type supplement and instead return NULL.
        parameter. */
     rtsp->has_ellipsis = TRUE;
   } else {
-    a_type_ptr il_type = type_for_type_index(param_type, /*kind=*/NULL);
+    a_type_ptr il_type = type_for_type_index(param_type);
 
     result = make_param_type(il_type, &null_source_position);
     update_param_top_level_qualifiers(result);
@@ -10085,20 +10076,15 @@ this is an index parameter, update the type supplement and instead return NULL.
 }  /* make_param_type_from_ifc */
 
 
-a_type_ptr type_for_type_index(an_ifc_type_index type_index,
-                               a_non_type_kind   *kind)
+static a_type_ptr type_for_type_index(an_ifc_type_index type_index)
 /*
 Return the type that corresponds to the specified TypeIndex.  If there is no
-corresponding type, set *kind to the appropriate non-type kind and return an
-error type.
+corresponding type, return an error type.
 */
 {
   a_type_ptr          result = NULL;
   a_module_entity_ptr mep = get_ifc_module_entity_ptr(type_index);
 
-  if (kind != NULL) {
-    *kind = ntk_none;
-  }  /* if */
   if (mep->entity.ptr != NULL) {
     /* There is already an entry for this; return it. */
     check_assertion(mep->entity.kind == iek_type);
@@ -10281,7 +10267,7 @@ error type.
           an_ifc_type_qualified     itq = *opt_itq;
           an_ifc_type_index         unqualified = get_ifc_unqualified(itq);
           a_type_ptr                unqualified_ptr =
-                               type_for_type_index(unqualified, /*kind=*/NULL);
+                                              type_for_type_index(unqualified);
           an_ifc_qualifier_bitfield ifc_qualifiers = get_ifc_qualifiers(itq);
           a_type_qualifier_set      qualifiers = TQ_NONE;
           if (test_bitmask<ifc_qb_const>(ifc_qualifiers)) {
@@ -10305,8 +10291,7 @@ error type.
           }  /* if */
 
           an_ifc_type_index pointee = get_ifc_pointee(*opt_itp);
-          result = make_pointer_type(type_for_type_index(pointee,
-                                                         /*kind=*/NULL));
+          result = make_pointer_type(type_for_type_index(pointee));
         }
         break;
       case ifc_ts_type_lvalue_reference:
@@ -10318,8 +10303,7 @@ error type.
           }  /* if */
 
           an_ifc_type_index referee = get_ifc_referee(*opt_itlr);
-          a_type_ptr        referee_il = type_for_type_index(referee,
-                                                             /*kind=*/NULL);
+          a_type_ptr        referee_il = type_for_type_index(referee);
           if (is_error_type(referee_il)) {
             goto invalid;
           }  /* if */
@@ -10336,8 +10320,7 @@ error type.
 
           an_ifc_type_index referee = get_ifc_referee(*opt_itrr);
           result = make_rvalue_reference_type(
-                                           type_for_type_index(referee,
-                                                               /*kind=*/NULL));
+                                           type_for_type_index(referee));
         }
         break;
       case ifc_ts_type_array:
@@ -10352,9 +10335,7 @@ error type.
           an_ifc_type_index element = get_ifc_element(ita);
           an_ifc_expr_index extent = get_ifc_extent(ita);
           result = alloc_type((a_type_kind)tk_array);
-          result->variant.array.element_type =
-                                            type_for_type_index(element,
-                                                                /*kind=*/NULL);
+          result->variant.array.element_type = type_for_type_index(element);
 
           a_constant_ptr    elem_count = mod->constant_for_expr_index(
                                                         extent,
@@ -10402,8 +10383,7 @@ error type.
           a_routine_type_supplement_ptr
                                rtsp;
           /* Create a routine type with no parameters to start. */
-          result = make_routine_type(type_for_type_index(target,
-                                                         /*kind=*/NULL),
+          result = make_routine_type(type_for_type_index(target),
                                      (a_type_ptr)NULL, (a_type_ptr)NULL,
                                      (a_type_ptr)NULL, (a_type_ptr)NULL);
           rtsp = rout_type_supp(result);
@@ -10528,8 +10508,7 @@ error type.
                   tptsp->coordinates.position = get_ifc_position(decl_param);
                   set_type_size(result);
                 } else {
-                  result = type_for_type_index(get_ifc_type(decl_param),
-                                               /*kind=*/NULL);
+                  result = type_for_type_index(get_ifc_type(decl_param));
                 }  /* if */
               }
               break;
@@ -10746,8 +10725,9 @@ done:;
 }  /* type_for_type_index */
 
 
-a_constant_ptr create_constant_for_nttp(const a_template_parameter *param,
-                                        an_ifc_expr_index          expr_idx)
+static a_constant_ptr create_constant_for_nttp(
+                                           const a_template_parameter *param,
+                                           an_ifc_expr_index          expr_idx)
 /*
 Create and return a constant for the given non-type template parameter from the
 given expression.
@@ -10828,8 +10808,7 @@ given expression.
         a_module_token_cache        cache;
         an_ifc_source_position_hint pos_hint(&cache, locus);
         a_type_ptr                  type =
-                                         type_for_type_index(get_ifc_type(iem),
-                                                             /*kind=*/NULL);
+                                        type_for_type_index(get_ifc_type(iem));
         an_ifc_module               *mod = expr_idx.mod;
 
         mod->cache_operator(&cache, get_ifc_assoc(iem));
@@ -10866,7 +10845,6 @@ done:
   return result;
 }  /* create_constant_for_nttp */
 
-}  /* namespace */
 
 a_template_arg_ptr an_ifc_module::template_arg_for_expr(
                                            const a_template_parameter *param,
@@ -10891,19 +10869,7 @@ template_args_for_expr_list instead.
 
         an_ifc_expr_type  expr_type = *opt_expr_type;
         an_ifc_type_index denotation = get_ifc_denotation(expr_type);
-
-        a_non_type_kind arg_kind;
-        /* FIXME: This should be refactored so this detection isn't
-           necessary/possible and/or the following check should be moved to the
-           validator. */
-        a_type_ptr type = type_for_type_index(denotation, &arg_kind);
-        if (arg_kind != ntk_none) {
-          a_string err_msg(str_for(denotation.sort),
-                           " referenced something that wasn't a type");
-
-          ifc_unexpected(this, err_msg);
-          goto invalid;
-        }  /* if */
+        a_type_ptr        type = type_for_type_index(denotation);
         if (is_error_type(type)) {
           goto invalid;
         }  /* if */
@@ -11268,9 +11234,9 @@ non-NULL, fields (like is_operator_name) in *loc are updated accordingly.
             goto invalid;
           }  /* if */
 
-          a_type_ptr   target_type = type_for_type_index(
-                                                      get_ifc_target(*opt_inc),
-                                                      /*kind=*/NULL);
+          an_ifc_name_conversion inc = *opt_inc;
+          an_ifc_type_index      target = get_ifc_target(inc);
+          a_type_ptr             target_type = type_for_type_index(target);
           /* Note that inscp->encoded contains the mangled name of the
              conversion function, so use the name from the type instead. */
           a_const_char *type_name = target_type->source_corresp.name;
@@ -11808,8 +11774,7 @@ anonymous), or an empty optional if the name was present but invalid.
         if (gmf_decl_scope.has_value()) {
           mep->scope = get_scope(*gmf_decl_scope);
         } else {
-          a_type_ptr tp = EDG_PREFIX::type_for_type_index(*gmf_decl_type,
-                                                          /*kind=*/NULL);
+          a_type_ptr tp = EDG_PREFIX::type_for_type_index(*gmf_decl_type);
           ensure_type_has_scope(tp);
           mep->scope = get_assoc_scope_of_il_entry((char*)tp, iek_type);
         }  /* if */
@@ -11852,7 +11817,7 @@ initialization succeeds; otherwise, return FALSE.
   source_position_from_locus(&dps->start_pos, locus);
   error_position = dps->start_pos;
   if (!is_null_index(type_index)) {
-    dps->type = type_for_type_index(type_index, /*kind=*/NULL);
+    dps->type = type_for_type_index(type_index);
     if (is_error_type(dps->type)) {
       result = FALSE;
     }  /* if */
@@ -12167,7 +12132,7 @@ otherwise, NULL is returned.
           a_type_ptr constant_type = default_type;
 
           if (!is_null_index(type)) {
-            constant_type = type_for_type_index(type, /*kind=*/NULL);
+            constant_type = type_for_type_index(type);
           }  /* if */
           if (is_error_type(constant_type)) {
             goto invalid;
@@ -12301,8 +12266,7 @@ FIXME: shared or unshared?  FIXME: what other expressions can we get here?
 
         an_ifc_expr_product_type_value ieptv = *opt_ieptv;
         an_ifc_type_index              type = get_ifc_type(ieptv);
-        a_type_ptr                     tp = type_for_type_index(type,
-                                                                /*kind=*/NULL);
+        a_type_ptr                     tp = type_for_type_index(type);
         if (is_error_type(tp)) {
           goto invalid;
         }  /* if */
@@ -12406,7 +12370,7 @@ FIXME: shared or unshared?  FIXME: what other expressions can we get here?
         a_decl_parse_state   dps;
         a_type_ptr           tp;
         init_decl_parse_state(&dps);
-        tp = type_for_type_index(get_ifc_type(ied), /*kind=*/NULL);
+        tp = type_for_type_index(get_ifc_type(ied));
         complete_type_is_needed(tp);
         cache_expr(&cache, expr_idx, /*cinfo=*/{});
         if (cache.is_valid()) {
@@ -12434,7 +12398,7 @@ FIXME: shared or unshared?  FIXME: what other expressions can we get here?
         an_expr_stack_entry   expr_stack_entry, *saved_expr_stack;
         init_decl_parse_state(&dps);
         if (!is_null_index(type)) {
-          tp = type_for_type_index(type, /*kind=*/NULL);
+          tp = type_for_type_index(type);
         } else {
           tp = default_type;
         }  /* if */
@@ -12528,7 +12492,7 @@ FIXME: shared or unshared?  FIXME: what other expressions can we get here?
         memcpy(str_val, get_string_at_offset(get_ifc_start(ics)), length);
         check_assertion(str_val != NULL);
         cp = alloc_constant(ck_string);
-        cp->type = type_for_type_index(get_ifc_type(ies), /*kind=*/NULL);
+        cp->type = type_for_type_index(get_ifc_type(ies));
         cp->variant.string.length = length;
         cp->variant.string.value  = str_val;
         cp->variant.string.literal_kind = SCLK_ORDINARY_STRING_LITERAL;
@@ -12565,8 +12529,7 @@ FIXME: what other types of named declarations can we get here?
 */
 {
   an_ifc_decl_index decl_idx = get_ifc_resolution(iendp);
-  a_type_ptr        type = type_for_type_index(get_ifc_type(iendp),
-                                               /*kind=*/NULL);
+  a_type_ptr        type = type_for_type_index(get_ifc_type(iendp));
   a_constant_ptr    cp = NULL;
 
   switch (decl_idx.sort) {
@@ -19914,7 +19877,7 @@ common_cast:
         an_ifc_expr_product_type_value ieptv = *opt_ieptv;
         a_type_ptr                     tp;
         a_constant_ptr                 cp;
-        tp = type_for_type_index(get_ifc_type(ieptv), /*kind=*/NULL);
+        tp = type_for_type_index(get_ifc_type(ieptv));
         cp = constant_for_expr_index(expr, tp);
         cache_aggr_constant(cache, cp);
       }
@@ -19997,7 +19960,7 @@ common_cast:
         if (is_null_index(type_idx)) {
           cache_resolved_type_token(cache, standard_nullptr_type());
         } else {
-          a_type_ptr il_type = type_for_type_index(type_idx, /*kind=*/NULL);
+          a_type_ptr il_type = type_for_type_index(type_idx);
 
           cache_resolved_type_token(cache, il_type);
         }  /* if */
