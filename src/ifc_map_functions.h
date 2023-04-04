@@ -8976,6 +8976,17 @@ struct an_ifc_value_metadata<an_ifc_source_word> {
 };  /* an_ifc_value_metadata */
 
 
+/*
+The IFC value field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for TypePlaceholderBasisWrapper
+nodes.
+*/
+template<>
+struct an_ifc_value_metadata<an_ifc_type_placeholder_basis_wrapper> {
+  using return_type = an_ifc_type_basis_sort;
+};  /* an_ifc_value_metadata */
+
+
 template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_ID(const an_ifc_Node_type &universal) DELETED_FN_DEF
 
@@ -12009,6 +12020,29 @@ a_boolean validate(const an_ifc_source_location  &universal,
 extern void db_node(const an_ifc_source_location &universal, unsigned indent);
 
 extern void db_node(const an_ifc_source_location &universal);
+#endif /* DEBUG */
+
+/*
+Functions for interacting with IFC TypePlaceholderBasisWrapper nodes.
+*/
+
+template<>
+a_boolean has_ifc_value(
+                       const an_ifc_type_placeholder_basis_wrapper &universal);
+
+template<>
+an_ifc_type_basis_sort get_ifc_value(
+                       const an_ifc_type_placeholder_basis_wrapper &universal);
+
+template<>
+a_boolean validate(const an_ifc_type_placeholder_basis_wrapper &universal,
+                   const an_ifc_validation_trace               *parent);
+
+#if DEBUG
+extern void db_node(const an_ifc_type_placeholder_basis_wrapper &universal,
+                    unsigned                                    indent);
+
+extern void db_node(const an_ifc_type_placeholder_basis_wrapper &universal);
 #endif /* DEBUG */
 
 /*

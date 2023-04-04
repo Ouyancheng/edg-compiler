@@ -4035,6 +4035,36 @@ representation is valid; otherwise, return FALSE.
 
 
 template<>
+a_boolean validate(const an_ifc_type_placeholder_basis_wrapper &universal,
+                   const an_ifc_validation_trace               *parent)
+/*
+Given the universal representation of TypePlaceholderBasisWrapper, return TRUE
+if the representation is valid; otherwise, return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (has_ifc_value(universal)) {
+    an_ifc_type_basis_sort_0_33 stage_0;
+    an_ifc_validation_trace     stage_0_trace =
+                                               {"value", /*offset=*/0, parent};
+
+    /* Copy the field (TypePlaceholderBasisWrapper::value - TypeBasisSort) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 1,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
+      result = FALSE;
+      goto done;
+    }  /* if */
+  }  /* if */
+done:
+  return result;
+}  /* validate */
+
+
+template<>
 a_boolean validate(const an_ifc_file_header      &universal,
                    const an_ifc_validation_trace *parent)
 /*
@@ -28135,16 +28165,36 @@ representation is valid; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (has_ifc_basis(universal)) {
-    an_ifc_type_basis_sort_0_33 stage_0;
-    an_ifc_validation_trace     stage_0_trace =
+    an_ifc_type_placeholder_basis_wrapper_bytes stage_0;
+    an_ifc_validation_trace                     stage_0_trace =
                                                {"basis", /*offset=*/4, parent};
+    an_ifc_type_placeholder_basis_wrapper       stage_1;
+    an_ifc_type_basis_sort_0_33                 stage_2;
+    an_ifc_validation_trace                     stage_2_trace =
+                                       {"value", /*offset=*/0, &stage_0_trace};
 
-    /* Copy the field (TypePlaceholder::basis - TypeBasisSort) into
+#if USE_MMAP_FOR_MODULES
+    /* Update the universal storage pointer to the start of the field
+       (TypePlaceholder::basis - TypePlaceholderBasisWrapper). */
+    stage_0 = (an_ifc_type_placeholder_basis_wrapper_bytes)(
+                                               (*universal.get_storage()) + 4);
+#else /* !USE_MMAP_FOR_MODULES */
+    /* Copy the field (TypePlaceholder::basis - TypePlaceholderBasisWrapper)
+       into universal storage. */
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4,
+                   /*size=*/4);
+#endif /* USE_MMAP_FOR_MODULES */
+    stage_1 = {universal.get_module(), stage_0};
+    if (!validate(stage_1, &stage_0_trace)) {
+      result = FALSE;
+      goto done;
+    }  /* if */
+    /* Copy the field (TypePlaceholderBasisWrapper::value - TypeBasisSort) into
        version-specific storage. */
-    static_assert(sizeof(stage_0) == 1,
-                  "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
+    static_assert(sizeof(stage_2) == 1,
+                  "stage_2 is not properly sized storage!");
+    copy_ifc_field(&stage_2, stage_1.get_storage(), /*offset=*/0);
+    if (!validate_sort(stage_1.get_module(), stage_2, &stage_2_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -28183,13 +28233,13 @@ representation is valid; otherwise, return FALSE.
   if (has_ifc_elaboration(universal)) {
     an_ifc_type_index_0_33  stage_0;
     an_ifc_validation_trace stage_0_trace =
-                                         {"elaboration", /*offset=*/5, parent};
+                                         {"elaboration", /*offset=*/8, parent};
 
     /* Copy the field (TypePlaceholder::elaboration - TypeIndex) into
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/5);
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
     if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;

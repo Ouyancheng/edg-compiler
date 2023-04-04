@@ -616,6 +616,35 @@ textual representation.
 }  /* db_node */
 
 
+void db_node(const an_ifc_type_placeholder_basis_wrapper &universal,
+             unsigned                                    indent)
+/*
+Given the universal representation of TypePlaceholderBasisWrapper, print a
+diagnostic textual representation with the given indent.
+*/
+{
+  if (has_ifc_value(universal)) {
+    an_ifc_type_basis_sort field = get_ifc_value(universal);
+
+    db_print_indent(indent);
+    fprintf(f_debug, "value: %s\n", str_for(field));
+  }  /* if */
+}  /* db_node */
+
+
+void db_node(const an_ifc_type_placeholder_basis_wrapper &universal)
+/*
+Given the universal representation of TypePlaceholderBasisWrapper, print a
+diagnostic textual representation.
+*/
+{
+  fprintf(f_debug, "========================= ");
+  fprintf(f_debug, "TypePlaceholderBasisWrapper ");
+  fprintf(f_debug, "==========================\n");
+  db_node(universal, 0);
+}  /* db_node */
+
+
 void db_node(const an_ifc_file_header &universal, unsigned indent)
 /*
 Given the universal representation of FileHeader, print a diagnostic textual

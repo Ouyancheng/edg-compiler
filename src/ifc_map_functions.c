@@ -31974,10 +31974,10 @@ the storage specified by the storage argument).
   {
     /* constraint */
     get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
-    /* basis */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/1, /*from_header=*/FALSE);
+    /* basis.value */
+    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* elaboration */
-    get_bytes(mod, (*storage) + 5, /*num_bytes=*/7, /*from_header=*/FALSE);
+    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_type_placeholder_storage> */

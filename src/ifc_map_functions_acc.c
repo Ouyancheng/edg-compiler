@@ -918,6 +918,54 @@ representation of the field "line".
 
 
 /*
+Functions for reading data from IFC TypePlaceholderBasisWrapper nodes.
+*/
+
+
+template<>
+a_boolean has_ifc_value(const an_ifc_type_placeholder_basis_wrapper &universal)
+/*
+Return TRUE if the given universal representation has the field "value";
+otherwise, return FALSE.
+*/
+{
+  an_ifc_module *mod = universal.get_module();
+  a_boolean     result = get_fallback_presence_value(mod);
+
+  if (is_at_least(mod, 0, 33)) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* has_ifc_value */
+
+
+template<>
+an_ifc_type_basis_sort get_ifc_value(
+                        const an_ifc_type_placeholder_basis_wrapper &universal)
+/*
+Given the universal representation of TypePlaceholderBasisWrapper, return the
+universal representation of the field "value".
+*/
+{
+  an_ifc_type_basis_sort result;
+
+  /* Ensure the value field exists in the current module version. */
+  check_assertion(has_ifc_value(universal));
+  an_ifc_type_basis_sort_0_33 stage_0;
+  an_ifc_type_basis_sort      stage_1;
+
+  /* Copy the field (TypePlaceholderBasisWrapper::value - TypeBasisSort) into
+     version-specific storage. */
+  static_assert(sizeof(stage_0) == 1,
+                "stage_0 is not properly sized storage!");
+  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  stage_1 = to_universal_sort(stage_0);
+  result = stage_1;
+  return result;
+}  /* get_ifc_value */
+
+
+/*
 Functions for reading data from IFC FileHeader nodes.
 */
 
@@ -54133,16 +54181,29 @@ representation of the field "basis".
 
   /* Ensure the basis field exists in the current module version. */
   check_assertion(has_ifc_basis(universal));
-  an_ifc_type_basis_sort_0_33 stage_0;
-  an_ifc_type_basis_sort      stage_1;
+  an_ifc_type_placeholder_basis_wrapper_bytes stage_0;
+  an_ifc_type_placeholder_basis_wrapper       stage_1;
+  an_ifc_type_basis_sort_0_33                 stage_2;
+  an_ifc_type_basis_sort                      stage_3;
 
-  /* Copy the field (TypePlaceholder::basis - TypeBasisSort) into
+#if USE_MMAP_FOR_MODULES
+  /* Update the universal storage pointer to the start of the field
+     (TypePlaceholder::basis - TypePlaceholderBasisWrapper). */
+  stage_0 = (an_ifc_type_placeholder_basis_wrapper_bytes)(
+                                               (*universal.get_storage()) + 4);
+#else /* !USE_MMAP_FOR_MODULES */
+  /* Copy the field (TypePlaceholder::basis - TypePlaceholderBasisWrapper) into
+     universal storage. */
+  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4, /*size=*/4);
+#endif /* USE_MMAP_FOR_MODULES */
+  stage_1 = {universal.get_module(), stage_0};
+  /* Copy the field (TypePlaceholderBasisWrapper::value - TypeBasisSort) into
      version-specific storage. */
-  static_assert(sizeof(stage_0) == 1,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-  stage_1 = to_universal_sort(stage_0);
-  result = stage_1;
+  static_assert(sizeof(stage_2) == 1,
+                "stage_2 is not properly sized storage!");
+  copy_ifc_field(&stage_2, stage_1.get_storage(), /*offset=*/0);
+  stage_3 = to_universal_sort(stage_2);
+  result = stage_3;
   return result;
 }  /* get_ifc_basis */
 
@@ -54237,7 +54298,7 @@ representation of the field "elaboration".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/5);
+  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = to_universal_index(universal.get_module(), stage_0);
   result = stage_1;
   return result;

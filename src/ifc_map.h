@@ -6197,6 +6197,39 @@ struct an_ifc_source_location :
 };  /* an_ifc_source_location */
 
 /*
+  |----------------------------------------------|
+  | TypePlaceholderBasisWrapper - 0.33 (4 bytes) |
+  |-------------|---------------|---------|------|
+  | Name        | Type          | Version | Size |
+  |-------------|---------------|---------|------|
+  | value       | TypeBasisSort | 0.33    | 1    |
+  | __padding__ | uint8_t[3]    |         | 3    |
+  |-------------|---------------|---------|------|
+*/
+enum an_ifc_type_placeholder_basis_wrapper_part : uint8_t {};
+using an_ifc_type_placeholder_basis_wrapper_storage =
+                                 an_ifc_type_placeholder_basis_wrapper_part[4];
+#if USE_MMAP_FOR_MODULES
+using an_ifc_type_placeholder_basis_wrapper_bytes =
+                          const an_ifc_type_placeholder_basis_wrapper_storage*;
+#else /* !USE_MMAP_FOR_MODULES */
+using an_ifc_type_placeholder_basis_wrapper_bytes =
+                                 an_ifc_type_placeholder_basis_wrapper_storage;
+#endif /* USE_MMAP_FOR_MODULES */
+/*
+The universal representation of an IFC TypePlaceholderBasisWrapper node.
+
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_type_placeholder_basis_wrapper :
+            an_ifc_Byte_buffer<an_ifc_type_placeholder_basis_wrapper_storage> {
+  using storage_type = an_ifc_type_placeholder_basis_wrapper_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_type_placeholder_basis_wrapper */
+
+/*
   |--------------------------------------------------------|
   |              FileHeader - 0.33 (69 bytes)              |
   |--------------------|------------------|---------|------|
@@ -17788,27 +17821,29 @@ struct an_ifc_type_method : an_ifc_Byte_buffer<an_ifc_type_method_storage> {
 };  /* an_ifc_type_method */
 
 /*
-  |----------------------------------------------|
-  |      TypePlaceholder - 0.33 (12 bytes)       |
-  |-------------|---------------|---------|------|
-  | Name        | Type          | Version | Size |
-  |-------------|---------------|---------|------|
-  | constraint  | ExprIndex     | 0.33    | 4    |
-  | basis       | TypeBasisSort | 0.33    | 1    |
-  | elaboration | TypeIndex     | 0.33    | 4    |
-  | __padding__ | uint8_t[3]    |         | 3    |
-  |-------------|---------------|---------|------|
+  |------------------------------------------------------------|
+  |             TypePlaceholder - 0.33 (12 bytes)              |
+  |-------------|-----------------------------|---------|------|
+  | Name        | Type                        | Version | Size |
+  |-------------|-----------------------------|---------|------|
+  | constraint  | ExprIndex                   | 0.33    | 4    |
+  | basis       | TypePlaceholderBasisWrapper | 0.33    | 4    |
+  | elaboration | TypeIndex                   | 0.33    | 4    |
+  |-------------|-----------------------------|---------|------|
+  | basis       | TypeBasisSort               | 0.33    | TF   |
+  |-------------|-----------------------------|---------|------|
 
-  |----------------------------------------------|
-  |      TypePlaceholder - 0.42 (12 bytes)       |
-  |-------------|---------------|---------|------|
-  | Name        | Type          | Version | Size |
-  |-------------|---------------|---------|------|
-  | constraint  | ExprIndex     | 0.42    | 4    |
-  | basis       | TypeBasisSort | 0.33    | 1    |
-  | elaboration | TypeIndex     | 0.33    | 4    |
-  | __padding__ | uint8_t[3]    |         | 3    |
-  |-------------|---------------|---------|------|
+  |------------------------------------------------------------|
+  |             TypePlaceholder - 0.42 (12 bytes)              |
+  |-------------|-----------------------------|---------|------|
+  | Name        | Type                        | Version | Size |
+  |-------------|-----------------------------|---------|------|
+  | constraint  | ExprIndex                   | 0.42    | 4    |
+  | basis       | TypePlaceholderBasisWrapper | 0.33    | 4    |
+  | elaboration | TypeIndex                   | 0.33    | 4    |
+  |-------------|-----------------------------|---------|------|
+  | basis       | TypeBasisSort               | 0.33    | TF   |
+  |-------------|-----------------------------|---------|------|
 */
 enum an_ifc_type_placeholder_part : uint8_t {};
 using an_ifc_type_placeholder_storage = an_ifc_type_placeholder_part[12];
