@@ -11337,8 +11337,11 @@ to unusable variables and class members.
     if (scp->is_class_member) {
       a_type_ptr parent = scp_parent_class(scp);
       if (!parent->variant.class_struct_union.is_nonreal_class &&
-          ((!(parent->has_been_defined ||
-              parent->variant.class_struct_union.is_template_class) &&
+          ((!(parent->has_been_defined
+#if !TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+              || parent->variant.class_struct_union.is_template_class
+#endif /* !TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+                                                                     ) &&
             !class_is_in_name_context_stack(
                                   parent, /*include_base_classes=*/FALSE,
                                   /*ignore_field_selection_contexts=*/TRUE)) ||
