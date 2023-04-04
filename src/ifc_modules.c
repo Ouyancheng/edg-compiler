@@ -16486,7 +16486,11 @@ this is needed.
         if (basis == ifc_tbs_auto) {
           an_ifc_type_index elaboration = get_ifc_elaboration(itp);
 
-          cache_type(cache, elaboration, cinfo);
+          if (is_null_index(elaboration)) {
+            cache_token(cache, tok_auto);
+          } else {
+            cache_type(cache, elaboration, cinfo);
+          }  /* if */
         } else {
           check_assertion(basis == ifc_tbs_decltype_auto);
           cache_token(cache, tok_decltype);
