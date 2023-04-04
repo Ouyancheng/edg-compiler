@@ -1,5 +1,13 @@
 Version 6.5
 
+4/4/23   [EDGcpfe/26209]
+Clang compatibility: Suppress __GXX_RTTI predefined macro
+
+The Clang compiler suppresses a definition of the __GXX_RTTI macro when
+-fms-compatibility is specified and now the front end also suppresses that
+definition in Clang emulation mode when --ms_compatibility is specified.
+
+
 4/3/23   [EDGcpfe/26210]
 Address of consteval functions during concept evaluation
 

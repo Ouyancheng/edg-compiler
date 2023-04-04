@@ -10749,8 +10749,10 @@ Enter symbols for the predefined macros of GNU/clang C and C++.
     if (!clang_mode) {
       enter_predef_num_macro(major_num, "__GNUG__");
     }  /* if */
-    if (rtti_enabled && gnu_version >= 40300) {
-      /* g++ introduced the __GXX_RTTI macro in version 4.3.0. */
+    if (rtti_enabled && gnu_version >= 40300 &&
+        !(clang_mode && ms_compat)) {
+      /* g++ introduced the __GXX_RTTI macro in version 4.3.0.  Clang
+         suppresses the definition with -fms-compatibility. */
       (void)enter_predef_macro("1", "__GXX_RTTI",
                                /*cannot_be_redefined=*/FALSE,
                                /*ref_suppresses_pch_file=*/FALSE);
