@@ -24535,6 +24535,12 @@ called only in C++ mode.
                 }  /* if */
               }  /* if */
               *processed = TRUE;
+            } else {
+              /* Neither a user-defined conversion nor an aggregate
+                 initialization works. */
+              type2_error_in_operand(ec_no_user_defined_conversion, 
+                                     operand, operand->type, type_cast_to);
+              failed = TRUE;
             }  /* if */
             free_arg_list(arg_list);
           }  /* if */
