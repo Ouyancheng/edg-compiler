@@ -14452,12 +14452,17 @@ If there is an error in the copying, set *copy_error to TRUE.
       break;
     }  /* if */
     if (tap != NULL && tap->pack_expansion_descr != NULL) {
-      a_boolean	err;
-      any_more = begin_rescan_pack_expansion_context(tap->pack_expansion_descr,
+      a_boolean  err = FALSE;
+      if ((options & CTWS_ADJUST_COORDINATES) != 0) {
+        any_more = TRUE;
+      } else {
+        any_more = begin_rescan_pack_expansion_context(
+                                                     tap->pack_expansion_descr,
                                                      templ_param_list,
                                                      templ_arg_list,
                                                      &pesep, options,
                                                      ctws_state, &err);
+      }  /* if */
       pack_tap = tap;
       if (!any_more && !have_params &&
 	  (options & CTWS_IN_PARENT_SUBSTITUTION) != 0) {
@@ -14662,9 +14667,13 @@ do_substitution:
         goto do_substitution;
       }  /* if */
 end_of_loop:
-      (void)end_potential_pack_expansion_context(
-                                               pesep, /*is_declarator=*/FALSE);
-      any_more = advance_to_next_pack_element(pesep);
+      if ((options & CTWS_ADJUST_COORDINATES) != 0) {
+        any_more = FALSE;
+      } else {
+        (void)end_potential_pack_expansion_context(pesep,
+                                                   /*is_declarator=*/FALSE);
+        any_more = advance_to_next_pack_element(pesep);
+      }  /* if */
     }  /* while */
     if (tap == NULL) break;
     /* Exit the loop if the substitution failed. */
@@ -14724,14 +14733,12 @@ new_type is not NULL, *new_type is set to NULL.
   a_symbol_ptr				orig_sym;
   a_template_arg_ptr			tap;
   a_template_param_ptr			tpp = NULL;
-  a_template_symbol_supplement_ptr	orig_tssp;
   a_template_symbol_supplement_ptr	tssp;
   a_boolean				is_nonreal_template;
   a_boolean				orig_is_prototype;
   a_template_param_ptr			ttp_param_list = NULL;
 
   if (new_type != NULL) *new_type = NULL;  
-  orig_tssp = template_sym->variant.template_info;
   template_sym = primary_template_of(template_sym);
   tssp = template_sym->variant.template_info;
   /* If the template symbol refers to a template template parameter, get
@@ -14751,40 +14758,32 @@ new_type is not NULL, *new_type is set to NULL.
   orig_sym = symbol_for(orig_type);
   check_assertion(orig_sym != NULL);
   tap = template_arg_list_for_symbol(orig_sym);
-  /* When adjusting template parameter coordinates or in alias deduction guide
-     substitution, we should not find the prototype instantiation. */
   orig_is_prototype = is_immediate_class_type(orig_type) &&
-                      (options & CTWS_ADJUST_COORDINATES) == 0 &&
-                      (options & CTWS_ALIAS_DEDUCTION_GUIDE) == 0 &&
                       orig_type->
                         variant.class_struct_union.is_prototype_instantiation;
-  if (orig_is_prototype && orig_tssp->primary_template_sym == NULL &&
-      ctws_state->in_parent_substitution) {
-    /* The in_parent_substitution flag is set when we are doing special
-       substitution of something like a noexcept argument.  That process
-       involves doing substitution of enclosing classes, which are typically
-       rescanned from tokens.  For such special substitution, when we hit a
-       prototype instantiation, create a special template argument list that
-       includes pack expansion descriptors for the prototype argument list
-       elements that are packs.  This is not done for partial specializations
-       where the template argument list is not synthesized. */
-    tap = create_prototype_arg_list(template_sym, templ_param_list,
-                                    /*add_pack_descr=*/TRUE);
-  }  /* if */
   is_nonreal_template = tssp->is_nonreal_member;
   if (!is_nonreal_template) {
     /* Except for nonreal templates, get the corresponding template parameter
        list. */
     tpp = tssp->cache.decl_info->parameters;
   }  /* if */
-  /* Make a copy of the template argument list, doing substitution. */
-  new_list = copy_template_arg_list_with_substitution(
+  if (gnu_version_is(<110000) && orig_is_prototype &&
+      (options & CTWS_ADJUST_COORDINATES) != 0 &&
+      (options & CTWS_IS_CALL_CONTEXT) != 0 &&
+      (ctws_state->parent_levels != 0)) {
+    /* GCC versions prior to 11.x fail to substitute a parent type that is a
+       prototype instantiation in a function call context. */
+    subst_fail(*copy_error);
+  } else {
+    /* Make a copy of the template argument list, doing substitution. */
+    new_list = copy_template_arg_list_with_substitution(
                                            template_sym,
                                            tap, tpp, ttp_param_list,
                                            templ_arg_list,
                                            templ_param_list, 
                                            source_pos, options,
                                            copy_error, ctws_state);
+  }  /* if */
   if (*copy_error) {
     /* If an error occurred earlier, and in particular while creating one
        of the template arguments, don't try to find a matching template
@@ -15479,50 +15478,72 @@ NULL pointer.
     a_pack_reference_ptr	new_prp_tail = NULL;
     a_template_param_ptr	old_tpp;
     a_template_param_ptr	new_tpp;
+    a_template_nesting_depth	orig_depth;
+    orig_depth = coordinates_of_template_param(
+                                   ctws_state->orig_class_templ_params)->depth;
     for (prp = pedp->packs_referenced; prp != NULL; prp = prp->next) {
       check_assertion(prp->kind == prk_template_param);
-      if (ctws_state->alias_parameter_pack_mapping != NULL) {
-        /* When doing substitution for an alias template deduction guide, a
-           mapping of pack positions to the new template parameter is provided.
-           Look up the new template parameter in the mapping array. */
-        const Dyn_array<a_template_param_ptr> &pack_mapping =
+      if (prp->coordinates->depth < orig_depth) {
+        /* A reference to an enclosing template parameter pack. */
+        new_tpp = prp->template_param;
+        new_prp = alloc_pack_reference(prk_template_param);
+        *new_prp = *prp;
+        new_prp->next = NULL;
+      } else {
+        if (ctws_state->alias_parameter_pack_mapping != NULL) {
+          /* When doing substitution for an alias template deduction guide, a
+             mapping of pack positions to the new template parameter is
+             provided.  Look up the new template parameter in the mapping
+             array. */
+          const Dyn_array<a_template_param_ptr> &pack_mapping =
                                      *ctws_state->alias_parameter_pack_mapping;
-        check_assertion(static_cast<a_template_param_list_pos>(
+          check_assertion(static_cast<a_template_param_list_pos>(
                                                          pack_mapping.length())
                                                 >= prp->coordinates->position);
-        new_tpp = pack_mapping[prp->coordinates->position - 1];
-        if (new_tpp == NULL) continue;
-      } else {
-        /* Look for the template parameter in the lists in ctws_state.
-           First go through the class template params.  If it is not found
-           in that list, continue to the constructor template params. */
-        for (old_tpp = ctws_state->orig_class_templ_params,
-             new_tpp = ctws_state->new_templ_params;
-             old_tpp != NULL;
-             old_tpp = old_tpp->next, new_tpp = new_tpp->next) {
-          if (prp->symbol == old_tpp->param_symbol) break;
-        }  /* for */
-        if (old_tpp == NULL) {
-          for (old_tpp = ctws_state->orig_ctor_templ_params;
+          new_tpp = pack_mapping[prp->coordinates->position - 1];
+          if (new_tpp == NULL) continue;
+        } else {
+          /* Look for the template parameter in the lists in ctws_state.
+             First go through the class template params.  If it is not found
+             in that list, continue to the constructor template params. */
+          for (old_tpp = ctws_state->orig_class_templ_params,
+               new_tpp = ctws_state->new_templ_params;
                old_tpp != NULL;
                old_tpp = old_tpp->next, new_tpp = new_tpp->next) {
-            if (prp->symbol == old_tpp->param_symbol) break;
+            a_template_param_coordinate_ptr  coords =
+                                        coordinates_of_template_param(old_tpp);
+            if (prp->coordinates->depth == coords->depth &&
+                prp->coordinates->position == coords->position) {
+              break;
+            }  /* if */
           }  /* for */
-        }  /* if */
-        if (old_tpp == NULL) {
-          /* If a match was not found above, look through the new list to see
-             if this is an already-substituted parameter. */
-          for (new_tpp = ctws_state->new_templ_params;
-               new_tpp != NULL; new_tpp = new_tpp->next) {
-            if (prp->symbol == new_tpp->param_symbol) break;
+          if (old_tpp == NULL) {
+            for (old_tpp = ctws_state->orig_ctor_templ_params;
+                 old_tpp != NULL;
+                 old_tpp = old_tpp->next, new_tpp = new_tpp->next) {
+              a_template_param_coordinate_ptr  coords =
+                                        coordinates_of_template_param(old_tpp);
+              if (prp->coordinates->depth == coords->depth &&
+                  prp->coordinates->position == coords->position) {
+                break;
+              }  /* if */
+            }  /* for */
           }  /* if */
+          if (old_tpp == NULL) {
+            /* If a match was not found above, look through the new list to see
+               if this is an already-substituted parameter. */
+            for (new_tpp = ctws_state->new_templ_params;
+                 new_tpp != NULL; new_tpp = new_tpp->next) {
+              if (prp->symbol == new_tpp->param_symbol) break;
+            }  /* if */
+          }  /* if */
+          check_assertion(new_tpp != NULL);
         }  /* if */
+        new_prp = alloc_pack_reference(prk_template_param);
+        new_prp->template_param = new_tpp;
+        new_prp->coordinates = coordinates_of_template_param(new_tpp);
+        new_prp->symbol = new_tpp->param_symbol;
       }  /* if */
-      check_assertion(new_tpp != NULL);
-      new_prp = alloc_pack_reference(prk_template_param);
-      new_prp->template_param = new_tpp;
-      new_prp->coordinates = coordinates_of_template_param(new_tpp);
-      new_prp->symbol = new_tpp->param_symbol;
       /* Add the new entry to the end of the new list. */
       if (new_pedp == NULL) {
         new_pedp = alloc_pack_expansion_descr();
@@ -16255,11 +16276,12 @@ a pointer over a reference type or creating an array of references.
             /* In deduction guide substitution, the this_class should be
                replaced with the version provided by the caller. */
             new_this_class = ctws_state->new_this_class;
-          }  /* if */
-          new_this_class = copy_type_with_substitution(
+          } else {
+            new_this_class = copy_type_with_substitution(
                                         new_this_class, templ_arg_list,
                                         templ_param_list, source_pos, options,
                                         copy_error, ctws_state);
+          }  /* if */
           /* Drop any typedefs and qualifiers on the class type. */
           new_this_class = skip_typerefs(new_this_class);
           if (new_this_class->kind == (a_type_kind)tk_template_param) {
@@ -22423,7 +22445,7 @@ initially used when processing the declaration of a partial specialization.
     /* Create a template argument list that corresponds to the template
        parameter list. */
     templ_arg_list = create_prototype_arg_list(sym, templ_param_list,
-                                               /*add_pack_descr=*/FALSE);
+                                               /*add_pack_descr=*/TRUE);
     if (is_alias_template) {
       prototype_type->variant.typeref.extra_info->template_arg_list
                                                               = templ_arg_list;
@@ -41751,7 +41773,9 @@ static void substitute_template_param_list(
 				a_template_param_ptr	list_to_subst,
 				a_template_param_ptr	templ_param_list,
 				a_template_arg_ptr	templ_arg_list,
-				a_boolean		*copy_error)
+				a_ctws_options_set	options,
+				a_boolean		*copy_error,
+				a_ctws_state_ptr	ctws_state)
 /*
 Go through the template parameter list specified by list_to_subst and
 do substitution on the types of any nontype template parameters and on
@@ -41764,7 +41788,6 @@ fails.
   a_template_param_ptr	tpp;
 
   for (tpp = list_to_subst; tpp != NULL; tpp = tpp->next) {
-    a_ctws_state	ctws_state;
     a_symbol_ptr	param_sym = tpp->param_symbol;
     if (symbol_is(param_sym, sk_type)) {
       /* If this is a constrained template type parameter, substitute the
@@ -41778,7 +41801,6 @@ fails.
         a_template_arg_ptr  new_args;
         an_expr_node_ptr    constraint_copy;
         check_assertion(node_is(constraint, enk_concept_id));
-        init_ctws_state(&ctws_state);
         new_args = copy_template_arg_list_with_substitution(
                                            (a_symbol_ptr)NULL,
                                            constraint->variant.concept_id.args,
@@ -41786,8 +41808,8 @@ fails.
                                            (a_template_param_ptr)NULL,
                                            templ_arg_list, templ_param_list,
                                            &constraint->position,
-                                           CTWS_MAY_BE_RESCANNED,
-                                           copy_error, &ctws_state);
+                                           options | CTWS_MAY_BE_RESCANNED,
+                                           copy_error, ctws_state);
         if (*copy_error) break;
         constraint_copy = copy_node(constraint);
         constraint_copy->variant.concept_id.args = new_args;
@@ -41799,14 +41821,13 @@ fails.
       /* Substitute the types of nontype template parameters that depend on
          other template parameters. */
       a_type_ptr	const_type;
-      init_ctws_state(&ctws_state);
       const_type = tpp->variant.constant.ptr->type;
       const_type =
              copy_type_with_substitution(const_type,
                                          templ_arg_list, templ_param_list,
                                          &template_sym->decl_position,
-                                         CTWS_MAY_BE_RESCANNED,
-                                         copy_error, &ctws_state);
+                                         options | CTWS_MAY_BE_RESCANNED,
+                                         copy_error, ctws_state);
       if (*copy_error) break;
       tpp->variant.constant.ptr->type = const_type;
     }  /* if */
@@ -41819,14 +41840,13 @@ fails.
       tap = alloc_template_arg(arg_kind);
       get_template_arg_value_from_default(template_sym, tap, tpp,
                                           templ_param_list);
-      init_ctws_state(&ctws_state);
       substitute_template_argument(tap, tpp, templ_arg_list,
                                    templ_param_list,
                                    templ_arg_list, templ_param_list,
                                    &template_sym->decl_position,
-                                   CTWS_MAY_BE_RESCANNED,
+                                   options | CTWS_MAY_BE_RESCANNED,
                                    /*is_generic=*/FALSE,
-                                   copy_error, &ctws_state);
+                                   copy_error, ctws_state);
       if (*copy_error) break;
       /* Copy the argument value back into the template parameter. */
       set_template_default_arg_value(tap, tpp);
@@ -41839,6 +41859,7 @@ fails.
 static void substitute_templ_params(a_template_param_ptr       list_to_subst,
                                     a_symbol_ptr               template_sym,
                                     a_subst_pairs_array const  &subst_pairs,
+                                    a_ctws_options_set         options,
                                     a_boolean                  *copy_error)
 /*
 Apply all the substitutions described in subst_pairs to list_to_subst (which
@@ -41847,13 +41868,16 @@ to TRUE if a substitution error occurs; in that case, some substitution may
 not be completed.
 */
 {
-  int  levels = (int)subst_pairs.length();
+  int           levels = (int)subst_pairs.length();
+  a_ctws_state  ctws_state;
 
   if (levels != 0) {
+    init_ctws_state(&ctws_state);
     for (int k = 0; k < levels && !*copy_error; ++k) {
       a_subst_pairs_descr const  *spd = &subst_pairs[k];
       substitute_template_param_list(template_sym, list_to_subst,
-                                     spd->params, spd->args, copy_error);
+                                     spd->params, spd->args,
+                                     options, copy_error, &ctws_state);
       if (*copy_error) break;
     }  /* for */
   }  /* if */
@@ -42025,18 +42049,21 @@ identical).
     }  /* if */
     subst_pairs.push_back(spd);
     substitute_templ_params(templ_param_list, ct_sym, subst_pairs,
-                            &copy_error);
+                            CTWS_ADJUST_COORDINATES, &copy_error);
     if (copy_error) goto done;
   }
   /* Get the return type based on the class template argument list.
      The list is copied first because it may be discarded by
      find_class_template_simple. */
+  init_ctws_state(&ctws_state);
+  ctws_state.orig_class_templ_params = orig_class_templ_params;
   tap = copy_template_arg_list(class_templ_args);
   return_type_sym = find_template_class_simple(orig_ct_sym, &tap);
   return_type = type_symbol_type(return_type_sym);
   if (ctor_is_template) {
     orig_ctor_templ_params =
                   ctor_tssp->variant.function.decl_cache.decl_info->parameters;
+    ctws_state.orig_ctor_templ_params = orig_ctor_templ_params;
     copy_template_params_to_new_list(orig_ctor_templ_params,
                                      &templ_param_list,
                                      &ctor_templ_params, NULL,
@@ -42045,15 +42072,20 @@ identical).
        in the new parameter list. */
     ctor_templ_args = create_prototype_arg_list(ct_sym, ctor_templ_params,
                                                 /*add_pack_descr=*/TRUE);
+    ctws_state.new_templ_params = templ_param_list;
     /* Repeat the substitution, this time replacing any template parameters
        of the constructor template. */
     substitute_template_param_list(ctor_sym, templ_param_list,
                                    orig_ctor_templ_params,
-                                   ctor_templ_args, &copy_error);
+                                   ctor_templ_args,
+                                   CTWS_ADJUST_COORDINATES,
+                                   &copy_error, &ctws_state);
     if (copy_error) goto done;
     substitute_template_param_list(ctor_sym, ctor_templ_params,
                                    orig_class_templ_params,
-                                   class_templ_args, &copy_error);
+                                   class_templ_args,
+                                   CTWS_ADJUST_COORDINATES,
+                                   &copy_error, &ctws_state);
     if (copy_error) goto done;
   }  /* if */
   tssp = sym->variant.template_info;
@@ -42065,9 +42097,6 @@ identical).
      parameters of the enclosing class template and, if the constructor is a
      constructor template, the parameters of the constructor template) with
      references to the newly created template parameters. */
-  init_ctws_state(&ctws_state);
-  ctws_state.orig_class_templ_params = orig_class_templ_params;
-  ctws_state.orig_ctor_templ_params = orig_ctor_templ_params;
   ctws_state.new_templ_params = templ_param_list;
   ctws_state.old_this_class = proto_type;
   ctws_state.new_this_class = return_type;
@@ -42549,7 +42578,8 @@ guide is recorded in the template symbol supplement associated with alias_sym.
          list. */
       substitute_template_param_list(alias_sym, new_template_params,
                                      alias_template_params, alias_proto_args,
-                                     &copy_error);
+                                     CTWS_ADJUST_COORDINATES,
+                                     &copy_error, &ctws_state);
       if (copy_error) goto done;
       /* Set up the mapping for parameter packs to refer to the pack from the
          new template parameter list.  Note that an alias template can only
@@ -42584,6 +42614,7 @@ guide is recorded in the template symbol supplement associated with alias_sym.
          refer to template parameters from the new template parameter list. */
       init_ctws_state(&ctws_state);
       ctws_state.alias_parameter_pack_mapping = &alias_pack_mapping;
+      ctws_state.orig_class_templ_params = alias_template_params;
       ctws_state.new_templ_params = new_template_params;
       a_template_param_ptr class_tpp = class_tssp->cache.decl_info->parameters;
       for (a_template_arg_ptr tap = deduced_guide_args;
@@ -42624,7 +42655,8 @@ guide is recorded in the template symbol supplement associated with alias_sym.
         substitute_template_param_list(alias_sym, nondeduced_tpp,
                                        guide_template_params,
                                        deduced_guide_args,
-                                       &copy_error);
+                                       CTWS_ADJUST_COORDINATES,
+                                       &copy_error, &ctws_state);
         if (copy_error) goto done;
         /* Update the pack mapping to include parameter packs from the
            deduction guide parameter list to the corresponding parameter pack
@@ -42644,6 +42676,7 @@ guide is recorded in the template symbol supplement associated with alias_sym.
          guide. */
       init_ctws_state(&ctws_state);
       ctws_state.new_templ_params = new_template_params;
+      ctws_state.orig_class_templ_params = guide_template_params;
       ctws_state.alias_parameter_pack_mapping = &pack_mapping;
       rout_type = copy_type_with_substitution(rout_type, deduced_guide_args,
                                               guide_template_params,
