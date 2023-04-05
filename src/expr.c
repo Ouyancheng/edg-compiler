@@ -27437,11 +27437,11 @@ previously-scanned braced initializer.
 
 
 static
-a_boolean trivial_copy_of_braced_init_list(a_type_ptr            dest_type,
-                                           an_arg_list_elem_ptr  arg_list)
+a_boolean trivial_copy_of_single_arg(a_type_ptr            dest_type,
+                                     an_arg_list_elem_ptr  arg_list)
 /*
-Return TRUE if arg_list is a single braced-initializer list that could be
-copied by the trivial copy constructor of dest_type.  For example:
+Return TRUE if arg_list is a single argument that could be copied by the
+trivial copy constructor of dest_type.  For example:
   struct S { int x } s = S({ .x = 1 });
 Although the constructor symbol for S is NULL in this case, the cast should
 still be handled if a trivial copy constructor call is made (i.e., the
@@ -27450,8 +27450,7 @@ parentheses do not themselves correspond to aggregate initialization).
 {
   a_boolean  result = FALSE;
 
-  if (arg_list != NULL && arg_list->next == NULL &&
-      is_braced_init_component(arg_list)) {
+  if (arg_list != NULL && arg_list->next == NULL) {
     an_arg_match_summary  arg_match;
     an_operand            opnd;
     clear_arg_match_summary(&arg_match);
@@ -27468,7 +27467,7 @@ parentheses do not themselves correspond to aggregate initialization).
     }  /* if */
   }  /* if */
   return result;
-}  /* trivial_copy_of_braced_init_list */
+}  /* trivial_copy_of_single_arg */
 
 
 void scan_ctor_args_or_paren_aggr_init(
@@ -27533,7 +27532,7 @@ aggregate initialization, wrap *arg_list with an ick_braced component and set
       }  /* if */
       expr_stack->in_call_argument = saved_in_call_argument;
     } else if (*aggr_init &&
-               trivial_copy_of_braced_init_list(dest_type, *arg_list)) {
+               trivial_copy_of_single_arg(dest_type, *arg_list)) {
       /* The inner braced-initializer list should be treated as an argument
          for the trivial copy constructor. */
       *aggr_init = FALSE;
@@ -27999,9 +27998,13 @@ freed by this routine.
       supplied_arg_list = NULL;
     } else {
       /* The parentheses correspond to the invocation of a trivial copy
-         constructor, and the copied entity is a braced initializer list
-         initializing a temporary of type type_cast_to. */
-      make_braced_init_list_operand(supplied_arg_list, result);
+         constructor and not an aggregate initialization. */
+      if (is_braced_init_component(supplied_arg_list)) {
+        make_braced_init_list_operand(supplied_arg_list, result);
+      } else {
+        extract_operand_from_expression_component(supplied_arg_list, result,
+                                                  /*free_icp=*/FALSE);
+      }  /* if */
       do_cast(type_cast_to, result, (an_operand*)NULL,
               csf_functional, local_options, err,
               &type_position, start_position,
