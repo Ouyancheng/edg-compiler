@@ -3923,13 +3923,15 @@ empty structs in both 32-bit and 64-bit architectures.
 #endif /* BACK_END_IS_C_GEN_BE */
 
 /*
-If ALLOW_ELLIPSIS_ONLY_PARAM_IN_GENERATED_C is TRUE, "(...)" will be put out
-as the parameter list for a routine with no parameters and has_ellipsis
-set to TRUE.  The setting of this switch is irrelevant in C mode
-if the construct is not allowed in the source (see
-allow_ellipsis_only_param_in_C_mode).  However, the source construct
-is always allowed in C++ mode, and this switch also controls the form of
-the generated C for that case.
+If ALLOW_ELLIPSIS_ONLY_PARAM_IN_GENERATED_C is TRUE, "(...)" will be put
+out by the C-generating back end as the parameter list for a routine with
+no parameters and has_ellipsis set to TRUE.  The setting of this switch is
+irrelevant in C mode if the construct is not allowed in the source (see
+allow_ellipsis_only_param_in_C_mode).  However, the source construct is
+always allowed in C++ mode, and this switch also controls the form of the
+generated C for that case.  (Note that it does not affect the output of the
+C++-generating back end and form_function_declarator in il_to_str.c, where
+the output should reflect the actual source form of the declaration.)
 */
 #ifndef ALLOW_ELLIPSIS_ONLY_PARAM_IN_GENERATED_C
 #define ALLOW_ELLIPSIS_ONLY_PARAM_IN_GENERATED_C FALSE

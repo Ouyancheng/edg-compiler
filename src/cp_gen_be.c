@@ -9450,16 +9450,10 @@ declarator is the prototype instantiation of a function template.
         if (il_header.source_language == sl_C || !top_level_decl) {
           write_tok_str("void");
         }  /* if */
-#if !ALLOW_ELLIPSIS_ONLY_PARAM_IN_GENERATED_C
-      } else if (il_header.source_language != sl_Cplusplus) {
-        /* When C code is being generated, we put out the ellipsis by itself
-           only if it can be handled.  Otherwise, "(...)" is rendered by
-           "()" in the generated C. */
-#endif /* !ALLOW_ELLIPSIS_ONLY_PARAM_IN_GENERATED_C */
       } else {
         /* This is a parameter list consisting of only an ellipsis, which
-           is standard in C++ and may be accepted as an extension in C
-           mode. */
+           is standard in C++ and C23 and may be accepted as an extension
+           in earlier C modes. */
         write_tok_str("...");
       }  /* if */
     } else {

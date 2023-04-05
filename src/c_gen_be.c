@@ -2165,10 +2165,10 @@ is non-NULL, in which case that is the function scope.
         if (!rtsp->has_ellipsis) {
           write_tok_str("void");
         } else {
-          /* "void f(...)" is permitted in C++ mode and may be accepted (as a
-             nonstandard construct) in C mode as well.  But unless the idiom
-             is acceptable in the generated C as well, this is rendered as an
-             empty old-style parameter list. */
+          /* "void f(...)" is permitted in C++ and C23 modes and may be
+             accepted (as a nonstandard construct) in earlier C modes as
+             well.  Unless the idiom is acceptable in the generated C as
+             well, this is put out as an empty old-style parameter list. */
 #if ALLOW_ELLIPSIS_ONLY_PARAM_IN_GENERATED_C
           write_tok_str("...");
 #endif /* ALLOW_ELLIPSIS_ONLY_PARAM_IN_GENERATED_C */

@@ -3148,21 +3148,10 @@ in the way described by octl.
           if (il_header.source_language == sl_C) {
             octl->output_str("void", octl);
           }  /* if */
-#if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
-#if !ALLOW_ELLIPSIS_ONLY_PARAM_IN_GENERATED_C
-        } else if (octl->gen_compilable_code &&
-                   (octl->c_generating_back_end ||
-                    il_header.source_language == sl_C)) {
-          /* For the C-generating back end (or the C++-generating back end
-             when it is producing C code), we put out the ellipsis by itself
-             only if it can be handled.  Otherwise, "(...)" is rendered by
-             "()" in the generated C. */
-#endif /* !ALLOW_ELLIPSIS_ONLY_PARAM_IN_GENERATED_C */
-#endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
         } else {
           /* This is a parameter list consisting of only an ellipsis, which
-             is standard in C++ and may be accepted as an extension in C
-             mode. */
+             is standard in C++ and C23 and may be accepted as an extension
+             in C earlier C modes. */
           octl->output_str("...", octl);
         }  /* if */
       } else {
