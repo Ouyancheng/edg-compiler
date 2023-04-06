@@ -6532,6 +6532,62 @@ arrays are treated as one-dimensional arrays.
 }  /* repeat_nonconstant_init */
 
 
+static a_boolean is_const_default_initializable(a_type_ptr  tp)
+/*
+Return TRUE if the given class type without a user-provided constructor is
+"const-default-initializable" (N4901 [dcl.init.general]/8).  That requires
+that all non-variant subobjects have a default initializer or that they are of
+"const-default-initializable" types (or an array thereof).  For unions (incl.
+anonymous unions) at least one member must satisfy that constraint (or the
+union must be empty).
+*/
+{
+  a_boolean    result, has_init;
+  a_field_ptr  fp = next_proper_initializable_field(fields_of(tp));
+
+  if (fp == NULL) {
+    /* Empty class types always satisfy the constraint. */
+    result = TRUE;
+  } else {
+    result = !type_is(tp, tk_union);
+    for (; fp != NULL; fp = next_proper_initializable_field(fp->next)) {
+      if (ms_extensions && field_is_property_or_event(fp)) {
+        /* Property and event fields aren't really data members. */
+        continue;
+      }  /* if */
+      /* Check whether the field has a default initializer or is itself
+         const-default-initializable. */
+      if (fp->has_initializer) {
+        has_init = TRUE;
+      } else {
+        a_type_ptr  uftp = skip_typerefs(skip_array_types(fp->type));
+        has_init = is_immediate_class_type(uftp) &&
+                   is_const_default_initializable(uftp);
+      }  /* if */
+      if (type_is(tp, tk_union)) {
+        if (has_init) {
+          result = TRUE;
+          break;
+        }  /* if */
+      } else if (!has_init) {
+        result = FALSE;
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  if (result) {
+    a_base_class_ptr  bcp = base_classes_of(tp);
+    for (; bcp != NULL; bcp = bcp->next) {
+      if (!is_const_default_initializable(bcp->type)) {
+        result = FALSE;
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  return result;
+}  /* is_const_default_initializable */
+
+
 a_boolean def_initializer(a_symbol_ptr       sym,
                           a_source_position  *err_pos)
 /*
@@ -6650,7 +6706,8 @@ FALSE is returned) for non-class objects.
                        tp, tp, err_pos, /*check_access=*/TRUE,
                        (a_boolean *)NULL);
           }  /* if */
-          if (is_const && !tp->variant.class_struct_union.is_empty_class) {
+          if (is_const && !tp->variant.class_struct_union.is_empty_class &&
+              !is_const_default_initializable(tp)) {
             /* A user-provided default constructor is normally required for a
                const-qualified variable. */
             if (any_cfront_mode() || microsoft_mode) {
