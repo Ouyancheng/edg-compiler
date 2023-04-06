@@ -3385,13 +3385,15 @@ initialization. */
       pos_error(ec_designator_for_non_POD, init_component_pos(icp));
     }  /* if */
   }  /* if */
-  /* N4810 [over.ics.list]p2 - validation that the designated initializer list
+  /* (N4810 [over.ics.list]p2)  Validation that the designated initializer list
      matches restrictions is deferred until the actual initialization of the
      parameter, and does not affect overload resolution. */
   if (okay && *field != NULL && !is->check_validity_only &&
-      (cpp20_designators_restriction || gpp_version_is(any_version))) {
+      (cpp20_designators_restriction || gpp_version_is(any_version) ||
+       clang_version_is(any_version))) {
+    a_boolean  relaxed_constraint = clang_version_is(any_version);
     /* GCC restricts "non-trivial" designated initializers in all modes. */
-    if (class_type->kind != (a_type_kind)tk_union) {
+    if (!type_is(class_type, tk_union)) {
       /* resolved_field is set so we can check for duplicate designators.
          For an anonymous union member, we set the field to the invented
          anonymous union field.  For a union member we skip this step and do
@@ -3399,25 +3401,28 @@ initialization. */
       icp->variant.designator.resolved_field = *field;
       if (designator_exists(top_icp, icp)) {
         if (!is->no_diagnostics) {
-          pos_error(ec_duplicate_designator, init_component_pos(icp));
+          pos_diagnostic(relaxed_constraint ? es_warning : es_error,
+                         ec_duplicate_designator, init_component_pos(icp));
         }  /* if */
-        is->init_error = TRUE;
+        is->init_error = !relaxed_constraint;
       } else if (!fields_are_ordered(orig_field, *field)) {
         /* Check if the declaration order is preserved.  Do not do this check
            for union and anonymous union members because unions can only ever
            have one designator. */
         if (!is->no_diagnostics) {
-          pos_error(ec_no_out_of_order_init_in_cpp_mode,
-                    init_component_pos(icp));
+          pos_diagnostic(relaxed_constraint ? es_warning : es_error,
+                         ec_no_out_of_order_init_in_cpp_mode,
+                         init_component_pos(icp));
         }  /* if */
-        is->init_error = TRUE;
+        is->init_error = !relaxed_constraint;
       }  /* if */
     } else if (multiple_designators(top_icp, icp)) {
       /* For a union, having multiple designators is an error */
       if (!is->no_diagnostics) {
-        pos_error(ec_duplicate_designator, init_component_pos(icp));
+        pos_diagnostic(relaxed_constraint ? es_warning : es_error,
+                       ec_duplicate_designator, init_component_pos(icp));
       }  /* if */
-      is->init_error = TRUE;
+      is->init_error = !relaxed_constraint;
     }  /* if */
   }  /* if */
   if (skip_designator) {

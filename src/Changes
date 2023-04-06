@@ -1,5 +1,18 @@
 Version 6.5
 
+4/6/23   [EDGcpfe/26191]
+Clang C++ compatibility: Out-of-order designators
+
+C++20 permits designated initializers but requires any designators to appear
+in the same order as the declaration order of the members they designate.
+Clang does not impose this constraint and the front end previously emulated
+that by silently accepting code that contains out-of-order designators.  Now,
+a warning is issued.  For example:
+
+  struct S { int i, j, k; } s = { .j = 1, .i = 2 };
+    // Ordinarily an error in C++20 mode.  Now a warning in Clang C++20 mode.
+
+
 4/5/23   [EDGcpfe/21469,EDGcpfe/24285,EDGcpfe/26180]
 Variables of class class type with a defaulted default constructor
 
