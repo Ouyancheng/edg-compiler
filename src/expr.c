@@ -42945,7 +42945,7 @@ dynamic init entry if one is created to represent this initializer
   an_expr_stack_entry expr_stack_entry;
   a_variable_ptr      var = NULL;
   a_dynamic_init_ptr  dip;
-  a_conv_context_set  conv_context = CCO_DEFAULT;
+  a_conv_context_set  conv_context = CCO_CONVERT_INITIALIZER;
   a_boolean           is_full_expr = is->elements_are_full_expressions;
   an_arg_match_summary
                       local_arg_match, *eff_arg_match = NULL;

@@ -1,5 +1,21 @@
 Version 6.5
 
+4/6/23   [EDGcpfe/26201]
+Microsoft-mode regression in handling of user-defined conversions
+
+The changes for EDGcpfe/25746 (not yet in a release but distributed as a patch)
+introduced a regression in some Microsoft mode when the initialization of an
+aggregate member requires a user-defined conversion.  For example:
+
+  struct V { V(); };
+  struct X { V elem[1]; };
+  struct S { operator V() const; };
+  S g();
+  X f() {
+    return X{g()};  // Previously failed in Microsoft C++17 mode.
+  }                 // Now okay.
+
+
 4/6/23   [EDGcpfe/26191]
 Clang C++ compatibility: Out-of-order designators
 

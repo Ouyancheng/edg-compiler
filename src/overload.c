@@ -6198,7 +6198,8 @@ in a new-expression).
                                 CCO_INITIALIZING_RETURN_VALUE |
                                 CCO_MOVE_OPTIMIZATION_ALLOWED |
                                 CCO_ALLOW_EXPLICIT_CONV_FUNCTIONS |
-                                CCO_UNWRAPPED_BRACED_LIST)) &&
+                                CCO_UNWRAPPED_BRACED_LIST |
+                                CCO_CONVERT_INITIALIZER)) &&
               !is_braced_init_component(arg_list_elem)) {
             /* Prevent unbounded recursion looking for a user-defined
                conversion match. */

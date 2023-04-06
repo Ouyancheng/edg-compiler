@@ -2420,6 +2420,9 @@ typedef int a_conv_context_set;
 			   indicate that the argument list was originally
 			   enclosed by braces.  Also TRUE when initializing the
 			   elements of a std::initializer_list object. */
+#define CCO_CONVERT_INITIALIZER ((a_conv_context_set)0x8000000)
+			/* Used to indicate that this is a conversion for a
+			   an initializer via convert_initializer. */
 
 
 /*
