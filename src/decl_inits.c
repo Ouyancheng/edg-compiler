@@ -6534,7 +6534,7 @@ arrays are treated as one-dimensional arrays.
 
 static a_boolean is_const_default_initializable(a_type_ptr  tp)
 /*
-Return TRUE if the given class type without a user-provided constructor is
+Return TRUE if the given class type has a constructor symbol or if it is
 "const-default-initializable" (N4901 [dcl.init.general]/8).  That requires
 that all non-variant subobjects have a default initializer or that they are of
 "const-default-initializable" types (or an array thereof).  For unions (incl.
@@ -6547,6 +6547,8 @@ union must be empty).
 
   if (fp == NULL) {
     /* Empty class types always satisfy the constraint. */
+    result = TRUE;
+  } else if (class_symbol_supp(symbol_for(tp))->constructor != NULL) {
     result = TRUE;
   } else {
     result = !type_is(tp, tk_union);
