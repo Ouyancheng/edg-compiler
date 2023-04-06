@@ -6578,6 +6578,7 @@ union must be empty).
   if (result) {
     a_base_class_ptr  bcp = base_classes_of(tp);
     for (; bcp != NULL; bcp = bcp->next) {
+      if (!bcp->direct) continue;
       if (!is_const_default_initializable(bcp->type)) {
         result = FALSE;
         break;

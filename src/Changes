@@ -1,7 +1,7 @@
 Version 6.5
 
 4/5/23   [EDGcpfe/26180]
-Variables of class class type with a trivial default constructor
+Variables of class class type with a defaulted default constructor
 
 Consider, in strict C++11 mode:
 
