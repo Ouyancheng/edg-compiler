@@ -41781,8 +41781,9 @@ Go through the template parameter list specified by list_to_subst and
 do substitution on the types of any nontype template parameters and on
 any default argument values.  templ_param_list and templ_arg_list are
 the parameters/arguments to be substituted.  template_sym is the template
-associated with templ_param_list.  *copy_error will be set if a substitution
-fails.
+associated with templ_param_list.  options is a set of bit flags used to
+control how names are looked up, if needed.  *copy_error will be set if a
+substitution fails.  ctws_state is a substitution state block pointer.
 */
 {
   a_template_param_ptr	tpp;
@@ -41863,9 +41864,10 @@ static void substitute_templ_params(a_template_param_ptr       list_to_subst,
                                     a_boolean                  *copy_error)
 /*
 Apply all the substitutions described in subst_pairs to list_to_subst (which
-is a template parameter list associated with template_sym).  Set *copy_error
-to TRUE if a substitution error occurs; in that case, some substitution may
-not be completed.
+is a template parameter list associated with template_sym).  options is a set
+of bit flags used to control how names are looked up, if needed.  Set
+*copy_error to TRUE if a substitution error occurs; in that case, some
+substitution may not be completed.
 */
 {
   int           levels = (int)subst_pairs.length();
