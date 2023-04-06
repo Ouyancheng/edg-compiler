@@ -16752,6 +16752,8 @@ the value representation of the integer value.
                   *(an_integer_value *)result_storage = zero_int;
                 } else {
                   do_constexpr_fail(result);
+                  info_with_pos(ec_constexpr_pointers_not_comparable,
+                                &expr->position, ips);
                 }  /* if */
               } else {
                 do_constexpr_fail(result);
@@ -16817,7 +16819,7 @@ the value representation of the integer value.
                   *(an_integer_value *)result_storage = zero_int;
                 } else {
                   do_constexpr_fail(result);
-                  info_with_pos(ec_constexpr_access_to_runtime_storage,
+                  info_with_pos(ec_constexpr_pointers_not_comparable,
                                 &expr->position, ips);
                 }  /* if */
               } else {
@@ -16886,7 +16888,7 @@ the value representation of the integer value.
                   *(an_integer_value *)result_storage = one_int;
                 } else {
                   do_constexpr_fail(result);
-                  info_with_pos(ec_constexpr_access_to_runtime_storage,
+                  info_with_pos(ec_constexpr_pointers_not_comparable,
                                 &expr->position, ips);
                 }  /* if */
               } else {
@@ -16955,7 +16957,7 @@ the value representation of the integer value.
                   *(an_integer_value *)result_storage = one_int;
                 } else {
                   do_constexpr_fail(result);
-                  info_with_pos(ec_constexpr_access_to_runtime_storage,
+                  info_with_pos(ec_constexpr_pointers_not_comparable,
                                 &expr->position, ips);
                 }  /* if */
               } else {
