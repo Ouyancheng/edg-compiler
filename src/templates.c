@@ -15485,7 +15485,6 @@ NULL pointer.
       check_assertion(prp->kind == prk_template_param);
       if (prp->coordinates->depth < orig_depth) {
         /* A reference to an enclosing template parameter pack. */
-        new_tpp = prp->template_param;
         new_prp = alloc_pack_reference(prk_template_param);
         *new_prp = *prp;
         new_prp->next = NULL;
