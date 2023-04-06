@@ -336,7 +336,7 @@ the source position managed by this object.
   if (hint_given && this->cache_ptr->get_position_hint() == &this->pos) {
     this->cache_ptr->set_position_hint(NULL);
   }  /* if */
-}  /* an_ifc_source_position_hint::an_ifc_source_position_hint */
+}  /* an_ifc_source_position_hint::~an_ifc_source_position_hint */
 
 }  /* namespace */
 
