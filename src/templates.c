@@ -14733,12 +14733,14 @@ new_type is not NULL, *new_type is set to NULL.
   a_symbol_ptr				orig_sym;
   a_template_arg_ptr			tap;
   a_template_param_ptr			tpp = NULL;
+  a_template_symbol_supplement_ptr	orig_tssp;
   a_template_symbol_supplement_ptr	tssp;
   a_boolean				is_nonreal_template;
   a_boolean				orig_is_prototype;
   a_template_param_ptr			ttp_param_list = NULL;
 
   if (new_type != NULL) *new_type = NULL;  
+  orig_tssp = template_sym->variant.template_info;
   template_sym = primary_template_of(template_sym);
   tssp = template_sym->variant.template_info;
   /* If the template symbol refers to a template template parameter, get
@@ -14761,6 +14763,19 @@ new_type is not NULL, *new_type is set to NULL.
   orig_is_prototype = is_immediate_class_type(orig_type) &&
                       orig_type->
                         variant.class_struct_union.is_prototype_instantiation;
+  if (orig_is_prototype && orig_tssp->primary_template_sym == NULL &&
+      ctws_state->in_parent_substitution) {
+    /* The in_parent_substitution flag is set when we are doing special
+       substitution of something like a noexcept argument.  That process
+       involves doing substitution of enclosing classes, which are typically
+       rescanned from tokens.  For such special substitution, when we hit a
+       prototype instantiation, create a special template argument list that
+       includes pack expansion descriptors for the prototype argument list
+       elements that are packs.  This is not done for partial specializations
+       where the template argument list is not synthesized. */
+    tap = create_prototype_arg_list(template_sym, templ_param_list,
+                                    /*add_pack_descr=*/TRUE);
+  }  /* if */
   is_nonreal_template = tssp->is_nonreal_member;
   if (!is_nonreal_template) {
     /* Except for nonreal templates, get the corresponding template parameter
@@ -15485,9 +15500,7 @@ NULL pointer.
       check_assertion(prp->kind == prk_template_param);
       if (prp->coordinates->depth < orig_depth) {
         /* A reference to an enclosing template parameter pack. */
-        new_prp = alloc_pack_reference(prk_template_param);
-        *new_prp = *prp;
-        new_prp->next = NULL;
+        new_prp = copy_pack_reference(prp);
       } else {
         if (ctws_state->alias_parameter_pack_mapping != NULL) {
           /* When doing substitution for an alias template deduction guide, a
@@ -15509,10 +15522,8 @@ NULL pointer.
                new_tpp = ctws_state->new_templ_params;
                old_tpp != NULL;
                old_tpp = old_tpp->next, new_tpp = new_tpp->next) {
-            a_template_param_coordinate_ptr  coords =
-                                        coordinates_of_template_param(old_tpp);
-            if (prp->coordinates->depth == coords->depth &&
-                prp->coordinates->position == coords->position) {
+            if (prp->symbol->token_sequence_number ==
+                                new_tpp->param_symbol->token_sequence_number) {
               break;
             }  /* if */
           }  /* for */
@@ -15520,10 +15531,8 @@ NULL pointer.
             for (old_tpp = ctws_state->orig_ctor_templ_params;
                  old_tpp != NULL;
                  old_tpp = old_tpp->next, new_tpp = new_tpp->next) {
-              a_template_param_coordinate_ptr  coords =
-                                        coordinates_of_template_param(old_tpp);
-              if (prp->coordinates->depth == coords->depth &&
-                  prp->coordinates->position == coords->position) {
+              if (prp->symbol->token_sequence_number ==
+                                new_tpp->param_symbol->token_sequence_number) {
                 break;
               }  /* if */
             }  /* for */
@@ -22442,9 +22451,10 @@ initially used when processing the declaration of a partial specialization.
                                  tssp->variant.class_template.name_linkage;
     templ_param_list = decl_state->decl_info->parameters;
     /* Create a template argument list that corresponds to the template
-       parameter list. */
+       parameter list.  Pack expansion descriptors are only needed for
+       definitions. */
     templ_arg_list = create_prototype_arg_list(sym, templ_param_list,
-                                               /*add_pack_descr=*/TRUE);
+                                               decl_state->defines_something);
     if (is_alias_template) {
       prototype_type->variant.typeref.extra_info->template_arg_list
                                                               = templ_arg_list;

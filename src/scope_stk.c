@@ -11464,7 +11464,7 @@ Return the number of actual arguments in *elements.
 }  /* find_variadic_param_info_for_pack */
 
 
-static a_pack_reference_ptr copy_pack_reference(a_pack_reference_ptr	prp)
+a_pack_reference_ptr copy_pack_reference(a_pack_reference_ptr	prp)
 /*
 Make a copy of prp, which is a pack reference from a prototype instantiation.
 Return a pointer to the copy.

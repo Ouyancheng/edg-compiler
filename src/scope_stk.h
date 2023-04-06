@@ -2407,6 +2407,8 @@ a_template_arg_ptr get_curr_variadic_arg_for_param(
 
 extern a_pack_reference_ptr alloc_pack_reference(a_pack_reference_kind	kind);
 
+extern a_pack_reference_ptr copy_pack_reference(a_pack_reference_ptr	prp);
+
 extern a_pack_expansion_descr_ptr alloc_pack_expansion_descr(void);
 
 extern void add_pack_expansion_descr_to_prototype_arg(
