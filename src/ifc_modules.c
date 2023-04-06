@@ -3613,10 +3613,16 @@ declaration.
 }  /* get_template_arg_kind */
 
 
-static a_type_ptr alloc_dependent_type_templ_arg(
+static a_type_ptr alloc_detached_type_templ_param(
                                        const an_ifc_decl_parameter &param_decl)
+/*
+Given an IFC parameter declaration representing a type template parameter,
+return a detached type template parameter type.  See
+alloc_detached_templ_param_sym for more information about detached template
+parameters.
+*/
 {
-  a_type_ptr result = alloc_type((a_type_kind)tk_template_param);
+  a_type_ptr result = alloc_type(tk_template_param);
 
   result->variant.template_param.is_pack = get_ifc_pack(param_decl);
   result->variant.template_param.is_generic_param = FALSE;
@@ -3629,7 +3635,249 @@ static a_type_ptr alloc_dependent_type_templ_arg(
   extra_info->coordinates.position = pnum;
   set_type_size(result);
   return result;
-}  /* alloc_dependent_type_templ_arg */
+}  /* alloc_detached_type_templ_param */
+
+
+static a_type_ptr type_for_type_index(an_ifc_type_index type_index);
+
+
+static a_constant_ptr alloc_detached_nontype_templ_param(
+                                       const an_ifc_decl_parameter &param_decl)
+/*
+Given an IFC parameter declaration representing a non-type template parameter,
+return a detached non-type template parameter constant.  See
+alloc_detached_templ_param_sym for more information about detached template
+parameters.
+*/
+{
+  a_constant_ptr result = fs_constant(ck_template_param);
+
+  set_template_param_constant_kind(result, tpck_param);
+
+  an_ifc_type_index type_idx = get_ifc_type(param_decl);
+  result->type = type_for_type_index(type_idx);
+
+  auto                      &extra_info = result->variant.template_param;
+  a_template_nesting_depth  pdepth = get_ifc_level(param_decl);
+  a_template_param_list_pos pnum = get_ifc_position(param_decl);
+  extra_info.variant.coordinates.depth = pdepth;
+  extra_info.variant.coordinates.position = pnum;
+  extra_info.is_pack = get_ifc_pack(param_decl);
+  return result;
+}  /* alloc_detached_nontype_templ_param */
+
+
+static a_template_ptr alloc_detached_templ_templ_param(
+                                       const an_ifc_decl_parameter &param_decl)
+/*
+Given an IFC parameter declaration representing a template template parameter,
+return a detached template parameter template.  See
+alloc_detached_templ_param_sym for more information about detached template
+parameters.
+*/
+{
+  a_template_ptr result = alloc_template();
+
+  result->kind = templk_template_template_param;
+  /* FIXME: Do we need to record the structure? */
+  // result->template_decl =
+
+  a_template_nesting_depth  pdepth = get_ifc_level(param_decl);
+  a_template_param_list_pos pnum = get_ifc_position(param_decl);
+  result->coordinates.depth = pdepth;
+  result->coordinates.position = pnum;
+  result->is_pack = get_ifc_pack(param_decl);
+  return result;
+}  /* alloc_detached_nontype_templ_param */
+
+
+static a_symbol_ptr alloc_detached_templ_param_sym(
+                                     const an_ifc_decl_parameter &param_decl);
+
+
+static a_template_decl_info_ptr alloc_detached_templ_templ_param_decl_info(
+                                       const an_ifc_decl_parameter &param_decl)
+/*
+Given an IFC parameter declaration representing a template template parameter,
+return the associated template decl info for use in a detached template
+template parameter.  If the template decl info cannot be successfully formed,
+instead return NULL.  See alloc_detached_templ_param_sym for more information
+about detached template parameters.
+*/
+{
+  a_template_decl_info_ptr result = NULL;
+  an_ifc_type_index        type = get_ifc_type(param_decl);
+
+  if (type.sort == ifc_ts_type_forall) {
+    Opt<an_ifc_type_forall> opt_forall_type;
+
+    construct_node(&opt_forall_type, type);
+    if (!opt_forall_type.has_value()) {
+      goto invalid;
+    }  /* if */
+
+    /* Extract and load the chart corresponding to the forall type. */
+    an_ifc_type_forall         forall_type = *opt_forall_type;
+    an_ifc_chart_index         chart = get_ifc_chart(forall_type);
+    Opt<an_ifc_chart_unilevel> opt_unilevel_chart;
+    construct_node(&opt_unilevel_chart, chart);
+    if (!opt_unilevel_chart.has_value()) {
+      goto invalid;
+    }  /* if */
+
+    /* Construct a_template_param_ptrs from the corresponding chart parameters
+       to form the template template parameter's template param list. */
+    an_ifc_chart_unilevel      unilevel_chart = *opt_unilevel_chart;
+    a_decl_parameter_traverser traverser(unilevel_chart);
+    a_template_param_ptr       start;
+    a_template_param_ptr       *next = &start;
+    for (an_Indexed<an_ifc_decl_parameter> indexed_idp : traverser) {
+      if (!indexed_idp.has_value()) {
+        goto invalid;
+      }  /* if */
+
+      /* Create appropriate a_template_param_ptr values. */
+      an_ifc_decl_parameter idp = *indexed_idp;
+      a_symbol_ptr          ttp_sym = alloc_detached_templ_param_sym(idp);
+      if (ttp_sym == NULL) {
+        goto invalid;
+      }  /* if */
+
+      a_template_param_ptr  new_ttp = alloc_template_param(ttp_sym);
+      (*next) = new_ttp;
+      next = &(new_ttp->next);
+    }  /* for */
+    /* Allocate the template decl info now that the template params have been
+       gathered. */
+    result = alloc_template_decl_info();
+    result->parameters = start;
+  } else {
+    a_string err_msg("it is not known how to convert ", index_to_str(type),
+                     " into a template parameter chart for a"
+                     " template template parameter");
+
+    ifc_unexpected(type.mod, err_msg.as_temp_characters());
+  }  /* if */
+  goto done;
+invalid:
+  result = NULL;
+done:
+  return result;
+}  /* alloc_detached_templ_templ_param_decl_info */
+
+
+static a_symbol_ptr alloc_detached_templ_param_sym(
+                                       const an_ifc_decl_parameter &param_decl)
+/*
+Given the IFC parameter declaration representation, return an appropriate
+symbol for a detached template parameter.  Detached template parameters are
+template parameters that are not associated with an IL declaration.  Detached
+template parameters are used when there isn't yet a declaration loaded from the
+IFC to own the parameter declaration (e.g., when creating IFC argument types to
+compare with existing functions as part of determining if the function is
+already loaded in the IL from, e.g., a global module fragment).
+*/
+{
+  a_symbol_ptr       result = NULL;
+  a_symbol_locator   loc;
+  an_ifc_text_offset name_idx = get_ifc_name(param_decl);
+  a_boolean          is_named_decl = is_name_present(name_idx);
+
+  /* Resolve the template parameter declaration's name into the symbol
+     locator. */
+  if (is_named_decl) {
+    if (!param_decl.get_module()->init_decl_locator(param_decl, &loc)) {
+      goto invalid;
+    }  /* if */
+  }  /* if */
+  {
+    a_templ_arg_kind arg_kind = get_template_arg_kind(param_decl);
+    a_symbol_locator *loc_ptr = (is_named_decl ? &loc : NULL);
+
+    switch (arg_kind) {
+      case tak_type:
+        { /* Create a new symbol referencing the template parameter.  Mark this
+             as a rescan as we don't want a symbol entered for this detached
+             parameter declarations. */
+          result = create_template_param_symbol(sk_type, loc_ptr,
+                                                !is_named_decl,
+                                                /*is_rescan=*/TRUE);
+
+          /* Form the detached type backing the template parameter type
+             symbol, and associate the two. */
+          a_type_ptr result_ty = alloc_detached_type_templ_param(param_decl);
+          if (is_named_decl) {
+            set_source_corresp(&result_ty->source_corresp, result);
+          } else {
+            clear_source_corresp_name(&result_ty->source_corresp);
+          }  /* if */
+          result->variant.type.ptr = result_ty;
+        }
+        break;
+      case tak_nontype:
+        { /* Create a new symbol referencing the template parameter.  Mark this
+            as a rescan as we don't want a symbol entered for this detached
+            parameter declarations.*/
+          result = create_template_param_symbol(sk_constant, loc_ptr,
+                                                !is_named_decl,
+                                                /*is_rescan=*/TRUE);
+
+          /* Form the detached constant backing the template parameter nontype
+             symbol, and associate the two. */
+          a_constant_ptr param_con =
+                               alloc_detached_nontype_templ_param(param_decl);
+          if (is_named_decl) {
+            set_source_corresp(&param_con->source_corresp, result);
+          } else {
+            clear_source_corresp_name(&param_con->source_corresp);
+          }  /* if */
+          result->variant.constant = param_con;
+        }
+        break;
+      case tak_template:
+        { /* Create a new symbol referencing the template parameter.  Mark this
+            as a rescan as we don't want a symbol entered for this detached
+            parameter declarations. */
+          result = create_template_param_symbol(sk_class_template, loc_ptr,
+                                                !is_named_decl,
+                                                /*is_rescan=*/TRUE);
+
+          /* Form the detached template backing the template parameter class
+             template symbol, and associate the two. */
+          a_template_ptr  templ =
+                                 alloc_detached_templ_templ_param(param_decl);
+          a_template_symbol_supplement_ptr
+                          tssp = result->variant.template_info;
+          templ->template_info = tssp;
+          tssp->il_template_entry = templ;
+          tssp->variant.class_template.argument_template = result;
+          if (is_named_decl) {
+            set_source_corresp(&templ->source_corresp, result);
+          } else {
+            clear_source_corresp_name(&templ->source_corresp);
+          }  /* if */
+
+          a_template_decl_info_ptr tdip =
+                       alloc_detached_templ_templ_param_decl_info(param_decl);
+          if (tdip == NULL) {
+            goto invalid;
+          }  /* if */
+          set_template_cache_info(&tssp->cache, (a_token_cache_ptr)NULL, tdip);
+        }
+        break;
+      case tak_start_of_pack_expansion:
+        ifc_unexpected(param_decl.get_module(),
+                       "unimplemented detached param resolution");
+        break;
+      default_is_unexpected();
+    }  /* switch */
+  }
+  goto done;
+invalid:
+  result = NULL;
+done:
+  return result;
+}  /* alloc_detached_templ_param_sym */
 
 
 static a_symbol_ptr load_param_ref(an_ifc_decl_index decl_idx)
@@ -3667,40 +3915,14 @@ can be found, return NULL.
       do {
         a_template_param_ptr    tpp = NULL;
         a_scope_stack_entry_ptr ssep = &(scope_stack[sd]);
+
         if (ssep->kind == sck_module_isolated) {
           /* If a module isolation scope has been reached, this template
-             argument must be dependent. */
-          a_templ_arg_kind arg_kind = get_template_arg_kind(idp);
-
-          switch (arg_kind) {
-            case tak_type:
-              { a_symbol_locator loc;
-
-                /* Resolve the template parameter declaration's name into the
-                   symbol locator. */
-                if (!idp.get_module()->init_decl_locator(idp, &loc)) {
-                  goto invalid;
-                }  /* if */
-                /* Create a new symbol referencing the template parameter. */
-                result = create_template_param_symbol(sk_type, &loc,
-                                                      /*is_named=*/TRUE,
-                                                      /*is_rescan=*/FALSE);
-
-                /* Form the dependent type backing the template parameter type
-                   symbol, and associate the two. */
-                a_type_ptr result_ty = alloc_dependent_type_templ_arg(idp);
-                set_source_corresp(&result_ty->source_corresp, result);
-                result->variant.type.ptr = result_ty;
-              }
-              break;
-            case tak_nontype:
-            case tak_template:
-            case tak_start_of_pack_expansion:
-              ifc_unexpected(decl_idx.mod,
-                             "unimplemented dependent param resolution");
-              break;
-            default_is_unexpected();
-          }  /* switch */
+             argument must be detached. */
+          result = alloc_detached_templ_param_sym(idp);
+          if (result == NULL) {
+            goto invalid;
+          }  /* if */
         } else {
           a_template_decl_info *tdip = ssep->template_decl_info;
           a_symbol_ptr         tsym = ssep->template_sym;
@@ -5451,7 +5673,6 @@ if the type is not declared by a declaration, return an empty optional.
   return result;
 }  /* decl_index_from_type_index */
 
-a_type_ptr type_for_type_index(an_ifc_type_index type_index);
 
 static a_type_kind type_kind_for_type_index(an_ifc_type_index type_idx)
 /*
@@ -10404,15 +10625,7 @@ corresponding type, return an error type.
                 an_ifc_decl_parameter decl_param = *opt_decl_param;
                 an_ifc_type_index     type = get_ifc_type(decl_param);
                 if (type_represents_templ_param_ref(type)) {
-                  result = alloc_type((a_type_kind)tk_template_param);
-                  result->variant.template_param.is_pack = FALSE;
-                  result->variant.template_param.is_generic_param = FALSE;
-
-                  a_template_param_type_supplement_ptr tptsp =
-                                     result->variant.template_param.extra_info;
-                  tptsp->coordinates.depth = get_ifc_level(decl_param);
-                  tptsp->coordinates.position = get_ifc_position(decl_param);
-                  set_type_size(result);
+                  result = alloc_detached_type_templ_param(decl_param);
                 } else {
                   result = type_for_type_index(get_ifc_type(decl_param));
                 }  /* if */
