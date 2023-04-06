@@ -7180,16 +7180,6 @@ strongly preferred over calling this function directly.
     }  /* if */
   }  /* if */
   switch (decl_idx.sort) {
-    case ifc_ds_decl_vendor_extension:
-    case ifc_ds_decl_explicit_instantiation:
-    case ifc_ds_decl_explicit_specialization:
-      /* FIXME: Need a proper source position for this. */
-      error_position = null_source_position;
-      issue_unsupported_construct_error(mod, str_for(decl_idx.sort),
-                                        &error_position);
-      il_entity = (char *)error_type();
-      kind = iek_type;
-      break;
     case ifc_ds_decl_variable:
       { Opt<an_ifc_decl_variable> opt_idv;
 
@@ -8149,104 +8139,6 @@ class_struct_union_case:
         }  /* if */
       }
       break;
-    case ifc_ds_decl_parameter:
-      { Opt<an_ifc_decl_parameter> opt_idp;
-
-        construct_node(&opt_idp, decl_idx);
-        if (!opt_idp.has_value()) {
-          goto invalid;
-        }  /* if */
-
-        a_symbol_locator loc;
-        if (!mod->init_decl_locator(*opt_idp, &loc)) {
-          goto invalid;
-        }  /* if */
-        /* FIXME: This should be a soft failure. */
-        check_assertion(get_ifc_name(*opt_idp) != 0);
-
-        an_ifc_decl_parameter     idp = *opt_idp;
-        an_ifc_type_index         type_idx = get_ifc_type(idp);
-        a_type_ptr                param_type;
-        a_template_param_ptr      param = NULL, *next_param;
-        a_template_parameter_ptr  il_param = NULL;
-        a_boolean                 is_pack = FALSE;
-        /* FIXME: constraint_expr = expr_for_expr_index(idspp->constraint);*/
-        /* FIXME: init_expr = expr_for_expr_index(idspp->initializer); */
-        if (type_idx.sort == ifc_ts_type_expansion) {
-          /* FIXME: Currently unsupported. */
-          is_pack = TRUE;
-          issue_unsupported_construct_error(mod, "DeclSort::Parameter packs",
-                                            &error_position);
-        }  /* if */
-        /* FIXME: Currently all paths that lead here have
-           curr_templ_decl_state == NULL. */
-        switch (get_ifc_sort(idp)) {
-          case ifc_ps_object:
-            /* FIXME: Currently unsupported. */
-            issue_unsupported_construct_error(mod, "ParameterSort::Object",
-                                              &error_position);
-            param = make_nontype_template_param(get_ifc_level(idp),
-                                                get_ifc_position(idp),
-                                                /*is_unnamed=*/FALSE,
-                                                is_pack,
-                                                /*is_pack_element=*/FALSE,
-                                                /*is_non_initial=*/FALSE,
-                                                /*is_pack_expansion=*/FALSE,
-                                                &loc, error_type(),
-                                                mod->curr_templ_decl_state);
-            break;
-          case ifc_ps_type:
-            /* FIXME: Handle unnamed parameters properly */
-            param = decl_type_template_param(get_ifc_position(idp), &loc,
-                                             /*is_named=*/TRUE, is_pack,
-                                             /*constraint=*/NULL,
-                                             mod->curr_templ_decl_state,
-                                             &mod->curr_templ_decl_state->
-                                                               decl_pos_block);
-            break;
-          case ifc_ps_non_type:
-            param_type = type_for_type_index(get_ifc_type(idp));
-            /* FIXME: Handle unnamed parameters properly. */
-            param = make_nontype_template_param(get_ifc_level(idp),
-                                                get_ifc_position(idp),
-                                                /*is_unnamed=*/FALSE,
-                                                is_pack,
-                                                /*is_pack_element=*/FALSE,
-                                                /*is_non_initial=*/FALSE,
-                                                /*is_pack_expansion*/FALSE,
-                                                &loc, param_type,
-                                                mod->curr_templ_decl_state);
-            break;
-          case ifc_ps_template:
-            /* FIXME: Currently unsupported. */
-            issue_unsupported_construct_error(mod, "ParameterSort::Template",
-                                              &error_position);
-            param = make_nontype_template_param(get_ifc_level(idp),
-                                                get_ifc_position(idp),
-                                                /*is_unnamed=*/FALSE,
-                                                is_pack,
-                                                /*is_pack_element=*/FALSE,
-                                                /*is_non_initial=*/FALSE,
-                                                /*is_pack_expansion=*/FALSE,
-                                                &loc, error_type(),
-                                                mod->curr_templ_decl_state);
-            break;
-          default_is_unexpected_str("Unexpected ParameterSort");
-        }  /* switch */
-        if (param != NULL) {
-          next_param = &mod->curr_templ_decl_state->decl_info->parameters;
-          /* Skip to end of parameter list. */
-          for (; *next_param != NULL; next_param = &(*next_param)->next) {}
-          *next_param = param;
-          ++mod->curr_templ_decl_state->decl_info->n_params;
-          il_param = alloc_template_parameter();
-          param->il_template_parameter = il_param;
-          param->param_symbol->is_invisible = FALSE;
-          il_entity = (char*)il_param;
-          kind = iek_template_parameter;
-        }  /* if */
-      }
-      break;
     case ifc_ds_decl_reference:
       { Opt<an_ifc_decl_reference> opt_idr;
 
@@ -8551,18 +8443,32 @@ class_struct_union_case:
         source_position_from_locus(&error_position, locus);
         goto unhandled;
       }
+    case ifc_ds_decl_explicit_instantiation:
+    case ifc_ds_decl_explicit_specialization:
+    case ifc_ds_decl_parameter:
+#if CHECKING
+      { /* These declarations should not appear here; their processing should
+           be handled as part of processing of their prerequisites (see
+           process_decl_prerequisites). */
+        a_string err_msg(index_to_str(decl_idx),
+                         " cannot be processed directly into an IL entity");
+
+        unexpected_condition_str(err_msg.as_temp_characters());
+      }
+#endif /* CHECKING */
+      /* Intentionally fall through in non-checking modes to the unsupported
+         node reporting and module entity invalidation logic. */
     case ifc_ds_decl_barren:
-    case ifc_ds_decl_using_directive:
     case ifc_ds_decl_syntax_tree:
+    case ifc_ds_decl_using_directive:
+    case ifc_ds_decl_vendor_extension:
       { /* FIXME: Need a proper source position here. */
         error_position = null_source_position;
 unhandled:
         issue_unsupported_construct_error(mod, str_for(decl_idx.sort),
                                           &error_position);
-        il_entity = (char *)error_type();
-        kind = iek_type;
       }
-      break;
+      goto invalid;
     default_is_unexpected_str("Unexpected DeclSort");
   }  /* switch */
   goto done;
