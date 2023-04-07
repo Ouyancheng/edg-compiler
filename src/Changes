@@ -30,7 +30,7 @@ a warning is issued.  For example:
 
 
 4/5/23   [EDGcpfe/21469,EDGcpfe/24285,EDGcpfe/26180]
-Variables of class class type with a defaulted default constructor
+Variables of a class type with a defaulted default constructor
 
 Consider, in strict C++11 mode:
 
