@@ -4,7 +4,7 @@ Version 6.5
 Microsoft-mode regression in handling of user-defined conversions
 
 The changes for EDGcpfe/25746 (not yet in a release but distributed as a patch)
-introduced a regression in some Microsoft mode when the initialization of an
+introduced a regression in some Microsoft modes when the initialization of an
 aggregate member requires a user-defined conversion.  For example:
 
   struct V { V(); };
