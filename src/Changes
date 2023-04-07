@@ -47,7 +47,7 @@ now correctly inhibits the diagnostic in such situations.  This implements the
 resolution of Core issue 2366.
 
 
-4/5/23   [EDGcpfe/24656,EDGcpfe/25869]
+4/5/23   [EDGcpfe/24656,EDGcpfe/25306,EDGcpfe/25869]
 Spurious substitution failures when forming implicit deduction guides
 
 Consider, in C++17 mode:
