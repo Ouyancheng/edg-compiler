@@ -6553,7 +6553,8 @@ union must be empty).
   if (fp == NULL) {
     /* Empty class types always satisfy the constraint. */
     result = TRUE;
-  } else if (class_symbol_supp(symbol_for(tp))->constructor != NULL) {
+  } else if (class_symbol_supp(symbol_for(tp))
+                                    ->has_user_provided_default_constructor) {
     result = TRUE;
   } else {
     result = !type_is(tp, tk_union);
@@ -6581,16 +6582,16 @@ union must be empty).
         break;
       }  /* if */
     }  /* for */
-  }  /* if */
-  if (result) {
-    a_base_class_ptr  bcp = base_classes_of(tp);
-    for (; bcp != NULL; bcp = bcp->next) {
-      if (!bcp->direct) continue;
-      if (!is_const_default_initializable(bcp->type)) {
-        result = FALSE;
-        break;
-      }  /* if */
-    }  /* for */
+    if (result) {
+      a_base_class_ptr  bcp = base_classes_of(tp);
+      for (; bcp != NULL; bcp = bcp->next) {
+        if (!bcp->direct) continue;
+        if (!is_const_default_initializable(bcp->type)) {
+          result = FALSE;
+          break;
+        }  /* if */
+      }  /* for */
+    }  /* if */
   }  /* if */
   return result;
 }  /* is_const_default_initializable */
