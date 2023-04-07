@@ -6539,7 +6539,7 @@ arrays are treated as one-dimensional arrays.
 
 static a_boolean is_const_default_initializable(a_type_ptr  tp)
 /*
-Return TRUE if the given class type has a constructor symbol or if it is
+Return TRUE if the given class type has a user-provided constructor or if it is
 "const-default-initializable" (N4901 [dcl.init.general]/8).  That requires
 that all non-variant subobjects have a default initializer or that they are of
 "const-default-initializable" types (or an array thereof).  For unions (incl.
