@@ -6539,24 +6539,25 @@ arrays are treated as one-dimensional arrays.
 
 static a_boolean is_const_default_initializable(a_type_ptr  tp)
 /*
-Return TRUE if the given class type has a user-provided constructor or if it is
-"const-default-initializable" (N4901 [dcl.init.general]/8).  That requires
-that all non-variant subobjects have a default initializer or that they are of
-"const-default-initializable" types (or an array thereof).  For unions (incl.
-anonymous unions) at least one member must satisfy that constraint (or the
-union must be empty).
+Return TRUE if the given class type has a user-provided default constructor or
+if it is "const-default-initializable" (N4901 [dcl.init.general]/8).  That
+requires that all non-variant subobjects have a default initializer or that
+they are of "const-default-initializable" types (or an array thereof).  For
+unions (incl.  anonymous unions) at least one member must satisfy that
+constraint (or the union must be empty).
 */
 {
-  a_boolean    result, has_init;
-  a_field_ptr  fp = next_proper_initializable_field(fields_of(tp));
+  a_boolean  result;
 
-  if (fp == NULL) {
+  if (tp->variant.class_struct_union.is_empty_class) {
     /* Empty class types always satisfy the constraint. */
     result = TRUE;
   } else if (class_symbol_supp(symbol_for(tp))
                                     ->has_user_provided_default_constructor) {
     result = TRUE;
   } else {
+    a_field_ptr  fp = next_proper_initializable_field(fields_of(tp));
+    a_boolean    has_init;
     result = !type_is(tp, tk_union);
     for (; fp != NULL; fp = next_proper_initializable_field(fp->next)) {
       if (ms_extensions && field_is_property_or_event(fp)) {
@@ -6725,7 +6726,9 @@ FALSE is returned) for non-class objects.
             } else {
               /* Issue an error or warning. */
               an_error_severity  sev = es_warning;
-              if (strict_ansi_mode || has_trivial_default_constructor(cssp)) {
+              if (strict_ansi_mode ||
+                  has_trivial_default_constructor(cssp) ||
+                  !cssp->has_user_provided_default_constructor) {
                 sev = es_discretionary_error;
               }  /* if */
               pos_syty_diagnostic(sev, ec_missing_default_constructor_on_const,
