@@ -17224,7 +17224,7 @@ enum a_scope_kind : a_byte {
   sck_module_decl_import,
 			/* Used during module importing immediately before
 			   the declaration to be imported. */
-  sck_module_isolated,  /* Used during module importing when parsing tokens
+  sck_module_isolated,	/* Used during module importing when parsing tokens
 			   that have no access to the reset of the file (e.g.,
 			   while parsing a dependent typename specifier into a
 			   type).  This is currently always considered a
