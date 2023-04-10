@@ -15543,7 +15543,7 @@ NULL pointer.
             for (new_tpp = ctws_state->new_templ_params;
                  new_tpp != NULL; new_tpp = new_tpp->next) {
               if (prp->symbol == new_tpp->param_symbol) break;
-            }  /* if */
+            }  /* for */
           }  /* if */
           check_assertion(new_tpp != NULL);
         }  /* if */
