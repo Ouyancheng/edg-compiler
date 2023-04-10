@@ -109,7 +109,7 @@ int db_scope_kind(a_scope_kind sck)
 Put out a scope kind name (for debugging).
 */
 {
-  a_const_char *s;
+  a_const_char *s = "";
 
   switch (sck) {
     case sck_block:                  s = "block";                    break;

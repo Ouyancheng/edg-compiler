@@ -17454,6 +17454,9 @@ Add the tokens corresponding to the given Dyadic Operator to cache.
     case ifc_dos_msvc_builtin_bit_cast:
       cache_token(cache, tok_builtin_bit_cast);
       break;
+    case ifc_dos_msvc_curry:
+      check_assertion(FALSE);
+      break;
     case ifc_dos_curry:
     case ifc_dos_apply:
     case ifc_dos_index:
@@ -17478,7 +17481,6 @@ Add the tokens corresponding to the given Dyadic Operator to cache.
     case ifc_dos_zero_initialize:
     case ifc_dos_clear_storage:
     case ifc_dos_msvc_try_cast:
-    case ifc_dos_msvc_curry:
     case ifc_dos_msvc_virtual_curry:
     case ifc_dos_msvc_align:
     case ifc_dos_msvc_bit_span:
