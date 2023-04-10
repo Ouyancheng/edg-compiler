@@ -3798,7 +3798,7 @@ already loaded in the IL from, e.g., a global module fragment).
       case tak_type:
         { /* Create a new symbol referencing the template parameter.  Mark this
              as a rescan as we don't want a symbol entered for this detached
-             parameter declarations. */
+             parameter declaration. */
           result = create_template_param_symbol(sk_type, loc_ptr,
                                                 !is_named_decl,
                                                 /*is_rescan=*/TRUE);
@@ -3817,7 +3817,7 @@ already loaded in the IL from, e.g., a global module fragment).
       case tak_nontype:
         { /* Create a new symbol referencing the template parameter.  Mark this
             as a rescan as we don't want a symbol entered for this detached
-            parameter declarations.*/
+            parameter declaration.*/
           result = create_template_param_symbol(sk_constant, loc_ptr,
                                                 !is_named_decl,
                                                 /*is_rescan=*/TRUE);
@@ -3837,7 +3837,7 @@ already loaded in the IL from, e.g., a global module fragment).
       case tak_template:
         { /* Create a new symbol referencing the template parameter.  Mark this
             as a rescan as we don't want a symbol entered for this detached
-            parameter declarations. */
+            parameter declaration. */
           result = create_template_param_symbol(sk_class_template, loc_ptr,
                                                 !is_named_decl,
                                                 /*is_rescan=*/TRUE);
@@ -6488,6 +6488,7 @@ using the normal IFC modules function loading logic.
 }  /* is_builtin_function */
 
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
+
 namespace {
 
 using an_ifc_template_lookup_table = Ptr_map<an_ifc_decl_index,
@@ -8668,8 +8669,8 @@ class_struct_union_case:
     case ifc_ds_decl_explicit_specialization:
     case ifc_ds_decl_parameter:
 #if CHECKING
-      { /* These declarations should not appear here; their processing should
-           be handled as part of processing of their prerequisites (see
+      { /* These declarations should not appear here; they should have been
+           processed when their prerequisites were processed (see
            process_decl_prerequisites). */
         a_string err_msg(index_to_str(decl_idx),
                          " cannot be processed directly into an IL entity");

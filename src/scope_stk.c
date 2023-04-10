@@ -120,7 +120,7 @@ Put out a scope kind name (for debugging).
     case sck_file:                   s = "file";                     break;
     case sck_func_prototype:         s = "function prototype";       break;
     case sck_function:               s = "function";                 break;
-    case sck_function_access:	     s = "function access";	     break;
+    case sck_function_access:        s = "function access";          break;
     case sck_instantiation_context:  s = "instantiation context";    break;
     case sck_module_decl_import:     s = "module decl import";       break;
     case sck_module_isolated:        s = "module isolation";         break;
@@ -128,7 +128,7 @@ Put out a scope kind name (for debugging).
     case sck_namespace_extension:    s = "namespace extension";      break;
     case sck_namespace_reactivation: s = "namespace reactivation";   break;
     case sck_none:                   s = "none";                     break;
-    case sck_pragma:		     s = "pragma";		     break;
+    case sck_pragma:                 s = "pragma";                   break;
     case sck_template_declaration:   s = "template declaration";     break;
     case sck_template_instantiation: s = "template instantiation";   break;
     default_is_unexpected();
