@@ -3389,9 +3389,7 @@ initialization. */
      matches restrictions is deferred until the actual initialization of the
      parameter, and does not affect overload resolution. */
   if (okay && *field != NULL && !is->check_validity_only &&
-      (cpp20_designators_restriction || gpp_version_is(any_version) ||
-       clang_version_is(any_version))) {
-    a_boolean  relaxed_constraint = clang_version_is(any_version);
+      (cpp20_designators_restriction || gpp_version_is(any_version))) {
     /* GCC restricts "non-trivial" designated initializers in all modes. */
     if (!type_is(class_type, tk_union)) {
       /* resolved_field is set so we can check for duplicate designators.
@@ -3401,28 +3399,39 @@ initialization. */
       icp->variant.designator.resolved_field = *field;
       if (designator_exists(top_icp, icp)) {
         if (!is->no_diagnostics) {
-          pos_diagnostic(relaxed_constraint ? es_warning : es_error,
-                         ec_duplicate_designator, init_component_pos(icp));
+          pos_error(ec_duplicate_designator, init_component_pos(icp));
         }  /* if */
-        is->init_error = !relaxed_constraint;
+        is->init_error = TRUE;
       } else if (!fields_are_ordered(orig_field, *field)) {
         /* Check if the declaration order is preserved.  Do not do this check
            for union and anonymous union members because unions can only ever
            have one designator. */
         if (!is->no_diagnostics) {
-          pos_diagnostic(relaxed_constraint ? es_warning : es_error,
-                         ec_no_out_of_order_init_in_cpp_mode,
-                         init_component_pos(icp));
+          pos_error(ec_no_out_of_order_init_in_cpp_mode,
+                    init_component_pos(icp));
         }  /* if */
-        is->init_error = !relaxed_constraint;
+        is->init_error = TRUE;
       }  /* if */
     } else if (multiple_designators(top_icp, icp)) {
       /* For a union, having multiple designators is an error */
       if (!is->no_diagnostics) {
-        pos_diagnostic(relaxed_constraint ? es_warning : es_error,
-                       ec_duplicate_designator, init_component_pos(icp));
+        pos_error(ec_duplicate_designator, init_component_pos(icp));
       }  /* if */
-      is->init_error = !relaxed_constraint;
+      is->init_error = TRUE;
+    }  /* if */
+  } else if (clang_version_is(any_version)) {
+    /* Although Clang accepts out-of-order designators in C++ mode, it warns
+       about them. */
+    if (!type_is(class_type, tk_union) &&
+        next_icp != NULL && !is_designator_component(next_icp) &&
+        !fields_are_ordered(orig_field, *field)) {
+      /* Check if the declaration order is preserved.  Do not do this check
+         for union and anonymous union members because unions can only ever
+         have one designator. */
+      if (!is->no_diagnostics) {
+        pos_warning(ec_no_out_of_order_init_in_cpp_mode,
+                    init_component_pos(icp));
+      }  /* if */
     }  /* if */
   }  /* if */
   if (skip_designator) {
@@ -3432,7 +3441,7 @@ initialization. */
     if ((orig_field != *field || *p_bcp != NULL ) &&
         cpp20_designators_restriction && !is->init_error &&
         !is->check_validity_only && orig_field != NULL &&
-        class_type->kind != (a_type_kind)tk_union) {
+        !type_is(class_type, tk_union)) {
     /* C++20 designators can cause base classes and certain members to
        be skipped. Initialize those members before initializing the
        designated member. If we found an error, we shouldn't proceed with
