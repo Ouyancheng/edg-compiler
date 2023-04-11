@@ -1,5 +1,21 @@
 Version 6.5
 
+4/11/23  [EDGcpfe/24656]
+__is_constructible for aggregate initialization in C++20 mode
+
+Previously, an aggregate with a member of non-aggregate class type that does
+not have a viable constructor would not cause the __is_constructible type
+trait helper to fail.  For example, with --c++20:
+
+  struct X {
+    X(const char *);
+  };
+  struct C {
+    X x;
+  };
+  static_assert(!__is_constructible(C, int));  // Previously failed.  Now okay.
+
+
 4/6/23   [EDGcpfe/26201]
 Microsoft-mode regression in handling of user-defined conversions
 

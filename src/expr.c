@@ -51964,7 +51964,7 @@ the corresponding __builtin_is_constructible operation.
                                                EOPT_NO_OPTIONS);
       allow_nonconst_ref_anachronism = saved_allow_nonconst_ref_anachronism;
     }  /* if */
-    result = !expr_stack->any_suppressed_error;
+    result = !expr_stack->any_suppressed_error && !is_error_operand(&operand);
     if (result && is_expression_operand(&operand)) {
       an_expr_node_ptr node = operand.variant.expression;
       if (kind == (a_builtin_operation_kind)bok_is_nothrow_constructible) {
