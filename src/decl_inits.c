@@ -6543,7 +6543,7 @@ Return TRUE if the given class type has a user-provided default constructor or
 if it is "const-default-initializable" (N4901 [dcl.init.general]/8).  That
 requires that all non-variant subobjects have a default initializer or that
 they are of "const-default-initializable" types (or an array thereof).  For
-unions (incl.  anonymous unions) at least one member must satisfy that
+unions (including anonymous unions) at least one member must satisfy that
 constraint (or the union must be empty).
 */
 {
