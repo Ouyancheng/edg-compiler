@@ -12579,21 +12579,23 @@ when using_sym refers to a virtual member function.  Return *err TRUE when
 a diagnostic should be issued by the caller.
 */
 {
-  a_boolean   compat = FALSE;
-  a_boolean   is_class_member = decl_sym->is_class_member;
-  a_type_ptr  tp1 = routine_symbol_type(decl_sym);
-  a_type_ptr  tp2 = routine_symbol_type(using_sym);
+  a_boolean      compat = FALSE;
+  a_boolean      is_class_member = decl_sym->is_class_member;
+  a_routine_ptr  rp1 = decl_sym->variant.routine.ptr,
+                 rp2 = using_sym->variant.routine.ptr;
+  a_type_ptr     tp1 = skip_typerefs(rp1->type),
+                 tp2 = skip_typerefs(rp2->type);
 
-  tp1 = skip_typerefs(tp1);
-  tp2 = skip_typerefs(tp2);
   *err = FALSE;
-  /* First compare param types and, if appropriate, implicit-this-param
-     types. */
+  /* First compare param types, implicit-this-param types (if appropriate), and
+     trailing requires clauses. */
   if (param_types_are_compatible(tp1, tp2, TCF_MEMBER_REDECL_CHECK) &&
       (!is_class_member ||
        this_param_types_correspond(tp1, tp2, /*check_as_conversion=*/FALSE,
                                    /*check_as_operands=*/FALSE) ||
-       object_params_correspond(decl_sym, using_sym))) {
+       object_params_correspond(decl_sym, using_sym)) &&
+      equiv_requires_clauses(rp1->trailing_requires_clause,
+                             rp2->trailing_requires_clause)) {
     /* They are compatible so far. */
     a_routine_type_supplement_ptr
            rtsp1 = tp1->variant.routine.extra_info,
@@ -24463,7 +24465,9 @@ templates from that base template.
                                 TCF_REDECLARATION |
                                 TCF_IGNORE_NESTING_DEPTH |
                                 TCF_IGNORE_THIS_CLASS_TYPE |
-                                TCF_IGNORE_TOP_LEVEL_NOEXCEPT)) {
+                                TCF_IGNORE_TOP_LEVEL_NOEXCEPT) &&
+        equiv_requires_clauses(drp->trailing_requires_clause,
+                               brp->trailing_requires_clause)) {
       /* Don't inherit constructor templates that match a constructor template
          explicitly declared in the derived class. */
       break;
@@ -24661,7 +24665,9 @@ constructor.
           f_types_are_compatible(drp->type, new_tp,
                                  TCF_REDECLARATION |
                                  TCF_IGNORE_THIS_CLASS_TYPE |
-                                 TCF_IGNORE_TOP_LEVEL_NOEXCEPT)) {
+                                 TCF_IGNORE_TOP_LEVEL_NOEXCEPT) &&
+          equiv_requires_clauses(drp->trailing_requires_clause,
+                                 brp->trailing_requires_clause)) {
         /* Don't inherit constructors that match a non-inheriting constructor
            declared in the derived class. */
         break;
@@ -24785,6 +24791,26 @@ Generate those constructors.
            cause us to generate an actual representation of the default
            constructor, in case other constructs add constructors. */
         generate_default_constructor(cdsp, /*suppressed=*/FALSE);
+      } else {
+        /* If all default constructors in the derived class are constrained, we
+           still need to add an unconstrained one, as the constraints might not
+           be satisfied. */
+        a_symbol_ptr  dctor = cssp->constructor;
+        if (dctor != NULL && symbol_is(dctor, sk_overloaded_function)) {
+          dctor = dctor->variant.overloaded_function.symbols;
+        }  /* if */
+        for (; dctor != NULL; dctor = dctor->next) {
+          a_routine_ptr  drp;
+          if (!symbol_is(dctor, sk_member_function)) continue;
+          drp = dctor->variant.routine.ptr;
+          if (is_default_constructor(drp, /*is_declarative_context=*/TRUE) &&
+              drp->trailing_requires_clause == NULL) {
+            break;
+          }  /* if */
+        }  /* for */
+        if (dctor == NULL) {
+          generate_default_constructor(cdsp, /*suppressed=*/FALSE);
+        }  /* if */
       }  /* if */
     } else {
       if (base_ctors != NULL &&
