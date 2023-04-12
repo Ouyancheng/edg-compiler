@@ -1,6 +1,6 @@
 Version 6.5
 
-4/11/23  [EDGcpfe/24656]
+4/11/23  [EDGcpfe/24656,EDGcpfe/24926,EDGcpfe/25916]
 __is_constructible for aggregate initialization in C++20 mode
 
 Previously, an aggregate with a member of non-aggregate class type that does
