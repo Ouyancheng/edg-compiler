@@ -4195,20 +4195,19 @@ done:
 
 
 template<typename an_ifc_Index_type>
-static void diagnose_ifc_entity_load_failure(an_ifc_Index_type idx)
+static void add_partition_element_diag_info(a_diagnostic_ptr  diag,
+                                            an_error_code     error_code,
+                                            an_ifc_Index_type idx)
 /*
-Emit an error for an IFC resolved identifier pseudo token load failure (either
-from a tok_ifc_entity_ref or tok_ifc_decl_ref).
+Add diagnostic information via the given to error code to the diagnostic
+pointer including the given index's partition, element number, file, and
+relative position.
 */
 {
   an_ifc_module               *mod = idx.mod;
-  a_source_position           pos = pos_curr_token;
-  a_diagnostic_ptr            diag = pos_st_start_error(
-                                                 ec_ifc_entity_ref_failure,
-                                                 &pos,
-                                                 mod->assoc_module_info->name);
-  an_ifc_partition_kind       kind = to_partition_kind(idx.sort);
-  an_ifc_partition_kind_index part_kind_idx = {mod, kind, idx.value};
+  an_ifc_partition_kind       kind = get_partition_kind(idx);
+  an_ifc_index_type           idx_value = get_partition_index(idx);
+  an_ifc_partition_kind_index part_kind_idx = {mod, kind, idx_value};
   an_ifc_partition_metadata   *part_meta =
                                          get_partition_metadata(part_kind_idx);
   size_t                      part_start = part_meta->offset;
@@ -4216,9 +4215,24 @@ from a tok_ifc_entity_ref or tok_ifc_decl_ref).
   size_t                      rel_offset = abs_offset - part_start;
 
   /* FIXME: Migrate to allowing diagnostics with size_t. */
-  st_num3_add_diag_info(diag, ec_ifc_entity_ref_failure_info,
-                        get_partition_name_from_kind(kind), idx.value,
-                        (int32_t)abs_offset, (int32_t)rel_offset);
+  st_num3_add_diag_info(diag, error_code, get_partition_name_from_kind(kind),
+                        idx_value, (int32_t)abs_offset, (int32_t)rel_offset);
+}  /* add_partition_element_diag_info */
+
+
+template<typename an_ifc_Index_type>
+static void diagnose_ifc_entity_load_failure(an_ifc_Index_type idx)
+/*
+Emit an error for an IFC resolved identifier pseudo token load failure (either
+from a tok_ifc_entity_ref or tok_ifc_decl_ref).
+*/
+{
+  an_ifc_module     *mod = idx.mod;
+  a_source_position pos = pos_curr_token;
+  a_diagnostic_ptr  diag = pos_st_start_error(ec_ifc_entity_ref_failure, &pos,
+                                              mod->assoc_module_info->name);
+
+  add_partition_element_diag_info(diag, ec_ifc_entity_ref_failure_info, idx);
   end_diagnostic(diag);
 }  /* diagnose_entity_load_failure */
 
@@ -8351,10 +8365,8 @@ class_struct_union_case:
           } else {
             /* If the template couldn't be forward declared, process the
                complete declaration and definition now. */
-            if (!process_template_definition(
-                                            idt, mep, spec_info,
-                                            &il_entity,
-                                            &kind)) {
+            if (!process_template_definition(idt, mep, spec_info, &il_entity,
+                                             &kind)) {
               goto invalid;
             }  /* if */
           }  /* if */
@@ -12948,59 +12960,171 @@ rules of position inference).
 }  /* cache_bool_literal */
 
 
-static void cache_string_literal(a_module_token_cache_ptr cache,
-                                 a_character_kind         kind,
-                                 a_const_char             *str,
-                                 a_targ_size_t            length)
+static size_t count_nonnull_chars(a_const_char *ifc_str,
+                                  size_t       ifc_length)
 /*
-Add a tok_string_literal for str with the given length to cache.  kind is the
-type of string literal (e.g., UTF-8, wchar, etc).
+Give an IFC string and the IFC specified length, return the number of
+characters which are not null (i.e., 0) characters.
 */
 {
-  a_constant_ptr     cp;
-  char               *val;
-  a_cached_token     *prev_string = NULL;
+  size_t num_nulls = 0;
 
+  for (size_t i = 0; i < ifc_length; ++i) {
+    if (ifc_str[i] == '\0') {
+      ++num_nulls;
+    }  /* if */
+  }  /* for */
+  return ifc_length - num_nulls;
+}  /* count_nonnull_chars */
+
+namespace {
+
+/*
+The IFC contains strings that are formed from a specified number of bytes (as
+opposed to via a null character terminator).  These strings can contain
+interior null characters which should be removed when the IFC string is
+converted to an IL string.
+
+This structure abstracts the IFC string value and provides extra information
+into for use during translation to front end IL.
+*/
+struct an_ifc_string {
+  an_ifc_string(a_character_kind char_kind,
+                a_const_char     *ifc_str,
+                size_t           ifc_byte_count)
+    : kind(char_kind), str(ifc_str),
+      length(count_nonnull_chars(ifc_str, ifc_byte_count)),
+      ifc_length(ifc_byte_count)
+  {}
+  inline a_boolean contains_null_characters() const
+    { return this->length != this->ifc_length; }
+  a_character_kind
+                kind;   /* The character kind of the string. */
+  a_const_char  *str;   /* A pointer to the IFC string byte buffer. */
+  size_t        length; /* The number of bytes the string contains (excluding
+                           both interior and trailing null characters). */
+  size_t        ifc_length;
+                        /* The number of bytes the IFC specifies are in the
+                           string.  This may or may not include null
+                           characters and trailing nulls. */
+};  /* an_ifc_string */
+
+}  /* namespace */
+
+static inline size_t size_of_str_constant(const an_ifc_string &str)
+/*
+Given an IFC string, return the number of bytes in the corresponding constant.
+*/
+{
+  return str.length + 1;
+}  /* size_of_str_constant */
+
+
+static char *alloc_text_of_string_literal(const an_ifc_string &str)
+/*
+Allocate and return a string literal character buffer containing the given IFC
+string with all null characters (except the terminating null character)
+removed.
+*/
+{
+  /* Allocate a text string, adding 1 to the length to account for the
+     terminating null character. */
+  char   *result = alloc_text_of_string_literal(size_of_str_constant(str));
+  size_t i_output = 0;
+
+  if (str.contains_null_characters()) {
+    /* The string contains one or more unexpected null characters, do a manual
+       translation. */
+    for (size_t i_input = 0; i_input < str.ifc_length; ++i_input) {
+      if (str.str[i_input] == '\0') {
+        continue;
+      }  /* if */
+      result[i_output++] = str.str[i_input];
+    }  /* for */
+  } else {
+    /* The string has no null characters, directly copy the underlying
+       memory. */
+    memcpy(result, str.str, str.length);
+    i_output = str.length;
+  }  /* if */
+  result[i_output] = '\0';
+  return result;
+}  /* alloc_text_of_string_literal */
+
+
+static a_constant_ptr alloc_string_literal_constant(const an_ifc_string &str)
+/*
+Allocate and return a string literal constant containing the given IFC string
+with all null characters (except the terminating null character) removed.
+*/
+{
+  a_constant_ptr result = alloc_cached_constant();
+  char           *val = alloc_text_of_string_literal(str);
+  size_t         constant_size = size_of_str_constant(str);
+  a_targ_size_t  str_char_size = character_size[str.kind];
+
+  clear_constant(result, ck_string);
+  /* Form a string literal type with the characters counted relative to their
+     character sizes. */
+  result->type = string_literal_type(str.kind, constant_size / str_char_size);
+  result->variant.string.length = constant_size;
+  result->variant.string.value = val;
+  result->variant.string.literal_kind = SCLK_ORDINARY_STRING_LITERAL;
+  return result;
+}  /* alloc_string_literal_constant */
+
+
+static void cache_string_literal(a_module_token_cache_ptr cache,
+                                 const an_ifc_string      &str)
+/*
+Add a tok_string_literal for the given IFC string to cache.
+*/
+{
+  a_cached_token *prev_string = NULL;
   {
     a_cached_token_ptr last_token = cache->get_last_token();
 
     if (last_token != NULL && last_token->token == tok_string_literal) {
       prev_string = last_token;
     }  /* if */
+    cache_token(cache, tok_string_literal);
   }
-  cache_token(cache, tok_string_literal);
   {
+    a_constant_ptr     cp = alloc_string_literal_constant(str);
     a_cached_token_ptr last_token = cache->get_last_token();
 
     last_token->extra_info_kind = (a_token_extra_info_kind)teik_constant;
-    last_token->variant.constant = cp = alloc_cached_constant();
+    last_token->variant.constant = cp;
   }
-  val = alloc_text_of_string_literal((sizeof_t)length);
-  (void)memcpy(val, str, length);
-  clear_constant(cp, (a_constant_repr_kind)ck_string);
-  cp->type = string_literal_type(kind, length);
-  cp->variant.string.length = length;
-  cp->variant.string.value  = val;
-  cp->variant.string.literal_kind = SCLK_ORDINARY_STRING_LITERAL;
   if (prev_string != NULL) {
     a_token_cache_ptr canonical_cache = cache->as_canonical();
 
-    concat_string_literals(canonical_cache, kind, prev_string);
+    concat_string_literals(canonical_cache, str.kind, prev_string);
     remove_token_from_cache(canonical_cache->last_token, &prev_string,
                             canonical_cache);
   }  /* if */
 }  /* cache_string_literal */
 
 
+static inline void cache_string_literal(a_module_token_cache_ptr cache,
+                                        a_const_char             *str)
+/*
+Add a tok_string_literal for the given string to cache.
+*/
+{
+  /* Create a fake IFC string to perform a cache of an empty string. */
+  an_ifc_string ifc_str(chk_char, str, strlen(str));
+
+  cache_string_literal(cache, ifc_str);
+}  /* cache_string_literal */
+
+
 static void cache_ud_literal(a_module_token_cache_ptr cache,
-                             a_character_kind         kind,
-                             a_const_char             *str,
-                             a_targ_size_t            length,
+                             const an_ifc_string      &str,
                              a_const_char             *suffix,
                              a_source_position_ptr    pos = NULL)
 /*
-Add a tok_ud_literal for str with the given length and suffix to cache.  kind
-is the type of string literal (e.g., UTF-8, wchar, etc).
+Add a tok_ud_literal for the given IFC string and suffix to cache.
 
 If a position is passed it will be used as the source position; otherwise the
 position will be inferred (see infer_next_source_position for details about the
@@ -13016,14 +13140,7 @@ rules of position inference).
   cache_token(cache, tok_ud_literal, pos);
   ctp = cache->get_last_token();
   ctp->extra_info_kind = (a_token_extra_info_kind)teik_ud_lit;
-  ctp->variant.ud_lit.value_con = cp = alloc_cached_constant();
-  val = alloc_text_of_string_literal((sizeof_t)length);
-  (void)memcpy(val, str, length);
-  clear_constant(cp, (a_constant_repr_kind)ck_string);
-  cp->type = string_literal_type(kind, length);
-  cp->variant.string.length = length;
-  cp->variant.string.value  = val;
-  cp->variant.string.literal_kind = SCLK_ORDINARY_STRING_LITERAL;
+  ctp->variant.ud_lit.value_con = cp = alloc_string_literal_constant(str);
   ctp->variant.ud_lit.spelling_con = alloc_cached_constant();
   copy_constant(cp, ctp->variant.ud_lit.spelling_con);
   ctp->variant.ud_lit.type = cp->type;
@@ -14363,6 +14480,30 @@ done:;
 }  /* cache_source_identifier */
 
 
+template<typename an_ifc_Index_type>
+static void diagnose_ifc_string_null_removal(an_ifc_Index_type   idx,
+                                             const an_ifc_string &str)
+/*
+Emit a warning for an IFC string from the given index which has had null
+characters removed.  str is the IFC string value which had had null bytes
+removed.
+*/
+{
+  check_assertion(str.contains_null_characters());
+  an_ifc_module    *mod = idx.mod;
+  a_diagnostic_ptr diag = pos_st_start_diagnostic(
+                                                 es_warning,
+                                                 ec_ifc_null_char_in_string,
+                                                 &null_source_position,
+                                                 mod->assoc_module_info->name);
+
+  num2_add_diag_info(diag, ec_ifc_null_char_in_string_removal_info,
+                     str.length, str.ifc_length);
+  add_partition_element_diag_info(diag, ec_ifc_null_char_in_string_info, idx);
+  end_diagnostic(diag);
+}  /* diagnose_entity_load_failure */
+
+
 void an_ifc_module::cache_string(a_module_token_cache_ptr     cache,
                                  an_ifc_string_index          string)
 /*
@@ -14370,7 +14511,7 @@ Add a string literal (with the appropriate character kind) corresponding to
 string to cache.
 */
 {
-  a_character_kind  kind;
+  a_character_kind kind;
 
   switch (string.sort) {
     case ifc_ss_ordinary:
@@ -14398,14 +14539,29 @@ string to cache.
   if (opt_ics.has_value()) {
     an_ifc_const_str   ics = *opt_ics;
     an_ifc_text_offset start = get_ifc_start(ics);
-    an_ifc_cardinality length = get_ifc_length(ics);
-    an_ifc_text_offset suffix = get_ifc_suffix(ics);
+    size_t             length = get_ifc_length(ics);
+    a_const_char       *raw_str = get_string_at_offset(start);
 
+    /* The IFC doesn't specify this, but there is commonly (always) a null
+       terminator included in the length.  As this is not specified, to allow
+       flexibility reduce the length only if this null character is
+       present. */
+    if (length > 0 && raw_str[length - 1] == '\0') {
+      --length;
+    }  /* if */
+
+    an_ifc_string str(kind, raw_str, length);
+    if (str.contains_null_characters()) {
+      diagnose_ifc_string_null_removal(string_part_idx, str);
+    }  /* if */
+
+    an_ifc_text_offset suffix = get_ifc_suffix(ics);
     if (suffix == 0) {
-      cache_string_literal(cache, kind, get_string_at_offset(start), length);
+      cache_string_literal(cache, str);
     } else {
-      cache_ud_literal(cache, kind, get_string_at_offset(start), length,
-                       get_string_at_offset(suffix));
+      a_const_char *suffix_str = get_string_at_offset(suffix);
+
+      cache_ud_literal(cache, str, suffix_str);
     }  /* if */
   }  /* if */
 }  /* cache_string */
@@ -16066,7 +16222,7 @@ Add tokens corresponding to specifiers to cache.
 {
   if (test_bitmask<ifc_bsb_c>(specifiers)) {
     cache_token(cache, tok_extern);
-    cache_string_literal(cache, chk_char, "C", 2);
+    cache_string_literal(cache, "C");
   }  /* if */
   if (test_bitmask<ifc_bsb_deprecated>(specifiers)) {
     cache_token(cache, tok_lbracket);
@@ -18200,9 +18356,9 @@ current cache context to help inform decisions about what to cache.
             an_ifc_expr_index initializer = get_ifc_initializer(idv);
 
             if (!is_null_index(initializer)) {
-              cache_token(cache, tok_lparen);
+              cache_token(cache, tok_lbrace);
               cache_expr(cache, initializer, cinfo);
-              cache_token(cache, tok_rparen);
+              cache_token(cache, tok_rbrace);
             }  /* if */
           }  /* if */
           cache_token(cache, tok_semicolon);
@@ -21927,23 +22083,9 @@ produce a more detailed contextual diagnostic.
         }
         break;
       case ifc_vtk_partition:
-        { an_ifc_module               *mod = cur->partition_info.mod;
-          an_ifc_partition_kind       kind = cur->partition_info.kind;
-          an_ifc_index_type           idx = cur->partition_info.idx;
-          an_ifc_partition_kind_index part_kind_idx = {mod, kind, idx};
-          an_ifc_partition_metadata   *part_meta =
-                                         get_partition_metadata(part_kind_idx);
-          size_t                      part_start = part_meta->offset;
-          size_t                      abs_offset =
-                                           get_partition_offset(part_kind_idx);
-          size_t                      rel_offset = abs_offset - part_start;
-
-          /* FIXME: Migrate to allowing diagnostics with size_t. */
-          st_num3_add_diag_info(diag_ptr,
-                                ec_invalid_ifc_position_backtrace_pos,
-                                get_partition_name_from_kind(kind), idx,
-                                (uint32_t)abs_offset, (uint32_t)rel_offset);
-        }
+        add_partition_element_diag_info(diag_ptr,
+                                        ec_invalid_ifc_position_backtrace_pos,
+                                        cur->partition_info);
         break;
       default_is_unexpected();
     }  /* switch */

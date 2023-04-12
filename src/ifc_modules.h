@@ -517,15 +517,13 @@ An index type representing an index to a partition element for an associated
 module and partition kind.
 */
 struct an_ifc_partition_kind_index {
-  an_ifc_module
-                *mod;
-                        /* The associated module. */
+  an_ifc_module *mod;   /* The associated module. */
   an_ifc_partition_kind
                 partition_kind;
-                        /* The associated DeclSort value for this index. */
+                        /* The associated partition kind value for this
+                           index. */
   an_ifc_index_type
-                value;
-                        /* The index value into the associated partition of
+                value;  /* The index value into the associated partition of
                            "sort" for this index.  Represented as the largest
                            common underlying type for all partition kinds. */
 };  /* an_ifc_partition_kind_index */
@@ -533,6 +531,9 @@ struct an_ifc_partition_kind_index {
 
 template<typename an_ifc_Index_type>
 extern an_ifc_partition_kind get_partition_kind(an_ifc_Index_type idx);
+
+template<typename an_ifc_Index_type>
+extern an_ifc_index_type get_partition_index(an_ifc_Index_type idx);
 
 template<typename an_ifc_Index_type>
 extern an_ifc_partition_metadata *get_partition_metadata(
@@ -645,20 +646,6 @@ struct an_ifc_validation_trace {
                            start associated with this trace. */
   };  /* field_info_trace_data */
 
-  /*
-  The data structure used to represent tracing information when trace_kind ==
-  ifc_vtk_field.
-  */
-  struct partition_info_trace_data {
-    an_ifc_module
-                *mod;   /* The module associated with this trace. */
-    an_ifc_partition_kind
-                kind;   /* The kind of partition associated with this trace. */
-    an_ifc_index_type
-                idx;    /* The index into the partition associated with this
-                           trace. */
-  };  /* partition_info_trace_data */
-
   union {
     /* When trace_kind == ifc_vtk_field. */
     field_info_trace_data
@@ -666,7 +653,7 @@ struct an_ifc_validation_trace {
                         /* The associated information about the traced
                            field. */
     /* When trace_kind == ifc_vtk_partition. */
-    partition_info_trace_data
+    an_ifc_partition_kind_index
                 partition_info;
                         /* The associated information about the traced
                            partition element. */
