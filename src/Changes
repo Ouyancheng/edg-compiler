@@ -1,5 +1,28 @@
 Version 6.5
 
+4/13/23  [EDGcpfe/24660,EDGcpfe/24941,EDGcpfe/26120,EDGcpfe/26234,
+          EDGcpfe/26235]
+Incorrect synthesis of move-assignment operator
+
+Consider:
+
+  struct B {};
+  struct D: B {
+    using B::operator=;
+    D& operator=(D&);
+  };
+  struct S {
+    D d;
+  };
+  void f(S s) {
+    s = S{};  // Previously an error.  Now okay.
+  }
+
+Previously, the move-assignment operator of S was not synthesized because the
+inherited assignment operators of D were not considered.  In turn, that caused
+the assignment "s = S{}" not to find a matching operator=.  That is now fixed.
+
+
 4/12/23  [EDGcpfe/26119]
 Correspondence of declarations with trailing requires clause
 

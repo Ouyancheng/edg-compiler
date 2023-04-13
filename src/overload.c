@@ -28205,30 +28205,16 @@ source_is_rvalue.
       /* Not a copy constructor. */
       goto reject_function;
     }  /* if */
+#if CHECKING
   } else {
     check_assertion(special_kind_is(routine, sfk_operator));
-    /* Make sure the operator function is callable with one argument.
-       Standard copy assignment operators always have one parameter, but
-       we check just in case some dialects allow default arguments.
-       We assume parameter packs won't be allowed. */
-#if CHECKING
     assign_case = TRUE;
 #endif /* CHECKING */
-    if (!is_copy_assignment_operator_type(routine_type, class_type, 
-                                         /*move_assign_okay=*/source_is_rvalue,
-                                          /*is_ref_arg=*/(a_boolean *)NULL,
-                                          (a_type_qualifier_set *)NULL,
-                                          (a_boolean *)NULL)) {
-      /* Not a copy assignment operator (e.g., the parameter might be an
-         int). */
-      goto reject_function;
-    }  /* if */
   }  /* if */
   /* This is an appropriate function that can be called with a single
      argument.  See if the argument matches. */
   param_type = ptp->type;
-  check_assertion(is_any_reference_type(param_type) ||
-                  (assign_case && is_class_struct_union_type(param_type)));
+  check_assertion(is_any_reference_type(param_type) || assign_case);
   determine_arg_match_level((an_operand *)NULL, arg_type,
                             param_type, ptp,
                             /*param_type_is_deduced=*/FALSE,
@@ -28608,7 +28594,8 @@ assignment operator.
        without performing complete deduction.  This can avoid instantiation
        errors in some cases (which more closely approximates the behavior of
        GNU and Microsoft compilers). */
-    a_boolean  select_templates = FALSE, have_near_perfect_match = FALSE;
+    a_boolean  select_templates = FALSE, have_near_perfect_match = FALSE,
+               uncallable = FALSE;
     a_type_qualifier_set
                near_perfect_match_added_tqs = ~TQ_NONE;
     overloaded_sym = opname_member_function_symbol((an_opname_kind)onk_assign,
@@ -28661,11 +28648,14 @@ traversal_start:
       selector_match = alloc_arg_match_summary();
       arg_match = alloc_arg_match_summary();
       /* See if the argument type matches the parameter of the assignment
-         operator. */
+         operator.  For nontemplates, accept a match that is uncallable only
+         because of the value category (reflected in the parameter
+         "uncallable"). */
       determine_copy_param_match(sym, class_type,
                                  source_cv_qualifiers, source_is_rvalue,
                                  arg_match, &template_arg_list,
-                                 &routine_type, (a_boolean*)NULL);
+                                 &routine_type,
+                                 select_templates ? NULL : &uncallable);
       if (arg_match->match_level == aml_none) {
         /* This assignment operator cannot be used. */
         goto reject_function;

@@ -51616,6 +51616,7 @@ specifier or member declaration for the subobject to be copied.
   pop_expr_stack();
   restore_expr_stack(saved_expr_stack);
   if (assign_sym != NULL) {
+    assign_sym = fundamental_symbol_of(assign_sym);
     check_assertion(assign_sym->kind == (a_symbol_kind)sk_member_function);
     assign_rout = assign_sym->variant.routine.ptr;
   }  /* if */

@@ -12865,6 +12865,7 @@ that member function can throw any exception, return TRUE.
   a_type_ptr                           rtp;
   a_routine_type_supplement_ptr        old_rtsp, rtsp;
 
+  sym = fundamental_symbol_of(sym);
   check_assertion(sym->kind == (a_symbol_kind)sk_member_function);
   rp = sym->variant.routine.ptr;
   rtp = rp->type;
