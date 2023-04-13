@@ -9087,18 +9087,18 @@ static char* apply_using_if_exists_attr(an_attribute_ptr ap,
                                         an_il_entry_kind entity_kind)
 /*
 Called to apply the "using_if_exists" attribute to a declared entity and return
-that entity.  Currently there is no semantic support for the "using_if_exists"
-attribute and this routine does nothing.  The "using_if_exists" attribute
-appears to be supported by clang in two locations, e.g.:
+that entity.  The "using_if_exists" attribute appears to be supported by clang
+in two locations, e.g.:
 
   [[clang::using_if_exists]] using NS::not_there, NS::not_there2;
   using NS::not_there3, NS::not_there4 [[clang::using_if_exists]];
 
 In the first case, this routine is called with entity being the
 using-declaration, in the second case, the attribute is applied to the
-"NS::not_there4" IL entity (if one exists).  In both cases the lookup that this
-attribute is intended to influence has already happened by the time this
-attribute is applied (so a spurious error may already have been issued).
+"NS::not_there4" IL entity (if one exists).
+
+The actual semantics are implemented by "looking ahead" among the attributes,
+which happens before this function is invoked.
 */
 {
   if (ap->syntactic_location == al_post_using_declarator ||

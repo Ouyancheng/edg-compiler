@@ -177,7 +177,9 @@ typedef int an_identifier_options_set;
 			   context. */
 #define GID_IN_IF_EXISTS 0x80000
 			/* TRUE when scanning the identifier of a Microsoft
-			   __if_exists or __if_not_exists directive. */
+			   __if_exists or __if_not_exists directive.  Also
+			   when scanning the identifier of a using-declaration
+			   subject to the using_if_exists attribute. */
 #define GID_IS_FRIEND_DECL 0x100000
 			/* TRUE when scanning the declarator of a friend
 			   function declaration. */

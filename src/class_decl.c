@@ -25721,6 +25721,7 @@ entity if applicable.
   add_stop_token(tok_semicolon);
   using_pos = pos_curr_token;
   if (curr_token == tok_using) {
+    a_boolean  has_postfix_attr;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     end_of_using_pos = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -25731,7 +25732,7 @@ entity if applicable.
       check_for_packs = TRUE;
       add_stop_token(tok_comma);
     }  /* if */
-    if (is_alias_declaration()) {
+    if (is_alias_declaration(&has_postfix_attr)) {
       /* An identifier followed by "=" or some attributes: This looks like an
          alias declaration. */
       a_decl_parse_state  dps;

@@ -16400,18 +16400,25 @@ TRUE if and only if a redeclaration error is issued.
 }  /* import_any_hidden_tags */
 
 
-void scan_and_attach_using_declaration_attributes(a_symbol_ptr sym)
+void scan_and_attach_using_declaration_attributes(
+                                                a_symbol_ptr sym,
+                              /* Defaulted: */  a_boolean    *p_has_if_exists)
 /*
 In Clang mode, the using_if_exists attribute can appear after the
 using-declarator in a using-declaration.  If such attributes exist, scan them
 and attach them to the IL entity associated with sym (which may be NULL).
+Return in *p_has_if_exists whether the attribute "using_if_exists" is present
+among any such attributes.
 */
 {
+  a_boolean  has_if_exists = FALSE;
+
   if (attributes_on_using_declarations) {
     /* Attributes are not allowed here, but the Clang using_if_exists
        attribute can appear at this location. */
     an_attribute_ptr attributes = scan_attributes(al_post_using_declarator);
     if (attributes != NULL) {
+      has_if_exists = find_attribute(ak_using_if_exists, attributes) != NULL;
       if (clang_mode && attributes->family == af_std) {
         /* Clang warns on standard attributes in this position. */
         pos_warning(ec_only_gnu_attributes_here, &attributes->position);
@@ -16430,10 +16437,12 @@ and attach them to the IL entity associated with sym (which may be NULL).
       }  /* if */
     }  /* if */
   }  /* if */
+  if (p_has_if_exists != NULL) *p_has_if_exists = has_if_exists;
 }  /* scan_and_attach_using_declaration_attributes */
 
 
-static void nonmember_using_declaration(a_decl_parse_state  *dps)
+static void nonmember_using_declaration(a_decl_parse_state  *dps,
+                                        a_boolean           has_postfix_attr)
 /*
 Scan a using_declaration in a nonclass scope.  Its syntax is:
 
@@ -16447,7 +16456,8 @@ A sk_namespace_projection is created and added to the symbol table for the
 current scope.
 
 No standard attributes are allowed after the qualified-name, but clang allows
-the using_if_exists attribute at that location.
+the using_if_exists attribute at that location.  has_postfix_attr is TRUE if
+there are attributes in that position.
 */
 {
   a_symbol_ptr             sym = NULL, fund_sym, overload_sym, other_decl,
@@ -16501,8 +16511,38 @@ the using_if_exists attribute at that location.
           pos_error(ec_exp_identifier, &pos_curr_token);
           err = TRUE;
         } else {
+          a_boolean                  has_if_exists = FALSE;
+          an_identifier_options_set  idopts = GID_TEMPLATE_ARGS_OPTIONAL;
+          if (dps->prefix_attributes != NULL &&
+              find_attribute(ak_using_if_exists,
+                             dps->prefix_attributes) != NULL) {
+            has_if_exists = TRUE;
+          }  /* if */
+          if (has_postfix_attr) {
+            /* The caller already determined that there are attributes
+               following the name.  However, those attributes affect whether
+               an undefined name is valid.  So cache the current identifier
+               and scan the attributes first. */
+            a_token_cache  cache;
+            clear_token_cache(&cache, /*reusable=*/FALSE);
+            cache_curr_token(&cache);
+            (void)get_token();
+            scan_and_attach_using_declaration_attributes(sym, &has_if_exists);
+            rescan_cached_tokens(&cache);
+          }  /* if */
+          if (has_if_exists) {
+            /* The Clang attribute "using_if_exists" is present: Inhibit any
+               lookup errors. */
+            idopts |= GID_IN_IF_EXISTS;
+          }  /* if */
           sym = coalesce_and_lookup_generalized_identifier(
-                                 GID_TEMPLATE_ARGS_OPTIONAL, ilm_normal, &err);
+                                                    idopts, ilm_normal, &err);
+          if (sym == NULL && has_if_exists) {
+            /* Setting err to TRUE causes the using-declaration not to be
+               processed any further.  In this cases it is not an indication
+               of an actual "error". */
+            err = TRUE;
+          }  /* if */
         }  /* if */
       }  /* if */
       if (!err) {
@@ -16521,7 +16561,8 @@ the using_if_exists attribute at that location.
         }  /* if */
       }  /* if */
       if (err) {
-        /* Diagnostic has already been issued. */
+        /* A diagnostic has already been issued, except for the case of an
+           unresolved name with the attribute using_if_exists. */
       } else if (sym == NULL) {
         str_error(ec_undefined_identifier,
                   locator_for_curr_id.symbol_header->identifier);
@@ -20266,14 +20307,17 @@ modules.
 }  /* check_modules_enabled */
 
 
-a_boolean is_alias_declaration(void)
+a_boolean is_alias_declaration(a_boolean  *has_attr)
 /*
 This helper routine disambiguates between an alias-declaration and a
 using-declaration and returns TRUE if it is determined to be the former.
-The "using" token has already been consumed.
+The "using" token has already been consumed.  If the current token is an
+identifier and the current mode allows attributes after that identifier,
+this function returns *has_attr to indicate whether such attributes appear
+to be present (without actually parsing the attributes).
 */
 {
-  a_boolean result = FALSE;
+  a_boolean result = FALSE, has_attribute = FALSE;
 
   if (alias_declarations_enabled &&
       is_generalized_identifier_start(GID_NO_OPTIONS)) {
@@ -20292,6 +20336,7 @@ The "using" token has already been consumed.
         result = TRUE;
       } else {
         a_token_cache  cache;
+        has_attribute = TRUE;
         clear_token_cache(&cache, /*reusable=*/FALSE);
         cache_curr_token(&cache);
         /* Skip past tok_identifier. */
@@ -20307,6 +20352,7 @@ The "using" token has already been consumed.
       }  /* if */
     }  /* if */
   }  /* if */
+  *has_attr = has_attribute;
   return result;
 }  /* is_alias_declaration */
 
@@ -20452,6 +20498,7 @@ processing should proceed after the call.
         /* A C++20 "using enum" declaration. */
         using_enum_declaration();
       } else {
+        a_boolean  has_postfix_attr;
         if (attributes_on_using_declarations) {
           /* Clang allows the using_if_exists attribute prior to a using-
              declaration (and gives a warning if the standard attribute syntax
@@ -20467,10 +20514,10 @@ processing should proceed after the call.
              on using-directives). */
           disallow_attributes(&state->prefix_attributes, es_error);
         }  /* if */
-        if (is_alias_declaration()) {
+        if (is_alias_declaration(&has_postfix_attr)) {
           alias_declaration(state, &end_of_using_pos);
         } else {
-          nonmember_using_declaration(state);
+          nonmember_using_declaration(state, has_postfix_attr);
           state->decl_okay_in_constexpr_body = TRUE;
         }  /* if */
       }  /* if */
