@@ -3856,6 +3856,9 @@ parameter pack; otherwise, return FALSE.
 }  /* is_parameter_pack */
 
 
+static a_boolean type_represents_templ_param_ref(an_ifc_type_index type_idx);
+
+
 static a_type_ptr alloc_detached_type_templ_param(
                                        const an_ifc_decl_parameter &param_decl)
 /*
@@ -3868,6 +3871,12 @@ parameters.
   a_type_ptr result = alloc_type(tk_template_param);
 
   result->variant.template_param.is_pack = is_parameter_pack(param_decl);
+#if CHECKING
+  { an_ifc_type_index type = get_ifc_type(param_decl);
+
+    check_assertion(type_represents_templ_param_ref(type));
+  }
+#endif /* CHECKING */
   result->variant.template_param.is_generic_param = FALSE;
 
   a_template_param_type_supplement_ptr extra_info =
