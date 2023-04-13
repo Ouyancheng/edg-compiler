@@ -9414,6 +9414,112 @@ return NULL.
 }  /* find_template_instantiation */
 
 
+static a_boolean matches_partial_spec_requires_clause(a_symbol_ptr ps_sym);
+
+
+static inline a_symbol_ptr
+find_partial_specialization(
+                  a_template_symbol_supplement_ptr  tssp,
+                  a_template_arg_ptr                template_arg_list,
+                  a_boolean                         any_prototype_allowed,
+                  a_symbol_ptr                      specific_prototype_allowed,
+                  an_equiv_templ_arg_options_set    eta_options)
+/*
+Find an existing partial specialization of the template specified by tssp with
+the argument list specified by template_arg_list.  If no specific prototype is
+required, any_prototype_allowed should be set to TRUE and
+specific_prototype_allowed should be NULL.  If a specific prototype is
+required, any_prototype_allowed should be FALSE and a pointer to the specific
+prototype symbol should be passed.  eta_options can be used to specify
+additional options for use when determing equality.  A pointer to the symbol
+entry field of the hash table is returned, or NULL is no entry is found.
+
+Note that any_prototype_allowed and specific_prototype_allowed are only
+respected when the symbol being traversed is a class template.
+*/
+{
+  a_symbol_ptr result = NULL;
+  a_symbol_ptr ps_sym = tssp->partial_specializations;
+
+  for (; ps_sym != NULL; ps_sym = ps_sym->next) {
+    a_template_arg_ptr old_list;
+
+    /* Get the old/existing list of template arguments. */
+    if (ps_sym->kind == sk_class_template) {
+      /* Get the symbol associated with the prototype instantiation of this
+         partial specialization. */
+      a_symbol_ptr ps_prototype_sym = ps_sym->variant.template_info->
+                                variant.class_template.prototype_instantiation;
+
+      if (any_prototype_allowed ||
+          specific_prototype_allowed == ps_prototype_sym) {
+        /* old_list is the template argument list associated with the prototype
+           instantiation of the partial specialization.  See if the list passed
+           in matches it.  If the template argument lists match, also check the
+           requires clauses (if any).  We need to make sure we don't return an
+           incorrect partial specialization (and instead create a new nonreal
+           type below) because if we don't do that, we could lose any pack
+           expansion information for this declaration. */
+        old_list = ps_prototype_sym->variant.class_struct_union.type->
+                      variant.class_struct_union.extra_info->template_arg_list;
+      } else {
+        break;
+      }  /* if */
+    } else if (ps_sym->kind == sk_variable_template) {
+      a_variable_ptr ps_var = variable_for_symbol(ps_sym);
+
+      /* old_list is the template argument list associated with the prototype
+         instantiation of the partial specialization.  See if the list passed
+         in matches it. */
+      old_list = ps_var->template_info->template_arg_list;
+    } else {
+      unexpected_condition();
+    }  /* switch */
+
+    if (equiv_template_arg_lists(old_list, template_arg_list,
+                                 eta_options | ETA_IS_PROTOTYPE)) {
+      if (ps_sym->kind == sk_class_template) {
+        /* Access the symbol associated with the prototype instantiation of
+           this partial specialization (again) to do some final checking
+           on the preliminary match. */
+        a_symbol_ptr ps_prototype_sym = ps_sym->variant.template_info->
+                                variant.class_template.prototype_instantiation;
+
+        if (!matches_partial_spec_requires_clause(ps_prototype_sym)) {
+          continue;
+        }
+      }  /* if */
+      result = ps_sym;
+      break;
+    }  /* if */
+  }  /* for */
+  return result;
+}  /* find_partial_specialization */
+
+
+a_symbol_ptr find_partial_template_specialization(
+                                              a_symbol_ptr       template_sym,
+                                              a_template_arg_ptr template_args)
+/*
+Give a pointer to a template symbol and a list of template arguments, find and
+return a symbol pointer for any existing (matching) partial specialization;
+otherwise, return NULL.
+*/
+{
+  a_template_symbol_supplement_ptr template_info =
+                                  template_supplement_for_symbol(template_sym);
+  an_equiv_templ_arg_options_set   eta_options =
+                        eta_options_for_template(template_sym, template_info) |
+                                        ETA_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED;
+
+  return find_partial_specialization(template_info,
+                                     template_args,
+                                     /*any_prototype_allowed=*/TRUE,
+                                     /*specific_prototype_allowed=*/NULL,
+                                     eta_options);
+}  /* find_template_specialization */
+
+
 static void add_instantiation(
 		a_symbol_ptr				template_sym,
 		a_template_symbol_supplement_ptr	tssp,
@@ -10960,7 +11066,6 @@ use the current global value of the template template parameter.
 {
   a_symbol_ptr				sym;
   a_symbol_ptr				prototype_sym;
-  a_template_arg_ptr			old_list;
   a_template_arg_ptr			new_list_without_local_types;
   a_template_arg_ptr			list_for_instantiation;
   a_template_symbol_supplement_ptr	tssp;
@@ -11084,7 +11189,9 @@ use the current global value of the template template parameter.
       /* Old list is the template argument list from the prototype
          instantiation of the primary template.  See if the list passed
          in matches it. */
-      old_list = orig_template_arg_list_for_symbol(prototype_sym);
+      a_template_arg_ptr old_list =
+                              orig_template_arg_list_for_symbol(prototype_sym);
+
       if (equiv_template_arg_lists(old_list, list_for_instantiation,
                                    eta_options | ETA_IS_PROTOTYPE)) {
         /* A match.  Set sym which will suppress any further search. */
@@ -11094,35 +11201,16 @@ use the current global value of the template template parameter.
     if (sym == NULL && !is_alias_template) {
       /* The list passed in did not match the primary prototype instantiation.
          See if it matches any of the partial specializations. */
-      a_symbol_ptr	ps_sym;
-      ps_sym = tssp->partial_specializations;
-      for (; ps_sym != NULL; ps_sym = ps_sym->next) {
-        /* Get the symbol associated with the prototype instantiation of this
-           partial specialization. */
-        a_symbol_ptr	ps_prototype_sym;
-        ps_prototype_sym = ps_sym->variant.template_info->
+      sym = find_partial_specialization(tssp, list_for_instantiation,
+                                        any_prototype_allowed,
+                                        specific_prototype_allowed,
+                                        eta_options);
+      if (sym != NULL) {
+        /* The symbol is currently the partial specialization, grab the
+           prototype instantiation. */
+        sym = sym->variant.template_info->
                                 variant.class_template.prototype_instantiation;
-        if (any_prototype_allowed ||
-            specific_prototype_allowed == ps_prototype_sym) {
-          /* Old list is the template argument list associated with the
-             prototype instantiation of the partial specialization.  See if
-             the list passed in matches it.  If the template argument lists
-             match, also check the requires clauses (if any).  We need to make
-             sure we don't return an incorrect partial specialization (and
-             instead create a new nonreal type below) because if we don't do
-             that, we could lose any pack expansion information for this
-             declaration. */
-          old_list = ps_prototype_sym->variant.class_struct_union.type->
-                      variant.class_struct_union.extra_info->template_arg_list;
-          if (equiv_template_arg_lists(old_list, list_for_instantiation,
-                                       eta_options | ETA_IS_PROTOTYPE)) {
-            if (matches_partial_spec_requires_clause(ps_prototype_sym)) {
-              sym = ps_prototype_sym;
-              break;
-            }  /* if */
-          }  /* if */
-        }  /* if */
-      }  /* for */
+      }  /* if */
     }  /* if */
   }  /* if */
   if (sym == NULL) {
@@ -11402,29 +11490,13 @@ matches templ_arg_list.   If so, return the symbol for the partial
 specialization.  Otherwise, return NULL.
 */
 {
-  a_symbol_ptr				result_sym = NULL;
-  a_symbol_ptr				ps_sym;
-  an_equiv_templ_arg_options_set	eta_options;
+  an_equiv_templ_arg_options_set eta_options =
+                                  eta_options_for_template(template_sym, tssp);
 
-  ps_sym = tssp->partial_specializations;
-  eta_options = eta_options_for_template(template_sym, tssp);
-  for (; ps_sym != NULL; ps_sym = ps_sym->next) {
-    /* Get the symbol associated with the prototype instantiation of this
-       partial specialization. */
-    a_variable_ptr	ps_var;
-    a_template_arg_ptr	old_list;
-    ps_var = variable_for_symbol(ps_sym);
-    /* old_list is the template argument list associated with the
-       prototype instantiation of the partial specialization.  See if
-       the list passed in matches it. */
-    old_list = ps_var->template_info->template_arg_list;
-    if (equiv_template_arg_lists(old_list, templ_arg_list,
-                                 eta_options | ETA_IS_PROTOTYPE)) {
-      result_sym = ps_sym;
-      break;
-    }  /* if */
-  }  /* for */
-  return result_sym;
+  return find_partial_specialization(tssp, templ_arg_list,
+                                     /*any_prototype_allowed=*/TRUE,
+                                     /*specific_prototype_allowed=*/NULL,
+                                     eta_options);
 }  /* find_variable_template_partial_specialization */
 
 

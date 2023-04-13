@@ -6700,9 +6700,10 @@ template_args_for_expr_list(const a_template_parameter *param_list,
                             an_ifc_expr_index          arguments);
 
 
+template<typename an_ifc_Decl_type>
 static a_template_arg_ptr create_templ_args_for_comparison(
-                             const an_ifc_decl_specialization &decl_spec,
-                             a_template_ptr                   primary_template)
+                                       const an_ifc_Decl_type &decl_spec,
+                                       a_template_ptr         primary_template)
 /*
 Given the IFC node information for a template specialization and the IL primary
 template, create and return a corresponding template argument set.  If a
@@ -6726,8 +6727,10 @@ problem is encountered during reconstruction, NULL is returned instead.
 }  /* create_templ_args_for_comparison */
 
 
+template<typename a_Search_fn>
 static a_boolean
-is_redeclared_specialized_entity(a_symbol_ptr        sym,
+is_redeclared_specialized_entity(a_Search_fn         search_fn,
+                                 a_symbol_ptr        sym,
                                  a_template_ptr      primary_templ,
                                  a_template_arg_ptr  templ_args,
                                  char                **redecl_entity,
@@ -6753,7 +6756,7 @@ check_and_set_specialization_redeclaration.
   /* Confirm the specialization is of the template referenced by this
      symbol. */
   if (primary_templ->canonical_template == (a_template_ptr)templ_entity) {
-    a_symbol_ptr existing = find_template_instantiation(sym, templ_args);
+    a_symbol_ptr existing = search_fn(sym, templ_args);
 
     if (existing != NULL) {
       result = TRUE;
@@ -6765,8 +6768,10 @@ check_and_set_specialization_redeclaration.
 }  /* is_redeclared_specialized_entity */
 
 
+template<typename a_Search_fn>
 static a_boolean
-find_redeclared_specialized_entity_in_list(a_symbol_ptr        sym_list,
+find_redeclared_specialized_entity_in_list(a_Search_fn         search_fn,
+                                           a_symbol_ptr        sym_list,
                                            a_template_ptr      primary_templ,
                                            a_template_arg_ptr  templ_args,
                                            char                **redecl_entity,
@@ -6790,8 +6795,9 @@ check_and_set_specialization_redeclaration.
     if (!is_template_symbol(sym)) {
       continue;
     }  /* if */
-    if (is_redeclared_specialized_entity(sym, primary_templ, templ_args,
-                                         redecl_entity, redecl_kind)) {
+    if (is_redeclared_specialized_entity(search_fn, sym, primary_templ,
+                                         templ_args, redecl_entity,
+                                         redecl_kind)) {
       result = TRUE;
       break;
     }  /* if */
@@ -6800,11 +6806,13 @@ check_and_set_specialization_redeclaration.
 }  /* find_redeclared_specialized_entity_in_list */
 
 
+template<typename a_Search_fn, typename an_ifc_Decl_type>
 static a_boolean find_redeclared_specialized_entity(
-                              a_symbol_header                  *sym_header,
-                              const an_ifc_decl_specialization &decl_spec,
-                              char                             **redecl_entity,
-                              an_il_entry_kind                 *redecl_kind)
+                                        a_Search_fn            search_fn,
+                                        a_symbol_header        *sym_header,
+                                        const an_ifc_Decl_type &decl_spec,
+                                        char                   **redecl_entity,
+                                        an_il_entry_kind       *redecl_kind)
 /*
 For a given module entity's symbol header and IFC node information, search the
 active and inactive symbols for a redeclaration.  If a redeclaration is found,
@@ -6840,11 +6848,12 @@ check_and_set_specialization_redeclaration.
          lookup of the instantiation (i.e., use the front end's
          find_template_instantiation function).  Thus, we must traverse the
          symbol lists. */
-      if (find_redeclared_specialized_entity_in_list(active_symbols,
+      if (find_redeclared_specialized_entity_in_list(search_fn, active_symbols,
                                                      primary_templ, templ_args,
                                                      redecl_entity,
                                                      redecl_kind) ||
-          find_redeclared_specialized_entity_in_list(inactive_symbols,
+          find_redeclared_specialized_entity_in_list(search_fn,
+                                                     inactive_symbols,
                                                      primary_templ, templ_args,
                                                      redecl_entity,
                                                      redecl_kind)) {
@@ -6878,10 +6887,12 @@ for ignoring the latter definition for header units and erroring for named
 modules.
 */
 {
-  a_boolean result = find_redeclared_specialized_entity(loc->symbol_header,
-                                                        decl_spec,
-                                                        redecl_entity,
-                                                        redecl_kind);
+  a_boolean result = find_redeclared_specialized_entity(
+                                                   find_template_instantiation,
+                                                   loc->symbol_header,
+                                                   decl_spec,
+                                                   redecl_entity,
+                                                   redecl_kind);
 
   if (result) {
     /* This is a redeclaration of an existing symbol. */
@@ -6895,6 +6906,47 @@ modules.
   }  /* if */
   return result;
 }  /* check_and_set_specialization_redeclaration */
+
+
+a_boolean check_and_set_partial_specialization_redeclaration(
+                      a_symbol_locator                         *loc,
+                      a_module_entity_ptr                      mep,
+                      const an_ifc_decl_partial_specialization &decl_spec,
+                      a_source_position_ptr                    pos,
+                      char                                     **redecl_entity,
+                      an_il_entry_kind                         *redecl_kind)
+/*
+Given an IFC module entity's symbol locator, module entity pointer, IFC node
+information, and source position, check for a redeclaration of a partial
+template specialization.  Return TRUE if a redeclaration is found; otherwise
+return FALSE.  If found, the redeclared entity and its associated kind will be
+set to *redecl_entity and *redecl_kind respectively.
+
+The caller is responsible for handling any required merging of the
+declarations.  In the case of duplicate definitions the caller is responsible
+for ignoring the latter definition for header units and erroring for named
+modules.
+*/
+{
+  a_boolean result = find_redeclared_specialized_entity(
+                                          find_partial_template_specialization,
+                                          loc->symbol_header,
+                                          decl_spec,
+                                          redecl_entity,
+                                          redecl_kind);
+
+  if (result) {
+    /* This is a redeclaration of an existing symbol. */
+    /* FIXME: This should also trigger if the redecl_sym's module is a named
+       module. */
+#if 0
+    if (!is_header_unit(mep->module_info)) {
+      pos_error(ec_module_entity_redeclaration, pos);
+    }  /* if */
+#endif /* 0 */
+  }  /* if */
+  return result;
+}  /* check_and_set_partial_specialization_redeclaration */
 
 
 static a_boolean has_default_arguments(char *entity_ptr, an_il_entry_kind kind)
@@ -8937,8 +8989,18 @@ class_struct_union_case:
         if (!ensure_module_scope(mep, idps, &scope_push_status)) {
           goto invalid;
         }  /* if */
-        /* FIXME: Is it feasible to detect ignorable redeclarations of
-           partial specializations? */
+        if (check_and_set_partial_specialization_redeclaration(
+                                                           &loc, mep, idps,
+                                                           &error_position,
+                                                           &il_entity,
+                                                           &kind)) {
+          /* Specializations are fairly simple in nature, if the
+             specialization is already declared, and already defined,
+             there's nothing to add; skip processing. */
+          if (is_defined(il_entity, kind)) {
+            break;
+          }  /* if */
+        }  /* if */
         if (get_ifc_body(get_ifc_entity(idps)) != 0) {
           a_module_token_cache cache;
           an_ifc_cache_info    cinfo;
