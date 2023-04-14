@@ -28610,6 +28610,7 @@ traversal_start:
          sym != NULL;
          sym = next_symbol_in_overload_set(&ostblock)) {
       an_operand selector;
+      reduce_projection_symbol_to_fundamental_symbol(sym);
       if (select_templates != symbol_is(sym, sk_function_template)) {
         /* sym should not be considered in this pass. */
         goto next_function;
