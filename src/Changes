@@ -17,9 +17,8 @@ Clang attribute using_if_exists
 
 The changes for EDGcpfe/25243,EDGcpfe/25501 (see entry of 8/3/22) allowed the
 front end to recognize the Clang "using_if_exists" attribute, but they did not
-cause the attribute to have any effect.  Now, for namespace-scope using-
-declarations, the attribute inhibits an error that otherwise would be issued
-for a non-existing identifier.  For example:
+cause the attribute to have any effect.  Now, the attribute inhibits an error
+that otherwise would be issued for a non-existing identifier.  For example:
 
   namespace N {};
   using N::X __attribute((using_if_exists));  // Previously an error because X

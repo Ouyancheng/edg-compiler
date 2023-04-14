@@ -25692,9 +25692,10 @@ entity if applicable.
   a_base_class_ptr     bcp = NULL;
   a_pack_expansion_stack_entry_ptr
                        pesep;
-  a_boolean            err = FALSE, bcp_is_dummy = FALSE, no_il_entry = FALSE;
-  a_boolean            check_for_packs = FALSE, any_more = TRUE;
-  a_boolean            empty_pack = FALSE;
+  a_boolean            err = FALSE, bcp_is_dummy = FALSE, no_il_entry = FALSE,
+                       check_for_packs = FALSE, any_more = TRUE,
+                       secondary = FALSE, empty_pack = FALSE,
+                       has_postfix_attr = FALSE;
   a_symbol_locator     locator;
   a_using_decl_ptr     prev_udp = NULL, inh_ctor_udp = NULL;
   a_source_position    decl_pos, using_pos, end_of_using_pos;
@@ -25721,7 +25722,6 @@ entity if applicable.
   add_stop_token(tok_semicolon);
   using_pos = pos_curr_token;
   if (curr_token == tok_using) {
-    a_boolean  has_postfix_attr;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     end_of_using_pos = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -25822,14 +25822,54 @@ entity if applicable.
       }  /* if */
     } else {
       /* Not "using typename ...". */
-      if (!is_generalized_identifier_start(GID_DTOR_RECOGNIZED |
-                                           GID_TEMPLATE_ARGS_OPTIONAL)) {
+      an_identifier_options_set  idopts = GID_DTOR_RECOGNIZED |
+                                           GID_TEMPLATE_ARGS_OPTIONAL;
+      if (!is_generalized_identifier_start(idopts)) {
         pos_error(ec_exp_identifier, &pos_curr_token);
         err = TRUE;
       } else {
-        (void)coalesce_and_lookup_generalized_identifier(
-                              GID_DTOR_RECOGNIZED | GID_TEMPLATE_ARGS_OPTIONAL,
-                              ilm_using_declaration, &err);
+        a_boolean                  has_if_exists = FALSE;
+        if (using_attributes != NULL &&
+            find_attribute(ak_using_if_exists, using_attributes) != NULL) {
+          has_if_exists = TRUE;
+        }  /* if */
+        if (!has_if_exists &&
+            (has_postfix_attr || (secondary &&
+                                  attributes_on_using_declarations))) {
+          /* There might be attributes following the name.  Those attributes
+             can affect whether an undefined name is valid.  So cache the
+             current identifier and prescan any such attributes first. */
+          a_token_cache     cache;
+          an_attribute_ptr  attributes;
+          clear_token_cache(&cache, /*reusable=*/FALSE);
+          cache_curr_token(&cache);
+          (void)get_token();
+          attributes = scan_attributes(al_post_using_declarator);
+          if (attributes != NULL) {
+            /* Look to see if among the attribute is "using_if_exists" which
+               causes undefined names to be permitted.  Then "unscan" the
+               attributes so that later processing can find them. */
+            has_if_exists = find_attribute(ak_using_if_exists, attributes)
+                                                                      != NULL;
+            unscan_attributes(attributes);
+          }  /* if */
+          /* Restore the identifier token for lookup. */
+          rescan_cached_tokens(&cache);
+        }  /* if */
+        if (has_if_exists) {
+          /* The Clang attribute "using_if_exists" is present either as a
+             prefix attribute or as a postfix attribute: Inhibit any lookup
+             errors. */
+          idopts |= GID_IN_IF_EXISTS;
+        }  /* if */
+        sym = coalesce_and_lookup_generalized_identifier(
+                                         idopts, ilm_using_declaration, &err);
+        if (sym == NULL && has_if_exists) {
+          /* Setting err to TRUE causes the using-declaration not to be
+             processed any further.  In this case it is not an indication of
+             an actual "error". */
+          err = TRUE;
+        }  /* if */
       }  /* if */
     }  /* if */
     if (!err) {
@@ -26091,6 +26131,7 @@ next_using_declarator_if_any:
         any_more = begin_potential_pack_expansion_context(&pesep);
       }  /* if */
     }  /* if */
+    secondary = TRUE;
   }  /* while */
 done:
   if (check_for_packs) {

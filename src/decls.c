@@ -16478,7 +16478,7 @@ there are attributes in that position.
 {
   a_symbol_ptr             sym = NULL, fund_sym, overload_sym, other_decl,
                            fund_other_decl;
-  a_boolean                err = FALSE;
+  a_boolean                err = FALSE, secondary = FALSE;
   a_symbol_locator         locator;
   a_boolean                check_for_packs = FALSE, any_more = TRUE;
   a_scope_stack_entry_ptr  ssep = &scope_stack[depth_scope_stack];
@@ -16534,11 +16534,12 @@ there are attributes in that position.
                              dps->prefix_attributes) != NULL) {
             has_if_exists = TRUE;
           }  /* if */
-          if (has_postfix_attr) {
-            /* The caller already determined that there are attributes
-               following the name.  However, those attributes affect whether
-               an undefined name is valid.  So cache the current identifier
-               and prescan the attributes first. */
+          if (!has_if_exists &&
+              (has_postfix_attr ||
+               (secondary && attributes_on_using_declarations))) {
+            /* There might be attributes following the name.  Those attributes
+               can affect whether an undefined name is valid.  So cache the
+               current identifier and prescan any such attributes first. */
             a_token_cache     cache;
             an_attribute_ptr  attributes;
             clear_token_cache(&cache, /*reusable=*/FALSE);
@@ -16803,6 +16804,7 @@ there are attributes in that position.
         any_more = begin_potential_pack_expansion_context(&pesep);
       }  /* if */
     }  /* if */
+    secondary = TRUE;
   }  /* while */
   if (check_for_packs) {
     remove_stop_token(tok_comma);
