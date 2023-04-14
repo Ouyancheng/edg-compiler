@@ -26,7 +26,7 @@ for a non-existing identifier.  For example:
                                               // is not declared.  Now okay.
 
 In such cases, no IL is recorded for the using-declaration (e.g., they are not
-rendered by the C++-generating back).
+rendered by the C++-generating back end).
 
 
 4/13/23  [EDGcpfe/24660,EDGcpfe/24941,EDGcpfe/26120,EDGcpfe/26234,

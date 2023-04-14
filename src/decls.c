@@ -16538,25 +16538,36 @@ there are attributes in that position.
             /* The caller already determined that there are attributes
                following the name.  However, those attributes affect whether
                an undefined name is valid.  So cache the current identifier
-               and scan the attributes first. */
-            a_token_cache  cache;
+               and prescan the attributes first. */
+            a_token_cache     cache;
+            an_attribute_ptr  attributes;
             clear_token_cache(&cache, /*reusable=*/FALSE);
             cache_curr_token(&cache);
             (void)get_token();
-            scan_and_attach_using_declaration_attributes(sym, &has_if_exists);
+            attributes = scan_attributes(al_post_using_declarator);
+            if (attributes != NULL) {
+              /* Look to see if among the attribute is "using_if_exists" which
+                 causes undefined names to be permitted.  Then "unscan" the
+                 attributes so that later processing can find them. */
+              has_if_exists = find_attribute(ak_using_if_exists, attributes)
+                                                                      != NULL;
+              unscan_attributes(attributes);
+            }  /* if */
+            /* Restore the identifier token for lookup. */
             rescan_cached_tokens(&cache);
           }  /* if */
           if (has_if_exists) {
-            /* The Clang attribute "using_if_exists" is present: Inhibit any
-               lookup errors. */
+            /* The Clang attribute "using_if_exists" is present either as a
+               prefix attribute or as a postfix attribute: Inhibit any lookup
+               errors. */
             idopts |= GID_IN_IF_EXISTS;
           }  /* if */
           sym = coalesce_and_lookup_generalized_identifier(
                                                     idopts, ilm_normal, &err);
           if (sym == NULL && has_if_exists) {
             /* Setting err to TRUE causes the using-declaration not to be
-               processed any further.  In this cases it is not an indication
-               of an actual "error". */
+               processed any further.  In this case it is not an indication of
+               an actual "error". */
             err = TRUE;
           }  /* if */
         }  /* if */
@@ -16770,7 +16781,7 @@ there are attributes in that position.
     }  /* if */
     /* Attributes are not allowed here, but clang allows attributes at this
        location. */
-    scan_and_attach_using_declaration_attributes(sym);
+    scan_and_attach_using_declaration_attributes(dps->sym);
     if (check_for_packs) {
       pedep = end_potential_pack_expansion_context(pesep,
                                                    /*is_declarator=*/FALSE);
