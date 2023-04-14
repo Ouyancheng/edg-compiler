@@ -1,5 +1,17 @@
 Version 6.5
 
+4/14/23  [EDGcpfe/26088]
+Representation of static assertions (IL Change)
+
+In block scopes, static_assert constructs trigger the emission of an stmk_decl
+entry, but that entry previously did not refer back directly to a
+representation of the construct.  Instead, in configurations with
+GENERATE_SOURCE_SEQUENCE_LISTS a source sequence entry would point to an entry
+of type a_static_assertion.  Now, the "entities" list associated with the
+stmk_decl entry for a static assertion will have its first entry refer to an
+entry of type a_static_assertion describing the construct.
+
+
 4/13/23  [EDGcpfe/25472,EDGcpfe/26223]
 Clang attribute using_if_exists
 
