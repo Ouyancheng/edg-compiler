@@ -926,8 +926,8 @@ EXTERN a_const_char *il_entry_kind_names[(int)iek_last + 1]
 /* iek_ms_if_exists */			"ms-if-exists",
 #endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
 /* iek_local_expr_node_ref */		"local-expr-node-ref",
-#if GENERATE_SOURCE_SEQUENCE_LISTS
 /* iek_static_assertion */		"static-assertion",
+#if GENERATE_SOURCE_SEQUENCE_LISTS
 #if GENERATE_LINKAGE_SPEC_BLOCKS
 /* iek_linkage_spec_block */		"linkage-spec-block",
 #endif /* GENERATE_LINKAGE_SPEC_BLOCKS */
