@@ -14130,34 +14130,57 @@ parameters.
     if (have_params) {
       /* Substitute the type of the nontype parameter. */
       const_type = tpp->variant.constant.ptr->type;
-      if (tpp->uses_auto) {
-        /* Get the type from the argument.  This will be checked below. */
-        new_const_type = tap->variant.constant->type;
-        template_param_type = NULL;
-      } else {
-        new_const_type = const_type;
-        if (tpp->variant.constant.type_involves_template_param) {
-          /* The type of the template parameter involves a template
-             parameter.   Substitute the current set of template arguments
-             (the ones being created by this routine) into the type.
-             The outer template arguments will also be substituted below,
-             which means that any expressions that result from substitution
-             may be rescanned once more. */
-          new_const_type =
+      new_const_type = const_type;
+      if (tpp->variant.constant.type_involves_template_param) {
+        /* The type of the template parameter involves a template parameter.
+           Substitute the current set of template arguments (the ones being
+           created by this routine) into the type.  The outer template
+           arguments will also be substituted below, which means that any
+           expressions that result from substitution may be rescanned once
+           more. */
+        new_const_type =
              copy_type_with_substitution(new_const_type,
                                          arg_list_to_copy, param_list_for_copy,
                                          source_pos,
                                          options | CTWS_MAY_BE_RESCANNED,
                                          copy_error, ctws_state);
-          if (*copy_error) goto done;
-        }  /* if */
-        new_const_type = copy_type_with_substitution(new_const_type,
-                                                     templ_arg_list,
-                                                     templ_param_list,
-                                                     source_pos, options,
-                                                     copy_error, ctws_state);
         if (*copy_error) goto done;
+      }  /* if */
+      new_const_type = copy_type_with_substitution(new_const_type,
+                                                   templ_arg_list,
+                                                   templ_param_list,
+                                                   source_pos, options,
+                                                   copy_error, ctws_state);
+      if (*copy_error) goto done;
+      if (!tpp->uses_auto) {
         template_param_type = new_const_type;
+      }  /* if */
+    }  /* if */
+    tap->variant.constant =
+         copy_template_param_con_with_substitution(tap->variant.constant,
+                                                   templ_arg_list,
+                                                   templ_param_list,
+                                                   template_param_type,
+                                                   source_pos,
+                                                   options |
+                                                     CTWS_NONTYPE_TEMPLATE_ARG,
+                                                   copy_error,
+                                                   ctws_state);
+    if (*copy_error) goto done;
+    if (new_const_type != NULL) {
+      if (tpp->uses_auto) {
+        /* Deduce the type of the template parameter from the template
+           argument. */
+        if (!arg_matches_auto_template_param(new_const_type,
+                                             tap->variant.constant,
+                                             (an_arg_operand_ptr)NULL,
+                                             &new_const_type,
+                                             (a_source_position_ptr)NULL,
+                                             templ_arg_list,
+                                             templ_param_list)) {
+          subst_fail(*copy_error);
+          goto done;
+        }  /* if */
       }  /* if */
       /* Make sure the new type is a valid type for a nontype template
          parameter. */
@@ -14176,46 +14199,23 @@ parameters.
         subst_fail(*copy_error);
         goto done;
       }  /* if */
-    }  /* if */
-    tap->variant.constant =
-         copy_template_param_con_with_substitution(tap->variant.constant,
-                                                   templ_arg_list,
-                                                   templ_param_list,
-						   template_param_type,
-                                                   source_pos,
-                                                   options |
-                                                     CTWS_NONTYPE_TEMPLATE_ARG,
-                                                   copy_error,
-                                                   ctws_state);
-    if (*copy_error) goto done;
-    if (have_params && tpp->uses_auto) {
-      /* Make sure the new argument is compatible with the auto template
-         parameter. */
-      if (!arg_matches_auto_template_param(tpp->variant.constant.ptr->type,
-                                           tap->variant.constant,
-                                           (an_arg_operand_ptr)NULL,
-                                           (a_type_ptr*)NULL,
-                                           (a_source_position_ptr)NULL,
-                                           templ_arg_list, templ_param_list)) {
-        /* It is not compatible. */
-        subst_fail(*copy_error);
-      }  /* if */
-    } else if (new_const_type != NULL) {
-      /* If the constant does not have the required type, see if it can
-         be converted. */
-      a_type_ptr	type_from_constant = tap->variant.constant->type;
-      if (is_error_type(new_const_type)) {
-        /* The substitution resulted in an error type.  Don't attempt a
-           conversion. */
-        subst_fail(*copy_error);
-      } else if (!f_identical_types(skip_typerefs(new_const_type),
-                                    skip_typerefs(type_from_constant),
-                                    ITF_NO_FLAGS)) {
-        /* Attempt to convert the constant. */
-        if (!conv_nontype_arg_to_required_type(tap, new_const_type,
-                                               source_pos)) {
-          /* The conversion failed. */
+      if (!tpp->uses_auto) {
+        /* If the constant does not have the required type, see if it can
+           be converted. */
+        a_type_ptr  type_from_constant = tap->variant.constant->type;
+        if (is_error_type(new_const_type)) {
+          /* The substitution resulted in an error type.  Don't attempt a
+             conversion. */
           subst_fail(*copy_error);
+        } else if (!f_identical_types(skip_typerefs(new_const_type),
+                                      skip_typerefs(type_from_constant),
+                                      ITF_NO_FLAGS)) {
+          /* Attempt to convert the constant. */
+          if (!conv_nontype_arg_to_required_type(tap, new_const_type,
+                                                 source_pos)) {
+            /* The conversion failed. */
+            subst_fail(*copy_error);
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */

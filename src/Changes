@@ -1,5 +1,20 @@
 Version 6.5
 
+4/17/23  [EDGcpfe/26217]
+Default arguments for non-type template parameters of reference to auto type
+
+When using a default template argument for a non-type template parameter of
+reference to auto type, the front end previously checked whether the type of
+the default template argument was valid as a non-type template parameter type
+instead of the deduced template parameter type.  For example, with --c++17:
+
+  struct B { B(); };
+  B b;
+  template<auto &v = b>
+  int f() { return 0; }
+  int i = f();  // Previously a spurious error.  Now okay.
+
+
 4/14/23  [EDGcpfe/26088]
 Representation of static assertions (IL Change)
 

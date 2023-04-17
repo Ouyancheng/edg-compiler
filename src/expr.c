@@ -648,6 +648,18 @@ processed so far.  arg_list and param_list are NULL by default.
   if (constant != NULL) {
     check_assertion(arg_operand == NULL);
     make_constant_operand(constant, &local_operand);
+    if (constant->kind == ck_address && local_operand.state == os_prvalue &&
+        is_any_reference_type(local_operand.type)) {
+      /* make_constant_operand turns reference ck_address entries into prvalue
+         operands.  Restore glvalueness. */
+      local_operand.type = type_pointed_to(local_operand.type);
+      set_glvalue_operand_state(&local_operand);
+      if (constant->expr != NULL && node_is(constant->expr, enk_variable)) {
+        local_operand.is_id_expression = TRUE;
+        local_operand.id_expression_was_parenthesized =
+                                              constant->expr->is_parenthesized;
+      }  /* if */
+    }  /* if */
     p_operand = &local_operand;
   } else {
     check_assertion(arg_operand != NULL);
