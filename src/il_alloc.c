@@ -112,13 +112,13 @@ static unsigned long
 		num_il_entry_prefixes_allocated,
 		string_literal_text_space_allocated,
 		num_seq_number_lookup_entries_allocated,
-                num_trans_unit_copy_address_pointers_allocated,
-                num_il_entity_list_entries_allocated,
-                num_attributes_allocated,
-                num_attribute_args_allocated,
-                num_attribute_groups_allocated,
-                num_constexpr_ifs_allocated,
-                num_subobject_paths_allocated,
+		num_trans_unit_copy_address_pointers_allocated,
+		num_il_entity_list_entries_allocated,
+		num_attributes_allocated,
+		num_attribute_args_allocated,
+		num_attribute_groups_allocated,
+		num_constexpr_ifs_allocated,
+		num_subobject_paths_allocated,
 		num_static_assertions;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 static unsigned long
