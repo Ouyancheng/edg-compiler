@@ -15077,34 +15077,18 @@ final token.
       } else {
         pos_error(ec_terse_static_assert, &pos);
       }  /* if */
-    } else {
-      a_boolean  gen_sse = (a_boolean)GENERATE_SOURCE_SEQUENCE_LISTS,
-                 gen_stmt = is_local_scope_kind(scope_stack_top().kind);
-      if (gen_stmt || gen_sse) {
-        /* Record the assertion in the IL. */
-        a_static_assertion_ptr  entry = alloc_static_assertion();
-        entry->condition = alloc_shareable_constant(assert_con);
-        if (error_string != NULL) {
-          entry->string_literal = alloc_shareable_constant(error_string);
-        }  /* if */
-        entry->position = pos;
-        if (gen_stmt) {
-          an_il_entity_list_entry  *ielep = alloc_il_entity_list_entry();
-          ielep->entity.kind = iek_static_assertion;
-          ielep->entity.ptr = (char*)entry;
-          check_assertion(struct_stmt_stack != NULL &&
-                          struct_stmt_stack->last_dep_statement != NULL &&
-                          struct_stmt_stack->last_dep_statement->kind ==
-                                                                   stmk_decl);
-          ielep->next = struct_stmt_stack->last_dep_statement
-                                         ->variant.decl.entities;
-          struct_stmt_stack->last_dep_statement->variant.decl.entities = ielep;
-        }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-        add_to_source_sequence_list((char*)entry,
+    } else {
+      /* Record the assertion in the IL. */
+      a_static_assertion_ptr  entry = alloc_static_assertion();
+      entry->condition = alloc_shareable_constant(assert_con);
+      if (error_string != NULL) {
+        entry->string_literal = alloc_shareable_constant(error_string);
+      }  /* if */
+      entry->position = pos;
+      add_to_source_sequence_list((char*)entry,
                                   (an_il_entry_kind)iek_static_assertion);  
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-      }  /* if */
     }  /* if */
   }  /* if */
   if (!leave_semicolon) {

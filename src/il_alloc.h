@@ -301,8 +301,6 @@ extern a_scope_ptr alloc_placeholder_scope(a_scope_kind  kind,
 
 extern a_local_scope_ref_ptr alloc_local_scope_ref(void);
 
-extern a_static_assertion_ptr alloc_static_assertion(void);
-
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 
 extern a_source_sequence_entry_ptr alloc_source_sequence_entry(void);
@@ -314,6 +312,8 @@ extern a_src_seq_end_of_construct_ptr alloc_src_seq_end_of_construct(void);
 extern a_src_seq_sublist_ptr alloc_src_seq_sublist(void);
 
 extern an_instantiation_directive_ptr alloc_instantiation_directive(void);
+
+extern a_static_assertion_ptr alloc_static_assertion(void);
 
 #if GENERATE_LINKAGE_SPEC_BLOCKS
 extern a_linkage_spec_block_ptr alloc_linkage_spec_block(void);

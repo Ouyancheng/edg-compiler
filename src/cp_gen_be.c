@@ -19745,9 +19745,6 @@ Generate the declaration associated with the given stmk_decl statement.
       entry_kind = (an_il_entry_kind)curr_source_sequence_entry->entity.kind;
     }  /* if */
     switch (entry_kind) {
-      case iek_static_assertion:
-        ep = ep->next;
-        break;;
       case iek_type:
       case iek_routine:
       case iek_variable:
