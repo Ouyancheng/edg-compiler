@@ -25823,7 +25823,7 @@ entity if applicable.
     } else {
       /* Not "using typename ...". */
       an_identifier_options_set  idopts = GID_DTOR_RECOGNIZED |
-                                           GID_TEMPLATE_ARGS_OPTIONAL;
+                                          GID_TEMPLATE_ARGS_OPTIONAL;
       if (!is_generalized_identifier_start(idopts)) {
         pos_error(ec_exp_identifier, &pos_curr_token);
         err = TRUE;
