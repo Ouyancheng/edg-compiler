@@ -11233,7 +11233,15 @@ Return TRUE if processing succeeded, otherwise return FALSE.
 
 using a_bad_operator_name_encoding_array = Small_dyn_array<a_const_char*, 42>;
                         /* The type for an array of bad operator name
-                           encodings. */
+                           encodings.  These operators have been represented
+                           directly in the IFC via a TextOffset (which in the
+                           context of name resolution should be reserved for
+                           valid C++ identifiers) rather than a
+                           NameSort::Operator.  When the TextOffset is
+                           converted to a name in name_from_index the front end
+                           uses the array of bad operator names to check for
+                           and correct these operator encodings (by adding the
+                           missing "operator" prefix). */
 
 static a_bad_operator_name_encoding_array
                 *bad_operator_name_encodings;
