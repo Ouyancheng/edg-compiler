@@ -33011,10 +33011,10 @@ that case.
                  is_vector_type(operand_2.type) &&
                  ((num_vector_elements(operand_1->type) !=
                                         num_vector_elements(operand_2.type)) ||
-                  skip_typerefs(operand_1->type)->
-                                          variant.vector.element_type->size !=
-                   skip_typerefs(operand_2.type)->
-                                          variant.vector.element_type->size)) {
+                  skip_typerefs(skip_typerefs(operand_1->type)->
+                                          variant.vector.element_type)->size !=
+                  skip_typerefs(skip_typerefs(operand_2.type)->
+                                         variant.vector.element_type)->size)) {
         /* All operands are vectors, but their types are not compatible. */
         expr_pos_ty2_error(ec_incompatible_operands, &question_position,
                            operand_1->type, operand_2.type);
