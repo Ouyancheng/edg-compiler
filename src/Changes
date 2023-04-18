@@ -1,5 +1,29 @@
 Version 6.5
 
+4/18/23  [EDGcpfe/26256]
+Abort on ambiguous user-defined conversion
+
+The changes for EDGcpfe/22154 introduced a regression in version 6.3 causing
+some ambiguous conversion cases to lead to an abort due to a null pointer
+indirection in overload.c (function match_with_udc_to_constructor_class).
+For example:
+
+  struct S {
+    S(float);
+    S(short);
+  };
+  struct R {
+    operator float() const;
+    operator double() const;
+  };
+  void g() {
+    R s;
+    static_cast<S>(s);  // Previously aborted.  Now an ordinary error.
+  }
+
+That is now fixed.
+
+
 4/18/23  [EDGcpfe/26259]
 GNU compatibility: STDC pragmas
 

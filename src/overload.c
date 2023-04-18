@@ -8231,10 +8231,12 @@ matches with a user-defined conversion to the candidate's parent class.
   if (arg_match != NULL && arg_match->next == NULL &&
       arg_match->match_level == aml_user_conversion) {
     a_routine  *conv_rp = arg_match->conversion.routine;
-    a_type     *conv_tp = il_return_type_of(conv_rp->type);
-    a_type     *parent_type = sym_parent_class(cfp->function_symbol);
-    if (skip_typerefs(conv_tp) == skip_typerefs(parent_type)) {
-      result = TRUE;
+    if (conv_rp != NULL) {
+      a_type     *conv_tp = il_return_type_of(conv_rp->type);
+      a_type     *parent_type = sym_parent_class(cfp->function_symbol);
+      if (skip_typerefs(conv_tp) == skip_typerefs(parent_type)) {
+        result = TRUE;
+      }  /* if */
     }  /* if */
   }  /* if */
   return result;
