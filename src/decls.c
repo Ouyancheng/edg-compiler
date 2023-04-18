@@ -21650,7 +21650,7 @@ parameters are scanned by scan_a_template_parameter_declaration.
                &locator, &func_info, &decl_pos_block);
     is_function = (dps->declared_storage_class !=
                                                 (a_storage_class)sc_typedef &&
-                   !is_old_style_param_decl &&
+                   !dps->is_struct_binding_decl && !is_old_style_param_decl &&
                    is_function_type(dps->type));
     if (is_function && dps->variant.auto_params != NULL) {
       /* We ran into "auto" parameters: Reparse the declaration as a template

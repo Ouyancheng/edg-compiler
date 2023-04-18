@@ -1,5 +1,16 @@
 Version 6.5
 
+4/18/23  [EDGcpfe/26216]
+Uninitialized memory access for ill-formed structured binding declaration
+
+When parsing an ill-formed structured binding declaration where the
+decl-specifiers denote a function type, the front end would previously attempt
+to access uninitialized memory.  For example, with --c++17:
+
+  using fn_t = void();
+  fn_t [ v ] = 0;
+
+
 4/17/23  [EDGcpfe/26217]
 Default arguments for non-type template parameters of reference to auto type
 
