@@ -1,5 +1,15 @@
 Version 6.5
 
+4/18/23  [EDGcpfe/26259]
+GNU compatibility: STDC pragmas
+
+The front end previously erroneously failed to recognize the C99 and C++11
+STDC pragmas in GNU emulation modes.  This is now fixed.  For example, with
+--g++ --c++11:
+
+  #pragma STDC FENV_ACCESS DEFAULT   // Now correctly accepted
+
+
 4/18/23  [EDGcpfe/26258]
 Conditional operation on vector defined with typedef element type
 

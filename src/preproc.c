@@ -3099,10 +3099,7 @@ pragmas, and by translation_unit for pragmas that appear in the file scope.
   begin_rescan_of_pragma_tokens(ppp);
   if (curr_token == tok_identifier) {
     str = locator_for_curr_id.symbol_header->identifier;
-    /* Gcc does not recognize any of these three pragmas that are part of
-       C99 and C++11. */
-    if ((!gnu_mode || clang_mode) &&
-        (c99_mode || cpp11_mode)) {
+    if (c99_mode || cpp11_mode) {
       if (strcmp(str, "FP_CONTRACT") == 0) {
         kind = (a_stdc_pragma_kind)stdc_pk_fp_contract;
         state_var_ptr = &curr_fp_contract_state;
