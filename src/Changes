@@ -1,5 +1,22 @@
 Version 6.5
 
+4/18/23  [EDGcpfe/26052]
+Abort on out-of-class partial specialization of static data member template
+
+Previously, the front end aborted in "enclosing_class_type" for an out-of-class
+partial specialization declaration of a static data member template.  For
+example, with --c++14:
+
+  template<typename T>
+  struct C {
+    template<typename U>
+    static T s;
+  };
+  template<typename T> template<typename U>
+  T C<T>::s<U *> = 1;  // Previously aborted during instantiation.  Now okay.
+  int i = C<int>::s<int *>;
+
+
 4/18/23  [EDGcpfe/26216]
 Uninitialized memory access for ill-formed structured binding declaration
 

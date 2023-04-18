@@ -8395,7 +8395,8 @@ class for which the member is being scanned.  Returns NULL in case of error.
     --ssep;
   }  /* if */
   if (scope_is(ssep, sck_class_struct_union) ||
-      scope_is(ssep, sck_class_reactivation)) {
+      scope_is(ssep, sck_class_reactivation) ||
+      scope_is(ssep, sck_template_instantiation)) {
     result = ssep->assoc_type;
     check_assertion(result != NULL && is_immediate_class_type(result));
   } else {
