@@ -14126,7 +14126,6 @@ parameters.
        the template parameter after substitution.  A NULL pointer is
        passed if we do not know the parameter type. */
     template_param_type = NULL;
-    new_const_type = NULL;
     if (have_params) {
       /* Substitute the type of the nontype parameter. */
       const_type = tpp->variant.constant.ptr->type;
@@ -14155,6 +14154,9 @@ parameters.
       if (!tpp->uses_auto) {
         template_param_type = new_const_type;
       }  /* if */
+    } else {
+      const_type = NULL;
+      new_const_type = NULL;
     }  /* if */
     tap->variant.constant =
          copy_template_param_con_with_substitution(tap->variant.constant,
