@@ -5080,10 +5080,15 @@ by implied_src.
           case abk_variable:
             { /* Check if the variable has a constant value, and if so ensure
                  it has a representation in static interpreter storage.
-                 Otherwise, create a run-time address. */
+                 Otherwise, create a run-time address.  GCC apparently treats
+                 const variables with static initializers as potentially
+                 constant-valued even when their type is not integral. */
               a_variable_ptr  vp = con->variant.address.variant.variable;
               a_type_ptr      vtp = skip_typerefs(vp->type);
-              if (vp->constant_valued || vp->is_constexpr) {
+              if (vp->constant_valued || vp->is_constexpr ||
+                  (gpp_version_is(any_version) &&
+                   vp->init_kind == initk_static &&
+                   is_const_qualified_type(vp->type))) {
                 a_byte  *var_bytes;
                 get_stack_bytes(ips, vp, var_bytes);
                 if (var_bytes == NULL) {

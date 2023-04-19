@@ -1,5 +1,24 @@
 Version 6.5
 
+4/19/23  [EDGcpfe/26197]
+GCC compatibility: Non-integral const variables
+
+Consider:
+
+  struct S {
+    explicit constexpr S(float const& a) : v(a) {}
+    float v;
+  };
+  S const x{0};
+  constexpr S y{x};  // Now accepted in GNU C++11 modes.
+
+Ordinarily, this is an error because x is not potentially-constant (it is
+neither constexpr nor of a const integral type).  However, GCC appear to treat
+as potentially-constant const variables of non-integral types and the front end
+now emulates that behavior.  The example above is therefore now accepted in
+GNU C++11 modes.
+
+
 4/19/23  [EDGcpfe/26181]
 Failed constraint check for explicitly-specified template arguments
 
