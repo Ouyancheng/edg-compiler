@@ -17038,7 +17038,7 @@ are flags passed down to the substitution routines.
         (!concepts_enabled ||
          ms_version_is(any_version) || clang_version_is(any_version) ||
          (ctws_options & CTWS_IS_PARTIAL_ORDER_CHECK) ||
-         template_arg_list_is_dependent(templ_arg_list) ||
+         new_arg_list != NULL ||
          check_template_constraints(originator_symbol_of(templ_sym),
                                     templ_arg_list, /*diagnose=*/FALSE))) {
       /* This is the first time this routine has been called for this
