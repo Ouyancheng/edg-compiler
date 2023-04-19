@@ -64,9 +64,9 @@ For example, with --c++17 --gnu_version=120100:
 4/18/23  [EDGcpfe/26052]
 Abort on out-of-class partial specialization of static data member template
 
-Previously, the front end aborted in "enclosing_class_type" for an out-of-class
-partial specialization declaration of a static data member template.  For
-example, with --c++14:
+Previously, the front end aborted with a failed assertion in
+enclosing_class_type for an out-of-class partial specialization declaration of
+a static data member template.  For example, with --c++14:
 
   template<typename T>
   struct C {
