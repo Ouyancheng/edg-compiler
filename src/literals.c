@@ -1376,12 +1376,6 @@ return_point:
   /* Drop out-of-range bits. */
   targ_ch &= centity_mask;
   *ch = targ_ch;
-  if (microsoft_mode) {
-    /* Throw away any null characters following the character in Microsoft
-       mode.  This makes it easier for the caller to recognize the end of the
-       string. */
-    while (*lptr == LE_ESCAPE && lptr[1] == LE_NULL) lptr += 2;
-  }  /* if */
   *state->next_token_char = lptr;
   return;
 
@@ -1501,6 +1495,23 @@ defines the size of character.
   }  /* if */
 #endif /* !MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
 }  /* conv_single_wide_char */
+
+
+static inline a_const_char *skip_embedded_null_escapes(a_const_char *loc,
+                                                       a_const_char *end_loc)
+/*
+MSVC ignores embedded null characters in character and string literals, not
+including them in the value of the literal nor counting them in the length.
+To emulate that behavior, advance loc over any LE_NULL lexical escapes that
+occur preceding end_loc and return the adjusted value of loc.
+*/
+{
+  while (loc <= end_loc - LE_ESCAPE_LEN && loc[0] == LE_ESCAPE &&
+         loc[1] == LE_NULL) {
+    loc += LE_ESCAPE_LEN;
+  }  /* while */
+  return loc;
+}  /* skip_embedded_null_escapes */
 
 
 void conv_char_literal(unsigned long num_chars,
@@ -1632,6 +1643,10 @@ the actual number of converted characters may be less than num_chars.  */
   mbc_scan_init_if_multibyte_chars_in_source_enabled();
 #endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
   set_unsigned_integer_value(&number, (a_host_large_unsigned)0);
+  if (microsoft_mode && temp_ptr <= end_of_curr_token - 2 &&
+      *temp_ptr == LE_ESCAPE) {
+    temp_ptr = skip_embedded_null_escapes(temp_ptr, end_of_curr_token);
+  }  /* if */
   /* Accumulate the characters.  A wide literal with no characters (L'')
      is possible in Microsoft mode and must produce a zero value. */
   /*lint -e{440}*/
@@ -1724,6 +1739,10 @@ the actual number of converted characters may be less than num_chars.  */
       } /* if */
     } /* if */
     or_integer_values(&number, &ch_int_val);
+    if (microsoft_mode && temp_ptr <= end_of_curr_token - 2 &&
+        *temp_ptr == LE_ESCAPE) {
+      temp_ptr = skip_embedded_null_escapes(temp_ptr, end_of_curr_token);
+    }  /* if */
   }  /* for */
   if (character_kind != (a_character_kind)chk_char32_t &&
       num_chars > 1 && i == 1) {
@@ -1961,6 +1980,12 @@ fewer characters than the number of bytes in the UTF-8 encoding.
       raw_str_trigraph_delim_chars = 1;
     }  /* if */
   }  /* if */
+  if (microsoft_mode &&
+      temp_ptr <= end_of_string_value + raw_str_trigraph_delim_chars - 2 &&
+      *temp_ptr == LE_ESCAPE) {
+    temp_ptr = skip_embedded_null_escapes(
+                 temp_ptr, end_of_string_value + raw_str_trigraph_delim_chars);
+  }  /* if */
   /* Accumulate the characters.  Loop until we reach the indicated end of
      the string value.  The loop is extended while characters are pending,
      either because a multibyte character is in process, or because of the
@@ -1990,6 +2015,12 @@ fewer characters than the number of bytes in the UTF-8 encoding.
       default:
         unexpected_condition();
     }  /* switch */
+    if (microsoft_mode &&
+        temp_ptr <= end_of_string_value + raw_str_trigraph_delim_chars - 2 &&
+        *temp_ptr == LE_ESCAPE) {
+      temp_ptr = skip_embedded_null_escapes(
+                 temp_ptr, end_of_string_value + raw_str_trigraph_delim_chars);
+    }  /* if */
   }  /* for */
   /* Add the final null. */
   check_assertion(pstr < str_start + constant_size);
