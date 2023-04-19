@@ -3318,7 +3318,7 @@ required).
       record_pending_ifc_template_definition(templ, decl_idx);
     } else {
       /* The IL entity is already defined so we can't rely on the lazy loading
-         mechanism to load any pending IFC specified specializations. */
+         mechanism to load any pending IFC-specified specializations. */
       an_ifc_decl_index   parent_decl_idx = get_ifc_home_scope(templ_decl);
       a_module_entity_ptr deferring_entity = NULL;
 
@@ -4199,9 +4199,9 @@ static void add_partition_element_diag_info(a_diagnostic_ptr  diag,
                                             an_error_code     error_code,
                                             an_ifc_Index_type idx)
 /*
-Add diagnostic information via the given to error code to the diagnostic
-pointer including the given index's partition, element number, file, and
-relative position.
+Add diagnostic information via the given error code to the diagnostic pointer
+including the given index's partition, element number, file, and relative
+position.
 */
 {
   an_ifc_module               *mod = idx.mod;
@@ -12963,8 +12963,8 @@ rules of position inference).
 static size_t count_nonnull_chars(a_const_char *ifc_str,
                                   size_t       ifc_length)
 /*
-Give an IFC string and the IFC specified length, return the number of
-characters which are not null (i.e., 0) characters.
+Given an IFC string and the IFC-specified length, return the number of
+characters that are not null (i.e., 0) characters.
 */
 {
   size_t num_nulls = 0;
@@ -12982,11 +12982,11 @@ namespace {
 /*
 The IFC contains strings that are formed from a specified number of bytes (as
 opposed to via a null character terminator).  These strings can contain
-interior null characters which should be removed when the IFC string is
+interior null characters, which should be removed when the IFC string is
 converted to an IL string.
 
 This structure abstracts the IFC string value and provides extra information
-into for use during translation to front end IL.
+for use during translation to front end IL.
 */
 struct an_ifc_string {
   an_ifc_string(a_character_kind char_kind,
@@ -13027,8 +13027,6 @@ string with all null characters (except the terminating null character)
 removed.
 */
 {
-  /* Allocate a text string, adding 1 to the length to account for the
-     terminating null character. */
   char   *result = alloc_text_of_string_literal(size_of_str_constant(str));
   size_t i_output = 0;
 
@@ -13112,7 +13110,8 @@ static inline void cache_string_literal(a_module_token_cache_ptr cache,
 Add a tok_string_literal for the given string to cache.
 */
 {
-  /* Create a fake IFC string to perform a cache of an empty string. */
+  /* Create a fake "IFC string" to perform a cache of the given a_const_char*
+     (C-string). */
   an_ifc_string ifc_str(chk_char, str, strlen(str));
 
   cache_string_literal(cache, ifc_str);
@@ -14484,9 +14483,9 @@ template<typename an_ifc_Index_type>
 static void diagnose_ifc_string_null_removal(an_ifc_Index_type   idx,
                                              const an_ifc_string &str)
 /*
-Emit a warning for an IFC string from the given index which has had null
-characters removed.  str is the IFC string value which had had null bytes
-removed.
+Emit a warning for an IFC string from the given index from which null
+characters have been removed.  str is the IFC string value which has had null
+bytes removed.
 */
 {
   check_assertion(str.contains_null_characters());
@@ -14501,7 +14500,7 @@ removed.
                      str.length, str.ifc_length);
   add_partition_element_diag_info(diag, ec_ifc_null_char_in_string_info, idx);
   end_diagnostic(diag);
-}  /* diagnose_entity_load_failure */
+}  /* diagnose_ifc_string_null_removal */
 
 
 void an_ifc_module::cache_string(a_module_token_cache_ptr     cache,
@@ -16633,6 +16632,7 @@ this is needed.
         an_ifc_type_expansion ite = *opt_ite;
         cache_type_first_part(cache, get_ifc_pack(ite), cinfo);
         cache_token(cache, tok_ellipsis);
+        check_assertion(FALSE);
       }
       break;
     case ifc_ts_type_pointer:
