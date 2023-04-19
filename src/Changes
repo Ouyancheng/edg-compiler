@@ -1,11 +1,11 @@
 Version 6.5
 
 4/19/23  [EDGcpfe/26181]
-Failed constraint check for explicitly specified template arguments
+Failed constraint check for explicitly-specified template arguments
 
 The changes for EDGcpfe/25848 (not in a release but distributed to some
 customers as a patch) introduced a regression for checking the constraints of a
-function template with explicitly specified template arguments.  For example,
+function template with explicitly-specified template arguments.  For example,
 with --c++20:
 
   template<typename ... T> int f(T ... t) requires(sizeof...(T) > 1);
