@@ -16632,7 +16632,6 @@ this is needed.
         an_ifc_type_expansion ite = *opt_ite;
         cache_type_first_part(cache, get_ifc_pack(ite), cinfo);
         cache_token(cache, tok_ellipsis);
-        check_assertion(FALSE);
       }
       break;
     case ifc_ts_type_pointer:
