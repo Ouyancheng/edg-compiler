@@ -3778,14 +3778,6 @@ after_entry_from_class:
 #undef eptr
       }
       break;
-    case iek_static_assertion:
-      {
-#define eptr ((a_static_assertion_ptr)entry_ptr)
-        walk_ptr(eptr->condition, a_constant_ptr, iek_constant);
-        walk_ptr(eptr->string_literal, a_constant_ptr, iek_constant);
-#undef eptr
-      }
-      break;
 #if GENERATE_LINKAGE_SPEC_BLOCKS
     case iek_linkage_spec_block:
       {
@@ -3796,6 +3788,14 @@ after_entry_from_class:
       break;
 #endif /* GENERATE_LINKAGE_SPEC_BLOCKS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS && ... */
+    case iek_static_assertion:
+      {
+#define eptr ((a_static_assertion_ptr)entry_ptr)
+        walk_ptr(eptr->condition, a_constant_ptr, iek_constant);
+        walk_ptr(eptr->string_literal, a_constant_ptr, iek_constant);
+#undef eptr
+      }
+      break;
     case iek_scope_orphaned_list_header:
       {
 #define eptr ((a_scope_orphaned_list_header_ptr)entry_ptr)

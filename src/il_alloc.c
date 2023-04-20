@@ -112,24 +112,24 @@ static unsigned long
 		num_il_entry_prefixes_allocated,
 		string_literal_text_space_allocated,
 		num_seq_number_lookup_entries_allocated,
-                num_trans_unit_copy_address_pointers_allocated,
-                num_il_entity_list_entries_allocated,
-                num_attributes_allocated,
-                num_attribute_args_allocated,
-                num_attribute_groups_allocated,
-                num_constexpr_ifs_allocated,
-                num_subobject_paths_allocated;
+		num_trans_unit_copy_address_pointers_allocated,
+		num_il_entity_list_entries_allocated,
+		num_attributes_allocated,
+		num_attribute_args_allocated,
+		num_attribute_groups_allocated,
+		num_constexpr_ifs_allocated,
+		num_subobject_paths_allocated,
+		num_static_assertions;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 static unsigned long
 		num_source_sequence_entries_allocated,
 		num_src_seq_secondary_decls_allocated,
 		num_src_seq_end_of_constructs_allocated,
 		num_src_seq_sublists_allocated,
-		num_instantiation_directives_allocated,
 #if GENERATE_LINKAGE_SPEC_BLOCKS
 		num_linkage_spec_blocks,
 #endif /* GENERATE_LINKAGE_SPEC_BLOCKS */
-		num_static_assertions;
+		num_instantiation_directives_allocated;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if ORPHAN_PROCESSING_NEEDED
 static unsigned long
@@ -4826,6 +4826,27 @@ initialize it, and return a pointer to it.
 }  /* alloc_local_scope_ref */
 
 
+a_static_assertion_ptr alloc_static_assertion(void)
+/*
+Allocate a static assertion entry, initialize its fields, and return a
+pointer to it.
+*/
+{
+  a_static_assertion_ptr  entry;
+
+  db_enter(5, "alloc_static_assertion");
+  entry = alloc_cil_of_type(a_static_assertion);
+#if DEBUG
+  num_static_assertions++;
+#endif /* DEBUG */
+  entry->condition = NULL;
+  entry->string_literal = NULL;
+  entry->position = null_source_position;
+  db_exit();
+  return entry;
+}  /* alloc_static_assertion */
+
+
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 
 a_source_sequence_entry_ptr alloc_source_sequence_entry(void)
@@ -4980,27 +5001,6 @@ a pointer to it.
 
   return idp;
 }  /* alloc_instantiation_directive */
-
-
-a_static_assertion_ptr alloc_static_assertion(void)
-/*
-Allocate a static assertion entry, initialize its fields, and return a
-pointer to it.
-*/
-{
-  a_static_assertion_ptr  entry;
-
-  db_enter(5, "alloc_static_assertion");
-  entry = alloc_cil_of_type(a_static_assertion);
-#if DEBUG
-  num_static_assertions++;
-#endif /* DEBUG */
-  entry->condition = NULL;
-  entry->string_literal = NULL;
-  entry->position = null_source_position;
-  db_exit();
-  return entry;
-}  /* alloc_static_assertion */
 
 #if GENERATE_LINKAGE_SPEC_BLOCKS
 
@@ -6026,6 +6026,7 @@ Display and return the amount of space used for various IL tables.
   db_space_used("scope", num_scopes_allocated, a_scope);
   db_space_used("local-scope-refs", num_local_scope_refs_allocated,
                 a_local_scope_ref);
+  db_space_used("static-assertion", num_static_assertions, a_static_assertion);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   db_space_used("source sequence entry", num_source_sequence_entries_allocated,
                 a_source_sequence_entry);
@@ -6040,7 +6041,6 @@ Display and return the amount of space used for various IL tables.
   db_space_used("instantiation_directive",
                 num_instantiation_directives_allocated,
                 an_instantiation_directive);
-  db_space_used("static-assertion", num_static_assertions, a_static_assertion);
 #if GENERATE_LINKAGE_SPEC_BLOCKS
   db_space_used("linkage-spec-blocks", num_linkage_spec_blocks,
                 a_linkage_spec_block);
@@ -6362,13 +6362,13 @@ in il_alloc_init.)
       pch_saved_var_array_elem(num_variables_allocated),
       pch_saved_var_array_elem(num_variable_template_infos_allocated),
       pch_saved_var_array_elem(string_literal_text_space_allocated),
+      pch_saved_var_array_elem(num_static_assertions),
 #if GENERATE_SOURCE_SEQUENCE_LISTS
       pch_saved_var_array_elem(num_source_sequence_entries_allocated),
       pch_saved_var_array_elem(num_src_seq_secondary_decls_allocated),
       pch_saved_var_array_elem(num_src_seq_end_of_constructs_allocated),
       pch_saved_var_array_elem(num_src_seq_sublists_allocated),
       pch_saved_var_array_elem(num_instantiation_directives_allocated),
-      pch_saved_var_array_elem(num_static_assertions),
 #if GENERATE_LINKAGE_SPEC_BLOCKS
       pch_saved_var_array_elem(num_linkage_spec_blocks),
 #endif /* GENERATE_LINKAGE_SPEC_BLOCKS */
@@ -6576,6 +6576,7 @@ initializations that are done for each compilation.
   num_local_scope_refs_allocated         = 0;
   num_il_entry_prefixes_allocated        = 0;
   string_literal_text_space_allocated    = 0;
+  num_static_assertions                  = 0;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   num_source_sequence_entries_allocated  = 0;
   num_src_seq_secondary_decls_allocated  = 0;
@@ -6583,7 +6584,6 @@ initializations that are done for each compilation.
                                          = 0;
   num_src_seq_sublists_allocated         = 0;
   num_instantiation_directives_allocated = 0;
-  num_static_assertions                  = 0;
 #if GENERATE_LINKAGE_SPEC_BLOCKS
   num_linkage_spec_blocks                = 0;
 #endif /* GENERATE_LINKAGE_SPEC_BLOCKS */

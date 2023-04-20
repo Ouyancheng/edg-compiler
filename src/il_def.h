@@ -750,9 +750,9 @@ enum an_il_entry_kind : a_byte {
 #endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
   iek_local_expr_node_ref,
 			/* a_local_expr_node_ref */
-#if GENERATE_SOURCE_SEQUENCE_LISTS
   iek_static_assertion,
 			/* a_static_assertion */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
 #if GENERATE_LINKAGE_SPEC_BLOCKS
   iek_linkage_spec_block,
 			/* a_linkage_spec_block */
@@ -926,8 +926,8 @@ EXTERN a_const_char *il_entry_kind_names[(int)iek_last + 1]
 /* iek_ms_if_exists */			"ms-if-exists",
 #endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
 /* iek_local_expr_node_ref */		"local-expr-node-ref",
-#if GENERATE_SOURCE_SEQUENCE_LISTS
 /* iek_static_assertion */		"static-assertion",
+#if GENERATE_SOURCE_SEQUENCE_LISTS
 #if GENERATE_LINKAGE_SPEC_BLOCKS
 /* iek_linkage_spec_block */		"linkage-spec-block",
 #endif /* GENERATE_LINKAGE_SPEC_BLOCKS */
@@ -1879,6 +1879,29 @@ typedef struct an_il_entity_list_entry {
 			/* Tagged pointer to an IL entity. */
 } an_il_entity_list_entry;
 
+
+/*
+Data structure describing a static_assert construct.  Only pointed to from
+source sequence entries and stmk_decl statements (via their entities list).
+*/
+typedef struct a_static_assertion *a_static_assertion_ptr;
+typedef struct a_static_assertion {
+  a_constant_ptr
+		condition;
+			/* A constant representing the condition asserted to
+			   be true. */
+  a_constant_ptr
+		string_literal;
+			/* A constant representing the string literal to be
+			   emitted if the assertion fails.  NULL in the case
+			   of a terse static_assert (i.e., one with only a
+			   single argument). */
+  a_source_position
+		position;
+			/* The source position of the start of the
+			   construct. */
+} a_static_assertion;
+
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 
 /*
@@ -2165,29 +2188,6 @@ typedef struct an_instantiation_directive {
 			   directive.  May be NULL. */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 } an_instantiation_directive;
-
-
-/*
-Data structure describing a static_assert construct.  Only pointed to from
-source sequence entries.
-*/
-typedef struct a_static_assertion *a_static_assertion_ptr;
-typedef struct a_static_assertion {
-  a_constant_ptr
-		condition;
-			/* A constant representing the condition asserted to
-			   be true. */
-  a_constant_ptr
-		string_literal;
-			/* A constant representing the string literal to be
-			   emitted if the assertion fails.  NULL in the case
-			   of a terse static_assert (i.e., one with only a
-			   single argument). */
-  a_source_position
-		position;
-			/* The source position of the start of the
-			   construct. */
-} a_static_assertion;
 
 #if GENERATE_LINKAGE_SPEC_BLOCKS
 
@@ -18294,8 +18294,8 @@ EXTERN sizeof_t	sizeof_il_entry[(int)iek_last+1]
   sizeof(an_ms_if_exists),
 #endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
   sizeof(a_local_expr_node_ref),
-#if GENERATE_SOURCE_SEQUENCE_LISTS
   sizeof(a_static_assertion),
+#if GENERATE_SOURCE_SEQUENCE_LISTS
 #if GENERATE_LINKAGE_SPEC_BLOCKS
   sizeof(a_linkage_spec_block),
 #endif /* GENERATE_LINKAGE_SPEC_BLOCKS */
