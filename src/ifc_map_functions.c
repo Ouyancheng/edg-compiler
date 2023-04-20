@@ -16258,28 +16258,51 @@ the storage specified by the storage argument).
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
-    /* name */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
-    /* locus.line */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
-    /* locus.column */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
-    /* type */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
-    /* constraint */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
-    /* initializer */
-    get_bytes(mod, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
-    /* level */
-    get_bytes(mod, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
-    /* position */
-    get_bytes(mod, (*storage) + 28, /*num_bytes=*/4, /*from_header=*/FALSE);
-    /* sort */
-    get_bytes(mod, (*storage) + 32, /*num_bytes=*/1, /*from_header=*/FALSE);
-    /* properties */
-    get_bytes(mod, (*storage) + 33, /*num_bytes=*/1, /*from_header=*/FALSE);
-    /* pack */
-    get_bytes(mod, (*storage) + 34, /*num_bytes=*/2, /*from_header=*/FALSE);
+    if (is_at_least(mod, 0, 41)) {
+      /* name */
+      get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+      /* locus.line */
+      get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+      /* locus.column */
+      get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+      /* type */
+      get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+      /* constraint */
+      get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+      /* initializer */
+      get_bytes(mod, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
+      /* level */
+      get_bytes(mod, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
+      /* position */
+      get_bytes(mod, (*storage) + 28, /*num_bytes=*/4, /*from_header=*/FALSE);
+      /* sort */
+      get_bytes(mod, (*storage) + 32, /*num_bytes=*/1, /*from_header=*/FALSE);
+      /* properties */
+      get_bytes(mod, (*storage) + 33, /*num_bytes=*/3, /*from_header=*/FALSE);
+    } else {
+      /* name */
+      get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+      /* locus.line */
+      get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+      /* locus.column */
+      get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+      /* type */
+      get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+      /* constraint */
+      get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+      /* initializer */
+      get_bytes(mod, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
+      /* level */
+      get_bytes(mod, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
+      /* position */
+      get_bytes(mod, (*storage) + 28, /*num_bytes=*/4, /*from_header=*/FALSE);
+      /* sort */
+      get_bytes(mod, (*storage) + 32, /*num_bytes=*/1, /*from_header=*/FALSE);
+      /* properties */
+      get_bytes(mod, (*storage) + 33, /*num_bytes=*/1, /*from_header=*/FALSE);
+      /* pack */
+      get_bytes(mod, (*storage) + 34, /*num_bytes=*/2, /*from_header=*/FALSE);
+    }  /* if */
   }  /* if */
   return storage;
 }  /* get<an_ifc_decl_parameter_storage> */

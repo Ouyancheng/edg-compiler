@@ -269,12 +269,6 @@ public:
   uint32_t get_num_entries(an_ifc_partition_kind partition) const;
   /* IFC Scope readers. */
   a_type_ptr type_for_template_id(const an_ifc_expr_template_id &templ_id);
-  a_template_arg_ptr template_arg_for_expr(
-                                        const a_template_parameter *param,
-                                        an_ifc_expr_index          expr_index);
-  a_template_arg_ptr template_args_for_expr_list(
-                                        const a_template_parameter *param_list,
-                                        an_ifc_expr_index          arguments);
   a_boolean source_position_from_locus(a_source_position            *pos,
                                        const an_ifc_source_location &locus);
   a_boolean init_dps(a_decl_parse_state               *dps,

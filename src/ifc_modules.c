@@ -3613,6 +3613,28 @@ declaration.
 }  /* get_template_arg_kind */
 
 
+static a_boolean is_parameter_pack(const an_ifc_decl_parameter &param_decl)
+/*
+Given an IFC parameter declaration, return TRUE if the parameter represents a
+parameter pack; otherwise, return FALSE.
+*/
+{
+  a_boolean result = FALSE;
+
+  /*  After IFC 0.41 the IFC specifies that a parameter is a pack if its type
+      is a TypeSort::Expansion type.  Prior to IFC 0.41, the pack status was
+      determine by a flag on the type itself. */
+  if (is_at_least(param_decl.get_module(), 0, 41)) {
+    an_ifc_type_index type_idx = get_ifc_type(param_decl);
+
+    result = type_idx.sort == ifc_ts_type_expansion;
+  } else {
+    result = is_parameter_pack(param_decl);
+  }  /* if */
+  return result;
+}  /* is_parameter_pack */
+
+
 static a_type_ptr alloc_detached_type_templ_param(
                                        const an_ifc_decl_parameter &param_decl)
 /*
@@ -3624,7 +3646,7 @@ parameters.
 {
   a_type_ptr result = alloc_type(tk_template_param);
 
-  result->variant.template_param.is_pack = get_ifc_pack(param_decl);
+  result->variant.template_param.is_pack = is_parameter_pack(param_decl);
   result->variant.template_param.is_generic_param = FALSE;
 
   a_template_param_type_supplement_ptr extra_info =
@@ -3662,7 +3684,7 @@ parameters.
   a_template_param_list_pos pnum = get_ifc_position(param_decl);
   extra_info.variant.coordinates.depth = pdepth;
   extra_info.variant.coordinates.position = pnum;
-  extra_info.is_pack = get_ifc_pack(param_decl);
+  extra_info.is_pack = is_parameter_pack(param_decl);
   return result;
 }  /* alloc_detached_nontype_templ_param */
 
@@ -3686,7 +3708,7 @@ parameters.
   a_template_param_list_pos pnum = get_ifc_position(param_decl);
   result->coordinates.depth = pdepth;
   result->coordinates.position = pnum;
-  result->is_pack = get_ifc_pack(param_decl);
+  result->is_pack = is_parameter_pack(param_decl);
   return result;
 }  /* alloc_detached_nontype_templ_param */
 
@@ -3708,6 +3730,20 @@ about detached template parameters.
   a_template_decl_info_ptr result = NULL;
   an_ifc_type_index        type = get_ifc_type(param_decl);
 
+  if (type.sort == ifc_ts_type_expansion) {
+    /* The IFC may wrap the forall type in an expansion type if the
+       corresponding parameter is a pack.  Note, this curiously doesn't
+       correlate with this pack flag on the parameter. */
+    Opt<an_ifc_type_expansion> opt_expansion_type;
+
+    construct_node(&opt_expansion_type, type);
+    if (!opt_expansion_type.has_value()) {
+      goto invalid;
+    }  /* if */
+
+    an_ifc_type_expansion expansion_type = *opt_expansion_type;
+    type = get_ifc_pack(expansion_type);
+  }  /* if */
   if (type.sort == ifc_ts_type_forall) {
     Opt<an_ifc_type_forall> opt_forall_type;
 
@@ -5805,6 +5841,17 @@ type template parameter.
 {
   a_boolean result = FALSE;
 
+  if (type_idx.sort == ifc_ts_type_expansion) {
+    Opt<an_ifc_type_expansion> opt_expansion_type;
+
+    construct_node(&opt_expansion_type, type_idx);
+    if (opt_expansion_type.has_value()) {
+      an_ifc_type_expansion expansion_type = *opt_expansion_type;
+      an_ifc_type_index     pack = get_ifc_pack(expansion_type);
+
+      type_idx = pack;
+    }  /* if */
+  }  /* if */
   if (type_idx.sort == ifc_ts_type_fundamental) {
     Opt<an_ifc_type_fundamental> opt_itf;
 
@@ -6208,6 +6255,11 @@ modules.
 }  /* check_and_set_template_redeclaration */
 
 
+static a_template_arg_ptr
+template_args_for_expr_list(const a_template_parameter *param_list,
+                            an_ifc_expr_index          arguments);
+
+
 static a_template_arg_ptr create_templ_args_for_comparison(
                              const an_ifc_decl_specialization &decl_spec,
                              a_template_ptr                   primary_template)
@@ -6225,11 +6277,10 @@ problem is encountered during reconstruction, NULL is returned instead.
   if (opt_form_spec.has_value()) {
     an_ifc_form_spec         form_spec = *opt_form_spec;
     an_ifc_expr_index        form_arg_idx = get_ifc_arguments(form_spec);
-    an_ifc_module            *mod = form_arg_idx.mod;
     a_template_decl_ptr      template_decl = primary_template->template_decl;
     a_template_parameter_ptr il_param_list = template_decl->param_list;
 
-    result = mod->template_args_for_expr_list(il_param_list, form_arg_idx);
+    result = template_args_for_expr_list(il_param_list, form_arg_idx);
   }  /* if */
   return result;
 }  /* create_templ_args_for_comparison */
@@ -10755,17 +10806,18 @@ corresponding type, return an error type.
         }
         break;
       case ifc_ts_type_expansion:
-        { Opt<an_ifc_type_expansion> opt_ite;
+        { Opt<an_ifc_type_expansion> opt_expansion_type;
 
-          construct_node(&opt_ite, type_idx);
-          if (!opt_ite.has_value()) {
+          construct_node(&opt_expansion_type, type_idx);
+          if (!opt_expansion_type.has_value()) {
             goto invalid;
           }  /* if */
-          /* FIXME: Currently unsupported. */
-          issue_unsupported_construct_error(mod, "TypeSort::Expansion",
-                                            &error_position);
-          goto invalid;
+
+          an_ifc_type_expansion expansion_type = *opt_expansion_type;
+          an_ifc_type_index     pack = get_ifc_pack(expansion_type);
+          result = type_for_type_index(pack);
         }
+        break;
       case ifc_ts_type_typename:
         { a_module_token_cache cache;
 
@@ -10977,19 +11029,123 @@ done:
   return result;
 }  /* create_constant_for_nttp */
 
+namespace {
 
-a_template_arg_ptr an_ifc_module::template_arg_for_expr(
-                                           const a_template_parameter *param,
-                                           an_ifc_expr_index          expr_idx)
 /*
-Given an IFC expression index, construct and return a corresponding template
-argument for param.  IFC expressions that can contain more than one argument
-(e.g., ExprSort::Tuple, ExprSort::PackedTemplateArguments) should use
-template_args_for_expr_list instead.
+This class is used to encapsulate the state associated with a template argument
+list reconstruction for a given template parameter list.
+*/
+struct a_template_argument_append_state {
+  a_template_argument_append_state(const a_template_parameter *params)
+    : head(NULL), tail(NULL), param(params)
+    {}
+  a_template_arg *arg_list() const
+    { return this->head; }
+  const a_template_parameter *curr_param() const
+    { return this->param; }
+  inline a_boolean append_argument(a_template_arg    *new_arg,
+                                   an_ifc_expr_index expr_idx);
+  inline a_boolean terminate_pack();
+private:
+  a_template_arg
+                *head;  /* The first template argument in the list. */
+  a_template_arg
+                *tail;  /* The last template argument added to the list. */
+  const a_template_parameter
+                *param; /* The template parameter corresponding to the current
+                           template parameter. */
+};  /* a_template_argument_append_state */
+
+}  /* namespace */
+
+a_boolean
+a_template_argument_append_state::append_argument(a_template_arg    *new_arg,
+                                                  an_ifc_expr_index expr_idx)
+/*
+Append the given template argument (formed from the given expr_idx) to the
+template argument list.  Return TRUE if the argument was successfully added to
+the template argument list, otherwise; return FALSE.
 */
 {
-  a_template_arg_ptr result = NULL;
+  a_boolean result = FALSE;
 
+  if (this->param != NULL) {
+    if (this->head == NULL) {
+      this->head = new_arg;
+    } else {
+      this->tail->next = new_arg;
+    }  /* if */
+    this->tail = new_arg;
+    /* If this template argument append is for a pack, mark every element after
+       the start of the pack expression, as a pack element; otherwise, move on
+       to the next template parameter (in the associated template parameter
+       list).
+
+       Note for packs, the transition to the next template parameter will be
+       handled upon a call to terminate_pack. */
+    if (this->param->is_pack) {
+      if (new_arg->kind != tak_start_of_pack_expansion) {
+        new_arg->is_pack_element = TRUE;
+      }  /* if */
+    } else {
+      this->param = this->param->next;
+    }  /* if */
+    result = TRUE;
+  } else {
+    an_ifc_module    *mod = expr_idx.mod;
+    a_diagnostic_ptr diag = pos_st_start_error(
+                                             ec_ifc_template_argument_overflow,
+                                             &null_source_position,
+                                             mod->assoc_module_info->name);
+
+    add_partition_element_diag_info(diag,
+                                    ec_ifc_template_argument_overflow_info,
+                                    expr_idx);
+    end_diagnostic(diag);
+  }  /* if */
+  return result;
+}  /* append_argument */
+
+
+a_boolean a_template_argument_append_state::terminate_pack()
+/*
+Mark the end of the template argument pack expansion.  This function should be
+called once the append of pack expanded arguments has been completed.  Return
+TRUE if the pack expansion was successfully terminated; otherwise, return
+FALSE.
+*/
+{
+  a_boolean result = FALSE;
+
+  if (this->param != NULL) {
+    if (this->param->is_pack) {
+      this->param = this->param->next;
+      result = TRUE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* terminate_pack */
+
+
+static a_boolean
+append_single_template_arg(a_template_argument_append_state *state,
+                           an_ifc_expr_index                expr_idx)
+/*
+Given an IFC expression index, construct and append a corresponding template
+argument for param.  Return TRUE if the template argument is appended
+successfully; otherwise, return FALSE.
+
+Generally speaking, append_template_args should be preferred over this function
+unless it's specifically known that only a single template argument is
+represented by the expression.
+*/
+{
+  a_boolean result = TRUE;
+
+  /* Append the template argument represented by the given IFC expression.
+     Expressions that can contain more than one argument (e.g.,
+     ExprSort::Tuple, ExprSort::PackedTemplateArguments) should be added as
+     additional cases in append_template_args instead. */
   switch (expr_idx.sort) {
     case ifc_es_expr_type:
       { Opt<an_ifc_expr_type> opt_expr_type;
@@ -11005,8 +11161,12 @@ template_args_for_expr_list instead.
         if (is_error_type(type)) {
           goto invalid;
         }  /* if */
-        result = alloc_template_arg(tak_type);
-        result->variant.type = type;
+
+        a_template_arg *new_arg = alloc_template_arg(tak_type);
+        new_arg->variant.type = type;
+        if (!state->append_argument(new_arg, expr_idx)) {
+          goto invalid;
+        }  /* if */
       }
       break;
     case ifc_es_expr_unary_fold:
@@ -11017,115 +11177,200 @@ template_args_for_expr_list instead.
           goto invalid;
         }  /* if */
         /* FIXME: Currently unsupported. */
-        issue_unsupported_construct_error(this, "ExprSort::UnaryFold",
+        issue_unsupported_construct_error(expr_idx.mod, "ExprSort::UnaryFold",
                                           &error_position);
       }
       goto invalid;
-    /* Non-type template parameters. */
     default:
-      result = alloc_template_arg(tak_nontype);
-      result->variant.constant = create_constant_for_nttp(param, expr_idx);
+      { /* Non-type template parameters. */
+        a_template_arg *new_arg = alloc_template_arg(tak_nontype);
+
+        new_arg->variant.constant = create_constant_for_nttp(
+                                                           state->curr_param(),
+                                                           expr_idx);
+        if (!state->append_argument(new_arg, expr_idx)) {
+          goto invalid;
+        }  /* if */
+      }
       break;
-  } /* switch */
-  if (param->is_pack) {
-    result->is_pack_element = TRUE;
+  }  /* switch */
+  goto done;
+invalid:
+  result = FALSE;
+done:
+  return result;
+}  /* append_single_template_arg */
+
+
+static a_boolean
+append_template_args(a_template_argument_append_state *state,
+                     an_ifc_expr_index                arguments);
+
+
+static a_boolean
+append_tuple_template_args(a_template_argument_append_state *state,
+                           an_ifc_expr_index                arguments)
+/*
+Append a tuple of template arguments.  This is the IFC node for a fundamental
+"list" of template argument arguments, it holds no special meaning (other than
+"there are multiple template arguments").  Return TRUE if the all template
+arguments are appended successfully; otherwise, return FALSE.
+*/
+{
+  check_assertion(arguments.sort == ifc_es_expr_tuple);
+  a_boolean              result = TRUE;
+  Opt<an_ifc_expr_tuple> opt_iet;
+
+  construct_node(&opt_iet, arguments);
+  if (opt_iet.has_value()) {
+    an_ifc_expr_tuple      iet = *opt_iet;
+    an_expr_heap_traverser traverser(iet);
+
+    for (an_Indexed<an_ifc_heap_expr> indexed_ihe : traverser) {
+      if (!indexed_ihe.has_value()) {
+        goto invalid;
+      }  /* if */
+
+      an_ifc_heap_expr  ihe = *indexed_ihe;
+      an_ifc_expr_index expr_index = get_ifc_value(ihe);
+      if (!append_template_args(state, expr_index)) {
+        goto invalid;
+      }  /* if */
+    }  /* for */
   }  /* if */
   goto done;
 invalid:
-  result = NULL;
+  result = FALSE;
 done:
   return result;
-}  /* template_arg_for_expr */
+}  /* append_tuple_template_args */
 
 
-a_template_arg_ptr an_ifc_module::template_args_for_expr_list(
-                                        const a_template_parameter *param_list,
-                                        an_ifc_expr_index          arguments)
+static inline a_boolean
+is_template_argument_pack(an_ifc_expr_index idx)
+/*
+Given an expression index, return TRUE if the expression represents a pack of
+template arguments.
+*/
+{
+  a_boolean result = FALSE;
+
+  if (idx.sort == ifc_es_expr_packed_template_arguments ||
+      idx.sort == ifc_es_expr_empty) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* is_template_argument_pack */
+
+
+static a_boolean
+append_packed_template_args(a_template_argument_append_state *state,
+                            an_ifc_expr_index                arguments)
+/*
+Append a pack of template arguments.  This node specifically indicates the
+contents of a pack expansion.  Return TRUE if the all template arguments in the
+pack are appended successfully; otherwise, return FALSE.
+*/
+{
+  check_assertion(is_template_argument_pack(arguments));
+  a_boolean result = TRUE;
+
+  if (arguments.sort == ifc_es_expr_packed_template_arguments) {
+    Opt<an_ifc_expr_packed_template_arguments> opt_iepta;
+
+    construct_node(&opt_iepta, arguments);
+    if (opt_iepta.has_value()) {
+      an_ifc_expr_packed_template_arguments iepta = *opt_iepta;
+      a_template_arg_ptr                    pack_arg =
+                               alloc_template_arg(tak_start_of_pack_expansion);
+
+      if (!state->append_argument(pack_arg, arguments)) {
+        goto invalid;
+      }  /* if */
+
+      an_ifc_expr_index pack_args = get_ifc_arguments(iepta);
+      if (pack_args.sort == ifc_es_expr_empty) {
+        /* This represents an empty pack, just continue evaluation, and
+           terminate the pack. */
+      } else if (!append_template_args(state, pack_args)) {
+        goto invalid;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  if (!state->terminate_pack()) {
+    goto invalid;
+  }  /* if */
+  goto done;
+invalid:
+  result = FALSE;
+done:
+  return result;
+}  /* append_packed_template_args */
+
+
+static a_boolean
+append_template_args(a_template_argument_append_state *state,
+                     an_ifc_expr_index                arguments)
+/*
+Given a pointer to a template argument append state, append the arguments
+represented by the given IFC expression.  Return TRUE if all arguments were
+successfully appended; otherwise, return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (!is_null_index(arguments)) {
+    if (arguments.sort == ifc_es_expr_tuple) {
+      if (!append_tuple_template_args(state, arguments)) {
+        goto invalid;
+      }  /* if */
+    } else if (is_template_argument_pack(arguments)) {
+      if (!append_packed_template_args(state, arguments)) {
+        goto invalid;
+      }  /* if */
+    } else {
+      if (!append_single_template_arg(state, arguments)) {
+        goto invalid;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  goto done;
+invalid:
+  result = FALSE;
+done:
+  return result;
+}  /* append_template_args */
+
+
+static a_template_arg_ptr
+template_args_for_expr_list(const a_template_parameter *param_list,
+                            an_ifc_expr_index          arguments)
 /*
 Given an IFC expression list (that may or may not cover multiple template
 parameters), construct and return corresponding template arguments for
 param_list.
 */
 {
-  a_template_arg_ptr result = NULL;
+  a_template_arg_ptr               result = NULL;
+  a_template_argument_append_state state(param_list);
 
-  if (!is_null_index(arguments)) {
-    check_assertion(param_list != NULL);
-    if (arguments.sort == ifc_es_expr_tuple) {
-      Opt<an_ifc_expr_tuple> opt_iet;
-      a_template_arg_ptr     *next_arg = &result;
+  if (append_template_args(&state, arguments)) {
+    if (state.curr_param() != NULL) {
+      an_ifc_module    *mod = arguments.mod;
+      a_diagnostic_ptr diag = pos_st_start_error(
+                                            ec_ifc_template_argument_underflow,
+                                            &null_source_position,
+                                            mod->assoc_module_info->name);
 
-      construct_node(&opt_iet, arguments);
-      if (!opt_iet.has_value()) {
-        goto invalid;
-      }  /* if */
-
-      an_ifc_expr_tuple      iet = *opt_iet;
-      an_expr_heap_traverser traverser(iet);
-      for (an_Indexed<an_ifc_heap_expr> indexed_ihe : traverser) {
-        if (!indexed_ihe.has_value()) {
-          goto invalid;
-        }  /* if */
-
-        an_ifc_heap_expr  ihe = *indexed_ihe;
-        an_ifc_expr_index expr_index = get_ifc_value(ihe);
-        check_assertion(param_list != NULL);
-        if (expr_index.sort == ifc_es_expr_packed_template_arguments) {
-          a_template_arg_ptr recursive_args =
-                           template_args_for_expr_list(param_list, expr_index);
-
-          /* Recursively expand packed template arguments. */
-          if (recursive_args == NULL) {
-            goto invalid;
-          }  /* if */
-          *next_arg = recursive_args;
-          while (recursive_args != NULL) {
-            next_arg = &(*next_arg)->next;
-            recursive_args = recursive_args->next;
-          }  /* while */
-          continue;
-        }  /* if */
-
-        a_template_arg_ptr arg = template_arg_for_expr(param_list, expr_index);
-        if (arg == NULL) {
-          goto invalid;
-        }  /* if */
-        *next_arg = arg;
-        next_arg = &(*next_arg)->next;
-        check_assertion(*next_arg == NULL);
-        if (!param_list->is_pack) {
-          param_list = param_list->next;
-        }  /* if */
-      }  /* for */
-    } else if (arguments.sort == ifc_es_expr_packed_template_arguments) {
-      Opt<an_ifc_expr_packed_template_arguments> opt_iepta;
-
-      construct_node(&opt_iepta, arguments);
-      if (!opt_iepta.has_value()) {
-        goto invalid;
-      }  /* if */
-      check_assertion(param_list->is_pack);
-      result = alloc_template_arg(tak_start_of_pack_expansion);
-
-      an_ifc_expr_index pack_args = get_ifc_arguments(*opt_iepta);
-      if (pack_args.sort != ifc_es_expr_empty) {
-        a_template_arg_ptr sub_arg = template_args_for_expr_list(param_list,
-                                                                 pack_args);
-
-        if (sub_arg == NULL) {
-          goto invalid;
-        }  /* if */
-        result->next = sub_arg;
-      }  /* if */
+      add_partition_element_diag_info(diag,
+                                      ec_ifc_template_argument_underflow_info,
+                                      arguments);
+      end_diagnostic(diag);
     } else {
-      result = template_arg_for_expr(param_list, arguments);
+      result = state.arg_list();
     }  /* if */
   }  /* if */
-  goto done;
-invalid:
-  expect_error();
-  result = NULL;
-done:
+  check_assertion_or_expect_error(result != NULL);
   return result;
 }  /* template_args_for_expr_list */
 

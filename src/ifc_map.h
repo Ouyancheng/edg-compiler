@@ -7720,6 +7720,23 @@ struct an_ifc_decl_output_segment :
   |-------------|-----------------------------|---------|------|
 
   |------------------------------------------------------------|
+  |              DeclParameter - 0.41 (36 bytes)               |
+  |-------------|-----------------------------|---------|------|
+  | Name        | Type                        | Version | Size |
+  |-------------|-----------------------------|---------|------|
+  | name        | TextOffset                  | 0.33    | 4    |
+  | locus       | SourceLocation              | 0.33    | 8    |
+  | type        | TypeIndex                   | 0.33    | 4    |
+  | constraint  | ExprIndex                   | 0.33    | 4    |
+  | initializer | ExprIndex                   | 0.33    | 4    |
+  | level       | ParameterLevel              | 0.33    | 4    |
+  | position    | ParameterPosition           | 0.33    | 4    |
+  | sort        | ParameterSort               | 0.33    | 1    |
+  | properties  | ReachablePropertiesBitfield | 0.33    | 1    |
+  | __padding__ | uint8_t[2]                  |         | 2    |
+  |-------------|-----------------------------|---------|------|
+
+  |------------------------------------------------------------|
   |              DeclParameter - 0.42 (36 bytes)               |
   |-------------|-----------------------------|---------|------|
   | Name        | Type                        | Version | Size |
@@ -7733,8 +7750,7 @@ struct an_ifc_decl_output_segment :
   | position    | ParameterPosition           | 0.33    | 4    |
   | sort        | ParameterSort               | 0.33    | 1    |
   | properties  | ReachablePropertiesBitfield | 0.33    | 1    |
-  | pack        | bool                        | 0.33    | 1    |
-  | __padding__ | uint8_t[1]                  |         | 1    |
+  | __padding__ | uint8_t[2]                  |         | 2    |
   |-------------|-----------------------------|---------|------|
 */
 enum an_ifc_decl_parameter_part : uint8_t {};

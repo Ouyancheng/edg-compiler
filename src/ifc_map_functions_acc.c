@@ -9353,7 +9353,9 @@ otherwise, return FALSE.
   an_ifc_module *mod = universal.get_module();
   a_boolean     result = get_fallback_presence_value(mod);
 
-  if (is_at_least(mod, 0, 33)) {
+  if (is_at_least(mod, 0, 41)) {
+    result = FALSE;
+  } else if (is_at_least(mod, 0, 33)) {
     result = TRUE;
   }  /* if */
   return result;
