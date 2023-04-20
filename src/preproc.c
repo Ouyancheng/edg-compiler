@@ -1207,6 +1207,7 @@ translation of certain characters to UTF-8.
   char                    *result;
   sizeof_t                len;
   a_char_conversion_state conv_state;
+  a_const_char            *end_pos;
 
   /* Build a mask used to mask individual characters. */
   centity_mask = (unsigned long)1 << (targ_host_string_char_bit-1);
@@ -1221,6 +1222,7 @@ translation of certain characters to UTF-8.
                                                   &in_pos, &name_len,
                                                   *start_of_curr_token == '<');
   }  /* if */
+  end_pos = in_pos + name_len;
   reset_text_buffer(buf);
   /* UTF-8 characters should not be translated to native multibyte
      characters. */
@@ -1232,8 +1234,11 @@ translation of certain characters to UTF-8.
      of escapes, etc.) at a time.  The second step executed later in
      some configurations processes the resulting string and handles
      the conversion of any multibyte character sequences into Unicode. */
-  /*lint --e{850} i modified in loop */
-  for (i = 1; i <= name_len; i++) {
+  if (microsoft_mode && in_pos <= end_pos - LE_ESCAPE_LEN &&
+      *in_pos == LE_ESCAPE) {
+    in_pos = skip_embedded_null_escapes(in_pos, end_pos);
+  }  /* if */
+  while (in_pos < end_pos) {
     a_const_char *prev_pos = in_pos;
     conv_single_char(&conv_state, process_escapes, &ch, centity_mask,
                      /*narrow_literal=*/TRUE, /*utf8_literal=*/FALSE);
@@ -1252,7 +1257,11 @@ translation of certain characters to UTF-8.
 #endif /* UNICODE_SOURCE_SUPPORTED &&
           !NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
     add_char_to_text_buffer(buf, (char)ch);
-  }  /* for */
+    if (microsoft_mode && in_pos <= end_pos - LE_ESCAPE_LEN &&
+        *in_pos == LE_ESCAPE) {
+      in_pos = skip_embedded_null_escapes(in_pos, end_pos);
+    }  /* if */
+  }  /* while */
   add_char_to_text_buffer(buf, '\0');
   result = buf->buffer;
   /* The length should not include the null terminator. */

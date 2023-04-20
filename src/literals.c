@@ -1497,23 +1497,6 @@ defines the size of character.
 }  /* conv_single_wide_char */
 
 
-static inline a_const_char *skip_embedded_null_escapes(a_const_char *loc,
-                                                       a_const_char *end_loc)
-/*
-MSVC ignores embedded null characters in character and string literals, not
-including them in the value of the literal nor counting them in the length.
-To emulate that behavior, advance loc over any LE_NULL lexical escapes that
-occur preceding end_loc and return the adjusted value of loc.
-*/
-{
-  while (loc <= end_loc - LE_ESCAPE_LEN && loc[0] == LE_ESCAPE &&
-         loc[1] == LE_NULL) {
-    loc += LE_ESCAPE_LEN;
-  }  /* while */
-  return loc;
-}  /* skip_embedded_null_escapes */
-
-
 void conv_char_literal(unsigned long num_chars,
                        an_error_code *err_code,
                        a_const_char  **err_pos)
@@ -1643,7 +1626,7 @@ the actual number of converted characters may be less than num_chars.  */
   mbc_scan_init_if_multibyte_chars_in_source_enabled();
 #endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
   set_unsigned_integer_value(&number, (a_host_large_unsigned)0);
-  if (microsoft_mode && temp_ptr <= end_of_curr_token - 2 &&
+  if (microsoft_mode && temp_ptr <= end_of_curr_token - LE_ESCAPE_LEN &&
       *temp_ptr == LE_ESCAPE) {
     temp_ptr = skip_embedded_null_escapes(temp_ptr, end_of_curr_token);
   }  /* if */
@@ -1739,7 +1722,7 @@ the actual number of converted characters may be less than num_chars.  */
       } /* if */
     } /* if */
     or_integer_values(&number, &ch_int_val);
-    if (microsoft_mode && temp_ptr <= end_of_curr_token - 2 &&
+    if (microsoft_mode && temp_ptr <= end_of_curr_token - LE_ESCAPE_LEN &&
         *temp_ptr == LE_ESCAPE) {
       temp_ptr = skip_embedded_null_escapes(temp_ptr, end_of_curr_token);
     }  /* if */
@@ -1981,7 +1964,8 @@ fewer characters than the number of bytes in the UTF-8 encoding.
     }  /* if */
   }  /* if */
   if (microsoft_mode &&
-      temp_ptr <= end_of_string_value + raw_str_trigraph_delim_chars - 2 &&
+      temp_ptr <=
+          end_of_string_value + raw_str_trigraph_delim_chars - LE_ESCAPE_LEN &&
       *temp_ptr == LE_ESCAPE) {
     temp_ptr = skip_embedded_null_escapes(
                  temp_ptr, end_of_string_value + raw_str_trigraph_delim_chars);
@@ -2016,7 +2000,8 @@ fewer characters than the number of bytes in the UTF-8 encoding.
         unexpected_condition();
     }  /* switch */
     if (microsoft_mode &&
-        temp_ptr <= end_of_string_value + raw_str_trigraph_delim_chars - 2 &&
+        temp_ptr <=
+          end_of_string_value + raw_str_trigraph_delim_chars - LE_ESCAPE_LEN &&
         *temp_ptr == LE_ESCAPE) {
       temp_ptr = skip_embedded_null_escapes(
                  temp_ptr, end_of_string_value + raw_str_trigraph_delim_chars);

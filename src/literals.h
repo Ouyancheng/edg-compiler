@@ -157,6 +157,23 @@ char		translated_char[MAX_MULTIBYTE_CHAR_LENGTH];
     (state)->is_rescan = FALSE;                                 \
   }  /* clear_char_conversion_state */
 
+inline a_const_char *skip_embedded_null_escapes(a_const_char *loc,
+                                                a_const_char *end_loc)
+/*
+MSVC ignores embedded null characters in character and string literals, not
+including them in the value of the literal nor counting them in the length.
+To emulate that behavior, advance loc over any LE_NULL lexical escapes that
+occur preceding end_loc and return the adjusted value of loc.
+*/
+{
+  while (loc <= end_loc - LE_ESCAPE_LEN && loc[0] == LE_ESCAPE &&
+         loc[1] == LE_NULL) {
+    loc += LE_ESCAPE_LEN;
+  }  /* while */
+  return loc;
+}  /* skip_embedded_null_escapes */
+
+
 extern void conv_single_char(a_char_conversion_state_ptr state,
                              a_boolean                   process_escapes,
                              unsigned long               *ch,
