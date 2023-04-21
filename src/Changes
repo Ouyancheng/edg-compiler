@@ -1,5 +1,24 @@
 Version 6.5
 
+4/21/23  [EDGcpfe/26266]
+C++-generating back end: dependent function calls with designated initializers
+
+In cases in which the argument in a dependent function call is an initializer
+list that uses designated initializers, the C++-generating back end previously
+inserted an extraneous comma between the designator and the initializer
+expression.  This is now fixed.  For example, with --c++20:
+
+  template<typename> struct A {
+    char c;
+  };
+  template<typename T> struct B {
+    static void f(const A<T>&) {}
+    template<typename> void g() {
+      f({.c = ' '});   // Previously generated as "{.c = , ''}"
+    }
+  };
+
+
 4/21/23  [EDGcpfe/26151,EDGcpfe/26260]
 Move-construction from user-defined conversion result
 

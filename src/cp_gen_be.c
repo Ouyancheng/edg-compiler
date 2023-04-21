@@ -13693,6 +13693,7 @@ emitted; otherwise returns FALSE.
 {
   a_param_type_ptr              param;
   a_boolean                     any_arg_put_out = FALSE;
+  a_boolean                     prev_was_designator = FALSE;
   a_routine_type_supplement_ptr rtsp;
 
   if (rout_type != NULL) {
@@ -13722,9 +13723,13 @@ emitted; otherwise returns FALSE.
       break;
     } else {
       /* The argument must be put out. */
-      if (any_arg_put_out) write_tok_str(", ");
+      if (any_arg_put_out && !prev_was_designator) {
+        write_tok_str(", ");
+      }  /* if */
       any_arg_put_out = TRUE;
       gen_argument(arg, param, /*operator_notation=*/FALSE);
+      prev_was_designator = (is_constant_node(arg) &&
+                             node_constant_is(arg, ck_designator));
     }  /* if */
     arg = arg->next;
     if (param != NULL) param = param->next;
