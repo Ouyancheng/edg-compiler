@@ -1,5 +1,18 @@
 Version 6.5
 
+4/21/23  [EDGcpfe/20257,EDGcpfe/23741,EDGcpfe/25214,EDGcpfe/26249]
+Clang/GNU C++ compatibility: Default bit field initializers
+
+In Clang and GNU C++11 compatibility modes (with, respectively, clang_version
+at least 60000 or gnu_version at least 80000) the front end now accepts
+default bit field initializers even if C++20 mode is not enabled (with a
+warning).  For example:
+
+  struct S {
+    int i:4{2};  // Now accepted with a warning in some GNU/Clang C++11 modes.
+  };
+
+
 4/21/23  [EDGcpfe/26002,EDGcpfe/26265]
 _Atomic as an array qualifier
 

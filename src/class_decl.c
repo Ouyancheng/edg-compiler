@@ -21202,13 +21202,21 @@ information about the member declaration, respectively.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   }  /* if */
   dps->has_initializer = field_initializers_enabled &&
-                         (!decl_info->is_bit_field || cpp20_mode) &&
                          (curr_token == tok_assign ||
                           curr_token == tok_lbrace ||
                           curr_token == tok_pending_ifc_var_init ||
                           curr_token == tok_pending_ifc_expr ||
                           curr_token == tok_removed_expr) &&
                          !locator->is_error;
+  if (dps->has_initializer && decl_info->is_bit_field && !cpp20_mode) {
+    /* Initializers for bit fields are a C++20 feature.  However, Clang and
+       GCC accept them with a warning. */
+    if (gpp_version_is(>= 80000) || clang_version_is(>= 60000)) {
+      pos_warning(ec_nonstandard_bit_field_initializer, &pos_curr_token);
+    } else {
+      dps->has_initializer = FALSE;
+    }  /* if */
+  }  /* if */
   /* Create the IL for the field, enter the symbol (if needed), etc. */
   (void)decl_nonstatic_data_member(locator, class_state, decl_info,
                                    depth_scope_stack);
