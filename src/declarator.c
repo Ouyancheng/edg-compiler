@@ -4655,10 +4655,11 @@ constant.
                                          (a_upc_block_size *)NULL);
     if (top_level_param_decl) {
       /* This is a top-level declaration of a function parameter type. */
-      /* Only C99 mode allows cv-qualifiers.  restrict and Clang nullability
-         qualifiers are allowed in any mode where they are enabled.  Named-
-         address space qualifiers are not allowed in any mode. */
-      a_type_qualifier_set  mask = TQ_RESTRICT | TQ_NULLABILITY;
+      /* Only C99 mode allows cv-qualifiers.  _Atomic, restrict, and Clang
+         nullability qualifiers are allowed in any mode where they are enabled.
+         Named-address space qualifiers are not allowed in any mode. */
+      a_type_qualifier_set  mask = TQ_RESTRICT | TQ_NULLABILITY
+                                               | TQ_C11_ATOMIC;
       if (c99_mode) {
         mask |= TQ_CONST | TQ_VOLATILE;
       }  /* if */
