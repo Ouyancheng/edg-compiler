@@ -1239,7 +1239,6 @@ translation of certain characters to UTF-8.
     in_pos = skip_embedded_null_escapes(in_pos, end_pos);
   }  /* if */
   while (in_pos < end_pos) {
-    a_const_char *prev_pos = in_pos;
     conv_single_char(&conv_state, process_escapes, &ch, centity_mask,
                      /*narrow_literal=*/TRUE, /*utf8_literal=*/FALSE);
 #if UNICODE_SOURCE_SUPPORTED && !NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
