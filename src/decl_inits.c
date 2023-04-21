@@ -4803,19 +4803,6 @@ is part of.  diag_pos is the position to be used by default for diagnostics
   braced_initializer(dps->type, (an_init_component *)NULL,
                      &dps->init_state, dps, /*fill_in_dtor=*/TRUE,
                      (an_init_component **)NULL, diag_pos);
-  if (vp != NULL && is_incomplete_array_type(vp->type) &&
-      is_array_type(dps->type)) {
-    /* An array declarator of the form "X[]" followed by a braced initializer:
-       Dimension it according to the initializer. */
-    a_type_ptr  dim_type = dps->type;
-    if (dps->init_state.init_error) {
-      /* An error occurred while processing the initializer: Proceed with an
-         error type. */
-      dim_type = error_type();
-    }  /* if */
-    put_type_back_into_variable(vp, dps->sym, diag_pos, linkage, dim_type);
-    dps->type = vp->type;
-  }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   if (decl_pos_block != NULL) {
     decl_pos_block->var_init_range.end = curr_construct_end_position;
@@ -5863,7 +5850,7 @@ returned set to TRUE.
           !is_constant_evaluated) {
         /* We already have a constant.  No need to try to evaluate it again. */
         release_local_constant(&folded_con);
-      } else if (interpret_dynamic_init(init_dip, &pos_first_token, vp->type,
+      } else if (interpret_dynamic_init(init_dip, &pos_first_token, dps->type,
                                         is_constant_evaluated,
                                         folded_con, &diag_list)) {
         if (is_error_constant(folded_con)) init_err = TRUE;
@@ -5896,6 +5883,22 @@ returned set to TRUE.
         release_local_constant(&folded_con);
       }  /* if */
       discard_more_info_list(&diag_list);
+    }  /* if */
+    if (vp != NULL && is_incomplete_array_type(vp->type) &&
+        is_array_type(dps->type)) {
+      /* An array declarator of the form X[] followed by a braced initializer:
+         Dimension it according to the initializer.  This must be done after
+         folding the initializer because something like:
+             constexpr int x[] = { 1, x[0] };
+         is invalid (x is still incomplete when evaluating x[0]). */
+      a_type_ptr  dim_type = dps->type;
+      if (dps->init_state.init_error) {
+        /* An error occurred while processing the initializer: Proceed with an
+           error type. */
+        dim_type = error_type();
+      }  /* if */
+      put_type_back_into_variable(vp, dps->sym, source_pos, linkage, dim_type);
+      dps->type = vp->type;
     }  /* if */
     check_assertion((init_dip == NULL) != (init_con == NULL));
     if (init_dip != NULL) {

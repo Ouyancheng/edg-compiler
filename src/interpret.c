@@ -2724,10 +2724,6 @@ the array type is not suitable for constexpr evaluation or ec_no_error.
     } else if (etp->variant.array.is_template_dependent_size_array) {
       result = ec_constexpr_dependent_array_size;
       break;
-    } else if (etp->variant.array.variant.number_of_elements == 0 &&
-               !etp->variant.array.bound_is_zero) {
-      result = ec_constexpr_access_to_runtime_storage;
-      break;
     } else {
       *n_elems *= etp->variant.array.variant.number_of_elements;
       etp = etp->variant.array.element_type;
@@ -3160,7 +3156,10 @@ the end" of a field subobject, that field is returned.
     }  /* for */
     type_size = value_bytes_for_type(ips, last_fp->type, &okay);
     if (offset-sub_offset < type_size ||
-        (offset-sub_offset == type_size && cannot_dereference(cap))) {
+        (offset-sub_offset == type_size &&
+         (cannot_dereference(cap) || type_size == 0))) {
+      /* The offset is in the last field.  (In GCC mode, the last field may be
+         a zero-length array.) */
       check_assertion(okay);
       *p_field = last_fp;
       *p_bcp = NULL;
@@ -15106,6 +15105,8 @@ the value representation of the integer value.
                 } else if (cannot_dereference(result_addr)) {
                   do_constexpr_fail(result);
                   info_one_past_end_of_array(result_addr, expr, ips);
+                } else if (array_type_has_no_bound(opnd1_type)) {
+                  result_addr->flags |= CA_CANNOT_DEREFERENCE;
                 }  /* if */
               } else {
                 /* The somewhat unusual case of an array rvalue. */
@@ -20767,9 +20768,20 @@ if the caller has determined that reinterpret_cast expressions can be folded
     /* An initializer might refer to the variable it initializes.  E.g.:
           constexpr int * const x[2] = { 0, x[0] };
        That requires the variable to be associated with its interpreter
-       representation. */
+       representation.  However, the following variation is not valid:
+          constexpr int * const x[] = { 0, x[0] };
+       The type of x has to be treated as incomplete until the initializer is
+       processed.  However, the complete type is known at this point (recorded
+       in result_type) and we must allocate the whole array so we can produce
+       a valid initializer constant in cases like the following:
+          constexpr int y[] = { constexpr_func() };
+       To achieve this we temporarily record the actual result type in the
+       variable while calling do_constexpr_alloc_variable. */
     a_variable_ptr  vp = dip->variable;
+    a_type_ptr      vp_type = vp->type;
+    vp->type = result_type;
     result_storage = do_constexpr_alloc_variable(&ips, vp, &result);
+    vp->type = vp_type;
     if (var_has_static_storage_duration(vp)) {
       ips.static_lifetime_init = TRUE;
       if (!vp->is_constexpr && !vp->declared_constinit) {
