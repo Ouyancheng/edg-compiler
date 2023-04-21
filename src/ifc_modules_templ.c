@@ -117,7 +117,7 @@ Return the index into the partition associated with the given scope index.
 
 
 /* Manually defined explicit instantiations of get_partition_index. */
-/* none */
+INST_PARTITION_INDEX(an_ifc_partition_kind_index)
 
 
 template<typename an_ifc_Index_type>
