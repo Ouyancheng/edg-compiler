@@ -5081,12 +5081,14 @@ by implied_src.
                  it has a representation in static interpreter storage.
                  Otherwise, create a run-time address.  GCC apparently treats
                  const variables with static initializers as potentially
-                 constant-valued even when their type is not integral. */
+                 constant-valued even when their type is not integral (we
+                 exclude GCC zero-length types because they can lead to
+                 difficulties). */
               a_variable_ptr  vp = con->variant.address.variant.variable;
               a_type_ptr      vtp = skip_typerefs(vp->type);
               if (vp->constant_valued || vp->is_constexpr ||
                   (gpp_version_is(any_version) &&
-                   vp->init_kind == initk_static &&
+                   vp->init_kind == initk_static && vtp->size != 0 &&
                    is_const_qualified_type(vp->type))) {
                 a_byte  *var_bytes;
                 get_stack_bytes(ips, vp, var_bytes);
@@ -5402,6 +5404,13 @@ END_DISABLE_GCC_WARNING_STR_OVERFLOW
       {
         a_type_ptr  tp = skip_typerefs(con->type);
         a_byte      *saved_implied_src_address = NULL;
+#if MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED
+        if (con->flexible_array_initializer) {
+          do_constexpr_fail(result);
+          info_with_pos(ec_constexpr_flexible_array_initializer,
+                        &con->source_corresp.decl_position, ips);
+        }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED */
         if (type_is(tp, tk_array)) {
           a_targ_size_t   n_elems, k, repeat;
           a_byte_count    elem_size;

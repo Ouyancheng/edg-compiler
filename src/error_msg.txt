@@ -3384,6 +3384,7 @@ ec_cl_invalid_clang_version;;"invalid clang version number: %s"
 ec_ifc_null_char_in_string;;"IFC string contains unexpected null (zero) character in module %sq"
 ec_ifc_null_char_in_string_removal_info;;"%d1 out of %d2 bytes were used"
 ec_ifc_null_char_in_string_info;;"from string info in partition %sq element %d1 (file position %d2, relative position %d3)"
+ec_constexpr_flexible_array_initializer;;"cannot evaluate an initializer for a flexible array member"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
