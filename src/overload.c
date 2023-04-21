@@ -8220,14 +8220,18 @@ in the indicated candidate function match-up.
 static a_boolean match_with_udc_to_constructor_class(
                                                 a_candidate_function_ptr  cfp)
 /*
-Return TRUE if cfp represents a candidate function with a single parameter that
-matches with a user-defined conversion to the candidate's parent class.
+Return TRUE if cfp represents a candidate function with a single parameter (not
+including "this") that matches with a user-defined conversion to the
+candidate's parent class.
 */
 {
   a_boolean  result = FALSE;
   an_arg_match_summary
              *arg_match = cfp->arg_matches;
 
+  if (arg_match != NULL && arg_match->is_match_for_this_param) {
+    arg_match = arg_match->next;
+  }  /* if */
   if (arg_match != NULL && arg_match->next == NULL &&
       arg_match->match_level == aml_user_conversion) {
     a_routine  *conv_rp = arg_match->conversion.routine;
@@ -8252,7 +8256,7 @@ copy- or move-constructor candidate.  In Microsoft bugs mode and in Sun mode,
 return +1 if cfp1 represents the copy constructor (and not cfp2) or -1 if cfp2
 represents the copy constructor (and not cfp1).
 
-Also prefer the copy constructor in nonstrict modes that support mandatory
+Also prefer the copy/move constructor in nonstrict modes that support mandatory
 copy elision, but only if the match is via a user-defined conversion to a
 prvalue for the constructor's parent class.  Although this does not appear to
 be supported by the current standard (C++20), it seems to be common practice.
@@ -8282,7 +8286,7 @@ prefer the "S::operator D() const" conversion (starting with C++17).
       sym1->is_class_member && sym2->is_class_member &&
       !cfp1->is_function_template && !cfp2->is_function_template &&
       (microsoft_bugs || sun_mode ||
-       (mandatory_copy_elision && cfp1->is_user_conversion &&
+       (mandatory_copy_elision &&
         (match_with_udc_to_constructor_class(cfp1) ||
          match_with_udc_to_constructor_class(cfp2)) &&
          !strict_ansi_mode))) {

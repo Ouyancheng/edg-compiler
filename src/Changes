@@ -1,5 +1,32 @@
 Version 6.5
 
+4/21/23  [EDGcpfe/26151,EDGcpfe/26260]
+Move-construction from user-defined conversion result
+
+Consider:
+
+  struct D {
+    D(int);
+  };
+  struct S {
+    operator D();
+    operator int();
+  };
+  void f(S s) {
+    D d{s};  // Previously ambiguous.  Now okay in nonstrict C++17 modes.
+  };
+
+The standard makes the above example ambiguous and the front end previously
+issued a diagnostic for that case in all C++ modes.  However, common modern
+practice by other compilers is to accept that case in C++17 mode because
+conversion via S::operator D() elides the move-constructor invocation of D and
+thus can be seen as a "more direct" initialization of d.  The front end now
+implements that practice in non-strict modes.  (This is closely related to the
+changes for EDGcpfe/22154,EDGcpfe/22884,EDGcpfe/25383.  It is also covered by
+the standardization committee's paper P2828R0.)
+
+
+
 4/19/23  [EDGcpfe/26197]
 GCC compatibility: Non-integral const variables
 
