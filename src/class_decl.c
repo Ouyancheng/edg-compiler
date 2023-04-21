@@ -21209,8 +21209,8 @@ information about the member declaration, respectively.
                           curr_token == tok_removed_expr) &&
                          !locator->is_error;
   if (dps->has_initializer && decl_info->is_bit_field && !cpp20_mode) {
-    /* Initializers for bit fields are a C++20 feature.  However, Clang and
-       GCC accept them with a warning. */
+    /* Default initializers for bit fields are a C++20 feature.  However,
+       Clang and GCC accept them with a warning. */
     if (gpp_version_is(>= 80000) || clang_version_is(>= 60000)) {
       pos_warning(ec_nonstandard_bit_field_initializer, &pos_curr_token);
     } else {
