@@ -39,7 +39,7 @@ expression.  This is now fixed.  For example, with --c++20:
   template<typename T> struct B {
     static void f(const A<T>&) {}
     template<typename> void g() {
-      f({.c = ' '});   // Previously generated as "{.c = , ''}"
+      f({.c = ' '});   // Previously generated as "{.c = , ' '}"
     }
   };
 
