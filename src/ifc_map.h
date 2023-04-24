@@ -12611,17 +12611,18 @@ struct an_ifc_stmt_try : an_ifc_Byte_buffer<an_ifc_stmt_try_storage> {
 
 /*
   |-----------------------------------------------|
-  |          StmtTuple - 0.42 (16 bytes)          |
+  |          StmtTuple - 0.42 (20 bytes)          |
   |-------------|----------------|---------|------|
   | Name        | Type           | Version | Size |
   |-------------|----------------|---------|------|
   | locus       | SourceLocation | 0.33    | 8    |
   | start       | Index          | 0.33    | 4    |
   | cardinality | Cardinality    | 0.33    | 4    |
+  | __padding__ | uint8_t[4]     |         | 4    |
   |-------------|----------------|---------|------|
 */
 enum an_ifc_stmt_tuple_part : uint8_t {};
-using an_ifc_stmt_tuple_storage = an_ifc_stmt_tuple_part[16];
+using an_ifc_stmt_tuple_storage = an_ifc_stmt_tuple_part[20];
 #if USE_MMAP_FOR_MODULES
 using an_ifc_stmt_tuple_bytes = const an_ifc_stmt_tuple_storage*;
 #else /* !USE_MMAP_FOR_MODULES */

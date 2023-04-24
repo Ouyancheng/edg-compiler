@@ -24061,7 +24061,7 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_stmt_tuple_storage;
   if (has_matching_endianness(mod)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/16);
+      memcpy(*storage, mod->byte_buffer, /*size=*/20);
     } else {
       storage = (storage_type*)(mod->byte_buffer);
     }  /* if */
@@ -24076,7 +24076,7 @@ the storage specified by the storage argument).
     /* start */
     get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* cardinality */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(mod, (*storage) + 12, /*num_bytes=*/8, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_stmt_tuple_storage> */
@@ -33429,7 +33429,7 @@ expected partition element size.
       result = 20;
       break;
     case ifc_pk_stmt_tuple:
-      result = 16;
+      result = 20;
       break;
     case ifc_pk_stmt_variable:
       result = 12;
