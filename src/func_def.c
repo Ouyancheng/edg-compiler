@@ -3148,16 +3148,31 @@ necessary for use as the argument and the "this" parameter of the call.
 {
   a_param_type_ptr  ptp;
   a_statement_ptr   sp;
+  a_routine_type_supplement_ptr
+                    rtsp = rout_type_supp(skip_typerefs(rp->type));
+  a_type_ptr        param_class, arg_class;
 
   /* Get the first parameter of the assignment operator, which represents the
      source type. */
-  ptp = skip_typerefs(rp->type)->variant.routine.extra_info->param_type_list;
+  ptp = rtsp->param_type_list;
   /* Convert the source for use as the argument, e.g., cast it to a base
      class or add a copy constructor call. */
   source_expr = prep_generated_arg_expr(source_expr, ptp, err_pos);
   /* Convert the lvalue for the destination into a pointer for the "this"
      argument. */
+  arg_class = skip_typerefs(dest_expr->type);
+  param_class = rtsp->this_class;
   dest_expr = add_address_of_to_node(dest_expr);
+  if (param_class != arg_class) {
+    /* Presumably a base-class operator= made accessible via a member
+       using-declaration. */
+    a_base_class_ptr  bcp = find_base_class_of(arg_class, param_class);
+    if (bcp != NULL) {
+      dest_expr = base_class_selection_expr(dest_expr, bcp);
+    } else {
+      expect_error();
+    }  /* if */
+  }  /* if */
   /* Calls generated are non-virtual; see [class.copy]/13 in the C++
      standard. */
   sp = make_call_assignment_statement(rp, /*suppress_virtual=*/TRUE,
@@ -3256,7 +3271,7 @@ operator routine or do bitwise assignment.
      list for the routine.  There must be exactly one parameter for an
      assignment function. */
   rout = scope->variant.routine.ptr;
-  rtsp = (skip_typerefs(rout->type))->variant.routine.extra_info;
+  rtsp = rout_type_supp(skip_typerefs(rout->type));
   ptp = rtsp->param_type_list;
   move_assign = is_rvalue_reference_type(ptp->type);
   source_var = implicitly_generated_param_variable(ptp->type);
@@ -3344,10 +3359,9 @@ operator routine or do bitwise assignment.
        symbol list rather than the field list to be sure we adhere to
        declaration order and to be sure only user defined fields are
        copied. */
-    sym = ((a_symbol_ptr)class_type->source_corresp.assoc_info)->
-                           variant.class_struct_union.extra_info->symbols;
+    sym = class_symbol_supp(symbol_for(class_type))->symbols;
     for (; sym != NULL; sym = sym->next_in_scope) {
-      if (sym->kind == (a_symbol_kind)sk_field) {
+      if (symbol_is(sym, sk_field)) {
         /* A field. */
         fp = sym->variant.field.ptr;
         tp = skip_typerefs(fp->type);
@@ -3379,10 +3393,10 @@ operator routine or do bitwise assignment.
            by the source parameter. */
         source_expr = lvalue_for_source_param(source_var);
         source_expr = fe_field_lvalue_selection_expr(source_expr, fp);
-        if (is_class_struct_union_type(tp)) {
+        if (is_immediate_class_type(tp)) {
           /* It's a class type, so we may have to call an assignment operator
              function. */
-          if (symbol_supplement_for_class(tp)
+          if (class_symbol_supp(symbol_for(tp))
                                       ->assignment_by_bitwise_copy_allowed) {
             /* A bitwise copy can be performed. */
             bitwise_assign = TRUE;
