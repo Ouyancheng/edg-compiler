@@ -918,6 +918,18 @@ INST_CONSTRUCT_NODE_ALL(an_ifc_stmt_switch, an_ifc_stmt_index)
 
 
 /*
+Explicit instantiations of functions for StmtTry.
+*/
+INST_CONSTRUCT_NODE_ALL(an_ifc_stmt_try, an_ifc_stmt_index)
+
+
+/*
+Explicit instantiations of functions for StmtTuple.
+*/
+INST_CONSTRUCT_NODE_ALL(an_ifc_stmt_tuple, an_ifc_stmt_index)
+
+
+/*
 Explicit instantiations of functions for StmtVariableDecl.
 */
 INST_CONSTRUCT_NODE_ALL(an_ifc_stmt_variable_decl, an_ifc_stmt_index)

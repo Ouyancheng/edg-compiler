@@ -250,40 +250,77 @@ representation of the field "category".
 
   /* Ensure the category field exists in the current module version. */
   check_assertion(has_ifc_category(universal));
-  an_ifc_index_0_33         stage_0;
-  an_ifc_u16_0_33           stage_1;
-  an_ifc_word_sort_0_33     stage_2;
-  uint64_t                  stage_3;
-  an_ifc_word_category_0_33 stage_4;
-  an_ifc_word_category      stage_5;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_index_0_33         stage_0;
+    an_ifc_u16_0_33           stage_1;
+    an_ifc_word_sort_0_33     stage_2;
+    uint64_t                  stage_3;
+    an_ifc_word_category_0_42 stage_4;
+    an_ifc_word_category      stage_5;
 
-  /* Copy the field (NestableWord::index - Index) into version-specific
-     storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-  /* Copy the field (NestableWord::value - u16) into version-specific
-     storage. */
-  static_assert(sizeof(stage_1) == 2,
-                "stage_1 is not properly sized storage!");
-  copy_ifc_field(&stage_1, universal.get_storage(), /*offset=*/12);
-  /* Copy the field (NestableWord::sort - WordSort) into version-specific
-     storage. */
-  static_assert(sizeof(stage_2) == 1,
-                "stage_2 is not properly sized storage!");
-  copy_ifc_field(&stage_2, universal.get_storage(), /*offset=*/14);
-  /* Pack the fields (sort, value, index) into the 64 bit WordCategory
-     representation.  Then, decode the bit encoded value using the standard
-     conversion to the universal representation for the category. */
-  stage_3 = 0;
-  stage_3 |= stage_0;
-  stage_3 <<= 16;
-  stage_3 |= stage_1;
-  stage_3 <<= 8;
-  stage_3 |= stage_2;
-  stage_4 = (an_ifc_word_category_0_33)stage_3;
-  stage_5 = to_universal_category(universal.get_module(), stage_4);
-  result = stage_5;
+    /* Copy the field (NestableWord::index - Index) into version-specific
+       storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+    /* Copy the field (NestableWord::value - u16) into version-specific
+       storage. */
+    static_assert(sizeof(stage_1) == 2,
+                  "stage_1 is not properly sized storage!");
+    copy_ifc_field(&stage_1, universal.get_storage(), /*offset=*/12);
+    /* Copy the field (NestableWord::sort - WordSort) into version-specific
+       storage. */
+    static_assert(sizeof(stage_2) == 1,
+                  "stage_2 is not properly sized storage!");
+    copy_ifc_field(&stage_2, universal.get_storage(), /*offset=*/14);
+    /* Pack the fields (sort, value, index) into the 64 bit WordCategory
+       representation.  Then, decode the bit encoded value using the standard
+       conversion to the universal representation for the category. */
+    stage_3 = 0;
+    stage_3 |= stage_0;
+    stage_3 <<= 16;
+    stage_3 |= stage_1;
+    stage_3 <<= 8;
+    stage_3 |= stage_2;
+    stage_4 = (an_ifc_word_category_0_42)stage_3;
+    stage_5 = to_universal_category(universal.get_module(), stage_4);
+    result = stage_5;
+  } else {
+    an_ifc_index_0_33         stage_0;
+    an_ifc_u16_0_33           stage_1;
+    an_ifc_word_sort_0_33     stage_2;
+    uint64_t                  stage_3;
+    an_ifc_word_category_0_33 stage_4;
+    an_ifc_word_category      stage_5;
+
+    /* Copy the field (NestableWord::index - Index) into version-specific
+       storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+    /* Copy the field (NestableWord::value - u16) into version-specific
+       storage. */
+    static_assert(sizeof(stage_1) == 2,
+                  "stage_1 is not properly sized storage!");
+    copy_ifc_field(&stage_1, universal.get_storage(), /*offset=*/12);
+    /* Copy the field (NestableWord::sort - WordSort) into version-specific
+       storage. */
+    static_assert(sizeof(stage_2) == 1,
+                  "stage_2 is not properly sized storage!");
+    copy_ifc_field(&stage_2, universal.get_storage(), /*offset=*/14);
+    /* Pack the fields (sort, value, index) into the 64 bit WordCategory
+       representation.  Then, decode the bit encoded value using the standard
+       conversion to the universal representation for the category. */
+    stage_3 = 0;
+    stage_3 |= stage_0;
+    stage_3 <<= 16;
+    stage_3 |= stage_1;
+    stage_3 <<= 8;
+    stage_3 |= stage_2;
+    stage_4 = (an_ifc_word_category_0_33)stage_3;
+    stage_5 = to_universal_category(universal.get_module(), stage_4);
+    result = stage_5;
+  }  /* if */
   return result;
 }  /* get_ifc_category */
 
@@ -11269,7 +11306,7 @@ representation of the field "sort".
 
   /* Ensure the sort field exists in the current module version. */
   check_assertion(has_ifc_sort(universal));
-  an_ifc_specialization_sort_0_33 stage_0;
+  an_ifc_specialization_sort_0_41 stage_0;
   an_ifc_specialization_sort      stage_1;
 
   /* Copy the field (DeclSpecialization::sort - SpecializationSort) into
@@ -26807,39 +26844,77 @@ representation of the field "category".
 
   /* Ensure the category field exists in the current module version. */
   check_assertion(has_ifc_category(universal));
-  an_ifc_index_0_33         stage_0;
-  an_ifc_u16_0_33           stage_1;
-  an_ifc_word_sort_0_33     stage_2;
-  uint64_t                  stage_3;
-  an_ifc_word_category_0_33 stage_4;
-  an_ifc_word_category      stage_5;
+  if (is_at_least(universal.get_module(), 0, 42)) {
+    an_ifc_index_0_33         stage_0;
+    an_ifc_u16_0_33           stage_1;
+    an_ifc_word_sort_0_33     stage_2;
+    uint64_t                  stage_3;
+    an_ifc_word_category_0_42 stage_4;
+    an_ifc_word_category      stage_5;
 
-  /* Copy the field (SourceWord::index - Index) into version-specific
-     storage. */
-  static_assert(sizeof(stage_0) == 4,
-                "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-  /* Copy the field (SourceWord::value - u16) into version-specific storage. */
-  static_assert(sizeof(stage_1) == 2,
-                "stage_1 is not properly sized storage!");
-  copy_ifc_field(&stage_1, universal.get_storage(), /*offset=*/12);
-  /* Copy the field (SourceWord::sort - WordSort) into version-specific
-     storage. */
-  static_assert(sizeof(stage_2) == 1,
-                "stage_2 is not properly sized storage!");
-  copy_ifc_field(&stage_2, universal.get_storage(), /*offset=*/14);
-  /* Pack the fields (sort, value, index) into the 64 bit WordCategory
-     representation.  Then, decode the bit encoded value using the standard
-     conversion to the universal representation for the category. */
-  stage_3 = 0;
-  stage_3 |= stage_0;
-  stage_3 <<= 16;
-  stage_3 |= stage_1;
-  stage_3 <<= 8;
-  stage_3 |= stage_2;
-  stage_4 = (an_ifc_word_category_0_33)stage_3;
-  stage_5 = to_universal_category(universal.get_module(), stage_4);
-  result = stage_5;
+    /* Copy the field (SourceWord::index - Index) into version-specific
+       storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+    /* Copy the field (SourceWord::value - u16) into version-specific
+       storage. */
+    static_assert(sizeof(stage_1) == 2,
+                  "stage_1 is not properly sized storage!");
+    copy_ifc_field(&stage_1, universal.get_storage(), /*offset=*/12);
+    /* Copy the field (SourceWord::sort - WordSort) into version-specific
+       storage. */
+    static_assert(sizeof(stage_2) == 1,
+                  "stage_2 is not properly sized storage!");
+    copy_ifc_field(&stage_2, universal.get_storage(), /*offset=*/14);
+    /* Pack the fields (sort, value, index) into the 64 bit WordCategory
+       representation.  Then, decode the bit encoded value using the standard
+       conversion to the universal representation for the category. */
+    stage_3 = 0;
+    stage_3 |= stage_0;
+    stage_3 <<= 16;
+    stage_3 |= stage_1;
+    stage_3 <<= 8;
+    stage_3 |= stage_2;
+    stage_4 = (an_ifc_word_category_0_42)stage_3;
+    stage_5 = to_universal_category(universal.get_module(), stage_4);
+    result = stage_5;
+  } else {
+    an_ifc_index_0_33         stage_0;
+    an_ifc_u16_0_33           stage_1;
+    an_ifc_word_sort_0_33     stage_2;
+    uint64_t                  stage_3;
+    an_ifc_word_category_0_33 stage_4;
+    an_ifc_word_category      stage_5;
+
+    /* Copy the field (SourceWord::index - Index) into version-specific
+       storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+    /* Copy the field (SourceWord::value - u16) into version-specific
+       storage. */
+    static_assert(sizeof(stage_1) == 2,
+                  "stage_1 is not properly sized storage!");
+    copy_ifc_field(&stage_1, universal.get_storage(), /*offset=*/12);
+    /* Copy the field (SourceWord::sort - WordSort) into version-specific
+       storage. */
+    static_assert(sizeof(stage_2) == 1,
+                  "stage_2 is not properly sized storage!");
+    copy_ifc_field(&stage_2, universal.get_storage(), /*offset=*/14);
+    /* Pack the fields (sort, value, index) into the 64 bit WordCategory
+       representation.  Then, decode the bit encoded value using the standard
+       conversion to the universal representation for the category. */
+    stage_3 = 0;
+    stage_3 |= stage_0;
+    stage_3 <<= 16;
+    stage_3 |= stage_1;
+    stage_3 <<= 8;
+    stage_3 |= stage_2;
+    stage_4 = (an_ifc_word_category_0_33)stage_3;
+    stage_5 = to_universal_category(universal.get_module(), stage_4);
+    result = stage_5;
+  }  /* if */
   return result;
 }  /* get_ifc_category */
 
@@ -29434,6 +29509,317 @@ representation of the field "locus".
   }  /* if */
   return result;
 }  /* get_ifc_locus */
+
+
+/*
+Functions for reading data from IFC StmtTry nodes.
+*/
+
+
+template<>
+a_boolean has_ifc_cardinality(const an_ifc_stmt_try &universal)
+/*
+Return TRUE if the given universal representation has the field "cardinality";
+otherwise, return FALSE.
+*/
+{
+  an_ifc_module *mod = universal.get_module();
+  a_boolean     result = get_fallback_presence_value(mod);
+
+  if (is_at_least(mod, 0, 42)) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* has_ifc_cardinality */
+
+
+template<>
+an_ifc_cardinality get_ifc_cardinality(const an_ifc_stmt_try &universal)
+/*
+Given the universal representation of StmtTry, return the universal
+representation of the field "cardinality".
+*/
+{
+  an_ifc_cardinality result;
+
+  /* Ensure the cardinality field exists in the current module version. */
+  check_assertion(has_ifc_cardinality(universal));
+  an_ifc_cardinality_0_33 stage_0;
+  an_ifc_cardinality      stage_1;
+
+  /* Copy the field (StmtTry::cardinality - Cardinality) into version-specific
+     storage. */
+  static_assert(sizeof(stage_0) == 4,
+                "stage_0 is not properly sized storage!");
+  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+  stage_1 = {universal.get_module(), (an_ifc_cardinality_storage)stage_0};
+  result = stage_1;
+  return result;
+}  /* get_ifc_cardinality */
+
+
+template<>
+a_boolean has_ifc_handlers(const an_ifc_stmt_try &universal)
+/*
+Return TRUE if the given universal representation has the field "handlers";
+otherwise, return FALSE.
+*/
+{
+  an_ifc_module *mod = universal.get_module();
+  a_boolean     result = get_fallback_presence_value(mod);
+
+  if (is_at_least(mod, 0, 42)) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* has_ifc_handlers */
+
+
+template<>
+an_ifc_stmt_index get_ifc_handlers(const an_ifc_stmt_try &universal)
+/*
+Given the universal representation of StmtTry, return the universal
+representation of the field "handlers".
+*/
+{
+  an_ifc_stmt_index result;
+
+  /* Ensure the handlers field exists in the current module version. */
+  check_assertion(has_ifc_handlers(universal));
+  an_ifc_stmt_index_0_42 stage_0;
+  an_ifc_stmt_index      stage_1;
+
+  /* Copy the field (StmtTry::handlers - StmtIndex) into version-specific
+     storage. */
+  static_assert(sizeof(stage_0) == 4,
+                "stage_0 is not properly sized storage!");
+  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+  stage_1 = to_universal_index(universal.get_module(), stage_0);
+  result = stage_1;
+  return result;
+}  /* get_ifc_handlers */
+
+
+template<>
+a_boolean has_ifc_locus(const an_ifc_stmt_try &universal)
+/*
+Return TRUE if the given universal representation has the field "locus";
+otherwise, return FALSE.
+*/
+{
+  an_ifc_module *mod = universal.get_module();
+  a_boolean     result = get_fallback_presence_value(mod);
+
+  if (is_at_least(mod, 0, 42)) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* has_ifc_locus */
+
+
+template<>
+an_ifc_source_location get_ifc_locus(const an_ifc_stmt_try &universal)
+/*
+Given the universal representation of StmtTry, return the universal
+representation of the field "locus".
+*/
+{
+  an_ifc_source_location result;
+
+  /* Ensure the locus field exists in the current module version. */
+  check_assertion(has_ifc_locus(universal));
+  an_ifc_source_location_bytes stage_0;
+  an_ifc_source_location       stage_1;
+
+#if USE_MMAP_FOR_MODULES
+  /* Update the universal storage pointer to the start of the field
+     (StmtTry::locus - SourceLocation). */
+  stage_0 = (an_ifc_source_location_bytes)((*universal.get_storage()) + 0);
+#else /* !USE_MMAP_FOR_MODULES */
+  /* Copy the field (StmtTry::locus - SourceLocation) into universal
+     storage. */
+  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+#endif /* USE_MMAP_FOR_MODULES */
+  stage_1 = {universal.get_module(), stage_0};
+  result = stage_1;
+  return result;
+}  /* get_ifc_locus */
+
+
+template<>
+a_boolean has_ifc_start(const an_ifc_stmt_try &universal)
+/*
+Return TRUE if the given universal representation has the field "start";
+otherwise, return FALSE.
+*/
+{
+  an_ifc_module *mod = universal.get_module();
+  a_boolean     result = get_fallback_presence_value(mod);
+
+  if (is_at_least(mod, 0, 42)) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* has_ifc_start */
+
+
+template<>
+an_ifc_index get_ifc_start(const an_ifc_stmt_try &universal)
+/*
+Given the universal representation of StmtTry, return the universal
+representation of the field "start".
+*/
+{
+  an_ifc_index result;
+
+  /* Ensure the start field exists in the current module version. */
+  check_assertion(has_ifc_start(universal));
+  an_ifc_index_0_33 stage_0;
+  an_ifc_index      stage_1;
+
+  /* Copy the field (StmtTry::start - Index) into version-specific storage. */
+  static_assert(sizeof(stage_0) == 4,
+                "stage_0 is not properly sized storage!");
+  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  stage_1 = {universal.get_module(), (an_ifc_index_storage)stage_0};
+  result = stage_1;
+  return result;
+}  /* get_ifc_start */
+
+
+/*
+Functions for reading data from IFC StmtTuple nodes.
+*/
+
+
+template<>
+a_boolean has_ifc_cardinality(const an_ifc_stmt_tuple &universal)
+/*
+Return TRUE if the given universal representation has the field "cardinality";
+otherwise, return FALSE.
+*/
+{
+  an_ifc_module *mod = universal.get_module();
+  a_boolean     result = get_fallback_presence_value(mod);
+
+  if (is_at_least(mod, 0, 42)) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* has_ifc_cardinality */
+
+
+template<>
+an_ifc_cardinality get_ifc_cardinality(const an_ifc_stmt_tuple &universal)
+/*
+Given the universal representation of StmtTuple, return the universal
+representation of the field "cardinality".
+*/
+{
+  an_ifc_cardinality result;
+
+  /* Ensure the cardinality field exists in the current module version. */
+  check_assertion(has_ifc_cardinality(universal));
+  an_ifc_cardinality_0_33 stage_0;
+  an_ifc_cardinality      stage_1;
+
+  /* Copy the field (StmtTuple::cardinality - Cardinality) into
+     version-specific storage. */
+  static_assert(sizeof(stage_0) == 4,
+                "stage_0 is not properly sized storage!");
+  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+  stage_1 = {universal.get_module(), (an_ifc_cardinality_storage)stage_0};
+  result = stage_1;
+  return result;
+}  /* get_ifc_cardinality */
+
+
+template<>
+a_boolean has_ifc_locus(const an_ifc_stmt_tuple &universal)
+/*
+Return TRUE if the given universal representation has the field "locus";
+otherwise, return FALSE.
+*/
+{
+  an_ifc_module *mod = universal.get_module();
+  a_boolean     result = get_fallback_presence_value(mod);
+
+  if (is_at_least(mod, 0, 42)) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* has_ifc_locus */
+
+
+template<>
+an_ifc_source_location get_ifc_locus(const an_ifc_stmt_tuple &universal)
+/*
+Given the universal representation of StmtTuple, return the universal
+representation of the field "locus".
+*/
+{
+  an_ifc_source_location result;
+
+  /* Ensure the locus field exists in the current module version. */
+  check_assertion(has_ifc_locus(universal));
+  an_ifc_source_location_bytes stage_0;
+  an_ifc_source_location       stage_1;
+
+#if USE_MMAP_FOR_MODULES
+  /* Update the universal storage pointer to the start of the field
+     (StmtTuple::locus - SourceLocation). */
+  stage_0 = (an_ifc_source_location_bytes)((*universal.get_storage()) + 0);
+#else /* !USE_MMAP_FOR_MODULES */
+  /* Copy the field (StmtTuple::locus - SourceLocation) into universal
+     storage. */
+  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+#endif /* USE_MMAP_FOR_MODULES */
+  stage_1 = {universal.get_module(), stage_0};
+  result = stage_1;
+  return result;
+}  /* get_ifc_locus */
+
+
+template<>
+a_boolean has_ifc_start(const an_ifc_stmt_tuple &universal)
+/*
+Return TRUE if the given universal representation has the field "start";
+otherwise, return FALSE.
+*/
+{
+  an_ifc_module *mod = universal.get_module();
+  a_boolean     result = get_fallback_presence_value(mod);
+
+  if (is_at_least(mod, 0, 42)) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* has_ifc_start */
+
+
+template<>
+an_ifc_index get_ifc_start(const an_ifc_stmt_tuple &universal)
+/*
+Given the universal representation of StmtTuple, return the universal
+representation of the field "start".
+*/
+{
+  an_ifc_index result;
+
+  /* Ensure the start field exists in the current module version. */
+  check_assertion(has_ifc_start(universal));
+  an_ifc_index_0_33 stage_0;
+  an_ifc_index      stage_1;
+
+  /* Copy the field (StmtTuple::start - Index) into version-specific
+     storage. */
+  static_assert(sizeof(stage_0) == 4,
+                "stage_0 is not properly sized storage!");
+  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  stage_1 = {universal.get_module(), (an_ifc_index_storage)stage_0};
+  result = stage_1;
+  return result;
+}  /* get_ifc_start */
 
 
 /*

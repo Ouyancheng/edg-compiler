@@ -654,14 +654,14 @@ extern an_ifc_encoded_specialization_sort to_encoded(
                                          an_ifc_module              *mod,
                                          an_ifc_specialization_sort universal);
 
-extern a_boolean is_known_sort(an_ifc_specialization_sort_0_33 versioned);
+extern a_boolean is_known_sort(an_ifc_specialization_sort_0_41 versioned);
 
 extern a_boolean validate_sort(an_ifc_module                   *mod,
-                               an_ifc_specialization_sort_0_33 versioned,
+                               an_ifc_specialization_sort_0_41 versioned,
                                const an_ifc_validation_trace   *parent);
 
 extern an_ifc_specialization_sort to_universal_sort(
-                                    an_ifc_specialization_sort_0_33 versioned);
+                                    an_ifc_specialization_sort_0_41 versioned);
 
 /*
 Functions for interacting with IFC StmtSort sorts.
@@ -1612,6 +1612,21 @@ extern an_ifc_source_literal_category to_universal_category(
                                 an_ifc_module                       *mod,
                                 an_ifc_source_literal_category_0_33 versioned);
 
+extern an_ifc_source_literal_sort_0_33 source_literal_sort(
+                                an_ifc_source_literal_category_0_42 versioned);
+
+extern uint64_t source_literal_value(
+                                an_ifc_source_literal_category_0_42 versioned);
+
+extern a_boolean validate_category(
+                                an_ifc_module                       *mod,
+                                an_ifc_source_literal_category_0_42 versioned,
+                                const an_ifc_validation_trace       *parent);
+
+extern an_ifc_source_literal_category to_universal_category(
+                                an_ifc_module                       *mod,
+                                an_ifc_source_literal_category_0_42 versioned);
+
 /*
 Functions for interacting with IFC WordCategory indexes.
 */
@@ -1627,6 +1642,18 @@ extern a_boolean validate_category(an_ifc_module                 *mod,
 extern an_ifc_word_category to_universal_category(
                                           an_ifc_module             *mod,
                                           an_ifc_word_category_0_33 versioned);
+
+extern an_ifc_word_sort_0_33 word_sort(an_ifc_word_category_0_42 versioned);
+
+extern uint64_t word_value(an_ifc_word_category_0_42 versioned);
+
+extern a_boolean validate_category(an_ifc_module                 *mod,
+                                   an_ifc_word_category_0_42     versioned,
+                                   const an_ifc_validation_trace *parent);
+
+extern an_ifc_word_category to_universal_category(
+                                          an_ifc_module             *mod,
+                                          an_ifc_word_category_0_42 versioned);
 
 
 template<typename a_Desired_type, typename an_ifc_Node_type>
@@ -3452,6 +3479,54 @@ struct an_ifc_function_metadata<an_ifc_expr_virtual_function_conversion> {
 
 
 /*
+The IFC handlers field has multiple return types.  This type is a metadata type
+that allows resolution of those return types based on the respective node type.
+*/
+template<typename an_ifc_Node_type>
+struct an_ifc_handlers_metadata;
+
+
+/*
+The IFC handlers field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for StmtTry nodes.
+*/
+template<>
+struct an_ifc_handlers_metadata<an_ifc_stmt_try> {
+  using return_type = an_ifc_stmt_index;
+};  /* an_ifc_handlers_metadata */
+
+
+/*
+The IFC handlers field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxFunctionTryBlock nodes.
+*/
+template<>
+struct an_ifc_handlers_metadata<an_ifc_syntax_function_try_block> {
+  using return_type = an_ifc_syntax_index;
+};  /* an_ifc_handlers_metadata */
+
+
+/*
+The IFC handlers field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxHandlerSeq nodes.
+*/
+template<>
+struct an_ifc_handlers_metadata<an_ifc_syntax_handler_seq> {
+  using return_type = an_ifc_syntax_index;
+};  /* an_ifc_handlers_metadata */
+
+
+/*
+The IFC handlers field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for SyntaxTryBlock nodes.
+*/
+template<>
+struct an_ifc_handlers_metadata<an_ifc_syntax_try_block> {
+  using return_type = an_ifc_syntax_index;
+};  /* an_ifc_handlers_metadata */
+
+
+/*
 The IFC index field has multiple return types.  This type is a metadata type
 that allows resolution of those return types based on the respective node type.
 */
@@ -5206,6 +5281,26 @@ that allows resolution of the return type for StmtSwitch nodes.
 */
 template<>
 struct an_ifc_locus_metadata<an_ifc_stmt_switch> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for StmtTry nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_stmt_try> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for StmtTuple nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_stmt_tuple> {
   using return_type = an_ifc_source_location;
 };  /* an_ifc_locus_metadata */
 
@@ -7555,6 +7650,26 @@ that allows resolution of the return type for StmtBlock nodes.
 */
 template<>
 struct an_ifc_start_metadata<an_ifc_stmt_block> {
+  using return_type = an_ifc_index;
+};  /* an_ifc_start_metadata */
+
+
+/*
+The IFC start field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for StmtTry nodes.
+*/
+template<>
+struct an_ifc_start_metadata<an_ifc_stmt_try> {
+  using return_type = an_ifc_index;
+};  /* an_ifc_start_metadata */
+
+
+/*
+The IFC start field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for StmtTuple nodes.
+*/
+template<>
+struct an_ifc_start_metadata<an_ifc_stmt_tuple> {
   using return_type = an_ifc_index;
 };  /* an_ifc_start_metadata */
 
@@ -10199,8 +10314,8 @@ extern a_boolean has_ifc_handlers(
 
 
 template<typename an_ifc_Node_type>
-extern an_ifc_syntax_index get_ifc_handlers(
-                              const an_ifc_Node_type &universal) DELETED_FN_DEF
+extern typename an_ifc_handlers_metadata<an_ifc_Node_type>::return_type
+get_ifc_handlers(const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
@@ -19449,6 +19564,94 @@ an_ifc_stmt_switch_storage* get<an_ifc_stmt_switch_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_stmt_switch>();
+
+/*
+Functions for interacting with IFC StmtTry nodes.
+*/
+
+template<>
+a_boolean has_ifc_cardinality(const an_ifc_stmt_try &universal);
+
+template<>
+an_ifc_cardinality get_ifc_cardinality(const an_ifc_stmt_try &universal);
+
+template<>
+a_boolean has_ifc_handlers(const an_ifc_stmt_try &universal);
+
+template<>
+an_ifc_stmt_index get_ifc_handlers(const an_ifc_stmt_try &universal);
+
+template<>
+a_boolean has_ifc_locus(const an_ifc_stmt_try &universal);
+
+template<>
+an_ifc_source_location get_ifc_locus(const an_ifc_stmt_try &universal);
+
+template<>
+a_boolean has_ifc_start(const an_ifc_stmt_try &universal);
+
+template<>
+an_ifc_index get_ifc_start(const an_ifc_stmt_try &universal);
+
+template<>
+a_boolean validate(const an_ifc_stmt_try         &universal,
+                   const an_ifc_validation_trace *parent);
+
+#if DEBUG
+extern void db_node(const an_ifc_stmt_try &universal, unsigned indent);
+
+extern void db_node(const an_ifc_stmt_try &universal);
+#endif /* DEBUG */
+
+template<>
+an_ifc_stmt_try_storage* get<an_ifc_stmt_try_storage>(
+                                         an_ifc_module           *mod,
+                                         an_ifc_stmt_try_storage *storage,
+                                         a_boolean               fill_storage);
+
+template<>
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_stmt_try>();
+
+/*
+Functions for interacting with IFC StmtTuple nodes.
+*/
+
+template<>
+a_boolean has_ifc_cardinality(const an_ifc_stmt_tuple &universal);
+
+template<>
+an_ifc_cardinality get_ifc_cardinality(const an_ifc_stmt_tuple &universal);
+
+template<>
+a_boolean has_ifc_locus(const an_ifc_stmt_tuple &universal);
+
+template<>
+an_ifc_source_location get_ifc_locus(const an_ifc_stmt_tuple &universal);
+
+template<>
+a_boolean has_ifc_start(const an_ifc_stmt_tuple &universal);
+
+template<>
+an_ifc_index get_ifc_start(const an_ifc_stmt_tuple &universal);
+
+template<>
+a_boolean validate(const an_ifc_stmt_tuple       &universal,
+                   const an_ifc_validation_trace *parent);
+
+#if DEBUG
+extern void db_node(const an_ifc_stmt_tuple &universal, unsigned indent);
+
+extern void db_node(const an_ifc_stmt_tuple &universal);
+#endif /* DEBUG */
+
+template<>
+an_ifc_stmt_tuple_storage* get<an_ifc_stmt_tuple_storage>(
+                                       an_ifc_module             *mod,
+                                       an_ifc_stmt_tuple_storage *storage,
+                                       a_boolean                 fill_storage);
+
+template<>
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_stmt_tuple>();
 
 /*
 Functions for interacting with IFC StmtVariableDecl nodes.

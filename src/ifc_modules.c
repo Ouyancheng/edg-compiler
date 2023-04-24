@@ -4466,8 +4466,14 @@ braces for a compound statement).
   an_ifc_source_position_hint pos_hint(cache, stmt_idx);
 
   switch (stmt_idx.sort) {
+    case ifc_ss_stmt_goto:
+    case ifc_ss_stmt_handler:
+    case ifc_ss_stmt_labeled:
+    case ifc_ss_stmt_syntax_tree:
+    case ifc_ss_stmt_try:
+    case ifc_ss_stmt_tuple:
     case ifc_ss_stmt_vendor_extension:
-      issue_unsupported_construct_error(this, "StmtSort::VendorExtension",
+      issue_unsupported_construct_error(this, str_for(stmt_idx.sort),
                                         &error_position);
       break;
     case ifc_ss_stmt_empty:
@@ -4538,14 +4544,6 @@ braces for a compound statement).
         cache_token(cache, tok_rparen);
         cache_statement(cache, get_ifc_body(*opt_isf), cinfo);
       }
-      break;
-    case ifc_ss_stmt_goto:
-      issue_unsupported_construct_error(this, "StmtSort::Goto",
-                                        &error_position);
-      break;
-    case ifc_ss_stmt_handler:
-      issue_unsupported_construct_error(this, "StmtSort::Handler",
-                                        &error_position);
       break;
     case ifc_ss_stmt_case:
       { Opt<an_ifc_stmt_case> opt_isc;
@@ -4697,10 +4695,6 @@ braces for a compound statement).
         }  /* if */
       }
       break;
-    case ifc_ss_stmt_labeled:
-      issue_unsupported_construct_error(this, "StmtSort::Labeled",
-                                        &error_position);
-      break;
     case ifc_ss_stmt_return:
       { Opt<an_ifc_stmt_return> opt_isr;
 
@@ -4716,10 +4710,6 @@ braces for a compound statement).
         }  /* if */
         cache_token(cache, tok_semicolon);
       }
-      break;
-    case ifc_ss_stmt_tuple:
-      issue_unsupported_construct_error(this, "StmtSort::Tuple",
-                                        &error_position);
       break;
     case ifc_ss_stmt_variable_decl:
       { Opt<an_ifc_stmt_variable_decl> opt_isvd;
@@ -4743,10 +4733,6 @@ braces for a compound statement).
         issue_unsupported_construct_error(this, "StmtSort::Expansion",
                                           &error_position);
       }
-      break;
-    case ifc_ss_stmt_syntax_tree:
-      issue_unsupported_construct_error(this, "StmtSort::SyntaxTree",
-                                        &error_position);
       break;
     default_is_unexpected_str("Unknown StmtSort kind");
   }  /* switch */

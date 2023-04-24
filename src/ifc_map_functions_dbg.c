@@ -11933,6 +11933,103 @@ representation.
 }  /* db_node */
 
 
+void db_node(const an_ifc_stmt_try &universal, unsigned indent)
+/*
+Given the universal representation of StmtTry, print a diagnostic textual
+representation with the given indent.
+*/
+{
+  if (has_ifc_cardinality(universal)) {
+    an_ifc_cardinality field = get_ifc_cardinality(universal);
+
+    db_print_indent(indent);
+    fprintf(f_debug, "cardinality: %llu\n", (unsigned long long)field.value);
+  }  /* if */
+  if (has_ifc_handlers(universal)) {
+    an_ifc_stmt_index field = get_ifc_handlers(universal);
+
+    db_print_indent(indent);
+    fprintf(f_debug, "handlers:");
+    if (is_null_index(field)) {
+      fprintf(f_debug, " NULL\n");
+    } else {
+      fprintf(f_debug, "\n");
+      db_print_indent(indent);
+      fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
+      db_print_indent(indent);
+      fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
+    }  /* if */
+  }  /* if */
+  if (has_ifc_locus(universal)) {
+    an_ifc_source_location field = get_ifc_locus(universal);
+
+    db_print_indent(indent);
+    fprintf(f_debug, "locus:\n");
+    db_node(field, indent + 1);
+  }  /* if */
+  if (has_ifc_start(universal)) {
+    an_ifc_index field = get_ifc_start(universal);
+
+    db_print_indent(indent);
+    fprintf(f_debug, "start: %llu\n", (unsigned long long)field.value);
+  }  /* if */
+}  /* db_node */
+
+
+void db_node(const an_ifc_stmt_try &universal)
+/*
+Given the universal representation of StmtTry, print a diagnostic textual
+representation.
+*/
+{
+  fprintf(f_debug, "=================================== ");
+  fprintf(f_debug, "StmtTry ");
+  fprintf(f_debug, "====================================\n");
+  db_node(universal, 0);
+}  /* db_node */
+
+
+void db_node(const an_ifc_stmt_tuple &universal, unsigned indent)
+/*
+Given the universal representation of StmtTuple, print a diagnostic textual
+representation with the given indent.
+*/
+{
+  if (has_ifc_cardinality(universal)) {
+    an_ifc_cardinality field = get_ifc_cardinality(universal);
+
+    db_print_indent(indent);
+    fprintf(f_debug, "cardinality: %llu\n", (unsigned long long)field.value);
+  }  /* if */
+  if (has_ifc_locus(universal)) {
+    an_ifc_source_location field = get_ifc_locus(universal);
+
+    db_print_indent(indent);
+    fprintf(f_debug, "locus:\n");
+    db_node(field, indent + 1);
+  }  /* if */
+  if (has_ifc_start(universal)) {
+    an_ifc_index field = get_ifc_start(universal);
+
+    db_print_indent(indent);
+    fprintf(f_debug, "start: %llu\n", (unsigned long long)field.value);
+  }  /* if */
+}  /* db_node */
+
+
+void db_node(const an_ifc_stmt_tuple &universal)
+/*
+Given the universal representation of StmtTuple, print a diagnostic textual
+representation.
+*/
+{
+  fprintf(f_debug, "================================== ");
+  fprintf(f_debug, "StmtTuple ");
+  fprintf(f_debug, "===================================\n");
+  db_node(universal, 0);
+}  /* db_node */
+
+
 void db_node(const an_ifc_stmt_variable_decl &universal, unsigned indent)
 /*
 Given the universal representation of StmtVariableDecl, print a diagnostic
@@ -21866,6 +21963,20 @@ associated node.
       break;
     case ifc_ss_stmt_switch:
       { an_ifc_stmt_switch universal;
+
+        construct_node_prechecked(&universal, idx);
+        db_node(universal);
+      }
+      break;
+    case ifc_ss_stmt_try:
+      { an_ifc_stmt_try universal;
+
+        construct_node_prechecked(&universal, idx);
+        db_node(universal);
+      }
+      break;
+    case ifc_ss_stmt_tuple:
+      { an_ifc_stmt_tuple universal;
 
         construct_node_prechecked(&universal, idx);
         db_node(universal);

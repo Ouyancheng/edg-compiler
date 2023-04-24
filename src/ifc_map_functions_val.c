@@ -2092,7 +2092,7 @@ value represents a valid sort value; otherwise, return FALSE.
 }  /* validate_sort */
 
 
-a_boolean is_known_sort(an_ifc_specialization_sort_0_33 versioned)
+a_boolean is_known_sort(an_ifc_specialization_sort_0_41 versioned)
 /*
 Given the versioned representation of SpecializationSort, return TRUE if the
 value represents a valid sort value; otherwise, return FALSE.
@@ -2101,9 +2101,9 @@ value represents a valid sort value; otherwise, return FALSE.
   a_boolean result = FALSE;
 
   switch (versioned) {
-    case ifc_0_33_ss_implicit:
-    case ifc_0_33_ss_explicit:
-    case ifc_0_33_ss_instantiation:
+    case ifc_0_41_ss_implicit:
+    case ifc_0_41_ss_explicit:
+    case ifc_0_41_ss_instantiation:
       result = TRUE;
       break;
     default:
@@ -2114,7 +2114,7 @@ value represents a valid sort value; otherwise, return FALSE.
 
 
 a_boolean validate_sort(an_ifc_module                   *mod,
-                        an_ifc_specialization_sort_0_33 versioned,
+                        an_ifc_specialization_sort_0_41 versioned,
                         const an_ifc_validation_trace   *parent)
 /*
 Given the versioned representation of SpecializationSort, return TRUE if the
@@ -2194,7 +2194,7 @@ represents a valid sort value; otherwise, return FALSE.
 
   switch (versioned) {
     case ifc_0_42_ss_stmt_vendor_extension:
-    case ifc_0_42_ss_stmt_goto:
+    case ifc_0_42_ss_stmt_try:
     case ifc_0_42_ss_stmt_if:
     case ifc_0_42_ss_stmt_for:
     case ifc_0_42_ss_stmt_labeled:
@@ -2203,6 +2203,7 @@ represents a valid sort value; otherwise, return FALSE.
     case ifc_0_42_ss_stmt_break:
     case ifc_0_42_ss_stmt_switch:
     case ifc_0_42_ss_stmt_do_while:
+    case ifc_0_42_ss_stmt_goto:
     case ifc_0_42_ss_stmt_continue:
     case ifc_0_42_ss_stmt_expression:
     case ifc_0_42_ss_stmt_return:
@@ -3695,6 +3696,101 @@ done:
 }  /* validate_category */
 
 
+a_boolean validate_category(an_ifc_module                       *mod,
+                            an_ifc_source_literal_category_0_42 versioned,
+                            const an_ifc_validation_trace       *parent)
+/*
+Given the versioned representation of SourceLiteralCategory, return TRUE if the
+value represents a valid categorized sort; otherwise, return FALSE.
+*/
+{
+  a_boolean                       result = TRUE;
+  an_ifc_source_literal_sort_0_33 sort = source_literal_sort(versioned);
+  uint64_t                        raw_value = source_literal_value(versioned);
+
+  if (!validate_sort(mod, sort, parent)) {
+    result = FALSE;
+    goto done;
+  }  /* if */
+  switch (sort) {
+    case ifc_0_33_sls_defined_string:
+      { an_ifc_string_index_0_33 versioned_value =
+                                           (an_ifc_string_index_0_33)raw_value;
+
+        if (!validate_index(mod, versioned_value, parent)) {
+          result = FALSE;
+          goto done;
+        }  /* if */
+      }
+      break;
+    case ifc_0_33_sls_msvc_binding:
+      { an_ifc_expr_index_0_42 versioned_value =
+                                             (an_ifc_expr_index_0_42)raw_value;
+
+        if (!validate_index(mod, versioned_value, parent)) {
+          result = FALSE;
+          goto done;
+        }  /* if */
+      }
+      break;
+    case ifc_0_33_sls_msvc_cast_target_type:
+      { an_ifc_type_index_0_33 versioned_value =
+                                             (an_ifc_type_index_0_33)raw_value;
+
+        if (!validate_index(mod, versioned_value, parent)) {
+          result = FALSE;
+          goto done;
+        }  /* if */
+      }
+      break;
+    case ifc_0_33_sls_msvc_defined_constant:
+      { an_ifc_expr_index_0_42 versioned_value =
+                                             (an_ifc_expr_index_0_42)raw_value;
+
+        if (!validate_index(mod, versioned_value, parent)) {
+          result = FALSE;
+          goto done;
+        }  /* if */
+      }
+      break;
+    case ifc_0_33_sls_msvc_resolved_type:
+      { an_ifc_type_index_0_33 versioned_value =
+                                             (an_ifc_type_index_0_33)raw_value;
+
+        if (!validate_index(mod, versioned_value, parent)) {
+          result = FALSE;
+          goto done;
+        }  /* if */
+      }
+      break;
+    case ifc_0_33_sls_scalar:
+      { an_ifc_expr_index_0_42 versioned_value =
+                                             (an_ifc_expr_index_0_42)raw_value;
+
+        if (!validate_index(mod, versioned_value, parent)) {
+          result = FALSE;
+          goto done;
+        }  /* if */
+      }
+      break;
+    case ifc_0_33_sls_string:
+      { an_ifc_string_index_0_33 versioned_value =
+                                           (an_ifc_string_index_0_33)raw_value;
+
+        if (!validate_index(mod, versioned_value, parent)) {
+          result = FALSE;
+          goto done;
+        }  /* if */
+      }
+      break;
+    default:
+      break;
+  }  /* switch */
+done:
+  return result;
+}  /* validate_category */
+
+
 a_boolean validate_category(an_ifc_module                 *mod,
                             an_ifc_word_category_0_33     versioned,
                             const an_ifc_validation_trace *parent)
@@ -3745,6 +3841,91 @@ represents a valid categorized sort; otherwise, return FALSE.
     case ifc_0_33_ws_source_literal:
       { an_ifc_source_literal_category_0_33 versioned_value =
                                 (an_ifc_source_literal_category_0_33)raw_value;
+
+        if (!validate_category(mod, versioned_value, parent)) {
+          result = FALSE;
+          goto done;
+        }  /* if */
+      }
+      break;
+    case ifc_0_33_ws_source_operator:
+      { an_ifc_source_operator_sort_0_33 versioned_value =
+                                   (an_ifc_source_operator_sort_0_33)raw_value;
+
+        if (!validate_sort(mod, versioned_value, parent)) {
+          result = FALSE;
+          goto done;
+        }  /* if */
+      }
+      break;
+    case ifc_0_33_ws_source_punctuator:
+      { an_ifc_source_punctuator_sort_0_33 versioned_value =
+                                 (an_ifc_source_punctuator_sort_0_33)raw_value;
+
+        if (!validate_sort(mod, versioned_value, parent)) {
+          result = FALSE;
+          goto done;
+        }  /* if */
+      }
+      break;
+    default:
+      break;
+  }  /* switch */
+done:
+  return result;
+}  /* validate_category */
+
+
+a_boolean validate_category(an_ifc_module                 *mod,
+                            an_ifc_word_category_0_42     versioned,
+                            const an_ifc_validation_trace *parent)
+/*
+Given the versioned representation of WordCategory, return TRUE if the value
+represents a valid categorized sort; otherwise, return FALSE.
+*/
+{
+  a_boolean             result = TRUE;
+  an_ifc_word_sort_0_33 sort = word_sort(versioned);
+  uint64_t              raw_value = word_value(versioned);
+
+  if (!validate_sort(mod, sort, parent)) {
+    result = FALSE;
+    goto done;
+  }  /* if */
+  switch (sort) {
+    case ifc_0_33_ws_source_directive:
+      { an_ifc_source_directive_sort_0_33 versioned_value =
+                                  (an_ifc_source_directive_sort_0_33)raw_value;
+
+        if (!validate_sort(mod, versioned_value, parent)) {
+          result = FALSE;
+          goto done;
+        }  /* if */
+      }
+      break;
+    case ifc_0_33_ws_source_identifier:
+      { an_ifc_source_identifier_category_0_33 versioned_value =
+                             (an_ifc_source_identifier_category_0_33)raw_value;
+
+        if (!validate_category(mod, versioned_value, parent)) {
+          result = FALSE;
+          goto done;
+        }  /* if */
+      }
+      break;
+    case ifc_0_33_ws_source_keyword:
+      { an_ifc_source_keyword_sort_0_33 versioned_value =
+                                    (an_ifc_source_keyword_sort_0_33)raw_value;
+
+        if (!validate_sort(mod, versioned_value, parent)) {
+          result = FALSE;
+          goto done;
+        }  /* if */
+      }
+      break;
+    case ifc_0_33_ws_source_literal:
+      { an_ifc_source_literal_category_0_42 versioned_value =
+                                (an_ifc_source_literal_category_0_42)raw_value;
 
         if (!validate_category(mod, versioned_value, parent)) {
           result = FALSE;
@@ -3856,40 +4037,78 @@ representation is valid; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (has_ifc_category(universal)) {
-    an_ifc_index_0_33         stage_0;
-    an_ifc_u16_0_33           stage_1;
-    an_ifc_word_sort_0_33     stage_2;
-    uint64_t                  stage_3;
-    an_ifc_word_category_0_33 stage_4;
+    if (is_at_least(universal.get_module(), 0, 42)) {
+      an_ifc_index_0_33         stage_0;
+      an_ifc_u16_0_33           stage_1;
+      an_ifc_word_sort_0_33     stage_2;
+      uint64_t                  stage_3;
+      an_ifc_word_category_0_42 stage_4;
 
-    /* Copy the field (NestableWord::index - Index) into version-specific
-       storage. */
-    static_assert(sizeof(stage_0) == 4,
-                  "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-    /* Copy the field (NestableWord::value - u16) into version-specific
-       storage. */
-    static_assert(sizeof(stage_1) == 2,
-                  "stage_1 is not properly sized storage!");
-    copy_ifc_field(&stage_1, universal.get_storage(), /*offset=*/12);
-    /* Copy the field (NestableWord::sort - WordSort) into version-specific
-       storage. */
-    static_assert(sizeof(stage_2) == 1,
-                  "stage_2 is not properly sized storage!");
-    copy_ifc_field(&stage_2, universal.get_storage(), /*offset=*/14);
-    /* Pack the fields (sort, value, index) into the 64 bit WordCategory
-       representation.  Then, decode the bit encoded value using the standard
-       conversion to the universal representation for the category. */
-    stage_3 = 0;
-    stage_3 |= stage_0;
-    stage_3 <<= 16;
-    stage_3 |= stage_1;
-    stage_3 <<= 8;
-    stage_3 |= stage_2;
-    stage_4 = (an_ifc_word_category_0_33)stage_3;
-    if (!validate_category(universal.get_module(), stage_4, parent)) {
-      result = FALSE;
-      goto done;
+      /* Copy the field (NestableWord::index - Index) into version-specific
+         storage. */
+      static_assert(sizeof(stage_0) == 4,
+                    "stage_0 is not properly sized storage!");
+      copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+      /* Copy the field (NestableWord::value - u16) into version-specific
+         storage. */
+      static_assert(sizeof(stage_1) == 2,
+                    "stage_1 is not properly sized storage!");
+      copy_ifc_field(&stage_1, universal.get_storage(), /*offset=*/12);
+      /* Copy the field (NestableWord::sort - WordSort) into version-specific
+         storage. */
+      static_assert(sizeof(stage_2) == 1,
+                    "stage_2 is not properly sized storage!");
+      copy_ifc_field(&stage_2, universal.get_storage(), /*offset=*/14);
+      /* Pack the fields (sort, value, index) into the 64 bit WordCategory
+         representation.  Then, decode the bit encoded value using the standard
+         conversion to the universal representation for the category. */
+      stage_3 = 0;
+      stage_3 |= stage_0;
+      stage_3 <<= 16;
+      stage_3 |= stage_1;
+      stage_3 <<= 8;
+      stage_3 |= stage_2;
+      stage_4 = (an_ifc_word_category_0_42)stage_3;
+      if (!validate_category(universal.get_module(), stage_4, parent)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+    } else {
+      an_ifc_index_0_33         stage_0;
+      an_ifc_u16_0_33           stage_1;
+      an_ifc_word_sort_0_33     stage_2;
+      uint64_t                  stage_3;
+      an_ifc_word_category_0_33 stage_4;
+
+      /* Copy the field (NestableWord::index - Index) into version-specific
+         storage. */
+      static_assert(sizeof(stage_0) == 4,
+                    "stage_0 is not properly sized storage!");
+      copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+      /* Copy the field (NestableWord::value - u16) into version-specific
+         storage. */
+      static_assert(sizeof(stage_1) == 2,
+                    "stage_1 is not properly sized storage!");
+      copy_ifc_field(&stage_1, universal.get_storage(), /*offset=*/12);
+      /* Copy the field (NestableWord::sort - WordSort) into version-specific
+         storage. */
+      static_assert(sizeof(stage_2) == 1,
+                    "stage_2 is not properly sized storage!");
+      copy_ifc_field(&stage_2, universal.get_storage(), /*offset=*/14);
+      /* Pack the fields (sort, value, index) into the 64 bit WordCategory
+         representation.  Then, decode the bit encoded value using the standard
+         conversion to the universal representation for the category. */
+      stage_3 = 0;
+      stage_3 |= stage_0;
+      stage_3 <<= 16;
+      stage_3 |= stage_1;
+      stage_3 <<= 8;
+      stage_3 |= stage_2;
+      stage_4 = (an_ifc_word_category_0_33)stage_3;
+      if (!validate_category(universal.get_module(), stage_4, parent)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
     }  /* if */
   }  /* if */
   if (has_ifc_locus(universal)) {
@@ -7881,7 +8100,7 @@ representation is valid; otherwise, return FALSE.
     }  /* if */
   }  /* if */
   if (has_ifc_sort(universal)) {
-    an_ifc_specialization_sort_0_33 stage_0;
+    an_ifc_specialization_sort_0_41 stage_0;
     an_ifc_validation_trace         stage_0_trace =
                                                 {"sort", /*offset=*/8, parent};
 
@@ -15338,40 +15557,78 @@ representation is valid; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (has_ifc_category(universal)) {
-    an_ifc_index_0_33         stage_0;
-    an_ifc_u16_0_33           stage_1;
-    an_ifc_word_sort_0_33     stage_2;
-    uint64_t                  stage_3;
-    an_ifc_word_category_0_33 stage_4;
+    if (is_at_least(universal.get_module(), 0, 42)) {
+      an_ifc_index_0_33         stage_0;
+      an_ifc_u16_0_33           stage_1;
+      an_ifc_word_sort_0_33     stage_2;
+      uint64_t                  stage_3;
+      an_ifc_word_category_0_42 stage_4;
 
-    /* Copy the field (SourceWord::index - Index) into version-specific
-       storage. */
-    static_assert(sizeof(stage_0) == 4,
-                  "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-    /* Copy the field (SourceWord::value - u16) into version-specific
-       storage. */
-    static_assert(sizeof(stage_1) == 2,
-                  "stage_1 is not properly sized storage!");
-    copy_ifc_field(&stage_1, universal.get_storage(), /*offset=*/12);
-    /* Copy the field (SourceWord::sort - WordSort) into version-specific
-       storage. */
-    static_assert(sizeof(stage_2) == 1,
-                  "stage_2 is not properly sized storage!");
-    copy_ifc_field(&stage_2, universal.get_storage(), /*offset=*/14);
-    /* Pack the fields (sort, value, index) into the 64 bit WordCategory
-       representation.  Then, decode the bit encoded value using the standard
-       conversion to the universal representation for the category. */
-    stage_3 = 0;
-    stage_3 |= stage_0;
-    stage_3 <<= 16;
-    stage_3 |= stage_1;
-    stage_3 <<= 8;
-    stage_3 |= stage_2;
-    stage_4 = (an_ifc_word_category_0_33)stage_3;
-    if (!validate_category(universal.get_module(), stage_4, parent)) {
-      result = FALSE;
-      goto done;
+      /* Copy the field (SourceWord::index - Index) into version-specific
+         storage. */
+      static_assert(sizeof(stage_0) == 4,
+                    "stage_0 is not properly sized storage!");
+      copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+      /* Copy the field (SourceWord::value - u16) into version-specific
+         storage. */
+      static_assert(sizeof(stage_1) == 2,
+                    "stage_1 is not properly sized storage!");
+      copy_ifc_field(&stage_1, universal.get_storage(), /*offset=*/12);
+      /* Copy the field (SourceWord::sort - WordSort) into version-specific
+         storage. */
+      static_assert(sizeof(stage_2) == 1,
+                    "stage_2 is not properly sized storage!");
+      copy_ifc_field(&stage_2, universal.get_storage(), /*offset=*/14);
+      /* Pack the fields (sort, value, index) into the 64 bit WordCategory
+         representation.  Then, decode the bit encoded value using the standard
+         conversion to the universal representation for the category. */
+      stage_3 = 0;
+      stage_3 |= stage_0;
+      stage_3 <<= 16;
+      stage_3 |= stage_1;
+      stage_3 <<= 8;
+      stage_3 |= stage_2;
+      stage_4 = (an_ifc_word_category_0_42)stage_3;
+      if (!validate_category(universal.get_module(), stage_4, parent)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+    } else {
+      an_ifc_index_0_33         stage_0;
+      an_ifc_u16_0_33           stage_1;
+      an_ifc_word_sort_0_33     stage_2;
+      uint64_t                  stage_3;
+      an_ifc_word_category_0_33 stage_4;
+
+      /* Copy the field (SourceWord::index - Index) into version-specific
+         storage. */
+      static_assert(sizeof(stage_0) == 4,
+                    "stage_0 is not properly sized storage!");
+      copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+      /* Copy the field (SourceWord::value - u16) into version-specific
+         storage. */
+      static_assert(sizeof(stage_1) == 2,
+                    "stage_1 is not properly sized storage!");
+      copy_ifc_field(&stage_1, universal.get_storage(), /*offset=*/12);
+      /* Copy the field (SourceWord::sort - WordSort) into version-specific
+         storage. */
+      static_assert(sizeof(stage_2) == 1,
+                    "stage_2 is not properly sized storage!");
+      copy_ifc_field(&stage_2, universal.get_storage(), /*offset=*/14);
+      /* Pack the fields (sort, value, index) into the 64 bit WordCategory
+         representation.  Then, decode the bit encoded value using the standard
+         conversion to the universal representation for the category. */
+      stage_3 = 0;
+      stage_3 |= stage_0;
+      stage_3 <<= 16;
+      stage_3 |= stage_1;
+      stage_3 <<= 8;
+      stage_3 |= stage_2;
+      stage_4 = (an_ifc_word_category_0_33)stage_3;
+      if (!validate_category(universal.get_module(), stage_4, parent)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
     }  /* if */
   }  /* if */
   if (has_ifc_locus(universal)) {
@@ -16846,6 +17103,95 @@ representation is valid; otherwise, return FALSE.
         result = FALSE;
         goto done;
       }  /* if */
+    }  /* if */
+  }  /* if */
+done:
+  return result;
+}  /* validate */
+
+
+template<>
+a_boolean validate(const an_ifc_stmt_try         &universal,
+                   const an_ifc_validation_trace *parent)
+/*
+Given the universal representation of StmtTry, return TRUE if the
+representation is valid; otherwise, return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (has_ifc_handlers(universal)) {
+    an_ifc_stmt_index_0_42  stage_0;
+    an_ifc_validation_trace stage_0_trace =
+                                           {"handlers", /*offset=*/16, parent};
+
+    /* Copy the field (StmtTry::handlers - StmtIndex) into version-specific
+       storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      result = FALSE;
+      goto done;
+    }  /* if */
+  }  /* if */
+  if (has_ifc_locus(universal)) {
+    an_ifc_source_location_bytes stage_0;
+    an_ifc_validation_trace      stage_0_trace =
+                                               {"locus", /*offset=*/0, parent};
+    an_ifc_source_location       stage_1;
+
+#if USE_MMAP_FOR_MODULES
+    /* Update the universal storage pointer to the start of the field
+       (StmtTry::locus - SourceLocation). */
+    stage_0 = (an_ifc_source_location_bytes)((*universal.get_storage()) + 0);
+#else /* !USE_MMAP_FOR_MODULES */
+    /* Copy the field (StmtTry::locus - SourceLocation) into universal
+       storage. */
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                   /*size=*/8);
+#endif /* USE_MMAP_FOR_MODULES */
+    stage_1 = {universal.get_module(), stage_0};
+    if (!validate(stage_1, &stage_0_trace)) {
+      result = FALSE;
+      goto done;
+    }  /* if */
+  }  /* if */
+done:
+  return result;
+}  /* validate */
+
+
+template<>
+a_boolean validate(const an_ifc_stmt_tuple       &universal,
+                   const an_ifc_validation_trace *parent)
+/*
+Given the universal representation of StmtTuple, return TRUE if the
+representation is valid; otherwise, return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (has_ifc_locus(universal)) {
+    an_ifc_source_location_bytes stage_0;
+    an_ifc_validation_trace      stage_0_trace =
+                                               {"locus", /*offset=*/0, parent};
+    an_ifc_source_location       stage_1;
+
+#if USE_MMAP_FOR_MODULES
+    /* Update the universal storage pointer to the start of the field
+       (StmtTuple::locus - SourceLocation). */
+    stage_0 = (an_ifc_source_location_bytes)((*universal.get_storage()) + 0);
+#else /* !USE_MMAP_FOR_MODULES */
+    /* Copy the field (StmtTuple::locus - SourceLocation) into universal
+       storage. */
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                   /*size=*/8);
+#endif /* USE_MMAP_FOR_MODULES */
+    stage_1 = {universal.get_module(), stage_0};
+    if (!validate(stage_1, &stage_0_trace)) {
+      result = FALSE;
+      goto done;
     }  /* if */
   }  /* if */
 done:

@@ -9009,13 +9009,13 @@ module, return a reencoded sort value.
 
   switch (universal) {
     case ifc_ss_implicit:
-      result = (ue_ty)ifc_0_33_ss_implicit;
+      result = (ue_ty)ifc_0_41_ss_implicit;
       break;
     case ifc_ss_explicit:
-      result = (ue_ty)ifc_0_33_ss_explicit;
+      result = (ue_ty)ifc_0_41_ss_explicit;
       break;
     case ifc_ss_instantiation:
-      result = (ue_ty)ifc_0_33_ss_instantiation;
+      result = (ue_ty)ifc_0_41_ss_instantiation;
       break;
     default:
       unexpected_condition_str("Invalid value for a SpecializationSort.");
@@ -9026,7 +9026,7 @@ module, return a reencoded sort value.
 
 
 an_ifc_specialization_sort to_universal_sort(
-                                     an_ifc_specialization_sort_0_33 versioned)
+                                     an_ifc_specialization_sort_0_41 versioned)
 /*
 Given the versioned representation of SpecializationSort, return the
 corresponding universal representation.
@@ -9035,13 +9035,13 @@ corresponding universal representation.
   an_ifc_specialization_sort result;
 
   switch (versioned) {
-    case ifc_0_33_ss_implicit:
+    case ifc_0_41_ss_implicit:
       result = ifc_ss_implicit;
       break;
-    case ifc_0_33_ss_explicit:
+    case ifc_0_41_ss_explicit:
       result = ifc_ss_explicit;
       break;
-    case ifc_0_33_ss_instantiation:
+    case ifc_0_41_ss_instantiation:
       result = ifc_ss_instantiation;
       break;
     default:
@@ -9120,6 +9120,9 @@ form of a c-string.
     case ifc_ss_stmt_syntax_tree:
       result = "StmtSort::StmtSyntaxTree";
       break;
+    case ifc_ss_stmt_try:
+      result = "StmtSort::StmtTry";
+      break;
     case ifc_ss_stmt_tuple:
       result = "StmtSort::StmtTuple";
       break;
@@ -9155,8 +9158,8 @@ return a reencoded sort value.
       case ifc_ss_stmt_vendor_extension:
         result = (ue_ty)ifc_0_42_ss_stmt_vendor_extension;
         break;
-      case ifc_ss_stmt_goto:
-        result = (ue_ty)ifc_0_42_ss_stmt_goto;
+      case ifc_ss_stmt_try:
+        result = (ue_ty)ifc_0_42_ss_stmt_try;
         break;
       case ifc_ss_stmt_if:
         result = (ue_ty)ifc_0_42_ss_stmt_if;
@@ -9181,6 +9184,9 @@ return a reencoded sort value.
         break;
       case ifc_ss_stmt_do_while:
         result = (ue_ty)ifc_0_42_ss_stmt_do_while;
+        break;
+      case ifc_ss_stmt_goto:
+        result = (ue_ty)ifc_0_42_ss_stmt_goto;
         break;
       case ifc_ss_stmt_continue:
         result = (ue_ty)ifc_0_42_ss_stmt_continue;
@@ -9352,8 +9358,8 @@ universal representation.
     case ifc_0_42_ss_stmt_vendor_extension:
       result = ifc_ss_stmt_vendor_extension;
       break;
-    case ifc_0_42_ss_stmt_goto:
-      result = ifc_ss_stmt_goto;
+    case ifc_0_42_ss_stmt_try:
+      result = ifc_ss_stmt_try;
       break;
     case ifc_0_42_ss_stmt_if:
       result = ifc_ss_stmt_if;
@@ -9378,6 +9384,9 @@ universal representation.
       break;
     case ifc_0_42_ss_stmt_do_while:
       result = ifc_ss_stmt_do_while;
+      break;
+    case ifc_0_42_ss_stmt_goto:
+      result = ifc_ss_stmt_goto;
       break;
     case ifc_0_42_ss_stmt_continue:
       result = ifc_ss_stmt_continue;
@@ -14087,6 +14096,150 @@ corresponding universal representation.
 }  /* to_universal_category */
 
 
+an_ifc_source_literal_sort_0_33 source_literal_sort(
+                                 an_ifc_source_literal_category_0_42 versioned)
+/*
+Given the versioned representation of SourceLiteralCategory, return the
+extracted versioned representation of SourceLiteralSort.
+*/
+{
+  return (an_ifc_source_literal_sort_0_33)(0xffff & (uint64_t)versioned);
+
+}  /* source_literal_sort */
+
+
+uint64_t source_literal_value(an_ifc_source_literal_category_0_42 versioned)
+/*
+Given the versioned representation of SourceLiteralCategory, return the
+extracted value.
+*/
+{
+  return versioned >> 16;
+}  /* source_literal_value */
+
+
+an_ifc_source_literal_category to_universal_category(
+                                 an_ifc_module                       *mod,
+                                 an_ifc_source_literal_category_0_42 versioned)
+/*
+Given the versioned representation of SourceLiteralCategory, return the
+corresponding universal representation.
+*/
+{
+  an_ifc_source_literal_sort_0_33 versioned_sort =
+                                                source_literal_sort(versioned);
+  an_ifc_source_literal_sort      sort = to_universal_sort(versioned_sort);
+  uint64_t                        raw_value = source_literal_value(versioned);
+  an_ifc_source_literal_category  result = {sort, {}};
+
+  switch (versioned_sort) {
+    case ifc_0_33_sls_defined_string:
+      { an_ifc_string_index_0_33 versioned_value =
+                                           (an_ifc_string_index_0_33)raw_value;
+        an_ifc_string_index      universal_value;
+
+        universal_value = to_universal_index(mod, versioned_value);
+        result.variant.defined_string = universal_value;
+      }
+      break;
+    case ifc_0_33_sls_msvc:
+      { an_ifc_source_unknown_literal_0_33 versioned_value =
+                                 (an_ifc_source_unknown_literal_0_33)raw_value;
+        an_ifc_source_unknown_literal      universal_value;
+
+        universal_value = {mod,
+                       (an_ifc_source_unknown_literal_storage)versioned_value};
+        result.variant.msvc = universal_value;
+      }
+      break;
+    case ifc_0_33_sls_msvc_binding:
+      { an_ifc_expr_index_0_42 versioned_value =
+                                             (an_ifc_expr_index_0_42)raw_value;
+        an_ifc_expr_index      universal_value;
+
+        universal_value = to_universal_index(mod, versioned_value);
+        result.variant.msvc_binding = universal_value;
+      }
+      break;
+    case ifc_0_33_sls_msvc_cast_target_type:
+      { an_ifc_type_index_0_33 versioned_value =
+                                             (an_ifc_type_index_0_33)raw_value;
+        an_ifc_type_index      universal_value;
+
+        universal_value = to_universal_index(mod, versioned_value);
+        result.variant.msvc_cast_target_type = universal_value;
+      }
+      break;
+    case ifc_0_33_sls_msvc_defined_constant:
+      { an_ifc_expr_index_0_42 versioned_value =
+                                             (an_ifc_expr_index_0_42)raw_value;
+        an_ifc_expr_index      universal_value;
+
+        universal_value = to_universal_index(mod, versioned_value);
+        result.variant.msvc_defined_constant = universal_value;
+      }
+      break;
+    case ifc_0_33_sls_msvc_function_name_macro:
+      { an_ifc_text_offset_0_33 versioned_value =
+                                            (an_ifc_text_offset_0_33)raw_value;
+        an_ifc_text_offset      universal_value;
+
+        universal_value = {mod, (an_ifc_text_offset_storage)versioned_value};
+        result.variant.msvc_function_name_macro = universal_value;
+      }
+      break;
+    case ifc_0_33_sls_msvc_resolved_type:
+      { an_ifc_type_index_0_33 versioned_value =
+                                             (an_ifc_type_index_0_33)raw_value;
+        an_ifc_type_index      universal_value;
+
+        universal_value = to_universal_index(mod, versioned_value);
+        result.variant.msvc_resolved_type = universal_value;
+      }
+      break;
+    case ifc_0_33_sls_msvc_string_prefix_macro:
+      { an_ifc_text_offset_0_33 versioned_value =
+                                            (an_ifc_text_offset_0_33)raw_value;
+        an_ifc_text_offset      universal_value;
+
+        universal_value = {mod, (an_ifc_text_offset_storage)versioned_value};
+        result.variant.msvc_string_prefix_macro = universal_value;
+      }
+      break;
+    case ifc_0_33_sls_scalar:
+      { an_ifc_expr_index_0_42 versioned_value =
+                                             (an_ifc_expr_index_0_42)raw_value;
+        an_ifc_expr_index      universal_value;
+
+        universal_value = to_universal_index(mod, versioned_value);
+        result.variant.scalar = universal_value;
+      }
+      break;
+    case ifc_0_33_sls_string:
+      { an_ifc_string_index_0_33 versioned_value =
+                                           (an_ifc_string_index_0_33)raw_value;
+        an_ifc_string_index      universal_value;
+
+        universal_value = to_universal_index(mod, versioned_value);
+        result.variant.string = universal_value;
+      }
+      break;
+    case ifc_0_33_sls_unknown:
+      { an_ifc_source_unknown_literal_0_33 versioned_value =
+                                 (an_ifc_source_unknown_literal_0_33)raw_value;
+        an_ifc_source_unknown_literal      universal_value;
+
+        universal_value = {mod,
+                       (an_ifc_source_unknown_literal_storage)versioned_value};
+        result.variant.unknown = universal_value;
+      }
+      break;
+    default_is_unexpected();
+  }  /* switch */
+  return result;
+}  /* to_universal_category */
+
+
 /*
 Functions for interacting with IFC WordCategory indexes.
 */
@@ -14155,6 +14308,109 @@ universal representation.
     case ifc_0_33_ws_source_literal:
       { an_ifc_source_literal_category_0_33 versioned_value =
                                 (an_ifc_source_literal_category_0_33)raw_value;
+        an_ifc_source_literal_category      universal_value;
+
+        universal_value = to_universal_category(mod, versioned_value);
+        result.variant.source_literal = universal_value;
+      }
+      break;
+    case ifc_0_33_ws_source_operator:
+      { an_ifc_source_operator_sort_0_33 versioned_value =
+                                   (an_ifc_source_operator_sort_0_33)raw_value;
+        an_ifc_source_operator_sort      universal_value;
+
+        universal_value = to_universal_sort(versioned_value);
+        result.variant.source_operator = universal_value;
+      }
+      break;
+    case ifc_0_33_ws_source_punctuator:
+      { an_ifc_source_punctuator_sort_0_33 versioned_value =
+                                 (an_ifc_source_punctuator_sort_0_33)raw_value;
+        an_ifc_source_punctuator_sort      universal_value;
+
+        universal_value = to_universal_sort(versioned_value);
+        result.variant.source_punctuator = universal_value;
+      }
+      break;
+    case ifc_0_33_ws_unknown:
+      { an_ifc_source_unknown_word_0_33 versioned_value =
+                                    (an_ifc_source_unknown_word_0_33)raw_value;
+        an_ifc_source_unknown_word      universal_value;
+
+        universal_value = {mod,
+                          (an_ifc_source_unknown_word_storage)versioned_value};
+        result.variant.unknown = universal_value;
+      }
+      break;
+    default_is_unexpected();
+  }  /* switch */
+  return result;
+}  /* to_universal_category */
+
+
+an_ifc_word_sort_0_33 word_sort(an_ifc_word_category_0_42 versioned)
+/*
+Given the versioned representation of WordCategory, return the extracted
+versioned representation of WordSort.
+*/
+{
+  return (an_ifc_word_sort_0_33)(0xff & (uint64_t)versioned);
+
+}  /* word_sort */
+
+
+uint64_t word_value(an_ifc_word_category_0_42 versioned)
+/*
+Given the versioned representation of WordCategory, return the extracted value.
+*/
+{
+  return versioned >> 8;
+}  /* word_value */
+
+
+an_ifc_word_category to_universal_category(an_ifc_module             *mod,
+                                           an_ifc_word_category_0_42 versioned)
+/*
+Given the versioned representation of WordCategory, return the corresponding
+universal representation.
+*/
+{
+  an_ifc_word_sort_0_33 versioned_sort = word_sort(versioned);
+  an_ifc_word_sort      sort = to_universal_sort(versioned_sort);
+  uint64_t              raw_value = word_value(versioned);
+  an_ifc_word_category  result = {sort, {}};
+
+  switch (versioned_sort) {
+    case ifc_0_33_ws_source_directive:
+      { an_ifc_source_directive_sort_0_33 versioned_value =
+                                  (an_ifc_source_directive_sort_0_33)raw_value;
+        an_ifc_source_directive_sort      universal_value;
+
+        universal_value = to_universal_sort(versioned_value);
+        result.variant.source_directive = universal_value;
+      }
+      break;
+    case ifc_0_33_ws_source_identifier:
+      { an_ifc_source_identifier_category_0_33 versioned_value =
+                             (an_ifc_source_identifier_category_0_33)raw_value;
+        an_ifc_source_identifier_category      universal_value;
+
+        universal_value = to_universal_category(mod, versioned_value);
+        result.variant.source_identifier = universal_value;
+      }
+      break;
+    case ifc_0_33_ws_source_keyword:
+      { an_ifc_source_keyword_sort_0_33 versioned_value =
+                                    (an_ifc_source_keyword_sort_0_33)raw_value;
+        an_ifc_source_keyword_sort      universal_value;
+
+        universal_value = to_universal_sort(versioned_value);
+        result.variant.source_keyword = universal_value;
+      }
+      break;
+    case ifc_0_33_ws_source_literal:
+      { an_ifc_source_literal_category_0_42 versioned_value =
+                                (an_ifc_source_literal_category_0_42)raw_value;
         an_ifc_source_literal_category      universal_value;
 
         universal_value = to_universal_category(mod, versioned_value);
@@ -23721,6 +23977,122 @@ Return the corresponding partition kind for StmtSwitch.
 
 
 template<>
+an_ifc_stmt_try_storage* get<an_ifc_stmt_try_storage>(
+                                          an_ifc_module           *mod,
+                                          an_ifc_stmt_try_storage *storage,
+                                          a_boolean               fill_storage)
+/*
+Retrieve an instance of StmtTry from the IFC module file associated with mod.
+
+If memory mapping is used and both the host and the target have the same
+endianness, then the file layout and the alignment/padding of the host must
+have exactly the same characteristics.  In this case, simply return a pointer
+to a suitably-cast byte_buffer and increment it as appropriate (the storage
+argument is unused in this scenario).
+
+Otherwise, the storage passed in to the function is used to store copies of
+each field of the structure and each field is individually copied (and
+byte-swapped if necessary).
+
+If fill_storage is TRUE, always copy the data into the passed storage (i.e.,
+the storage specified by the storage argument).
+*/
+{
+#if USE_MMAP_FOR_MODULES
+  using storage_type = an_ifc_stmt_try_storage;
+  if (has_matching_endianness(mod)) {
+    if (fill_storage) {
+      memcpy(*storage, mod->byte_buffer, /*size=*/20);
+    } else {
+      storage = (storage_type*)(mod->byte_buffer);
+    }  /* if */
+  } else
+#endif /* USE_MMAP_FOR_MODULES */
+  /* Do not put code here. */
+  {
+    /* locus.line */
+    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    /* locus.column */
+    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    /* start */
+    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    /* cardinality */
+    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    /* handlers */
+    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+  }  /* if */
+  return storage;
+}  /* get<an_ifc_stmt_try_storage> */
+
+
+template<>
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_stmt_try>()
+/*
+Return the corresponding partition kind for StmtTry.
+*/
+{
+  return ifc_pk_stmt_try;
+}  /* get_ifc_partition_kind */
+
+
+template<>
+an_ifc_stmt_tuple_storage* get<an_ifc_stmt_tuple_storage>(
+                                        an_ifc_module             *mod,
+                                        an_ifc_stmt_tuple_storage *storage,
+                                        a_boolean                 fill_storage)
+/*
+Retrieve an instance of StmtTuple from the IFC module file associated with mod.
+
+If memory mapping is used and both the host and the target have the same
+endianness, then the file layout and the alignment/padding of the host must
+have exactly the same characteristics.  In this case, simply return a pointer
+to a suitably-cast byte_buffer and increment it as appropriate (the storage
+argument is unused in this scenario).
+
+Otherwise, the storage passed in to the function is used to store copies of
+each field of the structure and each field is individually copied (and
+byte-swapped if necessary).
+
+If fill_storage is TRUE, always copy the data into the passed storage (i.e.,
+the storage specified by the storage argument).
+*/
+{
+#if USE_MMAP_FOR_MODULES
+  using storage_type = an_ifc_stmt_tuple_storage;
+  if (has_matching_endianness(mod)) {
+    if (fill_storage) {
+      memcpy(*storage, mod->byte_buffer, /*size=*/16);
+    } else {
+      storage = (storage_type*)(mod->byte_buffer);
+    }  /* if */
+  } else
+#endif /* USE_MMAP_FOR_MODULES */
+  /* Do not put code here. */
+  {
+    /* locus.line */
+    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    /* locus.column */
+    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    /* start */
+    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    /* cardinality */
+    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+  }  /* if */
+  return storage;
+}  /* get<an_ifc_stmt_tuple_storage> */
+
+
+template<>
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_stmt_tuple>()
+/*
+Return the corresponding partition kind for StmtTuple.
+*/
+{
+  return ifc_pk_stmt_tuple;
+}  /* get_ifc_partition_kind */
+
+
+template<>
 an_ifc_stmt_variable_decl_storage* get<an_ifc_stmt_variable_decl_storage>(
                                 an_ifc_module                     *mod,
                                 an_ifc_stmt_variable_decl_storage *storage,
@@ -33053,6 +33425,12 @@ expected partition element size.
     case ifc_pk_stmt_switch:
       result = 20;
       break;
+    case ifc_pk_stmt_try:
+      result = 20;
+      break;
+    case ifc_pk_stmt_tuple:
+      result = 16;
+      break;
     case ifc_pk_stmt_variable:
       result = 12;
       break;
@@ -34250,6 +34628,8 @@ representation of StmtSort; otherwise, return FALSE.
     case ifc_pk_stmt_labeled:
     case ifc_pk_stmt_return:
     case ifc_pk_stmt_switch:
+    case ifc_pk_stmt_try:
+    case ifc_pk_stmt_tuple:
     case ifc_pk_stmt_variable:
     case ifc_pk_stmt_while:
       result = TRUE;
@@ -34321,6 +34701,12 @@ StmtSort.  If no corresponding sort kind exists for StmtSort, abort.
       break;
     case ifc_pk_stmt_switch:
       result = ifc_ss_stmt_switch;
+      break;
+    case ifc_pk_stmt_try:
+      result = ifc_ss_stmt_try;
+      break;
+    case ifc_pk_stmt_tuple:
+      result = ifc_ss_stmt_tuple;
       break;
     case ifc_pk_stmt_variable:
       result = ifc_ss_stmt_variable_decl;
@@ -35695,6 +36081,8 @@ corresponding partition kind; otherwise, return FALSE.
     case ifc_ss_stmt_labeled:
     case ifc_ss_stmt_return:
     case ifc_ss_stmt_switch:
+    case ifc_ss_stmt_try:
+    case ifc_ss_stmt_tuple:
     case ifc_ss_stmt_variable_decl:
     case ifc_ss_stmt_while:
       result = TRUE;
@@ -35766,6 +36154,12 @@ partition kind.  If no corresponding partition kind exists, abort.
       break;
     case ifc_ss_stmt_switch:
       result = ifc_pk_stmt_switch;
+      break;
+    case ifc_ss_stmt_try:
+      result = ifc_pk_stmt_try;
+      break;
+    case ifc_ss_stmt_tuple:
+      result = ifc_pk_stmt_tuple;
       break;
     case ifc_ss_stmt_variable_decl:
       result = ifc_pk_stmt_variable;
@@ -37303,6 +37697,20 @@ representation is valid; otherwise, return FALSE.
       break;
     case ifc_ss_stmt_switch:
       { Opt<an_ifc_stmt_switch> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_stmt_try:
+      { Opt<an_ifc_stmt_try> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ss_stmt_tuple:
+      { Opt<an_ifc_stmt_tuple> opt_universal;
 
         construct_node(&opt_universal, idx);
         result = opt_universal.has_value();
@@ -40385,6 +40793,16 @@ Return TRUE if the node has the field "locus"; otherwise, return FALSE.
         result = TRUE;
       }  /* if */
       break;
+    case ifc_ss_stmt_try:
+      if (is_at_least(mod, 0, 42)) {
+        result = TRUE;
+      }  /* if */
+      break;
+    case ifc_ss_stmt_tuple:
+      if (is_at_least(mod, 0, 42)) {
+        result = TRUE;
+      }  /* if */
+      break;
     case ifc_ss_stmt_variable_decl:
       if (is_at_least(mod, 0, 42)) {
         result = FALSE;
@@ -40528,6 +40946,20 @@ node's "locus" field value.
       break;
     case ifc_ss_stmt_switch:
       { an_ifc_stmt_switch universal;
+
+        construct_node_prechecked(&universal, idx);
+        result = get_ifc_locus(universal);
+      }
+      break;
+    case ifc_ss_stmt_try:
+      { an_ifc_stmt_try universal;
+
+        construct_node_prechecked(&universal, idx);
+        result = get_ifc_locus(universal);
+      }
+      break;
+    case ifc_ss_stmt_tuple:
+      { an_ifc_stmt_tuple universal;
 
         construct_node_prechecked(&universal, idx);
         result = get_ifc_locus(universal);

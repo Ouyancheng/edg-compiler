@@ -1333,7 +1333,7 @@ struct an_ifc_encoded_source_punctuator_sort {
 };  /* an_ifc_encoded_source_punctuator_sort */
 
 
-enum an_ifc_encoded_specialization_sort_0_33 : uint8_t;
+enum an_ifc_encoded_specialization_sort_0_41 : uint8_t;
 using an_ifc_encoded_specialization_sort_storage = uint8_t;
 
 
@@ -4034,11 +4034,11 @@ enum an_ifc_source_punctuator_sort : uint32_t {
 };  /* an_ifc_source_punctuator_sort */
 
 
-enum an_ifc_specialization_sort_0_33 : uint8_t {
-  ifc_0_33_ss_implicit      = 0,
-  ifc_0_33_ss_explicit      = 1,
-  ifc_0_33_ss_instantiation = 2
-};  /* an_ifc_specialization_sort_0_33 */
+enum an_ifc_specialization_sort_0_41 : uint8_t {
+  ifc_0_41_ss_implicit      = 0,
+  ifc_0_41_ss_explicit      = 1,
+  ifc_0_41_ss_instantiation = 2
+};  /* an_ifc_specialization_sort_0_41 */
 
 
 enum an_ifc_specialization_sort : uint32_t {
@@ -4071,7 +4071,7 @@ enum an_ifc_stmt_sort_0_33 : uint32_t {
 
 enum an_ifc_stmt_sort_0_42 : uint32_t {
   ifc_0_42_ss_stmt_vendor_extension = 0,
-  ifc_0_42_ss_stmt_goto             = 1,
+  ifc_0_42_ss_stmt_try              = 1,
   ifc_0_42_ss_stmt_if               = 2,
   ifc_0_42_ss_stmt_for              = 3,
   ifc_0_42_ss_stmt_labeled          = 4,
@@ -4080,6 +4080,7 @@ enum an_ifc_stmt_sort_0_42 : uint32_t {
   ifc_0_42_ss_stmt_break            = 7,
   ifc_0_42_ss_stmt_switch           = 8,
   ifc_0_42_ss_stmt_do_while         = 9,
+  ifc_0_42_ss_stmt_goto             = 10,
   ifc_0_42_ss_stmt_continue         = 11,
   ifc_0_42_ss_stmt_expression       = 12,
   ifc_0_42_ss_stmt_return           = 13,
@@ -4110,6 +4111,7 @@ enum an_ifc_stmt_sort : uint32_t {
   ifc_ss_stmt_return,
   ifc_ss_stmt_switch,
   ifc_ss_stmt_syntax_tree,
+  ifc_ss_stmt_try,
   ifc_ss_stmt_tuple,
   ifc_ss_stmt_variable_decl,
   ifc_ss_stmt_vendor_extension,
@@ -5842,6 +5844,7 @@ struct an_ifc_source_identifier_category {
 
 
 enum an_ifc_source_literal_category_0_33 : uint64_t {};
+enum an_ifc_source_literal_category_0_42 : uint64_t {};
 
 
 /*
@@ -5913,6 +5916,7 @@ struct an_ifc_source_literal_category {
 
 
 enum an_ifc_word_category_0_33 : uint64_t {};
+enum an_ifc_word_category_0_42 : uint64_t {};
 
 
 /*
@@ -8004,7 +8008,7 @@ struct an_ifc_decl_scope : an_ifc_Byte_buffer<an_ifc_decl_scope_storage> {
   |------------------|--------------------|---------|------|
   | form             | FormSpecIndex      | 0.33    | 4    |
   | decl             | DeclIndex          | 0.41    | 4    |
-  | sort             | SpecializationSort | 0.33    | 1    |
+  | sort             | SpecializationSort | 0.41    | 1    |
   | __padding__      | uint8_t[3]         |         | 3    |
   |------------------|--------------------|---------|------|
   | home_scope       | DeclIndex          | ANY     | TF   |
@@ -12573,6 +12577,67 @@ struct an_ifc_stmt_switch : an_ifc_Byte_buffer<an_ifc_stmt_switch_storage> {
   using base_type = an_ifc_Byte_buffer<storage_type>;
   using base_type::an_ifc_Byte_buffer;
 };  /* an_ifc_stmt_switch */
+
+/*
+  |-----------------------------------------------|
+  |           StmtTry - 0.42 (20 bytes)           |
+  |-------------|----------------|---------|------|
+  | Name        | Type           | Version | Size |
+  |-------------|----------------|---------|------|
+  | locus       | SourceLocation | 0.33    | 8    |
+  | start       | Index          | 0.33    | 4    |
+  | cardinality | Cardinality    | 0.33    | 4    |
+  | handlers    | StmtIndex      | 0.42    | 4    |
+  |-------------|----------------|---------|------|
+*/
+enum an_ifc_stmt_try_part : uint8_t {};
+using an_ifc_stmt_try_storage = an_ifc_stmt_try_part[20];
+#if USE_MMAP_FOR_MODULES
+using an_ifc_stmt_try_bytes = const an_ifc_stmt_try_storage*;
+#else /* !USE_MMAP_FOR_MODULES */
+using an_ifc_stmt_try_bytes = an_ifc_stmt_try_storage;
+#endif /* USE_MMAP_FOR_MODULES */
+/*
+The universal representation of an IFC StmtTry node.
+
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_stmt_try : an_ifc_Byte_buffer<an_ifc_stmt_try_storage> {
+  using storage_type = an_ifc_stmt_try_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_stmt_try */
+
+/*
+  |-----------------------------------------------|
+  |          StmtTuple - 0.42 (16 bytes)          |
+  |-------------|----------------|---------|------|
+  | Name        | Type           | Version | Size |
+  |-------------|----------------|---------|------|
+  | locus       | SourceLocation | 0.33    | 8    |
+  | start       | Index          | 0.33    | 4    |
+  | cardinality | Cardinality    | 0.33    | 4    |
+  |-------------|----------------|---------|------|
+*/
+enum an_ifc_stmt_tuple_part : uint8_t {};
+using an_ifc_stmt_tuple_storage = an_ifc_stmt_tuple_part[16];
+#if USE_MMAP_FOR_MODULES
+using an_ifc_stmt_tuple_bytes = const an_ifc_stmt_tuple_storage*;
+#else /* !USE_MMAP_FOR_MODULES */
+using an_ifc_stmt_tuple_bytes = an_ifc_stmt_tuple_storage;
+#endif /* USE_MMAP_FOR_MODULES */
+/*
+The universal representation of an IFC StmtTuple node.
+
+The representation is declared as a derived struct of an_ifc_Byte_buffer rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_stmt_tuple : an_ifc_Byte_buffer<an_ifc_stmt_tuple_storage> {
+  using storage_type = an_ifc_stmt_tuple_storage;
+  using base_type = an_ifc_Byte_buffer<storage_type>;
+  using base_type::an_ifc_Byte_buffer;
+};  /* an_ifc_stmt_tuple */
 
 /*
   |-----------------------------------------|
@@ -18361,6 +18426,8 @@ enum an_ifc_partition_kind : uint32_t {
   ifc_pk_stmt_labeled,
   ifc_pk_stmt_return,
   ifc_pk_stmt_switch,
+  ifc_pk_stmt_try,
+  ifc_pk_stmt_tuple,
   ifc_pk_stmt_variable,
   ifc_pk_stmt_while,
   ifc_pk_syntax_access_specifier,
@@ -18504,7 +18571,7 @@ enum an_ifc_partition_kind : uint32_t {
 };  /* an_ifc_partition_kind */
 
 
-#define IFC_PARTITION_COUNT 302
+#define IFC_PARTITION_COUNT 304
 
 /*
 A method for mapping partition names to an_ifc_partition_kind values.  Used
@@ -18686,6 +18753,8 @@ EXTERN an_ifc_partition_map ifc_partition_map[IFC_PARTITION_COUNT]
   { "stmt.labeled", ifc_pk_stmt_labeled },
   { "stmt.return", ifc_pk_stmt_return },
   { "stmt.switch", ifc_pk_stmt_switch },
+  { "stmt.try", ifc_pk_stmt_try },
+  { "stmt.tuple", ifc_pk_stmt_tuple },
   { "stmt.variable", ifc_pk_stmt_variable },
   { "stmt.while", ifc_pk_stmt_while },
   { "syntax.access-specifier", ifc_pk_syntax_access_specifier },
