@@ -19718,6 +19718,11 @@ Generate the declaration associated with the given stmk_decl statement.
        follows is for the next statement: This can happen with (useless)
        declarations like "int;".  No source sequence entry is recorded for
        such a declaration: Do not attempt to render one. */
+    if (ep !=  NULL && ep->entity.kind == iek_static_assertion) {
+      /* Ignore the entry generated for static_assert/_Static_assert
+         constructs. */
+      ep = ep->next;
+    }  /* if */
 #if CHECKING
     check_assertion(ep == NULL);
 #endif /* CHECKING */
