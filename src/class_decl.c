@@ -25854,7 +25854,7 @@ entity if applicable.
           (void)get_token();
           attributes = scan_attributes(al_post_using_declarator);
           if (attributes != NULL) {
-            /* Look to see if among the attribute is "using_if_exists" which
+            /* Look to see if among the attributes is "using_if_exists" which
                causes undefined names to be permitted.  Then "unscan" the
                attributes so that later processing can find them. */
             has_if_exists = find_attribute(ak_using_if_exists, attributes)
