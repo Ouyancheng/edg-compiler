@@ -13489,22 +13489,31 @@ a_scope_ptr get_innermost_function_scope(void)
 /*
 Returns the innermost function scope (or NULL if there is none).  Typically
 the same as innermost_function_scope, but not in all cases (say, when scanning
-a local class).
+a local class or substituting an alias template).
 */
 {
-  a_scope_ptr             result = innermost_function_scope;
-  a_scope_stack_entry_ptr ssep;
+  a_scope_ptr              result = innermost_function_scope;
+  a_scope_stack_entry_ptr  ssep = &scope_stack_top();
 
-  if (result == NULL && inside_local_class) {
-    for (ssep = &scope_stack_top();
-         ssep != &scope_stack[DEPTH_OF_FILE_SCOPE];
-         ssep = previous_scope_of(ssep)) {
-      if (ssep->il_scope != NULL &&
-          ssep->il_scope->kind == (a_scope_kind)sck_function) {
-        result = ssep->il_scope;
-        break;
-      }  /* if */
-    }  /* for */
+  if (result == NULL) {
+    a_boolean  scopes_skipped = FALSE;
+    /* Skip alias template instantiations. */
+    while (scope_is(ssep, sck_template_instantiation) &&
+           ssep->instance_sym != NULL &&
+           symbol_is(ssep->instance_sym, sk_type)) {
+      check_assertion(scope_is(ssep-1, sck_instantiation_context));
+      ssep -= 2;
+      scopes_skipped = TRUE;
+    }  /* if */
+    if (scopes_skipped || inside_local_class) {
+      for (; ssep != &scope_stack[DEPTH_OF_FILE_SCOPE];
+                                             ssep = previous_scope_of(ssep)) {
+        if (ssep->il_scope != NULL && scope_is(ssep->il_scope, sck_function)) {
+          result = ssep->il_scope;
+          break;
+        }  /* if */
+      }  /* for */
+    }  /* if */
   }  /* if */
   return result;
 }  /* get_innermost_function_scope */

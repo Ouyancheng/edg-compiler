@@ -1,5 +1,21 @@
 Version 6.5
 
+4/24/23  [EDGcpfe/26269]
+Abort on array with local bound in alias template substitution
+
+Consider:
+
+  template<typename> struct S;
+  template<typename T, int N> using AS = S<T[N]>;
+  template<int N> void g() {
+    constexpr int Count = N;
+    AS<int, Count> as;  // Previously aborted.  Now okay.
+  }
+
+Previously this aborted in make_bound_expr_referenceable_from_file_scope (in
+declarator.c) with an internal error.  That is now fixed.
+
+
 4/21/23  [EDGcpfe/20257,EDGcpfe/23741,EDGcpfe/25214,EDGcpfe/26249]
 Clang/GNU C++ compatibility: Default bit field initializers
 
