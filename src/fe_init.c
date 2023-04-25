@@ -1405,12 +1405,17 @@ Install the keywords in the symbol table.
       enter_preproc_op_keyword((a_token_kind)tok_excl_or_assign, "xor_eq");
     }  /* if */
     /* Enter keywords connected with RTTI only if RTTI support is enabled.
-       Otherwise treat them as "unimplemented keywords". */
-    /* However, some kinds of dynamic_cast can be done without RTTI
-       information, so do the checking for those in the dynamic_cast
-       scanning. */
+       Otherwise treat them as "unimplemented keywords".
+
+       Note that some kinds of dynamic_cast can be done without RTTI
+       information, so the checking for those in done in the dynamic_cast
+       scanning.
+
+       Additionally, note that Microsoft permits typeid even when RTTI is
+       disabled.  Thus, the typeid keyword is unconditionally entered in
+       Microsoft mode. */
     enter_keyword((a_token_kind)tok_dynamic_cast, "dynamic_cast");
-    if (rtti_enabled) {
+    if (rtti_enabled || microsoft_mode) {
       enter_keyword((a_token_kind)tok_typeid, "typeid");
     } else {
       enter_unimplemented_keyword("typeid", ec_unimplemented_keyword);

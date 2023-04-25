@@ -49532,7 +49532,7 @@ a enclosing expression).
         break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    case tok_cli_typeid:
+      case tok_cli_typeid:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       case tok_typeid:
         scan_typeid_operator(rcblock, result);
