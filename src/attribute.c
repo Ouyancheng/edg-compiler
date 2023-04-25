@@ -5556,6 +5556,7 @@ entity.
                       esp = alloc_exception_specification();
           esp->is_noexcept = TRUE;
           esp->compiler_generated = TRUE;
+          esp->from_attribute = TRUE;
           rout_type_supp(func_tp)->exception_specification = esp;
         }  /* if */
       }  /* if */

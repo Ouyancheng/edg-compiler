@@ -1508,7 +1508,24 @@ represented by overridden, but its exception specification is less restrictive.
 Issue an appropriate diagnostic at the given position.
 */
 {
-  if (overrider->variant.routine.ptr->compiler_generated) {
+  a_routine_ptr  base_rp = overridden->variant.routine.ptr;
+  an_exception_specification_ptr
+                 base_esp = rout_type_supp(skip_typerefs(base_rp->type))
+                                                    ->exception_specification;
+
+  if (base_esp != NULL && base_esp->from_attribute) {
+    /* The exception specification resulting from __declspec(nothrow) alone
+       does not trigger a diagnostic.  For example:
+           struct B {
+             virtual __declspec(nothrow) void e();
+             virtual __declspec(nothrow) void f() noexcept;
+           };
+           struct D: B {
+             void e();  // Okay.
+             void f();  // Error.
+           };
+    */
+  } else if (overrider->variant.routine.ptr->compiler_generated) {
     /* In non-strict modes, issue a warning on a compiler-generated
        constructor, destructor, or assignment operator.  Issue a discretionary
        error in C++11 and later modes, a warning in nonstrict C++03 mode. */

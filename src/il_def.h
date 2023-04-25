@@ -6614,35 +6614,32 @@ typedef struct an_exception_specification_type {
    specification on a function declaration. */
 typedef struct an_exception_specification *an_exception_specification_ptr;
 typedef struct an_exception_specification {
-  a_bit_field
-		is_noexcept:1;
+  a_bit_field	is_noexcept:1;
 			/* TRUE if the exception specification is a C++11-
 			   style noexcept form. */
-  a_bit_field
-		indeterminate:1;
+  a_bit_field	indeterminate:1;
 			/* TRUE if the exception specification has not been
 			   determined yet.  (Only possible with generated
 			   special member functions.) */
-  a_bit_field
-		throw_any:1;
+  a_bit_field	throw_any:1;
 			/* TRUE if "noexcept(<false-constant>)" or the
 			   Microsoft extension "throw (...)" was encountered.
 			   Also TRUE if a noexcept-specifier has a template-
 			   dependent argument.  It indicates that any exception
 			   may be thrown. */
-  a_bit_field
-		compiler_generated:1;
+  a_bit_field	compiler_generated:1;
 			/* TRUE for exception specifications that did not
 			   appear in the source code. */
-  a_bit_field
-		arg_cached:1;
+  a_bit_field	from_attribute:1;
+			/* TRUE if this entry is the result of an attribute
+			   (specifically, "__declspec(nothrow)"). */
+  a_bit_field	arg_cached:1;
 			/* TRUE while the parenthesized argument tokens of the
 			   exception specification are cached for later
 			   rescanning.  In the case of members of class
 			   templates, this rescanning may never occur if the
 			   member is never used. */
-  a_bit_field
-		copy_from_prototype:1;
+  a_bit_field	copy_from_prototype:1;
 			/* TRUE for the exception specification of a
 			   subordinate member template that still must be
 			   copied (with substitutions) from the prototype

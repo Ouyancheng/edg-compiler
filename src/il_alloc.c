@@ -2886,6 +2886,7 @@ region.
   esp->indeterminate = FALSE;
   esp->throw_any = FALSE;
   esp->compiler_generated = FALSE;
+  esp->from_attribute = FALSE;
   esp->arg_cached = FALSE;
   esp->copy_from_prototype = FALSE;
   esp->variant.exception_specification_type_list = NULL;
