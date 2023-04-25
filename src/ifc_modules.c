@@ -11079,13 +11079,12 @@ the template argument list; otherwise, return FALSE.
     result = TRUE;
   } else {
     an_ifc_module    *mod = expr_idx.mod;
-    a_diagnostic_ptr diag = pos_st_start_error(
-                                             ec_ifc_template_argument_overflow,
-                                             &null_source_position,
-                                             mod->assoc_module_info->name);
+    a_diagnostic_ptr diag = pos_st_start_error(ec_ifc_too_many_template_args,
+                                               &null_source_position,
+                                               mod->assoc_module_info->name);
 
     add_partition_element_diag_info(diag,
-                                    ec_ifc_template_argument_overflow_info,
+                                    ec_ifc_too_many_template_args_info,
                                     expr_idx);
     end_diagnostic(diag);
   }  /* if */
@@ -11344,13 +11343,12 @@ param_list.
   if (append_template_args(&state, arguments)) {
     if (state.curr_param() != NULL) {
       an_ifc_module    *mod = arguments.mod;
-      a_diagnostic_ptr diag = pos_st_start_error(
-                                            ec_ifc_template_argument_underflow,
-                                            &null_source_position,
-                                            mod->assoc_module_info->name);
+      a_diagnostic_ptr diag = pos_st_start_error(ec_ifc_too_few_template_args,
+                                                 &null_source_position,
+                                                 mod->assoc_module_info->name);
 
       add_partition_element_diag_info(diag,
-                                      ec_ifc_template_argument_underflow_info,
+                                      ec_ifc_too_few_template_args_info,
                                       arguments);
       end_diagnostic(diag);
     } else {
