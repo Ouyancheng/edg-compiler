@@ -5094,21 +5094,8 @@ base specifier.
   }  /* if */
 #endif /* CHECKING */
   if (explicit_base_kind != (an_integer_kind)ik_none) {
-    /* An explicit underlying type was specified as part of this enum type
-       definition (e.g., "enum E: short { e }").  Make sure the type can
-       represent the range of enumerator constants. */
-    if (min_max_set && !in_range_for_integer_kind(min_value, max_value,
-                                                  explicit_base_kind)) {
-      pos_ty_error(ec_enum_base_type_too_limited,
-                   &integer_type_supp(enum_type)->base_type_position,
-                   integer_type(explicit_base_kind));
-      explicit_base_kind = (an_integer_kind)ik_none;
-    } else {
-      enum_type->variant.integer.int_kind = explicit_base_kind;
-    }  /* if */
-  }  /* if */
-  if (explicit_base_kind != (an_integer_kind)ik_none) {
-    /* The underlying type is already determined: Nothing to be done. */
+    /* The underlying type is already determined: Record it. */
+    enum_type->variant.integer.int_kind = explicit_base_kind;
   } else if (enum_type->variant.integer.is_scoped_enum) {
     /* The underlying type for a scoped enum is "int" (unless explicitly
        specified). */

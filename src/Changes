@@ -1,5 +1,18 @@
 Version 6.5
 
+
+4/25/23  [EDGcpfe/25907]
+Microsoft C++ compatibility: enumerator constant overflow
+
+Consider:
+
+  enum E: int { x = 32768, y = 0x80000000 };
+
+In Microsoft mode, the overflow of initializer for y is warned about (see also
+the entry for EDGcpfe/12251), but in later processing the front end also issued
+an error about it.  That error is now no longer issued.
+
+
 4/24/23  [EDGcpfe/26269]
 Abort on array with local bound in alias template substitution
 
