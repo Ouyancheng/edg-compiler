@@ -620,6 +620,21 @@ information, such as its address and translation unit.
 }  /* db_entity_info */
 
 
+void db_entity_list(an_il_entity_list_entry  *list)
+/*
+Output the summarized contents of the given IL entity list.
+*/
+{
+  while (list != NULL) {
+    db_entity_info(list->entity.ptr, list->entity.kind);
+    list = list->next;
+    if (list != NULL) {
+      fprintf(f_debug, "\n\n");
+    }  /* if */
+  }  /* while */
+}  /* db_entity_list */
+
+
 static void db_name_linkage(a_name_linkage_kind nlk)
 /*
 Dump the indicated name linkage kind.

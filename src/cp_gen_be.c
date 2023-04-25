@@ -19708,6 +19708,11 @@ Generate the declaration associated with the given stmk_decl statement.
   a_scope_ptr                   scope = curr_name_context->assoc_scope;
 #endif /* CHECKING */
 
+  if (ep !=  NULL && ep->entity.kind == iek_static_assertion) {
+    /* Ignore the entry generated for static_assert/_Static_assert
+       constructs. */
+    ep = ep->next;
+  }  /* if */
   check_for_and_take_source_seq_entry(statement->source_sequence_entry);
 #if CHECKING
   save_source_sequence_scan_state(&start_state);
@@ -19718,11 +19723,6 @@ Generate the declaration associated with the given stmk_decl statement.
        follows is for the next statement: This can happen with (useless)
        declarations like "int;".  No source sequence entry is recorded for
        such a declaration: Do not attempt to render one. */
-    if (ep !=  NULL && ep->entity.kind == iek_static_assertion) {
-      /* Ignore the entry generated for static_assert/_Static_assert
-         constructs. */
-      ep = ep->next;
-    }  /* if */
 #if CHECKING
     check_assertion(ep == NULL);
 #endif /* CHECKING */
@@ -19755,9 +19755,6 @@ Generate the declaration associated with the given stmk_decl statement.
       entry_kind = (an_il_entry_kind)curr_source_sequence_entry->entity.kind;
     }  /* if */
     switch (entry_kind) {
-      case iek_static_assertion:
-        ep = ep->next;
-        break;;
       case iek_type:
       case iek_routine:
       case iek_variable:

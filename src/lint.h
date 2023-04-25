@@ -1314,6 +1314,7 @@ a smaller subset).
 /*lint -esym(755,__STDC_LIMIT_MACROS)*/
 /*lint -esym(769,a_constexpr_intrinsic::cit_error)*/
 /*lint -esym(755,tptk_is)*/
+/*lint -esym(714,db_entity_list)*/
 
 #endif /* ifndef LINT_H */
 
