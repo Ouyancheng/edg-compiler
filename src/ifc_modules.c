@@ -3623,7 +3623,7 @@ parameter pack; otherwise, return FALSE.
 
   /*  After IFC 0.41 the IFC specifies that a parameter is a pack if its type
       is a TypeSort::Expansion type.  Prior to IFC 0.41, the pack status was
-      determine by a flag on the type itself. */
+      determined by a flag on the type itself. */
   if (is_at_least(param_decl.get_module(), 0, 41)) {
     an_ifc_type_index type_idx = get_ifc_type(param_decl);
 
@@ -3731,9 +3731,9 @@ about detached template parameters.
   an_ifc_type_index        type = get_ifc_type(param_decl);
 
   if (type.sort == ifc_ts_type_expansion) {
-    /* The IFC may wrap the forall type in an expansion type if the
-       corresponding parameter is a pack.  Note, this curiously doesn't
-       correlate with this pack flag on the parameter. */
+    /* The IFC as of IFC 0.41 wraps the forall type in an expansion type if the
+       corresponding parameter is a pack; in this case, the expansion type
+       needs unwrapped. */
     Opt<an_ifc_type_expansion> opt_expansion_type;
 
     construct_node(&opt_expansion_type, type);
@@ -11050,7 +11050,7 @@ a_template_argument_append_state::append_argument(a_template_arg    *new_arg,
 /*
 Append the given template argument (formed from the given expr_idx) to the
 template argument list.  Return TRUE if the argument was successfully added to
-the template argument list, otherwise; return FALSE.
+the template argument list; otherwise, return FALSE.
 */
 {
   a_boolean result = FALSE;
@@ -11063,7 +11063,7 @@ the template argument list, otherwise; return FALSE.
     }  /* if */
     this->tail = new_arg;
     /* If this template argument append is for a pack, mark every element after
-       the start of the pack expression, as a pack element; otherwise, move on
+       the start of the pack expression as a pack element; otherwise, move on
        to the next template parameter (in the associated template parameter
        list).
 
@@ -11118,8 +11118,8 @@ append_single_template_arg(a_template_argument_append_state *state,
                            an_ifc_expr_index                expr_idx)
 /*
 Given an IFC expression index, construct and append a corresponding template
-argument for param.  Return TRUE if the template argument is appended
-successfully; otherwise, return FALSE.
+argument.  Return TRUE if the template argument is appended successfully;
+otherwise, return FALSE.
 
 Generally speaking, append_template_args should be preferred over this function
 unless it's specifically known that only a single template argument is
@@ -11134,7 +11134,8 @@ represented by the expression.
      additional cases in append_template_args instead. */
   switch (expr_idx.sort) {
     case ifc_es_expr_type:
-      { Opt<an_ifc_expr_type> opt_expr_type;
+      { /* The type template argument case. */
+        Opt<an_ifc_expr_type> opt_expr_type;
 
         construct_node(&opt_expr_type, expr_idx);
         if (!opt_expr_type.has_value()) {
@@ -11168,7 +11169,7 @@ represented by the expression.
       }
       goto invalid;
     default:
-      { /* Non-type template parameters. */
+      { /* The non-type template argument case. */
         a_template_arg *new_arg = alloc_template_arg(tak_nontype);
 
         new_arg->variant.constant = create_constant_for_nttp(
@@ -11198,9 +11199,9 @@ append_tuple_template_args(a_template_argument_append_state *state,
                            an_ifc_expr_index                arguments)
 /*
 Append a tuple of template arguments.  This is the IFC node for a fundamental
-"list" of template argument arguments, it holds no special meaning (other than
-"there are multiple template arguments").  Return TRUE if the all template
-arguments are appended successfully; otherwise, return FALSE.
+"list" of template arguments, it holds no special meaning (other than "there
+are multiple template arguments").  Return TRUE if all the template arguments
+are appended successfully; otherwise, return FALSE.
 */
 {
   check_assertion(arguments.sort == ifc_es_expr_tuple);
@@ -11254,7 +11255,7 @@ append_packed_template_args(a_template_argument_append_state *state,
                             an_ifc_expr_index                arguments)
 /*
 Append a pack of template arguments.  This node specifically indicates the
-contents of a pack expansion.  Return TRUE if the all template arguments in the
+contents of a pack expansion.  Return TRUE if all the template arguments in the
 pack are appended successfully; otherwise, return FALSE.
 */
 {
