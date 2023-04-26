@@ -17655,8 +17655,11 @@ instantiated.
                                              /*extend_namespace=*/TRUE,
                                              /*force_new_context=*/TRUE,
                                              PS_NO_OPTIONS);
-    param->default_arg_expr =
+    if (param->default_arg_expr == NULL ||
+        param->default_arg_expr == inh_ptp->default_arg_expr) {
+      param->default_arg_expr =
                          duplicate_default_arg_expr(inh_ptp->default_arg_expr);
+    }  /* if */
     param->has_default_arg = inh_ptp->has_default_arg;
     param->entities_defined_in_default_arg =
                                       inh_ptp->entities_defined_in_default_arg;

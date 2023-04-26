@@ -1,5 +1,23 @@
 Version 6.5
 
+4/26/23  [EDGcpfe/26149]
+IL write-read error on inherited constructor with default argument
+
+Consider:
+
+  struct A { ~A(); };
+  template<typename T> struct X { X(int, T, A = A()); };
+  template<typename T> struct Y : public T { using T::T; };
+  struct S {
+    X<double> x{1, 1.0};
+    Y<X<double>> y{1, 1.0};
+  };
+
+Previously, this triggered an IL write-read error (which is an internal error).
+That is a regression introduced in version 6.4 of the front end by the changes
+for EDGcpfe/25087.  It is now fixed.
+
+
 4/26/23  [EDGcpfe/25936]
 Microsoft C++ compatibility: support parsing typeid when no_rtti is set
 
