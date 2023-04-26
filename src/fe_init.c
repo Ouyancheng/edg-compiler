@@ -1408,7 +1408,7 @@ Install the keywords in the symbol table.
        Otherwise treat them as "unimplemented keywords".
 
        Note that some kinds of dynamic_cast can be done without RTTI
-       information, so the checking for those in done in the dynamic_cast
+       information, so the checking for those is done in the dynamic_cast
        scanning.
 
        Additionally, note that Microsoft permits typeid even when RTTI is
