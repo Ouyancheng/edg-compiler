@@ -1,5 +1,12 @@
 Version 6.5
 
+4/26/23  [EDGcpfe/26279]
+Change to suppress pragma processing when flushing tokens
+
+A change has been made to suppress pragma processing when flushing tokens
+during an error recovery.
+
+
 4/26/23  [EDGcpfe/26149]
 IL write-read error on inherited constructor with default argument
 

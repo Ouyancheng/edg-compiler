@@ -17477,6 +17477,9 @@ skipping too far in error cases.
   a_boolean         done = FALSE;
   a_symbol_header_ptr
                     prev_sym_header = NULL;
+  Value_saver<a_byte_boolean>
+                    flushing_tokens_saver(
+                       &curr_lexical_state_stack_entry->flushing_tokens, TRUE);
 
   db_enter(3, "flush_until_matching_token_full");
   /* Save the current position, to see later how much we have flushed. */
