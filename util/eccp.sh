@@ -646,7 +646,7 @@ check_abbreviation()
       ;;
   esac
   if [ $keyword_option -ne 0 ] ; then
-    egrep "^$opt_name" <<END_OF_INPUT >$cmd_tmp_file
+    grep -E "^$opt_name" <<END_OF_INPUT >$cmd_tmp_file
 --aligned_new
 --alternative_tokens
 --anachronisms
