@@ -15017,12 +15017,35 @@ final token.
   a_source_position  pos;
   a_constant_ptr     error_string = NULL;
   a_boolean          err = FALSE;
+  a_boolean          gen_sse = (a_boolean)GENERATE_SOURCE_SEQUENCE_LISTS,
+                     gen_stmt = is_local_scope_kind(scope_stack_top().kind);
+  a_static_assertion_ptr
+                     entry = NULL;
 
   cannot_bind_to_curr_construct();
   /* Record the construct's position and verify the introductory tokens. */
   pos = pos_curr_token;
   check_assertion(curr_token == tok_static_assert);
   check_for_c23_deprecation("_Static_assert", ec_c23_static_assert_deprecated);
+  if (gen_stmt || gen_sse) {
+    /* Record the assertion in the IL.  This must be done before parsing the
+       condition, because that condition could conceivably contain GNU
+       statement expressions which could generate additional entries. */
+    entry = alloc_static_assertion();
+    if (gen_stmt) {
+      a_struct_stmt_stack_entry_ptr  sssep = &struct_stmt_stack_top();
+      an_il_entity_list_entry  *ielep = alloc_il_entity_list_entry();
+      ielep->entity.kind = iek_static_assertion;
+      ielep->entity.ptr = (char*)entry;
+      check_assertion(sssep != NULL && sssep->record_declared_entities);
+      ielep->next = *sssep->p_declared_entities;
+      *sssep->p_declared_entities = ielep;
+    }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    add_to_source_sequence_list((char*)entry,
+                                (an_il_entry_kind)iek_static_assertion);  
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  }  /* if */
   (void)get_token();
   add_stop_token(tok_semicolon);
   add_stop_token(tok_rparen);
@@ -15077,31 +15100,12 @@ final token.
       } else {
         pos_error(ec_terse_static_assert, &pos);
       }  /* if */
-    } else {
-      a_boolean  gen_sse = (a_boolean)GENERATE_SOURCE_SEQUENCE_LISTS,
-                 gen_stmt = is_local_scope_kind(scope_stack_top().kind);
-      if (gen_stmt || gen_sse) {
-        /* Record the assertion in the IL. */
-        a_static_assertion_ptr  entry = alloc_static_assertion();
-        entry->condition = alloc_shareable_constant(assert_con);
-        if (error_string != NULL) {
-          entry->string_literal = alloc_shareable_constant(error_string);
-        }  /* if */
-        entry->position = pos;
-        if (gen_stmt) {
-          a_struct_stmt_stack_entry_ptr  sssep = &struct_stmt_stack_top();
-          an_il_entity_list_entry  *ielep = alloc_il_entity_list_entry();
-          ielep->entity.kind = iek_static_assertion;
-          ielep->entity.ptr = (char*)entry;
-          check_assertion(sssep != NULL && sssep->record_declared_entities);
-          ielep->next = *sssep->p_declared_entities;
-          *sssep->p_declared_entities = ielep;
-        }  /* if */
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-        add_to_source_sequence_list((char*)entry,
-                                  (an_il_entry_kind)iek_static_assertion);  
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+    } else if (entry != NULL) {
+      entry->condition = alloc_shareable_constant(assert_con);
+      if (error_string != NULL) {
+        entry->string_literal = alloc_shareable_constant(error_string);
       }  /* if */
+      entry->position = pos;
     }  /* if */
   }  /* if */
   if (!leave_semicolon) {
