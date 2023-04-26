@@ -19706,13 +19706,13 @@ Generate the declaration associated with the given stmk_decl statement.
   an_il_entity_list_entry_ptr   ep = statement->variant.decl.entities;
   a_source_sequence_scan_state  start_state, end_state;
   a_scope_ptr                   scope = curr_name_context->assoc_scope;
-#endif /* CHECKING */
 
   if (ep !=  NULL && ep->entity.kind == iek_static_assertion) {
     /* Ignore the entry generated for static_assert/_Static_assert
        constructs. */
     ep = ep->next;
   }  /* if */
+#endif /* CHECKING */
   check_for_and_take_source_seq_entry(statement->source_sequence_entry);
 #if CHECKING
   save_source_sequence_scan_state(&start_state);
