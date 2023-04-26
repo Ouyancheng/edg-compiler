@@ -3386,9 +3386,9 @@ ec_ifc_null_char_in_string_removal_info;;"%d1 out of %d2 bytes were used"
 ec_ifc_null_char_in_string_info;;"from string info in partition %sq element %d1 (file position %d2, relative position %d3)"
 ec_constexpr_flexible_array_initializer;;"cannot evaluate an initializer for a flexible array member"
 ec_nonstandard_bit_field_initializer;;"a default bit-field initializer is a C++20 feature"
-ec_ifc_too_many_template_args;;"too many arguments for template argument list in module %sq"
+ec_ifc_too_many_template_args;;"too many arguments in template argument list in module %sq"
 ec_ifc_too_many_template_args_info;;"detected for the template argument represented by %sq element %d1 (file position %d2, relative position %d3)"
-ec_ifc_too_few_template_args;;"too few arguments for template argument list in module %sq"
+ec_ifc_too_few_template_args;;"too few arguments in template argument list in module %sq"
 ec_ifc_too_few_template_args_info;;"detected while processing the template argument list represented by %sq element %d1 (file position %d2, relative position %d3)"
 ###############################################################################
 #                                                             \  ___  /       #

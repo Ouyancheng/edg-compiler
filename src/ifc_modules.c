@@ -3733,7 +3733,7 @@ about detached template parameters.
   if (type.sort == ifc_ts_type_expansion) {
     /* The IFC as of IFC 0.41 wraps the forall type in an expansion type if the
        corresponding parameter is a pack; in this case, the expansion type
-       needs unwrapped. */
+       needs to be unwrapped. */
     Opt<an_ifc_type_expansion> opt_expansion_type;
 
     construct_node(&opt_expansion_type, type);
