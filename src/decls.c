@@ -15030,7 +15030,7 @@ final token.
   if (gen_stmt || gen_sse) {
     /* Record the assertion in the IL.  This must be done before parsing the
        condition, because that condition could conceivably contain GNU
-       statement expressions which could generate additional entries. */
+       statement expressions that could generate additional entries. */
     entry = alloc_static_assertion();
     if (gen_stmt) {
       a_struct_stmt_stack_entry_ptr  sssep = &struct_stmt_stack_top();
