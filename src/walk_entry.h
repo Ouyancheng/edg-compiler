@@ -164,6 +164,27 @@ ptr_type is the type of ptr, and entry_kind is the kind of entry pointed to.
 #endif /* DO_SUBTREE_WALK */
 
 /*
+Like walk_ptr, but used for "next" pointers in entries where a full subtree
+walk needs to be performed.  It can only be used on a single pointer per entry
+with the same entry_kind.
+*/
+#undef walk_next_ptr
+#if DO_SUBTREE_WALK
+#if NEEDED_FLAG_WALK || KEEP_IN_IL_WALK
+#define walk_next_ptr(ptr, ptr_type, entry_kind) \
+{ next_entry_ptr = (char *)ptr; }
+#else /* !(NEEDED_FLAG_WALK || KEEP_IN_IL_WALK) */
+#define walk_next_ptr(ptr, ptr_type, entry_kind) \
+{ remap_ptr((ptr), ptr_type, (entry_kind)); \
+  next_entry_ptr = (char *)ptr; \
+}  /* walk_next_ptr */
+#endif /* !(NEEDED_FLAG_WALK || KEEP_IN_IL_WALK) */
+#else /* !DO_SUBTREE_WALK */
+#define walk_next_ptr(ptr, ptr_type, entry_kind) \
+{ remap_ptr((ptr), ptr_type, (entry_kind)); }
+#endif /* DO_SUBTREE_WALK */
+
+/*
 Like walk_ptr, but used for pointers in lists, i.e., "next" pointers
 and start-of-list pointers.
 */
@@ -226,11 +247,11 @@ other than "next".
 #undef walk_list_on_link_field
 #if DO_SUBTREE_WALK
 #define walk_list_on_link_field(ptr, ptr_type, entry_kind, link_field) \
-{ ptr_type *ptr_ptr = &(ptr); \
+[] (ptr_type *ptr_ptr) { \
   for (; *ptr_ptr != NULL; ptr_ptr = &(*ptr_ptr)->link_field) { \
     walk_list_ptr(*ptr_ptr, ptr_type, (entry_kind)); \
   }  /* for */ \
-}  /* walk_list_on_link_field */
+} (&(ptr))  /* walk_list_on_link_field */
 #else /* !DO_SUBTREE_WALK */
 #define walk_list_on_link_field(ptr, ptr_type, entry_kind, link_field) \
   remap_list_ptr((ptr), ptr_type, (entry_kind))
@@ -332,12 +353,12 @@ to nothing.  In other modes, expands to a simple walk_list.
 #else /* !NEEDED_FLAG_WALK */
 #if KEEP_IN_IL_WALK
 #define walk_list_with_keep_in_il_reset(ptr, ptr_type, entry_kind) \
-{ ptr_type local_ptr = (ptr); \
+[] (ptr_type local_ptr) { \
   for (; local_ptr != NULL; local_ptr = local_ptr->next) { \
     clear_keep_in_il_to_allow_subtree_walk((char *)local_ptr, entry_kind); \
     walk_list_ptr(local_ptr, ptr_type, (entry_kind)); \
   }  /* for */ \
-}  /* walk_list_with_keep_in_il_reset */
+} (ptr)  /* walk_list_with_keep_in_il_reset */
 #else /* !KEEP_IN_IL_WALK */
 #define walk_list_with_keep_in_il_reset(ptr, ptr_type, entry_kind) \
   walk_list(ptr, ptr_type, entry_kind)
@@ -353,11 +374,11 @@ Walk any default argument expressions associated with the given
 parameter type list.
 */
 #define simple_walk_param_list_default_arg_exprs(param_list) \
-{ a_param_type_ptr ptp; \
-  for (ptp = (param_list); ptp != NULL; ptp = ptp->next) { \
+[] (a_param_type_ptr ptp) { \
+  for (; ptp != NULL; ptp = ptp->next) { \
     walk_ptr(ptp->default_arg_expr, an_expr_node_ptr, iek_expr_node); \
   }  /* for */ \
-}  /* simple_walk_param_list_default_arg_exprs */
+} (param_list)  /* simple_walk_param_list_default_arg_exprs */
 
 /*
 For the needed-flag or keep-in-il walk, walk any default argument
@@ -666,6 +687,8 @@ debug builds) don't recognize that these variables are mutually-exclusive.
 */
 {
 #if DO_SUBTREE_WALK
+  char  *next_entry_ptr = NULL;
+handle_next_entry:
   /* Do a termination test (to prune the walk) if walking subtrees. */
   /* See if there is a termination-test function provided by the caller.
      If so, call it to see if we just return on encountering this entry. */
@@ -684,24 +707,34 @@ debug builds) don't recognize that these variables are mutually-exclusive.
        secondary translation units, because the IL for those is intermixed.
        If we were to record an orphan, we might do so in the wrong translation
        unit. */
-    an_il_entry_prefix_ptr epp = &il_entry_prefix_of(entry_ptr);
-    /* If we are walking through a function scope, and the entry here is
-       in the file scope, just return. */
-    if (!walking_file_scope && epp->file_scope) {
-      /* Add non-string file scope IL entries referenced from a
-         function scope to the orphaned IL entries lists. */
-      possibly_add_orphaned_file_scope_il_entry(entry_ptr, entry_kind);
+    if ([] (char *local_entry_ptr, an_il_entry_kind local_entry_kind) {
+        an_il_entry_prefix_ptr epp = &il_entry_prefix_of(local_entry_ptr);
+        a_boolean              result;
+        /* If we are walking through a function scope, and the entry here is
+           in the file scope, terminate the walk. */
+        if (!walking_file_scope && epp->file_scope) {
+          /* Add non-string file scope IL entries referenced from a
+             function scope to the orphaned IL entries lists. */
+          possibly_add_orphaned_file_scope_il_entry(local_entry_ptr,
+                                                    local_entry_kind);
+          result = TRUE;
+        } else {
+          /* See if this entry has been reached already, and if so, don't
+             process it or its subtree.  This is indicated by the il_walk_flag
+             field of the entry prefix. */
+          if (epp->il_walk_flag == flag_value_meaning_visited) {
+            /* Entry has already been visited. */
+            result = TRUE;
+          } else {
+            /* Set the flag to indicate that this entry has been visited. */
+            epp->il_walk_flag = flag_value_meaning_visited;
+            result = FALSE;
+          }  /* if */
+        }  /* if */
+        return result;
+      } (entry_ptr, entry_kind)) {
       goto end_of_routine;
-    }  /* if */
-    /* See if this entry has been reached already, and if so, don't process
-       it or its subtree.  This is indicated by the il_walk_flag field of the
-       entry prefix. */
-    if (epp->il_walk_flag == flag_value_meaning_visited) {
-      /* Entry has already been visited. */
-      goto end_of_routine;
-    }  /* if */
-    /* Set the flag to indicate that this entry has been visited. */
-    epp->il_walk_flag = flag_value_meaning_visited;
+    }
   }  /* if */
 #endif /* DO_SUBTREE_WALK */
 #if DEBUG
@@ -1086,12 +1119,13 @@ debug builds) don't recognize that these variables are mutually-exclusive.
         /* When walking to set "needed" flags, the based types list in
            general is not walked, but if there is a based type entry for the
            unqualified version of an array type, walk it. */
-        { a_type_ptr unqual_array_type;
-          if (eptr->kind == (a_type_kind)tk_array &&
-              is_qualified_version_of_array_typedef(eptr, &unqual_array_type)){
+        [] (a_type_ptr tp) {
+          a_type_ptr unqual_array_type;
+          if (tp->kind == tk_array &&
+              is_qualified_version_of_array_typedef(tp, &unqual_array_type)) {
             walk_ptr(unqual_array_type, a_type_ptr, iek_type);
           }  /* if */
-        }
+        } (eptr);
 #else /* !NEEDED_FLAG_WALK */
         walk_list(eptr->based_types, a_based_type_list_member_ptr,
                   iek_based_type_list_member);
@@ -1367,7 +1401,7 @@ debug builds) don't recognize that these variables are mutually-exclusive.
 #if NEEDED_FLAG_WALK || KEEP_IN_IL_WALK
         /* If the exception specification is a class or a pointer to class,
            the class must be complete. */
-        { a_type_ptr temp_type = eptr->type;
+        [] (a_type_ptr temp_type) {
           if (temp_type != NULL) {
             temp_type = skip_typerefs(temp_type);
             if (temp_type->kind == (a_type_kind)tk_pointer) {
@@ -1375,7 +1409,7 @@ debug builds) don't recognize that these variables are mutually-exclusive.
             }  /* if */
             definition_needed_if_class(temp_type);
           }  /* if */
-        }
+        } (eptr->type);
 #endif /* NEEDED_FLAG_WALK || KEEP_IN_IL_WALK */
 #undef eptr
       }
@@ -1390,18 +1424,20 @@ debug builds) don't recognize that these variables are mutually-exclusive.
         /* If the routine is a virtual function with a covariant return
            type, the class type in the return type must be complete. */
         if (eptr->covariant_return_virtual_override) {
-          a_type_ptr temp_type = eptr->type;
-          temp_type = skip_typerefs(temp_type);
-          check_assertion_str2(temp_type->kind == (a_type_kind)tk_routine,
-                               "walk_entry_and_subtree:",
-                               "type of virtual function is not tk_routine");
-          temp_type = temp_type->variant.routine.return_type;
-          temp_type = skip_typerefs(temp_type);
-          check_assertion_str2(temp_type->kind == (a_type_kind)tk_pointer,
-                               "walk_entry_and_subtree:",
+          [] (a_type_ptr temp_type) {
+            temp_type = skip_typerefs(temp_type);
+            check_assertion_str2(temp_type->kind == tk_routine,
+                                 "walk_entry_and_subtree:",
+                                 "type of virtual function is not tk_routine");
+            temp_type = temp_type->variant.routine.return_type;
+            temp_type = skip_typerefs(temp_type);
+            check_assertion_str2(
+                            temp_type->kind == tk_pointer,
+                            "walk_entry_and_subtree:",
                             "return type of covariant virtual is not pointer");
-          temp_type = temp_type->variant.pointer.type;
-          definition_needed_if_class(temp_type);
+            temp_type = temp_type->variant.pointer.type;
+            definition_needed_if_class(temp_type);
+          } (eptr->type);
         }
 #endif /* NEEDED_FLAG_WALK || KEEP_IN_IL_WALK */
         /* assoc_scope points to a different memory region and is not
@@ -1415,9 +1451,8 @@ debug builds) don't recognize that these variables are mutually-exclusive.
            before some calls to walk the IL. */
         if (eptr->function_def_number != NULL_function_def_number) {
           /* This is a defined routine, so its return type must be complete. */
-          a_type_ptr rout_type = eptr->type;
-          rout_type = skip_typerefs(rout_type);
-          definition_needed_if_class(rout_type->variant.routine.return_type);
+          definition_needed_if_class(
+                       skip_typerefs(eptr->type)->variant.routine.return_type);
         }  /* if */
 #if BACK_END_IS_CP_GEN_BE
         if (microsoft_mode && !C_mode() &&
@@ -1432,15 +1467,15 @@ debug builds) don't recognize that these variables are mutually-exclusive.
              The problem is only relevant in source-to-source applications,
              where overload resolution gets done again on the output of
              the front end. */
-          a_type_ptr return_type =
-                        skip_typerefs(eptr->type)->variant.routine.return_type;
-          if (is_pointer_or_handle_type(return_type)) {
-            return_type = type_pointed_to(return_type);
-            if (is_class_struct_union_type(return_type)) {
-              return_type = skip_typerefs(return_type);
-              set_proper_definition_needed_flag(return_type);
+          [] (a_type_ptr return_type) {
+            if (is_pointer_or_handle_type(return_type)) {
+              return_type = type_pointed_to(return_type);
+              if (is_class_struct_union_type(return_type)) {
+                return_type = skip_typerefs(return_type);
+                set_proper_definition_needed_flag(return_type);
+              }  /* if */
             }  /* if */
-          }  /* if */
+          } (skip_typerefs(eptr->type)->variant.routine.return_type);
         }  /* if */
 #endif /* BACK_END_IS_CP_GEN_BE */
 #endif /* NEEDED_FLAG_WALK || KEEP_IN_IL_WALK */
@@ -1494,9 +1529,9 @@ debug builds) don't recognize that these variables are mutually-exclusive.
            level for the needed and keep-in-il walks.  Do them now.
            See the comment on walk_param_list_default_arg_exprs. */
         if (!C_mode()) {
-          a_routine_type_supplement_ptr rtsp =
-                         skip_typerefs(eptr->type)->variant.routine.extra_info;
-          walk_param_list_default_arg_exprs(rtsp->param_type_list);
+          walk_param_list_default_arg_exprs(
+                          skip_typerefs(eptr->type)->variant.routine.extra_info
+                                                   ->param_type_list);
         }  /* if */
 #endif /* NEEDED_FLAG_WALK || KEEP_IN_IL_WALK */
 #if DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
@@ -1582,10 +1617,11 @@ debug builds) don't recognize that these variables are mutually-exclusive.
 #if NEEDED_FLAG_WALK || KEEP_IN_IL_WALK
             /* Certain operators on pointers require that the type pointed
                to be complete. */
-            { a_type_ptr optype;
-              a_type_ptr op1_type = eptr->variant.operation.operands->type;
+            [] (an_expr_node_ptr expr) {
+              a_type_ptr optype;
+              a_type_ptr op1_type = expr->variant.operation.operands->type;
 
-              switch (eptr->variant.operation.kind) {
+              switch (expr->variant.operation.kind) {
                 case eok_psubtract:
                 case eok_pdiff:
                 case eok_post_incr:
@@ -1606,8 +1642,8 @@ debug builds) don't recognize that these variables are mutually-exclusive.
                   goto do_definition_needed_if_class;
                 case eok_subscript:
                 case eok_padd:
-                  optype = eptr->variant.operation.pointer_operand_is_second ?
-                             eptr->variant.operation.operands->next->type :
+                  optype = expr->variant.operation.pointer_operand_is_second ?
+                             expr->variant.operation.operands->next->type :
                              op1_type;
                   if (!is_pointer_or_handle_type(optype)) break;
                   optype = type_pointed_to(optype);
@@ -1619,8 +1655,8 @@ do_definition_needed_if_class:
                      complete.  Watch out for the case where the result type
                      is "void *", and watch out for prototype instantiation
                      cases. */
-                  if (is_any_ptr_or_ref_type(eptr->type)) {
-                    optype = type_pointed_to(eptr->type);
+                  if (is_any_ptr_or_ref_type(expr->type)) {
+                    optype = type_pointed_to(expr->type);
                     definition_needed_if_class(optype);
                   }  /* if */
                   /* Source type must also be complete, but watch out for
@@ -1634,7 +1670,7 @@ do_definition_needed_if_class:
                   goto do_set_proper_definition_needed_flag;
                 case eok_ref_dynamic_cast:
                   /* Destination class type must be complete. */
-                  definition_needed_if_class(eptr->type);
+                  definition_needed_if_class(expr->type);
                   /* Source type must also be complete, but watch out for
                      prototype instantiation cases where the first operand
                      isn't a class. */
@@ -1651,7 +1687,7 @@ do_definition_needed_if_class:
                 case eok_derived_class_cast:
                   /* Destination type must be a complete class (or pointer
                      to complete class). */
-                  optype = eptr->type;
+                  optype = expr->type;
 do_related_class_cast_set_definition_needed:
                   if (is_pointer_or_handle_type(optype)) {
                     optype = type_pointed_to(optype);
@@ -1665,14 +1701,14 @@ do_related_class_cast_set_definition_needed:
                 case eok_pm_derived_class_cast:
                   /* Destination class (pointed to by result type) must be
                      complete. */
-                  optype = pm_class_type_possibly_lowered(eptr->type);
+                  optype = pm_class_type_possibly_lowered(expr->type);
 do_set_proper_definition_needed_flag:
                   set_proper_definition_needed_flag(optype);
                   break;
                 default:
                   break;
               }  /* switch */
-            }
+            } (eptr);
 #endif /* NEEDED_FLAG_WALK || KEEP_IN_IL_WALK */
             break;
           case enk_constant:
@@ -2073,7 +2109,7 @@ do_set_proper_definition_needed_flag:
         remap_ptr(eptr->parameter, a_variable_ptr, iek_variable);
 #endif /* NEEDED_FLAG_WALK */
 #if NEEDED_FLAG_WALK || KEEP_IN_IL_WALK
-        { a_variable_ptr parameter = eptr->parameter;
+        [] (a_variable_ptr parameter) {
           if (parameter != NULL) {
             a_type_ptr param_type = parameter->type;
             if (is_any_ptr_or_ref_type(param_type)) {
@@ -2081,7 +2117,7 @@ do_set_proper_definition_needed_flag:
               definition_needed_if_class(param_type);
             }  /* if */
           }  /* if */
-        }
+        } (eptr->parameter);
 #endif /* NEEDED_FLAG_WALK || KEEP_IN_IL_WALK */
         walk_ptr(eptr->statement, a_statement_ptr, iek_statement);
         walk_ptr(eptr->dynamic_init, a_dynamic_init_ptr, iek_dynamic_init);
@@ -2471,12 +2507,13 @@ do_set_proper_definition_needed_flag:
     case iek_macro_invocation_record_block:
       {
 #define eptr ((a_macro_invocation_record_block_ptr)entry_ptr)
-        int                                 i;
         walk_ptr(eptr->left_subtree, a_macro_invocation_record_block_ptr,
                  iek_macro_invocation_record_block);
-        for (i = 0; i < MACRO_INVOCATION_RECORDS_PER_BLOCK; ++i) {
-          remap_ptr(eptr->records[i].assoc_macro, a_macro_ptr, iek_macro);
-        }  /* for */
+        [] () {
+          for (int i = 0; i < MACRO_INVOCATION_RECORDS_PER_BLOCK; ++i) {
+            remap_ptr(eptr->records[i].assoc_macro, a_macro_ptr, iek_macro);
+          }  /* for */
+        } ();
         walk_ptr(eptr->right_subtree, a_macro_invocation_record_block_ptr,
                  iek_macro_invocation_record_block);
 #if !NEEDED_FLAG_WALK && !KEEP_IN_IL_WALK
@@ -2537,42 +2574,29 @@ do_set_proper_definition_needed_flag:
     case iek_name_reference:
       {
 #define eptr ((a_name_reference_ptr)entry_ptr)
-        /* In some cases we loop through a list of entries.  See the
-           next pointer processing at the bottom of the loop. */
-        for (;;) {
-          if (eptr->qualifier != NULL) {
-            clear_or_walk_name_reference_field(eptr, eptr->qualifier,
-                                               a_name_qualifier_ptr,
-                                               iek_name_qualifier);
+        /* Note intentional use of walk_next_ptr instead of remap_next_ptr,
+           because of issues with export creating lists that run between
+           translation units. */
+        walk_next_ptr(eptr->next, a_name_reference_ptr, iek_name_reference);
+        if (eptr->qualifier != NULL) {
+          clear_or_walk_name_reference_field(eptr, eptr->qualifier,
+                                             a_name_qualifier_ptr,
+                                             iek_name_qualifier);
+        }  /* if */
+        if (eptr->special_kind == (a_special_function_kind)sfk_none) {
+          if (eptr->variant.destructor_type != NULL) {
+            clear_or_walk_name_reference_field(eptr,
+                                               eptr->variant.destructor_type,
+                                               a_type_ptr, iek_type);
           }  /* if */
-          if (eptr->special_kind == (a_special_function_kind)sfk_none) {
-            if (eptr->variant.destructor_type != NULL) {
-              clear_or_walk_name_reference_field(eptr,
-                                                 eptr->variant.destructor_type,
-                                                 a_type_ptr, iek_type);
-            }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED && !DO_IL_LOWERING
-          } else {
-            clear_or_walk_name_reference_field(
+        } else {
+          clear_or_walk_name_reference_field(
                     eptr, eptr->variant.property_or_event_descr,
                     a_property_or_event_descr_ptr,
                     iek_property_or_event_descr);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED && !DO_IL_LOWERING */
-          }  /* if */
-        /* For some walks (e.g., when writing the IL), the next pointer
-           must be walked because some entities are also on other lists
-           so a remapping here will break the walking elsewhere.  For
-           the needed and keep_in_il walks, we must not walk the next
-           pointer to prevent excessive recursion.  In those walks a remap
-           actually does a walk, so we just ignore the next pointer. */
-#if !NEEDED_FLAG_WALK && !KEEP_IN_IL_WALK
-          walk_ptr(eptr->next, a_name_reference_ptr, iek_name_reference);
-          break;
-#else /* !(!NEEDED_FLAG_WALK && !KEEP_IN_IL_WALK) */
-          entry_ptr = (char*)eptr->next;
-          if (entry_ptr == NULL) break;
-#endif /* !NEEDED_FLAG_WALK && !KEEP_IN_IL_WALK */
-        }  /* for */
+        }  /* if */
 #undef eptr
       }
       break;
@@ -2697,8 +2721,8 @@ do_set_proper_definition_needed_flag:
 #define eptr ((a_generic_constraint_ptr)entry_ptr)
           /* Walk the next pointer because the constraint clause is not in
              the IL if all_template_info_in_il is not set. */
-          walk_ptr(eptr->next, a_generic_constraint_ptr,
-                   iek_generic_constraint);
+          walk_next_ptr(eptr->next, a_generic_constraint_ptr,
+                        iek_generic_constraint);
           remap_ptr(eptr->type, a_type_ptr, iek_type);
 #undef eptr
         }
@@ -2842,12 +2866,13 @@ do_set_proper_definition_needed_flag:
            functions as needed.  Note that if IL lowering is done, there
            will be no functions attached to the class anymore. */
         if (kind == (a_scope_kind)sck_class_struct_union) {
-          a_routine_ptr rout = eptr->routines;
-          for (; rout != NULL; rout = rout->next) {
-            if (rout->is_virtual) {
-              walk_ptr(rout, a_routine_ptr, iek_routine);
-            }  /* if */
-          }  /* for */
+          [] (a_routine_ptr rout) {
+            for (; rout != NULL; rout = rout->next) {
+              if (rout->is_virtual) {
+                walk_ptr(rout, a_routine_ptr, iek_routine);
+              }  /* if */
+            }  /* for */
+          } (eptr->routines);
         }  /* if */
 #else /* !NEEDED_FLAG_WALK */
 #if KEEP_IN_IL_WALK
@@ -2901,12 +2926,13 @@ do_set_proper_definition_needed_flag:
              like.  The nonstatic_variable_always_needed macro provides the
              logic to determine if a given variable satisfies the relevant
              criteria. */
-          a_variable_ptr var;
-          for (var = eptr->nonstatic_variables; var != NULL; var = var->next) {
-            if (nonstatic_variable_always_needed(var)) {
-              walk_ptr(var, a_variable_ptr, iek_variable);
-            }  /* if */
-          }  /* for */
+          [] (a_variable_ptr var) {
+            for (; var != NULL; var = var->next) {
+              if (nonstatic_variable_always_needed(var)) {
+                walk_ptr(var, a_variable_ptr, iek_variable);
+              }  /* if */
+            }  /* for */
+          } (eptr->nonstatic_variables);
         }  /* if */
 #else /* !(NEEDED_FLAG_WALK && defined(nonstatic_variable_always_needed)) */
         walk_list_not_needed(eptr->nonstatic_variables, a_variable_ptr,
@@ -3247,20 +3273,14 @@ do_set_proper_definition_needed_flag:
       }
       break;
     case iek_class_type_supplement:
-      {
-        /* Note that "eptr" is not used here (because a variable is needed
-           to support branching from elsewhere). */
-        a_class_type_supplement_ptr ctsp;
-        ctsp = (a_class_type_supplement_ptr)entry_ptr;
 #if NEEDED_FLAG_WALK || KEEP_IN_IL_WALK
-        goto after_entry_from_class;
 handle_class_type_supplement_for_class:
-        /* Processing comes here from the class type.  For the "needed" and
-           "keep_in_il" walk we have to be able to know where the class type
-           is. */
-        ctsp = ((a_type_ptr)entry_ptr)->variant.class_struct_union.extra_info;
-after_entry_from_class:
 #endif /* NEEDED_FLAG_WALK || KEEP_IN_IL_WALK */
+      [] (a_class_type_supplement_ptr ctsp
+#if NEEDED_FLAG_WALK || KEEP_IN_IL_WALK
+          , a_type_ptr type
+#endif /* NEEDED_FLAG_WALK || KEEP_IN_IL_WALK */
+      ) {
         /* Fields to be processed even if the definition of the class is
            not to be processed: */
         /* Nonreal classes based on template template parameters can have
@@ -3275,8 +3295,8 @@ after_entry_from_class:
 #if MICROSOFT_EXTENSIONS_ALLOWED
         walk_string_ptr(ctsp->uuid_string, iek_other_text, 0);
 #if NEEDED_FLAG_WALK || KEEP_IN_IL_WALK
-        /* Recall that entry_ptr is a class pointer in this case. */
-        if (is_cli_array_type((a_type_ptr)entry_ptr) &&
+        /* Recall that type points to a class pointer in this case. */
+        if (is_cli_array_type(type) &&
             ctsp->template_arg_list != NULL &&
             is_type_templ_arg(ctsp->template_arg_list) &&
             ctsp->template_arg_list->variant.type != NULL &&
@@ -3305,10 +3325,9 @@ after_entry_from_class:
         /* During these walks, visit the definition only if necessary. */
         if (
 #if NEEDED_FLAG_WALK
-            class_definition_needed_flag_is_set((a_type_ptr)entry_ptr)
+            class_definition_needed_flag_is_set(type)
 #else /* !NEEDED_FLAG_WALK (i.e., KEEP_IN_IL_WALK) */
-            ((a_type_ptr)entry_ptr)->variant.class_struct_union.
-                                                   keep_definition_in_il
+            type->variant.class_struct_union.keep_definition_in_il
 #endif /* NEEDED_FLAG_WALK */
                                                                         )
 #endif /* NEEDED_FLAG_WALK || KEEP_IN_IL_WALK */
@@ -3385,9 +3404,8 @@ after_entry_from_class:
                include a reference to the variable. */
             if (ctsp->assoc_scope->types != NULL) {
               a_variable_ptr anon_union_var;
-              /* Recall that entry_ptr is the class pointer. */
-              anon_union_var = find_parent_var_of_anon_union_type(
-                                                        (a_type_ptr)entry_ptr);
+              /* Recall that type points to a class pointer. */
+              anon_union_var = find_parent_var_of_anon_union_type(type);
               walk_ptr(anon_union_var, a_variable_ptr, iek_variable);
             }  /* if */
           }  /* if */
@@ -3420,7 +3438,16 @@ after_entry_from_class:
                  iek_event_interface);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         walk_ptr(ctsp->proxy_of_type, a_type_ptr, iek_type);
-      }
+      } (entry_kind == iek_type ?
+               /* Processing comes here from the class type. */
+               ((a_type_ptr)entry_ptr)->variant.class_struct_union.extra_info :
+               (a_class_type_supplement_ptr)entry_ptr
+#if NEEDED_FLAG_WALK || KEEP_IN_IL_WALK
+         /* For the "needed" and "keep_in_il" walk we have to be able to know
+            where the class type is. */
+         , entry_kind == iek_type ? (a_type_ptr)entry_ptr : NULL
+#endif /* NEEDED_FLAG_WALK || KEEP_IN_IL_WALK */
+        );
       break;
     case iek_template_param_type_supplement:
       {
@@ -3672,8 +3699,7 @@ after_entry_from_class:
 #endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
 #if GENERATE_SOURCE_SEQUENCE_LISTS && !NEEDED_FLAG_WALK
     case iek_source_sequence_entry:
-      {
-#define eptr ((a_source_sequence_entry_ptr)entry_ptr)
+      [] (a_source_sequence_entry_ptr eptr) {
         an_il_entry_kind            kind = (an_il_entry_kind)eptr->entity.kind;
 
 #if !KEEP_IN_IL_WALK
@@ -3709,12 +3735,10 @@ after_entry_from_class:
         } else {
           remap_ptr(eptr->entity.ptr, a_char_ptr, kind);
         }  /* if */
-#undef eptr
-      }
+      } ((a_source_sequence_entry_ptr)entry_ptr);
       break;
     case iek_src_seq_secondary_decl:
-      {
-#define eptr ((a_src_seq_secondary_decl_ptr)entry_ptr)
+      [] (a_src_seq_secondary_decl_ptr eptr) {
         an_il_entry_kind kind = (an_il_entry_kind)eptr->entity.kind;
         /* Types get walked instead of remapped because some types defined
            in prototype scopes in C (e.g., in a cast) get eliminated from the
@@ -3734,12 +3758,10 @@ after_entry_from_class:
         walk_ptr(eptr->decl_pos_info, a_decl_position_supplement_ptr,
                  iek_decl_position_supplement);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-#undef eptr
-      }
+      } ((a_src_seq_secondary_decl_ptr)entry_ptr);
       break;
     case iek_src_seq_end_of_construct:
-      {
-#define eptr ((a_src_seq_end_of_construct_ptr)entry_ptr)
+      [] (a_src_seq_end_of_construct_ptr eptr) {
         an_il_entry_kind kind = (an_il_entry_kind)eptr->entity.kind;
         /* Types get walked instead of remapped because some types defined
            in prototype scopes in C (e.g., in a cast) get eliminated from the
@@ -3749,8 +3771,7 @@ after_entry_from_class:
         } else {
           remap_ptr(eptr->entity.ptr, a_char_ptr, kind);
         }  /* if */
-#undef eptr
-      }
+      } ((a_src_seq_end_of_construct_ptr)entry_ptr);
       break;
 #if !KEEP_IN_IL_WALK
     case iek_src_seq_sublist:
@@ -3918,7 +3939,7 @@ after_entry_from_class:
     case iek_attribute_arg:
       {
 #define eptr ((an_attribute_arg_ptr)entry_ptr)
-        walk_ptr(eptr->next, an_attribute_arg_ptr, iek_attribute_arg);
+        walk_next_ptr(eptr->next, an_attribute_arg_ptr, iek_attribute_arg);
         conditionally_clear_fe_pointer(eptr->pack_expansion_descr);
         switch (eptr->kind) {
           case aak_empty:
@@ -4002,7 +4023,8 @@ after_entry_from_class:
     case iek_event_interface:
       {
 #define eptr ((an_event_interface_ptr)entry_ptr)
-        walk_ptr(eptr->next, an_event_interface_ptr, iek_event_interface);
+        walk_next_ptr(eptr->next, an_event_interface_ptr,
+                      iek_event_interface);
         remap_ptr(eptr->interface_type, a_type_ptr, iek_type);
 #undef eptr
       }
@@ -4063,6 +4085,12 @@ after_entry_from_class:
 #if DO_SUBTREE_WALK
   /* Call the routine to process the entry if there is such a routine. */
   if (entry_process_func != NULL) entry_process_func(entry_ptr, entry_kind);
+  if (next_entry_ptr != NULL) {
+    /* A "next" pointer has been set; continue the walk with that entry. */
+    entry_ptr = next_entry_ptr;
+    next_entry_ptr = NULL;
+    goto handle_next_entry;
+  }  /* if */
 end_of_routine:;
 #endif /* DO_SUBTREE_WALK */
 }  /* walk_entry_and_subtree */

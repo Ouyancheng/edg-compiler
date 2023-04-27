@@ -1641,7 +1641,8 @@ void set_class_keep_definition_in_il(a_type_ptr type)
 /*
 Set the keep_definition_in_il flag on the indicated class type.  This means
 the definition of the class must be kept in the IL, and not just the
-declaration.
+declaration.  This routine uses an internal stack to limit system stack
+usage.
 */
 {
   if (walking_secondary_trans_unit &&
@@ -1653,24 +1654,37 @@ declaration.
        canonical entry if there is one, however. */
     set_canonical_class_keep_definition_in_il(type);
   } else if (!type->variant.class_struct_union.keep_definition_in_il) {
-    /* Set the flag if it is not set already. */
-    type->variant.class_struct_union.keep_definition_in_il = TRUE;
+    static Dyn_array<a_type_ptr>  type_stack;
+
+    type_stack.push_back(type);
+    if (type_stack.length() == 1) {
+      /* The stack only gets processed by the top-level invocation. */
+      do {
+        type = type_stack.front_elem();
+        /* Set the flag if it is not set already. */
+        type->variant.class_struct_union.keep_definition_in_il = TRUE;
 #if DEBUG
-    if (db_trace("needed_flags", type, iek_type)) {
-      fprintf(f_debug, "Setting keep_definition_in_il on ");
-      db_abbreviated_type(type);
-      fprintf(f_debug, "\n");
-    }  /* if */
+        if (db_trace("needed_flags", type, iek_type)) {
+          fprintf(f_debug, "Setting keep_definition_in_il on ");
+          db_abbreviated_type(type);
+          fprintf(f_debug, "\n");
+        }  /* if */
 #endif /* DEBUG */
-    /* If the class is already marked to be kept in the IL, redo the sweep
-       for that, because before the keep_definition_in_il flag is set the
-       subtree of the class is not swept when the class keep_in_il flag
-       is set. */
-    remark_to_keep_in_il((char *)type, iek_type);
-    /* For a type that has linkage, mark the associated canonical entry
-       to have its definition kept too, since that's the one that will
-       be copied to the primary IL. */
-    set_canonical_class_keep_definition_in_il(type);
+        /* If the class is already marked to be kept in the IL, redo the sweep
+           for that, because before the keep_definition_in_il flag is set the
+           subtree of the class is not swept when the class keep_in_il flag is
+           set. */
+        remark_to_keep_in_il((char *)type, iek_type);
+        /* For a type that has linkage, mark the associated canonical entry
+           to have its definition kept too, since that's the one that will
+           be copied to the primary IL. */
+        set_canonical_class_keep_definition_in_il(type);
+        /* Get the next element from the stack and move it to the front to be
+           processed. */
+        type_stack.front_elem() = type_stack.back_elem();
+        type_stack.pop_back();
+      } while (!type_stack.is_empty());
+    }  /* if */
   }  /* if */
 }  /* set_class_keep_definition_in_il */
 

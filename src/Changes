@@ -1,5 +1,16 @@
 Version 6.5
 
+4/27/23  [EDGcpfe/26184]
+Excessive stack usage during IL walks
+
+In some cases the IL walk needs to do a full walk for the "next" pointer, but a
+recursive walk can result in very deep call stacks.  In these cases, the walk
+is now performed in an iterative way.  Furthermore, non-optimized builds don't
+tend to reuse stack space for local variables that are only used in separate
+code paths.  To reduce stack usage in those cases, local variables are now only
+used in immediately-invoked lambda expressions.
+
+
 4/26/23  [EDGcpfe/26279]
 Change to suppress pragma processing when flushing tokens
 
