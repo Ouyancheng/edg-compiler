@@ -19707,7 +19707,7 @@ Generate the declaration associated with the given stmk_decl statement.
   a_source_sequence_scan_state  start_state, end_state;
   a_scope_ptr                   scope = curr_name_context->assoc_scope;
 
-  if (ep !=  NULL && ep->entity.kind == iek_static_assertion) {
+  if (ep != NULL && ep->entity.kind == iek_static_assertion) {
     /* Ignore the entry generated for static_assert/_Static_assert
        constructs. */
     ep = ep->next;
