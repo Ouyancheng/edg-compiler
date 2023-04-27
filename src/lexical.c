@@ -17540,8 +17540,10 @@ skipping too far in error cases.
     }  /* switch */
     /* If we've skipped too many lines, give up the flush. */
     if (limit_flush && (pos_curr_token.seq - start_pos.seq) > max_lines) break;
-    /* Check for the start of a template parameter list. */
-    if (curr_token == tok_lt && prev_token == tok_identifier) {
+    /* Check for the start of a template parameter list, but only if we are
+       looking for a ">". */
+    if (curr_token == tok_lt && closing_token == tok_gt &&
+        prev_token == tok_identifier) {
       if (!C_mode() && is_template_reference(prev_sym_header)) {
         flush_until_matching_token();
       }  /* if */
@@ -17596,11 +17598,15 @@ to skip tokens for some purpose other than error recovery.
      While flushing, note parentheses, etc., and flush to matching tokens. */
   /* Stop the flush on finding a token in the stop token set. */
   while (stop_tokens[(int)curr_token] == 0) {
-    /* On paired tokens, skip to the corresponding closing token. */
+    /* On paired tokens, skip to the corresponding closing token.  Note that we
+       can't always trust whether prev_sym_header really is a template, so we
+       only consider pairing a "<" token if we are in a context where it could
+       make a difference (like an enclosing template argument list). */
     if (curr_token == tok_lparen || curr_token == tok_lbracket ||
         curr_token == tok_lbrace ||
         (curr_token == tok_lt &&
          ((prev_token == tok_identifier && !C_mode() &&
+           (stop_tokens[tok_gt] || stop_tokens[tok_comma]) &&
            is_template_reference(prev_sym_header)) ||
           prev_token == tok_template))) {
       /* In contexts where we are not issuing a warning, don't limit the
