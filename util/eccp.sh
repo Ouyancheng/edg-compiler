@@ -2637,7 +2637,7 @@ do
   if [ $automatic_instantiation -ne 0 ] ; then
     if [ $one_instantiation_per_object -ne 0 -a -f $ti_file_name ] ; then
       instantiation_list=$eccp_tmpdir/instantiation_list.txt
-      fgrep "ifn:" $ti_file_name | sed -e "s/ifn://" >$instantiation_list
+      grep -F "ifn:" $ti_file_name | sed -e "s/ifn://" >$instantiation_list
       instantiation_list_exists=1
     fi
   fi
