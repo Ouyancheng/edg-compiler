@@ -8810,6 +8810,12 @@ a left parenthesis in the source.
                        list.  Pretend we found nothing. */
                     sym = NULL;
                   }  /* if */
+                  if (sym != NULL) {
+                    /* We have found an acceptable symbol, but as it has
+                       already been reduced, we need to get the original
+                       symbol, as that might be a projection symbol. */
+                    sym = locator->specific_symbol;
+                  }  /* if */
                 }  /* if */
                 need_member_sym_check = FALSE;
               }  /* if */
