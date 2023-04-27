@@ -2509,11 +2509,11 @@ do_set_proper_definition_needed_flag:
 #define eptr ((a_macro_invocation_record_block_ptr)entry_ptr)
         walk_ptr(eptr->left_subtree, a_macro_invocation_record_block_ptr,
                  iek_macro_invocation_record_block);
-        [] () {
+        [] (a_macro_invocation_record_block_ptr mirbp) {
           for (int i = 0; i < MACRO_INVOCATION_RECORDS_PER_BLOCK; ++i) {
-            remap_ptr(eptr->records[i].assoc_macro, a_macro_ptr, iek_macro);
+            remap_ptr(mirbp->records[i].assoc_macro, a_macro_ptr, iek_macro);
           }  /* for */
-        } ();
+        } (eptr);
         walk_ptr(eptr->right_subtree, a_macro_invocation_record_block_ptr,
                  iek_macro_invocation_record_block);
 #if !NEEDED_FLAG_WALK && !KEEP_IN_IL_WALK
