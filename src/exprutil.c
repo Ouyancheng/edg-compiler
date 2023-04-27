@@ -9463,7 +9463,10 @@ to indicate that.
          nonconstant context, reduce any error to a warning and leave
          the conversion to be done at runtime. */
       copy_constant(node_constant(node), local_con);
-      if (within_expr_processing) {
+      if (reinterpret_semantics && relaxed_constexpr_enabled &&
+          !gpp_version_is(any_version)) {
+        did_not_fold = TRUE;
+      } else if (within_expr_processing) {
         expr_type_change_constant(local_con, new_type, is_implicit_cast,
                                   check_cast_access,
                                   check_ambiguity,
@@ -10014,12 +10017,18 @@ user-defined conversions.
            context, reduce any error to a warning and leave the
            conversion to be done at runtime. */
         copy_constant(&operand->variant.constant, local_con);
-        expr_type_change_constant(local_con, new_type, is_implicit_cast,
-                                  check_cast_access,
-                                  check_ambiguity,
+ 
+        if (reinterpret_semantics && relaxed_constexpr_enabled &&
+            !gpp_version_is(any_version) && !microsoft_mode) {
+          did_not_fold = TRUE;
+        } else {
+          expr_type_change_constant(
+                                  local_con, new_type, is_implicit_cast,
+                                  check_cast_access, check_ambiguity,
                                   reinterpret_semantics,
                                   /*maintain_expression=*/FALSE,/*Done below*/
                                   &did_not_fold, err_pos);
+        }  /* if */
         if (did_not_fold) {
           /* Cast of a constant did not fold. */
           if (curr_expr_kind_is_evaluated_const()) {

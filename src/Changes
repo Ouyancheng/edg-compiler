@@ -1,5 +1,23 @@
 Version 6.5
 
+4/27/23  [EDGcpfe/26198]
+reinterpret_cast in constant-expressions
+
+A number of relatively minor changes have been made to the handling of
+reinterpret_cast (and reinterpret-like casts) in constant expressions.  Mostly,
+this causes more such constructs to be accepted in GNU C++ modes.  In some
+cases, it causes them to be diagnosed in non-GNU modes where previously they
+were erroneously accepted.  For example:
+
+  extern int x;
+  using size_t = decltype(sizeof(int));
+  constexpr size_t arr[] = { 1, (size_t)&x };
+      // Previously accepted in most modes.  Now an error by default because
+      // the cast is reinterpret_cast-like.
+  constexpr size_t r = arr[0];
+      // Previously rejected in all modes.  Now accepted in some GNU C++ modes.
+
+
 4/27/23  [EDGcpfe/22613]
 Hang during recovery of code containing a C++20 abbreviated template
 

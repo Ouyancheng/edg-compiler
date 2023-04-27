@@ -5452,6 +5452,18 @@ END_DISABLE_GCC_WARNING_STR_OVERFLOW
                 implied_src->address += delta_k*(int32_t)elem_size;
               }  /* if */
               continue;
+            } else if (gpp_version_is(any_version) &&
+                       constant_is(elem_con, ck_address) &&
+                       type_is(etp, tk_integer)) {
+              /* GCC accept an address cast to an integer as an initializer.
+                 We approximate that by simply ignoring the value and not
+                 marking the interpreter's storage as "initialized".  Any
+                 attempt to access is later will fail.  Thus allow us to
+                 accept something like:
+                   extern int gi;
+                   constexpr unsigned long arr[] = { 42, (unsigned long)&gi };
+                   constexpr unsigned long &r = arr[0];
+              */
             } else {
               mark_complete_class_object_if_needed(etp, value);
               if (!copy_val_from_constant(
@@ -14714,7 +14726,8 @@ the value representation of the integer value.
                 *(a_constexpr_address*)result_storage =
                                            *(a_constexpr_address*)opnd1_value;
               } else if (type_is(tp, tk_ptr_to_member)) {
-                if (!expr->variant.operation.is_reinterpret_cast) {
+                if (!expr->variant.operation.is_reinterpret_cast &&
+                    !expr->variant.operation.is_reinterpret_like_cast) {
                   *(a_constexpr_ptr_to_mem*)result_storage =
                                         *(a_constexpr_ptr_to_mem*)opnd1_value;
                 } else {
@@ -14789,6 +14802,17 @@ the value representation of the integer value.
                                             (an_integer_value *)&zero_int,
                                             /*op_2_signed=*/FALSE) == 0))) {
               /* A null pointer. */
+              if (expr->variant.operation.is_reinterpret_like_cast &&
+                  strict_ansi_mode) {
+                /* Existing practice appears to be to accept even something
+                   like reinterpret_cast<int*>(0) as a null pointer.  Clang is
+                   a little more selective, but we do not attempt to emulate
+                   that.  In strict mode, however, we do not accept such
+                   constructs as constant. */
+                do_constexpr_fail(result);
+                info_with_pos_type2(ec_constexpr_invalid_type_conversion,
+                                    &expr->position, opnd1_type, tp, ips);
+              }  /* if */
               clear_address(result_storage, (a_byte*)0);
             } else if (tp->kind == (a_type_kind)tk_ptr_to_member &&
                        (opnd1_type->kind == (a_type_kind)tk_nullptr ||
@@ -20793,7 +20817,8 @@ if the caller has determined that reinterpret_cast expressions can be folded
     vp->type = vp_type;
     if (var_has_static_storage_duration(vp)) {
       ips.static_lifetime_init = TRUE;
-      if (!vp->is_constexpr && !vp->declared_constinit) {
+      if ((!vp->is_constexpr && !vp->declared_constinit) ||
+          gpp_version_is(any_version)) {
         /* For non-constexpr variables, allow some reinterpret_cast constructs
            in "constant expressions".  That causes us to sometimes promote to
            "static initialization" what would otherwise be a "dynamic
@@ -20808,7 +20833,8 @@ if the caller has determined that reinterpret_cast expressions can be folded
            In this context, "constinit" variables are treated as "constexpr"
            variables: We don't want to accept "constant-initialized" constinit
            variables whose initializers aren't really constant expressions (in
-           the standard sense). */
+           the standard sense).  An exception is GNU C++ mode, which accepts
+           such cases even for constexpr variables. */
         ips.allow_reinterpret_cast = TRUE;
       }  /* if */
     }  /* if */
