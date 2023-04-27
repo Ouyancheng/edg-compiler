@@ -40840,6 +40840,8 @@ handle_trapped_left_paren:
 #if INT128_EXTENSIONS_ALLOWED
     case tok_int128:
 #endif /* INT128_EXTENSIONS_ALLOWED */
+    case tok_float32:
+    case tok_float64:
 #if GNU_EXTENSIONS_ALLOWED
     case tok_typeof:
 #endif /* GNU_EXTENSIONS_ALLOWED */

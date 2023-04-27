@@ -11635,10 +11635,17 @@ See conversion_possible.
                               max_exponent[(int)dest_type->variant.float_kind];
         if (src_mant_bits > dst_mant_bits ||
             src_max_exponent > dst_max_exponent) {
-          /* Lossy conversions involving extended floating point types
-             cannot be implicit. */
-          okay = FALSE;
-          std_conv->warning_suggested = ec_lossy_conversion;
+          if (gnu_mode) {
+            /* Gcc allows the conversion with a warning. */
+            if (!source_is_constant) {
+              std_conv->warning_suggested = ec_lossy_conversion;
+            }  /* if */
+          } else {
+            /* In non-GNU modes, lossy conversions involving extended
+               floating point types cannot be implicit. */
+            okay = FALSE;
+            std_conv->warning_suggested = ec_lossy_conversion;
+          }  /* if */
         } else if (src_mant_bits == dst_mant_bits &&
                    src_max_exponent == dst_max_exponent) {
           std_conv->flt_identical_representations = TRUE;

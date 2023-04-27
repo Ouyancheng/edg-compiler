@@ -13796,6 +13796,12 @@ types, e.g., "unsigned int".  See ARM 7.1.6 and 5.2.3.
       type = integer_type((an_integer_kind)ik_int128);
       break;
 #endif /* INT128_EXTENSIONS_ALLOWED */
+    case tok_float32:
+      type = float_type(fk_std_float32);
+      break;
+    case tok_float64:
+      type = float_type(fk_std_float64);
+      break;
     default:
       type = NULL;
       break;

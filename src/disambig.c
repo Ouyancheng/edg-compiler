@@ -803,6 +803,8 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
 #if INT128_EXTENSIONS_ALLOWED
       case tok_int128:
 #endif /* INT128_EXTENSIONS_ALLOWED */
+      case tok_float32:
+      case tok_float64:
       case tok_edg_size_type:
       case tok_edg_ptrdiff_type:
       case tok_edg_bool_type:

@@ -294,7 +294,8 @@ If you change this, see also type_keyword.
    (tok) == tok_long     || (tok) == tok_float    ||                  \
    (tok) == tok_double   || (tok) == tok_signed   ||                  \
    (tok) == tok_unsigned || (tok) == tok_wchar_t  ||                  \
-   (tok) == tok_bool     || (tok) == tok_char8_t                      \
+   (tok) == tok_bool     || (tok) == tok_char8_t  ||                  \
+   (tok) == tok_float32  || (tok) == tok_float64                      \
    or_is_c99_type_keyword(tok)                                        \
    or_is_cpp11_type_keyword(tok)                                      \
    or_is_microsoft_type_keyword(tok)                                  \

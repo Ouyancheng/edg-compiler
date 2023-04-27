@@ -1247,6 +1247,10 @@ Install the keywords in the symbol table.
       enter_gnu_keyword((a_token_kind)tok_builtin_has_attribute,
                         "__builtin_has_attribute");
     }  /* if */
+    if (gnu_version >= 130000) {
+      enter_keyword(tok_float32, "_Float32");
+      enter_keyword(tok_float64, "_Float64");
+    }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
     /* Enable alternative token spellings. */
     enter_gnu_keyword((a_token_kind)tok_inline, "__inline");
