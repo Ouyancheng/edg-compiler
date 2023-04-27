@@ -20689,13 +20689,29 @@ processing should proceed after the call.
         }  /* if */
         cannot_bind_to_curr_construct();
       } else if (curr_token == tok_lbrace) {
-        /* Special error recovery on encountering an open brace: it
-           may be the start of a routine. */
+        /* Special error recovery on encountering an open brace: it may be the
+           start of a routine.
+
+           Use a new lexical state stack to make sure these known bad tokens
+           are not cached.  To understand why this is necessary, consider:
+
+             { template < > }    // part 1
+             void f ( auto ) { } // part 2
+
+           When following logic discards part 1, the caller recovers and
+           attempts to parse part 2.  The auto parameter of the function f is
+           then detected, triggering a reparse of the current lexical cache.
+           If a new lexical state stack is not pushed, the discarded tokens
+           (i.e., the tokens of part 1) are part of said lexical cache (and
+           then this cycle then infinitely loops, hanging the front end).
+        */
+        push_lexical_state_stack();
         add_stop_token(tok_semicolon);
         pos_error(ec_exp_declaration, &error_position);
         flush_until_matching_token();
         remove_stop_token(tok_semicolon);
         if (curr_token == tok_rbrace) (void)get_token();
+        pop_lexical_state_stack();
         if (is_decl_start(IDS_REAL_DECLARATOR_ALLOWED)) {
           goto done;
         }  /* if */
