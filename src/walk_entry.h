@@ -3438,14 +3438,17 @@ handle_class_type_supplement_for_class:
                  iek_event_interface);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         walk_ptr(ctsp->proxy_of_type, a_type_ptr, iek_type);
-      } (entry_kind == iek_type ?
+      } (
+#if NEEDED_FLAG_WALK || KEEP_IN_IL_WALK
+         entry_kind == iek_type ?
                /* Processing comes here from the class type. */
                ((a_type_ptr)entry_ptr)->variant.class_struct_union.extra_info :
-               (a_class_type_supplement_ptr)entry_ptr
-#if NEEDED_FLAG_WALK || KEEP_IN_IL_WALK
+               (a_class_type_supplement_ptr)entry_ptr,
          /* For the "needed" and "keep_in_il" walk we have to be able to know
             where the class type is. */
-         , entry_kind == iek_type ? (a_type_ptr)entry_ptr : NULL
+         entry_kind == iek_type ? (a_type_ptr)entry_ptr : NULL
+#else /* !(NEEDED_FLAG_WALK || KEEP_IN_IL_WALK) */
+         (a_class_type_supplement_ptr)entry_ptr
 #endif /* NEEDED_FLAG_WALK || KEEP_IN_IL_WALK */
         );
       break;
