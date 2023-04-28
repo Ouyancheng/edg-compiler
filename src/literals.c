@@ -800,7 +800,8 @@ of the resulting diagnostic.
     /* "Q" suffix, indicates __float128. */
     kind = (a_float_kind)float_kind_for_float128;
     --actual_end;
-  } else if (extended_float_types) {
+  } else if (extended_float_types ||
+             (gnu_mode && gnu_version >= 130000)) {
     /* Default to double if none of the extended float suffixes match. */
     kind = fk_double;
     if ((actual_end[-3] == 'f' || actual_end[-3] == 'F') &&
