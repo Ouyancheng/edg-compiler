@@ -1458,7 +1458,8 @@ enum a_token_kind : unsigned short {
   tok_is_volatile,
   tok_float32,
   tok_float64,
-  /* Place-holder for last position in enumeration. */
+  tok_float128,
+  /* Placeholder for last position in enumeration. */
   tok_last
 };
 
@@ -1684,6 +1685,7 @@ EXTERN a_const_char
    "__is_volatile",
    "_Float32",
    "_Float64",
+   "_Float128",
    "last" /* used to check that initialization is right. */
   }
 #endif /* VAR_INITIALIZERS */

@@ -7355,6 +7355,7 @@ enum a_basic_type {
   bt_float32,
   bt_double,
   bt_float64,
+  bt_float128,
   bt_typedef,
   bt_struct_union,
   bt_enum,
@@ -7873,6 +7874,7 @@ _Sat was specified.
     case bt_double:
     case bt_float32:
     case bt_float64:
+    case bt_float128:
       if (sign != sign_none || (size != size_none && size != size_long)) {
         bad_combination = TRUE;
       } else {
@@ -7892,6 +7894,8 @@ _Sat was specified.
             fkind = (a_float_kind)fk_std_float32;
           } else if (basic_type == bt_float64) {
             fkind = (a_float_kind)fk_std_float64;
+          } else if (basic_type == bt_float128) {
+            fkind = (a_float_kind)fk_std_float128;
           } else {
             unexpected_condition();
           }  /* if */
@@ -11226,6 +11230,7 @@ storage_class_specifier:
 #endif /* FIXED_POINT_ALLOWED */
       case tok_float32:
       case tok_float64:
+      case tok_float128:
         /* A type specifier (3.5.2) that indicates a basic type. */
         if (!type_specifier_allowed) {
           pos_error(ec_type_specifier_not_allowed, &error_position);
@@ -11273,6 +11278,7 @@ storage_class_specifier:
 #endif /* FIXED_POINT_ALLOWED */
             case tok_float32:  basic_type = bt_float32; break;
             case tok_float64:  basic_type = bt_float64; break;
+            case tok_float128: basic_type = bt_float128; break;
             default:
               unexpected_condition_str("decl_specifiers: bad type specifier");
           }  /* switch */

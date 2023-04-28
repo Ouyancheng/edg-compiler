@@ -1250,6 +1250,9 @@ Install the keywords in the symbol table.
     if (gnu_version >= 130000) {
       enter_keyword(tok_float32, "_Float32");
       enter_keyword(tok_float64, "_Float64");
+#if FLOAT128_ENABLING_POSSIBLE
+      enter_keyword(tok_float128, "_Float128");
+#endif /* FLOAT128_ENABLING_POSSIBLE */
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
     /* Enable alternative token spellings. */

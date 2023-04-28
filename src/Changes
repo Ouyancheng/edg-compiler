@@ -33,17 +33,19 @@ expected) followed by a C++20 abbreviated template, e.g.:
 This is now fixed.
 
 
-4/27/23  [EDGcpfe/26221
-GNU compatibility: _Float32 and _Float64 types
+4/27/23  [EDGcpfe/26221]
+GNU compatibility: _Float32, _Float64, and _Float128 types
 
-Version 13.1.0 of gcc supports the floating-point types _Float32 and
-_Float64 in both C and C++.  In C++ modes, the types are synonyms for the
-C23 extended floating-point types std::float32_t and std::float64_t,
-respectively (see EDGcpfe/25100,EDGcpfe/25170,EDGcpfe/25515).  Also, g++
-does not enforce the restrictions against lossy conversions required for
-the extended floating-point types.  The front end has now been changed to
-emulate these behaviors in GNU modes when gnu_version >= 130000.  For
-example, with --gnu_version=130100:
+Version 13.1.0 of gcc supports the floating-point types _Float32, _Float64,
+and _Float128 in both C and C++.  In C++ modes, the types are synonyms for
+the C23 extended floating-point types std::float32_t, std::float64_t, and
+std::Float128_t, respectively (see
+EDGcpfe/25100,EDGcpfe/25170,EDGcpfe/25515).  Also, g++ does not enforce the
+restrictions against lossy conversions required for the extended
+floating-point types.  The front end has now been changed to emulate these
+behaviors in GNU modes when gnu_version >= 130000 (_Float128 is supported
+only when FLOAT128_ENABLING_POSSIBLE is configured as TRUE).  For example,
+with --gnu_version=130100:
 
   _Float32 x = 0.0;   // Now accepted in both gcc and g++ modes
 
