@@ -12543,7 +12543,9 @@ exit_loop:
     }  /* if */
 #if C99_IL_EXTENSIONS_SUPPORTED
     if (complex_attr != cxa_none &&
-        basic_type != bt_float && basic_type != bt_double) {
+        basic_type != bt_float && basic_type != bt_double &&
+        basic_type != bt_float32 && basic_type != bt_float64 &&
+        basic_type != bt_float128) {
       /* _Complex and _Imaginary usually require "float" or "double".  GNU C
          mode is an exception: If no type specifier is mentioned, "double" is
          implied.  In some GNU and clang versions, "_Float16" is also
