@@ -5455,10 +5455,10 @@ END_DISABLE_GCC_WARNING_STR_OVERFLOW
             } else if (gpp_version_is(any_version) &&
                        constant_is(elem_con, ck_address) &&
                        type_is(etp, tk_integer)) {
-              /* GCC accept an address cast to an integer as an initializer.
+              /* GCC accepts an address cast to an integer as an initializer.
                  We approximate that by simply ignoring the value and not
                  marking the interpreter's storage as "initialized".  Any
-                 attempt to access is later will fail.  Thus allow us to
+                 attempt to access it later will fail.  This allows us to
                  accept something like:
                    extern int gi;
                    constexpr unsigned long arr[] = { 42, (unsigned long)&gi };
@@ -20475,6 +20475,13 @@ indicates the value produced by std::is_constant_evaluated().
     trans_unit_initialization_needed = FALSE;
   }  /* if */
   init_interpreter_state(&ips, is_constant_evaluated);
+  if (clang_mode &&
+      expr_stack != NULL && expr_stack->is_vla_dimension_expression) {
+    /* Clang tries "extra hard" to fold VLA dimensions.  In particular, casting
+       from a null pointer to an integer (which is reinterpret_cast-like and
+       thus usually invalid) succeeds. */
+    ips.permit_null_pointer_offsets = TRUE;
+  }  /* if */
   ips.position = expr->position;
   n_bytes = expr_result_size(&ips, expr, val_type, &result); 
   if (!result) {

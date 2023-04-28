@@ -10017,7 +10017,6 @@ user-defined conversions.
            context, reduce any error to a warning and leave the
            conversion to be done at runtime. */
         copy_constant(&operand->variant.constant, local_con);
- 
         if (reinterpret_semantics && relaxed_constexpr_enabled &&
             !gpp_version_is(any_version) && !microsoft_mode) {
           did_not_fold = TRUE;
