@@ -76,15 +76,13 @@ substatements of a constexpr if during instantiation.  For example, with
 
   template<int> struct X { };
   template<bool B>
-  bool f() {
+  void f() {
     if constexpr (B) {
       int X = 0;
-      return X < 0;
+      bool b = X < 0;
     }
-    }  // Previously a spurious 'expected a "}"' error.  Now okay.
-    return false;
-  }
-  template bool f<false>();
+  }  // Previously a spurious 'expected a "}"' error.  Now okay.
+  template void f<false>();
 
 
 4/27/23  [EDGcpfe/19798,EDGcpfe/19950,EDGcpfe/20260,EDGcpfe/23304,
