@@ -14295,7 +14295,10 @@ encountered.
       tpck_is(bound, tpck_integer_pack)) {
     bound = bound->variant.template_param.variant.bound;
   }  /* if */
-  if (!constant_is(bound, ck_integer)) {
+  if (constant_is(bound, ck_template_param)) {
+    /* Still have a dependent bound. */
+    goto done;
+  } else if (!constant_is(bound, ck_integer)) {
     subst_fail(*copy_error);
     goto done;
   }  /* if */
