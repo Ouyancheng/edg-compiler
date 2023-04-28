@@ -3390,6 +3390,7 @@ ec_ifc_too_many_template_args;;"too many arguments in template argument list in 
 ec_ifc_too_many_template_args_info;;"detected for the template argument represented by %sq element %d1 (file position %d2, relative position %d3)"
 ec_ifc_too_few_template_args;;"too few arguments in template argument list in module %sq"
 ec_ifc_too_few_template_args_info;;"detected while processing the template argument list represented by %sq element %d1 (file position %d2, relative position %d3)"
+ec_nonstandard_conversion_from_scoped_enum;;"conversion from scoped enumeration type %t is nonstandard"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

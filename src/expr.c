@@ -41867,6 +41867,14 @@ should not be considered.
                                      (a_boolean *)NULL, (a_conv_descr_ptr)NULL,
                                      /*is_copy_initialization=*/TRUE,
                                      CCO_DEFAULT, ec_unconvertible_con_expr);
+          } else if (is_enum &&
+                     (microsoft_mode ||
+                      (gpp_version_is(<60000) && gpp_version_is(>=50000))) &&
+                     is_scoped_enum_type(operand->type)) {
+            sev = es_warning;
+            pos_ty_warning(ec_nonstandard_conversion_from_scoped_enum,
+                           &operand->position, operand->type);
+            cast_operand(dest_type, operand, /*is_implicit_cast=*/TRUE);
           } else {
             pos_opt_ty2_diagnostic(sev, err_code, &operand->position,
                                    operand->type, dest_type);
