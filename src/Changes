@@ -38,8 +38,8 @@ were erroneously accepted.  For example:
 Hang during recovery of code containing a C++20 abbreviated template
 
 Previously, the front end would hang indefinitely when attempting to recover
-the parse recovering from an unexpected "{" (when a declaration is otherwise
-expected) followed by a C++20 abbreviated template, e.g.:
+from an unexpected "{" (when a declaration is otherwise expected) followed by a
+C++20 abbreviated template, e.g.:
 
   namespace {
     { /* ... */ }

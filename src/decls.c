@@ -20701,12 +20701,12 @@ processing should proceed after the call.
              { template < > }    // part 1
              void f ( auto ) { } // part 2
 
-           When following logic discards part 1, the caller recovers and
+           When the following logic discards part 1, the caller recovers and
            attempts to parse part 2.  The auto parameter of the function f is
            then detected, triggering a reparse of the current lexical cache.
            If a new lexical state stack is not pushed, the discarded tokens
            (i.e., the tokens of part 1) are part of said lexical cache (and
-           then this cycle then infinitely loops, hanging the front end).
+           this cycle then infinitely loops, hanging the front end).
         */
         push_lexical_state_stack();
         add_stop_token(tok_semicolon);
