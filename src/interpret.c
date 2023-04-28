@@ -5464,6 +5464,7 @@ END_DISABLE_GCC_WARNING_STR_OVERFLOW
                    constexpr unsigned long arr[] = { 42, (unsigned long)&gi };
                    constexpr unsigned long &r = arr[0];
               */
+              repeat = 1;
             } else {
               mark_complete_class_object_if_needed(etp, value);
               if (!copy_val_from_constant(
