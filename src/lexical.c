@@ -10872,6 +10872,8 @@ the kind of token.
   sizeof_t      id_len = 0;
   an_error_severity
                 sev = es_error;
+  a_boolean     accept_f_suffix = extended_float_types ||
+                                  (gnu_mode && gnu_version >= 130000);
 
 /*
 Macro to skip over an optional C++14 digit separator (apostrophe).  Reports
@@ -11302,8 +11304,7 @@ end_float_accum:
       possible_start_of_ud_suffix = curr_char_loc;
     }  /* if */
     curr_char_loc++;
-    if (extended_float_types || (float16_enabled &&
-                                 !gpp_version_is(any_version))) {
+    if (accept_f_suffix || (float16_enabled && !gpp_version_is(any_version))) {
       /* We exclude g++ here because clang accepts the f16 and F16 suffixes
          in both C and C++, but g++ treats them as user-defined literal
          suffixes. */
@@ -11318,12 +11319,12 @@ end_float_accum:
         }  /* if */
       } else if (ch == 'f' || ch == 'F') {
         if ((*p == '1' && p[1] == '6') ||
-            (extended_float_types &&
+            (accept_f_suffix &&
              ((*p == '3' && p[1] == '2') ||
               (*p == '6' && p[1] == '4')))) {
           /* f16, f32, or f64 */
           curr_char_loc += 2;
-        } else if (extended_float_types &&
+        } else if (accept_f_suffix &&
                    *p == '1' && p[1] == '2' && p[2] == '8') {
           curr_char_loc += 3;
         }  /* if */
