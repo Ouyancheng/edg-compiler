@@ -1523,7 +1523,7 @@ way described by octl.
   }  /* if */
 #endif /* LONG_DOUBLE_AS_DOUBLE_IN_GENERATED_C */
 #endif /* BACK_END_IS_C_GEN_BE */
-  str = float_kind_name(kind, octl->c_generating_back_end ||
+  str = float_kind_name(kind, octl->c_generating_back_end || C_mode() ||
                         (octl->gen_compilable_code &&
                          gcc_is_generated_code_target &&
                          gnu_target_version_number >= 130000));
