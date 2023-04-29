@@ -11,7 +11,7 @@ as initializers for unrelated enumerator constants.  For example:
   enum class Y { y = X::x };  // Now accepted with a warning in some modes.
 
 
-4/28/23   [EDGcpfe/24643]
+4/28/23  [EDGcpfe/24643]
 Spurious substitution failure for __integer_pack
 
 When explicit template arguments are substituted into the function type,
