@@ -66,7 +66,7 @@ GNU compatibility: _Float32, _Float64, and _Float128 types
 Version 13.1.0 of gcc supports the floating-point types _Float32, _Float64,
 and _Float128 in both C and C++.  In C++ modes, the types are synonyms for
 the C23 extended floating-point types std::float32_t, std::float64_t, and
-std::Float128_t, respectively (see
+std::float128_t, respectively (see
 EDGcpfe/25100,EDGcpfe/25170,EDGcpfe/25515).  Also, g++ does not enforce the
 restrictions against lossy conversions required for the extended
 floating-point types.  The front end has now been changed to emulate these
