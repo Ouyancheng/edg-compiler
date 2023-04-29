@@ -1,6 +1,6 @@
 Version 6.5
 
-4/28/23   [EDGcpfe/24594,EDGcpfe/26275]
+4/28/23  [EDGcpfe/24594,EDGcpfe/26275]
 Nonstandard implicit conversion from scoped enum type
 
 In Microsoft C++ mode and in the GNU C++ mode with gnu_version between 50000
