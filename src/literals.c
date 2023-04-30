@@ -828,7 +828,12 @@ of the resulting diagnostic.
         switch (actual_end[-1]) {
           case '1':
             if (*actual_end == '6') {
-              kind = fk_std_float16;
+              if (C_mode() && float16_enabled) {
+                /* Use the non-extended version of _Float16. */
+                kind = fk_float16;
+              } else {
+                kind = fk_std_float16;
+              }  /* if */
               actual_end -= 3;
             }  /* if */
             break;
