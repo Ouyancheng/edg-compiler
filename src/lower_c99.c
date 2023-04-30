@@ -1208,6 +1208,26 @@ done:;
 
 #if LOWER_COMPLEX || LOWER_FIXED_POINT
 
+static inline a_float_kind map_extended_float_kinds(a_float_kind fkind)
+/*
+Map certain extended floating-point kinds (i.e., ones that we have an
+implementation for) to existing floating-point formats that use the same
+floating-point format.
+*/
+{
+  if (fkind == fk_std_float16) {
+    fkind = fk_float16;
+  } else if (fkind == fk_std_float32) {
+    fkind = fk_float;
+  } else if (fkind == fk_std_float64) {
+    fkind = fk_double;
+  } else if (fkind == fk_std_float128) {
+    fkind = fk_float128;
+  }  /* if */
+  return fkind;
+}  /* map_extended_float_kinds */
+
+
 /*
 Typedef for a list of library routine names that perform the same function
 but on complex types with different underlying floating-point types.  Used
@@ -1225,6 +1245,7 @@ Return names[fkind] (a string naming the given floating-point precision).
 {
   a_const_char *result;
 
+  fkind = map_extended_float_kinds(fkind);
   check_assertion((int)fkind < (int)fk_first_extended_type);
   result = names[(int)fkind];
   check_assertion(result != NULL);
@@ -1277,6 +1298,7 @@ lowered IL.
 {
   a_type_ptr  result = NULL;
 
+  fkind = map_extended_float_kinds(fkind);
   switch (fkind) {
     case fk_float16:
       if (lowered_complex_float16 == NULL) {
