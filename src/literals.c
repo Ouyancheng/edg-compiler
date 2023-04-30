@@ -828,11 +828,11 @@ of the resulting diagnostic.
         switch (actual_end[-1]) {
           case '1':
             if (*actual_end == '6') {
-              if (C_mode() && float16_enabled) {
-                /* Use the non-extended version of _Float16. */
-                kind = fk_float16;
-              } else {
+              if (gnu_mode && gnu_version >= 130000) {
+                /* gcc makes _Float16 and std::float16_t synonyms. */
                 kind = fk_std_float16;
+              } else {
+                kind = fk_float16;
               }  /* if */
               actual_end -= 3;
             }  /* if */

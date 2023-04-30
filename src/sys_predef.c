@@ -1164,7 +1164,9 @@ Enter predeclared symbols as required by the implementation.
 #endif /* 0 */
   if (float16_enabled) {
     (void)enter_predefined_typedef(
-                             "_Float16", float_type((a_float_kind)fk_float16));
+               "_Float16",
+               (gnu_mode && gnu_version >= 130000) ? float_type(fk_std_float16)
+                                                   : float_type(fk_float16));
   }  /* if */
   if (float80_enabled) {
     (void)enter_predefined_typedef(
