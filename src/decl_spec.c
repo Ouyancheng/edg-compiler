@@ -12563,7 +12563,9 @@ exit_loop:
       } else if (basic_type == bt_typedef &&
                  (*type_ptr)->variant.typeref.predeclared &&
                  type_is(skip_typerefs(*type_ptr), tk_float) &&
-                 skip_typerefs(*type_ptr)->variant.float_kind == fk_float16) {
+                 (skip_typerefs(*type_ptr)->variant.float_kind == fk_float16 ||
+                  skip_typerefs(*type_ptr)->variant.float_kind ==
+                                                             fk_std_float16)) {
         /* _Complex _Float16 */
         basic_type = bt_float16;
         bad_complex_combination = FALSE;
