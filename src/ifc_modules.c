@@ -10703,7 +10703,6 @@ corresponding type, return an error type.
         { Opt<an_ifc_type_placeholder> opt_itp;
 
           construct_node(&opt_itp, type_idx);
-          check_assertion(FALSE)
           if (!opt_itp.has_value()) {
             goto invalid;
           }  /* if */
