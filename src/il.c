@@ -23257,6 +23257,23 @@ already indicates the load.
           case eok_real_part:
           case eok_imag_part:
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
+          case eok_question:
+          case eok_assign:
+          case eok_add_assign:
+          case eok_subtract_assign:
+          case eok_multiply_assign:
+          case eok_divide_assign:
+          case eok_remainder_assign:
+          case eok_shiftl_assign:
+          case eok_shiftr_assign:
+          case eok_and_assign:
+          case eok_or_assign:
+          case eok_xor_assign:
+          case eok_padd_assign:
+          case eok_psubtract_assign:
+          case eok_pre_incr:
+          case eok_pre_decr:
+          case eok_comma:
             rvalueable = TRUE;
             break;
           case eok_base_class_cast:
@@ -23267,13 +23284,6 @@ already indicates the load.
                that case the result is rvalueable. */
             rvalueable = is_class_struct_union_type(node->type) &&
                          is_glvalue_node(node->variant.operation.operands);
-            break;
-          case eok_question:
-            /* If the second and third operands of an rvalue eok_question
-               are glvalues, then the expression is rvaluable. */
-            rvalueable =
-                 is_glvalue_node(node->variant.operation.operands->next) &&
-                 is_glvalue_node(node->variant.operation.operands->next->next);
             break;
           case eok_lvalue_cast:  /* Not rvalueable; when converted to an
                                     rvalue it gets rewritten as a normal
@@ -29851,7 +29861,7 @@ static a_byte lvalue_rvalue_test[(int)eok_last+1] = {
 					LVRV_OPND2_IS_PRVALUE,
   /* eok_vector_lor: */			LVRV_OPND1_IS_PRVALUE |
 					LVRV_OPND2_IS_PRVALUE,
-  /* eok_comma: */			LVRV_OPND2_IS_GLVALUE_IF_EXPR_IS,
+  /* eok_comma: */			LVRV_NO_REQUIREMENTS,
   /* eok_subscript: */			LVRV_OPND1_IS_PRVALUE |
 					LVRV_OPND2_IS_PRVALUE,
   /* eok_vector_subscript: */		LVRV_OPND2_IS_PRVALUE,
@@ -29867,8 +29877,7 @@ static a_byte lvalue_rvalue_test[(int)eok_last+1] = {
   /* eok_points_to_static: */		LVRV_OPND1_IS_PRVALUE |
 					LVRV_OPND2_IS_GLVALUE_IF_EXPR_IS,
   /* eok_virtual_function_ptr: */	LVRV_OPND1_IS_PRVALUE,
-  /* eok_question: */			LVRV_OPND1_IS_PRVALUE |
-					LVRV_OPND2_IS_GLVALUE_IF_EXPR_IS,
+  /* eok_question: */			LVRV_OPND1_IS_PRVALUE,
   /* eok_vector_question: */		LVRV_OPND1_IS_PRVALUE |
 					LVRV_OPND2_IS_GLVALUE_IF_EXPR_IS,
   /* eok_call: */			LVRV_OPND1_IS_PRVALUE,

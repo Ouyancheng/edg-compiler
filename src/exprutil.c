@@ -21377,6 +21377,22 @@ the value there, and return the address of the new constant.
 }  /* fold_constant_base_class_cast */
 
 
+static inline
+void simple_glvalue_to_prvalue(an_expr_node  *node,
+                               a_type_ptr    prvalue_node_type)
+/*
+Turn a glvalue expression node into a prvalue node by clearing the is_lvalue
+and is_xvalue flags, recording the original lvalue type, and replacing the
+node type by prvalue_node_type.
+*/
+{
+  node->is_lvalue = FALSE;
+  node->is_xvalue = FALSE;
+  node->orig_lvalue_type = node->type;
+  node->type = prvalue_node_type;
+}  /* simple_glvalue_to_prvalue */
+
+
 an_expr_node_ptr conv_glvalue_expr_to_prvalue(an_expr_node_ptr  node,
                                               a_boolean         *constant_case,
                                               a_constant_ptr    *con_value,
@@ -21470,9 +21486,7 @@ it might produce an error).
             switch_back_to_original_region(region_to_switch_back_to);
           } else {
             /* Just make the original node an rvalue. */
-            node->is_lvalue = FALSE;
-            node->is_xvalue = FALSE;
-            node->type = prvalue_node_type;
+            simple_glvalue_to_prvalue(node, prvalue_node_type);
           }  /* if */
         } else {
           /* Below, we'll record the expression for the constant, so make
@@ -21555,8 +21569,7 @@ it might produce an error).
       }  /* if */
       processed = TRUE;
       node->variant.operation.returns_lvalue_instead_of_usual_rvalue = FALSE;
-      node->is_lvalue = node->is_xvalue = FALSE;
-      node->type = prvalue_node_type;
+      simple_glvalue_to_prvalue(node, prvalue_node_type);
     } else {
       /* Operations that don't have returns_lvalue_instead_of_usual_rvalue
          set. */
@@ -21569,8 +21582,7 @@ it might produce an error).
           if (constexpr_enabled && allow_folding != NULL &&
               fold_constexpr_member_selection(node, result_con)) {
             con_expr_value = alloc_shareable_constant(result_con);
-            node->is_lvalue = node->is_xvalue = FALSE;
-            node->type = prvalue_node_type;
+            simple_glvalue_to_prvalue(node, prvalue_node_type);
             processed = TRUE;
           }  /* if */
           break;
@@ -21586,6 +21598,7 @@ it might produce an error).
                                     /*force_prvalue=*/FALSE)) {
               /* x.*y, where x is a constexpr object. */
               con_expr_value = alloc_shareable_constant(result_con);
+              node->orig_lvalue_type = node->type;
               node->type = prvalue_node_type;
               processed = TRUE;
             } else {
@@ -21604,17 +21617,14 @@ it might produce an error).
             /* Indirection through a constexpr pointer that points to an
                object with a constant value.  Use that value as the result
                of the expression. */
-            node->is_lvalue = node->is_xvalue = FALSE;
-            node->type = prvalue_node_type;
+            simple_glvalue_to_prvalue(node, prvalue_node_type);
             processed = TRUE;
           } else if (allow_folding != NULL && is_constant_node(op1)) {
             if (node_constant_is(op1, ck_template_param)) {
               /* A dependent expression.  Treat it as a prvalue template
                  constant. */
               template_constant = TRUE;
-              node->is_lvalue = FALSE;
-              node->is_xvalue = FALSE;
-              node->type = prvalue_node_type;
+              simple_glvalue_to_prvalue(node, prvalue_node_type);
               processed = TRUE;
             } else if (gnu_mode || microsoft_mode) {
               /* The GNU compilers accept an expression like *&(S){{0}} as
@@ -21628,8 +21638,7 @@ it might produce an error).
                   (con_expr_value = var_constant_value(var)) != NULL) {
                 if (microsoft_mode || (gnu_mode && var->is_compound_literal)) {
                   /* Use the constant as the value of the expression. */
-                  node->is_lvalue = node->is_xvalue = FALSE;
-                  node->type = prvalue_node_type;
+                  simple_glvalue_to_prvalue(node, prvalue_node_type);
                   processed = TRUE;
                 } else {
                   /* The expression cannot be folded. */
@@ -21646,8 +21655,7 @@ it might produce an error).
             /* Indirection through a constexpr reference that refers to an
                object with a constant value.  Use that value as the result
                of the expression. */
-            node->is_lvalue = node->is_xvalue = FALSE;
-            node->type = prvalue_node_type;
+            simple_glvalue_to_prvalue(node, prvalue_node_type);
             processed = TRUE;
           }  /* if */
           break;
@@ -21663,8 +21671,7 @@ it might produce an error).
                                                    node_constant(op2),
                                                    result_con)) {
                 con_expr_value = alloc_shareable_constant(result_con);
-                node->is_lvalue = node->is_xvalue = FALSE;
-                node->type = prvalue_node_type;
+                simple_glvalue_to_prvalue(node, prvalue_node_type);
                 processed = TRUE;
               }  /* if */
             }  /* if */
@@ -21672,8 +21679,7 @@ it might produce an error).
           break;
         case eok_cli_subscript:
           /* C++/CLI array subscript.  Can never be folded to a constant. */
-          node->is_lvalue = node->is_xvalue = FALSE;
-          node->type = prvalue_node_type;
+          simple_glvalue_to_prvalue(node, prvalue_node_type);
           processed = TRUE;
           break;
         case eok_dot_static:
@@ -21682,10 +21688,8 @@ it might produce an error).
              second operand, unless the first operand is template-dependent. */
           if (expr_is_instantiation_dependent(op1)) {
             /* Wait until substitution to perform the transformation. */
-            op2->is_lvalue = op2->is_xvalue = FALSE;
-            op2->type = prvalue_node_type;
-            node->is_lvalue = node->is_xvalue = FALSE;
-            node->type = prvalue_node_type;
+            simple_glvalue_to_prvalue(op2, prvalue_node_type);
+            simple_glvalue_to_prvalue(node, prvalue_node_type);
             processed = TRUE;
             break;
           }  /* if */
@@ -21705,8 +21709,7 @@ it might produce an error).
                             is_error_node(op1));
             con_expr_value = node_constant(op2);
           }  /* if */
-          node->is_lvalue = node->is_xvalue = FALSE;
-          node->type = prvalue_node_type;
+          simple_glvalue_to_prvalue(node, prvalue_node_type);
           if (con_expr_value != NULL &&
               curr_il_region_number == file_scope_region_number &&
               innermost_function_scope != NULL) {
@@ -21752,8 +21755,7 @@ it might produce an error).
               con_expr_value = alloc_shareable_constant(result_con);
             }  /* if */
           }  /* if */
-          node->is_lvalue = node->is_xvalue = FALSE;
-          node->type = prvalue_node_type;
+          simple_glvalue_to_prvalue(node, prvalue_node_type);
           processed = TRUE;
           break;
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -21763,8 +21765,7 @@ it might produce an error).
           if (constexpr_enabled && allow_folding != NULL) {
             con_expr_value = constant_value_addressed_by_node(node);
           }  /* if */
-          node->is_lvalue = node->is_xvalue = FALSE;
-          node->type = prvalue_node_type;
+          simple_glvalue_to_prvalue(node, prvalue_node_type);
           processed = TRUE;
           break;
         case eok_parens:
@@ -21780,6 +21781,7 @@ it might produce an error).
             con_expr_value = node_constant(op1);
           }  /* if */
           node->is_lvalue = node->is_xvalue = FALSE;
+          node->orig_lvalue_type = op1->orig_lvalue_type;
           node->type = op1->type;
           processed = TRUE;
           break;
@@ -21845,8 +21847,7 @@ lvalue_adjust:
                                         &did_not_fold, err_pos);
               if (!did_not_fold) {
                 con_expr_value = alloc_shareable_constant(result_con);
-                node->is_lvalue = node->is_xvalue = FALSE;
-                node->type = prvalue_node_type;
+                simple_glvalue_to_prvalue(node, prvalue_node_type);
                 processed = TRUE;
               }  /* if */
             }  /* if */
@@ -21879,8 +21880,7 @@ lvalue_adjust:
           /* You can get a prvalue by setting is_lvalue to FALSE to cause
              a fetch from the boxed entity, but the operation is not
              rvalueable. */
-          node->is_lvalue = node->is_xvalue = FALSE;
-          node->type = prvalue_node_type;
+          simple_glvalue_to_prvalue(node, prvalue_node_type);
           processed = TRUE;
           break;
         default:
@@ -21932,8 +21932,7 @@ lvalue_adjust:
       /* The operand is now constant so the overall expression is constant. */
       con_expr_value = node_constant(converted);
     }  /* if */
-    node->is_lvalue = node->is_xvalue = FALSE;
-    node->type = converted->type;
+    simple_glvalue_to_prvalue(node, converted->type);
     processed = TRUE;
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
   }  /* if */
@@ -22010,9 +22009,7 @@ lvalue_adjust:
       unexpected_condition_str("conv_glvalue_expr_to_prvalue: bad expr");
     }  /* if */
 #endif /* CHECKING */
-    node->is_lvalue = node->is_xvalue = FALSE;
-    node->orig_lvalue_type = node->type;
-    node->type = prvalue_node_type;
+    simple_glvalue_to_prvalue(node, prvalue_node_type);
   }  /* if */
   if (con_expr_value != NULL) {
     /* The expression is constant-valued. */
