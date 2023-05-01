@@ -16346,7 +16346,19 @@ context to help inform decisions about what to cache.
             }  /* if */
           }  /* if */
         }  /* for */
-        if (lookahead_ctp == NULL || lookahead_ctp->token != tok_lparen) {
+        if (lookahead_ctp != NULL && lookahead_ctp->token == tok_lparen) {
+          /* Check to see if the next token is a lparen. */
+        } else if (lookahead_ctp->token == tok_rparen &&
+                   lookahead_ctp->next != NULL &&
+                   lookahead_ctp->next->token == tok_lparen) {
+          /* Check to see if the next token is a rparen followed by a lparen.
+             This can happen when the function name is wrapped in parens.  If
+             this occurs, the value of lookahead_ctp is advanced to correctly
+             target the lparen. */
+          lookahead_ctp = lookahead_ctp->next;
+        } else {
+          /* None of the acceptable patterns were matched, try again on the
+             next token. */
           goto next_tok;
         }  /* if */
         /* Catch up to the lparen as the name matched. */
