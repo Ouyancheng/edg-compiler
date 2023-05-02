@@ -16345,7 +16345,14 @@ context to help inform decisions about what to cache.
             }  /* if */
           }  /* if */
         }  /* for */
-        if (lookahead_ctp != NULL && lookahead_ctp->token == tok_lparen) {
+        /* The name matched, now attempt to see if there's an lparen (or rparen
+           followed by a lparen) which should introduce the
+           parameter-declaration-clause. */
+        if (lookahead_ctp == NULL) {
+          /* Check to see if we've run out of tokens, if so the next token
+             can't possibly be a lparen. */
+          goto next_tok;
+        } else if (lookahead_ctp->token == tok_lparen) {
           /* Check to see if the next token is a lparen. */
         } else if (lookahead_ctp->token == tok_rparen &&
                    lookahead_ctp->next != NULL &&
