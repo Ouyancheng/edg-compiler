@@ -23274,6 +23274,8 @@ already indicates the load.
           case eok_pre_incr:
           case eok_pre_decr:
           case eok_comma:
+          case eok_dot_static:
+          case eok_points_to_static:
             rvalueable = TRUE;
             break;
           case eok_base_class_cast:
@@ -23290,8 +23292,6 @@ already indicates the load.
                                     cast. */
           case eok_parens:       /* Not rvalueable: to change to an rvalue,
                                     change the underlying operand too. */
-          case eok_dot_static:   /* Ditto. */
-          case eok_points_to_static:    /* Ditto. */
           case eok_unbox:        /* Not rvalueable: the version with is_lvalue
                                     FALSE does a fetch, but it's an inherent
                                     part of the operation, not an implicit
@@ -29873,9 +29873,8 @@ static a_byte lvalue_rvalue_test[(int)eok_last+1] = {
   /* eok_dot_pm_func_ptr */		LVRV_OPND2_IS_PRVALUE,
   /* eok_points_to_pm_func_ptr */	LVRV_OPND1_IS_PRVALUE |
 					LVRV_OPND2_IS_PRVALUE,
-  /* eok_dot_static: */			LVRV_OPND2_IS_GLVALUE_IF_EXPR_IS,
-  /* eok_points_to_static: */		LVRV_OPND1_IS_PRVALUE |
-					LVRV_OPND2_IS_GLVALUE_IF_EXPR_IS,
+  /* eok_dot_static: */			LVRV_NO_REQUIREMENTS,
+  /* eok_points_to_static: */		LVRV_OPND1_IS_PRVALUE,
   /* eok_virtual_function_ptr: */	LVRV_OPND1_IS_PRVALUE,
   /* eok_question: */			LVRV_OPND1_IS_PRVALUE,
   /* eok_vector_question: */		LVRV_OPND1_IS_PRVALUE |
