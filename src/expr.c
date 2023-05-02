@@ -32819,11 +32819,17 @@ that case.
          operator with exactly one throw operand to have a value category
          corresponding to the other operand. */
       if (is_throw_operand(&operand_2)) {
+        do_operand_transformations(&operand_3,
+                                   TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION |
+                                   TOPT_SUPPRESS_ARRAY_TO_POINTER_CONVERSION);
         result_is_an_xvalue = is_an_xvalue(&operand_3);
         result_is_a_glvalue = is_an_lvalue(&operand_3) ||
                               is_a_function_designator(&operand_3) ||
                               result_is_an_xvalue;
       } else {
+        do_operand_transformations(&operand_2,
+                                   TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION |
+                                   TOPT_SUPPRESS_ARRAY_TO_POINTER_CONVERSION);
         result_is_an_xvalue = is_an_xvalue(&operand_2);
         result_is_a_glvalue = is_an_lvalue(&operand_2) ||
                               is_a_function_designator(&operand_2) ||

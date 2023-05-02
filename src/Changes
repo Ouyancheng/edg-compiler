@@ -1,5 +1,19 @@
 Version 6.5
 
+5/2/23   [EDGcpfe/26264]
+Abort on template-id in conditional operator with throwing branch
+
+Consider:
+
+  bool b;
+  template<typename> int f();
+  template<typename> auto g()->decltype(b? f<int> : throw 0);
+    // Previously aborted.  Now okay.
+
+This previously aborted in extract_node_from_operand (in exprutil.c, with
+message "converting unexpected operand kind").  That is now fixed.
+
+
 5/2/23   [EDGcpfe/25550]
 new/delete mismatch in constant expressions
 
