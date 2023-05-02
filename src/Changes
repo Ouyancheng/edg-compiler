@@ -1,5 +1,13 @@
 Version 6.5
 
+5/2/23   [EDGcpfe/26268]
+GNU/Clang compatibility: Address of weak variable
+
+Previously, the front end did not allow taking the address of a weak variable
+during constant evaluation.  Now, that is allowed (which matches the behavior
+of GCC and Clang).
+
+
 5/2/23   [EDGcpfe/26264]
 Abort on template-id in conditional operator with throwing branch
 

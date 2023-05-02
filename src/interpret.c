@@ -5211,17 +5211,6 @@ END_DISABLE_GCC_WARNING_STR_OVERFLOW
                      is_pointer_type(con->type))) {
                   ((a_constexpr_address*)value)->flags |= CA_ARRAY_ELEMENT;
                 }  /* if */
-#if GNU_EXTENSIONS_ALLOWED
-                if (vp->is_weak) {
-                  /* Weakly declared variables have no definite address (they
-                     could have a null address). */
-                  info_with_pos_sym(ec_constexpr_weak_address,
-                                    constant_pos(con, ips), symbol_for(vp),
-                                    ips);
-                  do_constexpr_fail(result);
-                  break;
-                }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
               }  /* if */
             }
             break;
@@ -19099,16 +19088,6 @@ the value representation of the integer value.
             a_constant_ptr  con;
             a_byte          *con_ptr;
             a_boolean       saved_flag;
-#if GNU_EXTENSIONS_ALLOWED
-            if (var->is_weak) {
-              /* Weakly declared variables have no definite address (they
-                 could have a null address). */
-              info_with_pos_sym(ec_constexpr_weak_address, &expr->position,
-                                symbol_for(var), ips);
-              do_constexpr_fail(result);
-              break;
-            }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
             if (type_is(tp, tk_array) && tp->incomplete) {
               /* The variable was an array of unknown bound when parsed.
                  However, in the current evaluation context its bound may now
