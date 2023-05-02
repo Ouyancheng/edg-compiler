@@ -317,8 +317,14 @@ request larger chunks are handled in terms of individual calls to alloc_general
 The complete object flag values.
 */
 #define COMPLETE_OBJ_INITIALIZED ((a_byte)0x01)
+			/* Indicates that no part of the object is
+			   uninitialized. */
 #define COMPLETE_OBJ_DYN_ALLOC   ((a_byte)0x02)
-
+			/* Indicates that the object is dynamically allocated
+			   (e.g., with a new-expression). */
+#define COMPLETE_OBJ_ARRAY_DYN_ALLOC   ((a_byte)0x04)
+			/* Indicates that the object is dynamically allocated
+			   using array new syntax. */
 
 #define set_complete_obj_flag(obj, flag)                                     \
   (*((a_byte*)obj-sizeof(a_type_ptr)-1) |= flag)
@@ -9713,6 +9719,7 @@ elements in *p_elem_size.
   an_alloc_seq_number  alloc_seq_number;
   a_constexpr_allocation_ptr
                        allocation = NULL;
+  a_byte               complete_obj_flags = COMPLETE_OBJ_DYN_ALLOC;
 
   elem_tp = orig_elem_tp;
   if (type_is(elem_tp, tk_array)) {
@@ -9792,10 +9799,11 @@ elements in *p_elem_size.
     if (alloc_length == 0) {
       cap->flags |= CA_CANNOT_DEREFERENCE;
     }  /* if */
+    complete_obj_flags |= COMPLETE_OBJ_ARRAY_DYN_ALLOC;
   }  /* if */
   cap->alloc_seq_number = alloc_seq_number;
   *p_elem_size = elem_size;
-  *(cap->complete_object-sizeof(a_type_ptr)-1) |= COMPLETE_OBJ_DYN_ALLOC;
+  set_complete_obj_flag(cap->complete_object, complete_obj_flags);
 done:
   return allocation;
 }  /* do_constexpr_dynamic_alloc */
@@ -10024,6 +10032,12 @@ already-evaluated arguments of the call.
     info_with_pos_num2(ec_constexpr_bad_deallocation_size,
                        &call_node->position, (a_byte_count)alloc_length,
                        elem_size == 0 ? 0 : orig_data_size/elem_size, ips);
+    info_with_pos(ec_constexpr_allocation_pos, &allocation->pos, ips);
+    do_constexpr_fail(result);
+    goto done;
+  }  /* if */
+  if (!complete_obj_flag(cap->complete_object, COMPLETE_OBJ_ARRAY_DYN_ALLOC)) {
+    info_with_pos(ec_constexpr_allocation_mismatch, &call_node->position, ips);
     info_with_pos(ec_constexpr_allocation_pos, &allocation->pos, ips);
     do_constexpr_fail(result);
     goto done;
@@ -14241,6 +14255,13 @@ Evaluate the given delete-expression.
         break;
       }  /* if */
     }  /* for */
+    if (complete_obj_flag(cap->complete_object, COMPLETE_OBJ_ARRAY_DYN_ALLOC)
+                                                      != ndsp->array_delete) {
+      info_with_pos(ec_constexpr_allocation_mismatch, &expr->position, ips);
+      info_with_pos(ec_constexpr_allocation_pos, &allocation->pos, ips);
+      do_constexpr_fail(result);
+      goto done;
+    }  /* if */
   }  /* if */
   free_allocation(ips, allocation);
 done:

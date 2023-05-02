@@ -1,6 +1,23 @@
 Version 6.5
 
 5/2/23   [EDGcpfe/25550]
+new/delete mismatch in constant expressions
+
+Consider, in C++20 mode:
+
+  constexpr bool f() {
+    delete new int[42];
+    return true;
+  }
+  static_assert(f());  // Previously okay.  Now an error.
+
+The call to f() is invalid because a non-array delete-expression is used to
+deallocate storage acquired with an array new-expression.  Previously, the
+front end failed to catch that mismatch.  Now it does (resulting in an error
+for the example above).
+
+
+5/2/23   [EDGcpfe/25550]
 Spurious error on nondependent aggregate with dependent braced initializer
 
 Consider (in C++20 mode):
