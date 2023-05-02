@@ -10159,7 +10159,7 @@ Convert the given IFC calling convention to the corresponding EDG one.
 }  /* conv_calling_convention */
 
 
-an_exception_specification_ptr an_ifc_module::exception_specification(
+static an_exception_specification_ptr exception_specification(
                                          an_ifc_noexcept_specification eh_spec,
                                          a_source_position             *pos)
 /*
@@ -10181,16 +10181,27 @@ position of the function declaration if not.
   result->source_range.end = *pos;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   switch (sort) {
+    case ifc_ns_inferred:
+    case ifc_ns_unenforced:
+      /* FIXME: It is unclear what these sorts mean - leave as unsupported for
+         now. */
+      issue_unsupported_construct_error(eh_spec.get_module(), str_for(sort),
+                                        pos);
+      break;
     case ifc_ns_true:
+      /* This assertion simply ensures the default value of throw_any is
+         FALSE. */
       check_assertion(result->throw_any == FALSE);
       break;
     case ifc_ns_false:
       result->throw_any = TRUE;
       break;
     case ifc_ns_expression:
-      { a_module_token_cache cache;
+      { a_module_token_cache  cache;
+        an_ifc_sentence_index words = get_ifc_words(eh_spec);
+
         result->indeterminate = TRUE;
-        cache_sentence(&cache, get_ifc_words(eh_spec));
+        words.mod->cache_sentence(&cache, words);
         if (!cache.is_valid()) {
           /* FIXME: Should we issue a diagnostic here? */
           result->variant.noexcept_arg = alloc_error_constant();
@@ -10207,14 +10218,6 @@ position of the function declaration if not.
                                 result->variant.token_cache);
         }  /* if */
       }
-      break;
-    /* FIXME: It is unclear what these sorts mean - leave as unsupported for
-       now. */
-    case ifc_ns_inferred:
-      issue_unsupported_construct_error(this, "NoexceptSort::Inferred", pos);
-      break;
-    case ifc_ns_unenforced:
-      issue_unsupported_construct_error(this, "NoexceptSort::Unenforced", pos);
       break;
     /* coverity[dead_error_begin] */
     case ifc_ns_none:
@@ -10251,6 +10254,99 @@ this is an index parameter, update the type supplement and instead return NULL.
   }  /* if */
   return result;
 }  /* make_param_type_from_ifc */
+
+
+static a_boolean add_parameters_to_type(a_routine_type_supplement_ptr rtsp,
+                                        an_ifc_type_index             type_idx)
+/*
+Add the parameter types specified by the given type index to the given routine
+type supplement.  Return TRUE if all parameters are successfully appended;
+otherwise, return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (!is_null_index(type_idx)) {
+    /* The function has parameters. */
+    if (type_idx.sort == ifc_ts_type_tuple) {
+      /* A list of parameters. */
+      Opt<an_ifc_type_tuple> opt_itt;
+
+      construct_node(&opt_itt, type_idx);
+      if (!opt_itt.has_value()) {
+        goto invalid;
+      }  /* if */
+
+      an_ifc_type_tuple     itt = *opt_itt;
+      a_type_heap_traverser traverser(itt);
+      a_param_type_ptr      *prev = &rtsp->param_type_list;
+      for (an_Indexed<an_ifc_heap_type> indexed_iht : traverser) {
+        if (!indexed_iht.has_value()) {
+          goto invalid;
+        }  /* if */
+
+        an_ifc_heap_type  iht = *indexed_iht;
+        an_ifc_index_type idx = get_relative_index(traverser, indexed_iht);
+        an_ifc_type_index indexed_type = get_ifc_value(iht);
+        a_param_type_ptr  ptp = make_param_type_from_ifc(rtsp, indexed_type);
+        if (ptp != NULL) {
+          if (is_error_type(ptp->type)) {
+            goto invalid;
+          }  /* if */
+        } else if (rtsp->has_ellipsis) {
+          ifc_requirement(indexed_type.mod,
+                          idx == get_ifc_cardinality(itt) - 1,
+                          "expected ellipsis to appear at "
+                          "end of parameter list");
+          break;
+        }  /* if */
+
+        ptp->param_num = idx + 1;
+        *prev = ptp;
+        prev = &ptp->next;
+      }  /* for */
+    } else {
+      /* A single parameter. */
+      a_param_type_ptr ptp = make_param_type_from_ifc(rtsp, type_idx);
+
+      if (ptp != NULL && is_error_type(ptp->type)) {
+        goto invalid;
+      }  /* if */
+      rtsp->param_type_list = ptp;
+    }  /* if */
+  }  /* if */
+  goto done;
+invalid:
+  result = FALSE;
+done:
+  return result;
+}  /* add_parameters_to_type */
+
+
+static a_boolean add_routine_qualifiers_to_type(
+                              a_routine_type_supplement_ptr        rtsp,
+                              an_ifc_function_type_traits_bitfield traits)
+/*
+Add the parameter types specified by the given type index to the given routine
+type supplement.  Return TRUE if all parameters are successfully appended;
+otherwise, return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (test_bitmask<ifc_fttb_const>(traits)) {
+    rtsp->qualifiers |= TQ_CONST;
+  }  /* if */
+  if (test_bitmask<ifc_fttb_volatile>(traits)) {
+    rtsp->qualifiers |= TQ_VOLATILE;
+  }  /* if */
+  if (test_bitmask<ifc_fttb_lvalue>(traits)) {
+    rtsp->ref_qualifiers = rqk_lvalue;
+  } else if (test_bitmask<ifc_fttb_rvalue>(traits)) {
+    rtsp->ref_qualifiers = rqk_rvalue;
+  }  /* if */
+  return result;
+}  /* add_routine_qualifiers_to_type */
 
 
 static a_type_ptr type_for_type_index(an_ifc_type_index type_index)
@@ -10554,82 +10650,29 @@ corresponding type, return an error type.
 
           an_ifc_type_function itf = *opt_itf;
           an_ifc_type_index    target = get_ifc_target(itf);
-          an_ifc_type_index    source = get_ifc_source(itf);
-          an_ifc_function_type_traits_bitfield
-                               traits = get_ifc_traits(itf);
-          a_routine_type_supplement_ptr
-                               rtsp;
+          a_type_ptr           return_type = type_for_type_index(target);
           /* Create a routine type with no parameters to start. */
-          result = make_routine_type(type_for_type_index(target),
+          result = make_routine_type(return_type,
                                      (a_type_ptr)NULL, (a_type_ptr)NULL,
                                      (a_type_ptr)NULL, (a_type_ptr)NULL);
-          rtsp = rout_type_supp(result);
-          rtsp->calling_convention =
-                              conv_calling_convention(get_ifc_convention(itf));
-          rtsp->exception_specification =
-                             mod->exception_specification(get_ifc_eh_spec(itf),
-                                                          &error_position);
-          if (test_bitmask<ifc_fttb_const>(traits)) {
-            rtsp->qualifiers |= TQ_CONST;
+
+          a_routine_type_supplement_ptr  rtsp = rout_type_supp(result);
+          an_ifc_calling_convention_sort convention = get_ifc_convention(itf);
+          rtsp->calling_convention = conv_calling_convention(convention);
+
+          an_ifc_noexcept_specification eh_spec = get_ifc_eh_spec(itf);
+          rtsp->exception_specification = exception_specification(
+                                                              eh_spec,
+                                                              &error_position);
+
+          an_ifc_function_type_traits_bitfield traits = get_ifc_traits(itf);
+          if (!add_routine_qualifiers_to_type(rtsp, traits)) {
+            goto invalid;
           }  /* if */
-          if (test_bitmask<ifc_fttb_volatile>(traits)) {
-            rtsp->qualifiers |= TQ_VOLATILE;
-          }  /* if */
-          if (test_bitmask<ifc_fttb_lvalue>(traits)) {
-            rtsp->ref_qualifiers = rqk_lvalue;
-          } else if (test_bitmask<ifc_fttb_rvalue>(traits)) {
-            rtsp->ref_qualifiers = rqk_rvalue;
-          }  /* if */
-          if (!is_null_index(source)) {
-            /* The function has parameters. */
-            if (source.sort == ifc_ts_type_tuple) {
-              /* A list of parameters. */
-              Opt<an_ifc_type_tuple> opt_itt;
 
-              construct_node(&opt_itt, source);
-              if (!opt_itt.has_value()) {
-                goto invalid;
-              }  /* if */
-
-              an_ifc_type_tuple     itt = *opt_itt;
-              a_type_heap_traverser traverser(itt);
-              a_param_type_ptr      *prev = &rtsp->param_type_list;
-              for (an_Indexed<an_ifc_heap_type> indexed_iht : traverser) {
-                if (!indexed_iht.has_value()) {
-                  goto invalid;
-                }  /* if */
-
-                an_ifc_heap_type  iht = *indexed_iht;
-                an_ifc_index_type idx = get_relative_index(traverser,
-                                                           indexed_iht);
-                an_ifc_type_index indexed_type = get_ifc_value(iht);
-                a_param_type_ptr  ptp = make_param_type_from_ifc(rtsp,
-                                                                 indexed_type);
-                if (ptp != NULL) {
-                  if (is_error_type(ptp->type)) {
-                    goto invalid;
-                  }  /* if */
-                } else if (rtsp->has_ellipsis) {
-                  ifc_requirement(indexed_type.mod,
-                                  idx == get_ifc_cardinality(itt) - 1,
-                                  "expected ellipsis to appear at "
-                                  "end of parameter list");
-                  break;
-                }  /* if */
-
-                ptp->param_num = idx + 1;
-                *prev = ptp;
-                prev = &ptp->next;
-              }  /* for */
-            } else {
-              /* A single parameter. */
-              a_param_type_ptr ptp = make_param_type_from_ifc(rtsp, source);
-
-              if (ptp != NULL && is_error_type(ptp->type)) {
-                goto invalid;
-              }  /* if */
-              rtsp->param_type_list = ptp;
-            }  /* if */
+          an_ifc_type_index source = get_ifc_source(itf);
+          if (!add_parameters_to_type(rtsp, source)) {
+            goto invalid;
           }  /* if */
         }
         break;

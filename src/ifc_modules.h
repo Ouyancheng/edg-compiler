@@ -300,9 +300,6 @@ public:
                                               an_ifc_chart_index params,
                                               a_type_ptr         rout_type,
                                               a_boolean          is_consteval);
-  an_exception_specification_ptr exception_specification(
-                                         an_ifc_noexcept_specification eh_spec,
-                                         a_source_position             *pos);
   /* Token caching. */
   template<typename a_Name_Cache_Fn, typename a_Scope_Cache_Fn>
   inline void cache_scope_decl(a_module_token_cache_ptr     cache,
