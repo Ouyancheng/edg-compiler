@@ -26957,7 +26957,7 @@ indication in *rcblock).  rescan_icp is not freed.
   if (dip == NULL) {
     /* No dynamic init entry will be returned if an error occurred. */
     err = TRUE;
-  } else if (braced_init_list != NULL) {
+  } else if (braced_init_list != NULL && dip->rescan_info == NULL) {
     /* Save rescan information for the braced-init-list in init-component
        form. */
     save_rescan_info_for_braced_init_list(dip, braced_init_list);
