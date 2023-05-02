@@ -1,5 +1,24 @@
 Version 6.5
 
+5/2/23   [EDGcpfe/25550]
+Spurious error on nondependent aggregate with dependent braced initializer
+
+Consider (in C++20 mode):
+
+  struct B { int x, y; };
+  struct D: B {};
+  int r = [](auto p) {
+            D d = { p.x, p.y };  // Previously an error.
+            return p.x+p.y;
+          }(D{ 1, 2 });
+
+Previously this produced an error about there being too many initializers
+because the front end could not match the (dependent) braced initializer with
+the (nondependent) type D.  In some cases, there spurious error was a
+regression introduced by the changes for EDGcpfe/22003,EDGcpfe/23814 in
+version 6.3 of the front end.  This is now fixed.
+
+
 4/28/23  [EDGcpfe/24594,EDGcpfe/26275]
 Nonstandard implicit conversion from scoped enum type
 

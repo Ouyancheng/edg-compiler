@@ -1021,7 +1021,7 @@ of the whole initialization (*is) as appropriate.
   a_boolean  pack_expansion = is_pack_expansion_component(icp);
 
   check_assertion(is_template_param_or_nonreal_class_type(gtype) ||
-                  (gpp_mode && is_prototype_instantiation_context()) ||
+                  is_prototype_instantiation_context() ||
                   is_error_type(gtype));
   if (is_designator_component(icp)) {
     /* We don't permit designators in templates because we cannot represent a
@@ -4340,11 +4340,14 @@ the type pointed to is opaque to declaration processing.
     case tk_class:
     case tk_struct:
     case tk_union:
-      if (dtype->variant.class_struct_union.is_nonreal_class) {
+      if (dtype->variant.class_struct_union.is_nonreal_class ||
+          (is_prototype_instantiation_context() &&
+           arg_list_is_dependent(icp))) {
         /* Treat nonreal classes like a template parameter since we don't
-           really know their structure.  GCC also appears not to match the
-           initializer to the class structure in template definitions, even
-           in some cases where the class type is non-dependent. */
+           really know their structure.  Similarly, do not try to match up a
+           dependent initializer list since we cannot distinguish a whole-
+           object initialization from ordinary aggregate element
+           initialization. */
         aggr_init_generic_element(icp, dtype, is, &is->init_con);
       } else {
         check_assertion(is_aggregate_type(dtype));
@@ -4635,11 +4638,13 @@ initializer, already copied and substituted.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       /* Do not insert code here. */
       if (dtype->variant.class_struct_union.is_nonreal_class ||
-          (gpp_mode && is_prototype_instantiation_context())) {
-        /* For nonreal classes, don't attempt to track the class structure.
-           GCC doesn't appear to match the class structure in any prototype
-           instantiation context (even if the type being initialized is non-
-           dependent). */
+          (is_prototype_instantiation_context() &&
+           arg_list_is_dependent(icp))) {
+        /* Treat nonreal classes like a template parameter since we don't
+           really know their structure.  Similarly, do not try to match up a
+           dependent initializer list since we cannot distinguish a whole-
+           object initialization from ordinary aggregate element
+           initialization. */
         is_aggregate = TRUE;
         aggr_init_generic_element(icp, dtype, is, &is->init_con);
       } else {
