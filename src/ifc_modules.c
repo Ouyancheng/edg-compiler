@@ -10629,48 +10629,79 @@ corresponding type, return an error type.
         }
         break;
       case ifc_ts_type_method:
-        { Opt<an_ifc_type_method> opt_itm;
+        { Opt<an_ifc_type_method> opt_method_type;
 
-          construct_node(&opt_itm, type_idx);
-          if (!opt_itm.has_value()) {
-            goto invalid;
-          }  /* if */
-          /* FIXME: Currently unsupported. */
-          issue_unsupported_construct_error(mod, "TypeSort::Method",
-                                            &error_position);
-          goto invalid;
-        }
-      case ifc_ts_type_function:
-        { Opt<an_ifc_type_function> opt_itf;
-
-          construct_node(&opt_itf, type_idx);
-          if (!opt_itf.has_value()) {
+          construct_node(&opt_method_type, type_idx);
+          if (!opt_method_type.has_value()) {
             goto invalid;
           }  /* if */
 
-          an_ifc_type_function itf = *opt_itf;
-          an_ifc_type_index    target = get_ifc_target(itf);
-          a_type_ptr           return_type = type_for_type_index(target);
+          an_ifc_type_method method_type = *opt_method_type;
+          an_ifc_type_index  target = get_ifc_target(method_type);
+          a_type_ptr         return_type = type_for_type_index(target);
           /* Create a routine type with no parameters to start. */
-          result = make_routine_type(return_type,
-                                     (a_type_ptr)NULL, (a_type_ptr)NULL,
-                                     (a_type_ptr)NULL, (a_type_ptr)NULL);
+          result = make_routine_type(return_type);
 
-          a_routine_type_supplement_ptr  rtsp = rout_type_supp(result);
-          an_ifc_calling_convention_sort convention = get_ifc_convention(itf);
+          a_routine_type_supplement_ptr rtsp = rout_type_supp(result);
+          an_ifc_type_index             scope = get_ifc_scope(method_type);
+          a_type_ptr                    scope_type =
+                                                    type_for_type_index(scope);
+          rtsp->this_class = scope_type;
+
+          an_ifc_calling_convention_sort convention =
+                                               get_ifc_convention(method_type);
           rtsp->calling_convention = conv_calling_convention(convention);
 
-          an_ifc_noexcept_specification eh_spec = get_ifc_eh_spec(itf);
+          an_ifc_noexcept_specification eh_spec =
+                                                  get_ifc_eh_spec(method_type);
           rtsp->exception_specification = exception_specification(
                                                               eh_spec,
                                                               &error_position);
 
-          an_ifc_function_type_traits_bitfield traits = get_ifc_traits(itf);
+          an_ifc_function_type_traits_bitfield traits =
+                                                   get_ifc_traits(method_type);
           if (!add_routine_qualifiers_to_type(rtsp, traits)) {
             goto invalid;
           }  /* if */
 
-          an_ifc_type_index source = get_ifc_source(itf);
+          an_ifc_type_index source = get_ifc_source(method_type);
+          if (!add_parameters_to_type(rtsp, source)) {
+            goto invalid;
+          }  /* if */
+        }
+        break;
+      case ifc_ts_type_function:
+        { Opt<an_ifc_type_function> opt_function_type;
+
+          construct_node(&opt_function_type, type_idx);
+          if (!opt_function_type.has_value()) {
+            goto invalid;
+          }  /* if */
+
+          an_ifc_type_function function_type = *opt_function_type;
+          an_ifc_type_index    target = get_ifc_target(function_type);
+          a_type_ptr           return_type = type_for_type_index(target);
+          /* Create a routine type with no parameters to start. */
+          result = make_routine_type(return_type);
+
+          a_routine_type_supplement_ptr  rtsp = rout_type_supp(result);
+          an_ifc_calling_convention_sort convention =
+                                             get_ifc_convention(function_type);
+          rtsp->calling_convention = conv_calling_convention(convention);
+
+          an_ifc_noexcept_specification eh_spec =
+                                                get_ifc_eh_spec(function_type);
+          rtsp->exception_specification = exception_specification(
+                                                              eh_spec,
+                                                              &error_position);
+
+          an_ifc_function_type_traits_bitfield traits =
+                                                 get_ifc_traits(function_type);
+          if (!add_routine_qualifiers_to_type(rtsp, traits)) {
+            goto invalid;
+          }  /* if */
+
+          an_ifc_type_index source = get_ifc_source(function_type);
           if (!add_parameters_to_type(rtsp, source)) {
             goto invalid;
           }  /* if */
