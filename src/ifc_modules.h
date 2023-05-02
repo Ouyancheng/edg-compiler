@@ -529,8 +529,17 @@ extern an_ifc_partition_kind get_partition_kind(an_ifc_Index_type idx);
 template<>
 an_ifc_partition_kind get_partition_kind(an_ifc_partition_kind_index idx);
 
+template<>
+an_ifc_partition_kind get_partition_kind(an_ifc_form_spec_index idx);
+
+template<>
+an_ifc_partition_kind get_partition_kind(an_ifc_scope_index idx);
+
 template<typename an_ifc_Index_type>
 extern an_ifc_index_type get_partition_index(an_ifc_Index_type idx);
+
+template<>
+an_ifc_index_type get_partition_index(an_ifc_scope_index idx);
 
 template<typename an_ifc_Index_type>
 extern an_ifc_partition_metadata *get_partition_metadata(
