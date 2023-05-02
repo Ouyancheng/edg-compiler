@@ -11636,7 +11636,7 @@ See conversion_possible.
         if (src_mant_bits > dst_mant_bits ||
             src_max_exponent > dst_max_exponent) {
           if (gnu_mode) {
-            /* Gcc allows the conversion with a warning. */
+            /* The GNU compilers allow the conversion with a warning. */
             if (!source_is_constant) {
               std_conv->warning_suggested = ec_lossy_conversion;
             }  /* if */
