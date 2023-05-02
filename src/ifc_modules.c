@@ -10726,17 +10726,29 @@ corresponding type, return an error type.
         }
         break;
       case ifc_ts_type_pointer_to_member:
-        { Opt<an_ifc_type_pointer_to_member> opt_itptm;
+        { Opt<an_ifc_type_pointer_to_member> opt_ptr_to_mem_type;
 
-          construct_node(&opt_itptm, type_idx);
-          if (!opt_itptm.has_value()) {
+          construct_node(&opt_ptr_to_mem_type, type_idx);
+          if (!opt_ptr_to_mem_type.has_value()) {
             goto invalid;
           }  /* if */
-          /* FIXME: Currently unsupported. */
-          issue_unsupported_construct_error(mod, "TypeSort::PointerToMember",
-                                            &error_position);
-          goto invalid;
+
+          an_ifc_type_pointer_to_member
+                            ptr_to_mem_type = *opt_ptr_to_mem_type;
+          an_ifc_type_index scope_index = get_ifc_scope(ptr_to_mem_type);
+          a_type_ptr        scope_type = type_for_type_index(scope_index);
+          if (is_error_type(scope_type)) {
+            goto invalid;
+          }  /* if */
+
+          an_ifc_type_index member_index = get_ifc_member(ptr_to_mem_type);
+          a_type_ptr        member_type = type_for_type_index(member_index);
+          if (is_error_type(member_type)) {
+            goto invalid;
+          }  /* if */
+          result = ptr_to_member_type(member_type, scope_type);
         }
+        break;
       case ifc_ts_type_tuple:
         { Opt<an_ifc_type_tuple> opt_itt;
 
