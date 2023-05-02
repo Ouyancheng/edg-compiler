@@ -23256,6 +23256,8 @@ already indicates the load.
 #if C99_IL_EXTENSIONS_SUPPORTED
           case eok_real_part:
           case eok_imag_part:
+          case eok_gnu_min:
+          case eok_gnu_max:
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
           case eok_question:
           case eok_assign:
@@ -23276,6 +23278,7 @@ already indicates the load.
           case eok_comma:
           case eok_dot_static:
           case eok_points_to_static:
+          case eok_unbox_lvalue:
             rvalueable = TRUE;
             break;
           case eok_base_class_cast:
@@ -23296,7 +23299,6 @@ already indicates the load.
                                     FALSE does a fetch, but it's an inherent
                                     part of the operation, not an implicit
                                     lvalue-to-rvalue conversion at the end. */
-          case eok_unbox_lvalue:  /* Ditto. */
           default:
             break;
         }  /* switch */
@@ -29822,10 +29824,8 @@ static a_byte lvalue_rvalue_test[(int)eok_last+1] = {
 					LVRV_OPND2_IS_PRVALUE,
   /* eok_vector_le: */			LVRV_OPND1_IS_PRVALUE |
 					LVRV_OPND2_IS_PRVALUE,
-  /* eok_gnu_min: */			LVRV_OPND1_IS_GLVALUE_IF_EXPR_IS |
-					LVRV_OPND2_IS_GLVALUE_IF_EXPR_IS,
-  /* eok_gnu_max: */			LVRV_OPND1_IS_GLVALUE_IF_EXPR_IS |
-					LVRV_OPND2_IS_GLVALUE_IF_EXPR_IS,
+  /* eok_gnu_min: */			LVRV_NO_REQUIREMENTS,
+  /* eok_gnu_max: */			LVRV_NO_REQUIREMENTS,
   /* eok_assign: */			LVRV_OPND1_IS_GLVALUE |
 					LVRV_OPND2_IS_PRVALUE,
   /* eok_add_assign: */			LVRV_OPND1_IS_GLVALUE |
