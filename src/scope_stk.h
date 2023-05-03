@@ -1398,14 +1398,6 @@ typedef struct a_scope_stack_entry {
 			   being scanned.  This is in the scope stack entry
 			   so that it will automatically nest when
 			   template instantiations are performed. */
-  a_pending_pragma_ptr
-		saved_curr_construct_pragmas;
-			/* When module_load_context_count is non-zero, this is
-			   what was originally in curr_construct_pragmas before
-			   the module load occurred.  This must be restored to
-			   curr_construct_pragmas when the module load is
-			   complete.  NULL when module_load_context_count is
-			   zero. */
   a_scope_depth	next_scope_that_affects_access_control;
 			/* Depth of the first scope stack entry below this
 			   one that has an effect on access control.

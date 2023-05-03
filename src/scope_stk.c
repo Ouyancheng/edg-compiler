@@ -3833,6 +3833,81 @@ scope.  A pointers block to be used for the scope may be specified (or NULL).
   return sp;
 }  /* push_for_init_scope */
 
+namespace {
+
+/*
+A structure containing any state which is saved when reusing a scope for a
+module (via reenter_scope_for_module) that should be restored when done reusing
+the scope (via exit_scope_for_module).
+*/
+struct a_module_scope_reuse_state {
+  a_pending_pragma_ptr
+                curr_construct_pragmas;
+                        /* This is what was originally in
+                           curr_construct_pragmas before the module load
+                           occurred. */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  a_boolean     source_sequence_entries_disallowed
+                        /* This what was originally in
+                           source_sequence_entries_disallowed before the module
+                           load occurred. */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+};  /* a_module_scope_reuse_state */
+
+}  /* namespace */
+
+using a_module_scope_reuse_state_array =
+                                Small_dyn_array<a_module_scope_reuse_state, 3>;
+                        /* The type of an array of module scope reuse states
+                           used for the module reuse state stack. */
+
+static a_module_scope_reuse_state_array
+                *module_reuse_state_stack;
+                        /* The previous module states. */
+
+
+static void reenter_scope_for_module(a_scope_stack_entry_ptr ssep)
+/*
+Reenter the current scope for use by a module.  This function saves the
+previous scope stack entry values relevant to modules for later restoration,
+then resets them to the desired state for use by modules.
+*/
+{
+  a_module_scope_reuse_state state;
+
+  /* Save the state in the state stack. */
+  state.curr_construct_pragmas = ssep->curr_construct_pragmas;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  state.source_sequence_entries_disallowed =
+                                      ssep->source_sequence_entries_disallowed;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  module_reuse_state_stack->push_back(state);
+  /* Clear the state in the current scope stack entry. */
+  ssep->curr_construct_pragmas = NULL;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  ssep->source_sequence_entries_disallowed = TRUE;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+}  /* reenter_scope_for_module */
+
+
+static void exit_scope_for_module(a_scope_stack_entry_ptr ssep)
+/*
+Exit the current scope which has been reused for use by a module.  This
+function restores the previously saved scope stack entry values relevant to
+modules.
+*/
+{
+  /* Restore the saved state from the state stack. */
+  a_module_scope_reuse_state &state = module_reuse_state_stack->back_elem();
+  ssep->curr_construct_pragmas = state.curr_construct_pragmas;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  ssep->source_sequence_entries_disallowed =
+                                      state.source_sequence_entries_disallowed;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  /* Drop the state entry. */
+  module_reuse_state_stack->pop_back();
+}  /* exit_scope_for_module */
+
 
 /* FIXME: These routines are probably overly simplistic and probably have other
    cases to account for. */
@@ -3901,16 +3976,12 @@ mspk_unneccessary.
     *scope_push_status = mspk_new;
   } else {
     ssep->module_load_context_count++;
-    if (ssep->module_load_context_count == 1) {
-      /* This is the first entry into the module load context.  Save off any
-         existing curr_construct_pragmas. */
-      ssep->saved_curr_construct_pragmas = ssep->curr_construct_pragmas;
-      ssep->curr_construct_pragmas = NULL;
-    }  /* if */
+    reenter_scope_for_module(ssep);
     *scope_push_status = mspk_unneccessary;
   }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   source_sequence_entries_disallowed = TRUE;
+  check_assertion(scope_stack_top()->source_sequence_entries_disallowed);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   check_assertion(ssep->module_load_context_count > 0);
   check_assertion(ssep->curr_construct_pragmas == NULL);
@@ -3945,16 +4016,14 @@ called if scope_push_status is mspk_unattempted.
     a_scope_stack_entry_ptr ssep = &scope_stack_top();
     check_assertion(ssep->module_load_context_count > 0 &&
                     ssep->curr_construct_pragmas == NULL);
+    exit_scope_for_module(ssep);
     ssep->module_load_context_count--;
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-    if (ssep->module_load_context_count == 0) {
-      source_sequence_entries_disallowed =
-                                      ssep->source_sequence_entries_disallowed;
-      ssep->curr_construct_pragmas = ssep->saved_curr_construct_pragmas;
-      ssep->saved_curr_construct_pragmas = NULL;
-    }  /* if */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  /* Restore the previous global state. */
+  source_sequence_entries_disallowed =
+                                      ssep->source_sequence_entries_disallowed;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   /* A template declaration may have cleared this - reset it now. */
   /* FIXME: This seems expensive to do it here - is there a better way to
      determine if it's needed? */
@@ -8962,9 +9031,7 @@ new top-of-stack entry with information from the entry that has been popped.
                                    new_ssep->depth_template_declaration_scope;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     source_sequence_entries_disallowed =
-                                 (new_ssep->module_load_context_count == 0) ?
-                                 new_ssep->source_sequence_entries_disallowed :
-                                 TRUE;
+                                  new_ssep->source_sequence_entries_disallowed;
     if (ssep->source_sequence_list != NULL) {
       /* Merge the source sequence list from the previous top stack entry into
          the new one. */
@@ -13724,6 +13791,9 @@ of the front end.
   avail_names_hidden_by_old_for_init = NULL;
   name_linkage_stack = NULL;
   avail_name_linkage_stack_entries = NULL;
+  module_reuse_state_stack = alloc_fe_of_type(
+                                             a_module_scope_reuse_state_array);
+  construct(module_reuse_state_stack);
   avail_function_shareable_constants_tables = NULL;
   avail_pack_expansion_stack_entries = NULL;
   avail_pack_expansion_descrs = NULL;
