@@ -3847,7 +3847,7 @@ struct a_module_scope_reuse_state {
                            curr_construct_pragmas before the module load
                            occurred. */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  a_boolean     source_sequence_entries_disallowed
+  a_boolean     source_sequence_entries_disallowed;
                         /* This what was originally in
                            source_sequence_entries_disallowed before the module
                            load occurred. */
@@ -3981,7 +3981,7 @@ mspk_unneccessary.
   }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   source_sequence_entries_disallowed = TRUE;
-  check_assertion(scope_stack_top()->source_sequence_entries_disallowed);
+  check_assertion(scope_stack_top().source_sequence_entries_disallowed);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   check_assertion(ssep->module_load_context_count > 0);
   check_assertion(ssep->curr_construct_pragmas == NULL);
@@ -4021,8 +4021,12 @@ called if scope_push_status is mspk_unattempted.
   }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   /* Restore the previous global state. */
-  source_sequence_entries_disallowed =
+  {
+    a_scope_stack_entry_ptr ssep = &scope_stack_top();
+
+    source_sequence_entries_disallowed =
                                       ssep->source_sequence_entries_disallowed;
+  }
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   /* A template declaration may have cleared this - reset it now. */
   /* FIXME: This seems expensive to do it here - is there a better way to
