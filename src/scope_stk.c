@@ -11951,7 +11951,7 @@ is found, NULL is returned.
         if (arg_prp->kind == prk_parameter) {
           a_variadic_param_info_ptr	vpip;
           vpip = arg_prp->param_info;
-          if (vpip != NULL &&
+          if (vpip != NULL && vpip->param_type != NULL &&
               vpip->orig_param_type->param_num ==
                                  (uint32_t)expr->variant.param_ref.param_num &&
               (unsigned int)vpip->level == expr->variant.param_ref.levels_up) {
