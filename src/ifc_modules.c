@@ -3495,6 +3495,36 @@ index information to the given symbol.
     }  /* if */
   }  /* if */
   if (!mep->invalid) {
+    if (sym->kind == sk_class_or_struct_tag &&
+        decl_idx.sort == ifc_ds_decl_scope) {
+      /* Check for a scope declaration with a pending definition that is not
+         yet mapped. */
+      an_ifc_decl_scope scope_decl;
+
+      /* To construct the tokens preceding the tok_ifc_decl, the corresponding
+         IFC node must have been previously used successfully; thus, it's safe
+         to directly construct. */
+      construct_node_prechecked(&scope_decl, decl_idx);
+
+      an_ifc_reachable_properties_bitfield properties =
+                                                get_ifc_properties(scope_decl);
+
+      if (test_bitmask<ifc_rpb_initializer>(properties)) {
+        /* Record the presence of a definition. */
+        an_il_entry_kind kind;
+        char             *il_entity = il_entry_for_symbol(sym, &kind);
+
+        /* This assertion should hold as we've already checked that we're
+           working with a type symbol, the corresponding IL entity should
+           always be a type. */
+        check_assertion(kind == iek_type);
+
+        a_type_ptr type = (a_type_ptr)il_entity;
+        if (is_null_index(ifc_tag_definitions->get(type))) {
+          ifc_tag_definitions->map(type, decl_idx);
+        }  /* if */
+      }  /* if */
+    }  /* if */
     if (sym->is_class_member || is_local_variable_symbol(sym)) {
       mep->scope = scope_stack[decl_scope_level].il_scope;
 #if CHECKING
@@ -16635,7 +16665,9 @@ decisions about what to cache.
 */
 {
   auto cache_name_fn = [this, cache, name]() {
-    cache_name(cache, name);
+    if (!is_null_index(name)) {
+      cache_name(cache, name);
+    }  /* if */
   };
   auto cache_scope_fn = [this, cache, base, type, decl_idx, scope, &cinfo]() {
     /* Read the fundamental type so that we can determine if we're caching a
@@ -19193,11 +19225,30 @@ about what to cache.
       }
       break;
     case ifc_ds_decl_scope:
-      { an_ifc_decl_scope ids;
+      { an_ifc_decl_scope scope_decl;
 
-        construct_node_prechecked(&ids, decl);
-        cache_scope_decl(cache, decl, get_ifc_type(ids), get_ifc_name(ids),
-                         get_ifc_base(ids), get_ifc_initializer(ids), cinfo);
+        construct_node_prechecked(&scope_decl, decl);
+
+        Opt<a_string> opt_decl_name = name_from_decl(decl);
+        if (!opt_decl_name.has_value()) {
+          goto invalid;
+        }  /* if */
+
+        const a_string &decl_name = *opt_decl_name;
+        if (decl_name.is_empty()) {
+          an_ifc_type_index  type = get_ifc_type(scope_decl);
+          an_ifc_type_index  base = get_ifc_base(scope_decl);
+          an_ifc_scope_index initializer = get_ifc_initializer(scope_decl);
+
+          cache_scope_decl(cache, decl, type, /*name=*/{}, base, initializer,
+                           cinfo);
+        } else {
+          an_ifc_name_index name = get_ifc_name(scope_decl);
+
+          cache_token(cache, tok_class);
+          cache_name(cache, name);
+          cache_token(cache, tok_semicolon);
+        }  /* if */
       }
       break;
     case ifc_ds_decl_enumeration:
