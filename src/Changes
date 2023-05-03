@@ -1,5 +1,26 @@
 Version 6.5
 
+5/3/23   [EDGcpfe/21894,EDGcpfe/24057,EDGcpfe/24481,EDGcpfe/25350,
+          EDGcpfe/26292]
+Microsoft compatibility: Exception specifications and defaulted members
+
+Consider:
+
+  struct X { X() noexcept(false); };
+  struct S {
+    X x;
+    S() noexcept(true) = default;
+  };
+  S s;  // Previously an error in Microsoft modes.  Now okay when
+        // microsoft_version >= 1928.
+
+Older versions of MSVC considered the default constructor of S to be deleted
+because its explicit exception specification doesn't match the implied one.
+However, starting with version 19.28 MSVC handles such cases in a standard way
+and the front end now emulates that in Microsoft C++ modes with
+microsoft_version >= 1928.
+
+
 5/2/23   [EDGcpfe/26268]
 GNU/Clang compatibility: Address of weak variable
 

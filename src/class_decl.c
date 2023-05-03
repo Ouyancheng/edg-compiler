@@ -4525,19 +4525,19 @@ thrown with noexcept(true), std::terminate will be called).
       exception_spec_is_less_restrictive(defaulted, declared)) {
     /* There exists an exception specification mismatch. */
     a_boolean delete_routine = FALSE;
-    if ((microsoft_mode || gpp_version_is(<100000)) &&
+    if ((/*microsoft_mode || */gpp_version_is(<100000)) &&
         rp->is_template_function && !rp->is_specialized) {
-      /* MSVC and GCC define the routine as deleted if it's a template instance
-         having the mismatch. */
+      /* Some versions of MSVC and GCC define the routine as deleted if it's a
+         template instance having the mismatch. */
       delete_routine = TRUE;
-    } else if (microsoft_mode || gpp_version_is(<100000) ||
+    } else if (ms_version_is(<1928) || gpp_version_is(<100000) ||
                clang_version_is(<80100)) {
-      /* By default, follow P1286R2.  Newer versions of GCC and Clang do this
-         as well. */
+      /* By default, follow P1286R2.  Newer versions of GCC, Clang, and MSVC
+         do this as well. */
       if (cpp20_mode) {
         /* Follow P1286R2 in C++20 mode, even when emulating older
            compilers. */
-      } else if (cpp14_mode || ms_version_is(>= 1910) ||
+      } else if (cpp14_mode || ms_version_is(>= 1900) ||
                  gpp_version_is(>= 40900)) {
         /* Some GCC and MSVC versions follow Core issue 1778 in C++11 mode. */
         delete_routine = TRUE;
