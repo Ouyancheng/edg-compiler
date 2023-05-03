@@ -189,6 +189,10 @@ extern a_boolean compare_address_constants(a_constant_ptr  con1,
                                            a_constant_ptr  con2,
                                            int             *p_cmp);
 
+extern a_boolean compare_address_constants_equality(a_constant_ptr  con1,
+                                                    a_constant_ptr  con2,
+                                                    int             *p_cmp);
+
 /*
 Options for constant_glvalue_address and constant_prvalue_pointer.
 */
